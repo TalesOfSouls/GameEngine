@@ -399,6 +399,7 @@ void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data)
 }
 
 // @todo change name. vulkan and directx have different functions for vertex buffer updates
+// @question vertex_count is a count where offset is bytes, this seems inconsistent
 inline
 void gpuapi_vertex_buffer_update(
     uint32 vbo,
@@ -408,6 +409,9 @@ void gpuapi_vertex_buffer_update(
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     // @performance Does this if even make sense or is glBufferSubData always the better choice?
     if (offset) {
+        // @bug press Ctrl+1 = hide and show debug info multiple times and this will trigger an exception
+        //      First I thought I overflow the data but after a couple of tests I even got a bug with very small vertex_count numbers
+        //      Maybe something happens to the void* data content, or the vbo gets unbound?
         glBufferSubData(GL_ARRAY_BUFFER, offset, vertex_size * vertex_count - offset, ((byte *) data) + offset);
     } else {
         glBufferData(GL_ARRAY_BUFFER, vertex_size * vertex_count, data, GL_DYNAMIC_DRAW);

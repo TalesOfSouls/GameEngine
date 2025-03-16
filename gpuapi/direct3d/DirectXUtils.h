@@ -182,12 +182,10 @@ void gpuapi_debug_messenger_setup(ID3D12Device* device)
         directx_debug_callback,
         D3D12_MESSAGE_CALLBACK_FLAG_NONE,
         NULL, // Context (can be used to pass additional data)
-        NULL // Callback cookie (unused)
+        NULL // Callback cookie
     );
 
-    // Set the message count limit to unlimited
     info_queue->SetMessageCountLimit(0);
-
     info_queue->Release();
 }
 
@@ -311,24 +309,25 @@ DXGI_FORMAT gpuapi_texture_format(byte settings)
 D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
     ID3D12Device* device,
     ID3D12GraphicsCommandList* command_buffer,
+    ID3D12Resource** texture_upload_heap,
     ID3D12Resource** texture_resource,
-    int32 descriptorOffset,
+    int32 descriptor_offset,
     ID3D12DescriptorHeap* srv_heap,
     const Texture* texture,
     RingMemory* ring
 ) {
-    DXGI_FORMAT textureFormat = gpuapi_texture_format(texture->image.image_settings);
+    DXGI_FORMAT texture_format = gpuapi_texture_format(texture->image.image_settings);
 
-    D3D12_RESOURCE_DESC textureDesc = {};
-    textureDesc.MipLevels = 1;
-    textureDesc.Format = textureFormat;
-    textureDesc.Width = texture->image.width;
-    textureDesc.Height = texture->image.height;
-    textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    textureDesc.DepthOrArraySize = 1;
-    textureDesc.SampleDesc.Count = 1;
-    textureDesc.SampleDesc.Quality = 0;
-    textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    D3D12_RESOURCE_DESC texture_info = {};
+    texture_info.MipLevels = 1;
+    texture_info.Format = texture_format;
+    texture_info.Width = texture->image.width;
+    texture_info.Height = texture->image.height;
+    texture_info.Flags = D3D12_RESOURCE_FLAG_NONE;
+    texture_info.DepthOrArraySize = 1;
+    texture_info.SampleDesc.Count = 1;
+    texture_info.SampleDesc.Quality = 0;
+    texture_info.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
     D3D12_HEAP_PROPERTIES texture_heap_property = {
         .Type = D3D12_HEAP_TYPE_DEFAULT,
@@ -342,7 +341,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
     if (FAILED(hr = device->CreateCommittedResource(
         &texture_heap_property,
         D3D12_HEAP_FLAG_NONE,
-        &textureDesc,
+        &texture_info,
         D3D12_RESOURCE_STATE_COPY_DEST,
         NULL,
         IID_PPVOID(texture_resource)))
@@ -353,16 +352,16 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
         return {0};
     }
 
-    const D3D12_RESOURCE_DESC DestinationDesc = (*texture_resource)->GetDesc();
-    uint64 uploadBufferSize = 0;
-    ID3D12Device* pDevice = NULL;
-    (*texture_resource)->GetDevice(IID_PPVOID(&pDevice));
-    pDevice->GetCopyableFootprints(&DestinationDesc, 0, 1, 0, NULL, NULL, NULL, &uploadBufferSize);
+    const D3D12_RESOURCE_DESC destination_info = (*texture_resource)->GetDesc();
+    uint64 upload_buffer_size = 0;
+    ID3D12Device* device_temp = NULL;
+    (*texture_resource)->GetDevice(IID_PPVOID(&device_temp));
+    device_temp->GetCopyableFootprints(&destination_info, 0, 1, 0, NULL, NULL, NULL, &upload_buffer_size);
 
     D3D12_RESOURCE_DESC texture_upload_buffer = {
         .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
         .Alignment = 0,
-        .Width = uploadBufferSize,
+        .Width = upload_buffer_size,
         .Height = 1,
         .DepthOrArraySize = 1,
         .MipLevels = 1,
@@ -383,17 +382,17 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
         .VisibleNodeMask = 1
     };
 
-    ID3D12Resource* texture_upload_heap;
+    texture_heap_property.Type = D3D12_HEAP_TYPE_UPLOAD;
     if (FAILED(hr = device->CreateCommittedResource(
         &texture_heap_property,
         D3D12_HEAP_FLAG_NONE,
         &texture_upload_buffer,
         D3D12_RESOURCE_STATE_GENERIC_READ,
         NULL,
-        IID_PPVOID(&texture_upload_heap)))
+        IID_PPVOID((*texture_upload_heap))))
     ) {
-        if (pDevice) {
-            pDevice->Release();
+        if (device_temp) {
+            device_temp->Release();
         }
 
         LOG_1("DirectX12 CreateCommittedResource: %d", {{LOG_DATA_INT32, &hr}});
@@ -403,7 +402,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
     }
 
     int32 pixel_size = image_pixel_size_from_type(texture->image.image_settings);
-    D3D12_SUBRESOURCE_DATA textureData[] = {
+    D3D12_SUBRESOURCE_DATA texture_data[] = {
         {
             .pData = texture->image.pixels,
             .RowPitch = texture->image.width * pixel_size,
@@ -411,43 +410,36 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
         }
     };
 
-    uint32 number_of_resources = ARRAY_COUNT(textureData);
-    uint32 FirstSubresource = 0;
-    uint64 IntermediateOffset = 0;
-    uint64 RequiredSize = 0;
-    uint64 MemToAlloc = (uint64) (sizeof(D3D12_PLACED_SUBRESOURCE_FOOTPRINT) + sizeof(uint32) + sizeof(uint64)) * number_of_resources;
+    uint32 number_of_resources = ARRAY_COUNT(texture_data);
+    uint32 first_subresource = 0;
+    uint64 intermediate_offset = 0;
+    uint64 required_size = 0;
+    uint64 mem_size = (uint64) (sizeof(D3D12_PLACED_SUBRESOURCE_FOOTPRINT) + sizeof(uint32) + sizeof(uint64)) * number_of_resources;
 
-    D3D12_PLACED_SUBRESOURCE_FOOTPRINT* pLayouts = (D3D12_PLACED_SUBRESOURCE_FOOTPRINT *) ring_get_memory(ring, MemToAlloc, 64);
-    uint64* pRowSizesInBytes = (uint64 *) (pLayouts + number_of_resources);
-    uint32* pNumRows = (uint32 *) (pRowSizesInBytes + number_of_resources);
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT* layouts = (D3D12_PLACED_SUBRESOURCE_FOOTPRINT *) ring_get_memory(ring, mem_size, 64);
+    uint64* row_size = (uint64 *) (layouts + number_of_resources);
+    uint32* row_num = (uint32 *) (row_size + number_of_resources);
 
-    pDevice->GetCopyableFootprints(&DestinationDesc, FirstSubresource, number_of_resources, IntermediateOffset, pLayouts, pNumRows, pRowSizesInBytes, &RequiredSize);
-    pDevice->Release();
+    device_temp->GetCopyableFootprints(&destination_info, first_subresource, number_of_resources, intermediate_offset, layouts, row_num, row_size, &required_size);
+    device_temp->Release();
 
-    const D3D12_RESOURCE_DESC IntermediateDesc = texture_upload_heap->GetDesc();
-    if (IntermediateDesc.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER
-        || IntermediateDesc.Width < RequiredSize + pLayouts[0].Offset
-        || RequiredSize > ((size_t) -1)
-        || (DestinationDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER &&
-                (FirstSubresource != 0 || number_of_resources != 1)
+    const D3D12_RESOURCE_DESC intermediate_info = (*texture_upload_heap)->GetDesc();
+    if (intermediate_info.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER
+        || intermediate_info.Width < required_size + layouts[0].Offset
+        || required_size > ((size_t) -1)
+        || (destination_info.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER &&
+                (first_subresource != 0 || number_of_resources != 1)
         )
     ) {
-        if (texture_upload_heap) {
-            texture_upload_heap->Release();
-        }
-
         LOG_1("DirectX12 texture resource setup");
         ASSERT_SIMPLE(false);
 
         return {0};
     }
 
-    byte* pData;
-    if (FAILED(hr = texture_upload_heap->Map(0, NULL, (void **) &pData))) {
-        if (texture_upload_heap) {
-            texture_upload_heap->Release();
-        }
-
+    byte* data;
+    // @question is 0 correct here? Even for multiple function calls?
+    if (FAILED(hr = texture_upload_heap->Map(0, NULL, (void **) &data))) {
         LOG_1("DirectX12 Map: %d", {{LOG_DATA_INT32, &hr}});
         ASSERT_SIMPLE(false);
 
@@ -455,42 +447,42 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
     }
 
     for (uint32 i = 0; i < number_of_resources; ++i) {
-        ASSERT_SIMPLE(pRowSizesInBytes[i] <= ((size_t) -1));
+        ASSERT_SIMPLE(row_size[i] <= ((size_t) -1));
 
-        D3D12_MEMCPY_DEST DestData = { pData + pLayouts[i].Offset, pLayouts[i].Footprint.RowPitch, ((size_t) pLayouts[i].Footprint.RowPitch) * ((size_t) pNumRows[i]) };
-        for (uint32 z = 0; z < pLayouts[i].Footprint.Depth; ++z) {
-            byte* pDestSlice = ((byte *) DestData.pData) + DestData.SlicePitch * z;
-            byte* pSrcSlice = ((byte *) textureData[i].pData) + textureData[i].SlicePitch * ((intptr_t) z);
-            for (uint32 y = 0; y < pNumRows[i]; ++y) {
+        D3D12_MEMCPY_DEST DestData = { data + layouts[i].Offset, layouts[i].Footprint.RowPitch, ((size_t) layouts[i].Footprint.RowPitch) * ((size_t) row_num[i]) };
+        for (uint32 z = 0; z < layouts[i].Footprint.Depth; ++z) {
+            byte* dest_slize = ((byte *) DestData.pData) + DestData.SlicePitch * z;
+            byte* src_slice = ((byte *) texture_data[i].pData) + texture_data[i].SlicePitch * ((intptr_t) z);
+            for (uint32 y = 0; y < row_num[i]; ++y) {
                 memcpy(
-                    pDestSlice + DestData.RowPitch * y,
-                    pSrcSlice + textureData[i].RowPitch * ((intptr_t) y),
-                    (size_t) pRowSizesInBytes[i]
+                    dest_slize + DestData.RowPitch * y,
+                    src_slice + texture_data[i].RowPitch * ((intptr_t) y),
+                    (size_t) row_size[i]
                 );
             }
         }
     }
-    texture_upload_heap->Unmap(0, NULL);
+    (*texture_upload_heap)->Unmap(0, NULL);
 
-    if (DestinationDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER) {
+    if (destination_info.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER) {
         command_buffer->CopyBufferRegion(
-            *texture_resource, 0, texture_upload_heap, pLayouts[0].Offset, pLayouts[0].Footprint.Width
+            *texture_resource, 0, *texture_upload_heap, layouts[0].Offset, layouts[0].Footprint.Width
         );
     } else {
         for (uint32 i = 0; i < number_of_resources; ++i) {
-            D3D12_TEXTURE_COPY_LOCATION Dst = {
+            D3D12_TEXTURE_COPY_LOCATION dst = {
                 .pResource = *texture_resource,
                 .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-                .SubresourceIndex = i + FirstSubresource,
+                .SubresourceIndex = i + first_subresource,
             };
 
-            D3D12_TEXTURE_COPY_LOCATION Src = {
-                .pResource = texture_upload_heap,
+            D3D12_TEXTURE_COPY_LOCATION src = {
+                .pResource = *texture_upload_heap,
                 .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-                .PlacedFootprint = pLayouts[i],
+                .PlacedFootprint = layouts[i],
             };
 
-            command_buffer->CopyTextureRegion(&Dst, 0, 0, 0, &Src, NULL);
+            command_buffer->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
         }
     }
 
@@ -506,20 +498,16 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
     };
     command_buffer->ResourceBarrier(1, &barrier);
 
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Format = textureDesc.Format;
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MipLevels = 1;
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_info = {};
+    srv_info.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv_info.Format = texture_info.Format;
+    srv_info.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srv_info.Texture2D.MipLevels = 1;
 
     D3D12_CPU_DESCRIPTOR_HANDLE srv_handle = srv_heap->GetCPUDescriptorHandleForHeapStart();
-    device->CreateShaderResourceView(*texture_resource, &srvDesc, srv_handle);
+    device->CreateShaderResourceView(*texture_resource, &srv_info, srv_handle);
 
-    if (texture_upload_heap) {
-        texture_upload_heap->Release();
-    }
-
-    srv_handle.ptr += descriptorOffset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    srv_handle.ptr += descriptor_offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     return srv_handle;
 }
@@ -575,15 +563,15 @@ void gpuapi_vertex_buffer_create(
     }
 
     // Copy the triangle data to the vertex buffer
-    uint8* pVertexDataBegin;
+    uint8* vertex_data_begin;
     // We do not intend to read from this resource on the CPU
-    D3D12_RANGE readRange = {};
-    if (FAILED(hr = (*vertex_buffer)->Map(0, &readRange, (void **) &pVertexDataBegin))) {
+    D3D12_RANGE read_range = {};
+    if (FAILED(hr = (*vertex_buffer)->Map(0, &read_range, (void **) &vertex_data_begin))) {
         LOG_1("DirectX12 Map: %d", {{LOG_DATA_INT32, &hr}});
         ASSERT_SIMPLE(false);
     }
 
-    memcpy(pVertexDataBegin, vertices, vertex_size * vertex_count);
+    memcpy(vertex_data_begin, vertices, vertex_size * vertex_count);
     (*vertex_buffer)->Unmap(0, NULL);
 
     // Initialize the vertex buffer view
@@ -592,6 +580,7 @@ void gpuapi_vertex_buffer_create(
     vertex_buffer_view->SizeInBytes = vertex_size * vertex_count;
 }
 
+// @question vertex_count is a count where offset is bytes, this seems inconsistent
 void gpuapi_vertex_buffer_update(
     ID3D12Resource* vertex_buffer,
     const void* __restrict vertices,
@@ -600,22 +589,23 @@ void gpuapi_vertex_buffer_update(
     uint32 offset = 0
 )
 {
-    uint64 size = vertex_count * vertex_size;
+    uint64 size = vertex_count * vertex_size - offset;
 
-    uint8* pVertexDataBegin;
-    D3D12_RANGE readRange = {};
-    D3D12_RANGE writeRange = { offset, offset + size };
+    uint8* vertex_data_begin;
+    D3D12_RANGE read_range = {};
+    D3D12_RANGE write_range = { offset, offset + size };
 
     HRESULT hr;
-    if (FAILED(hr = vertex_buffer->Map(0, &readRange, (void**)&pVertexDataBegin))) {
+    if (FAILED(hr = vertex_buffer->Map(0, &read_range, (void**) &vertex_data_begin))) {
         LOG_1("DirectX12 Map: %d", {{LOG_DATA_INT32, &hr}});
         ASSERT_SIMPLE(false);
         return;
     }
 
-    memcpy(pVertexDataBegin + offset, vertices, size);
+    // @bug Isn't this wrong? isn't size - offset?
+    memcpy(vertex_data_begin + offset, ((byte *) vertices) + offset, size);
 
-    vertex_buffer->Unmap(0, &writeRange);
+    vertex_buffer->Unmap(0, &write_range);
 }
 
 // In directx this is actually called a constant buffer
@@ -661,11 +651,11 @@ void gpuapi_uniform_buffers_create(
         NULL,
         IID_PPV_ARGS(uniform_buffer));
 
-    D3D12_RANGE readRange = {};
+    D3D12_RANGE read_range = {};
 
-    uint8* pCBDataBegin;
-    (*uniform_buffer)->Map(0, &readRange, (void **) &pCBDataBegin);
-    memcpy(pCBDataBegin, &data, buffer_size);
+    uint8* data_begin;
+    (*uniform_buffer)->Map(0, &read_range, (void **) &data_begin);
+    memcpy(data_begin, &data, buffer_size);
     (*uniform_buffer)->Unmap(0, NULL);
 }
 
@@ -675,13 +665,13 @@ void gpuapi_uniform_buffer_update(
     uint32 buffer_size
 )
 {
-    D3D12_RANGE readRange = {};
-    uint8* pCBDataBegin = nullptr;
-    uniform_buffer->Map(0, &readRange, (void **) &pCBDataBegin);
+    D3D12_RANGE read_range = {};
+    uint8* data_begin = NULL;
+    uniform_buffer->Map(0, &read_range, (void **) &data_begin);
 
-    memcpy(pCBDataBegin, data, buffer_size);
+    memcpy(data_begin, data, buffer_size);
 
-    uniform_buffer->Unmap(0, nullptr);
+    uniform_buffer->Unmap(0, NULL);
 }
 
 #endif

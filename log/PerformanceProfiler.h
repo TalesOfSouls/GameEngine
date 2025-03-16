@@ -55,6 +55,7 @@
 struct PerformanceProfileResult {
     atomic_64 const char* name;
 
+    // WARNING: rdtsc doesn't really return cycle count but we will just call it that
     atomic_64 int64 total_cycle;
     atomic_64 int64 self_cycle;
 
@@ -88,7 +89,7 @@ struct PerformanceProfiler {
     PerformanceProfiler(
         int32 id, const char* scope_name, const char* info = NULL,
         bool stateless = false, bool should_log = false
-    ) {
+    ) noexcept {
         if (!_perf_active || !*_perf_active) {
             this->is_active = false;
 
@@ -120,7 +121,7 @@ struct PerformanceProfiler {
         }
     }
 
-    ~PerformanceProfiler() {
+    ~PerformanceProfiler() noexcept {
         if (!this->is_active) {
             return;
         }

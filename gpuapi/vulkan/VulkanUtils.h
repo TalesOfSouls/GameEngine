@@ -98,16 +98,16 @@ int32 vulkan_check_validation_layer_support(const char** validation_layers, uint
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
 
     for (uint32 i = 0; i < validation_layer_count; ++i) {
-        bool layerFound = false;
+        bool layer_found = false;
 
         for (uint32 j = 0; j < layer_count; ++j) {
             if (str_compare(validation_layers[i], available_layers[j].layerName) == 0) {
-                layerFound = true;
+                layer_found = true;
                 break;
             }
         }
 
-        if (!layerFound) {
+        if (!layer_found) {
             return -((int32) (i + 1));
         }
     }
@@ -123,16 +123,16 @@ int32 vulkan_check_extension_support(const char** extensions, uint32 extension_c
     vkEnumerateInstanceExtensionProperties(NULL, &ext_count, available_extensions);
 
     for (uint32 i = 0; i < extension_count; ++i) {
-        bool layerFound = false;
+        bool layer_found = false;
 
         for (uint32 j = 0; j < ext_count; ++j) {
             if (str_compare(extensions[i], available_extensions[j].extensionName) == 0) {
-                layerFound = true;
+                layer_found = true;
                 break;
             }
         }
 
-        if (!layerFound) {
+        if (!layer_found) {
             return -((int32) (i + 1));
         }
     }
@@ -655,16 +655,16 @@ void vulkan_framebuffer_create(
             swapchain_image_views[i]
         };
 
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = render_pass;
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = attachments;
-        framebufferInfo.width = swapchain_extent.width;
-        framebufferInfo.height = swapchain_extent.height;
-        framebufferInfo.layers = 1;
+        VkFramebufferCreateInfo framebuffer_info = {};
+        framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebuffer_info.renderPass = render_pass;
+        framebuffer_info.attachmentCount = 1;
+        framebuffer_info.pAttachments = attachments;
+        framebuffer_info.width = swapchain_extent.width;
+        framebuffer_info.height = swapchain_extent.height;
+        framebuffer_info.layers = 1;
 
-        if ((result = vkCreateFramebuffer(device, &framebufferInfo, NULL, &framebuffers[i])) != VK_SUCCESS) {
+        if ((result = vkCreateFramebuffer(device, &framebuffer_info, NULL, &framebuffers[i])) != VK_SUCCESS) {
             LOG_1("Vulkan vkCreateFramebuffer: %d", {{LOG_DATA_INT32, (int32 *) &result}});
             ASSERT_SIMPLE(false);
         }
@@ -1001,143 +1001,144 @@ void load_texture_to_gpu(
 }
 
 // @todo Rename to same name as opengl (or rename opengl obviously)
+// @question vertex_count is a count where offset is bytes, this seems inconsistent
 void gpuapi_vertex_buffer_update(
     VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue,
     VkBuffer* vertex_buffer,
     const void* __restrict vertices, int32 vertex_size, int32 vertex_count, int32 offset = 0
 )
 {
-    VkDeviceSize bufferSize = vertex_size * vertex_count;
+    VkDeviceSize buffer_size = vertex_size * vertex_count;
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_buffer_memory;
     vulkan_buffer_create(
         device, physical_device,
-        bufferSize,
+        buffer_size,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer, stagingBufferMemory
+        staging_buffer, staging_buffer_memory
     );
 
     void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices, (size_t) bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &data);
+    memcpy(data, vertices, (size_t) buffer_size);
+    vkUnmapMemory(device, staging_buffer_memory);
 
-    VkCommandBuffer commandBuffer;
-    gpuapi_command_buffer_create(device, command_pool, &commandBuffer, 1);
-    vulkan_single_commands_begin(commandBuffer);
+    VkCommandBuffer command_buffer;
+    gpuapi_command_buffer_create(device, command_pool, &command_buffer, 1);
+    vulkan_single_commands_begin(command_buffer);
 
-    VkBufferCopy copyRegion = {};
-    copyRegion.srcOffset = offset;
-    copyRegion.dstOffset = offset;
-    copyRegion.size = bufferSize;
-    vkCmdCopyBuffer(commandBuffer, stagingBuffer, *vertex_buffer, 1, &copyRegion);
-    vulkan_single_commands_end(queue, commandBuffer);
+    VkBufferCopy copy_region = {};
+    copy_region.srcOffset = offset;
+    copy_region.dstOffset = offset;
+    copy_region.size = buffer_size - offset;
+    vkCmdCopyBuffer(command_buffer, staging_buffer, *vertex_buffer, 1, &copy_region);
+    vulkan_single_commands_end(queue, command_buffer);
 
-    vulkan_single_commands_free(device, command_pool, commandBuffer);
+    vulkan_single_commands_free(device, command_pool, command_buffer);
 
-    vkDestroyBuffer(device, stagingBuffer, NULL);
-    vkFreeMemory(device, stagingBufferMemory, NULL);
+    vkDestroyBuffer(device, staging_buffer, NULL);
+    vkFreeMemory(device, staging_buffer_memory, NULL);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, bufferSize - offset);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, buffer_size - offset);
 }
 
 void gpuapi_vertex_buffer_create(
     VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue,
-    VkBuffer* vertex_buffer, VkDeviceMemory vertex_bufferMemory,
+    VkBuffer* vertex_buffer, VkDeviceMemory vertex_buffer_memory,
     const void* __restrict vertices, int32 vertex_size, int32 vertex_count
 )
 {
-    VkDeviceSize bufferSize = vertex_size * vertex_count;
+    VkDeviceSize buffer_size = vertex_size * vertex_count;
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_buffer_memory;
     vulkan_buffer_create(
         device, physical_device,
-        bufferSize,
+        buffer_size,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer, stagingBufferMemory
+        staging_buffer, staging_buffer_memory
     );
 
     void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices, (size_t) bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &data);
+    memcpy(data, vertices, (size_t) buffer_size);
+    vkUnmapMemory(device, staging_buffer_memory);
 
     // @question do I need to delete the vertex buffer (memory) on scene switch?
     vulkan_buffer_create(
         device, physical_device,
-        bufferSize,
+        buffer_size,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        *vertex_buffer, vertex_bufferMemory
+        *vertex_buffer, vertex_buffer_memory
     );
 
     // Copy buffer
     // @performance Would it make sense to use a "global" temp buffer for that? If yes, we only need to reset
-    VkCommandBuffer commandBuffer;
-    gpuapi_command_buffer_create(device, command_pool, &commandBuffer, 1);
-    vulkan_single_commands_begin(commandBuffer);
+    VkCommandBuffer command_buffer;
+    gpuapi_command_buffer_create(device, command_pool, &command_buffer, 1);
+    vulkan_single_commands_begin(command_buffer);
 
-    VkBufferCopy copyRegion = {};
-    copyRegion.size = bufferSize;
-    vkCmdCopyBuffer(commandBuffer, stagingBuffer, *vertex_buffer, 1, &copyRegion);
-    vulkan_single_commands_end(queue, commandBuffer);
+    VkBufferCopy copy_region = {};
+    copy_region.size = buffer_size;
+    vkCmdCopyBuffer(command_buffer, staging_buffer, *vertex_buffer, 1, &copy_region);
+    vulkan_single_commands_end(queue, command_buffer);
 
     // @todo if we change behaviour according to the comment above we don't need this
-    vulkan_single_commands_free(device, command_pool, commandBuffer);
+    vulkan_single_commands_free(device, command_pool, command_buffer);
 
-    vkDestroyBuffer(device, stagingBuffer, NULL);
-    vkFreeMemory(device, stagingBufferMemory, NULL);
+    vkDestroyBuffer(device, staging_buffer, NULL);
+    vkFreeMemory(device, staging_buffer_memory, NULL);
 }
 
 void vulkan_index_buffer_create(
     VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue,
-    VkBuffer indexBuffer, VkDeviceMemory indexBufferMemory,
+    VkBuffer index_buffer, VkDeviceMemory index_buffer_memory,
     const uint16* __restrict indices, int32 index_count
 ) {
-    VkDeviceSize bufferSize = sizeof(uint16) * index_count;
+    VkDeviceSize buffer_size = sizeof(uint16) * index_count;
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_buffer_memory;
     vulkan_buffer_create(
         device, physical_device,
-        bufferSize,
+        buffer_size,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer, stagingBufferMemory
+        staging_buffer, staging_buffer_memory
     );
 
     void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices, (size_t) bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkMapMemory(device, staging_buffer_memory, 0, buffer_size, 0, &data);
+    memcpy(data, indices, (size_t) buffer_size);
+    vkUnmapMemory(device, staging_buffer_memory);
 
     vulkan_buffer_create(
         device, physical_device,
-        bufferSize,
+        buffer_size,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        indexBuffer, indexBufferMemory
+        index_buffer, index_buffer_memory
     );
 
     // Copy buffer
-    VkCommandBuffer commandBuffer;
-    gpuapi_command_buffer_create(device, command_pool, &commandBuffer, 1);
-    vulkan_single_commands_begin(commandBuffer);
+    VkCommandBuffer command_buffer;
+    gpuapi_command_buffer_create(device, command_pool, &command_buffer, 1);
+    vulkan_single_commands_begin(command_buffer);
 
-    VkBufferCopy copyRegion = {};
-    copyRegion.size = bufferSize;
-    vkCmdCopyBuffer(commandBuffer, stagingBuffer, indexBuffer, 1, &copyRegion);
-    vulkan_single_commands_end(queue, commandBuffer);
+    VkBufferCopy copy_region = {};
+    copy_region.size = buffer_size;
+    vkCmdCopyBuffer(command_buffer, staging_buffer, index_buffer, 1, &copy_region);
+    vulkan_single_commands_end(queue, command_buffer);
 
     // @todo if we change behaviour according to the comment above we don't need this
-    vulkan_single_commands_free(device, command_pool, commandBuffer);
+    vulkan_single_commands_free(device, command_pool, command_buffer);
 
-    vkDestroyBuffer(device, stagingBuffer, NULL);
-    vkFreeMemory(device, stagingBufferMemory, NULL);
+    vkDestroyBuffer(device, staging_buffer, NULL);
+    vkFreeMemory(device, staging_buffer_memory, NULL);
 }
 
 
@@ -1151,17 +1152,17 @@ void gpuapi_uniform_buffers_create(
 {
     // e.g. uniform_buffer_object_size = sizeof(struct {model; view; proj};)
     // @question Do I really need one uniform_buffer per frames_in_flight? This seems VERY inefficient
-    VkDeviceSize bufferSize = uniform_buffer_object_size;
+    VkDeviceSize buffer_size = uniform_buffer_object_size;
     for (uint32 i = 0; i < frames_in_flight; ++i) {
         vulkan_buffer_create(
             device, physical_device,
-            bufferSize,
+            buffer_size,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             uniform_buffers[i], uniform_buffers_memory[i]
         );
 
-        vkMapMemory(device, uniform_buffers_memory[i], 0, bufferSize, 0, &uniform_buffers_mapped[i]);
+        vkMapMemory(device, uniform_buffers_memory[i], 0, buffer_size, 0, &uniform_buffers_mapped[i]);
     }
 }
 
