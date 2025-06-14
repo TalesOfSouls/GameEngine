@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_COLOR_VISION_DEFICIENCY_H
-#define TOS_COLOR_VISION_DEFICIENCY_H
+#ifndef COMS_COLOR_VISION_DEFICIENCY_H
+#define COMS_COLOR_VISION_DEFICIENCY_H
 
 #include "../stdlib/Types.h"
 

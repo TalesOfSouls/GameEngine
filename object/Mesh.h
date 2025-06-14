@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_OBJECT_MESH_H
-#define TOS_OBJECT_MESH_H
+#ifndef COMS_OBJECT_MESH_H
+#define COMS_OBJECT_MESH_H
 
 #include "Vertex.h"
 #include "../stdlib/Types.h"

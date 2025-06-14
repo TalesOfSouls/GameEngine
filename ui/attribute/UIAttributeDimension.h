@@ -1,5 +1,5 @@
-#ifndef TOS_UI_ATTRIBUTE_DIMENSION_H
-#define TOS_UI_ATTRIBUTE_DIMENSION_H
+#ifndef COMS_UI_ATTRIBUTE_DIMENSION_H
+#define COMS_UI_ATTRIBUTE_DIMENSION_H
 
 #include "../../stdlib/Types.h"
 

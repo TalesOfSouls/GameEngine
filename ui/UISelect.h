@@ -1,5 +1,5 @@
-#ifndef TOS_UI_SELECT_H
-#define TOS_UI_SELECT_H
+#ifndef COMS_UI_SELECT_H
+#define COMS_UI_SELECT_H
 
 #include "../stdlib/Types.h"
 

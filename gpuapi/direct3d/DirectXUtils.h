@@ -6,18 +6,18 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_DIRECTX_UTILS_H
-#define TOS_GPUAPI_DIRECTX_UTILS_H
+#ifndef COMS_GPUAPI_DIRECTX_UTILS_H
+#define COMS_GPUAPI_DIRECTX_UTILS_H
 
 #include "../../stdlib/Types.h"
 #include <windows.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <d3dcommon.h>
-#include "../../../GameEngine/log/Log.h"
-#include "../../../GameEngine/memory/RingMemory.h"
-#include "../../../GameEngine/object/Texture.h"
-#include "../../../GameEngine/image/Image.cpp"
+#include "../../../cOMS/log/Log.h"
+#include "../../../cOMS/memory/RingMemory.h"
+#include "../../../cOMS/object/Texture.h"
+#include "../../../cOMS/image/Image.cpp"
 #include "../../compiler/CompilerUtils.h"
 // #include "../../../EngineDependencies/directx/d3d12.h"
 // #include "../../../EngineDependencies/directx/d3dx12.h"

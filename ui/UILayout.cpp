@@ -1,5 +1,5 @@
-#ifndef TOS_UI_LAYOUT_C
-#define TOS_UI_LAYOUT_C
+#ifndef COMS_UI_LAYOUT_C
+#define COMS_UI_LAYOUT_C
 
 #include <string.h>
 #include "../stdlib/Types.h"
@@ -89,7 +89,7 @@ void ui_layout_assign_children(
             break;
         }
 
-        str_copy_move_until(&pos, block_name, ":");
+        str_copy_move_until(block_name, &pos, ":");
         str_move_past(&pos, '\n');
 
         // Children array (located after the UIElement)
@@ -182,8 +182,8 @@ void layout_from_file_txt(
             continue;
         }
 
-        str_copy_move_until(&pos, block_name, ":"); ++pos;
-        str_copy_move_until(&pos, block_type, " \r\n");
+        str_copy_move_until(block_name, &pos, ":"); ++pos;
+        str_copy_move_until(block_type, &pos, " \r\n");
         str_move_past(&pos, '\n');
 
         // Insert new element
@@ -235,7 +235,7 @@ void layout_from_file_txt(
             continue;
         }
 
-        str_copy_move_until(&pos, block_name, ":");
+        str_copy_move_until(block_name, &pos, ":");
         str_move_past(&pos, '\n');
 
         UIElement* element = (UIElement *) (layout->data + ((HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name))->value);
@@ -268,7 +268,7 @@ void layout_from_file_txt(
             continue;
         }
 
-        str_copy_move_until(&pos, block_name, ":");
+        str_copy_move_until(block_name, &pos, ":");
         str_move_past(&pos, '\n');
         root_children[child++] = ((HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name))->value;
     }

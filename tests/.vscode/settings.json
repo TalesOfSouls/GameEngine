@@ -207,7 +207,7 @@
     "uiwindow.h": "c",
     "uiattributefont.h": "c",
     "renderutils.h": "c",
-    "application.h": "c",
+    "ApplicationData.h": "c",
     "shaderutils.h": "c",
     "uiattributeshadow.h": "c",
     "matrixfloat32.h": "c",

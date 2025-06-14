@@ -6,19 +6,29 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_STRING_UTILS_H
-#define TOS_UTILS_STRING_UTILS_H
+#ifndef COMS_UTILS_STRING_UTILS_H
+#define COMS_UTILS_STRING_UTILS_H
 
 #include <string.h>
+#include <stdarg.h>
 #include "../stdlib/Types.h"
 #include "../utils/TestUtils.h"
 
 #define HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
 #define HAS_CHAR(x, c) (HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
 
-inline constexpr
-size_t str_length(const char* str) noexcept
-{
+// WARNING: We need this function because the other function relies on none-constexpr performance features
+constexpr
+size_t str_length_constexpr(const char* str) noexcept {
+    size_t len = 0;
+    while (str[len] != '\0') {
+        ++len;
+    }
+    return len;
+}
+
+inline
+size_t str_length(const char* str) noexcept {
     const char* ptr = str;
 
     // Align the pointer to the size of size_t
@@ -31,25 +41,35 @@ size_t str_length(const char* str) noexcept
     // Check one longword (size_t) at a time
     const size_t* longword_ptr = (const size_t *) ptr;
     while (true) {
-        size_t longword = *longword_ptr++;
-        if (HAS_ZERO(longword)) {
-            const char* cp = (const char *) (longword_ptr - 1);
-            if (cp[0] == '\0') return cp - str;
-            if (cp[1] == '\0') return cp + 1 - str;
-            if (cp[2] == '\0') return cp + 2 - str;
-            if (cp[3] == '\0') return cp + 3 - str;
-
-            // Are we using 8bytes for size_t?
-            #if SIZE_MAX > 0xFFFFFFFF
-                if (cp[4] == '\0') return cp + 4 - str;
-                if (cp[5] == '\0') return cp + 5 - str;
-                if (cp[6] == '\0') return cp + 6 - str;
-                if (cp[7] == '\0') return cp + 7 - str;
-            #endif
+        // Ensure we don't read past the end of the string
+        const char* end_ptr = (const char *) longword_ptr + sizeof(size_t);
+        for (const char* cp = (const char *) longword_ptr; cp < end_ptr; ++cp) {
+            if (*cp == '\0') {
+                return cp - str;
+            }
         }
+
+        ++longword_ptr;
     }
 }
 
+// WARNING: We need this function because the other function relies on none-constexpr performance features
+inline constexpr
+const char* str_find_constexpr(const char* str, const char* needle) noexcept {
+    size_t needle_len = str_length_constexpr(needle);
+    size_t str_len = str_length_constexpr(str);
+    size_t limit = str_len - needle_len + 1;
+
+    for (size_t i = 0; i < limit; ++i) {
+        if (str[i] == needle[0] && memcmp(&str[i + 1], &needle[1], needle_len - 1) == 0) {
+            return &str[i];
+        }
+    }
+
+    return NULL;
+}
+
+inline
 const char* str_find(const char* str, const char* needle) noexcept {
     size_t needle_len = str_length(needle);
     size_t str_len = str_length(str);
@@ -62,6 +82,107 @@ const char* str_find(const char* str, const char* needle) noexcept {
     }
 
     return NULL;
+}
+
+static const unsigned char TO_LOWER_TABLE[256] = {
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+    0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+    0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
+    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+    0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
+    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+    0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
+    0x40, 'a',  'b',  'c',  'd',  'e',  'f',  'g',
+    'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o',
+    'p',  'q',  'r',  's',  't',  'u',  'v',  'w',
+    'x',  'y',  'z',  0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
+    0x60, 'a',  'b',  'c',  'd',  'e',  'f',  'g',
+    'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o',
+    'p',  'q',  'r',  's',  't',  'u',  'v',  'w',
+    'x',  'y',  'z',  0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
+    0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
+    0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
+    0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
+    0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
+    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
+    0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
+    0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7,
+    0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
+    0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7,
+    0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
+    0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7,
+    0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
+    0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7,
+    0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
+    0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7,
+    0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
+};
+
+static const unsigned char TO_UPPER_TABLE[256] = {
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+    0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+    0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
+    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+    0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
+    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+    0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
+    0x40, 'A',  'B',  'C',  'D',  'E',  'F',  'G',
+    'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O',
+    'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',
+    'X',  'Y',  'Z',  0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
+    0x60, 'A',  'B',  'C',  'D',  'E',  'F',  'G',
+    'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O',
+    'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',
+    'X',  'Y',  'Z',  0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
+    0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
+    0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
+    0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
+    0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
+    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
+    0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
+    0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7,
+    0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
+    0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7,
+    0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
+    0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7,
+    0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
+    0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7,
+    0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
+    0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7,
+    0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
+};
+
+
+inline constexpr
+char toupper_ascii(char c) noexcept
+{
+    return c - 32 * (c >= 'a' && c <= 'z');
+}
+
+inline
+void toupper_ascii(char* str) noexcept
+{
+    while (*str != '\0') {
+        *str -= 32 * (*str >= 'a' && *str <= 'z');
+        ++str;
+    }
+}
+
+inline constexpr
+char tolower_ascii(char c) noexcept
+{
+    return c + 32 * (c >= 'A' && c <= 'Z');
+}
+
+inline
+void tolower_ascii(char* str) noexcept
+{
+    while (*str != '\0') {
+        *str += 32 * (*str >= 'A' && *str <= 'Z');
+        ++str;
+    }
 }
 
 const char* str_find(const char* str, char needle) noexcept {
@@ -206,11 +327,10 @@ int32 utf8_decode(const uint32 codepoint, char* __restrict out) noexcept {
 inline
 int32 utf8_str_length(const char* in) noexcept {
     int32 length = 0;
-    int32 bytes;
     uint32 codepoint;
 
     while (*in) {
-        bytes = utf8_decode(in, &codepoint);
+        int32 bytes = utf8_decode(in, &codepoint);
         if (bytes < 0) {
             return -1;
         }
@@ -238,11 +358,10 @@ void string_to_utf8(const uint32* in, char* out) noexcept {
 inline
 int32 utf8_get_char_at(const char* in, int32 index) noexcept {
     int32 i = 0;
-    int32 bytes_consumed;
     uint32 codepoint;
 
     while (*in) {
-        bytes_consumed = utf8_decode(in, &codepoint);
+        int32 bytes_consumed = utf8_decode(in, &codepoint);
         if (bytes_consumed < 0) {
             return -1;
         }
@@ -264,7 +383,7 @@ void wchar_to_char(wchar_t* str) noexcept
     char* src = (char*) str;
     char* dest = src;
 
-    while (*src != '\0' && src[1] != '\0') {
+    while (*src != '\0' || src[1] != '\0') {
         if (*src != '\0') {
             *dest++ = *src;
         }
@@ -278,7 +397,7 @@ void wchar_to_char(wchar_t* str) noexcept
 inline
 void wchar_to_char(const char* __restrict str, char* __restrict dest) noexcept
 {
-    while (*str != '\0' && str[1] != '\0') {
+    while (*str != '\0' || str[1] != '\0') {
         if (*str != '\0') {
             *dest++ = (char) *str;
         }
@@ -289,7 +408,7 @@ void wchar_to_char(const char* __restrict str, char* __restrict dest) noexcept
     *dest = '\0';
 }
 
-static const bool STR_IS_ALPHA_LOOKUP_TABLE[] = {
+static constexpr const bool STR_IS_ALPHA_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 0-7
     false, false, false, false, false, false, false, false, // 8-15
     false, false, false, false, false, false, false, false, // 16-23
@@ -301,11 +420,11 @@ static const bool STR_IS_ALPHA_LOOKUP_TABLE[] = {
     false, true,  true,  true,  true,  true,  true,  true,  // 64-71 ('A'-'G')
     true,  true,  true,  true,  true,  true,  true,  true,  // 72-79 ('H'-'O')
     true,  true,  true,  true,  true,  true,  true,  true,  // 80-87 ('P'-'W')
-    true,  true,  true, false, false, false, false, false, // 88-95 ('X'-'Z', others)
+    true,  true,  true, false, false, false, false, false,  // 88-95 ('X'-'Z', others)
     false, true,  true,  true,  true,  true,  true,  true,  // 96-103 ('a'-'g')
     true,  true,  true,  true,  true,  true,  true,  true,  // 104-111 ('h'-'o')
     true,  true,  true,  true,  true,  true,  true,  true,  // 112-119 ('p'-'w')
-    true,  true,  true, false, false, false, false, false, // 120-127 ('x'-'z', others)
+    true,  true,  true, false, false, false, false, false,  // 120-127 ('x'-'z', others)
     false, false, false, false, false, false, false, false, // 128-135
     false, false, false, false, false, false, false, false, // 136-143
     false, false, false, false, false, false, false, false, // 144-151
@@ -340,7 +459,7 @@ bool str_is_alpha(const char* str) noexcept {
     return true;
 }
 
-static const bool STR_IS_NUM_LOOKUP_TABLE[] = {
+static constexpr const bool STR_IS_NUM_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 0-7
     false, false, false, false, false, false, false, false, // 8-15
     false, false, false, false, false, false, false, false, // 16-23
@@ -349,13 +468,13 @@ static const bool STR_IS_NUM_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 40-47
     true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
     true,  true,  false, false, false, false, false, false, // 56-63 ('8'-'9', others)
-    false, true,  false, false, false, false, false, false,  // 64-71 ('A'-'G')
-    false, false, false, false, false, false, false, false,  // 72-79 ('H'-'O')
-    false, false, false, false, false, false, false, false,  // 80-87 ('P'-'W')
+    false, true,  false, false, false, false, false, false, // 64-71 ('A'-'G')
+    false, false, false, false, false, false, false, false, // 72-79 ('H'-'O')
+    false, false, false, false, false, false, false, false, // 80-87 ('P'-'W')
     false, false, false, false, false, false, false, false, // 88-95 ('X'-'Z', others)
-    false, false, false, false, false, false, false, false,  // 96-103 ('a'-'g')
-    false, false, false, false, false, false, false, false,  // 104-111 ('h'-'o')
-    false, false, false, false, false, false, false, false,  // 112-119 ('p'-'w')
+    false, false, false, false, false, false, false, false, // 96-103 ('a'-'g')
+    false, false, false, false, false, false, false, false, // 104-111 ('h'-'o')
+    false, false, false, false, false, false, false, false, // 112-119 ('p'-'w')
     false, false, false, false, false, false, false, false, // 120-127 ('x'-'z', others)
     false, false, false, false, false, false, false, false, // 128-135
     false, false, false, false, false, false, false, false, // 136-143
@@ -380,7 +499,7 @@ bool str_is_num(char str) noexcept {
     return STR_IS_NUM_LOOKUP_TABLE[(byte) str];
 }
 
-static const bool STR_IS_ALPHANUM_LOOKUP_TABLE[] = {
+static constexpr const bool STR_IS_ALPHANUM_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 0-7
     false, false, false, false, false, false, false, false, // 8-15
     false, false, false, false, false, false, false, false, // 16-23
@@ -388,15 +507,15 @@ static const bool STR_IS_ALPHANUM_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 32-39
     false, false, false, false, false, false, false, false, // 40-47
     true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
-    true,  true, false, false, false, false, false, false, // 56-63 ('8'-'9', others)
+    true,  true, false, false, false, false, false, false,  // 56-63 ('8'-'9', others)
     false, true,  true,  true,  true,  true,  true,  true,  // 64-71 ('A'-'G')
     true,  true,  true,  true,  true,  true,  true,  true,  // 72-79 ('H'-'O')
     true,  true,  true,  true,  true,  true,  true,  true,  // 80-87 ('P'-'W')
-    true,  true,  true, false, false, false, false, false, // 88-95 ('X'-'Z', others)
+    true,  true,  true, false, false, false, false, false,  // 88-95 ('X'-'Z', others)
     false, true,  true,  true,  true,  true,  true,  true,  // 96-103 ('a'-'g')
     true,  true,  true,  true,  true,  true,  true,  true,  // 104-111 ('h'-'o')
     true,  true,  true,  true,  true,  true,  true,  true,  // 112-119 ('p'-'w')
-    true,  true,  true, false, false, false, false, false, // 120-127 ('x'-'z', others)
+    true,  true,  true, false, false, false, false, false,  // 120-127 ('x'-'z', others)
     false, false, false, false, false, false, false, false, // 128-135
     false, false, false, false, false, false, false, false, // 136-143
     false, false, false, false, false, false, false, false, // 144-151
@@ -591,12 +710,12 @@ int32 uint_to_str(uint64 number, char str[12]) noexcept {
     return i;
 }
 
-static const char HEX_TABLE[] = {
+static constexpr const char HEX_TABLE[] = {
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
     'A', 'B', 'C', 'D', 'E', 'F'
 };
 
-static const bool HEX_LOOKUP_TABLE[256] = {
+static constexpr const bool HEX_LOOKUP_TABLE[256] = {
     false, false, false, false, false, false, false, false, // 0-7
     false, false, false, false, false, false, false, false, // 8-15
     false, false, false, false, false, false, false, false, // 16-23
@@ -605,13 +724,13 @@ static const bool HEX_LOOKUP_TABLE[256] = {
     false, false, false, false, false, false, false, false, // 40-47
     true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
     true,  true,  false, false, false, false, false, false, // 56-63 ('8'-'9', others)
-    false, true,  true,  true,  true,  true,  true,  false,  // 64-71 ('A'-'G')
-    false, false, false, false, false, false, false, false,  // 72-79 ('H'-'O')
-    false, false, false, false, false, false, false, false,  // 80-87 ('P'-'W')
+    false, true,  true,  true,  true,  true,  true,  false, // 64-71 ('A'-'G')
+    false, false, false, false, false, false, false, false, // 72-79 ('H'-'O')
+    false, false, false, false, false, false, false, false, // 80-87 ('P'-'W')
     false, false, false, false, false, false, false, false, // 88-95 ('X'-'Z', others)
-    false, false, false, false, false, false, false, false,  // 96-103 ('a'-'g')
-    false, false, false, false, false, false, false, false,  // 104-111 ('h'-'o')
-    false, false, false, false, false, false, false, false,  // 112-119 ('p'-'w')
+    false, false, false, false, false, false, false, false, // 96-103 ('a'-'g')
+    false, false, false, false, false, false, false, false, // 104-111 ('h'-'o')
+    false, false, false, false, false, false, false, false, // 112-119 ('p'-'w')
     false, false, false, false, false, false, false, false, // 120-127 ('x'-'z', others)
     false, false, false, false, false, false, false, false, // 128-135
     false, false, false, false, false, false, false, false, // 136-143
@@ -737,14 +856,13 @@ int32 str_copy_until(char* __restrict dest, const char* __restrict src, char del
     return len;
 }
 
-// @todo Inconsistent parameter order of dest and src with other functions
 inline
-void str_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim) noexcept
+void str_copy_until(char* __restrict dest, const char* __restrict src, const char* __restrict delim) noexcept
 {
     size_t len = str_length(delim);
 
     while (*src != '\0') {
-        for (int32 i = 0; i < len; ++i) {
+        for (size_t i = 0; i < len; ++i) {
             if (*src == delim[i]) {
                 *dest = '\0';
                 return;
@@ -757,18 +875,18 @@ void str_copy_until(const char* __restrict src, char* __restrict dest, const cha
     *dest = '\0';
 }
 
-inline
+inline constexpr
 void str_copy_short(char* __restrict dest, const char* __restrict src, int32 length) noexcept
 {
     int32 i = -1;
-    while (*src != '\0' && ++i < length) {
+    while (*src != '\0' && ++i < length - 1) {
         *dest++ = *src++;
     }
 
     *dest = '\0';
 }
 
-inline
+inline constexpr
 void str_copy_short(char* __restrict dest, const char* __restrict src) noexcept
 {
     while (*src != '\0') {
@@ -776,6 +894,20 @@ void str_copy_short(char* __restrict dest, const char* __restrict src) noexcept
     }
 
     *dest = '\0';
+}
+
+inline constexpr
+int32 str_copy(char* __restrict dest, const char* __restrict src) noexcept
+{
+    int32 length = 0;
+    while (*src != '\0') {
+        ++length;
+        *dest++ = *src++;
+    }
+
+    *dest = '\0';
+
+    return length;
 }
 
 inline
@@ -809,7 +941,7 @@ void str_copy_long(char* __restrict dest, const char* __restrict src) noexcept
 }
 
 inline
-void str_copy_move_until(const char** __restrict src, char* __restrict dest, char delim) noexcept
+void str_copy_move_until(char* __restrict dest, const char* __restrict* __restrict src, char delim) noexcept
 {
     while (**src != delim && **src != '\0') {
         *dest++ = **src;
@@ -820,7 +952,7 @@ void str_copy_move_until(const char** __restrict src, char* __restrict dest, cha
 }
 
 inline
-void str_copy_move_until(const char** __restrict src, char* __restrict dest, const char* __restrict delim) noexcept
+void str_copy_move_until(char* __restrict dest, const char* __restrict* __restrict src, const char* __restrict delim) noexcept
 {
     size_t len = str_length(delim);
 
@@ -923,7 +1055,7 @@ str_concat_append(char* dst, size_t dst_length, const char* src) noexcept
 
 inline int64
 str_concat_new(
-    char* dst,
+    char* __restrict dst,
     const char* src1, size_t src1_length,
     const char* src2, size_t src2_length
 ) noexcept {
@@ -960,7 +1092,7 @@ void str_concat_append(
 }
 
 inline void
-str_concat_new(char* dst, const char* src, int64 data) noexcept
+str_concat_new(char* __restrict dst, const char* __restrict src, int64 data) noexcept
 {
     size_t src_len = str_length(src);
     memcpy(dst, src, src_len);
@@ -983,7 +1115,7 @@ void str_remove(char* __restrict dst, size_t remove_pos, size_t remove_length) n
 }
 
 inline
-char* strtok(char* str, const char* __restrict delim, char* *key) noexcept {
+char* strtok(char* str, const char* __restrict delim, char** key) noexcept {
     char* result;
     if (str == NULL) {
         str = *key;
@@ -1007,37 +1139,7 @@ char* strtok(char* str, const char* __restrict delim, char* *key) noexcept {
 }
 
 inline constexpr
-char toupper_ascii(char c) noexcept
-{
-    return c - 32 * (c >= 'a' && c <= 'z');
-}
-
-inline
-void toupper_ascii(char* str) noexcept
-{
-    while (*str != '\0') {
-        *str -= 32 * (*str >= 'a' && *str <= 'z');
-        ++str;
-    }
-}
-
-inline constexpr
-char tolower_ascii(char c) noexcept
-{
-    return c + 32 * (c >= 'A' && c <= 'Z');
-}
-
-inline
-void tolower_ascii(char* str) noexcept
-{
-    while (*str != '\0') {
-        *str += 32 * (*str >= 'A' && *str <= 'Z');
-        ++str;
-    }
-}
-
-constexpr inline
-bool str_contains(const char* haystack, const char* needle) noexcept
+bool str_contains(const char* __restrict haystack, const char* __restrict needle) noexcept
 {
     // @performance would it make sense to only check until haystack - strlen(needle)?
     // I'm not sure the strlen overhead is worth it
@@ -1060,7 +1162,32 @@ bool str_contains(const char* haystack, const char* needle) noexcept
     return false;
 }
 
-constexpr inline
+inline constexpr
+bool str_contains(const char* __restrict haystack, const char* __restrict needle, size_t length) noexcept
+{
+    while (*haystack != '\0' && length > 0) {
+        const char* p1 = haystack;
+        const char* p2 = needle;
+        size_t remaining = length;
+
+        while (*p2 != '\0' && remaining > 0 && *p1 == *p2) {
+            ++p1;
+            ++p2;
+            --remaining;
+        }
+
+        if (*p2 == '\0') {
+            return true;
+        }
+
+        ++haystack;
+        --length;
+    }
+
+    return false;
+}
+
+inline constexpr
 int32 str_compare(const char* str1, const char* str2) noexcept
 {
     byte c1, c2;
@@ -1073,6 +1200,7 @@ int32 str_compare(const char* str1, const char* str2) noexcept
     return c1 - c2;
 }
 
+constexpr
 int32 str_compare(const char* str1, const char* str2, size_t n) noexcept
 {
     byte c1 = '\0';
@@ -1128,8 +1256,72 @@ int32 str_compare(const char* str1, const char* str2, size_t n) noexcept
     return c1 - c2;
 }
 
+inline
+int32 str_compare_caseless(const char* str1, const char* str2) noexcept
+{
+    byte c1, c2;
+
+    do {
+        c1 = TO_LOWER_TABLE[(byte) *str1++];
+        c2 = TO_LOWER_TABLE[(byte) *str2++];
+    } while (c1 == c2 && c1 != '\0');
+
+    return c1 - c2;
+}
+
+int32 str_compare_caseless(const char* str1, const char* str2, size_t n) noexcept
+{
+    byte c1 = '\0';
+    byte c2 = '\0';
+
+    if (n >= 4) {
+        size_t n4 = n >> 2;
+
+        do {
+            c1 = TO_LOWER_TABLE[(byte) *str1++];
+            c2 = TO_LOWER_TABLE[(byte) *str2++];
+            if (c1 == '\0' || c1 != c2) {
+                return c1 - c2;
+            }
+
+            c1 = TO_LOWER_TABLE[(byte) *str1++];
+            c2 = TO_LOWER_TABLE[(byte) *str2++];
+            if (c1 == '\0' || c1 != c2) {
+                return c1 - c2;
+            }
+
+            c1 = TO_LOWER_TABLE[(byte) *str1++];
+            c2 = TO_LOWER_TABLE[(byte) *str2++];
+            if (c1 == '\0' || c1 != c2) {
+                return c1 - c2;
+            }
+
+            c1 = TO_LOWER_TABLE[(byte) *str1++];
+            c2 = TO_LOWER_TABLE[(byte) *str2++];
+            if (c1 == '\0' || c1 != c2) {
+                return c1 - c2;
+            }
+        } while (--n4 > 0);
+
+        n &= 3;
+    }
+
+    while (n > 0) {
+        c1 = TO_LOWER_TABLE[(byte) *str1++];
+        c2 = TO_LOWER_TABLE[(byte) *str2++];
+
+        if (c1 == '\0' || c1 != c2) {
+            return c1 - c2;
+        }
+
+        --n;
+    }
+
+    return c1 - c2;
+}
+
 inline constexpr
-bool str_ends_with(const char* str, const char* suffix) noexcept {
+bool str_ends_with(const char* __restrict str, const char* __restrict suffix) noexcept {
     if (!str || !suffix) {
         return false;
     }
@@ -1243,7 +1435,7 @@ void str_move_to_pos(const char** str, int32 pos) noexcept
 }
 
 inline
-void str_move_past(const char** str, char delim) noexcept
+void str_move_past(const char* __restrict* __restrict str, char delim) noexcept
 {
     while (**str != delim && **str != '\0')  {
         ++(*str);
@@ -1287,9 +1479,29 @@ void str_skip_whitespace(const char** str) noexcept
 }
 
 inline
+bool str_is_empty(const char str) noexcept
+{
+    return str == ' ' || str == '\t' || str == '\n' || str == '\r';
+}
+
+inline
+bool str_is_eol(const char str) noexcept
+{
+    return str == '\n' || str == '\r';
+}
+
+inline
 void str_skip_empty(const char** str) noexcept
 {
     while (**str == ' ' || **str == '\t' || **str == '\n' || **str == '\r')  {
+        ++(*str);
+    }
+}
+
+inline
+void str_skip_eol(const char** str) noexcept
+{
+    while (**str == '\n' || **str == '\r')  {
         ++(*str);
     }
 }
@@ -1338,7 +1550,7 @@ void str_skip_until_list(const char** __restrict str, const char* __restrict del
 }
 
 inline
-void hexstr_to_rgba(v4_f32* rgba, const char* hex) noexcept
+void hexstr_to_rgba(v4_f32* __restrict rgba, const char* __restrict hex) noexcept
 {
     if (*hex == '#') {
         ++hex;
@@ -1363,7 +1575,7 @@ void str_pad_right(const char* input, char* output, char pad, size_t len) noexce
     }
 }
 
-inline constexpr
+inline
 void str_pad_left(const char* input, char* output, char pad, size_t len) noexcept {
     size_t input_len = str_length(input);
 
@@ -1480,6 +1692,33 @@ int32 float_to_str(f64 value, char* buffer, int32 precision = 5) noexcept
 }
 
 inline
+void format_time_hh_mm_ss_ms(char time_str[13], int32 hours, int32 minutes, int32 secs, int32 ms) noexcept {
+    time_str[0] = (char) ('0' + (hours / 10));
+    time_str[1] = (char) ('0' + (hours % 10));
+    time_str[2] = ':';
+    time_str[3] = (char) ('0' + (minutes / 10));
+    time_str[4] = (char) ('0' + (minutes % 10));
+    time_str[5] = ':';
+    time_str[6] = (char) ('0' + (secs / 10));
+    time_str[7] = (char) ('0' + (secs % 10));
+    time_str[8] = '.';
+    time_str[9] = (char) ('0' + (ms / 100));
+    time_str[10] = (char) ('0' + ((ms / 10) % 10));
+    time_str[11] = (char) ('0' + (ms % 10));
+    time_str[12] = '\0';
+}
+
+inline
+void format_time_hh_mm_ss_ms(char time_str[13], uint64 ms) noexcept {
+    uint64 seconds = ms / 1000;
+    int32 hours = (seconds / 3600) % 24;
+    int32 minutes = (seconds / 60) % 60;
+    int32 secs = seconds % 60;
+
+    format_time_hh_mm_ss_ms(time_str, hours, minutes, secs, ms % 1000);
+}
+
+inline
 void format_time_hh_mm_ss(char time_str[9], int32 hours, int32 minutes, int32 secs) noexcept {
     time_str[0] = (char) ('0' + (hours / 10));
     time_str[1] = (char) ('0' + (hours % 10));
@@ -1493,10 +1732,10 @@ void format_time_hh_mm_ss(char time_str[9], int32 hours, int32 minutes, int32 se
 }
 
 inline
-void format_time_hh_mm_ss(char time_str[9], uint64 time) noexcept {
-    int32 hours = (time / 3600) % 24;
-    int32 minutes = (time / 60) % 60;
-    int32 secs = time % 60;
+void format_time_hh_mm_ss(char time_str[9], uint64 seconds) noexcept {
+    int32 hours = (seconds / 3600) % 24;
+    int32 minutes = (seconds / 60) % 60;
+    int32 secs = seconds % 60;
 
     format_time_hh_mm_ss(time_str, hours, minutes, secs);
 }
@@ -1512,9 +1751,9 @@ void format_time_hh_mm(char time_str[6], int32 hours, int32 minutes) noexcept {
 }
 
 inline
-void format_time_hh_mm(char time_str[6], uint64 time) noexcept {
-    int32 hours = (time / 3600) % 24;
-    int32 minutes = (time / 60) % 60;
+void format_time_hh_mm(char time_str[6], uint64 seconds) noexcept {
+    int32 hours = (seconds / 3600) % 24;
+    int32 minutes = (seconds / 60) % 60;
 
     format_time_hh_mm(time_str, hours, minutes);
 }
@@ -1524,10 +1763,10 @@ void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) n
     va_start(args, format);
 
     while (*format) {
-        if (*format != '%') {
-            *buffer++ = *format;
-        } else if (*format == '\\' && *(format + 1) == '%') {
+        if (*format == '\\' && format[1] == '%') {
             ++format;
+            *buffer++ = *format;
+        } else if (*format != '%') {
             *buffer++ = *format;
         } else {
             ++format;
@@ -1593,20 +1832,19 @@ void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) n
     va_end(args);
 }
 
-void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __restrict format, ...) noexcept {
+int32 sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __restrict format, ...) noexcept {
     va_list args;
     va_start(args, format);
 
     // We start at 1 since we need 1 char for '\0'
     int32 length = 1;
-    int32 offset;
 
     while (*format && length < buffer_length) {
-        offset = 1;
-        if (*format != '%') {
-            *buffer++ = *format;
-        } else if (*format == '\\' && *(format + 1) == '%') {
+        int32 offset = 1;
+        if (*format == '\\' && format[1] == '%') {
             ++format;
+            *buffer++ = *format;
+        } else if (*format != '%') {
             *buffer++ = *format;
         } else {
             ++format;
@@ -1673,20 +1911,22 @@ void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __re
 
     *buffer = '\0';
     va_end(args);
+
+    return length - 1;
 }
 
 // There are situations where you only want to replace a certain amount of %
-void sprintf_fast_iter(char* buffer, const char* format, ...) noexcept {
+void sprintf_fast_iter(char* __restrict buffer, const char* __restrict format, ...) noexcept {
     va_list args;
     va_start(args, format);
 
     int32 count_index = 0;
 
     while (*format) {
-        if (*format != '%' || count_index >= 1) {
-            *buffer++ = *format;
-        } else if (*format == '\\' && *(format + 1) == '%') {
+        if (*format == '\\' && format[1] == '%') {
             ++format;
+            *buffer++ = *format;
+        } else if (*format != '%' || count_index >= 1) {
             *buffer++ = *format;
         } else {
             ++count_index;

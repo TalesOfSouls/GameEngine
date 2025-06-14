@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_MATH_UTILS_H
-#define TOS_UTILS_MATH_UTILS_H
+#ifndef COMS_UTILS_MATH_UTILS_H
+#define COMS_UTILS_MATH_UTILS_H
 
 #include "../stdlib/Types.h"
 #include "../utils/TestUtils.h"

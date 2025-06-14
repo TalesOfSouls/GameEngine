@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ARCHITECTURE_X86_CPU_INFO_C
-#define TOS_ARCHITECTURE_X86_CPU_INFO_C
+#ifndef COMS_ARCHITECTURE_X86_CPU_INFO_C
+#define COMS_ARCHITECTURE_X86_CPU_INFO_C
 
 #include <stdio.h>
 #include <stdint.h>
@@ -19,11 +19,11 @@
 
 uint64 cpu_info_features() {
     uint64 feature_bitfield = 0;
-    int32 cpuInfo[4] = {0};
+    uint32 cpu_info[4] = {0};
 
-    compiler_cpuid(cpuInfo, 0x00000001);
-    uint32 ecx = (uint32) cpuInfo[2];
-    uint32 edx = (uint32) cpuInfo[3];
+    compiler_cpuid(cpu_info, 0x00000001);
+    uint32 ecx = (uint32) cpu_info[2];
+    uint32 edx = (uint32) cpu_info[3];
 
     // Map ECX features
     if (ecx & (1 << 0)) feature_bitfield |= CPU_FEATURE_SSE3;
@@ -54,9 +54,9 @@ uint64 cpu_info_features() {
     if (edx & (1 << 25)) feature_bitfield |= CPU_FEATURE_SSE;
     if (edx & (1 << 26)) feature_bitfield |= CPU_FEATURE_SSE2;
 
-    compiler_cpuid(cpuInfo, 0x00000007);
-    uint32 ebx = (uint32) cpuInfo[1];
-    uint32 ecx7 = (uint32) cpuInfo[2];
+    compiler_cpuid(cpu_info, 0x00000007);
+    uint32 ebx = (uint32) cpu_info[1];
+    uint32 ecx7 = (uint32) cpu_info[2];
 
     // Map EBX features
     if (ebx & (1 << 3)) feature_bitfield |= CPU_FEATURE_BMI1;
@@ -76,9 +76,9 @@ uint64 cpu_info_features() {
     // Map ECX features
     if (ecx7 & (1 << 0)) feature_bitfield |= CPU_FEATURE_PREFETCHWT1;
 
-    compiler_cpuid(cpuInfo, 0x80000001);
-    uint32 ecx81 = (uint32) cpuInfo[2];
-    uint32 edx81 = (uint32) cpuInfo[3];
+    compiler_cpuid(cpu_info, 0x80000001);
+    uint32 ecx81 = (uint32) cpu_info[2];
+    uint32 edx81 = (uint32) cpu_info[3];
 
     // Map ECX extended features
     if (ecx81 & (1 << 0)) feature_bitfield |= CPU_FEATURE_LAHF;
@@ -98,7 +98,7 @@ uint64 cpu_info_features() {
 }
 
 void cpu_info_cache(byte level, CpuCacheInfo* cache) {
-    uint32 eax, ebx, ecx, edx;
+    uint32 eax, ebx, ecx; //, edx;
     int32 type;
 
     cache->level = level;
@@ -108,12 +108,12 @@ void cpu_info_cache(byte level, CpuCacheInfo* cache) {
     cache->sets = 0;
     cache->line_size = 0;
 
-    int32 regs[4];
-    compiler_cpuid(regs, (0x04 << 8) | level);
+    uint32 regs[4];
+    compiler_cpuid(regs, 0x04, level);
     eax = regs[0];
     ebx = regs[1];
     ecx = regs[2];
-    edx = regs[3];
+    // edx = regs[3];
 
     type = (eax & 0x1F);
 
@@ -123,7 +123,7 @@ void cpu_info_cache(byte level, CpuCacheInfo* cache) {
 
     cache->ways = (byte) ((ebx >> 22) & 0x3FF) + 1;
     cache->partitions = (byte) ((ebx >> 12) & 0x3FF) + 1;
-    cache->line_size = (uint16) (ebx & 0xFFF) + 1;
+    cache->line_size = OMS_MAX((uint16) (ebx & 0xFFF) + 1, 64);
     cache->sets = ecx + 1;
     cache->size = cache->ways * cache->partitions * cache->line_size * cache->sets;
 }

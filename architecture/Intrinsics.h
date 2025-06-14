@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ARCHITECTURE_INTRINSICS_H
-#define TOS_ARCHITECTURE_INTRINSICS_H
+#ifndef COMS_ARCHITECTURE_INTRINSICS_H
+#define COMS_ARCHITECTURE_INTRINSICS_H
 
 #if ARM
     #include "arm/Intrinsics.h"

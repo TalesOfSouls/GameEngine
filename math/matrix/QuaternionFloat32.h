@@ -7,8 +7,8 @@
  * @link      https://jingga.app
  * @link      https://danceswithcode.net/engineeringnotes/quaternions/quaternions.html
  */
-#ifndef TOS_MATH_MATRIX_QUATERNION_FLOAT32_H
-#define TOS_MATH_MATRIX_QUATERNION_FLOAT32_H
+#ifndef COMS_MATH_MATRIX_QUATERNION_FLOAT32_H
+#define COMS_MATH_MATRIX_QUATERNION_FLOAT32_H
 
 #include "../../utils/TestUtils.h"
 #include "MatrixFloat32.h"

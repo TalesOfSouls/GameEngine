@@ -1,5 +1,5 @@
-#ifndef TOS_ENVIRONMENT_GLOBE_H
-#define TOS_ENVIRONMENT_GLOBE_H
+#ifndef COMS_ENVIRONMENT_GLOBE_H
+#define COMS_ENVIRONMENT_GLOBE_H
 
 #include "../stdlib/Types.h"
 #include <math.h>

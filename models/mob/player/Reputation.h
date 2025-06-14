@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_MOB_PLAYER_REPUTATION_H
-#define TOS_MODELS_MOB_PLAYER_REPUTATION_H
+#ifndef COMS_MODELS_MOB_PLAYER_REPUTATION_H
+#define COMS_MODELS_MOB_PLAYER_REPUTATION_H
 
 #include "../../../stdlib/Types.h"
 

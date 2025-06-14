@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_SOUND_WASAPI_H
-#define TOS_SOUND_WASAPI_H
+#ifndef COMS_SOUND_WASAPI_H
+#define COMS_SOUND_WASAPI_H
 
 #include <windows.h>
 #include <mmdeviceapi.h>

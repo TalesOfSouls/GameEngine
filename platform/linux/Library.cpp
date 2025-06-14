@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_LIBRARY_C
-#define TOS_PLATFORM_LINUX_LIBRARY_C
+#ifndef COMS_PLATFORM_LINUX_LIBRARY_C
+#define COMS_PLATFORM_LINUX_LIBRARY_C
 
 #include <stdio.h>
 #include <dlfcn.h>
@@ -18,7 +18,7 @@
 #include "../../stdlib/Types.h"
 #include "../../utils/StringUtils.h"
 #include "../../system/Library.h"
-#include "UtilsLinux.h"
+#include "../../system/FileUtils.cpp"
 
 inline
 bool library_load(Library* lib)
@@ -48,8 +48,10 @@ bool library_load(Library* lib)
     // @question we might want RTLD_NOW?
     lib->handle = dlopen(dst, RTLD_LAZY);
     if (!lib->handle) {
+        LOG_1(dlerror());
+
         lib->is_valid = false;
-        return lib->is_valid;
+        return false;
     }
 
     lib->is_valid = true;
@@ -59,6 +61,7 @@ bool library_load(Library* lib)
             lib->functions[c] = function;
         } else {
             lib->is_valid = false;
+            return false;
         }
     }
 

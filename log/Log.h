@@ -6,21 +6,20 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_LOG_H
-#define TOS_LOG_H
+#ifndef COMS_LOG_H
+#define COMS_LOG_H
 
 #include "../stdlib/Types.h"
 #include "../compiler/CompilerUtils.h"
 #include "../architecture/Intrinsics.h"
+#include "../thread/ThreadDefines.h"
 #include "../utils/StringUtils.h"
-#include "../platform/win32/TimeUtils.h"
+#include "../utils/TimeUtils.h"
 
 /**
  * The logging is both using file logging and in-memory logging.
  * Debug builds also log to the debug console, or alternative standard output if no dedicated debug console is available
  */
-
-#define LOG_DATA_ARRAY 5
 
 #ifndef LOG_LEVEL
     // 0 = no logging at all
@@ -29,7 +28,11 @@
     // 3 = debug logging
     // 4 = most verbose (probably has significant performance impacts)
     #if DEBUG
-        #define LOG_LEVEL 3
+        #if DEBUG_STRICT
+            #define LOG_LEVEL 4
+        #else
+            #define LOG_LEVEL 3
+        #endif
     #elif INTERNAL
         #define LOG_LEVEL 2
     #elif RELEASE
@@ -58,6 +61,9 @@ struct LogMemory {
 
     uint64 size;
     uint64 pos;
+
+    // @performance Should I use spinlock?
+    mutex mtx;
 };
 static LogMemory* _log_memory = NULL;
 
@@ -65,7 +71,9 @@ enum LogDataType {
     LOG_DATA_NONE,
     LOG_DATA_VOID,
     LOG_DATA_BYTE,
+    LOG_DATA_INT16,
     LOG_DATA_INT32,
+    LOG_DATA_UINT16,
     LOG_DATA_UINT32,
     LOG_DATA_INT64,
     LOG_DATA_UINT64,
@@ -93,11 +101,11 @@ struct LogData {
     void* value;
 };
 
+#define LOG_DATA_ARRAY 5
 struct LogDataArray{
     LogData data[LOG_DATA_ARRAY];
 };
 
-// @bug This probably requires thread safety
 byte* log_get_memory() noexcept
 {
     if (_log_memory->pos + MAX_LOG_LENGTH > _log_memory->size) {
@@ -142,13 +150,29 @@ void log_to_file()
     #endif
 }
 
+// Same as log_to_file with the exception that reset the log pos to avoid repeated output
+inline
+void log_flush()
+{
+    if (!_log_memory || _log_memory->pos == 0 || !_log_fp) {
+        return;
+    }
+
+    mutex_lock(&_log_memory->mtx);
+    log_to_file();
+    _log_memory->pos = 0;
+    mutex_unlock(&_log_memory->mtx);
+}
+
 void log(const char* str, const char* file, const char* function, int32 line)
 {
     if (!_log_memory) {
         return;
     }
 
-    int64 len = str_length(str);
+    mutex_lock(&_log_memory->mtx);
+
+    int32 len = str_length(str);
     while (len > 0) {
         LogMessage* msg = (LogMessage *) log_get_memory();
 
@@ -160,15 +184,19 @@ void log(const char* str, const char* file, const char* function, int32 line)
         msg->time = system_time();
         msg->newline = '\n';
 
-        int32 message_length = (int32) OMS_MIN(MAX_LOG_LENGTH - sizeof(LogMessage) - 1, len);
+        int32 message_length = (int32) OMS_MIN((int32) (MAX_LOG_LENGTH - sizeof(LogMessage) - 1), len);
 
         memcpy(msg->message, str, message_length);
         msg->message[message_length] = '\0';
         str += message_length;
         len -= MAX_LOG_LENGTH - sizeof(LogMessage);
 
-        #if DEBUG
+        #if DEBUG || VERBOSE
             // In debug mode we always output the log message to the debug console
+            char time_str[13];
+            format_time_hh_mm_ss_ms(time_str, msg->time / 1000ULL);
+            compiler_debug_print(time_str);
+            compiler_debug_print(" ");
             compiler_debug_print(msg->message);
             compiler_debug_print("\n");
         #endif
@@ -178,6 +206,8 @@ void log(const char* str, const char* file, const char* function, int32 line)
             _log_memory->pos = 0;
         }
     }
+
+    mutex_unlock(&_log_memory->mtx);
 }
 
 void log(const char* format, LogDataArray data, const char* file, const char* function, int32 line)
@@ -192,6 +222,8 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
     }
 
     ASSERT_SIMPLE(str_length(format) + str_length(file) + str_length(function) + 50 < MAX_LOG_LENGTH);
+
+    mutex_lock(&_log_memory->mtx);
 
     LogMessage* msg = (LogMessage *) log_get_memory();
     msg->file = file;
@@ -216,6 +248,12 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
             }   break;
             case LOG_DATA_BYTE: {
                 sprintf_fast_iter(msg->message, temp_format, (int32) *((byte *) data.data[i].value));
+            } break;
+            case LOG_DATA_INT16: {
+                sprintf_fast_iter(msg->message, temp_format, (int32) *((int16 *) data.data[i].value));
+            } break;
+            case LOG_DATA_UINT16: {
+                sprintf_fast_iter(msg->message, temp_format, (uint32) *((uint16 *) data.data[i].value));
             } break;
             case LOG_DATA_INT32: {
                 sprintf_fast_iter(msg->message, temp_format, *((int32 *) data.data[i].value));
@@ -247,8 +285,12 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
         }
     }
 
-    #if DEBUG
+    #if DEBUG || VERBOSE
         // In debug mode we always output the log message to the debug console
+        char time_str[13];
+        format_time_hh_mm_ss_ms(time_str, msg->time / 1000ULL);
+        compiler_debug_print(time_str);
+        compiler_debug_print(" ");
         compiler_debug_print(msg->message);
         compiler_debug_print("\n");
     #endif
@@ -257,9 +299,12 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
         log_to_file();
         _log_memory->pos = 0;
     }
+
+    mutex_unlock(&_log_memory->mtx);
 }
 
 #define LOG_TO_FILE() log_to_file()
+#define LOG_FLUSH() log_flush()
 
 #if LOG_LEVEL == 4
     #define LOG_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)

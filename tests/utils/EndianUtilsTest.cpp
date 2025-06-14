@@ -1,3 +1,4 @@
+#include <string.h>
 #include "../TestFramework.h"
 #include "../../utils/EndianUtils.h"
 
@@ -85,7 +86,7 @@ static void test_endian_swap_uint64() {
 static void test_endian_swap_int64() {
     int64 val = 0x123456789ABCDEF0;
     int64 swapped = endian_swap(val);
-    ASSERT_EQUALS(0xF0DEBC9A78563412, swapped);
+    ASSERT_EQUALS((int64) 0xF0DEBC9A78563412, swapped);
 }
 
 static void test_endian_swap_float() {

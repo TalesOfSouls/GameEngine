@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_SYSTEM_LIBRARY_C
-#define TOS_SYSTEM_LIBRARY_C
+#ifndef COMS_SYSTEM_LIBRARY_C
+#define COMS_SYSTEM_LIBRARY_C
 
 #if _WIN32
     #include "../platform/win32/Library.cpp"

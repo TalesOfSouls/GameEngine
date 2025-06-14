@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_COMPILER_COMPILER_UTILS_H
-#define TOS_COMPILER_COMPILER_UTILS_H
+#ifndef COMS_COMPILER_COMPILER_UTILS_H
+#define COMS_COMPILER_COMPILER_UTILS_H
 
 #include "../utils/TestUtils.h"
 

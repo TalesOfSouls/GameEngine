@@ -6,8 +6,10 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_STDLIB_SIMD_H
-#define TOS_STDLIB_SIMD_H
+#ifndef COMS_STDLIB_SIMD_H
+#define COMS_STDLIB_SIMD_H
+
+#include "../utils/TestUtils.h"
 
 // Adjusts the step size based on the memory alignment
 inline
@@ -34,6 +36,5 @@ int32 intrin_validate_steps(const byte* mem, int32 steps) {
     #include "../architecture/x86/simd/SIMD_I64.h"
     #include "../architecture/x86/simd/SIMD_SVML.h"
 #endif
-
 
 #endif

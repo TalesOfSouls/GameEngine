@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_LOCATION_H
-#define TOS_MODELS_LOCATION_H
+#ifndef COMS_MODELS_LOCATION_H
+#define COMS_MODELS_LOCATION_H
 
 #include "../stdlib/Types.h"
 

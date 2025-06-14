@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ARCHITECTURE_ARM_NEON_UTILS_H
-#define TOS_ARCHITECTURE_ARM_NEON_UTILS_H
+#ifndef COMS_ARCHITECTURE_ARM_NEON_UTILS_H
+#define COMS_ARCHITECTURE_ARM_NEON_UTILS_H
 
 #include <stdlib.h>
 #include "../../../../stdlib/Types.h"
@@ -17,12 +17,12 @@
 
 // @question When do we want to use neon and when do we want to use sve?
 // Only allowed for data >= 64 bits
-bool is_empty(const uint8_t* region, uint64_t size, int32_t steps = 8) {
-    if (*((uint64_t *) region) != 0) {
+bool is_empty(const uint8* region, uint64 size, int32 steps = 8) {
+    if (*((uint64 *) region) != 0) {
         return false;
     }
 
-    const uint8_t* end = region + size;
+    const uint8* end = region + size;
     steps = intrin_validate_steps(region, steps);
 
     switch (steps) {
@@ -85,7 +85,7 @@ bool is_empty(const uint8_t* region, uint64_t size, int32_t steps = 8) {
         }
         case 1: {
             while (region + 4 <= end) {
-                if (*((const uint32_t *) region) != 0) {
+                if (*((const uint32 *) region) != 0) {
                     return false;
                 }
 

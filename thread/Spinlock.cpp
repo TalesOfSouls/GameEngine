@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_THREADS_SPINLOCK_C
-#define TOS_THREADS_SPINLOCK_C
+#ifndef COMS_THREADS_SPINLOCK_C
+#define COMS_THREADS_SPINLOCK_C
 
 #if _WIN32
     #include "../platform/win32/threading/Spinlock.cpp"

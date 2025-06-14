@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_NETWORK_PACKET_CACHE_H
-#define TOS_NETWORK_PACKET_CACHE_H
+#ifndef COMS_NETWORK_PACKET_CACHE_H
+#define COMS_NETWORK_PACKET_CACHE_H
 
 #include "../../memory/RingMemory.h"
 #include "../../memory/BufferMemory.h"

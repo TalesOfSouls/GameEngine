@@ -1,5 +1,5 @@
-#ifndef TOS_UI_ATTRIBUTE_H
-#define TOS_UI_ATTRIBUTE_H
+#ifndef COMS_UI_ATTRIBUTE_H
+#define COMS_UI_ATTRIBUTE_H
 
 #include "../../stdlib/Types.h"
 #include "../../utils/StringUtils.h"
@@ -209,7 +209,7 @@ void ui_attribute_parse_value(UIAttribute* attr, const char* attribute_name, con
     attr->attribute_id = (UIAttributeType) ui_attribute_type_to_id(attribute_name);
     char value[64];
 
-    str_copy_until(pos, value, "\r\n");
+    str_copy_until(value, pos, "\r\n");
 
     if (str_is_integer(value)) {
         attr->value_int = (int32) str_to_int(value);
@@ -222,7 +222,7 @@ void ui_attribute_parse_value(UIAttribute* attr, const char* attribute_name, con
         hexstr_to_rgba(&attr->value_v4_f32, pos);
         attr->datatype = UI_ATTRIBUTE_DATA_TYPE_V4_F32;
     } else {
-        str_copy_until(value, attr->value_str, "\r\n");
+        str_copy_until(attr->value_str, value, "\r\n");
         attr->datatype = UI_ATTRIBUTE_DATA_TYPE_STR;
     }
 }

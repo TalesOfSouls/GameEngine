@@ -6,45 +6,46 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_THREADING_SEMAPHORE_H
-#define TOS_PLATFORM_WIN32_THREADING_SEMAPHORE_H
+#ifndef COMS_PLATFORM_WIN32_THREADING_SEMAPHORE_H
+#define COMS_PLATFORM_WIN32_THREADING_SEMAPHORE_H
 
 #include <windows.h>
 #include "../../../stdlib/Types.h"
+#include "../../../compiler/CompilerUtils.h"
 
-typedef HANDLE sem_t;
+typedef HANDLE sem;
 
-inline
-void sem_init(sem_t* semaphore, int32 value)
+FORCE_INLINE
+void coms_sem_init(sem* semaphore, int32 value)
 {
     *semaphore = CreateSemaphore(NULL, value, MAX_UINT32, NULL);
 }
 
-inline
-void sem_destroy(sem_t* semaphore)
+FORCE_INLINE
+void coms_sem_destroy(sem* semaphore)
 {
     CloseHandle(*semaphore);
 }
 
 // decrement if != 0, if = 0 wait
-inline
-void sem_wait(sem_t* semaphore) {
+FORCE_INLINE
+void coms_sem_wait(sem* semaphore) {
     WaitForSingleObject(*semaphore, INFINITE);
 }
 
-inline
-int32 sem_timedwait(sem_t* semaphore, uint64 ms) {
+FORCE_INLINE
+int32 semimedwait(sem* semaphore, uint64 ms) {
     return (int32) WaitForSingleObject(*semaphore, (DWORD) ms);
 }
 
-inline
-int32 sem_trywait(sem_t* semaphore) {
+FORCE_INLINE
+int32 semrywait(sem* semaphore) {
     return (int32) WaitForSingleObject(*semaphore, 0);
 }
 
 // increment
-inline
-void sem_post(sem_t* semaphore) {
+FORCE_INLINE
+void coms_sem_post(sem* semaphore) {
     ReleaseSemaphore(*semaphore, 1, NULL);
 }
 

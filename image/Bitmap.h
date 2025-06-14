@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_IMAGE_BITMAP_H
-#define TOS_IMAGE_BITMAP_H
+#ifndef COMS_IMAGE_BITMAP_H
+#define COMS_IMAGE_BITMAP_H
 
 #include <stdio.h>
 #include <string.h>
@@ -108,16 +108,16 @@ struct DIB_BITMAPV3INFOHEADER {
 
 };
 
-struct TOS_CIEXYZ {
+struct COMS_CIEXYZ {
     int32 ciexyzX;
     int32 ciexyzY;
     int32 ciexyzZ;
 };
 
-struct TOS_CIEXYZTRIPLE {
-    TOS_CIEXYZ ciexyzRed;
-    TOS_CIEXYZ ciexyzGreen;
-    TOS_CIEXYZ ciexyzBlue;
+struct COMS_CIEXYZTRIPLE {
+    COMS_CIEXYZ ciexyzRed;
+    COMS_CIEXYZ ciexyzGreen;
+    COMS_CIEXYZ ciexyzBlue;
 };
 
 #define DIB_BITMAP_TYPE_BITMAPV4HEADER 108
@@ -139,7 +139,7 @@ struct DIB_BITMAPV4HEADER {
     int32 bV4BlueMask;
     int32 bV4AlphaMask;
     int32 bV4CSType;
-    TOS_CIEXYZTRIPLE bV4Endpoints;
+    COMS_CIEXYZTRIPLE bV4Endpoints;
     int32 bV4GammaRed;
     int32 bV4GammaGreen;
     int32 bV4GammaBlue;
@@ -164,7 +164,7 @@ struct DIB_BITMAPV5HEADER {
     int32 bV5BlueMask;
     int32 bV5AlphaMask;
     int32 bV5CSType;
-    TOS_CIEXYZTRIPLE bV5Endpoints;
+    COMS_CIEXYZTRIPLE bV5Endpoints;
     int32 bV5GammaRed;
     int32 bV5GammaGreen;
     int32 bV5GammaBlue;

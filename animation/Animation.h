@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ANIMATION_H
-#define TOS_ANIMATION_H
+#ifndef COMS_ANIMATION_H
+#define COMS_ANIMATION_H
 
 #include <math.h>
 #include "../stdlib/Types.h"

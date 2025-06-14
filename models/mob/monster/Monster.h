@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_MOB_MONSTER_H
-#define TOS_MODELS_MOB_MONSTER_H
+#ifndef COMS_MODELS_MOB_MONSTER_H
+#define COMS_MODELS_MOB_MONSTER_H
 
 #include "../../../stdlib/Types.h"
 

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_LOG_DEBUG_MEMORY_H
-#define TOS_LOG_DEBUG_MEMORY_H
+#ifndef COMS_LOG_DEBUG_MEMORY_H
+#define COMS_LOG_DEBUG_MEMORY_H
 
 #include "../stdlib/Types.h"
 #include "../thread/Atomic.h"
@@ -34,16 +34,15 @@ struct DebugMemory {
     uintptr_t start;
     uint64 size;
 
-    uint64 action_idx;
+    alignas(4) atomic_32 uint32 action_idx;
+    alignas(4) atomic_32 uint32 reserve_action_idx;
     DebugMemoryRange last_action[DEBUG_MEMORY_RANGE_MAX];
-
-    uint64 reserve_action_idx;
     DebugMemoryRange reserve_action[DEBUG_MEMORY_RANGE_RES_MAX];
 };
 
 struct DebugMemoryContainer {
-    uint64 memory_size;
-    uint64 memory_element_idx;
+    uint32 memory_size;
+    uint32 memory_element_idx;
     DebugMemory* memory_stats;
 };
 static DebugMemoryContainer* _dmc = NULL;
@@ -72,7 +71,7 @@ DebugMemory* debug_memory_find(uintptr_t start) noexcept
 
 void debug_memory_init(uintptr_t start, uint64 size) noexcept
 {
-    if (!start || !_dmc) {
+    if (!start || !_dmc || (_dmc->memory_size && !_dmc->memory_stats)) {
         return;
     }
 
@@ -82,15 +81,19 @@ void debug_memory_init(uintptr_t start, uint64 size) noexcept
     }
 
     if (_dmc->memory_size <= _dmc->memory_element_idx) {
-        DebugMemory* old = _dmc->memory_stats;
-
-        _dmc->memory_size += 3;
-        _dmc->memory_stats = (DebugMemory *) calloc(_dmc->memory_size, sizeof(DebugMemory));
-
-        if (old) {
-            memcpy(_dmc->memory_stats, old, (_dmc->memory_size - 3) * sizeof(DebugMemory));
-            free(old);
+        const uint64 new_size = _dmc->memory_size + 3;
+        DebugMemory* new_stats = (DebugMemory *) calloc(new_size, sizeof(DebugMemory));
+        if (!new_stats) {
+            return;
         }
+
+        if (_dmc->memory_stats) {
+            memcpy(new_stats, _dmc->memory_stats, _dmc->memory_size * sizeof(DebugMemory));
+            free(_dmc->memory_stats);
+        }
+
+        _dmc->memory_stats = new_stats;
+        _dmc->memory_size = new_size;
     }
 
     DebugMemory* debug_mem = &_dmc->memory_stats[_dmc->memory_element_idx];
@@ -112,9 +115,9 @@ void debug_memory_log(uintptr_t start, uint64 size, int32 type, const char* func
         return;
     }
 
-    uint64 idx = atomic_fetch_add_relaxed(&mem->action_idx, 1);
+    uint32 idx = atomic_fetch_add_relaxed(&mem->action_idx, 1);
     if (idx >= ARRAY_COUNT(mem->last_action)) {
-        atomic_set_acquire(&mem->action_idx, 1);
+        atomic_set_release(&mem->action_idx, 1);
         idx %= ARRAY_COUNT(mem->last_action);
     }
 
@@ -144,9 +147,9 @@ void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* 
         return;
     }
 
-    uint64 idx = atomic_fetch_add_relaxed(&mem->reserve_action_idx, 1);
+    uint32 idx = atomic_fetch_add_relaxed(&mem->reserve_action_idx, 1);
     if (idx >= ARRAY_COUNT(mem->reserve_action)) {
-        atomic_set_acquire(&mem->reserve_action_idx, 1);
+        atomic_set_release(&mem->reserve_action_idx, 1);
         idx %= ARRAY_COUNT(mem->reserve_action);
     }
 
@@ -171,7 +174,7 @@ void debug_memory_free(uintptr_t start) noexcept
         return;
     }
 
-    for (int32 i = 0; i < ARRAY_COUNT(mem->reserve_action); ++i) {
+    for (uint32 i = 0; i < ARRAY_COUNT(mem->reserve_action); ++i) {
         DebugMemoryRange* dmr = &mem->reserve_action[i];
         if (dmr->start == start - mem->start) {
             dmr->size = 0;
@@ -191,7 +194,7 @@ void debug_memory_reset() noexcept
     // We remove debug information that are "older" than 1GHz
     uint64 time = intrin_timestamp_counter() - 1 * GHZ;
 
-    for (uint64 i = 0; i < _dmc->memory_element_idx; ++i) {
+    for (uint32 i = 0; i < _dmc->memory_element_idx; ++i) {
         for (int32 j = 0; j < DEBUG_MEMORY_RANGE_MAX; ++j) {
             if (_dmc->memory_stats[i].last_action[j].time < time) {
                 memset(&_dmc->memory_stats[i].last_action[j], 0, sizeof(DebugMemoryRange));

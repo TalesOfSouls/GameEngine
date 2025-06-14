@@ -1,5 +1,5 @@
-#ifndef TOS_SORT_QUICK_SORT_H
-#define TOS_SORT_QUICK_SORT_H
+#ifndef COMS_SORT_QUICK_SORT_H
+#define COMS_SORT_QUICK_SORT_H
 
 #include "../stdlib/Types.h"
 #include "../utils/Utils.h"

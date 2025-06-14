@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_OBJECT_HITBOX_H
-#define TOS_OBJECT_HITBOX_H
+#ifndef COMS_OBJECT_HITBOX_H
+#define COMS_OBJECT_HITBOX_H
 
 #include "../stdlib/Types.h"
 #include "../memory/RingMemory.h"

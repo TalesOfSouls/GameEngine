@@ -1,5 +1,5 @@
-#ifndef TOS_UI_STYLE_TYPE_H
-#define TOS_UI_STYLE_TYPE_H
+#ifndef COMS_UI_STYLE_TYPE_H
+#define COMS_UI_STYLE_TYPE_H
 
 #include "../stdlib/Types.h"
 

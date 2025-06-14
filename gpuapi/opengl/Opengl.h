@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_OPENGL_H
-#define TOS_GPUAPI_OPENGL_H
+#ifndef COMS_GPUAPI_OPENGL_H
+#define COMS_GPUAPI_OPENGL_H
 
 // Some apis require a different sign for various operations (left/right)
 #define GPU_API_SIGN -1

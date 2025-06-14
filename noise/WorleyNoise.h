@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_NOISE_WORLEY_H
-#define TOS_NOISE_WORLEY_H
+#ifndef COMS_NOISE_WORLEY_H
+#define COMS_NOISE_WORLEY_H
 
 #include <stdio.h>
 #include <stdlib.h>

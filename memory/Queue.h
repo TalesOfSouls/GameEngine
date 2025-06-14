@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MEMORY_QUEUE_H
-#define TOS_MEMORY_QUEUE_H
+#ifndef COMS_MEMORY_QUEUE_H
+#define COMS_MEMORY_QUEUE_H
 
 #include "../stdlib/Types.h"
 #include "../utils/Utils.h"
@@ -67,13 +67,13 @@ void queue_free(Queue* queue) noexcept
 }
 
 inline
-bool queue_is_empty(Queue* queue) noexcept {
+bool queue_is_empty(const Queue* queue) noexcept {
     return queue->head == queue->tail;
 }
 
 inline
-bool queue_set_empty(Queue* queue) noexcept {
-    return queue->head = queue->tail;
+void queue_set_empty(Queue* queue) noexcept {
+    queue->head = queue->tail;
 }
 
 inline
@@ -107,7 +107,7 @@ void queue_enqueue_unique(Queue* queue, const byte* data) noexcept
 }
 
 inline
-byte* queue_enqueue(Queue* queue, byte* data) noexcept
+byte* queue_enqueue(Queue* queue, const byte* data) noexcept
 {
     byte* mem = ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
@@ -117,7 +117,7 @@ byte* queue_enqueue(Queue* queue, byte* data) noexcept
 }
 
 inline
-byte* queue_enqueue_safe(Queue* queue, byte* data) noexcept
+byte* queue_enqueue_safe(Queue* queue, const byte* data) noexcept
 {
     if(queue_is_full(queue)) {
         return NULL;
@@ -132,7 +132,7 @@ byte* queue_enqueue_safe(Queue* queue, byte* data) noexcept
 
 // WARNING: Only useful for single producer single consumer
 inline
-byte* queue_enqueue_wait_atomic(Queue* queue, byte* data) noexcept
+byte* queue_enqueue_wait_atomic(Queue* queue, const byte* data) noexcept
 {
     while (!ring_commit_safe_atomic((RingMemory *) queue, queue->alignment)) {}
 
@@ -145,7 +145,7 @@ byte* queue_enqueue_wait_atomic(Queue* queue, byte* data) noexcept
 
 // WARNING: Only useful for single producer single consumer
 inline
-byte* queue_enqueue_safe_atomic(Queue* queue, byte* data) noexcept
+byte* queue_enqueue_safe_atomic(Queue* queue, const byte* data) noexcept
 {
     if (!ring_commit_safe_atomic((RingMemory *) queue, queue->alignment)) {
         return NULL;
@@ -221,7 +221,7 @@ byte* queue_dequeue_keep(Queue* queue) noexcept
 }
 
 inline
-byte* queue_dequeue_start(Queue* queue) noexcept
+byte* queue_dequeue_start(const Queue* queue) noexcept
 {
     return queue->tail;
 }

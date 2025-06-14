@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_GUILD_BANNER_H
-#define TOS_MODELS_GUILD_BANNER_H
+#ifndef COMS_MODELS_GUILD_BANNER_H
+#define COMS_MODELS_GUILD_BANNER_H
 
 struct GuildBanner {
     int shape;

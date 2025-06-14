@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ASSET_ARCHIVE_H
-#define TOS_ASSET_ARCHIVE_H
+#ifndef COMS_ASSET_ARCHIVE_H
+#define COMS_ASSET_ARCHIVE_H
 
 #include "../stdlib/Types.h"
 #include "../utils/StringUtils.h"

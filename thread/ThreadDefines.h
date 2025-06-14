@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_THREADS_THREAD_DEFINES_H
-#define TOS_THREADS_THREAD_DEFINES_H
+#ifndef COMS_THREADS_THREAD_DEFINES_H
+#define COMS_THREADS_THREAD_DEFINES_H
 
 #if _WIN32
     #include "../platform/win32/threading/ThreadDefines.h"

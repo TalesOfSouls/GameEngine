@@ -6,10 +6,13 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MEMORY_THREADED_QUEUE_H
-#define TOS_MEMORY_THREADED_QUEUE_H
+#ifndef COMS_MEMORY_THREADED_QUEUE_H
+#define COMS_MEMORY_THREADED_QUEUE_H
 
 // @todo This is a horrible implementation. Please implement a lock free solution
+/**
+ * WARNING: This implementation is a single-producer, single-consumer (SPSC) implementation
+ */
 
 #include "../stdlib/Types.h"
 #include "../utils/Utils.h"
@@ -37,11 +40,11 @@ struct ThreadedQueue {
 
     // We support both conditional locking and semaphore locking
     // These values are not initialized and not used unless you use the queue
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
+    mutex mtx;
+    mutex_cond cond;
 
-    sem_t empty;
-    sem_t full;
+    sem empty;
+    sem full;
 };
 
 inline
@@ -53,11 +56,11 @@ void thrd_queue_alloc(ThreadedQueue* queue, uint32 element_count, uint32 element
 
     queue->element_size = element_size;
 
-    pthread_mutex_init(&queue->mutex, NULL);
-    pthread_cond_init(&queue->cond, NULL);
+    mutex_init(&queue->mtx, NULL);
+    coms_pthread_cond_init(&queue->cond, NULL);
 
-    sem_init(&queue->empty, element_count);
-    sem_init(&queue->full, 0);
+    coms_sem_init(&queue->empty, element_count);
+    coms_sem_init(&queue->full, 0);
 }
 
 inline
@@ -69,11 +72,11 @@ void thrd_queue_init(ThreadedQueue* queue, BufferMemory* buf, uint32 element_cou
 
     queue->element_size = element_size;
 
-    pthread_mutex_init(&queue->mutex, NULL);
-    pthread_cond_init(&queue->cond, NULL);
+    mutex_init(&queue->mtx, NULL);
+    coms_pthread_cond_init(&queue->cond, NULL);
 
-    sem_init(&queue->empty, element_count);
-    sem_init(&queue->full, 0);
+    coms_sem_init(&queue->empty, element_count);
+    coms_sem_init(&queue->full, 0);
 }
 
 inline
@@ -85,21 +88,21 @@ void thrd_queue_init(ThreadedQueue* queue, byte* buf, uint32 element_count, uint
 
     queue->element_size = element_size;
 
-    pthread_mutex_init(&queue->mutex, NULL);
-    pthread_cond_init(&queue->cond, NULL);
+    mutex_init(&queue->mtx, NULL);
+    coms_pthread_cond_init(&queue->cond, NULL);
 
-    sem_init(&queue->empty, element_count);
-    sem_init(&queue->full, 0);
+    coms_sem_init(&queue->empty, element_count);
+    coms_sem_init(&queue->full, 0);
 }
 
 inline
 void thrd_queue_free(ThreadedQueue* queue)
 {
     ring_free((RingMemory *) queue);
-    sem_destroy(&queue->empty);
-    sem_destroy(&queue->full);
-    pthread_mutex_destroy(&queue->mutex);
-    pthread_cond_destroy(&queue->cond);
+    coms_sem_destroy(&queue->empty);
+    coms_sem_destroy(&queue->full);
+    mutex_destroy(&queue->mtx);
+    coms_pthread_cond_destroy(&queue->cond);
 }
 
 // @todo Create enqueue_unique and enqueue_unique_sem
@@ -107,7 +110,7 @@ inline
 void thrd_queue_enqueue_unique_wait(ThreadedQueue* queue, const byte* data) noexcept
 {
     ASSERT_SIMPLE((uint64_t) data % 4 == 0);
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
 
     byte* tail = queue->tail;
     while (tail != queue->tail) {
@@ -115,7 +118,7 @@ void thrd_queue_enqueue_unique_wait(ThreadedQueue* queue, const byte* data) noex
 
         // @performance we could probably make this faster since we don't need to compare the entire range
         if (is_equal(tail, data, queue->element_size) == 0) {
-            pthread_mutex_unlock(&queue->mutex);
+            mutex_unlock(&queue->mtx);
 
             return;
         }
@@ -124,21 +127,21 @@ void thrd_queue_enqueue_unique_wait(ThreadedQueue* queue, const byte* data) noex
     }
 
     while (!ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment)) {
-        pthread_cond_wait(&queue->cond, &queue->mutex);
+        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
     }
 
     byte* mem = ring_get_memory((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
 
-    pthread_cond_signal(&queue->cond);
-    pthread_mutex_unlock(&queue->mutex);
+    coms_pthread_cond_signal(&queue->cond);
+    mutex_unlock(&queue->mtx);
 }
 
 inline
 void thrd_queue_enqueue_unique(ThreadedQueue* queue, const byte* data) noexcept
 {
     ASSERT_SIMPLE((uint64_t) data % 4 == 0);
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
 
     byte* tail = queue->tail;
     while (tail != queue->tail) {
@@ -146,7 +149,7 @@ void thrd_queue_enqueue_unique(ThreadedQueue* queue, const byte* data) noexcept
 
         // @performance we could probably make this faster since we don't need to compare the entire range
         if (is_equal(tail, data, queue->element_size) == 0) {
-            pthread_mutex_unlock(&queue->mutex);
+            mutex_unlock(&queue->mtx);
 
             return;
         }
@@ -155,7 +158,7 @@ void thrd_queue_enqueue_unique(ThreadedQueue* queue, const byte* data) noexcept
     }
 
     if (!ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment)) {
-        pthread_mutex_unlock(&queue->mutex);
+        mutex_unlock(&queue->mtx);
 
         return;
     }
@@ -163,18 +166,18 @@ void thrd_queue_enqueue_unique(ThreadedQueue* queue, const byte* data) noexcept
     byte* mem = ring_get_memory((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
 
-    pthread_cond_signal(&queue->cond);
-    pthread_mutex_unlock(&queue->mutex);
+    coms_pthread_cond_signal(&queue->cond);
+    mutex_unlock(&queue->mtx);
 }
 
 // Conditional Lock
 inline
 void thrd_queue_enqueue(ThreadedQueue* queue, const byte* data) noexcept
 {
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
 
     if (!ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment)) {
-        pthread_mutex_unlock(&queue->mutex);
+        mutex_unlock(&queue->mtx);
 
         return;
     }
@@ -182,33 +185,33 @@ void thrd_queue_enqueue(ThreadedQueue* queue, const byte* data) noexcept
     byte* mem = ring_get_memory((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
 
-    pthread_cond_signal(&queue->cond);
-    pthread_mutex_unlock(&queue->mutex);
+    coms_pthread_cond_signal(&queue->cond);
+    mutex_unlock(&queue->mtx);
 }
 
 inline
 void thrd_queue_enqueue_wait(ThreadedQueue* queue, const byte* data) noexcept
 {
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
 
     while (!ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment)) {
-        pthread_cond_wait(&queue->cond, &queue->mutex);
+        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
     }
 
     byte* mem = ring_get_memory((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
 
-    pthread_cond_signal(&queue->cond);
-    pthread_mutex_unlock(&queue->mutex);
+    coms_pthread_cond_signal(&queue->cond);
+    mutex_unlock(&queue->mtx);
 }
 
 inline
 byte* thrd_queue_enqueue_start_wait(ThreadedQueue* queue) noexcept
 {
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
 
     while (!ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment)) {
-        pthread_cond_wait(&queue->cond, &queue->mutex);
+        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
     }
 
     return ring_get_memory((RingMemory *) queue, queue->element_size, queue->alignment);
@@ -217,8 +220,8 @@ byte* thrd_queue_enqueue_start_wait(ThreadedQueue* queue) noexcept
 inline
 void thrd_queue_enqueue_end_wait(ThreadedQueue* queue) noexcept
 {
-    pthread_cond_signal(&queue->cond);
-    pthread_mutex_unlock(&queue->mutex);
+    coms_pthread_cond_signal(&queue->cond);
+    mutex_unlock(&queue->mtx);
 }
 
 inline
@@ -229,9 +232,9 @@ bool thrd_queue_dequeue(ThreadedQueue* queue, byte* data) noexcept
     }
 
     // we do this twice because the first one is very fast but may return a false positive
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
     if (queue->head == queue->tail) {
-        pthread_mutex_unlock(&queue->mutex);
+        mutex_unlock(&queue->mtx);
 
         return false;
     }
@@ -243,26 +246,26 @@ bool thrd_queue_dequeue(ThreadedQueue* queue, byte* data) noexcept
     }
     ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 
-    pthread_cond_signal(&queue->cond);
-    pthread_mutex_unlock(&queue->mutex);
+    coms_pthread_cond_signal(&queue->cond);
+    mutex_unlock(&queue->mtx);
 
     return true;
 }
 
 inline
 bool thrd_queue_empty(ThreadedQueue* queue) noexcept {
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
     bool is_empty = queue->head == queue->tail;
-    pthread_mutex_unlock(&queue->mutex);
+    mutex_unlock(&queue->mtx);
 
     return is_empty;
 }
 
 inline
 bool thrd_queue_full(ThreadedQueue* queue) noexcept {
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
     bool is_full = !ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment);
-    pthread_mutex_unlock(&queue->mutex);
+    mutex_unlock(&queue->mtx);
 
     return is_full;
 }
@@ -271,26 +274,26 @@ bool thrd_queue_full(ThreadedQueue* queue) noexcept {
 inline
 void thrd_queue_dequeue_wait(ThreadedQueue* queue, byte* data) noexcept
 {
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
 
     while (queue->head == queue->tail) {
-        pthread_cond_wait(&queue->cond, &queue->mutex);
+        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
     }
 
     memcpy(data, queue->tail, queue->element_size);
     ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 
-    pthread_cond_signal(&queue->cond);
-    pthread_mutex_unlock(&queue->mutex);
+    coms_pthread_cond_signal(&queue->cond);
+    mutex_unlock(&queue->mtx);
 }
 
 inline
 byte* thrd_queue_dequeue_start_wait(ThreadedQueue* queue) noexcept
 {
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
 
     while (queue->head == queue->tail) {
-        pthread_cond_wait(&queue->cond, &queue->mutex);
+        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
     }
 
     return queue->tail;
@@ -301,38 +304,38 @@ void thrd_queue_dequeue_end_wait(ThreadedQueue* queue) noexcept
 {
     ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 
-    pthread_cond_signal(&queue->cond);
-    pthread_mutex_unlock(&queue->mutex);
+    coms_pthread_cond_signal(&queue->cond);
+    mutex_unlock(&queue->mtx);
 }
 
 // Semaphore Lock
 inline
 void thrd_queue_enqueue_sem_wait(ThreadedQueue* queue, const byte* data) noexcept
 {
-    sem_wait(&queue->empty);
-    pthread_mutex_lock(&queue->mutex);
+    coms_sem_wait(&queue->empty);
+    mutex_lock(&queue->mtx);
 
     byte* mem = ring_get_memory((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
 
-    pthread_mutex_unlock(&queue->mutex);
-    sem_post(&queue->full);
+    mutex_unlock(&queue->mtx);
+    coms_sem_post(&queue->full);
 }
 
 inline
-bool thrd_queue_enqueue_sem_timedwait(ThreadedQueue* queue, const byte* data, uint64 wait) noexcept
+bool thrd_queue_enqueue_semimedwait(ThreadedQueue* queue, const byte* data, uint64 wait) noexcept
 {
-    if (sem_timedwait(&queue->empty, wait)) {
+    if (semimedwait(&queue->empty, wait)) {
         return false;
     }
 
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
 
     byte* mem = ring_get_memory((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
 
-    pthread_mutex_unlock(&queue->mutex);
-    sem_post(&queue->full);
+    mutex_unlock(&queue->mtx);
+    coms_sem_post(&queue->full);
 
     return true;
 }
@@ -340,8 +343,8 @@ bool thrd_queue_enqueue_sem_timedwait(ThreadedQueue* queue, const byte* data, ui
 inline
 byte* thrd_queue_enqueue_start_sem_wait(ThreadedQueue* queue) noexcept
 {
-    sem_wait(&queue->empty);
-    pthread_mutex_lock(&queue->mutex);
+    coms_sem_wait(&queue->empty);
+    mutex_lock(&queue->mtx);
 
     return ring_get_memory((RingMemory *) queue, queue->element_size, queue->alignment);
 }
@@ -349,37 +352,37 @@ byte* thrd_queue_enqueue_start_sem_wait(ThreadedQueue* queue) noexcept
 inline
 void thrd_queue_enqueue_end_sem_wait(ThreadedQueue* queue) noexcept
 {
-    pthread_mutex_unlock(&queue->mutex);
-    sem_post(&queue->full);
+    mutex_unlock(&queue->mtx);
+    coms_sem_post(&queue->full);
 }
 
 inline
 byte* thrd_queue_dequeue_sem_wait(ThreadedQueue* queue, byte* data) noexcept
 {
-    sem_wait(&queue->full);
-    pthread_mutex_lock(&queue->mutex);
+    coms_sem_wait(&queue->full);
+    mutex_lock(&queue->mtx);
 
     memcpy(data, queue->tail, queue->element_size);
     ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 
-    pthread_mutex_unlock(&queue->mutex);
-    sem_post(&queue->empty);
+    mutex_unlock(&queue->mtx);
+    coms_sem_post(&queue->empty);
 }
 
 inline
-bool thrd_queue_dequeue_sem_timedwait(ThreadedQueue* queue, byte* data, uint64 wait) noexcept
+bool thrd_queue_dequeue_semimedwait(ThreadedQueue* queue, byte* data, uint64 wait) noexcept
 {
-    if (sem_timedwait(&queue->full, wait)) {
+    if (semimedwait(&queue->full, wait)) {
         return false;
     }
 
-    pthread_mutex_lock(&queue->mutex);
+    mutex_lock(&queue->mtx);
 
     memcpy(data, queue->tail, queue->element_size);
     ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 
-    pthread_mutex_unlock(&queue->mutex);
-    sem_post(&queue->empty);
+    mutex_unlock(&queue->mtx);
+    coms_sem_post(&queue->empty);
 
     return true;
 }
@@ -387,8 +390,8 @@ bool thrd_queue_dequeue_sem_timedwait(ThreadedQueue* queue, byte* data, uint64 w
 inline
 byte* thrd_queue_dequeue_start_sem_wait(ThreadedQueue* queue) noexcept
 {
-    sem_wait(&queue->full);
-    pthread_mutex_lock(&queue->mutex);
+    coms_sem_wait(&queue->full);
+    mutex_lock(&queue->mtx);
 
     return queue->tail;
 }
@@ -398,8 +401,8 @@ void thrd_queue_dequeue_end_sem_wait(ThreadedQueue* queue) noexcept
 {
     ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 
-    pthread_mutex_unlock(&queue->mutex);
-    sem_post(&queue->empty);
+    mutex_unlock(&queue->mtx);
+    coms_sem_post(&queue->empty);
 }
 
 #endif

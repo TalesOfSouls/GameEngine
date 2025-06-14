@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_AUDIO_MIXER_H
-#define TOS_AUDIO_MIXER_H
+#ifndef COMS_AUDIO_MIXER_H
+#define COMS_AUDIO_MIXER_H
 
 #include "../stdlib/Types.h"
 #include "Audio.h"
@@ -71,7 +71,7 @@ enum AudioMixerState {
 struct AudioMixer {
     ChunkMemory audio_instances;
     AudioMixerState state_old;
-    atomic_64 int32 state_new;
+    alignas(8) atomic_64 int32 state_new;
 
     uint64 effect;
 

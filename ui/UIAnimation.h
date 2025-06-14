@@ -1,5 +1,5 @@
-#ifndef TOS_UI_ANIMATION_H
-#define TOS_UI_ANIMATION_H
+#ifndef COMS_UI_ANIMATION_H
+#define COMS_UI_ANIMATION_H
 
 #include "../stdlib/Types.h"
 #include "../animation/AnimationEaseType.h"

@@ -1,5 +1,5 @@
-#ifndef TOS_MODULE_MANAGER_H
-#define TOS_MODULE_MANAGER_H
+#ifndef COMS_MODULE_MANAGER_H
+#define COMS_MODULE_MANAGER_H
 
 #include "Module.h"
 #include "../memory/RingMemory.h"

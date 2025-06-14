@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_NOISE_VALUE_H
-#define TOS_NOISE_VALUE_H
+#ifndef COMS_NOISE_VALUE_H
+#define COMS_NOISE_VALUE_H
 
 #include <stdio.h>
 #include <stdlib.h>

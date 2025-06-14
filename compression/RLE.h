@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_COMPRESSION_RLE_H
-#define TOS_COMPRESSION_RLE_H
+#ifndef COMS_COMPRESSION_RLE_H
+#define COMS_COMPRESSION_RLE_H
 
 #include <stdio.h>
 #include <string.h>

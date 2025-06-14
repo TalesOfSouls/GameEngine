@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ARCHITECTURE_ARM_SVE_UTILS_H
-#define TOS_ARCHITECTURE_ARM_SVE_UTILS_H
+#ifndef COMS_ARCHITECTURE_ARM_SVE_UTILS_H
+#define COMS_ARCHITECTURE_ARM_SVE_UTILS_H
 
 #include <stdlib.h>
 #include "../../../../stdlib/Types.h"
@@ -16,15 +16,15 @@
 #include <arm_sve.h>
 
 // Only allowed for data >= 64 bits
-bool is_empty(const uint8_t* region, uint64_t size, int32_t steps = 8) {
-    if (*((uint64_t *) region) != 0) {
+bool is_empty(const uint8* region, uint64 size, int32 steps = 8) {
+    if (*((uint64 *) region) != 0) {
         return false;
     }
 
-    const uint8_t* end = region + size;
+    const uint8* end = region + size;
     steps = intrin_validate_steps(region, steps);
 
-    uint64_t sve_vector_bytes = svcntb();
+    uint64 sve_vector_bytes = svcntb();
 
     switch (steps) {
         case 16: {
@@ -86,7 +86,7 @@ bool is_empty(const uint8_t* region, uint64_t size, int32_t steps = 8) {
         }
         case 1: {
             while (region + 4 <= end) {
-                if (*((const uint32_t *) region) != 0) {
+                if (*((const uint32 *) region) != 0) {
                     return false;
                 }
 

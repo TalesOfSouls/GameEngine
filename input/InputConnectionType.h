@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_INPUT_CONNECTION_TYPE_H
-#define TOS_PLATFORM_WIN32_INPUT_CONNECTION_TYPE_H
+#ifndef COMS_PLATFORM_WIN32_INPUT_CONNECTION_TYPE_H
+#define COMS_PLATFORM_WIN32_INPUT_CONNECTION_TYPE_H
 
 // Important, since some connection protocols differ between for example USB and Bluetooth (see Playstation DualSense)
 enum InputConnectionType {

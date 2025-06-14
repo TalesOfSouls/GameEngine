@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_SETTINGS_ITEM_DISTRIBUTION_TYPE_H
-#define TOS_MODELS_SETTINGS_ITEM_DISTRIBUTION_TYPE_H
+#ifndef COMS_MODELS_SETTINGS_ITEM_DISTRIBUTION_TYPE_H
+#define COMS_MODELS_SETTINGS_ITEM_DISTRIBUTION_TYPE_H
 
 enum ItemDistributionType {
     ITEM_DISTRIBUTION_TYPE_DEFAULT, // Mix of individual and shared drops

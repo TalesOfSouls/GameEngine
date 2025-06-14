@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_ANTI_ALIASING_H
-#define TOS_GPUAPI_ANTI_ALIASING_H
+#ifndef COMS_GPUAPI_ANTI_ALIASING_H
+#define COMS_GPUAPI_ANTI_ALIASING_H
 
 enum AntiAliasingType : byte {
     ANTI_ALIASING_TYPE_NONE,

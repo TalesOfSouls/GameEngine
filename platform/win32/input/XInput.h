@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_INPUT_XINPUT_H
-#define TOS_PLATFORM_WIN32_INPUT_XINPUT_H
+#ifndef COMS_PLATFORM_WIN32_INPUT_XINPUT_H
+#define COMS_PLATFORM_WIN32_INPUT_XINPUT_H
 
 #include <XInput.h>
 #include <windows.h>

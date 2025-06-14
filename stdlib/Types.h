@@ -6,9 +6,10 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_STDLIB_TYPES_H
-#define TOS_STDLIB_TYPES_H
+#ifndef COMS_STDLIB_TYPES_H
+#define COMS_STDLIB_TYPES_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #if _WIN32
@@ -42,11 +43,10 @@ typedef char sbyte;
 typedef uintptr_t umm;
 typedef intptr_t smm;
 
-// @question consider to implement atomic_16 depending on intrinsic support
 #define atomic_8 volatile
-#define atomic_16 alignas(2) volatile
-#define atomic_32 alignas(4) volatile
-#define atomic_64 alignas(8) volatile
+#define atomic_16 volatile
+#define atomic_32 volatile
+#define atomic_64 volatile
 
 #define OMS_PI 3.14159265358979323846f
 #define OMS_PI_OVER_TWO (OMS_PI / 2.0f)
@@ -56,8 +56,7 @@ typedef intptr_t smm;
 #define OMS_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define OMS_MIN(a, b) ((a) > (b) ? (b) : (a))
 
-// @todo Switch the order of high and low
-#define OMS_CLAMP(val, high, low) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
+#define OMS_CLAMP(val, low, high) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
 
 #define OMS_ABS(a) ((a) > 0 ? (a) : -(a))
 #define OMS_ABS_INT8(a) ((uint8) ((a) & 0x7F))
@@ -124,10 +123,6 @@ DEFINE_BITCAST_FUNCTION(uint64, f64)
 
 #define MHZ 1000000
 #define GHZ 1000000000
-
-#define internal static // only allows local "file" access
-#define local_persist static
-#define global_persist static
 
 struct v3_byte {
     union {
@@ -420,7 +415,7 @@ uint16 float_to_f16(float f) {
     return f16_bits;
 }
 
-float f16_to_float(f16 f) {
+f32 f16_to_float(f16 f) {
     uint32_t sign = (f & HALF_FLOAT_SIGN_MASK) << 16;
     int32_t exponent = (f & HALF_FLOAT_EXP_MASK) >> HALF_FLOAT_EXP_SHIFT;
     uint32_t fraction = (f & HALF_FLOAT_FRAC_MASK) << (FLOAT32_EXP_SHIFT - HALF_FLOAT_EXP_SHIFT);
@@ -442,7 +437,7 @@ float f16_to_float(f16 f) {
 
     uint32_t f_bits = sign | (exponent << FLOAT32_EXP_SHIFT) | fraction;
 
-    return *((float *) &f_bits);
+    return BITCAST(f_bits, f32);
 }
 
 #endif

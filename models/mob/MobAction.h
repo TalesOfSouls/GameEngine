@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_MOB_ACTION_H
-#define TOS_MODELS_MOB_ACTION_H
+#ifndef COMS_MODELS_MOB_ACTION_H
+#define COMS_MODELS_MOB_ACTION_H
 
 // @todo Consider to create better ranges
 //      This would allow easier checks during the game (e.g. can be healed if > X and < Y)

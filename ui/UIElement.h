@@ -1,5 +1,5 @@
-#ifndef TOS_UI_ELEMENT_H
-#define TOS_UI_ELEMENT_H
+#ifndef COMS_UI_ELEMENT_H
+#define COMS_UI_ELEMENT_H
 
 #include "../stdlib/Types.h"
 #include "UIStyleType.h"
@@ -77,7 +77,7 @@ struct UIElement {
 
     // Every element can have a fixed state, which is element type specific
     // This state is shared across all style_type (see below)
-    atomic_32 uint32 state;
+    alignas(4) atomic_32 uint32 state;
 
     // Every element can have multiple implementations for different states (e.g. hover, focus, ...)
     // These implementations are also element type specific and can be found in here

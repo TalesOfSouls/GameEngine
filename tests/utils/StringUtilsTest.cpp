@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <ctype.h>
 #include "../TestFramework.h"
 #include "../../utils/StringUtils.h"
 #include "../../utils/EndianUtils.h"
@@ -83,6 +85,7 @@ static void test_str_length()
     ASSERT_EQUALS(str_length("2asdf dw"), 8);
 }
 
+#if PERFORMANCE_TEST
 static void _str_length(volatile void* val) {
     volatile int64* res = (volatile int64 *) val;
 
@@ -107,7 +110,9 @@ static void test_str_length_performance() {
     COMPARE_FUNCTION_TEST_TIME(_str_length, _strlen, 5.0);
     COMPARE_FUNCTION_TEST_CYCLE(_str_length, _strlen, 5.0);
 }
+#endif
 
+#if PERFORMANCE_TEST
 static void _str_is_alphanum(volatile void* val) {
     bool* res = (bool *) val;
     srand(0);
@@ -136,6 +141,7 @@ static void test_str_is_alphanum_performance() {
     COMPARE_FUNCTION_TEST_TIME(_str_is_alphanum, _isalnum, 5.0);
     COMPARE_FUNCTION_TEST_CYCLE(_str_is_alphanum, _isalnum, 5.0);
 }
+#endif
 
 static void test_sprintf_fast()
 {
@@ -144,6 +150,7 @@ static void test_sprintf_fast()
     ASSERT_TRUE(strcmp(buffer, "This 1337 is a test with 3.00000 values") == 0);
 }
 
+#if PERFORMANCE_TEST
 static void _sprintf_fast(volatile void* val) {
     volatile bool* res = (volatile bool *) val;
 
@@ -164,6 +171,7 @@ static void test_sprintf_fast_performance() {
     COMPARE_FUNCTION_TEST_TIME(_sprintf_fast, _sprintf, 5.0);
     COMPARE_FUNCTION_TEST_CYCLE(_sprintf_fast, _sprintf, 5.0);
 }
+#endif
 
 static void test_str_to_float()
 {
@@ -178,8 +186,6 @@ static void test_str_to_float()
     #endif
     #define main UtilsStringUtilsTest
 #endif
-
-#include <windows.h>
 
 int main() {
     TEST_INIT(100);
@@ -196,9 +202,11 @@ int main() {
     TEST_RUN(test_str_length);
     TEST_RUN(test_str_to_float);
 
-    TEST_RUN(test_str_length_performance);
-    TEST_RUN(test_str_is_alphanum_performance);
-    TEST_RUN(test_sprintf_fast_performance);
+    #if PERFORMANCE_TEST
+        TEST_RUN(test_str_length_performance);
+        TEST_RUN(test_str_is_alphanum_performance);
+        TEST_RUN(test_sprintf_fast_performance);
+    #endif
 
     TEST_FINALIZE();
 

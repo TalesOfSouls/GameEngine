@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_FILE_UTILS_C
-#define TOS_PLATFORM_WIN32_FILE_UTILS_C
+#ifndef COMS_PLATFORM_WIN32_FILE_UTILS_C
+#define COMS_PLATFORM_WIN32_FILE_UTILS_C
 
 #include <stdio.h>
 #include <windows.h>
@@ -827,6 +827,52 @@ uint64 file_last_modified(const char* path)
 inline void self_path(char* path)
 {
     GetModuleFileNameA(NULL, (LPSTR) path, MAX_PATH);
+}
+
+void iterate_directory(const char* base_path, const char* file_ending, void (*handler)(const char *, void *), ...) {
+    va_list args;
+    va_start(args, handler);
+
+    char full_base_path[MAX_PATH];
+    relative_to_absolute(base_path, full_base_path);
+
+    WIN32_FIND_DATA find_file_data;
+    char search_path[MAX_PATH];
+    snprintf(search_path, MAX_PATH, "%s\\*", full_base_path);
+
+    HANDLE hFind = FindFirstFile(search_path, &find_file_data);
+    if (hFind == INVALID_HANDLE_VALUE) {
+        return;
+    }
+
+    do {
+        if (find_file_data.cFileName[0] == '.'
+            && (find_file_data.cFileName[1] == '\0'
+                || (find_file_data.cFileName[1] == '.' && find_file_data.cFileName[2] == '\0')
+            )
+        ) {
+            continue;
+        }
+
+        char full_path[MAX_PATH];
+        // @performance This is bad, we are internally moving two times too often to the end of full_path
+        //      Maybe make str_copy_short return the length, same as append?
+        str_copy_short(full_path, base_path);
+        if (!str_ends_with(base_path, "/")) {
+            str_concat_append(full_path, "/");
+        }
+        str_concat_append(full_path, find_file_data.cFileName);
+
+        if (find_file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            iterate_directory(full_path, file_ending, handler, args);
+        } else if (str_ends_with(full_path, file_ending)) {
+            handler(full_path, args);
+        }
+    } while (FindNextFile(hFind, &find_file_data) != 0);
+
+    FindClose(hFind);
+
+    va_end(args);
 }
 
 #endif

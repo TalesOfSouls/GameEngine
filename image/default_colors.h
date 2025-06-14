@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_IMAGE_DEFAULT_COLORS_H
-#define TOS_IMAGE_DEFAULT_COLORS_H
+#ifndef COMS_IMAGE_DEFAULT_COLORS_H
+#define COMS_IMAGE_DEFAULT_COLORS_H
 
 #include "../stdlib/Types.h"
 

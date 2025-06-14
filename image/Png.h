@@ -11,8 +11,8 @@
  * zlib: https://www.ietf.org/rfc/rfc1950.txt
  * deflate: https://www.ietf.org/rfc/rfc1951.txt
  */
-#ifndef TOS_IMAGE_PNG_H
-#define TOS_IMAGE_PNG_H
+#ifndef COMS_IMAGE_PNG_H
+#define COMS_IMAGE_PNG_H
 
 #include <string.h>
 #include "../stdlib/Types.h"

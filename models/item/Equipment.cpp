@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_EQUIPMENT_C
-#define TOS_MODELS_EQUIPMENT_C
+#ifndef COMS_MODELS_EQUIPMENT_C
+#define COMS_MODELS_EQUIPMENT_C
 
 #include <stdlib.h>
 #include <string.h>

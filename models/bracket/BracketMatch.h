@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_BRACKET_MATCH_H
-#define TOS_MODELS_BRACKET_MATCH_H
+#ifndef COMS_MODELS_BRACKET_MATCH_H
+#define COMS_MODELS_BRACKET_MATCH_H
 
 #include "BracketTeam.h"
 

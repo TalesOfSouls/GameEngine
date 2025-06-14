@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_DIRECT3D_FRAMES_IN_FLIGHT_CONTAINER_H
-#define TOS_GPUAPI_DIRECT3D_FRAMES_IN_FLIGHT_CONTAINER_H
+#ifndef COMS_GPUAPI_DIRECT3D_FRAMES_IN_FLIGHT_CONTAINER_H
+#define COMS_GPUAPI_DIRECT3D_FRAMES_IN_FLIGHT_CONTAINER_H
 
 #include "../../stdlib/Types.h"
 #include <d3d12.h>

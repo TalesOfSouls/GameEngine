@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PATHFINDING_JPS_NODE_H
-#define TOS_PATHFINDING_JPS_NODE_H
+#ifndef COMS_PATHFINDING_JPS_NODE_H
+#define COMS_PATHFINDING_JPS_NODE_H
 
 #include <stdio.h>
 #include <stdlib.h>

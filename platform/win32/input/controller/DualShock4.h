@@ -7,8 +7,8 @@
  * @link      https://jingga.app
  * @see       https://dsremap.readthedocs.io/en/latest/reverse.html
  */
-#ifndef TOS_PLATFORM_WIN32_INPUT_CONTROLLER_DUALSHOCK4_H
-#define TOS_PLATFORM_WIN32_INPUT_CONTROLLER_DUALSHOCK4_H
+#ifndef COMS_PLATFORM_WIN32_INPUT_CONTROLLER_DUALSHOCK4_H
+#define COMS_PLATFORM_WIN32_INPUT_CONTROLLER_DUALSHOCK4_H
 
 #include "../../../../stdlib/Types.h"
 #include "../../../../input/ControllerInput.h"

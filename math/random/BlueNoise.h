@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MATH_RANDOM_BLUE_NOISE
-#define TOS_MATH_RANDOM_BLUE_NOISE
+#ifndef COMS_MATH_RANDOM_BLUE_NOISE
+#define COMS_MATH_RANDOM_BLUE_NOISE
 
 #include "../../stdlib/Types.h"
 

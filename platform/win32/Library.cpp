@@ -6,17 +6,17 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_LIBRARY_C
-#define TOS_PLATFORM_WIN32_LIBRARY_C
+#ifndef COMS_PLATFORM_WIN32_LIBRARY_C
+#define COMS_PLATFORM_WIN32_LIBRARY_C
 
 #include <stdio.h>
 #include <windows.h>
 #include <string.h>
 
 #include "../../stdlib/Types.h"
-#include "FileUtils.cpp"
 #include "../../utils/StringUtils.h"
 #include "../../system/Library.h"
+#include "../../system/FileUtils.cpp"
 
 inline
 bool library_load(Library* lib)

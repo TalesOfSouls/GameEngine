@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_BIT_H
-#define TOS_UTILS_BIT_H
+#ifndef COMS_UTILS_BIT_H
+#define COMS_UTILS_BIT_H
 
 //#include <intrin.h>
 #include "../stdlib/Types.h"
@@ -23,7 +23,7 @@
 #define BIT_SET_L2R(num, pos, bits) ((num) | (1U << ((bits - 1) - (pos))))
 #define BIT_UNSET_L2R(num, pos, bits) ((num) & ~(1U << ((bits - 1) - (pos))))
 #define BIT_FLIP_L2R(num, pos, bits) ((num) ^ (1U << ((bits - 1) - (pos))))
-#define BIT_SET_TO_L2R(num, pos, x, bits) ((num) & ~((uint32) 1 << ((bits - 1) - (pos))) | ((uint32) (x) << ((bits - 1) - (pos))))
+#define BIT_SET_TO_L2R(num, pos, x, bits) (((num) & ~((uint32_t)(1) << ((bits) - 1 - (pos)))) | (((uint32_t)(x) & 1U) << ((bits) - 1 - (pos))))
 #define BITS_GET_8_L2R(num, pos, to_read) (((num) >> (8 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
 #define BITS_GET_16_L2R(num, pos, to_read) (((num) >> (16 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
 #define BITS_GET_32_L2R(num, pos, to_read) (((num) >> (32 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
@@ -41,7 +41,7 @@
 #define BIT_SET_R2L(num, pos) ((num) | ((uint32) 1 << (pos)))
 #define BIT_UNSET_R2L(num, pos) ((num) & ~((uint32) 1 << (pos)))
 #define BIT_FLIP_R2L(num, pos) ((num) ^ ((uint32) 1 << (pos)))
-#define BIT_SET_TO_R2L(num, pos, x) ((num) & ~((uint32) 1 << (pos)) | ((uint32) (x) << (pos)))
+#define BIT_SET_TO_R2L(num, pos, x) (((num) & ~((uint32_t)(1) << (pos))) | ((uint32_t)(x) << (pos)))
 // @performance Try to use this version over the L2R version for performance reasons
 #define BITS_GET_8_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
 #define BITS_GET_16_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
@@ -326,7 +326,7 @@ uint32 bits_reverse(uint32 data, uint32 count) noexcept
     return reversed;
 }
 
-static const int32 BIT_COUNT_LOOKUP_TABLE[256] = {
+static const byte BIT_COUNT_LOOKUP_TABLE[256] = {
     0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
     1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
     1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
@@ -345,9 +345,10 @@ static const int32 BIT_COUNT_LOOKUP_TABLE[256] = {
     4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 };
 
-int32 bits_count(uint64 data, bool use_abm = false) noexcept {
+inline
+byte bits_count(uint64 data, bool use_abm = false) noexcept {
     if (use_abm) {
-        return (int32) intrin_bits_count_64(data);
+        return (byte) intrin_bits_count_64(data);
     } else {
         return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
             + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF]
@@ -360,7 +361,8 @@ int32 bits_count(uint64 data, bool use_abm = false) noexcept {
     }
 }
 
-int32 bits_count(uint32 data, bool use_abm = false) noexcept {
+inline
+byte bits_count(uint32 data, bool use_abm = false) noexcept {
     if (use_abm) {
         return intrin_bits_count_32(data);
     } else {
@@ -371,12 +373,14 @@ int32 bits_count(uint32 data, bool use_abm = false) noexcept {
     }
 }
 
-int32 bits_count(uint16 data) noexcept {
+inline
+byte bits_count(uint16 data) noexcept {
     return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
         + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF];
 }
 
-int32 bits_count(uint8 data) noexcept {
+inline
+byte bits_count(uint8 data) noexcept {
     return BIT_COUNT_LOOKUP_TABLE[data];
 }
 

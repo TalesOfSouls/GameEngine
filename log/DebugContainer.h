@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_LOG_DEBUG_CONTAINER_H
-#define TOS_LOG_DEBUG_CONTAINER_H
+#ifndef COMS_LOG_DEBUG_CONTAINER_H
+#define COMS_LOG_DEBUG_CONTAINER_H
 
 #include "Log.h"
 #include "DebugMemory.h"
@@ -24,7 +24,7 @@ struct DebugContainer {
     #endif
     LogMemory* log_memory;
 
-    atomic_64 int64* stats_counter;
+    alignas(8) atomic_64 int64* stats_counter;
 
     PerformanceProfileResult* perf_stats;
     PerformanceProfiler** perf_current_scope;

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_CHAT_STATUS_H
-#define TOS_MODELS_CHAT_STATUS_H
+#ifndef COMS_MODELS_CHAT_STATUS_H
+#define COMS_MODELS_CHAT_STATUS_H
 
 enum ChatStatus {
     CHAT_STATUS_OFFLINE,

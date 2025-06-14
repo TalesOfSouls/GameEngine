@@ -1,5 +1,5 @@
-#ifndef TOS_UI_THEME_H
-#define TOS_UI_THEME_H
+#ifndef COMS_UI_THEME_H
+#define COMS_UI_THEME_H
 
 #include "../stdlib/Types.h"
 #include "../memory/RingMemory.h"
@@ -137,7 +137,7 @@ void theme_from_file_txt(
         // Handle new group
         /////////////////////////////////////////////////////////
         if (!block_open) {
-            str_copy_move_until(&pos, block_name, " \r\n");
+            str_copy_move_until(block_name, &pos, " \r\n");
 
             // All blocks need to start with #. In the past this wasn't the case and may not be in the future. This is why we keep this if here.
             if (*block_name == '#' || *block_name == '.') {
@@ -164,7 +164,7 @@ void theme_from_file_txt(
 
         // Handle new attribute for previously found group
         /////////////////////////////////////////////////////////
-        str_copy_move_until(&pos, attribute_name, " :\n");
+        str_copy_move_until(attribute_name, &pos, " :\n");
 
         // Skip any white spaces or other delimeter
         str_skip_list(&pos, " \t:", sizeof(" \t:") - 1);

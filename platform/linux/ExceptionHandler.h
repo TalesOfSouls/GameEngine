@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_EXCEPTION_HANDLER_H
-#define TOS_PLATFORM_LINUX_EXCEPTION_HANDLER_H
+#ifndef COMS_PLATFORM_LINUX_EXCEPTION_HANDLER_H
+#define COMS_PLATFORM_LINUX_EXCEPTION_HANDLER_H
 
 #include <stdio.h>
 #include <stdlib.h>

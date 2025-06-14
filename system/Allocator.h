@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_SYSTEM_ALLOCATOR_H
-#define TOS_SYSTEM_ALLOCATOR_H
+#ifndef COMS_SYSTEM_ALLOCATOR_H
+#define COMS_SYSTEM_ALLOCATOR_H
 
 #if _WIN32
     #include "../platform/win32/Allocator.h"

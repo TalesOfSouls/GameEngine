@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_BLOCK_H
-#define TOS_MODELS_BLOCK_H
+#ifndef COMS_MODELS_BLOCK_H
+#define COMS_MODELS_BLOCK_H
 
 #include "../../stdlib/Types.h"
 #include "../../stdlib/SIMD/SIMD_I32.h"

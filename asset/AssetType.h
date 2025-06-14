@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ASSET_TYPE_H
-#define TOS_ASSET_TYPE_H
+#ifndef COMS_ASSET_TYPE_H
+#define COMS_ASSET_TYPE_H
 
 enum AssetType : byte {
     ASSET_TYPE_GENERAL,

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_AUDIO_H
-#define TOS_AUDIO_H
+#ifndef COMS_AUDIO_H
+#define COMS_AUDIO_H
 
 #include "../stdlib/Types.h"
 

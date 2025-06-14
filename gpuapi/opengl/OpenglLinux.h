@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_OPENGL_LINUX_H
-#define TOS_GPUAPI_OPENGL_LINUX_H
+#ifndef COMS_GPUAPI_OPENGL_LINUX_H
+#define COMS_GPUAPI_OPENGL_LINUX_H
 
 typedef void type_glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations);
 typedef void type_glBindFramebuffer(GLenum target, GLuint framebuffer);

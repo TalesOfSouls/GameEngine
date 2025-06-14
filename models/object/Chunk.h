@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_OBJECT_CHUNK_H
-#define TOS_MODELS_OBJECT_CHUNK_H
+#ifndef COMS_MODELS_OBJECT_CHUNK_H
+#define COMS_MODELS_OBJECT_CHUNK_H
 
 #include "../../stdlib/SIMD/SIMD_I32.h"
 #include "../../../stdlib/Types.h"

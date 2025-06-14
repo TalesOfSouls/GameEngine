@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ASSET_MANAGEMENT_SYSTEM_H
-#define TOS_ASSET_MANAGEMENT_SYSTEM_H
+#ifndef COMS_ASSET_MANAGEMENT_SYSTEM_H
+#define COMS_ASSET_MANAGEMENT_SYSTEM_H
 
 #include <string.h>
 #include "../stdlib/Types.h"
@@ -29,7 +29,7 @@ struct AssetComponent {
     uint64 asset_count;
 
     // @question Do we want to add a mutex to assets. This way we don't have to lock the entire ams.
-    pthread_mutex_t mutex;
+    mutex mtx;
 };
 
 struct AssetManagementSystem {
@@ -55,7 +55,7 @@ void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_siz
     LOG_1("Create AMS Component for %n assets and %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}});
 
     chunk_init(&ac->asset_memory, buf, count, chunk_size, 64);
-    pthread_mutex_init(&ac->mutex, NULL);
+    mutex_init(&ac->mtx, NULL);
 }
 
 inline
@@ -71,13 +71,13 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
     ac->asset_memory.memory = buf;
     ac->asset_memory.free = (uint64 *) (ac->asset_memory.memory + ac->asset_memory.chunk_size * count);
 
-    pthread_mutex_init(&ac->mutex, NULL);
+    mutex_init(&ac->mtx, NULL);
 }
 
 inline
 void ams_component_free(AssetComponent* ac)
 {
-    pthread_mutex_destroy(&ac->mutex);
+    mutex_destroy(&ac->mtx);
 }
 
 inline
@@ -400,15 +400,15 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char*
     AssetComponent* ac = &ams->asset_components[type];
     uint16 elements = ams_calculate_chunks(ac, size, overhead);
 
-    pthread_mutex_lock(&ams->asset_components[type].mutex);
+    mutex_lock(&ams->asset_components[type].mtx);
     int32 free_data = chunk_reserve(&ac->asset_memory, elements);
     if (free_data < 0) {
-        pthread_mutex_unlock(&ams->asset_components[type].mutex);
+        mutex_unlock(&ams->asset_components[type].mtx);
         ASSERT_SIMPLE(free_data >= 0);
 
         return NULL;
     }
-    pthread_mutex_unlock(&ams->asset_components[type].mutex);
+    mutex_unlock(&ams->asset_components[type].mtx);
 
     byte* asset_data = chunk_get_element(&ac->asset_memory, free_data, true);
 
@@ -514,15 +514,15 @@ Asset* thrd_ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, cons
 {
     AssetComponent* ac = &ams->asset_components[asset_temp->component_id];
 
-    pthread_mutex_lock(&ams->asset_components[asset_temp->component_id].mutex);
+    mutex_lock(&ams->asset_components[asset_temp->component_id].mtx);
     int32 free_data = chunk_reserve(&ac->asset_memory, asset_temp->size);
     if (free_data < 0) {
-        pthread_mutex_unlock(&ams->asset_components[asset_temp->component_id].mutex);
+        mutex_unlock(&ams->asset_components[asset_temp->component_id].mtx);
         ASSERT_SIMPLE(free_data >= 0);
 
         return NULL;
     }
-    pthread_mutex_unlock(&ams->asset_components[asset_temp->component_id].mutex);
+    mutex_unlock(&ams->asset_components[asset_temp->component_id].mtx);
 
     byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
     memcpy(asset_data, asset_temp->self, sizeof(Asset));
