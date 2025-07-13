@@ -6,11 +6,12 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ARCHITECTURE_ARM_INTRINSICS_ARM_H
-#define TOS_ARCHITECTURE_ARM_INTRINSICS_ARM_H
+#ifndef COMS_ARCHITECTURE_ARM_INTRINSICS_ARM_H
+#define COMS_ARCHITECTURE_ARM_INTRINSICS_ARM_H
 
 #include <arm_sve.h>
 #include <arm_acle.h>
+#include <arm_neon.h>
 
 #include "../../stdlib/Types.h"
 #include "../../compiler/CompilerUtils.h"
@@ -49,5 +50,8 @@
 #else
     #define intrin_timestamp_counter() __builtin_readcyclecounter()
 #endif
+
+// a * b + c
+#define intrin_fmadd(a, b, c) vgetq_lane_f32(vmlaq_f32(vdupq_n_f32(c), vdupq_n_f32(a), vdupq_n_f32(b)), 0)
 
 #endif

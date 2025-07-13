@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ENTITY_H
-#define TOS_ENTITY_H
+#ifndef COMS_ENTITY_H
+#define COMS_ENTITY_H
 
 #include "../stdlib/Types.h"
 #include "../stdlib/HashMap.h"

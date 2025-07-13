@@ -1,5 +1,5 @@
-#ifndef TOS_FONT_H
-#define TOS_FONT_H
+#ifndef COMS_FONT_H
+#define COMS_FONT_H
 
 #include "../stdlib/Types.h"
 #include "../memory/BufferMemory.h"

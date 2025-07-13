@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_SYSTEM_WINDOW_H
-#define TOS_SYSTEM_WINDOW_H
+#ifndef COMS_SYSTEM_WINDOW_H
+#define COMS_SYSTEM_WINDOW_H
 
 #include "../stdlib/Types.h"
 

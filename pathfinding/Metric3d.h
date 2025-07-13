@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PATHFINDING_METRIC3D_H
-#define TOS_PATHFINDING_METRIC3D_H
+#ifndef COMS_PATHFINDING_METRIC3D_H
+#define COMS_PATHFINDING_METRIC3D_H
 
 #include <stdio.h>
 #include <stdlib.h>

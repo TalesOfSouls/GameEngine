@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_ENDIAN_H
-#define TOS_UTILS_ENDIAN_H
+#ifndef COMS_UTILS_ENDIAN_H
+#define COMS_UTILS_ENDIAN_H
 
 #include "../stdlib/Types.h"
 

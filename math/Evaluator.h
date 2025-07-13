@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MATH_EVALUATOR_H
-#define TOS_MATH_EVALUATOR_H
+#ifndef COMS_MATH_EVALUATOR_H
+#define COMS_MATH_EVALUATOR_H
 
 #include "../stdlib/Types.h"
 #include "../utils/StringUtils.h"
@@ -111,8 +111,8 @@ f32 evaluator_evaluate_function(const char* name, const char* args);
 
 // Shunting-yard algorithm to evaluate the expression
 f32 evaluator_evaluate_expression(const char* expr) {
-    EvaluatorOperatorStack operators = { .top = -1 };
-    EvaluatorValueStack values = { .top = -1 };
+    EvaluatorOperatorStack operators = { .items = {}, .top = -1 };
+    EvaluatorValueStack values = { .items = {}, .top = -1 };
 
     const char* ptr = expr;
     while (*ptr) {

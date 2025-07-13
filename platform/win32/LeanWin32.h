@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_LEAN_H
-#define TOS_PLATFORM_WIN32_LEAN_H
+#ifndef COMS_PLATFORM_WIN32_LEAN_H
+#define COMS_PLATFORM_WIN32_LEAN_H
 
 #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN 1

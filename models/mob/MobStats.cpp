@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_MOB_STATS_C
-#define TOS_MODELS_MOB_STATS_C
+#ifndef COMS_MODELS_MOB_STATS_C
+#define COMS_MODELS_MOB_STATS_C
 
 #include "MobStats.h"
 #include "../../stdlib/Simd.h"

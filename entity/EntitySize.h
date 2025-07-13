@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ENTITY_SIZE_H
-#define TOS_ENTITY_SIZE_H
+#ifndef COMS_ENTITY_SIZE_H
+#define COMS_ENTITY_SIZE_H
 
 enum EntitySize {
     ENTITY_SIZE_32,

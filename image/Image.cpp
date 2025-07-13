@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_IMAGE_C
-#define TOS_IMAGE_C
+#ifndef COMS_IMAGE_C
+#define COMS_IMAGE_C
 
 #include "../utils/StringUtils.h"
 #include "../memory/RingMemory.h"

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MATH_MATRIX_VECTOR_INT64_H
-#define TOS_MATH_MATRIX_VECTOR_INT64_H
+#ifndef COMS_MATH_MATRIX_VECTOR_INT64_H
+#define COMS_MATH_MATRIX_VECTOR_INT64_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>

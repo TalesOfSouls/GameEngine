@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_SHADER_TYPE_H
-#define TOS_GPUAPI_SHADER_TYPE_H
+#ifndef COMS_GPUAPI_SHADER_TYPE_H
+#define COMS_GPUAPI_SHADER_TYPE_H
 
 enum ShaderType {
     SHADER_TYPE_NONE,

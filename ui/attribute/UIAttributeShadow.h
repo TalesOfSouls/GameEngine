@@ -1,5 +1,5 @@
-#ifndef TOS_UI_ATTRIBUTE_SHADOW_H
-#define TOS_UI_ATTRIBUTE_SHADOW_H
+#ifndef COMS_UI_ATTRIBUTE_SHADOW_H
+#define COMS_UI_ATTRIBUTE_SHADOW_H
 
 #include "../../stdlib/Types.h"
 

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ENTITY_CURSOR_H
-#define TOS_ENTITY_CURSOR_H
+#ifndef COMS_ENTITY_CURSOR_H
+#define COMS_ENTITY_CURSOR_H
 
 #include "Entity.h"
 #include "AnimationEntityComponent.h"

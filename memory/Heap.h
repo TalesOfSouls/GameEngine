@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MEMORY_HEAP_H
-#define TOS_MEMORY_HEAP_H
+#ifndef COMS_MEMORY_HEAP_H
+#define COMS_MEMORY_HEAP_H
 
 #include <stdio.h>
 #include <string.h>

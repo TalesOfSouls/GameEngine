@@ -1,8 +1,8 @@
-#ifndef TOS_MODULE_H
-#define TOS_MODULE_H
+#ifndef COMS_MODULE_H
+#define COMS_MODULE_H
 
 #include "../stdlib/Types.h"
-#include "../../GameEngine/system/Library.h"
+#include "../../cOMS/system/Library.h"
 
 enum ModuleType {
     MODULE_TYPE_HUD,

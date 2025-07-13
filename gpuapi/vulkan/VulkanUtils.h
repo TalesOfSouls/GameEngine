@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_VULKAN_UTILS_H
-#define TOS_GPUAPI_VULKAN_UTILS_H
+#ifndef COMS_GPUAPI_VULKAN_UTILS_H
+#define COMS_GPUAPI_VULKAN_UTILS_H
 
 #if _WIN32
     #ifndef VK_USE_PLATFORM_WIN32_KHR
@@ -482,14 +482,14 @@ void gpuapi_swapchain_create(
     } else {
         swapchain_extent->width = OMS_CLAMP(
             window->width,
-            swap_chain_support.capabilities.maxImageExtent.width,
-            swap_chain_support.capabilities.minImageExtent.width
+            swap_chain_support.capabilities.minImageExtent.width,
+            swap_chain_support.capabilities.maxImageExtent.width
         );
 
         swapchain_extent->height = OMS_CLAMP(
             window->height,
-            swap_chain_support.capabilities.maxImageExtent.height,
-            swap_chain_support.capabilities.minImageExtent.height
+            swap_chain_support.capabilities.minImageExtent.height,
+            swap_chain_support.capabilities.maxImageExtent.height
         );
     }
 

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ARCHITECTURE_CPU_INFO_H
-#define TOS_ARCHITECTURE_CPU_INFO_H
+#ifndef COMS_ARCHITECTURE_CPU_INFO_H
+#define COMS_ARCHITECTURE_CPU_INFO_H
 
 #include "../stdlib/Types.h"
 
@@ -91,7 +91,7 @@ struct CpuInfo {
     char brand[49];
     byte model;
     byte family;
-    byte thread_count;
+    int16 core_count;
     int32 mhz;
     uint32 page_size;
     CpuCacheInfo cache[4];

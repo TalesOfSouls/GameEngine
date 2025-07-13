@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_COMMAND_H
-#define TOS_COMMAND_H
+#ifndef COMS_COMMAND_H
+#define COMS_COMMAND_H
 
 #include "../stdlib/Types.h"
 

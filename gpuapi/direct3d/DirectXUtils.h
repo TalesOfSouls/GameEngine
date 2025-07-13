@@ -6,18 +6,18 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_DIRECTX_UTILS_H
-#define TOS_GPUAPI_DIRECTX_UTILS_H
+#ifndef COMS_GPUAPI_DIRECTX_UTILS_H
+#define COMS_GPUAPI_DIRECTX_UTILS_H
 
 #include "../../stdlib/Types.h"
 #include <windows.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <d3dcommon.h>
-#include "../../../GameEngine/log/Log.h"
-#include "../../../GameEngine/memory/RingMemory.h"
-#include "../../../GameEngine/object/Texture.h"
-#include "../../../GameEngine/image/Image.cpp"
+#include "../../../cOMS/log/Log.h"
+#include "../../../cOMS/memory/RingMemory.h"
+#include "../../../cOMS/object/Texture.h"
+#include "../../../cOMS/image/Image.cpp"
 #include "../../compiler/CompilerUtils.h"
 // #include "../../../EngineDependencies/directx/d3d12.h"
 // #include "../../../EngineDependencies/directx/d3dx12.h"
@@ -389,7 +389,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
         &texture_upload_buffer,
         D3D12_RESOURCE_STATE_GENERIC_READ,
         NULL,
-        IID_PPVOID((*texture_upload_heap))))
+        IID_PPVOID(texture_upload_heap)))
     ) {
         if (device_temp) {
             device_temp->Release();
@@ -439,7 +439,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
 
     byte* data;
     // @question is 0 correct here? Even for multiple function calls?
-    if (FAILED(hr = texture_upload_heap->Map(0, NULL, (void **) &data))) {
+    if (FAILED(hr = (*texture_upload_heap)->Map(0, NULL, (void **) &data))) {
         LOG_1("DirectX12 Map: %d", {{LOG_DATA_INT32, &hr}});
         ASSERT_SIMPLE(false);
 

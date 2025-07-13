@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_MOB_STATE_H
-#define TOS_MODELS_MOB_STATE_H
+#ifndef COMS_MODELS_MOB_STATE_H
+#define COMS_MODELS_MOB_STATE_H
 
 #include "../Location.h"
 #include "../../stdlib/Types.h"

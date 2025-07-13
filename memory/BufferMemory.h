@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MEMORY_BUFFER_MEMORY_H
-#define TOS_MEMORY_BUFFER_MEMORY_H
+#ifndef COMS_MEMORY_BUFFER_MEMORY_H
+#define COMS_MEMORY_BUFFER_MEMORY_H
 
 #include <string.h>
 #include "../stdlib/Types.h"
@@ -36,7 +36,7 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
     PROFILE(PROFILE_BUFFER_ALLOC, NULL, false, true);
-    LOG_1("Allocating BufferMemory: %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_1("[INFO] Allocating BufferMemory: %n B", {{LOG_DATA_UINT64, &size}});
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)

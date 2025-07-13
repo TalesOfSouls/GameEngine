@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_NETWORK_SERVER_H
-#define TOS_PLATFORM_WIN32_NETWORK_SERVER_H
+#ifndef COMS_PLATFORM_WIN32_NETWORK_SERVER_H
+#define COMS_PLATFORM_WIN32_NETWORK_SERVER_H
 
 #include <stdio.h>
 #include <stdlib.h>

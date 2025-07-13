@@ -1,5 +1,5 @@
-#ifndef TOS_SORT_EYTZINGER_SEARCH_H
-#define TOS_SORT_EYTZINGER_SEARCH_H
+#ifndef COMS_SORT_EYTZINGER_SEARCH_H
+#define COMS_SORT_EYTZINGER_SEARCH_H
 
 #include "../stdlib/Types.h"
 #include "../memory/RingMemory.h"
@@ -7,6 +7,7 @@
 // @performance We could optimize eytzinger by using 1 based index
 // Consider this https://en.algorithmica.org/hpc/data-structures/binary-search/
 
+static
 void eytzinger_rearrange(byte* arr, byte* temp, size_t start, size_t* index, size_t num, size_t size) noexcept {
     if (start >= num) {
         return;
@@ -23,6 +24,7 @@ void eytzinger_rearrange(byte* arr, byte* temp, size_t start, size_t* index, siz
     eytzinger_rearrange(arr, temp, 2 * start + 2, index, num, size);
 }
 
+// @performance Instead of expecting a sorted array maybe we can improve it by immediately create the eytzinger array and thus avoid one "sort"
 // arr MUST be sorted by a sorting algorithm of your choice
 void eytzinger_create(byte* arr, size_t num, size_t size, RingMemory* ring) {
     byte* temp = ring_get_memory(ring, size * num);

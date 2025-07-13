@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ASSET_H
-#define TOS_ASSET_H
+#ifndef COMS_ASSET_H
+#define COMS_ASSET_H
 
 #include "../stdlib/Types.h"
 #include "AssetType.h"

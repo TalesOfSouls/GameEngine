@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_OPENGL_DEFINES_H
-#define TOS_GPUAPI_OPENGL_DEFINES_H
+#ifndef COMS_GPUAPI_OPENGL_DEFINES_H
+#define COMS_GPUAPI_OPENGL_DEFINES_H
 
 #include <stdint.h>
 

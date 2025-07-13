@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_OPENGL_APP_CMD_BUFFER_H
-#define TOS_GPUAPI_OPENGL_APP_CMD_BUFFER_H
+#ifndef COMS_GPUAPI_OPENGL_APP_CMD_BUFFER_H
+#define COMS_GPUAPI_OPENGL_APP_CMD_BUFFER_H
 
 #include "../../stdlib/Types.h"
 #include "../../log/PerformanceProfiler.h"
@@ -48,7 +48,7 @@ void* cmd_shader_load_sync(AppCmdBuffer* __restrict cb, Shader* __restrict shade
 
         // Make sub shader
         shader_assets[i] = gpuapi_shader_make(
-            shader_type_index((ShaderType) (i + 1)),
+            ogl_shader_type_index((ShaderType) (i + 1)),
             (char *) shader_asset->self
         );
 

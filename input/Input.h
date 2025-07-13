@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_INPUT_H
-#define TOS_INPUT_H
+#ifndef COMS_INPUT_H
+#define COMS_INPUT_H
 
 #include "../stdlib/Types.h"
 #include "../utils/BitUtils.h"
@@ -574,7 +574,7 @@ void input_hotkey_state(Input* input) noexcept
 
             // Create text from input
             char* pos = input->text;
-            for (int32 i = 0; i < ARRAY_COUNT(characters); ++i) {
+            for (uint32 i = 0; i < ARRAY_COUNT(characters); ++i) {
                 pos += utf8_decode(characters[i], pos);
             }
 

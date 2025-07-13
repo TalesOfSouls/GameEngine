@@ -1,5 +1,5 @@
-#ifndef TOS_UI_LANGUAGE_H
-#define TOS_UI_LANGUAGE_H
+#ifndef COMS_UI_LANGUAGE_H
+#define COMS_UI_LANGUAGE_H
 
 #include "../stdlib/Types.h"
 #include "../memory/RingMemory.h"

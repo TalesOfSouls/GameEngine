@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_APP_COMMAND_BUFFER_H
-#define TOS_APP_COMMAND_BUFFER_H
+#ifndef COMS_APP_COMMAND_BUFFER_H
+#define COMS_APP_COMMAND_BUFFER_H
 
 #include "../stdlib/Types.h"
 #include "../memory/ChunkMemory.h"
@@ -29,7 +29,7 @@ struct AppCmdBuffer {
     ChunkMemory commands;
     int32 last_element;
 
-    pthread_mutex_t mutex;
+    mutex mtx;
 
     // Application data for cmd access
     // The list below depends on what kind of systems our command buffer needs access to

@@ -1,5 +1,5 @@
-#ifndef TOS_MODELS_SKILL_H
-#define TOS_MODELS_SKILL_H
+#ifndef COMS_MODELS_SKILL_H
+#define COMS_MODELS_SKILL_H
 
 #include "../../../stdlib/Types.h"
 #include "ProjectileDistribution.h"

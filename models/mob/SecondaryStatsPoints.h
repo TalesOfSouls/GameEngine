@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_MOB_SECONDARY_STATS_POINTS_H
-#define TOS_MODELS_MOB_SECONDARY_STATS_POINTS_H
+#ifndef COMS_MODELS_MOB_SECONDARY_STATS_POINTS_H
+#define COMS_MODELS_MOB_SECONDARY_STATS_POINTS_H
 
 #include "../../stdlib/Types.h"
 #include "MobStatsType.h"

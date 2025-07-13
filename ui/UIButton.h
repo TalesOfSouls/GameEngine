@@ -1,5 +1,5 @@
-#ifndef TOS_UI_BUTTON_H
-#define TOS_UI_BUTTON_H
+#ifndef COMS_UI_BUTTON_H
+#define COMS_UI_BUTTON_H
 
 #include "../stdlib/Types.h"
 #include "attribute/UIAttribute.h"

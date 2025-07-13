@@ -1,5 +1,5 @@
-#ifndef TOS_UI_ATTRIBUTE_FONT_H
-#define TOS_UI_ATTRIBUTE_FONT_H
+#ifndef COMS_UI_ATTRIBUTE_FONT_H
+#define COMS_UI_ATTRIBUTE_FONT_H
 
 #include "../../stdlib/Types.h"
 #include "UIAttributeShadow.h"

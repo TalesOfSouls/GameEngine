@@ -6,11 +6,12 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_TEST_FRAMEWORK_H
-#define TOS_TEST_FRAMEWORK_H
+#ifndef COMS_TEST_FRAMEWORK_H
+#define COMS_TEST_FRAMEWORK_H
 
 #include <stdio.h>
 #include <math.h>
+#include <inttypes.h>
 #include "../architecture/Intrinsics.h"
 
 static char **_test_log;
@@ -18,28 +19,31 @@ static int32_t _test_assert_count;
 static int32_t _test_assert_error_count;
 static int32_t _test_count = -1;
 
+static int32_t _test_suit_count = 0;
 static int32_t _test_global_assert_count = 0;
 static int32_t _test_global_assert_error_count = 0;
 static int32_t _test_global_count = 0;
 
 static int64_t _test_start;
+static int64_t _test_total_start;
 
 #define TEST_PROFILING_LOOPS 1000
 
 #define TEST_HEADER()                                             \
-    int64_t _test_total_start = test_start_time();                \
+    _test_total_start = test_start_time();                \
     printf("\nStat Tests   Assert(OK/NG)   Time(ms)  Details\n"); \
     printf("========================================================================================================================\n")
 
 #define TEST_FOOTER()                                                                                                                     \
     printf("========================================================================================================================\n"); \
     printf(                                                                                                                               \
-        "%s %5d   (%5d/%5d)   %8.0f\n\n",                                                                                                 \
+        "%s %5d   (%5d/%5d)   %8.2f\n\n",                                                                                                 \
         _test_global_assert_count ? "[NG]" : "[OK]",                                                                                      \
         _test_global_count,                                                                                                               \
         _test_global_assert_count - _test_global_assert_error_count,                                                                      \
         _test_global_assert_count,                                                                                                        \
-        test_duration_time(_test_total_start) / 1000000)
+        test_duration_time(_test_total_start) / 1000000);                                                                                 \
+    printf("%d test suits\n\n", _test_suit_count)
 
 #ifdef UBER_TEST
 #define TEST_INIT_HEADER() (void)0
@@ -70,11 +74,9 @@ int64_t test_start_time()
 
 double test_duration_time(int64_t start)
 {
-    LARGE_INTEGER frequency, end;
+    LARGE_INTEGER frequency;
     QueryPerformanceFrequency(&frequency);
-    QueryPerformanceCounter(&end);
-
-    return (double)(end.QuadPart - start) * 1e9 / frequency.QuadPart;
+    return (double)(test_start_time() - start) / frequency.QuadPart;
 }
 
 double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *para)
@@ -111,6 +113,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
     } while (0)
 #else
 #include "../platform/linux/ExceptionHandler.h"
+#include <time.h>
 void test_exception_handler(int signum)
 {
     printf("Received signal: %d\n", signum);
@@ -120,7 +123,7 @@ void test_exception_handler(int signum)
 
 int64_t test_start_time()
 {
-    struct timespec start, end;
+    struct timespec start;
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     return start.tv_sec * 1e9 + start.tv_nsec;
@@ -128,14 +131,9 @@ int64_t test_start_time()
 
 double test_duration_time(int64_t start)
 {
-    LARGE_INTEGER frequency, end;
-    QueryPerformanceFrequency(&frequency);
-    QueryPerformanceCounter(&end);
-
-    return (double)(end.tv_sec * 1e9 + end.tv_nsec - start);
+    return (double) (test_start_time() - start);
 }
 
-#include <time.h>
 double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *para)
 {
     struct timespec start, end;
@@ -151,6 +149,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
 #define TEST_INIT(test_count)                                                                  \
     do                                                                                         \
     {                                                                                          \
+        ++_test_suit_count;                                                                    \
         TEST_INIT_HEADER();                                                                    \
         setvbuf(stdout, NULL, _IONBF, 0);                                                      \
         signal(SIGSEGV, test_exception_handler);                                               \
@@ -176,7 +175,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         if (_test_assert_error_count)                                                                                                                 \
         {                                                                                                                                             \
             printf(                                                                                                                                   \
-                "[NG] %5d   (%5d/%5d)   %8.0f   %s\n",                                                                                                \
+                "[NG] %5d   (%5d/%5d)   %8.2f   %s\n",                                                                                                \
                 _test_count, _test_assert_count - _test_assert_error_count, _test_assert_count, test_duration_time(_test_start) / 1000000, __FILE__); \
             for (int i = 0; i < _test_assert_error_count; ++i)                                                                                        \
             {                                                                                                                                         \
@@ -187,7 +186,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         else                                                                                                                                          \
         {                                                                                                                                             \
             printf(                                                                                                                                   \
-                "[OK] %5d   (%5d/%5d)   %8.0f   %s\n",                                                                                                \
+                "[OK] %5d   (%5d/%5d)   %8.2f   %s\n",                                                                                                \
                 _test_count, _test_assert_count - _test_assert_error_count, _test_assert_count, test_duration_time(_test_start) / 1000000, __FILE__); \
         }                                                                                                                                             \
         fflush(stdout);                                                                                                                               \
@@ -204,32 +203,60 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
     ++_test_global_count; \
     func()
 
-#define ASSERT_EQUALS(a, b)                                             \
+#define ASSERT_EQUALS(a, b)                                                        \
+    do                                                                             \
+    {                                                                              \
+        ++_test_assert_count;                                                      \
+        ++_test_global_assert_count;                                               \
+        if ((a) != (b))                                                            \
+        {                                                                          \
+            ++_test_global_assert_error_count;                                     \
+            snprintf(                                                              \
+                _test_log[_test_assert_error_count++], 1024,                       \
+                "%4i: %" PRId64 " != %" PRId64, __LINE__, (int64)(a), (int64)(b)); \
+        }                                                                          \
+    } while (0)
+
+#define ASSERT_GREATER_THAN(a, b)                                       \
     do                                                                  \
     {                                                                   \
         ++_test_assert_count;                                           \
         ++_test_global_assert_count;                                    \
-        if ((a) != (b))                                                 \
+        if ((a) <= (b))                                                 \
         {                                                               \
             ++_test_global_assert_error_count;                          \
             snprintf(                                                   \
                 _test_log[_test_assert_error_count++], 1024,            \
-                "%4i: %lld != %lld", __LINE__, (int64)(a), (int64)(b)); \
+                "%4i: %.3f <= %.3f", __LINE__, (float)(a), (float)(b)); \
         }                                                               \
     } while (0)
 
-#define ASSERT_NOT_EQUALS(a, b)                                         \
+#define ASSERT_LESSER_THAN(a, b)                                        \
     do                                                                  \
     {                                                                   \
         ++_test_assert_count;                                           \
         ++_test_global_assert_count;                                    \
-        if ((a) == (b))                                                 \
+        if ((a) >= (b))                                                 \
         {                                                               \
             ++_test_global_assert_error_count;                          \
             snprintf(                                                   \
                 _test_log[_test_assert_error_count++], 1024,            \
-                "%4i: %lld == %lld", __LINE__, (int64)(a), (int64)(b)); \
+                "%4i: %.3f >= %.3f", __LINE__, (float)(a), (float)(b)); \
         }                                                               \
+    } while (0)
+
+#define ASSERT_NOT_EQUALS(a, b)                                                    \
+    do                                                                             \
+    {                                                                              \
+        ++_test_assert_count;                                                      \
+        ++_test_global_assert_count;                                               \
+        if ((a) == (b))                                                            \
+        {                                                                          \
+            ++_test_global_assert_error_count;                                     \
+            snprintf(                                                              \
+                _test_log[_test_assert_error_count++], 1024,                       \
+                "%4i: %" PRId64 " == %" PRId64, __LINE__, (int64)(a), (int64)(b)); \
+        }                                                                          \
     } while (0)
 
 #define ASSERT_EQUALS_WITH_DELTA(a, b, delta)                   \
@@ -329,7 +356,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
             {                                                              \
                 ++_test_global_assert_error_count;                         \
                 snprintf(_test_log[_test_global_assert_error_count], 1024, \
-                         "%4i: mismatch at offset %lld", __LINE__, i);     \
+                         "%4i: mismatch at offset %" PRId64, __LINE__, i); \
                 break;                                                     \
             }                                                              \
         }                                                                  \
@@ -371,7 +398,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
             ++_test_global_assert_error_count;                                                                    \
             snprintf(                                                                                             \
                 _test_log[_test_assert_error_count++], 1024,                                                      \
-                "%4i: %.2f%% (%s: %llu cycles, %s: %llu cycles)",                                                 \
+                "%4i: %.2f%% (%s: %" PRIu64 " cycles, %s: %" PRIu64 " cycles)",                                   \
                 __LINE__, percent_diff + 100.0f, #func1, (uint64_t)cycles_func1, #func2, (uint64_t)cycles_func2); \
         }                                                                                                         \
         ASSERT_TRUE((a && b) || a == b);                                                                          \
@@ -400,7 +427,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
             ++_test_global_assert_error_count;                                  \
             snprintf(                                                           \
                 _test_log[_test_assert_error_count++], 1024,                    \
-                "%4i: %.2f%% (%s: %llu cycles)",                                \
+                "%4i: %.2f%% (%s: %" PRIu64 " cycles)",                         \
                 __LINE__, percent_diff + 100.0f, #func, (uint64_t)cycles_func); \
         }                                                                       \
     } while (0)

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_AUDIO_C
-#define TOS_AUDIO_C
+#ifndef COMS_AUDIO_C
+#define COMS_AUDIO_C
 
 #include "../utils/StringUtils.h"
 #include "../memory/RingMemory.h"

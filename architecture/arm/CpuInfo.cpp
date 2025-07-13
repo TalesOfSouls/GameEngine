@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ARCHITECTURE_ARM_CPU_INFO_C
-#define TOS_ARCHITECTURE_ARM_CPU_INFO_C
+#ifndef COMS_ARCHITECTURE_ARM_CPU_INFO_C
+#define COMS_ARCHITECTURE_ARM_CPU_INFO_C
 
 #include <stdio.h>
 #include <stdint.h>

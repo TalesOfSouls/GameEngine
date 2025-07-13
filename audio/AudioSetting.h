@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_AUDIO_SETTING_H
-#define TOS_AUDIO_SETTING_H
+#ifndef COMS_AUDIO_SETTING_H
+#define COMS_AUDIO_SETTING_H
 
 #include "../stdlib/Types.h"
 #include "../math/matrix/MatrixFloat32.h"

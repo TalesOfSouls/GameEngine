@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PARTICLE_H
-#define TOS_PARTICLE_H
+#ifndef COMS_PARTICLE_H
+#define COMS_PARTICLE_H
 
 #include "../stdlib/Types.h"
 

@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_AUDIO_QOA_H
-#define TOS_AUDIO_QOA_H
+#ifndef COMS_AUDIO_QOA_H
+#define COMS_AUDIO_QOA_H
 
 #include "../stdlib/Types.h"
 #include "../utils/EndianUtils.h"

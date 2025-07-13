@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ARCHITECTURE_X86_INTRINSICS_H
-#define TOS_ARCHITECTURE_X86_INTRINSICS_H
+#ifndef COMS_ARCHITECTURE_X86_INTRINSICS_H
+#define COMS_ARCHITECTURE_X86_INTRINSICS_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>
@@ -57,6 +57,9 @@
 #define intrin_prefetch_l1(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T0)
 #define intrin_prefetch_l2(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T1)
 #define intrin_prefetch_l3(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T2)
+
+// a * b + c
+#define intrin_fmadd(a, b, c) _mm_cvtss_f32(_mm_fmadd_ss(_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)))
 
 inline
 uint64 intrin_timestamp_counter() noexcept {

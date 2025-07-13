@@ -6,10 +6,11 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_COMPILER_MSVC_COMPILER_UTILS_H
-#define TOS_COMPILER_MSVC_COMPILER_UTILS_H
+#ifndef COMS_COMPILER_MSVC_COMPILER_UTILS_H
+#define COMS_COMPILER_MSVC_COMPILER_UTILS_H
 
 #include "../../utils/TestUtils.h"
+#include "../../stdlib/Types.h"
 #include <basetsd.h>
 #include <intrin.h>
 
@@ -79,8 +80,8 @@ int32 compiler_find_first_bit_l2r(uint32 mask) noexcept {
 }
 
 inline
-void compiler_cpuid(int32 cpuInfo[4], int32 function_id) noexcept {
-    __cpuidex(cpuInfo, function_id, 0);
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) noexcept {
+    __cpuidex((int32 *) cpu_info, function_id, level);
 }
 
 #endif

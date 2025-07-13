@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_VULKAN_SHADER_H
-#define TOS_GPUAPI_VULKAN_SHADER_H
+#ifndef COMS_GPUAPI_VULKAN_SHADER_H
+#define COMS_GPUAPI_VULKAN_SHADER_H
 
 #include "../../stdlib/Types.h"
 #include <vulkan/vulkan.h>

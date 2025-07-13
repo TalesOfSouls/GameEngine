@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MEMORY_CHUNK_MEMORY_H
-#define TOS_MEMORY_CHUNK_MEMORY_H
+#ifndef COMS_MEMORY_CHUNK_MEMORY_H
+#define COMS_MEMORY_CHUNK_MEMORY_H
 
 #include <string.h>
 #include "../stdlib/Types.h"
@@ -26,7 +26,6 @@
 struct ChunkMemory {
     byte* memory;
 
-    // @question Why are we making the count 64 bit? is this really realistically possible?
     uint64 size;
     int32 last_pos;
     uint32 count;
@@ -35,7 +34,7 @@ struct ChunkMemory {
 
     // length = count
     // free describes which locations are used and which are free
-    uint64* free;
+    alignas(8) uint64* free;
 };
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
@@ -45,26 +44,28 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
-    LOG_1("Allocating ChunkMemory");
+    LOG_1("[INFO] Allocating ChunkMemory");
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
+    uint64 size = count * chunk_size
+        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
+        + alignment * 2; // overhead for alignment
+
     buf->memory = alignment < 2
-        ? (byte *) platform_alloc(count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64))
-        : (byte *) platform_alloc_aligned(count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64), alignment);
+        ? (byte *) platform_alloc(size)
+        : (byte *) platform_alloc_aligned(size, alignment);
 
     buf->count = count;
-    buf->size = count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64);
+    buf->size = size;
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint64 *) (buf->memory + count * chunk_size);
+    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
 
     memset(buf->memory, 0, buf->size);
-
-    LOG_1("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
 inline
@@ -75,10 +76,14 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
-    buf->memory = buffer_get_memory(data, count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64));
+    uint64 size = count * chunk_size
+        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
+        + alignment * 2; // overhead for alignment
+
+    buf->memory = buffer_get_memory(data, size);
 
     buf->count = count;
-    buf->size = count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64);
+    buf->size = size;
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
@@ -86,7 +91,7 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) (buf->memory + count * chunk_size);
+    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), 64);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -99,11 +104,14 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, i
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
-    // @bug what if an alignment is defined?
-    buf->memory = data;
+    uint64 size = count * chunk_size
+        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
+        + alignment * 2; // overhead for alignment
+
+    buf->memory = (byte *) ROUND_TO_NEAREST((uintptr_t) data, alignment);
 
     buf->count = count;
-    buf->size = count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64);
+    buf->size = size;
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
@@ -111,7 +119,7 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, i
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) (buf->memory + count * chunk_size);
+    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -131,13 +139,13 @@ void chunk_free(ChunkMemory* buf)
     buf->memory = NULL;
 }
 
-inline
+FORCE_INLINE
 uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) noexcept {
     return (uint32) ((uintptr_t) pos - (uintptr_t) buf->memory) / buf->chunk_size;
 }
 
 inline
-byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false) noexcept
+byte* chunk_get_element(ChunkMemory* buf, uint32 element, bool zeroed = false) noexcept
 {
     if (element >= buf->count) {
         return NULL;
@@ -155,6 +163,51 @@ byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false) n
     return offset;
 }
 
+// This is a special case of the chunk_reserve code where we try to find n unset elements
+int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) noexcept {
+    if ((uint32) start_index >= state_count) {
+        start_index = 0;
+    }
+
+    uint32 free_index = start_index / 64;
+    uint32 bit_index = start_index & 63;
+
+    // Check standard simple solution
+    if (!IS_BIT_SET_64_R2L(state[free_index], bit_index)) {
+        state[free_index] |= (1ULL << bit_index);
+
+        return free_index * 64 + bit_index;
+    }
+
+    for (uint32 i = 0; i < state_count; i+= 64) {
+        if (state[free_index] != 0xFFFFFFFFFFFFFFFF) {
+            bit_index = compiler_find_first_bit_r2l(~state[free_index]);
+
+            uint32 id = free_index * 64 + bit_index;
+            if (id >= state_count) {
+                ++free_index;
+                if (free_index * 64 >= state_count) {
+                    free_index = 0;
+                }
+
+                continue;
+            }
+
+            state[free_index] |= (1ULL << bit_index);
+
+            return id;
+        }
+
+        ++free_index;
+        if (free_index * 64 >= state_count) {
+            free_index = 0;
+        }
+    }
+
+    return -1;
+}
+
+inline
 int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) noexcept
 {
     if ((uint32) (buf->last_pos + 1) >= buf->count) {
@@ -251,7 +304,7 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) noexcept
     }
 
     if (free_element < 0) {
-        ASSERT_SIMPLE(false);
+        LOG_3("No free chunk memory index found");
         return -1;
     }
 
@@ -265,15 +318,13 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) noexcept
 inline
 void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index) noexcept
 {
-    DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + (free_index * 64 + bit_index) * buf->chunk_size), buf->chunk_size);
     buf->free[free_index] &= ~(1ULL << bit_index);
+    DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + (free_index * 64 + bit_index) * buf->chunk_size), buf->chunk_size);
 }
 
 inline
 void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count = 1) noexcept
 {
-    DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size);
-
     uint64 free_index = element / 64;
     uint32 bit_index = element & 63;
 
@@ -295,12 +346,14 @@ void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count 
         ++free_index;
         bit_index = 0;
     }
+
+    DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size);
 }
 
 inline
 int64 chunk_dump(const ChunkMemory* buf, byte* data)
 {
-    LOG_1("Dump ChunkMemory");
+    LOG_1("[INFO] Dump ChunkMemory");
     byte* start = data;
 
     // Count
@@ -328,7 +381,7 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data)
     memcpy(data, buf->memory, buf->size);
     data += buf->size;
 
-    LOG_1("Dumped ChunkMemory: %n B", {{LOG_DATA_UINT64, (void *) &buf->size}});
+    LOG_1("[INFO] Dumped ChunkMemory: %n B", {{LOG_DATA_UINT64, (void *) &buf->size}});
 
     return data - start;
 }
@@ -336,7 +389,7 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data)
 inline
 int64 chunk_load(ChunkMemory* buf, const byte* data)
 {
-    LOG_1("Loading ChunkMemory");
+    LOG_1("[INFO] Loading ChunkMemory");
 
     // Count
     buf->count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
@@ -359,11 +412,11 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
     data += sizeof(buf->alignment);
 
     memcpy(buf->memory, data, buf->size);
-    data += buf->size;
+    //data += buf->size;
 
     buf->free = (uint64 *) (buf->memory + buf->count * buf->chunk_size);
 
-    LOG_1("Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_1("[INFO] Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 
     return buf->size;
 }

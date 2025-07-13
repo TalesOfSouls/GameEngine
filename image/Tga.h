@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_IMAGE_TGA_H
-#define TOS_IMAGE_TGA_H
+#ifndef COMS_IMAGE_TGA_H
+#define COMS_IMAGE_TGA_H
 
 #include <string.h>
 #include "../stdlib/Types.h"

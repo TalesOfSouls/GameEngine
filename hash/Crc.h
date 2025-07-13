@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_HASH_CRC_H
-#define TOS_HASH_CRC_H
+#ifndef COMS_HASH_CRC_H
+#define COMS_HASH_CRC_H
 
 #include "../stdlib/Types.h"
 #include "../architecture/Intrinsics.h"

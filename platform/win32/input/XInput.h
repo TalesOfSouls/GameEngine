@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_INPUT_XINPUT_H
-#define TOS_PLATFORM_WIN32_INPUT_XINPUT_H
+#ifndef COMS_PLATFORM_WIN32_INPUT_XINPUT_H
+#define COMS_PLATFORM_WIN32_INPUT_XINPUT_H
 
 #include <XInput.h>
 #include <windows.h>
@@ -15,21 +15,21 @@
 #include "../../../input/ControllerInput.h"
 #include "../../../stdlib/Types.h"
 
-// @todo consider to remove some global_persist and defines since we are never calling it somewhere else
+// @todo consider to remove some static and defines since we are never calling it somewhere else
 
 // BEGIN: Dynamically load XInput
 typedef DWORD WINAPI x_input_get_state(DWORD, XINPUT_STATE*);
 DWORD WINAPI XInputGetStateStub(DWORD, XINPUT_STATE*) {
     return 0;
 }
-global_persist x_input_get_state* XInputGetState_ = XInputGetStateStub;
+static x_input_get_state* XInputGetState_ = XInputGetStateStub;
 #define XInputGetState XInputGetState_
 
 typedef DWORD WINAPI x_input_set_state(DWORD, XINPUT_VIBRATION*);
 DWORD WINAPI XInputSetStateStub(DWORD, XINPUT_VIBRATION*) {
     return 0;
 }
-global_persist x_input_set_state* XInputSetState_ = XInputSetStateStub;
+static x_input_set_state* XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
 void xinput_load() {

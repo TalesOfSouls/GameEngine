@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_AUTH_H
-#define TOS_AUTH_H
+#ifndef COMS_AUTH_H
+#define COMS_AUTH_H
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_CLIPBOARD_H
-#define TOS_PLATFORM_WIN32_CLIPBOARD_H
+#ifndef COMS_PLATFORM_WIN32_CLIPBOARD_H
+#define COMS_PLATFORM_WIN32_CLIPBOARD_H
 
 #include "../../stdlib/Types.h"
 #include "../../utils/StringUtils.h"

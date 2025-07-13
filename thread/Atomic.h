@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_THREADS_ATOMIC_H
-#define TOS_THREADS_ATOMIC_H
+#ifndef COMS_THREADS_ATOMIC_H
+#define COMS_THREADS_ATOMIC_H
 
 #if _WIN32
     #include "../platform/win32/threading/Atomic.h"

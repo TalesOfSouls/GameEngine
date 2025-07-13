@@ -1,5 +1,5 @@
-#ifndef TOS_UI_LABEL_H
-#define TOS_UI_LABEL_H
+#ifndef COMS_UI_LABEL_H
+#define COMS_UI_LABEL_H
 
 #include "../stdlib/Types.h"
 #include "attribute/UIAttributeFont.h"

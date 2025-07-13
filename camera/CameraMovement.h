@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_CAMERA_MOVEMENT_H
-#define TOS_CAMERA_MOVEMENT_H
+#ifndef COMS_CAMERA_MOVEMENT_H
+#define COMS_CAMERA_MOVEMENT_H
 
 enum CameraMovement {
     CAMERA_MOVEMENT_NONE,

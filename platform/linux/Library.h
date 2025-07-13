@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_LIBRARY_H
-#define TOS_PLATFORM_LINUX_LIBRARY_H
+#ifndef COMS_PLATFORM_LINUX_LIBRARY_H
+#define COMS_PLATFORM_LINUX_LIBRARY_H
 
 typedef void* LibraryHandle;
 

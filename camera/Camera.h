@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_CAMERA_H
-#define TOS_CAMERA_H
+#ifndef COMS_CAMERA_H
+#define COMS_CAMERA_H
 
 #include "../stdlib/Types.h"
 #include "../math/matrix/MatrixFloat32.h"

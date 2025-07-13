@@ -1,0 +1,2 @@
+// Transpile to js template -> create template file for the frontend from the backend template file
+// Transpile to propriatary application/data format -> creates frontend response for data only request

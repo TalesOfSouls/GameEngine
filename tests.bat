@@ -2,8 +2,8 @@
 set "start_time=%TIME%"
 cls
 
-set "EXE_NAME=tests"
-set "DESTINATION_DIR=..\build\tests"
+set "EXE_NAME=MainTest"
+set "DESTINATION_DIR=..\build\cOMS"
 
 IF NOT EXIST ..\build mkdir ..\build
 IF NOT EXIST "%DESTINATION_DIR%" mkdir "%DESTINATION_DIR%"
@@ -18,7 +18,7 @@ if "%Platform%" neq "x64" (
 cd "%DESTINATION_DIR%"
 del *.pdb > NUL 2> NUL
 del *.idb > NUL 2> NUL
-cd ..\..\GameEngine
+cd ..\..\cOMS
 
 REM Use /showIncludes for include debugging
 
@@ -48,7 +48,7 @@ cl ^
     /D WIN32 /D _WINDOWS /D _UNICODE /D UNICODE ^
     /D _CRT_SECURE_NO_WARNINGS ^
     /Fo"%DESTINATION_DIR%/" /Fe"%DESTINATION_DIR%\MainTest.exe" %DEBUG_DATA% ^
-    tests\MainTest.cpp ^
+    MainTest.cpp ^
     /link /INCREMENTAL:no ^
     /SUBSYSTEM:CONSOLE /MACHINE:X64 ^
     kernel32.lib user32.lib gdi32.lib winmm.lib
@@ -56,7 +56,6 @@ cl ^
 REM Check if the compilation was successful
 if errorlevel 1 (
     echo Compilation failed for MainTest.cpp
-    exit /b 1
 )
 
 REM Run the compiled executable

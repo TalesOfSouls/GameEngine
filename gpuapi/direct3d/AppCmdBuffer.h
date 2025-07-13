@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_DIRECTX_APP_CMD_BUFFER_H
-#define TOS_GPUAPI_DIRECTX_APP_CMD_BUFFER_H
+#ifndef COMS_GPUAPI_DIRECTX_APP_CMD_BUFFER_H
+#define COMS_GPUAPI_DIRECTX_APP_CMD_BUFFER_H
 
 #include "../../stdlib/Types.h"
 #include "../../log/PerformanceProfiler.h"
@@ -55,7 +55,7 @@ void* cmd_shader_load_sync(
 
         // Make sub shader
         shader_assets[i] = gpuapi_shader_make(
-            shader_type_index((ShaderType) (i + 1)),
+            d3_shader_type_index((ShaderType) (i + 1)),
             (char *) shader_asset->self,
             shader_asset->ram_size
         );

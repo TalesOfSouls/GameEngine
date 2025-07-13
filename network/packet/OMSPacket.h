@@ -1,5 +1,5 @@
-#ifndef TOS_NETWORK_PACKET_OMS_H
-#define TOS_NETWORK_PACKET_OMS_H
+#ifndef COMS_NETWORK_PACKET_OMS_H
+#define COMS_NETWORK_PACKET_OMS_H
 
 #include <stdio.h>
 

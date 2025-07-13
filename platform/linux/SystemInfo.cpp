@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_SYSTEM_INFO_C
-#define TOS_PLATFORM_LINUX_SYSTEM_INFO_C
+#ifndef COMS_PLATFORM_LINUX_SYSTEM_INFO_C
+#define COMS_PLATFORM_LINUX_SYSTEM_INFO_C
 
 #include <stdio.h>
 #include <stdint.h>
@@ -20,8 +20,6 @@
 
 #include <locale.h>
 #include <sys/resource.h>
-#include <X11/Xlib.h>
-#include <X11/extensions/Xrandr.h>
 
 // -lX11 -lXrandr
 
@@ -76,52 +74,67 @@ uint16 system_country_code()
 }
 
 void mainboard_info_get(MainboardInfo* info) {
-    FileBody file = {};
+    FileBody file;
 
-    file.content = info->name;
-    file.size = sizeof(info->name);
+    file.content = (byte *) info->name;
+    file.size = sizeof(info->name) - 1;
     file_read("/sys/class/dmi/id/board_name", &file);
-
-    file.content = info->serial_number;
-    file.size = sizeof(info->serial_number);
-    file_read("/sys/class/dmi/id/board_serial", &file);
-
     info->name[sizeof(info->name) - 1] = '\0';
-    info->serial_number[sizeof(info->serial_number) - 1] = '\0';
 
-    info->name[strcspn(info->name, "\n")] = '\0';
-    info->serial_number[strcspn(info->serial_number, "\n")] = '\0';
+    file.content = (byte *) info->serial_number;
+    file.size = sizeof(info->serial_number) - 1;
+    file_read("/sys/class/dmi/id/board_serial", &file);
+    info->name[sizeof(info->serial_number) - 1] = '\0';
 }
 
 int32 network_info_get(NetworkInfo* info) {
-    char path[256];
+    char path[64];
+    memset(path, 0, sizeof(path));
+
     struct stat st;
     int32 i = 0;
 
     FileBody file = {};
+    memcpy(path, "/sys/class/net/eth", sizeof("/sys/class/net/eth"));
 
     for (i = 0; i < 4; ++i) {
-        sprintf_fast(path, "/sys/class/net/eth%d", i);
+        int_to_str(i, path + sizeof("/sys/class/net/eth"));
 
-        if (stat(path, &st) == 0) {
-            // Read MAC address
-            sprintf_fast(path, "/sys/class/net/eth%d/address", i);
-            file.content = info[i].mac;
-            file.size = sizeof(info[i].mac);
-            file_read(path, &file);
-
-            // Read interface name
-            sprintf_fast(path, "/sys/class/net/eth%d/ifindex", i);
-            file.content = info[i].slot;
-            file.size = sizeof(info[i].slot);
-            file_read(path, &file);
+        if (stat(path, &st) != 0) {
+            break;
         }
+
+        char path2[64];
+        memcpy(path2, path, sizeof("/sys/class/net/eth"));
+
+        // Read MAC address
+        path2[sizeof("/sys/class/net/eth") + 1] = '\0';
+        str_concat_append(path2, "/address");
+
+        file.content = info[i].mac;
+        file.size = sizeof(info[i].mac) - 1;
+        file_read(path2, &file);
+
+        // Read interface name
+        path2[sizeof("/sys/class/net/eth") + 1] = '\0';
+        str_concat_append(path2, "/ifindex");
+
+        file.content = (byte *) info[i].slot;
+        file.size = sizeof(info[i].slot) - 1;
+        file_read(path, &file);
     }
 
     return i;
 }
 
 void cpu_info_get(CpuInfo* info) {
+    info->features = cpu_info_features();
+
+    cpu_info_cache(1, &info->cache[0]);
+    cpu_info_cache(2, &info->cache[1]);
+    cpu_info_cache(3, &info->cache[2]);
+    cpu_info_cache(4, &info->cache[3]);
+
     FileHandle fp = file_read_handle("/proc/cpuinfo");
     char line[256];
     char internal_buffer[512];
@@ -129,15 +142,15 @@ void cpu_info_get(CpuInfo* info) {
     char* internal_pos = NULL;
 
     while (file_read_line(fp, line, sizeof(line), internal_buffer, &internal_buffer_size, &internal_pos)) {
-        if (str_compare(line, "vendor_id", 9) == 0) {
+        if (str_compare(line, "vendor_id", sizeof("vendor_id") - 1) == 0) {
             sscanf(line, "vendor_id : %s", info->vendor);
-        } else if (str_compare(line, "model", 5) == 0) {
-            sscanf(line, "model : %d", &info->model);
-        } else if (str_compare(line, "cpu MHz", 7) == 0) {
+        } else if (str_compare(line, "model", sizeof("model") - 1) == 0) {
+            sscanf(line, "model : %hhd", &info->model);
+        } else if (str_compare(line, "cpu MHz", sizeof("cpu MHz") - 1) == 0) {
             sscanf(line, "cpu MHz : %d", &info->mhz);
-        } else if (str_compare(line, "cpu cores", 10) == 0) {
-            sscanf(line, "cpu cores : %d", &info->thread_coun);
-        } else if (str_compare(line, "model name", 10) == 0) {
+        } else if (str_compare(line, "cpu cores", sizeof("cpu cores") - 1) == 0) {
+            sscanf(line, "cpu cores : %hd", &info->core_count);
+        } else if (str_compare(line, "model name", sizeof("model name") - 1) == 0) {
             sscanf(line, "model name : %63[^\n]", info->brand);
         }
     }
@@ -232,13 +245,13 @@ uint32 gpu_info_get(GpuInfo* info) {
         ++count;
     }
 
-    fclose(fp);
+    pclose(fp);
 
     return count;
 }
 
 uint32 display_info_get(DisplayInfo* info) {
-    FILE* fp = popen("xrandr --current", "r");
+    FILE* fp = popen("xrandr --current 2>/dev/null", "r");
     if (fp == NULL) {
         return 0;
     }
@@ -262,49 +275,9 @@ uint32 display_info_get(DisplayInfo* info) {
         }
     }
 
-    fclose(fp);
+    pclose(fp);
 
     return count;
-}
-
-bool is_dedicated_gpu_connected() {
-    Display* display = XOpenDisplay(NULL);
-    if (!display) {
-        return 0;
-    }
-
-    Window root = DefaultRootWindow(display);
-    XRRScreenResources* screenResources = XRRGetScreenResources(display, root);
-    if (!screenResources) {
-        XCloseDisplay(display);
-        return 0;
-    }
-
-    for (int i = 0; i < screenResources->noutput; i++) {
-        XRROutputInfo* outputInfo = XRRGetOutputInfo(display, screenResources, screenResources->outputs[i]);
-        if (outputInfo && outputInfo->connection == RR_Connected) {
-            XRRProviderInfo* providerInfo = XRRGetProviderInfo(display, screenResources, outputInfo->provider);
-            if (providerInfo && providerInfo->name) {
-                if (strstr(providerInfo->name, "NVIDIA")
-                    || strstr(providerInfo->name, "AMD")
-                    || strstr(providerInfo->name, "Intel")
-                ) {
-                    XRRFreeOutputInfo(outputInfo);
-                    XRRFreeProviderInfo(providerInfo);
-                    XRRFreeScreenResources(screenResources);
-                    XCloseDisplay(display);
-                    return true;
-                }
-            }
-            XRRFreeProviderInfo(providerInfo);
-        }
-        XRRFreeOutputInfo(outputInfo);
-    }
-
-    XRRFreeScreenResources(screenResources);
-    XCloseDisplay(display);
-
-    return false;
 }
 
 #endif

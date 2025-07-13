@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ENCRYPTION_XOR_H
-#define TOS_ENCRYPTION_XOR_H
+#ifndef COMS_ENCRYPTION_XOR_H
+#define COMS_ENCRYPTION_XOR_H
 
 #include "../stdlib/Types.h"
 

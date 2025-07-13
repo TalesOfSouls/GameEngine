@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_STDLIB_HASH_MAP_H
-#define TOS_STDLIB_HASH_MAP_H
+#ifndef COMS_STDLIB_HASH_MAP_H
+#define COMS_STDLIB_HASH_MAP_H
 
 #include "Types.h"
 #include "../hash/GeneralHash.h"
@@ -25,10 +25,21 @@
 /////////////////////////////
 // string key
 /////////////////////////////
+// Next below always represents the index in the chunk memory of the next entry with the same hash (not the byte offset)
 struct HashEntryInt32 {
     char key[HASH_MAP_MAX_KEY_LENGTH];
     uint16 next;
     int32 value;
+};
+
+// This struct is often used for hash maps that are implemented with dynamic length content
+// value  = stores the offset into the buffer array
+// value2 = stores the length of the data
+struct HashEntryInt32Int32 {
+    char key[HASH_MAP_MAX_KEY_LENGTH];
+    uint16 next;
+    int32 value;
+    int32 value2;
 };
 
 struct HashEntryInt64 {
@@ -114,24 +125,52 @@ struct HashEntryKeyInt32 {
 
 // HashMaps are limited to 4GB in total size
 struct HashMap {
+    // Contains the chunk memory index for a provided key/hash
     // Values are 1-indexed/offset since 0 means not used/found
     uint16* table;
 
+    // Contains the actual data of the hash map
+    // Careful, some hash map implementations don't store the value in here but an offset for use in another array
     // @question We might want to align the ChunkMemory memory to 8byte, currently it's either 4 or 8 byte depending on the length
     ChunkMemory buf;
 };
 
+// The ref hash map is used if the value size is dynamic per element (e.g. files, cache data etc.)
+struct HashMapRef {
+    HashMap hm;
+
+    ChunkMemory data;
+};
+
+// @todo Change so the hashmap can grow or maybe even better create a static and dynamic version
 inline
-void hashmap_alloc(HashMap* hm, int32 count, int32 element_size)
+void hashmap_alloc(HashMap* hm, int32 count, int32 element_size, int32 alignment = 64)
 {
-    LOG_1("Allocate HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_1("[INFO] Allocate HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = (byte *) platform_alloc(
         count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        + CEIL_DIV(count, alignment) * sizeof(hm->buf.free)
     );
 
     hm->table = (uint16 *) data;
-    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, 8);
+    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, alignment);
+}
+
+inline
+void hashmap_alloc(HashMapRef* hmr, int32 count, int32 data_element_size, int32 alignment = 64)
+{
+    int32 element_size = sizeof(HashEntryInt32Int32);
+    LOG_1("[INFO] Allocate HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    byte* data = (byte *) platform_alloc_aligned(
+        count * (sizeof(uint16) + element_size)
+        + CEIL_DIV(count, alignment) * sizeof(hmr->hm.buf.free)
+        + count * data_element_size,
+        alignment
+    );
+
+    hmr->hm.table = (uint16 *) data;
+    chunk_init(&hmr->hm.buf, data + sizeof(uint16) * count, count, element_size, alignment);
+    chunk_init(&hmr->data, data + hmr->hm.buf.size, count, data_element_size, alignment);
 }
 
 inline
@@ -146,41 +185,45 @@ void hashmap_free(HashMap* hm)
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring) noexcept
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring, int32 alignment = 64) noexcept
 {
-    LOG_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = ring_get_memory(
         ring,
         count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        + CEIL_DIV(count, alignment) * sizeof(hm->buf.free),
+        4,
+        true
     );
 
     hm->table = (uint16 *) data;
-    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, 8);
+    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, alignment);
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf) noexcept
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf, int32 alignment = 64) noexcept
 {
-    LOG_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = buffer_get_memory(
         buf,
         count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        + CEIL_DIV(count, alignment) * sizeof(hm->buf.free),
+        4,
+        true
     );
 
     hm->table = (uint16 *) data;
-    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, 8);
+    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, alignment);
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf) noexcept
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf, int32 alignment = 64) noexcept
 {
-    LOG_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     hm->table = (uint16 *) buf;
-    chunk_init(&hm->buf, buf + sizeof(uint16) * count, count, element_size, 8);
+    chunk_init(&hm->buf, buf + sizeof(uint16) * count, count, element_size, alignment);
 }
 
 inline
@@ -208,11 +251,17 @@ int64 hashmap_size(const HashMap* hm) noexcept
 /////////////////////////////
 // string key
 /////////////////////////////
+// @performance We could greatly improve the hashmap performance by ensuring that a uniquely hashed entry always starts at a cacheline
+//      If another hash results in the same index that should be at the cacheline + 32 position (if 32 bit size)
+//      This would ensure for those elements that if there is one collision we at least don't have to read another cache line
+//      Of course for more than 1 collision we would still need to load multiple cachelines, but ideally that shouldn't happen too often
 void hashmap_insert(HashMap* hm, const char* key, int32 value) noexcept {
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element(&hm->buf, element, true);
+
+    ASSERT_SIMPLE(((uintptr_t) entry) % 32 == 0);
 
     // Ensure key length
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
@@ -247,6 +296,67 @@ void hashmap_insert(HashMap* hm, const char* key, int64 value) noexcept {
     uint16* target = &hm->table[index];
     while (*target) {
         HashEntryInt64* tmp = (HashEntryInt64*) chunk_get_element(&hm->buf, *target - 1, false);
+        target = &tmp->next;
+    }
+    *target = (uint16) (element + 1);
+}
+
+void hashmap_insert(HashMap* hm, const char* key, int32 value1, int32 value2) noexcept {
+    uint64 index = hash_djb2(key) % hm->buf.count;
+
+    int32 element = chunk_reserve(&hm->buf, 1);
+    HashEntryInt32Int32* entry = (HashEntryInt32Int32 *) chunk_get_element(&hm->buf, element, true);
+
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
+
+    entry->value = value1;
+    entry->value2 = value2;
+    entry->next = 0;
+
+    uint16* target = &hm->table[index];
+    while (*target) {
+        HashEntryInt32Int32* tmp = (HashEntryInt32Int32*) chunk_get_element(&hm->buf, *target - 1, false);
+        target = &tmp->next;
+    }
+    *target = (uint16) (element + 1);
+}
+
+void hashmap_insert(HashMapRef* hmr, const char* key, byte* data, int32 data_size) noexcept {
+    // Data chunk
+    int32 chunk_count = (int32) ((data_size + hmr->data.chunk_size - 1) / hmr->data.chunk_size);
+    int32 chunk_offset = chunk_reserve(&hmr->data, chunk_count);
+
+    if (chunk_offset < 0) {
+        ASSERT_SIMPLE(chunk_offset >= 0);
+        return;
+    }
+
+    // Insert Data
+    // NOTE: The data and the hash map entry are in two separate memory areas
+    byte* data_mem = chunk_get_element(&hmr->data, chunk_offset);
+    memcpy(data_mem, data, data_size);
+
+    // Handle hash map entry
+    uint64 index = hash_djb2(key) % hmr->hm.buf.count;
+
+    int32 element = chunk_reserve(&hmr->hm.buf, 1);
+    HashEntryInt32Int32* entry = (HashEntryInt32Int32 *) chunk_get_element(&hmr->hm.buf, element, true);
+
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
+
+    entry->value = chunk_offset;
+    entry->value2 = chunk_count;
+    entry->next = 0;
+
+    uint16* target = &hmr->hm.table[index];
+    while (*target) {
+        HashEntryInt32Int32* tmp = (HashEntryInt32Int32*) chunk_get_element(&hmr->hm.buf, *target - 1, false);
         target = &tmp->next;
     }
     *target = (uint16) (element + 1);
@@ -342,7 +452,7 @@ void hashmap_insert(HashMap* hm, const char* key, const char* value) noexcept {
     *target = (uint16) (element + 1);
 }
 
-HashEntry* hashmap_insert(HashMap* hm, const char* key, byte* value) noexcept {
+HashEntry* hashmap_insert(HashMap* hm, const char* key, const byte* value) noexcept {
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
@@ -400,8 +510,10 @@ HashEntry* hashmap_get_reserve(HashMap* hm, const char* key) noexcept
     uint64 index = hash_djb2(key) % hm->buf.count;
     HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
 
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
     while (entry != NULL) {
-        if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
+        if (str_compare(entry->key, key) == 0) {
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return entry;
         }
@@ -432,9 +544,8 @@ HashEntry* hashmap_get_reserve(HashMap* hm, const char* key) noexcept
     return entry_new;
 }
 
-// @performance Some places use this in order to iterate the hashmap that is horrible!!! Use the actual iterate function!
 inline
-HashEntry* hashmap_get_entry_by_element(HashMap* hm, uint32 element)  noexcept
+HashEntry* hashmap_get_entry_by_element(HashMap* hm, uint32 element) noexcept
 {
     return (HashEntry *) chunk_get_element(&hm->buf, element - 1, false);
 }
@@ -443,13 +554,33 @@ HashEntry* hashmap_get_entry(HashMap* hm, const char* key) noexcept {
     uint64 index = hash_djb2(key) % hm->buf.count;
     HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
 
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
     while (entry != NULL) {
-        if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
+        if (str_compare(entry->key, key) == 0) {
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return entry;
         }
 
         entry = (HashEntry *) chunk_get_element(&hm->buf, entry->next - 1, false);
+    }
+
+    return NULL;
+}
+
+byte* hashmap_get_value(HashMapRef* hmr, const char* key) noexcept {
+    uint64 index = hash_djb2(key) % hmr->hm.buf.count;
+    HashEntryInt32Int32* entry = (HashEntryInt32Int32 *) chunk_get_element(&hmr->hm.buf, hmr->hm.table[index] - 1, false);
+
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
+    while (entry != NULL) {
+        if (str_compare(entry->key, key) == 0) {
+            DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntryInt32Int32));
+            return chunk_get_element(&hmr->data, entry->value);
+        }
+
+        entry = (HashEntryInt32Int32 *) chunk_get_element(&hmr->hm.buf, entry->next - 1, false);
     }
 
     return NULL;
@@ -461,8 +592,10 @@ uint32 hashmap_get_element(const HashMap* hm, const char* key) noexcept {
 
     uint32 element_id = hm->table[index];
 
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
     while (entry != NULL) {
-        if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
+        if (str_compare(entry->key, key) == 0) {
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return element_id;
         }
@@ -486,8 +619,10 @@ HashEntry* hashmap_get_entry(HashMap* hm, const char* key, uint64 hash) noexcept
     hash %= hm->buf.count;
     HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, hm->table[hash] - 1, false);
 
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
     while (entry != NULL) {
-        if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
+        if (str_compare(entry->key, key) == 0) {
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return entry;
         }
@@ -508,8 +643,10 @@ void hashmap_remove(HashMap* hm, const char* key) noexcept {
 
     uint32 element_id = hm->table[index];
 
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
     while (entry != NULL) {
-        if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
+        if (str_compare(entry->key, key) == 0) {
             if (prev == NULL) {
                 hm->table[index] = entry->next;
             } else {
@@ -531,7 +668,7 @@ void hashmap_remove(HashMap* hm, const char* key) noexcept {
 // int key
 /////////////////////////////
 void hashmap_insert(HashMap* hm, int32 key, int32 value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryInt32KeyInt32* entry = (HashEntryInt32KeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -549,7 +686,7 @@ void hashmap_insert(HashMap* hm, int32 key, int32 value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, int64 value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryInt64KeyInt32* entry = (HashEntryInt64KeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -567,7 +704,7 @@ void hashmap_insert(HashMap* hm, int32 key, int64 value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, uintptr_t value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryUIntPtrKeyInt32* entry = (HashEntryUIntPtrKeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -585,7 +722,7 @@ void hashmap_insert(HashMap* hm, int32 key, uintptr_t value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, void* value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryVoidPKeyInt32* entry = (HashEntryVoidPKeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -603,7 +740,7 @@ void hashmap_insert(HashMap* hm, int32 key, void* value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, f32 value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryFloatKeyInt32* entry = (HashEntryFloatKeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -621,7 +758,7 @@ void hashmap_insert(HashMap* hm, int32 key, f32 value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, const char* value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryStrKeyInt32* entry = (HashEntryStrKeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -641,8 +778,8 @@ void hashmap_insert(HashMap* hm, int32 key, const char* value) noexcept {
     *target = (uint16) (element + 1);
 }
 
-void hashmap_insert(HashMap* hm, int32 key, byte* value) noexcept {
-    uint64 index = key % hm->buf.count;
+void hashmap_insert(HashMap* hm, int32 key, const byte* value) noexcept {
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryKeyInt32* entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -663,7 +800,7 @@ void hashmap_insert(HashMap* hm, int32 key, byte* value) noexcept {
 }
 
 HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, int32 key) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
     HashEntryKeyInt32* entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
 
     while (entry != NULL) {
@@ -672,7 +809,7 @@ HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, int32 key) noexcept {
             return entry;
         }
 
-        entry = (HashEntryKeyInt32 *) entry->next;
+        entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, entry->next - 1, false);
     }
 
     return NULL;
@@ -690,7 +827,7 @@ HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, int32 key, uint64 hash) noexce
             return entry;
         }
 
-        entry = (HashEntryKeyInt32 *) entry->next;
+        entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, entry->next - 1, false);
     }
 
     return NULL;
@@ -700,7 +837,7 @@ HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, int32 key, uint64 hash) noexce
 // However that would make insertion slower
 // Maybe we create a nother hashmap that is doubly linked
 void hashmap_remove(HashMap* hm, int32 key) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
     HashEntryKeyInt32* entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
     HashEntryKeyInt32* prev = NULL;
 
@@ -739,7 +876,7 @@ int32 hashmap_value_size(const HashMap* hm) noexcept
 inline
 int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps = 8)
 {
-    LOG_1("Dump HashMap");
+    LOG_1("[INFO] Dump HashMap");
     *((uint32 *) data) = SWAP_ENDIAN_LITTLE(hm->buf.count);
     data += sizeof(hm->buf.count);
 
@@ -778,7 +915,11 @@ int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps =
             } else if (value_size == 8) {
                 *((int64 *) data) = SWAP_ENDIAN_LITTLE(((HashEntryInt64 *) entry)->value);
             } else {
-                memcpy(data, entry->value, value_size);
+                if (entry->value) {
+                    memcpy(data, entry->value, value_size);
+                } else {
+                    memset(data, 0, value_size);
+                }
             }
             data += value_size;
         } else {
@@ -797,7 +938,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps =
     // dump free array
     memcpy(data, hm->buf.free, sizeof(uint64) * CEIL_DIV(hm->buf.count, 64));
 
-    LOG_1("Dumped HashMap: %n B", {{LOG_DATA_UINT64, (void *) &hm->buf.size}});
+    LOG_1("[INFO] Dumped HashMap: %n B", {{LOG_DATA_UINT64, (void *) &hm->buf.size}});
 
     return sizeof(hm->buf.count) // hash map count = buffer count
         + hm->buf.count * sizeof(uint16) // table content
@@ -808,7 +949,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps =
 inline
 int64 hashmap_load(HashMap* hm, const byte* data, [[maybe_unused]] int32 steps = 8)
 {
-    LOG_1("Load HashMap");
+    LOG_1("[INFO] Load HashMap");
     uint64 count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(uint32);
 
@@ -851,7 +992,7 @@ int64 hashmap_load(HashMap* hm, const byte* data, [[maybe_unused]] int32 steps =
         }
     } chunk_iterate_end;
 
-    LOG_1("Loaded HashMap: %n B", {{LOG_DATA_UINT64, &hm->buf.size}});
+    LOG_1("[INFO] Loaded HashMap: %n B", {{LOG_DATA_UINT64, &hm->buf.size}});
 
     // How many bytes was read from data
     return sizeof(hm->buf.count) // hash map count = buffer count

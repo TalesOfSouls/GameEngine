@@ -5,7 +5,6 @@ static void test_is_equal() {
     uint8_t region1[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
     uint8_t region2[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
     uint8_t region3[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x09};
-    uint8_t region4[] = {0x01, 0x02, 0x03, 0x04};
 
     // Test equal regions
     ASSERT_TRUE(is_equal(region1, region2, sizeof(region1)));
@@ -54,6 +53,7 @@ static void test_is_empty() {
     ASSERT_TRUE(is_empty(region1, 0));
 }
 
+#if PERFORMANCE_TEST
 static void _is_equal(volatile void* val) {
     volatile bool* res = (volatile bool *) val;
 
@@ -124,6 +124,7 @@ static void test_is_empty_performance() {
     COMPARE_FUNCTION_TEST_TIME(_is_empty2, _memcmp_empty2, 10.0);
     COMPARE_FUNCTION_TEST_CYCLE(_is_empty2, _memcmp_empty2, 10.0);
 }
+#endif
 
 #ifdef UBER_TEST
     #ifdef main
@@ -138,8 +139,10 @@ int main() {
     TEST_RUN(test_is_equal);
     TEST_RUN(test_is_empty);
 
-    TEST_RUN(test_is_equal_performance);
-    TEST_RUN(test_is_empty_performance);
+    #if PERFORMANCE_TEST
+        TEST_RUN(test_is_equal_performance);
+        TEST_RUN(test_is_empty_performance);
+    #endif
 
     TEST_FINALIZE();
 

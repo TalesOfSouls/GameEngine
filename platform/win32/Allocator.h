@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_ALLOCATOR_H
-#define TOS_PLATFORM_WIN32_ALLOCATOR_H
+#ifndef COMS_PLATFORM_WIN32_ALLOCATOR_H
+#define COMS_PLATFORM_WIN32_ALLOCATOR_H
 
 #include <malloc.h>
 #include <windows.h>
@@ -15,15 +15,26 @@
 #include "../../utils/TestUtils.h"
 #include "../../log/DebugMemory.h"
 #include "../../log/Stats.h"
+#include "../../log/Log.h"
 
 // @todo Currently alignment only effects the starting position, but it should also effect the ending/size
+
+static int32 _page_size = 0;
 
 inline
 void* platform_alloc(size_t size)
 {
+    if (!_page_size) {
+        // @todo Fix and get system page size
+        _page_size = 1;
+    }
+
+    size = ROUND_TO_NEAREST(size, _page_size);
+
     void* ptr = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     DEBUG_MEMORY_INIT((uintptr_t) ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
+    LOG_3("[INFO] Allocated %n B", {{LOG_DATA_UINT64, &size}});
 
     return ptr;
 }
@@ -31,7 +42,12 @@ void* platform_alloc(size_t size)
 inline
 void* platform_alloc_aligned(size_t size, int32 alignment)
 {
-    size = ROUND_TO_NEAREST(size, alignment);
+    if (!_page_size) {
+        _page_size = 1;
+    }
+
+    size = ROUND_TO_NEAREST(size + sizeof(void*) + alignment - 1, alignment);
+    size = ROUND_TO_NEAREST(size, _page_size);
 
     void* ptr = VirtualAlloc(NULL, size + alignment + sizeof(void*), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     ASSERT_SIMPLE(ptr);
@@ -39,11 +55,12 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
     // We want an aligned memory area but mmap doesn't really support that.
     // That's why we have to manually offset our memory area.
     // However, when freeing the pointer later on we need the actual start of the memory area, not the manually offset one.
-    void* aligned_ptr = (void *) (((uintptr_t) ptr + alignment + sizeof(void*) - 1) & ~(alignment - 1));
+    void* aligned_ptr = (void *) ROUND_TO_NEAREST((uintptr_t) ptr + sizeof(void*), alignment);
     ((void**) aligned_ptr)[-1] = ptr;
 
     DEBUG_MEMORY_INIT((uintptr_t) aligned_ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
+    LOG_3("[INFO] Aligned allocated %n B", {{LOG_DATA_UINT64, &size}});
 
     return aligned_ptr;
 }
@@ -67,6 +84,12 @@ void platform_aligned_free(void** aligned_ptr) {
 inline
 void* platform_shared_alloc(HANDLE* fd, const char* name, size_t size)
 {
+    if (!_page_size) {
+        _page_size = 1;
+    }
+
+    size = ROUND_TO_NEAREST(size, _page_size);
+
     *fd = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, (DWORD) size, name);
     ASSERT_SIMPLE(*fd);
 
@@ -75,6 +98,7 @@ void* platform_shared_alloc(HANDLE* fd, const char* name, size_t size)
 
     DEBUG_MEMORY_INIT((uintptr_t) shm_ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
+    LOG_3("[INFO] Shared allocated %n B", {{LOG_DATA_UINT64, &size}});
 
     return shm_ptr;
 }
@@ -87,6 +111,7 @@ void* platform_shared_open(HANDLE* fd, const char* name, size_t size)
 
     void* shm_ptr = MapViewOfFile(*fd, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, (DWORD) size);
     ASSERT_SIMPLE(shm_ptr);
+    LOG_3("[INFO] Shared opened %n B", {{LOG_DATA_UINT64, &size}});
 
     return shm_ptr;
 }

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_ITEM_MOB_LEVEL_STATS_H
-#define TOS_MODELS_ITEM_MOB_LEVEL_STATS_H
+#ifndef COMS_MODELS_ITEM_MOB_LEVEL_STATS_H
+#define COMS_MODELS_ITEM_MOB_LEVEL_STATS_H
 
 /**
  * This defines the bounds for what items can drop based on the mob level.

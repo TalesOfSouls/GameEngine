@@ -1,5 +1,5 @@
-#ifndef TOS_EVENT_H
-#define TOS_EVENT_H
+#ifndef COMS_EVENT_H
+#define COMS_EVENT_H
 
 #include "../../stdlib/Types.h"
 #include "../mob/monster/LootTable.h"

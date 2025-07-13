@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ENTITY_COMPONENT_SYSTEM_H
-#define TOS_ENTITY_COMPONENT_SYSTEM_H
+#ifndef COMS_ENTITY_COMPONENT_SYSTEM_H
+#define COMS_ENTITY_COMPONENT_SYSTEM_H
 
 #include <string.h>
 #include "../stdlib/Types.h"
@@ -34,8 +34,8 @@ struct EntityComponentSystem {
     uint64 component_count;
 
     // @question Do we want to add a mutex to assets. This way we don't have to lock the entire ams.
-    pthread_mutex_t* entity_mutex;
-    pthread_mutex_t* component_mutex;
+    mutex* entity_mutex;
+    mutex* component_mutex;
 };
 
 inline
@@ -54,7 +54,7 @@ void ecs_entity_type_create(ChunkMemory* ec, BufferMemory* buf, int32 chunk_size
     ASSERT_SIMPLE(chunk_size);
 
     chunk_init(ec, buf, count, chunk_size, 64);
-    //pthread_mutex_init(&ec->mutex, NULL);
+    //mutex_init(&ec->mtx, NULL);
 }
 
 inline
@@ -63,7 +63,7 @@ void ecs_component_type_create(ChunkMemory* ec, BufferMemory* buf, int32 chunk_s
     ASSERT_SIMPLE(chunk_size);
 
     chunk_init(ec, buf, count, chunk_size, 64);
-    //pthread_mutex_init(&ec->mutex, NULL);
+    //mutex_init(&ec->mtx, NULL);
 }
 
 Entity* ecs_get_entity(EntityComponentSystem* ecs, int32 entity_id)

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_OPENGL_SHADER_UTILS_H
-#define TOS_GPUAPI_OPENGL_SHADER_UTILS_H
+#ifndef COMS_GPUAPI_OPENGL_SHADER_UTILS_H
+#define COMS_GPUAPI_OPENGL_SHADER_UTILS_H
 
 #include "../../stdlib/Types.h"
 #include "../../memory/RingMemory.h"
@@ -29,7 +29,7 @@ struct OpenglVertexInputAttributeDescription {
     void* offset;
 };
 
-int32 shader_type_index(ShaderType type)
+int32 ogl_shader_type_index(ShaderType type)
 {
     switch (type) {
         case SHADER_TYPE_VERTEX:

@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_IMAGE_QOI_H
-#define TOS_IMAGE_QOI_H
+#ifndef COMS_IMAGE_QOI_H
+#define COMS_IMAGE_QOI_H
 
 #include "../stdlib/Types.h"
 #include <string.h>

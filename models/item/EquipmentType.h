@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_EQUIPMENT_TYPE_H
-#define TOS_MODELS_EQUIPMENT_TYPE_H
+#ifndef COMS_MODELS_EQUIPMENT_TYPE_H
+#define COMS_MODELS_EQUIPMENT_TYPE_H
 
 #include "../../stdlib/Types.h"
 

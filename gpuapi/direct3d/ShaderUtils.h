@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_DIRECTX_SHADER_UTILS_H
-#define TOS_GPUAPI_DIRECTX_SHADER_UTILS_H
+#ifndef COMS_GPUAPI_DIRECTX_SHADER_UTILS_H
+#define COMS_GPUAPI_DIRECTX_SHADER_UTILS_H
 
 #include <windows.h>
 #include <d3d12.h>
@@ -27,7 +27,7 @@
 
 #pragma comment(lib, "d3dcompiler.lib")
 
-const char* shader_type_index(ShaderType type)
+const char* d3_shader_type_index(ShaderType type)
 {
     switch (type) {
         case SHADER_TYPE_VERTEX:

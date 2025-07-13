@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_ITEM_STATS_DISTRIBUTION_H
-#define TOS_MODELS_ITEM_STATS_DISTRIBUTION_H
+#ifndef COMS_MODELS_ITEM_STATS_DISTRIBUTION_H
+#define COMS_MODELS_ITEM_STATS_DISTRIBUTION_H
 
 #include "ItemAffixDistribution.h"
 

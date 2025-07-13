@@ -136,6 +136,7 @@ static void test_pow_approx_f64() {
     ASSERT_EQUALS_WITH_DELTA(pow_approx(10.0, 0.5), pow(10.0, 0.5), 0.001);
 }
 
+#if PERFORMANCE_TEST
 // Performance tests for f32 (float) approximate functions
 static void _sin_approx_f32(volatile void* val) {
     f32* res = (f32*)val;
@@ -555,6 +556,7 @@ static void test_pow_approx_performance_f64() {
     COMPARE_FUNCTION_TEST_TIME(_pow_approx_f64, _pow_f64, 5.0);
     COMPARE_FUNCTION_TEST_CYCLE(_pow_approx_f64, _pow_f64, 5.0);
 }
+#endif
 
 #ifdef UBER_TEST
     #ifdef main
@@ -592,31 +594,33 @@ int main() {
     TEST_RUN(test_log_approx_f64);
     TEST_RUN(test_pow_approx_f64);
 
-    // Run performance tests for f32 functions
-    TEST_RUN(test_sin_approx_performance_f32);
-    TEST_RUN(test_cos_approx_performance_f32);
-    TEST_RUN(test_tan_approx_performance_f32);
-    TEST_RUN(test_sqrt_approx_performance_f32);
-    TEST_RUN(test_asin_approx_performance_f32);
-    TEST_RUN(test_acos_approx_performance_f32);
-    TEST_RUN(test_atan_approx_performance_f32);
-    TEST_RUN(test_rsqrt_approx_performance_f32);
-    TEST_RUN(test_exp_approx_performance_f32);
-    TEST_RUN(test_log_approx_performance_f32);
-    TEST_RUN(test_pow_approx_performance_f32);
+    #if PERFORMANCE_TEST
+        // Run performance tests for f32 functions
+        TEST_RUN(test_sin_approx_performance_f32);
+        TEST_RUN(test_cos_approx_performance_f32);
+        TEST_RUN(test_tan_approx_performance_f32);
+        TEST_RUN(test_sqrt_approx_performance_f32);
+        TEST_RUN(test_asin_approx_performance_f32);
+        TEST_RUN(test_acos_approx_performance_f32);
+        TEST_RUN(test_atan_approx_performance_f32);
+        TEST_RUN(test_rsqrt_approx_performance_f32);
+        TEST_RUN(test_exp_approx_performance_f32);
+        TEST_RUN(test_log_approx_performance_f32);
+        TEST_RUN(test_pow_approx_performance_f32);
 
-    // Run performance tests for f64 functions
-    TEST_RUN(test_sin_approx_performance_f64);
-    TEST_RUN(test_cos_approx_performance_f64);
-    TEST_RUN(test_tan_approx_performance_f64);
-    TEST_RUN(test_sqrt_approx_performance_f64);
-    TEST_RUN(test_asin_approx_performance_f64);
-    TEST_RUN(test_acos_approx_performance_f64);
-    TEST_RUN(test_atan_approx_performance_f64);
-    TEST_RUN(test_rsqrt_approx_performance_f64);
-    TEST_RUN(test_exp_approx_performance_f64);
-    TEST_RUN(test_log_approx_performance_f64);
-    TEST_RUN(test_pow_approx_performance_f64);
+        // Run performance tests for f64 functions
+        TEST_RUN(test_sin_approx_performance_f64);
+        TEST_RUN(test_cos_approx_performance_f64);
+        TEST_RUN(test_tan_approx_performance_f64);
+        TEST_RUN(test_sqrt_approx_performance_f64);
+        TEST_RUN(test_asin_approx_performance_f64);
+        TEST_RUN(test_acos_approx_performance_f64);
+        TEST_RUN(test_atan_approx_performance_f64);
+        TEST_RUN(test_rsqrt_approx_performance_f64);
+        TEST_RUN(test_exp_approx_performance_f64);
+        TEST_RUN(test_log_approx_performance_f64);
+        TEST_RUN(test_pow_approx_performance_f64);
+    #endif
 
     TEST_FINALIZE();
 

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MATH_MATRIX_FLOAT32_H
-#define TOS_MATH_MATRIX_FLOAT32_H
+#ifndef COMS_MATH_MATRIX_FLOAT32_H
+#define COMS_MATH_MATRIX_FLOAT32_H
 
 #include <string.h>
 #include <math.h>
@@ -518,13 +518,13 @@ void mat4mat4_mult(const f32* __restrict a, const f32* __restrict b, f32* __rest
 inline
 void mat4mat4_mult_simd(const f32* __restrict a, const f32* __restrict b, f32* __restrict result) noexcept
 {
-    __m128 row1 = _mm_loadu_ps(&b[0]);
-    __m128 row2 = _mm_loadu_ps(&b[4]);
-    __m128 row3 = _mm_loadu_ps(&b[8]);
-    __m128 row4 = _mm_loadu_ps(&b[12]);
+    __m128 row1 = _mm_load_ps(&b[0]);
+    __m128 row2 = _mm_load_ps(&b[4]);
+    __m128 row3 = _mm_load_ps(&b[8]);
+    __m128 row4 = _mm_load_ps(&b[12]);
 
     for (int32 i = 3; i >= 0; --i) {
-        __m128 vW = _mm_loadu_ps(&a[i * 4]);
+        __m128 vW = _mm_load_ps(&a[i * 4]);
 
         __m128 vX = _mm_shuffle_ps(vW, vW, _MM_SHUFFLE(0, 0, 0, 0));
         __m128 vY = _mm_shuffle_ps(vW, vW, _MM_SHUFFLE(1, 1, 1, 1));
@@ -540,7 +540,7 @@ void mat4mat4_mult_simd(const f32* __restrict a, const f32* __restrict b, f32* _
         vY = _mm_add_ps(vY, vW);
         vX = _mm_add_ps(vX, vY);
 
-        _mm_storeu_ps(&result[i * 4], vX);
+        _mm_store_ps(&result[i * 4], vX);
     }
 }
 

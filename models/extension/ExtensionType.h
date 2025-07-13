@@ -1,5 +1,5 @@
-#ifndef TOS_EXTENSION_TYPE_H
-#define TOS_EXTENSION_TYPE_H
+#ifndef COMS_EXTENSION_TYPE_H
+#define COMS_EXTENSION_TYPE_H
 
 enum ExtensionType {
     EXTENSION_TYPE_NONE,

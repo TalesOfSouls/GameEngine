@@ -1,5 +1,5 @@
-#ifndef TOS_QUEST_EVENT_TASK_TYPE_H
-#define TOS_QUEST_EVENT_TASK_TYPE_H
+#ifndef COMS_QUEST_EVENT_TASK_TYPE_H
+#define COMS_QUEST_EVENT_TASK_TYPE_H
 
 enum EventTaskType {
     TASK_COLLECT,            // Collect a specific item or set of items

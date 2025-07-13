@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_APP_COMMAND_BUFFER_C
-#define TOS_APP_COMMAND_BUFFER_C
+#ifndef COMS_APP_COMMAND_BUFFER_C
+#define COMS_APP_COMMAND_BUFFER_C
 
 /**
  * The AppCmdBuffer by itself doesn't do much, it simply takes in commands and executes them.
@@ -38,7 +38,7 @@ inline
 void cmd_buffer_create(AppCmdBuffer* cb, BufferMemory* buf, int32 commands_count)
 {
     chunk_init(&cb->commands, buf, commands_count, sizeof(Command), 64);
-    pthread_mutex_init(&cb->mutex, NULL);
+    mutex_init(&cb->mtx, NULL);
 
     LOG_1("Created AppCmdBuffer: %n B", {{LOG_DATA_UINT64, &cb->commands.size}});
 }
@@ -181,10 +181,10 @@ Asset* cmd_font_load_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 inline
 void thrd_cmd_insert(AppCmdBuffer* __restrict cb, Command* __restrict cmd_temp)
 {
-    pthread_mutex_lock(&cb->mutex);
+    mutex_lock(&cb->mtx);
     int32 index = chunk_reserve(&cb->commands, 1);
     if (index < 0) {
-        pthread_mutex_unlock(&cb->mutex);
+        mutex_unlock(&cb->mtx);
         ASSERT_SIMPLE(false);
 
         return;
@@ -196,7 +196,7 @@ void thrd_cmd_insert(AppCmdBuffer* __restrict cb, Command* __restrict cmd_temp)
 
     Command* cmd = (Command *) chunk_get_element(&cb->commands, index);
     memcpy(cmd, cmd_temp, sizeof(Command));
-    pthread_mutex_unlock(&cb->mutex);
+    mutex_unlock(&cb->mtx);
 }
 
 inline
@@ -697,9 +697,9 @@ void cmd_iterate(AppCmdBuffer* cb)
 //              This shouldn't happen since the command buffer shouldn't fill up in just 1-3 frames
 void thrd_cmd_iterate(AppCmdBuffer* cb)
 {
-    pthread_mutex_lock(&cb->mutex);
+    mutex_lock(&cb->mtx);
     cmd_iterate(cb);
-    pthread_mutex_unlock(&cb->mutex);
+    mutex_unlock(&cb->mtx);
 }
 
 #endif

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_INPUT_CONTROLLER_HANDLER_H
-#define TOS_PLATFORM_WIN32_INPUT_CONTROLLER_HANDLER_H
+#ifndef COMS_PLATFORM_WIN32_INPUT_CONTROLLER_HANDLER_H
+#define COMS_PLATFORM_WIN32_INPUT_CONTROLLER_HANDLER_H
 
 enum ControllerHandlerType {
     CONTROLLER_HANDLER_TYPE_AUTO, // Automatically picks a handler based on the device info and hard coded preferences

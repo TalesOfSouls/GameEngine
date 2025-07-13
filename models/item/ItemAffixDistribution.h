@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_ITEM_AFFIX_DISTRIBUTION_H
-#define TOS_MODELS_ITEM_AFFIX_DISTRIBUTION_H
+#ifndef COMS_MODELS_ITEM_AFFIX_DISTRIBUTION_H
+#define COMS_MODELS_ITEM_AFFIX_DISTRIBUTION_H
 
 // WARNING: The sum of all mins must be smaller than max count of the whole category
 // This allows us to define how many phys dmg stats an item should have etc.

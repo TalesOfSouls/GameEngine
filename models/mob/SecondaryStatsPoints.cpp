@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_MOB_SECONDARY_STATS_POINTS_C
-#define TOS_MODELS_MOB_SECONDARY_STATS_POINTS_C
+#ifndef COMS_MODELS_MOB_SECONDARY_STATS_POINTS_C
+#define COMS_MODELS_MOB_SECONDARY_STATS_POINTS_C
 
 #include "../../stdlib/Simd.h"
 #include "SecondaryStatsPoints.h"

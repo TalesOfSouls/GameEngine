@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_TIME_UTILS_H
-#define TOS_PLATFORM_WIN32_TIME_UTILS_H
+#ifndef COMS_PLATFORM_WIN32_TIME_UTILS_H
+#define COMS_PLATFORM_WIN32_TIME_UTILS_H
 
 #include <stdio.h>
 #include <windows.h>
@@ -42,6 +42,15 @@ uint64 system_time()
     largeInt.HighPart = fileTime.dwHighDateTime;
 
     return ((uint64) (largeInt.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+}
+
+// Used as initializer for 64bit random number generators instead of time()
+inline
+uint64 time_index() {
+    LARGE_INTEGER counter;
+    QueryPerformanceCounter(&counter);
+
+    return counter.QuadPart;
 }
 
 // doesn't return clock time, only to return time since program start

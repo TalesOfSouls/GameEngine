@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ENCRYPTION_CEASAR_H
-#define TOS_ENCRYPTION_CEASAR_H
+#ifndef COMS_ENCRYPTION_CEASAR_H
+#define COMS_ENCRYPTION_CEASAR_H
 
 #include "../stdlib/Types.h"
 

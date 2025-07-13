@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_SOUND_XAUDIO2_H
-#define TOS_SOUND_XAUDIO2_H
+#ifndef COMS_SOUND_XAUDIO2_H
+#define COMS_SOUND_XAUDIO2_H
 
 #include <windows.h>
 #include <objbase.h>

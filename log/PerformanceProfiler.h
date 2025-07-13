@@ -6,14 +6,13 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_LOG_PERFORMANCE_PROFILER_H
-#define TOS_LOG_PERFORMANCE_PROFILER_H
+#ifndef COMS_LOG_PERFORMANCE_PROFILER_H
+#define COMS_LOG_PERFORMANCE_PROFILER_H
 
 #include "../stdlib/Types.h"
-#include "../platform/win32/TimeUtils.h"
+#include "../utils/TimeUtils.h"
 #include "../thread/Spinlock.cpp"
 #include "../thread/Atomic.h"
-#include "../system/Allocator.h"
 #include "../hash/GeneralHash.h"
 #include "../architecture/Intrinsics.h"
 #include "../compiler/CompilerUtils.h"
@@ -24,10 +23,13 @@
     enum TimingStats {
         PROFILE_TEMP,
 
+        PROFILE_MEMORY_ALLOC,
         PROFILE_FILE_UTILS,
         PROFILE_BUFFER_ALLOC,
         PROFILE_CHUNK_ALLOC,
         PROFILE_RING_ALLOC,
+        PROFILE_DB_POOL_ALLOC,
+        PROFILE_THREAD_POOL_ALLOC,
         PROFILE_CMD_ITERATE,
         PROFILE_CMD_FONT_LOAD_SYNC,
         PROFILE_CMD_SHADER_LOAD_SYNC,
@@ -53,13 +55,13 @@
 #endif
 
 struct PerformanceProfileResult {
-    atomic_64 const char* name;
+    alignas(8) atomic_64 const char* name;
 
     // WARNING: rdtsc doesn't really return cycle count but we will just call it that
-    atomic_64 int64 total_cycle;
-    atomic_64 int64 self_cycle;
+    alignas(8) atomic_64 int64 total_cycle;
+    alignas(8) atomic_64 int64 self_cycle;
 
-    atomic_32 uint32 counter;
+    alignas(4) atomic_32 uint32 counter;
     uint32 parent;
 };
 static PerformanceProfileResult* _perf_stats = NULL;
@@ -73,7 +75,7 @@ struct PerformanceProfiler {
 
     const char* name;
     const char* info_msg;
-    int32 id;
+    int32 _id;
 
     int64 start_cycle;
     int64 total_cycle;
@@ -96,8 +98,9 @@ struct PerformanceProfiler {
             return;
         }
 
-        this->id = id;
-        ++_perf_stats[id].counter;
+        this->is_active = true;
+        this->_id = id;
+        atomic_increment_acquire_release(&_perf_stats[id].counter);
 
         this->name = scope_name;
         this->info_msg = info;
@@ -132,7 +135,7 @@ struct PerformanceProfiler {
 
         // Store result
         PerformanceProfileResult temp_perf = {};
-        PerformanceProfileResult* perf = this->is_stateless ? &temp_perf : &_perf_stats[this->id];
+        PerformanceProfileResult* perf = this->is_stateless ? &temp_perf : &_perf_stats[this->_id];
 
         perf->name = this->name;
         perf->total_cycle = this->total_cycle;
@@ -141,7 +144,7 @@ struct PerformanceProfiler {
         if (!this->is_stateless) {
             if (this->parent) {
                 this->parent->self_cycle -= this->total_cycle;
-                perf->parent = this->parent->id;
+                perf->parent = this->parent->_id;
             }
 
             if (_perf_current_scope) {
@@ -154,7 +157,7 @@ struct PerformanceProfiler {
         if (this->auto_log) {
             if (this->info_msg && this->info_msg[0]) {
                 LOG_2(
-                    "-PERF %s (%s): %l cycles",
+                    "[PERF] %s (%s): %n cycles",
                     {
                         {LOG_DATA_CHAR_STR, (void *) perf->name},
                         {LOG_DATA_CHAR_STR, (void *) this->info_msg},
@@ -163,7 +166,7 @@ struct PerformanceProfiler {
                 );
             } else {
                 LOG_2(
-                    "-PERF %s: %l cycles",
+                    "[PERF] %s: %n cycles",
                     {
                         {LOG_DATA_CHAR_STR, (void *) perf->name},
                         {LOG_DATA_INT64, (void *) &perf->total_cycle},
@@ -180,7 +183,7 @@ void performance_profiler_reset(int32 id) noexcept
     PerformanceProfileResult* perf = &_perf_stats[id];
     perf->total_cycle = 0;
     perf->self_cycle = 0;
-    perf->parent = NULL;
+    perf->parent = 0;
 }
 
 inline
@@ -198,8 +201,6 @@ void performance_profiler_end(int32 id) noexcept
     perf->total_cycle = intrin_timestamp_counter() + perf->self_cycle;
     perf->self_cycle = perf->total_cycle;
 }
-
-// This would allow us to go ham in a lot of functions (e.g. file reading)
 
 #if LOG_LEVEL > 1
     // Only these function can properly handle self-time calculation

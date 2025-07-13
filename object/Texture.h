@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_TEXTURE_H
-#define TOS_MODELS_TEXTURE_H
+#ifndef COMS_MODELS_TEXTURE_H
+#define COMS_MODELS_TEXTURE_H
 
 #define TEXTURE_DATA_TYPE_2D 0
 #define TEXTURE_DATA_TYPE_1D 1

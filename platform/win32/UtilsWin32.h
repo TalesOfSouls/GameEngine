@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_UTILS_H
-#define TOS_PLATFORM_WIN32_UTILS_H
+#ifndef COMS_PLATFORM_WIN32_UTILS_H
+#define COMS_PLATFORM_WIN32_UTILS_H
 
 #include "../../stdlib/Types.h"
 #include "../../utils/StringUtils.h"
@@ -29,11 +29,6 @@ uint32 key_to_unicode(byte scan_code, byte vkey, byte keyboard_state[256]) noexc
     } else {
         return 0;
     }
-}
-
-void output_char(char c) {
-    HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-    WriteFile(hStdout, &c, 1, NULL, NULL);
 }
 
 #endif

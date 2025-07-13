@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MODELS_ITEM_LEVEL_STATS_H
-#define TOS_MODELS_ITEM_LEVEL_STATS_H
+#ifndef COMS_MODELS_ITEM_LEVEL_STATS_H
+#define COMS_MODELS_ITEM_LEVEL_STATS_H
 
 #include "ItemRarityStats.h"
 #include "MobLevelStats.h"

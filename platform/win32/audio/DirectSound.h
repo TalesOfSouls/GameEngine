@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_SOUND_DIRECT_SOUND_H
-#define TOS_SOUND_DIRECT_SOUND_H
+#ifndef COMS_SOUND_DIRECT_SOUND_H
+#define COMS_SOUND_DIRECT_SOUND_H
 
 #include <windows.h>
 #include <mmeapi.h>

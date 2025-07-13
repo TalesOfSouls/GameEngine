@@ -6,13 +6,14 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_FILE_UTILS_C
-#define TOS_PLATFORM_LINUX_FILE_UTILS_C
+#ifndef COMS_PLATFORM_LINUX_FILE_UTILS_C
+#define COMS_PLATFORM_LINUX_FILE_UTILS_C
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -24,6 +25,7 @@
 #include "../../stdlib/Types.h"
 #include "../../utils/Utils.h"
 #include "../../utils/TestUtils.h"
+#include "../../utils/StringUtils.h"
 #include "../../memory/RingMemory.h"
 #include "../../log/PerformanceProfiler.h"
 
@@ -44,7 +46,7 @@ void* mmf_region_init(MMFHandle fh, size_t offset, size_t length = 0) {
     if (length == 0) {
         struct stat st;
         if (fstat(fh, &st) != 0) {
-            return null;
+            return NULL;
         }
 
         length = st.st_size - offset;
@@ -57,10 +59,10 @@ void* mmf_region_init(MMFHandle fh, size_t offset, size_t length = 0) {
     size_t offset_diff = offset - aligned_offset;
     size_t map_length = length + offset_diff;
 
-    void *mapped_region = mmap(nullptr, map_length, PROT_READ, MAP_PRIVATE, fh, aligned_offset);
+    void *mapped_region = mmap(NULL, map_length, PROT_READ, MAP_PRIVATE, fh, aligned_offset);
 
     if (mapped_region == MAP_FAILED) {
-        return null;
+        return NULL;
     }
 
     return (char *) mapped_region + offset_diff;
@@ -110,8 +112,17 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path)
 inline
 uint64 file_size(const char* filename) {
     struct stat buffer;
-    if (stat(filename, &buffer) != 0) {
-        return 0;
+
+    if (*filename == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(filename, full_path);
+        if (stat(full_path, &buffer) != 0) {
+            return 0;
+        }
+    } else {
+        if (stat(filename, &buffer) != 0) {
+            return 0;
+        }
     }
 
     return buffer.st_size;
@@ -121,7 +132,14 @@ inline
 uint64 file_last_modified(const char* filename)
 {
     struct stat buffer;
-    stat(filename, &buffer);
+
+    if (*filename == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(filename, full_path);
+        stat(full_path, &buffer);
+    } else {
+        stat(filename, &buffer);
+    }
 
     return (uint64) buffer.st_mtime;
 }
@@ -142,7 +160,7 @@ FileHandle file_append_handle(const char* path) {
 }
 
 inline
-bool file_exists(const char* path) {
+bool file_exists(const char* path) noexcept {
     PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     struct stat buffer;
@@ -257,7 +275,7 @@ void file_read(const char* __restrict path, FileBody* __restrict file, RingMemor
     }
 
     ssize_t bytes_read = read(fp, file->content, file->size);
-    if (bytes_read != file->size) {
+    if (bytes_read <= 0) {
         close(fp);
         file->content = NULL;
         file->size = 0;
@@ -360,7 +378,25 @@ bool file_write(const char* __restrict path, const FileBody* __restrict file) {
     return true;
 }
 
-inline
+FileHandle file_read_handle(const char* path) {
+    FileHandle fd;
+    char full_path[MAX_PATH];
+
+    if (*path == '.') {
+        relative_to_absolute(path, full_path);
+        fd = open(full_path, O_RDONLY);
+    } else {
+        fd = open(path, O_RDONLY);
+    }
+
+    if (fd == -1) {
+        return -1;
+    }
+
+    return fd;
+}
+
+FORCE_INLINE
 void file_close_handle(FileHandle fp)
 {
     close(fp);
@@ -376,6 +412,55 @@ void self_path(char* path) {
     }
 }
 
+void iterate_directory(const char* base_path, const char* file_ending, void (*handler)(const char *, va_list), ...) {
+    va_list args;
+    va_start(args, handler);
 
+    char full_base_path[MAX_PATH];
+    relative_to_absolute(base_path, full_base_path);
+
+    DIR* dir = opendir(full_base_path);
+    if (!dir) {
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_name[0] == '.'
+            && (entry->d_name[1] == '\0'
+                || (entry->d_name[1] == '.' && entry->d_name[2] == '\0')
+            )
+        ) {
+            continue;
+        }
+
+        char full_path[MAX_PATH];
+        // @performance This is bad, we are internally moving two times too often to the end of full_path
+        //      Maybe make str_copy_short return the length, same as append?
+        str_copy_short(full_path, base_path);
+        if (!str_ends_with(base_path, "/")) {
+            str_concat_append(full_path, "/");
+        }
+        str_concat_append(full_path, entry->d_name);
+
+        char full_file_path[MAX_PATH];
+        relative_to_absolute(full_path, full_file_path);
+
+        struct stat statbuf;
+        if (stat(full_file_path, &statbuf) == -1) {
+            continue;
+        }
+
+        if (S_ISDIR(statbuf.st_mode)) {
+            iterate_directory(full_path, file_ending, handler, args);
+        } else if (str_ends_with(full_path, file_ending)) {
+            handler(full_path, args);
+        }
+    }
+
+    closedir(dir);
+
+    va_end(args);
+}
 
 #endif
