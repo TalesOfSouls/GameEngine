@@ -386,7 +386,7 @@ void http_header_parse(HttpRequest** http_request, const char* request, Threaded
     str_move_past(&request, ' ');
     if (str_compare(request, "HTTP/", sizeof("HTTP/") - 1) != 0) {
         LOG_1("[ERROR] Invalid HTTP header, no protocol defined");
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
 
         return;
     }

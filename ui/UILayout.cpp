@@ -115,7 +115,7 @@ void layout_from_file_txt(
 ) {
     FileBody file = {};
     file_read(path, &file, ring);
-    ASSERT_SIMPLE(file.size);
+    ASSERT_TRUE(file.size);
 
     const char* pos = (char *) file.content;
 
@@ -915,13 +915,13 @@ uint32 ui_layout_update_render_dfs(
 }
 
 inline
-uint32 layout_element_from_location(UILayout* layout, uint16 x, uint16 y) noexcept
+uint32 layout_element_from_location(UILayout* layout, uint16 x, uint16 y) NO_EXCEPT
 {
     return layout->ui_chroma_codes[layout->width * y / 4 + x / 4];
 }
 
 inline
-UIElement* layout_get_element(const UILayout* __restrict layout, const char* __restrict element) noexcept
+UIElement* layout_get_element(const UILayout* __restrict layout, const char* __restrict element) NO_EXCEPT
 {
     HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry((HashMap *) &layout->hash_map, element);
     if (!entry) {
@@ -932,13 +932,13 @@ UIElement* layout_get_element(const UILayout* __restrict layout, const char* __r
 }
 
 inline
-void* layout_get_element_state(const UILayout* layout, UIElement* element) noexcept
+void* layout_get_element_state(const UILayout* layout, UIElement* element) NO_EXCEPT
 {
     return layout->data + element->state;
 }
 
 inline
-void* layout_get_element_style(const UILayout* layout, UIElement* element, UIStyleType style_type) noexcept
+void* layout_get_element_style(const UILayout* layout, UIElement* element, UIStyleType style_type) NO_EXCEPT
 {
     if (!element) {
         return NULL;
@@ -948,7 +948,7 @@ void* layout_get_element_style(const UILayout* layout, UIElement* element, UISty
 }
 
 inline
-UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element) noexcept
+UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element) NO_EXCEPT
 {
     if (!element) {
         return NULL;
@@ -958,7 +958,7 @@ UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element)
 }
 
 inline
-UIElement* layout_get_element_child(const UILayout* layout, UIElement* element, uint16 child) noexcept
+UIElement* layout_get_element_child(const UILayout* layout, UIElement* element, uint16 child) NO_EXCEPT
 {
     if (!element) {
         return NULL;

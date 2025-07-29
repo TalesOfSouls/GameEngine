@@ -36,7 +36,6 @@ struct Font {
 
     // WARNING: Glyphs MUST be sorted ascending based on codepoint
     Glyph* glyphs;
-
 };
 
 inline
@@ -48,7 +47,7 @@ void font_init(Font* font, byte* data, int count)
 
 // @performance replace with Eytzinger (obviously we would also have to change the order in the font font file itself)
 inline
-Glyph* font_glyph_find(const Font* font, uint32 codepoint) noexcept
+Glyph* font_glyph_find(const Font* font, uint32 codepoint) NO_EXCEPT
 {
     uint32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
     uint32 limit = OMS_MIN(perfect_glyph_pos, font->glyph_count - 1);
@@ -84,7 +83,7 @@ void font_from_file_txt(
 {
     FileBody file = {};
     file_read(path, &file, ring);
-    ASSERT_SIMPLE(file.size);
+    ASSERT_TRUE(file.size);
 
     const char* pos = (char *) file.content;
 
@@ -167,7 +166,7 @@ void font_from_file_txt(
 inline
 int32 font_data_size(const Font* font)
 {
-    ASSERT_SIMPLE_CONST(sizeof(Glyph) == GLYPH_SIZE);
+    ASSERT_TRUE_CONST(sizeof(Glyph) == GLYPH_SIZE);
     return font->glyph_count * sizeof(Glyph)
         + sizeof(font->glyph_count)
         + sizeof(font->texture_name)
@@ -252,7 +251,7 @@ int32 font_to_data(
 }
 
 FORCE_INLINE
-f32 font_line_height(Font* font, f32 size) noexcept
+f32 font_line_height(Font* font, f32 size) NO_EXCEPT
 {
     return font->line_height * size / font->size;
 }

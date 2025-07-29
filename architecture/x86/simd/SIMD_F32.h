@@ -248,4 +248,12 @@ void simd_div(const f32* a, f32 b, f32* result, int32 size, int32 steps = 16)
     }
 }
 
+inline
+__m256 dot3_avx(__m256 ax, __m256 ay, __m256 az, __m256 bx, __m256 by, __m256 bz) {
+    return _mm256_add_ps(
+        _mm256_add_ps(_mm256_mul_ps(ax, bx), _mm256_mul_ps(ay, by)),
+        _mm256_mul_ps(az, bz)
+    );
+}
+
 #endif

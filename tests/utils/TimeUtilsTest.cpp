@@ -3,15 +3,15 @@
 #include "../../utils/TimeUtils.h"
 
 static void test_time_index() {
-    ASSERT_GREATER_THAN(time_index(), 0.0f);
+    TEST_GREATER_THAN(time_index(), 0.0f);
 }
 
 static void test_system_time() {
-    ASSERT_GREATER_THAN(system_time(), 0.0f);
+    TEST_GREATER_THAN(system_time(), 0.0f);
 }
 
 static void test_time_mu() {
-    ASSERT_GREATER_THAN(time_mu(), 0.0f);
+    TEST_GREATER_THAN(time_mu(), 0.0f);
 }
 
 #ifdef UBER_TEST

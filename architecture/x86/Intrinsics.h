@@ -62,7 +62,7 @@
 #define intrin_fmadd(a, b, c) _mm_cvtss_f32(_mm_fmadd_ss(_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)))
 
 inline
-uint64 intrin_timestamp_counter() noexcept {
+uint64 intrin_timestamp_counter() NO_EXCEPT {
     _mm_mfence();
     uint64 res = __rdtsc();
     _mm_mfence();

@@ -51,7 +51,7 @@ void ecs_create(EntityComponentSystem* ecs, BufferMemory* buf, int32 entity_coun
 inline
 void ecs_entity_type_create(ChunkMemory* ec, BufferMemory* buf, int32 chunk_size, int32 count)
 {
-    ASSERT_SIMPLE(chunk_size);
+    ASSERT_TRUE(chunk_size);
 
     chunk_init(ec, buf, count, chunk_size, 64);
     //mutex_init(&ec->mtx, NULL);
@@ -60,7 +60,7 @@ void ecs_entity_type_create(ChunkMemory* ec, BufferMemory* buf, int32 chunk_size
 inline
 void ecs_component_type_create(ChunkMemory* ec, BufferMemory* buf, int32 chunk_size, int32 count)
 {
-    ASSERT_SIMPLE(chunk_size);
+    ASSERT_TRUE(chunk_size);
 
     chunk_init(ec, buf, count, chunk_size, 64);
     //mutex_init(&ec->mtx, NULL);
@@ -84,7 +84,7 @@ Entity* ecs_reserve_entity(EntityComponentSystem* ecs, uint32 entity_type)
     ChunkMemory* mem = &ecs->entities[entity_type];
     int32 free_entity = chunk_reserve(mem, 1);
     if (free_entity < 0) {
-        ASSERT_SIMPLE(free_entity >= 0);
+        ASSERT_TRUE(free_entity >= 0);
         return NULL;
     }
 
@@ -100,7 +100,7 @@ Entity* ecs_insert_entity(EntityComponentSystem* ecs, Entity* entity_temp, int32
     ChunkMemory* mem = &ecs->entities[entity_type];
     int32 free_entity = chunk_reserve(mem, 1);
     if (free_entity < 0) {
-        ASSERT_SIMPLE(free_entity >= 0);
+        ASSERT_TRUE(free_entity >= 0);
         return NULL;
     }
 

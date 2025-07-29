@@ -61,34 +61,34 @@ void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_si
 }
 
 inline
-void queue_free(Queue* queue) noexcept
+void queue_free(Queue* queue) NO_EXCEPT
 {
     ring_free((RingMemory *) queue);
 }
 
 inline
-bool queue_is_empty(const Queue* queue) noexcept {
+bool queue_is_empty(const Queue* queue) NO_EXCEPT {
     return queue->head == queue->tail;
 }
 
 inline
-void queue_set_empty(Queue* queue) noexcept {
+void queue_set_empty(Queue* queue) NO_EXCEPT {
     queue->head = queue->tail;
 }
 
 inline
-bool queue_is_full(Queue* queue) noexcept {
+bool queue_is_full(Queue* queue) NO_EXCEPT {
     return !ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 
 inline
-void queue_enqueue_unique(Queue* queue, const byte* data) noexcept
+void queue_enqueue_unique(Queue* queue, const byte* data) NO_EXCEPT
 {
-    ASSERT_SIMPLE((uint64_t) data % 4 == 0);
+    ASSERT_TRUE((uint64_t) data % 4 == 0);
 
     byte* tail = queue->tail;
     while (tail != queue->tail) {
-        ASSERT_SIMPLE((uint64_t) tail % 4 == 0);
+        ASSERT_TRUE((uint64_t) tail % 4 == 0);
 
         // @performance we could probably make this faster since we don't need to compare the entire range
         if (is_equal(tail, data, queue->element_size) == 0) {
@@ -107,7 +107,7 @@ void queue_enqueue_unique(Queue* queue, const byte* data) noexcept
 }
 
 inline
-byte* queue_enqueue(Queue* queue, const byte* data) noexcept
+byte* queue_enqueue(Queue* queue, const byte* data) NO_EXCEPT
 {
     byte* mem = ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
@@ -117,7 +117,7 @@ byte* queue_enqueue(Queue* queue, const byte* data) noexcept
 }
 
 inline
-byte* queue_enqueue_safe(Queue* queue, const byte* data) noexcept
+byte* queue_enqueue_safe(Queue* queue, const byte* data) NO_EXCEPT
 {
     if(queue_is_full(queue)) {
         return NULL;
@@ -132,7 +132,7 @@ byte* queue_enqueue_safe(Queue* queue, const byte* data) noexcept
 
 // WARNING: Only useful for single producer single consumer
 inline
-byte* queue_enqueue_wait_atomic(Queue* queue, const byte* data) noexcept
+byte* queue_enqueue_wait_atomic(Queue* queue, const byte* data) NO_EXCEPT
 {
     while (!ring_commit_safe_atomic((RingMemory *) queue, queue->alignment)) {}
 
@@ -145,7 +145,7 @@ byte* queue_enqueue_wait_atomic(Queue* queue, const byte* data) noexcept
 
 // WARNING: Only useful for single producer single consumer
 inline
-byte* queue_enqueue_safe_atomic(Queue* queue, const byte* data) noexcept
+byte* queue_enqueue_safe_atomic(Queue* queue, const byte* data) NO_EXCEPT
 {
     if (!ring_commit_safe_atomic((RingMemory *) queue, queue->alignment)) {
         return NULL;
@@ -159,19 +159,19 @@ byte* queue_enqueue_safe_atomic(Queue* queue, const byte* data) noexcept
 }
 
 inline
-byte* queue_enqueue_start(Queue* queue) noexcept
+byte* queue_enqueue_start(Queue* queue) NO_EXCEPT
 {
     return ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 
 inline
-void queue_enqueue_end(Queue* queue) noexcept
+void queue_enqueue_end(Queue* queue) NO_EXCEPT
 {
     ring_move_pointer((RingMemory *) queue, &queue->head, queue->element_size, queue->alignment);
 }
 
 inline
-bool queue_dequeue(Queue* queue, byte* data) noexcept
+bool queue_dequeue(Queue* queue, byte* data) NO_EXCEPT
 {
     if (queue->head == queue->tail) {
         return false;
@@ -190,7 +190,7 @@ bool queue_dequeue(Queue* queue, byte* data) noexcept
 
 // WARNING: Only useful for single producer single consumer
 inline
-bool queue_dequeue_atomic(Queue* queue, byte* data) noexcept
+bool queue_dequeue_atomic(Queue* queue, byte* data) NO_EXCEPT
 {
     if ((uint64) atomic_get_acquire_release((void **) &queue->head) == (uint64) queue->tail) {
         return false;
@@ -208,7 +208,7 @@ bool queue_dequeue_atomic(Queue* queue, byte* data) noexcept
 }
 
 inline
-byte* queue_dequeue_keep(Queue* queue) noexcept
+byte* queue_dequeue_keep(Queue* queue) NO_EXCEPT
 {
     if (queue->head == queue->tail) {
         return NULL;
@@ -221,13 +221,13 @@ byte* queue_dequeue_keep(Queue* queue) noexcept
 }
 
 inline
-byte* queue_dequeue_start(const Queue* queue) noexcept
+byte* queue_dequeue_start(const Queue* queue) NO_EXCEPT
 {
     return queue->tail;
 }
 
 inline
-void queue_dequeue_end(Queue* queue) noexcept
+void queue_dequeue_end(Queue* queue) NO_EXCEPT
 {
     ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 }

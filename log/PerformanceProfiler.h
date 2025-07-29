@@ -91,7 +91,7 @@ struct PerformanceProfiler {
     PerformanceProfiler(
         int32 id, const char* scope_name, const char* info = NULL,
         bool stateless = false, bool should_log = false
-    ) noexcept {
+    ) NO_EXCEPT {
         if (!_perf_active || !*_perf_active) {
             this->is_active = false;
 
@@ -107,24 +107,23 @@ struct PerformanceProfiler {
         this->is_stateless = stateless;
         this->auto_log = stateless || should_log;
 
-        this->start_cycle = intrin_timestamp_counter();
         this->total_cycle = 0;
         this->self_cycle = 0;
 
         if (this->is_stateless) {
             this->parent = NULL;
+        } else if (_perf_current_scope) {
+            this->parent = *_perf_current_scope;
+            *_perf_current_scope = this;
         } else {
-            if (_perf_current_scope) {
-                this->parent = *_perf_current_scope;
-                *_perf_current_scope = this;
-            } else {
-                this->parent = _perf_current_scope_internal;
-                _perf_current_scope_internal = this;
-            }
+            this->parent = _perf_current_scope_internal;
+            _perf_current_scope_internal = this;
         }
+
+        this->start_cycle = intrin_timestamp_counter();
     }
 
-    ~PerformanceProfiler() noexcept {
+    ~PerformanceProfiler() NO_EXCEPT {
         if (!this->is_active) {
             return;
         }
@@ -158,19 +157,15 @@ struct PerformanceProfiler {
             if (this->info_msg && this->info_msg[0]) {
                 LOG_2(
                     "[PERF] %s (%s): %n cycles",
-                    {
-                        {LOG_DATA_CHAR_STR, (void *) perf->name},
-                        {LOG_DATA_CHAR_STR, (void *) this->info_msg},
-                        {LOG_DATA_INT64, (void *) &perf->total_cycle},
-                    }
+                    {LOG_DATA_CHAR_STR, (void *) perf->name},
+                    {LOG_DATA_CHAR_STR, (void *) this->info_msg},
+                    {LOG_DATA_INT64, (void *) &perf->total_cycle},
                 );
             } else {
                 LOG_2(
                     "[PERF] %s: %n cycles",
-                    {
-                        {LOG_DATA_CHAR_STR, (void *) perf->name},
-                        {LOG_DATA_INT64, (void *) &perf->total_cycle},
-                    }
+                    {LOG_DATA_CHAR_STR, (void *) perf->name},
+                    {LOG_DATA_INT64, (void *) &perf->total_cycle},
                 );
             }
         }
@@ -178,7 +173,7 @@ struct PerformanceProfiler {
 };
 
 inline
-void performance_profiler_reset(int32 id) noexcept
+void performance_profiler_reset(int32 id) NO_EXCEPT
 {
     PerformanceProfileResult* perf = &_perf_stats[id];
     perf->total_cycle = 0;
@@ -187,7 +182,7 @@ void performance_profiler_reset(int32 id) noexcept
 }
 
 inline
-void performance_profiler_start(int32 id, const char* name) noexcept
+void performance_profiler_start(int32 id, const char* name) NO_EXCEPT
 {
     PerformanceProfileResult* perf = &_perf_stats[id];
     perf->name = name;
@@ -195,7 +190,7 @@ void performance_profiler_start(int32 id, const char* name) noexcept
 }
 
 inline
-void performance_profiler_end(int32 id) noexcept
+void performance_profiler_end(int32 id) NO_EXCEPT
 {
     PerformanceProfileResult* perf = &_perf_stats[id];
     perf->total_cycle = intrin_timestamp_counter() + perf->self_cycle;

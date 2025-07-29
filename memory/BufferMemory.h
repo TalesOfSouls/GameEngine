@@ -34,9 +34,9 @@ struct BufferMemory {
 inline
 void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(size);
+    ASSERT_TRUE(size);
     PROFILE(PROFILE_BUFFER_ALLOC, NULL, false, true);
-    LOG_1("[INFO] Allocating BufferMemory: %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_1("[INFO] Allocating BufferMemory: %n B", {LOG_DATA_UINT64, &size});
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)
@@ -66,7 +66,7 @@ void buffer_free(BufferMemory* buf)
 inline
 void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(size);
+    ASSERT_TRUE(size);
 
     // @bug what if an alignment is defined?
     buf->memory = data;
@@ -77,11 +77,13 @@ void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 6
     buf->alignment = alignment;
     buf->element_alignment = 0;
 
+    memset(buf->memory, 0, buf->size);
+
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
-void buffer_reset(BufferMemory* buf) noexcept
+void buffer_reset(BufferMemory* buf) NO_EXCEPT
 {
     // @bug aren't we wasting element 0 (see get_memory, we are not using 0 only next element)
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->head - buf->memory);
@@ -89,9 +91,9 @@ void buffer_reset(BufferMemory* buf) noexcept
 }
 
 inline
-byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4, bool zeroed = false) noexcept
+byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4, bool zeroed = false) NO_EXCEPT
 {
-    ASSERT_SIMPLE(size <= buf->size);
+    ASSERT_TRUE(size <= buf->size);
 
     if (aligned == 0) {
         aligned = (byte) OMS_MAX(buf->element_alignment, 1);
@@ -103,7 +105,7 @@ byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4, bool 
     }
 
     size = ROUND_TO_NEAREST(size, aligned);
-    ASSERT_SIMPLE(buf->head + size <= buf->end);
+    ASSERT_TRUE(buf->head + size <= buf->end);
 
     if (zeroed) {
         memset((void *) buf->head, 0, size);
@@ -114,7 +116,7 @@ byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4, bool 
     byte* offset = buf->head;
     buf->head += size;
 
-    ASSERT_SIMPLE(offset);
+    ASSERT_TRUE(offset);
 
     return offset;
 }

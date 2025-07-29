@@ -22,7 +22,7 @@ FORCE_INLINE
 int32 vertex_degenerate_create(
     Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex,
     f32 x, f32 y
-) noexcept {
+) NO_EXCEPT {
     // Degenerate triangles
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
@@ -38,7 +38,7 @@ void adjust_aligned_position(
     f32* __restrict x, f32* __restrict y,
     f32 width, f32 height,
     byte alignment
-) noexcept
+) NO_EXCEPT
 {
     if (alignment & UI_ALIGN_H_RIGHT) {
         *x -= width;
@@ -57,7 +57,7 @@ static inline
 void adjust_aligned_position(
     v4_f32* vec,
     byte alignment
-) noexcept
+) NO_EXCEPT
 {
     if (alignment & UI_ALIGN_H_RIGHT) {
         vec->x -= vec->width;
@@ -77,7 +77,7 @@ int32 vertex_line_create(
     Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex,
     v2_f32 start, v2_f32 end, f32 thickness, byte alignment,
     uint32 rgba = 0
-) noexcept {
+) NO_EXCEPT {
     if (alignment & UI_ALIGN_H_RIGHT) {
         start.x -= thickness;
         end.x -= thickness;
@@ -120,7 +120,7 @@ int32 vertex_rect_create(
     Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     uint32 rgba = 0, v2_f32 tex1 = {}, v2_f32 tex2 = {}
-) noexcept {
+) NO_EXCEPT {
     PROFILE(PROFILE_VERTEX_RECT_CREATE);
     if (alignment) {
         adjust_aligned_position(&dimension, alignment);
@@ -152,7 +152,7 @@ int32 vertex_rect_create(
 static inline
 f32 text_calculate_dimensions_height(
     const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
-) noexcept {
+) NO_EXCEPT {
     f32 line_height = font->line_height * scale;
     f32 y = line_height;
 
@@ -170,7 +170,7 @@ f32 text_calculate_dimensions_height(
 static inline
 f32 text_calculate_dimensions_width(
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
-) noexcept {
+) NO_EXCEPT {
     f32 x = 0;
     f32 offset_x = 0;
 
@@ -201,7 +201,7 @@ static inline
 void text_calculate_dimensions(
     f32* __restrict width, f32* __restrict height,
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
-) noexcept {
+) NO_EXCEPT {
     f32 line_height = font->line_height * scale;
     f32 x = 0;
     f32 y = line_height;
@@ -243,7 +243,7 @@ v3_int32 vertex_text_create(
     v4_f32 dimension, byte alignment,
     const Font* __restrict font, const char* __restrict text,
     f32 size, uint32 rgba = 0
-) noexcept {
+) NO_EXCEPT {
     PROFILE(PROFILE_VERTEX_TEXT_CREATE);
     int32 length = utf8_str_length(text);
     if (length < 1) {

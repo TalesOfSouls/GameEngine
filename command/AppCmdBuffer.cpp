@@ -40,7 +40,7 @@ void cmd_buffer_create(AppCmdBuffer* cb, BufferMemory* buf, int32 commands_count
     chunk_init(&cb->commands, buf, commands_count, sizeof(Command), 64);
     mutex_init(&cb->mtx, NULL);
 
-    LOG_1("Created AppCmdBuffer: %n B", {{LOG_DATA_UINT64, &cb->commands.size}});
+    LOG_1("Created AppCmdBuffer: %n B", {LOG_DATA_UINT64, &cb->commands.size});
 }
 
 // This doesn't load the asset directly but tells (most likely) a worker thread to load an asset
@@ -185,7 +185,7 @@ void thrd_cmd_insert(AppCmdBuffer* __restrict cb, Command* __restrict cmd_temp)
     int32 index = chunk_reserve(&cb->commands, 1);
     if (index < 0) {
         mutex_unlock(&cb->mtx);
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
 
         return;
     }
@@ -356,7 +356,7 @@ inline void* cmd_func_run(AppCmdBuffer*, CommandFunction func) {
 }
 
 inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
-    LOG_1("Load texture %d", {{LOG_DATA_INT32, &asset_id}});
+    LOG_1("Load texture %d", {LOG_DATA_INT32, &asset_id});
 
     // Check if asset already loaded
     char id_str[9];
@@ -385,7 +385,7 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
 }
 
 inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) {
-    LOG_1("Load texture %d", {{LOG_DATA_CHAR_STR, (void *) name}});
+    LOG_1("Load texture %d", {LOG_DATA_CHAR_STR, (void *) name});
     PROFILE(PROFILE_CMD_ASSET_LOAD_SYNC, name, false, true);
 
     // Check if asset already loaded
@@ -413,7 +413,7 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) {
 
 inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id)
 {
-    LOG_1("Load font %d", {{LOG_DATA_INT32, &asset_id}});
+    LOG_1("Load font %d", {LOG_DATA_INT32, &asset_id});
 
     // Check if asset already loaded
     char id_str[9];
@@ -442,7 +442,7 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id)
 
 inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name)
 {
-    LOG_1("Load font %s", {{LOG_DATA_CHAR_STR, (void *) name}});
+    LOG_1("Load font %s", {LOG_DATA_CHAR_STR, (void *) name});
     PROFILE(PROFILE_CMD_FONT_LOAD_SYNC, name, false, true);
 
     // Check if asset already loaded
@@ -472,13 +472,13 @@ UILayout* cmd_layout_load_sync(
     UILayout* __restrict layout, const char* __restrict layout_path
 ) {
     PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path, false, true);
-    LOG_1("Load layout %s", {{LOG_DATA_CHAR_STR, (void *) layout_path}});
+    LOG_1("Load layout %s", {LOG_DATA_CHAR_STR, (void *) layout_path});
 
     FileBody layout_file = {};
     file_read(layout_path, &layout_file, cb->mem_vol);
 
     if (!layout_file.content) {
-        LOG_1("Failed loading layout \"%s\"", {{LOG_DATA_CHAR_STR, (void *) layout_path}});
+        LOG_1("Failed loading layout \"%s\"", {LOG_DATA_CHAR_STR, (void *) layout_path});
         return NULL;
     }
 
@@ -493,7 +493,7 @@ UIThemeStyle* cmd_theme_load_sync(
     UIThemeStyle* __restrict theme, const char* __restrict theme_path
 ) {
     PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, theme_path, false, true);
-    LOG_1("Load theme %s", {{LOG_DATA_CHAR_STR, (void *) theme_path}});
+    LOG_1("Load theme %s", {LOG_DATA_CHAR_STR, (void *) theme_path});
 
     FileBody theme_file = {};
     file_read(theme_path, &theme_file, cb->mem_vol);
@@ -519,7 +519,7 @@ UILayout* cmd_ui_load_sync(
     const Camera* __restrict camera
 ) {
     PROFILE(PROFILE_CMD_UI_LOAD_SYNC, layout_path, false, true);
-    LOG_1("Load ui with layout %s and theme %s", {{LOG_DATA_CHAR_STR, (void *) layout_path}, {LOG_DATA_CHAR_STR, (void *) theme_path}});
+    LOG_1("Load ui with layout %s and theme %s", {LOG_DATA_CHAR_STR, (void *) layout_path}, {LOG_DATA_CHAR_STR, (void *) theme_path});
 
     if (!cmd_layout_load_sync(cb, layout, layout_path)) {
         // We have to make sure that at least the font is set

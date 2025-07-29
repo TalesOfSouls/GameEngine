@@ -7,8 +7,8 @@
 static void test_utf8_encode()
 {
     char out[5] = {};
-    ASSERT_EQUALS(utf8_encode(659, out), 2);
-    ASSERT_EQUALS(utf8_encode(67857, out), 4);
+    TEST_EQUALS(utf8_encode(659, out), 2);
+    TEST_EQUALS(utf8_encode(67857, out), 4);
 }
 
 static void test_utf8_decode()
@@ -17,72 +17,72 @@ static void test_utf8_decode()
     uint32 codepoint;
 
     *((uint16 *) in) = SWAP_ENDIAN_BIG((uint16) 0xCA93);
-    ASSERT_EQUALS(utf8_decode(in, &codepoint), 2);
-    ASSERT_EQUALS(codepoint, 659);
+    TEST_EQUALS(utf8_decode(in, &codepoint), 2);
+    TEST_EQUALS(codepoint, 659);
 
     *((uint32 *) in) = SWAP_ENDIAN_BIG(0xF090A491);
-    ASSERT_EQUALS(utf8_decode(in, &codepoint), 4);
-    ASSERT_EQUALS(codepoint, 67857);
+    TEST_EQUALS(utf8_decode(in, &codepoint), 4);
+    TEST_EQUALS(codepoint, 67857);
 
     char out[5] = {};
-    ASSERT_EQUALS(utf8_decode(codepoint, out), 4);
-    ASSERT_TRUE(strcmp(out, in) == 0);
+    TEST_EQUALS(utf8_decode(codepoint, out), 4);
+    TEST_TRUE(strcmp(out, in) == 0);
 }
 
 static void test_utf8_str_length()
 {
     char in[] = "Foo © bar 𝌆 baz ☃ qux";
-    ASSERT_EQUALS(utf8_str_length(in), 21);
+    TEST_EQUALS(utf8_str_length(in), 21);
 }
 
 static void test_str_is_float()
 {
-    ASSERT_TRUE(str_is_float("1.234"));
-    ASSERT_TRUE(str_is_float("-1.234"));
-    ASSERT_TRUE(str_is_float("+1.234"));
-    ASSERT_FALSE(str_is_float("1.234ABC"));
-    ASSERT_FALSE(str_is_float("B1.234"));
-    ASSERT_FALSE(str_is_float("1.2.34"));
+    TEST_TRUE(str_is_float("1.234"));
+    TEST_TRUE(str_is_float("-1.234"));
+    TEST_TRUE(str_is_float("+1.234"));
+    TEST_FALSE(str_is_float("1.234ABC"));
+    TEST_FALSE(str_is_float("B1.234"));
+    TEST_FALSE(str_is_float("1.2.34"));
 }
 
 static void test_str_is_integer()
 {
-    ASSERT_TRUE(str_is_integer("1234"));
-    ASSERT_TRUE(str_is_integer("-1234"));
-    ASSERT_TRUE(str_is_integer("+1234"));
-    ASSERT_FALSE(str_is_integer("1.234"));
-    ASSERT_FALSE(str_is_integer("1.234ABC"));
-    ASSERT_FALSE(str_is_integer("B1.234"));
-    ASSERT_FALSE(str_is_integer("1.2.34"));
+    TEST_TRUE(str_is_integer("1234"));
+    TEST_TRUE(str_is_integer("-1234"));
+    TEST_TRUE(str_is_integer("+1234"));
+    TEST_FALSE(str_is_integer("1.234"));
+    TEST_FALSE(str_is_integer("1.234ABC"));
+    TEST_FALSE(str_is_integer("B1.234"));
+    TEST_FALSE(str_is_integer("1.2.34"));
 }
 
 static void test_str_is_alpha()
 {
-    ASSERT_FALSE(str_is_alpha('2'));
-    ASSERT_TRUE(str_is_alpha('s'));
-    ASSERT_TRUE(str_is_alpha('D'));
-    ASSERT_FALSE(str_is_alpha('-'));
+    TEST_FALSE(str_is_alpha('2'));
+    TEST_TRUE(str_is_alpha('s'));
+    TEST_TRUE(str_is_alpha('D'));
+    TEST_FALSE(str_is_alpha('-'));
 }
 
 static void test_str_is_num()
 {
-    ASSERT_TRUE(str_is_num('2'));
-    ASSERT_FALSE(str_is_num('s'));
-    ASSERT_FALSE(str_is_num('D'));
-    ASSERT_FALSE(str_is_num('-'));
+    TEST_TRUE(str_is_num('2'));
+    TEST_FALSE(str_is_num('s'));
+    TEST_FALSE(str_is_num('D'));
+    TEST_FALSE(str_is_num('-'));
 }
 
 static void test_str_is_alphanum()
 {
-    ASSERT_TRUE(str_is_alphanum('2'));
-    ASSERT_TRUE(str_is_alphanum('s'));
-    ASSERT_TRUE(str_is_alphanum('D'));
-    ASSERT_FALSE(str_is_alphanum('-'));
+    TEST_TRUE(str_is_alphanum('2'));
+    TEST_TRUE(str_is_alphanum('s'));
+    TEST_TRUE(str_is_alphanum('D'));
+    TEST_FALSE(str_is_alphanum('-'));
 }
 
 static void test_str_length()
 {
-    ASSERT_EQUALS(str_length("2asdf dw"), 8);
+    TEST_EQUALS(str_length("2asdf dw"), 8);
 }
 
 #if PERFORMANCE_TEST
@@ -147,7 +147,7 @@ static void test_sprintf_fast()
 {
     char buffer[256];
     sprintf_fast(buffer, "This %d is a %s with %f values", 1337, "test", 3.0f);
-    ASSERT_TRUE(strcmp(buffer, "This 1337 is a test with 3.00000 values") == 0);
+    TEST_TRUE(strcmp(buffer, "This 1337 is a test with 3.00000 values") == 0);
 }
 
 #if PERFORMANCE_TEST
@@ -175,9 +175,9 @@ static void test_sprintf_fast_performance() {
 
 static void test_str_to_float()
 {
-    ASSERT_EQUALS(str_to_float("1.000000"), 1.0f);
-    ASSERT_EQUALS(str_to_float("+1.000000"), 1.0f);
-    ASSERT_EQUALS(str_to_float("-1.000000"), -1.0f);
+    TEST_EQUALS(str_to_float("1.000000"), 1.0f);
+    TEST_EQUALS(str_to_float("+1.000000"), 1.0f);
+    TEST_EQUALS(str_to_float("-1.000000"), -1.0f);
 }
 
 #ifdef UBER_TEST

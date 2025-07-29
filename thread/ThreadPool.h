@@ -131,10 +131,8 @@ void thread_pool_alloc(
     PROFILE(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
         "[INFO] Allocating thread pool with %d threads and %d queue length",
-        {
-            {LOG_DATA_INT32, &thread_count},
-            {LOG_DATA_INT32, &worker_count}
-        }
+        {LOG_DATA_INT32, &thread_count},
+        {LOG_DATA_INT32, &worker_count}
     );
 
     queue_alloc(&pool->work_queue, worker_count, element_size, alignment);
@@ -156,7 +154,7 @@ void thread_pool_alloc(
         coms_pthread_detach(thread);
     }
 
-    LOG_2("[INFO] %d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
+    LOG_2("[INFO] %d threads running", {LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]});
 }
 
 void thread_pool_create(
@@ -170,10 +168,8 @@ void thread_pool_create(
     PROFILE(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
         "Creating thread pool with %d threads and %d queue length",
-        {
-            {LOG_DATA_INT32, &thread_count},
-            {LOG_DATA_INT32, &worker_count}
-        }
+        {LOG_DATA_INT32, &thread_count},
+        {LOG_DATA_INT32, &worker_count}
     );
 
     queue_init(&pool->work_queue, buf, worker_count, element_size, alignment);
@@ -195,7 +191,7 @@ void thread_pool_create(
         coms_pthread_detach(thread);
     }
 
-    LOG_2("[INFO] %d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
+    LOG_2("[INFO] %d threads running", {LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]});
 }
 
 void thread_pool_wait(ThreadPool* pool)
@@ -235,7 +231,7 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
 
     if (atomic_get_relaxed((volatile int32*) &temp_job->state) > POOL_WORKER_STATE_COMPLETED) {
         mutex_unlock(&pool->work_mutex);
-        ASSERT_SIMPLE(temp_job->state <= POOL_WORKER_STATE_COMPLETED);
+        ASSERT_TRUE(temp_job->state <= POOL_WORKER_STATE_COMPLETED);
 
         return NULL;
     }
@@ -264,7 +260,7 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
     PoolWorker* temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
     if (atomic_get_relaxed((volatile int32*) &temp_job->state) > POOL_WORKER_STATE_COMPLETED) {
         mutex_unlock(&pool->work_mutex);
-        ASSERT_SIMPLE(temp_job->state <= POOL_WORKER_STATE_COMPLETED);
+        ASSERT_TRUE(temp_job->state <= POOL_WORKER_STATE_COMPLETED);
 
         return NULL;
     }

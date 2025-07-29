@@ -129,13 +129,19 @@ AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int
     return &archive->header.asset_element[id];
 }
 
-void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* buf, RingMemory* ring, int32 steps = 8)
+void asset_archive_load(
+    AssetArchive* archive,
+    const char* path,
+    BufferMemory* buf,
+    RingMemory* ring,
+    int32 steps = 8
+)
 {
     PROFILE(PROFILE_ASSET_ARCHIVE_LOAD, path, false, true);
 
     LOG_1(
         "Load AssetArchive %s",
-        {{LOG_DATA_CHAR_STR, (void *) path}}
+        {LOG_DATA_CHAR_STR, (void *) path}
     );
 
     archive->fd = file_read_handle(path);
@@ -176,7 +182,7 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
 
     LOG_1(
         "Loaded AssetArchive %s with %d assets",
-        {{LOG_DATA_CHAR_STR, (void *) path}, {LOG_DATA_UINT32, (void *) &archive->header.asset_count}}
+        {LOG_DATA_CHAR_STR, (void *) path}, {LOG_DATA_UINT32, (void *) &archive->header.asset_count}
     );
 }
 
@@ -206,7 +212,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
 
     LOG_2(
         "Load asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
-        {{LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}}
+        {LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}
     );
 
     Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
@@ -316,7 +322,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
 
     LOG_2(
         "Loaded asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
-        {{LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}}
+        {LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}
     );
 
     // @performance maybe do in worker threads? This just feels very slow

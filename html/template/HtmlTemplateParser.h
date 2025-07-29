@@ -165,7 +165,7 @@ HtmlTemplateASTNode* html_template_factor_parse(const char** input, HtmlTemplate
         return node;
     }
 
-    ASSERT_SIMPLE(false);
+    ASSERT_TRUE(false);
 
     return NULL;
 }

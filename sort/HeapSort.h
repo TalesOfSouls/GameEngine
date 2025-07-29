@@ -4,7 +4,7 @@
 #include "../stdlib/Types.h"
 #include "../utils/Utils.h"
 
-void heapsort(void* arr, size_t num, size_t size, int32 (*compare)(const void* __restrict, const void* __restrict)) noexcept {
+void heapsort(void* arr, size_t num, size_t size, int32 (*compare)(const void* __restrict, const void* __restrict)) NO_EXCEPT {
     char* base = (char*)arr;
 
     // Build a max heap

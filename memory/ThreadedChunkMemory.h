@@ -37,16 +37,16 @@ struct ThreadedChunkMemory {
 inline
 void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(chunk_size);
-    ASSERT_SIMPLE(count);
+    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(count);
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
     LOG_1("[INFO] Allocating ChunkMemory");
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // completeness
+        + sizeof(uint64) * CEIL_DIV(count, 64) // free
+        + sizeof(uint64) * CEIL_DIV(count, 64) // completeness
         + alignment * 3; // overhead for alignment
 
     buf->memory = alignment < 2
@@ -66,20 +66,20 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
     memset(buf->memory, 0, buf->size);
     mutex_init(&buf->lock, NULL);
 
-    LOG_1("[INFO] Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_1("[INFO] Allocated ChunkMemory: %n B", {LOG_DATA_UINT64, &buf->size});
 }
 
 inline
 void thrd_chunk_init(ThreadedChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(chunk_size);
-    ASSERT_SIMPLE(count);
+    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(count);
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // completeness
+        + sizeof(uint64) * CEIL_DIV(count, 64) // free
+        + sizeof(uint64) * CEIL_DIV(count, 64) // completeness
         + alignment * 3; // overhead for alignment
 
     buf->memory = buffer_get_memory(data, size);
@@ -104,14 +104,14 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, BufferMemory* data, uint32 count,
 inline
 void thrd_chunk_init(ThreadedChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(chunk_size);
-    ASSERT_SIMPLE(count);
+    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(count);
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // completeness
+        + sizeof(uint64) * CEIL_DIV(count, 64) // free
+        + sizeof(uint64) * CEIL_DIV(count, 64) // completeness
         + alignment * 3; // overhead for alignment
 
     // @bug what if an alignment is defined?
@@ -134,27 +134,29 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, byte* data, uint32 count, uint32 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
+// @bug what if we used _init, we still need to destroy the mutex
+// We have the same bug in other places as well
 FORCE_INLINE
-void thrd_chunk_free(ThreadedChunkMemory* buf) noexcept
+void thrd_chunk_free(ThreadedChunkMemory* buf) NO_EXCEPT
 {
     chunk_free((ChunkMemory *) buf);
     mutex_destroy(&buf->lock);
 }
 
 FORCE_INLINE
-uint32 thrd_chunk_id_from_memory(const ThreadedChunkMemory* buf, const byte* pos) noexcept
+uint32 thrd_chunk_id_from_memory(const ThreadedChunkMemory* buf, const byte* pos) NO_EXCEPT
 {
     return chunk_id_from_memory((ChunkMemory *) buf, pos);
 }
 
 FORCE_INLINE
-byte* thrd_chunk_get_element(ThreadedChunkMemory* buf, uint32 element, bool zeroed = false) noexcept
+byte* thrd_chunk_get_element(ThreadedChunkMemory* buf, uint32 element, bool zeroed = false) NO_EXCEPT
 {
     return chunk_get_element((ChunkMemory *) buf, element, zeroed);
 }
 
 inline
-void thrd_chunk_set_unset(uint32 element, atomic_64 uint64* state) noexcept {
+void thrd_chunk_set_unset(uint32 element, atomic_64 uint64* state) NO_EXCEPT {
     int32 free_index = element / 64;
     int32 bit_index = element & 63;
 
@@ -162,7 +164,7 @@ void thrd_chunk_set_unset(uint32 element, atomic_64 uint64* state) noexcept {
     atomic_fetch_and_release(&state[free_index], mask);
 }
 
-int32 thrd_chunk_get_unset(atomic_64 uint64* state, uint32 state_count, int32 start_index = 0) noexcept {
+int32 thrd_chunk_get_unset(atomic_64 uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT {
     if ((uint32) start_index >= state_count) {
         start_index = 0;
     }
@@ -212,7 +214,7 @@ int32 thrd_chunk_get_unset(atomic_64 uint64* state, uint32 state_count, int32 st
 }
 
 inline
-int32 thrd_chunk_reserve(ThreadedChunkMemory* buf, uint32 elements = 1) noexcept
+int32 thrd_chunk_reserve(ThreadedChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
 {
     mutex_lock(&buf->lock);
     int32 free_element = chunk_reserve((ChunkMemory *) buf, elements);
@@ -222,7 +224,7 @@ int32 thrd_chunk_reserve(ThreadedChunkMemory* buf, uint32 elements = 1) noexcept
 }
 
 inline
-void thrd_chunk_free_element(ThreadedChunkMemory* buf, uint64 free_index, int32 bit_index) noexcept
+void thrd_chunk_free_element(ThreadedChunkMemory* buf, uint64 free_index, int32 bit_index) NO_EXCEPT
 {
     alignas(8) atomic_64 uint64* target = &buf->free[free_index];
     uint64 old_value, new_value;
@@ -241,7 +243,7 @@ void thrd_chunk_free_element(ThreadedChunkMemory* buf, uint64 free_index, int32 
 }
 
 inline
-void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 element_count = 1) noexcept
+void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 element_count = 1) NO_EXCEPT
 {
     uint64 free_index = element / 64;
     uint32 bit_index = element & 63;
@@ -282,7 +284,7 @@ void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 e
 
 // @performance We can optimize it by checking if we can just append additional chunks if they are free
 inline
-int32 thrd_chunk_resize(ThreadedChunkMemory* buf, int32 element_id, uint32 elements_old, uint32 elements_new) noexcept
+int32 thrd_chunk_resize(ThreadedChunkMemory* buf, int32 element_id, uint32 elements_old, uint32 elements_new) NO_EXCEPT
 {
     const byte* data = thrd_chunk_get_element(buf, element_id);
 

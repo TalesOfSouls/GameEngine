@@ -203,7 +203,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
     ++_test_global_count; \
     func()
 
-#define ASSERT_EQUALS(a, b)                                                        \
+#define TEST_EQUALS(a, b)                                                        \
     do                                                                             \
     {                                                                              \
         ++_test_assert_count;                                                      \
@@ -217,7 +217,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         }                                                                          \
     } while (0)
 
-#define ASSERT_GREATER_THAN(a, b)                                       \
+#define TEST_GREATER_THAN(a, b)                                       \
     do                                                                  \
     {                                                                   \
         ++_test_assert_count;                                           \
@@ -231,7 +231,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         }                                                               \
     } while (0)
 
-#define ASSERT_LESSER_THAN(a, b)                                        \
+#define TEST_LESSER_THAN(a, b)                                        \
     do                                                                  \
     {                                                                   \
         ++_test_assert_count;                                           \
@@ -245,7 +245,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         }                                                               \
     } while (0)
 
-#define ASSERT_NOT_EQUALS(a, b)                                                    \
+#define TEST_NOT_EQUALS(a, b)                                                    \
     do                                                                             \
     {                                                                              \
         ++_test_assert_count;                                                      \
@@ -259,7 +259,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         }                                                                          \
     } while (0)
 
-#define ASSERT_EQUALS_WITH_DELTA(a, b, delta)                   \
+#define TEST_EQUALS_WITH_DELTA(a, b, delta)                   \
     do                                                          \
     {                                                           \
         ++_test_assert_count;                                   \
@@ -273,7 +273,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         }                                                       \
     } while (0)
 
-#define ASSERT_CONTAINS(a, b)                                \
+#define TEST_CONTAINS(a, b)                                \
     do                                                       \
     {                                                        \
         ++_test_assert_count;                                \
@@ -287,7 +287,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         }                                                    \
     } while (0)
 
-#define ASSERT_TRUE(a)                                       \
+#define TEST_TRUE(a)                                       \
     do                                                       \
     {                                                        \
         ++_test_assert_count;                                \
@@ -301,7 +301,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         }                                                    \
     } while (0)
 
-#define ASSERT_FALSE(a)                                      \
+#define TEST_FALSE(a)                                      \
     do                                                       \
     {                                                        \
         ++_test_assert_count;                                \
@@ -315,7 +315,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         }                                                    \
     } while (0)
 
-#define ASSERT_TRUE_CONST(a)                                 \
+#define TEST_TRUE_CONST(a)                                 \
     do                                                       \
     {                                                        \
         ++_test_assert_count;                                \
@@ -329,7 +329,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         }                                                    \
     } while (0)
 
-#define ASSERT_FALSE_CONST(a)                                \
+#define TEST_FALSE_CONST(a)                                \
     do                                                       \
     {                                                        \
         ++_test_assert_count;                                \
@@ -343,7 +343,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
         }                                                    \
     } while (0)
 
-#define ASSERT_MEMORY_EQUALS(ptr1, ptr2, len)                              \
+#define TEST_MEMORY_EQUALS(ptr1, ptr2, len)                              \
     do                                                                     \
     {                                                                      \
         ++_test_assert_count;                                              \
@@ -401,10 +401,10 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
                 "%4i: %.2f%% (%s: %" PRIu64 " cycles, %s: %" PRIu64 " cycles)",                                   \
                 __LINE__, percent_diff + 100.0f, #func1, (uint64_t)cycles_func1, #func2, (uint64_t)cycles_func2); \
         }                                                                                                         \
-        ASSERT_TRUE((a && b) || a == b);                                                                          \
+        TEST_TRUE((a && b) || a == b);                                                                          \
     } while (0)
 
-#define ASSERT_FUNCTION_TEST_CYCLE(func, cycles)                                \
+#define TEST_FUNCTION_TEST_CYCLE(func, cycles)                                \
     do                                                                          \
     {                                                                           \
         ++_test_assert_count;                                                   \
@@ -458,7 +458,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
                 "%4i: %.2f%% (%s: %.2f us, %s: %.2f us)",                                 \
                 __LINE__, percent_diff + 100.0f, #func1, time_func1, #func2, time_func2); \
         }                                                                                 \
-        ASSERT_TRUE((a && b) || a == b);                                                  \
+        TEST_TRUE((a && b) || a == b);                                                  \
     } while (0)
 
 #endif

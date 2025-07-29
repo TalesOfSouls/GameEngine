@@ -14,7 +14,7 @@
 
 #include "../stdlib/Types.h"
 
-uint32 lzp_encode(const byte* in, size_t length, byte* out) noexcept
+uint32 lzp_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
 {
     byte buf[9];
     byte table[1 << 16] = {0};
@@ -58,7 +58,7 @@ uint32 lzp_encode(const byte* in, size_t length, byte* out) noexcept
     return out_pos;
 }
 
-uint32 lzp_decode(const byte* in, size_t length, byte* out) noexcept
+uint32 lzp_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
 {
     byte buf[8];
     byte table[1 << 16] = {0};
@@ -100,7 +100,7 @@ uint32 lzp_decode(const byte* in, size_t length, byte* out) noexcept
     return out_pos;
 }
 
-int32 find_longest_match(char *window, int32 window_start, char *buffer, int32 buffer_size, int32 *match_position) noexcept
+int32 find_longest_match(char *window, int32 window_start, char *buffer, int32 buffer_size, int32 *match_position) NO_EXCEPT
 {
     int32 best_length = 0;
     int32 best_offset = 0;
@@ -126,7 +126,7 @@ int32 find_longest_match(char *window, int32 window_start, char *buffer, int32 b
     return best_length;
 }
 
-uint32 lzp3_encode(const byte* in, size_t length, byte* out) noexcept
+uint32 lzp3_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
 {
     char window[4096] = {0};
     int32 window_start = 0;
@@ -163,7 +163,7 @@ uint32 lzp3_encode(const byte* in, size_t length, byte* out) noexcept
     return out_size;
 }
 
-uint32 lzp3_decode(const byte* in, size_t length, byte* out) noexcept
+uint32 lzp3_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
 {
     char window[4096] = {0};
     int32 window_start = 0;

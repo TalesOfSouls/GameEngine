@@ -32,7 +32,7 @@ void image_from_file(Image* __restrict image, const char* __restrict path, RingM
     }
 }
 
-void image_flip_vertical(RingMemory* __restrict ring, Image* __restrict image) noexcept
+void image_flip_vertical(RingMemory* __restrict ring, Image* __restrict image) NO_EXCEPT
 {
     uint32 stride = image->width * sizeof(uint32);
     byte* temp = ring_get_memory(ring, image->pixel_count * sizeof(uint32));
@@ -49,7 +49,7 @@ void image_flip_vertical(RingMemory* __restrict ring, Image* __restrict image) n
 }
 
 inline
-int32 image_pixel_size_from_type(byte type) noexcept
+int32 image_pixel_size_from_type(byte type) NO_EXCEPT
 {
     int32 channel_size = type & IMAGE_SETTING_CHANNEL_4_SIZE ? 4 : 1;
     int32 channel_count = type & IMAGE_SETTING_CHANNEL_COUNT;
@@ -58,7 +58,7 @@ int32 image_pixel_size_from_type(byte type) noexcept
 }
 
 inline
-int32 image_data_size(const Image* image) noexcept
+int32 image_data_size(const Image* image) NO_EXCEPT
 {
     return image->pixel_count * image_pixel_size_from_type(image->image_settings)
         + sizeof(image->width) + sizeof(image->height)
@@ -66,7 +66,7 @@ int32 image_data_size(const Image* image) noexcept
 }
 
 inline
-uint32 image_header_from_data(const byte* __restrict data, Image* __restrict image) noexcept
+uint32 image_header_from_data(const byte* __restrict data, Image* __restrict image) NO_EXCEPT
 {
     const byte* start = data;
 
@@ -84,7 +84,7 @@ uint32 image_header_from_data(const byte* __restrict data, Image* __restrict ima
     return (int32) (data - start);
 }
 
-uint32 image_from_data(const byte* __restrict data, Image* __restrict image) noexcept
+uint32 image_from_data(const byte* __restrict data, Image* __restrict image) NO_EXCEPT
 {
     LOG_3("Load image");
     const byte* pos = data;
@@ -100,7 +100,7 @@ uint32 image_from_data(const byte* __restrict data, Image* __restrict image) noe
 }
 
 inline
-uint32 image_header_to_data(const Image* __restrict image, byte* __restrict data) noexcept
+uint32 image_header_to_data(const Image* __restrict image, byte* __restrict data) NO_EXCEPT
 {
     byte* start = data;
 
@@ -116,7 +116,7 @@ uint32 image_header_to_data(const Image* __restrict image, byte* __restrict data
     return (int32) (data - start);
 }
 
-uint32 image_to_data(const Image* __restrict image, byte* __restrict data) noexcept
+uint32 image_to_data(const Image* __restrict image, byte* __restrict data) NO_EXCEPT
 {
     byte* pos = data;
     pos += image_header_to_data(image, data);

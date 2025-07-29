@@ -198,7 +198,7 @@ int32 ui_attribute_type_to_id(const char* attribute_name)
         return UI_ATTRIBUTE_TYPE_VERTEX_COUNT;
     }
 
-    ASSERT_SIMPLE(false);
+    ASSERT_TRUE(false);
 
     return -1;
 }
@@ -235,7 +235,7 @@ void ui_theme_assign_f32(f32* a, const UIAttribute* attr)
     } else if (attr->datatype == UI_ATTRIBUTE_DATA_TYPE_F32) {
         *a = (f32) attr->value_float;
     } else if (attr->datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
-        ASSERT_SIMPLE(str_length(attr->value_str) > 0);
+        ASSERT_TRUE(str_length(attr->value_str) > 0);
 
         char value[32];
         memcpy(value, attr->value_str, ARRAY_COUNT(attr->value_str));

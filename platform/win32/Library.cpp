@@ -52,7 +52,7 @@ bool library_load(Library* lib)
     lib->handle = LoadLibraryA((LPCSTR) dst);
     if (!lib->handle) {
         lib->is_valid= false;
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
 
         return lib->is_valid;
     }
@@ -63,7 +63,7 @@ bool library_load(Library* lib)
         if (function) {
             lib->functions[c] = function;
         } else {
-            ASSERT_SIMPLE(false);
+            ASSERT_TRUE(false);
             lib->is_valid = false;
         }
     }

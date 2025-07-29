@@ -20,7 +20,7 @@
 inline
 int32 db_open_sqlite(DatabaseConnection* db)
 {
-    ASSERT_SIMPLE(sizeof(db->con) >= sizeof(sqlite3*));
+    ASSERT_TRUE(sizeof(db->con) >= sizeof(sqlite3*));
 
     int32 rc;
     rc = sqlite3_open(db->host, (sqlite3 **) &db->con);

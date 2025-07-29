@@ -19,9 +19,18 @@
 #include "../log/DebugMemory.h"
 #include "../thread/Atomic.h"
 
+enum AssetManagementType {
+    AMS_TYPE_SMALL,
+    AMS_TYPE_MEDIUM,
+    AMS_TYPE_LARGE,
+    AMS_TYPE_VERY_LARGE,
+    AMS_TYPE_SIZE
+};
+
 // The major asset types should have their own asset component system
 // All other entities are grouped together in one asset component system
 struct AssetComponent {
+    // This is were the actual asset data is stored
     ChunkMemory asset_memory;
 
     uint64 ram_size;
@@ -33,6 +42,7 @@ struct AssetComponent {
 };
 
 struct AssetManagementSystem {
+    // Used to find an asset in any asset component
     HashMap hash_map;
 
     int32 asset_component_count;
@@ -42,17 +52,19 @@ struct AssetManagementSystem {
 inline
 void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 asset_component_count, int32 count)
 {
-    LOG_1("Create AMS for %n assets", {{LOG_DATA_INT32, &count}});
+    LOG_1("Create AMS for %n assets", {LOG_DATA_INT32, &count});
     hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
     ams->asset_component_count = asset_component_count;
     ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64, true);
 }
 
+// Different AMS components can have different chunk sizes
+// This is useful for components that only contain textures, audio, 3d object data, etc. to avoid massive unused data or very small memory chunks for all situations which makes chunk allocation slower
 inline
 void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_size, int32 count)
 {
-    ASSERT_SIMPLE(chunk_size);
-    LOG_1("Create AMS Component for %n assets and %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}});
+    ASSERT_TRUE(chunk_size);
+    LOG_1("Create AMS Component for %n assets and %n B", {LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size});
 
     chunk_init(&ac->asset_memory, buf, count, chunk_size, 64);
     mutex_init(&ac->mtx, NULL);
@@ -61,8 +73,8 @@ void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_siz
 inline
 void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32 count)
 {
-    ASSERT_SIMPLE(chunk_size);
-    LOG_1("Create AMS Component for %n assets and %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}});
+    ASSERT_TRUE(chunk_size);
+    LOG_1("Create AMS Component for %n assets and %n B", {LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size});
 
     ac->asset_memory.count = count;
     ac->asset_memory.chunk_size = chunk_size;
@@ -74,13 +86,13 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
     mutex_init(&ac->mtx, NULL);
 }
 
-inline
+FORCE_INLINE
 void ams_component_free(AssetComponent* ac)
 {
     mutex_destroy(&ac->mtx);
 }
 
-inline
+FORCE_INLINE
 void ams_free(AssetManagementSystem* ams)
 {
     for (int32 i = 0; i < ams->asset_component_count; ++i) {
@@ -88,25 +100,25 @@ void ams_free(AssetManagementSystem* ams)
     }
 }
 
-inline
+FORCE_INLINE
 uint16 ams_calculate_chunks(const AssetComponent* ac, int32 byte_size, int32 overhead)
 {
     return (uint16) CEIL_DIV(byte_size + overhead, ac->asset_memory.chunk_size);
 }
 
-inline
+FORCE_INLINE
 void thrd_ams_set_loaded(Asset* asset)
 {
     atomic_set_release(&asset->is_loaded, 1);
 }
 
-inline
+FORCE_INLINE
 bool thrd_ams_is_loaded(Asset* asset)
 {
     return asset && atomic_get_acquire(&asset->is_loaded) > 0;
 }
 
-inline
+FORCE_INLINE
 bool thrd_ams_is_in_vram(Asset* asset)
 {
     return asset && atomic_get_acquire(&asset->is_loaded)
@@ -374,7 +386,7 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name
 
     int32 free_data = chunk_reserve(&ac->asset_memory, elements);
     if (free_data < 0) {
-        ASSERT_SIMPLE(free_data >= 0);
+        ASSERT_TRUE(free_data >= 0);
         return NULL;
     }
 
@@ -404,7 +416,7 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char*
     int32 free_data = chunk_reserve(&ac->asset_memory, elements);
     if (free_data < 0) {
         mutex_unlock(&ams->asset_components[type].mtx);
-        ASSERT_SIMPLE(free_data >= 0);
+        ASSERT_TRUE(free_data >= 0);
 
         return NULL;
     }
@@ -489,7 +501,7 @@ Asset* ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const cha
 
     int32 free_data = chunk_reserve(&ac->asset_memory, asset_temp->size);
     if (free_data < 0) {
-        ASSERT_SIMPLE(free_data >= 0);
+        ASSERT_TRUE(free_data >= 0);
         return NULL;
     }
 
@@ -518,7 +530,7 @@ Asset* thrd_ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, cons
     int32 free_data = chunk_reserve(&ac->asset_memory, asset_temp->size);
     if (free_data < 0) {
         mutex_unlock(&ams->asset_components[asset_temp->component_id].mtx);
-        ASSERT_SIMPLE(free_data >= 0);
+        ASSERT_TRUE(free_data >= 0);
 
         return NULL;
     }

@@ -12,7 +12,7 @@ static void test_layout_from_file_txt() {
     layout_from_file_txt(&layout, "./../../GameEditor/assets/themes/default/scene1.layouttxt", &ring);
 
     UIElement* element = layout_get_element(&layout, "cmd_window");
-    ASSERT_NOT_EQUALS(element, NULL);
+    TEST_NOT_EQUALS(element, NULL);
 
     platform_free((void **) &layout.data);
     ring_free(&ring);
@@ -33,11 +33,11 @@ static void test_layout_to_from_data() {
 
     int64 dump_size = layout_to_data(&layout_dump, out);
     int64 load_size = layout_from_data(out, &layout_load);
-    ASSERT_EQUALS(dump_size, load_size);
-    ASSERT_MEMORY_EQUALS(layout_dump.data, layout_load.data, (uint32) (load_size * 0.8));
+    TEST_EQUALS(dump_size, load_size);
+    TEST_MEMORY_EQUALS(layout_dump.data, layout_load.data, (uint32) (load_size * 0.8));
 
     UIElement* element = layout_get_element(&layout_load, "cmd_window");
-    ASSERT_NOT_EQUALS(element, NULL);
+    TEST_NOT_EQUALS(element, NULL);
 
     platform_free((void **) &layout_load.data);
     platform_free((void **) &layout_dump.data);
@@ -64,12 +64,12 @@ static void test_layout_from_theme() {
     layout_from_theme(&layout, &theme2);
 
     UIElement* element = layout_get_element(&layout, "cmd_window");
-    ASSERT_NOT_EQUALS(element, NULL);
-    ASSERT_TRUE(element->children_count > 0);
+    TEST_NOT_EQUALS(element, NULL);
+    TEST_TRUE(element->children_count > 0);
 
     UIWindow* default_style = (UIWindow *) layout_get_element_style(&layout, element, UI_STYLE_TYPE_DEFAULT);
-    ASSERT_EQUALS_WITH_DELTA(default_style->dimension.dimension.width, 1.0f, 0.001f);
-    ASSERT_EQUALS_WITH_DELTA(default_style->dimension.dimension.height, 0.25f, 0.001f);
+    TEST_EQUALS_WITH_DELTA(default_style->dimension.dimension.width, 1.0f, 0.001f);
+    TEST_EQUALS_WITH_DELTA(default_style->dimension.dimension.height, 0.25f, 0.001f);
 
     platform_free((void **) &layout.data);
     platform_free((void **) &theme1.data);

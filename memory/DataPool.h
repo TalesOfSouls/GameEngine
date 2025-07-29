@@ -35,16 +35,16 @@ struct DataPool {
 inline
 void pool_alloc(DataPool* buf, uint32 count, uint32 chunk_size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(chunk_size);
-    ASSERT_SIMPLE(count);
+    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(count);
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
     LOG_1("Allocating DataPool");
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // used
+        + sizeof(uint64) * CEIL_DIV(count, 64) // free
+        + sizeof(uint64) * CEIL_DIV(count, 64) // used
         + alignment * 3; // overhead for alignment
 
     buf->memory = alignment < 2
@@ -63,20 +63,20 @@ void pool_alloc(DataPool* buf, uint32 count, uint32 chunk_size, int32 alignment 
 
     memset(buf->memory, 0, buf->size);
 
-    LOG_1("Allocated DataPool: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_1("Allocated DataPool: %n B", {LOG_DATA_UINT64, &buf->size});
 }
 
 inline
 void pool_init(DataPool* buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(chunk_size);
-    ASSERT_SIMPLE(count);
+    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(count);
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // used
+        + sizeof(uint64) * CEIL_DIV(count, 64) // free
+        + sizeof(uint64) * CEIL_DIV(count, 64) // used
         + alignment * 3; // overhead for alignment
 
     buf->memory = buffer_get_memory(data, size);
@@ -99,14 +99,14 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 count, uint32 chunk_siz
 inline
 void pool_init(DataPool* buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(chunk_size);
-    ASSERT_SIMPLE(count);
+    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(count);
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // used
+        + sizeof(uint64) * CEIL_DIV(count, 64) // free
+        + sizeof(uint64) * CEIL_DIV(count, 64) // used
         + alignment * 3; // overhead for alignment
 
     // @bug what if an alignment is defined?
@@ -128,33 +128,33 @@ void pool_init(DataPool* buf, byte* data, uint32 count, uint32 chunk_size, int32
 }
 
 FORCE_INLINE
-void pool_free(DataPool* buf) noexcept
+void pool_free(DataPool* buf) NO_EXCEPT
 {
     chunk_free((ChunkMemory *) buf);
 }
 
 FORCE_INLINE
-int32 pool_reserve(DataPool* buf, uint32 elements = 1) noexcept
+int32 pool_reserve(DataPool* buf, uint32 elements = 1) NO_EXCEPT
 {
     return chunk_reserve((ChunkMemory *) buf, elements);
 }
 
 FORCE_INLINE
-byte* pool_get_element(DataPool* buf, uint64 element, bool zeroed = false) noexcept
+byte* pool_get_element(DataPool* buf, uint64 element, bool zeroed = false) NO_EXCEPT
 {
     return chunk_get_element((ChunkMemory *) buf, element, zeroed);
 }
 
 // Find a unused/unlocked element in the data pool
 FORCE_INLINE
-int32 pool_get_unused(DataPool* buf, int32 start_index = 0) noexcept
+int32 pool_get_unused(DataPool* buf, int32 start_index = 0) NO_EXCEPT
 {
     return chunk_get_unset(buf->used, buf->count, start_index);
 }
 
 // Release an element to be used by someone else
 inline
-void pool_release(DataPool* buf, int32 element) noexcept
+void pool_release(DataPool* buf, int32 element) NO_EXCEPT
 {
     uint32 free_index = element / 64;
     uint32 bit_index = element & 63;

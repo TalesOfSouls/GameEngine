@@ -160,7 +160,7 @@ FileHandle file_append_handle(const char* path) {
 }
 
 inline
-bool file_exists(const char* path) noexcept {
+bool file_exists(const char* path) NO_EXCEPT {
     PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     struct stat buffer;
@@ -361,7 +361,7 @@ bool file_write(const char* __restrict path, const FileBody* __restrict file) {
         return false;
     }
 
-    ASSERT_SIMPLE(file->size < MAX_UINT32);
+    ASSERT_TRUE(file->size < MAX_UINT32);
 
     ssize_t written = write(fd, file->content, file->size);
     if (written < 0 || (size_t) written != file->size) {

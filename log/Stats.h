@@ -33,7 +33,7 @@
 static atomic_64 int64* _stats_counter = NULL;
 
 inline
-void reset_counter(int32 id) noexcept
+void reset_counter(int32 id) NO_EXCEPT
 {
     if (!_stats_counter) {
         return;
@@ -43,7 +43,7 @@ void reset_counter(int32 id) noexcept
 }
 
 inline
-void log_increment(int32 id, int64 by = 1) noexcept
+void log_increment(int32 id, int64 by = 1) NO_EXCEPT
 {
     if (!_stats_counter) {
         return;
@@ -53,7 +53,7 @@ void log_increment(int32 id, int64 by = 1) noexcept
 }
 
 inline
-void log_decrement(int32 id, int64 by = 1) noexcept
+void log_decrement(int32 id, int64 by = 1) NO_EXCEPT
 {
     if (!_stats_counter) {
         return;
@@ -63,7 +63,7 @@ void log_decrement(int32 id, int64 by = 1) noexcept
 }
 
 inline
-void log_counter(int32 id, int64 value) noexcept
+void log_counter(int32 id, int64 value) NO_EXCEPT
 {
     if (!_stats_counter) {
         return;

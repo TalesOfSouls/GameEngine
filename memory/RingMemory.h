@@ -45,9 +45,9 @@ struct RingMemory {
 inline
 void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
 {
-    ASSERT_SIMPLE(size);
+    ASSERT_TRUE(size);
     PROFILE(PROFILE_RING_ALLOC, NULL, false, true);
-    LOG_1("[INFO] Allocating RingMemory: %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_1("[INFO] Allocating RingMemory: %n B", {LOG_DATA_UINT64, &size});
 
     ring->memory = alignment < 2
         ? (byte *) platform_alloc(size)
@@ -65,7 +65,7 @@ void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
 inline
 void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, uint32 alignment = 64)
 {
-    ASSERT_SIMPLE(size);
+    ASSERT_TRUE(size);
 
     ring->memory = buffer_get_memory(buf, size, alignment, true);
 
@@ -81,7 +81,7 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, uint32 alignmen
 inline
 void ring_init(RingMemory* ring, byte* buf, uint64 size, uint32 alignment = 64)
 {
-    ASSERT_SIMPLE(size);
+    ASSERT_TRUE(size);
 
     ring->memory = (byte *) ROUND_TO_NEAREST((uintptr_t) buf, (uint64) alignment);
 
@@ -110,7 +110,7 @@ void ring_free(RingMemory* ring)
 }
 
 inline
-byte* ring_calculate_position(const RingMemory* ring, uint64 size, uint32 aligned = 4) noexcept
+byte* ring_calculate_position(const RingMemory* ring, uint64 size, uint32 aligned = 4) NO_EXCEPT
 {
     byte* head = ring->head;
 
@@ -133,17 +133,17 @@ byte* ring_calculate_position(const RingMemory* ring, uint64 size, uint32 aligne
 }
 
 inline
-void ring_reset(RingMemory* ring) noexcept
+void ring_reset(RingMemory* ring) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE((uintptr_t) ring->memory, ring->size);
     ring->head = ring->memory;
 }
 
 // Moves a pointer based on the size you want to consume (new position = after consuming size)
-// Usually used to move head or tail pointer (= pos)
-void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned = 4) noexcept
+// Usually used to move head or tail pointer (generically called here = pos)
+void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned = 4) NO_EXCEPT
 {
-    ASSERT_SIMPLE(size <= ring->size);
+    ASSERT_TRUE(size <= ring->size);
 
     // Actually, we cannot be sure that this is a read, it could also be a write.
     // However, we better do it once here than manually in every place that uses this function
@@ -169,9 +169,9 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned
 
 // @todo Implement a function called ring_grow_memory that tries to grow a memory range
 // this of course is only possible if the memory range is the last memory range returned and if the growing part still fits into the ring
-byte* ring_get_memory(RingMemory* ring, uint64 size, uint32 aligned = 4, bool zeroed = false) noexcept
+byte* ring_get_memory(RingMemory* ring, uint64 size, uint32 aligned = 4, bool zeroed = false) NO_EXCEPT
 {
-    ASSERT_SIMPLE(size <= ring->size);
+    ASSERT_TRUE(size <= ring->size);
 
     if (aligned > 1) {
         uintptr_t address = (uintptr_t) ring->head;
@@ -197,15 +197,15 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, uint32 aligned = 4, bool ze
     byte* offset = ring->head;
     ring->head += size;
 
-    ASSERT_SIMPLE(offset);
+    ASSERT_TRUE(offset);
 
     return offset;
 }
 
 // Same as ring_get_memory but DOESN'T move the head
-byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint32 aligned = 4, bool zeroed = false) noexcept
+byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint32 aligned = 4, bool zeroed = false) NO_EXCEPT
 {
-    ASSERT_SIMPLE(size <= ring->size);
+    ASSERT_TRUE(size <= ring->size);
 
     byte* pos = ring->head;
 
@@ -236,7 +236,7 @@ byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint32 aligned = 4, 
 // Used if the ring only contains elements of a certain size
 // This way you can get a certain element
 inline
-byte* ring_get_element(const RingMemory* ring, uint64 element, uint64 size) noexcept
+byte* ring_get_element(const RingMemory* ring, uint64 element, uint64 size) NO_EXCEPT
 {
     DEBUG_MEMORY_READ((uintptr_t) (ring->memory + element * size), 1);
 
@@ -247,7 +247,7 @@ byte* ring_get_element(const RingMemory* ring, uint64 element, uint64 size) noex
  * Checks if one additional element can be inserted without overwriting the tail index
  */
 inline
-bool ring_commit_safe(const RingMemory* ring, uint64 size, uint32 aligned = 4) noexcept
+bool ring_commit_safe(const RingMemory* ring, uint64 size, uint32 aligned = 4) NO_EXCEPT
 {
     // aligned * 2 since that should be the maximum overhead for an element
     // -1 since that is the worst case, we can't be missing a complete alignment because than it would be already aligned
@@ -265,7 +265,7 @@ bool ring_commit_safe(const RingMemory* ring, uint64 size, uint32 aligned = 4) n
 }
 
 inline
-bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, uint32 aligned = 4) noexcept
+bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, uint32 aligned = 4) NO_EXCEPT
 {
     // aligned * 2 since that should be the maximum overhead for an element
     // -1 since that is the worst case, we can't be missing a complete alignment because than it would be already aligned

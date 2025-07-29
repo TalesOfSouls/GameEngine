@@ -193,12 +193,12 @@ struct Bitmap {
     byte* data; // WARNING: This is not the owner of the data. The owner is the FileBody
 };
 
-void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) noexcept
+void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) NO_EXCEPT
 {
     bitmap->size = (uint32) file->size;
     bitmap->data = file->content;
 
-    ASSERT_SIMPLE(bitmap->size >= BITMAP_HEADER_SIZE);
+    ASSERT_TRUE(bitmap->size >= BITMAP_HEADER_SIZE);
 
     // Fill header
     bitmap->header.identifier[0] = *(file->content + 0);
@@ -264,7 +264,7 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) no
     bitmap->pixels      = (byte *) (file->content + bitmap->header.offset);
 }
 
-void image_bmp_generate(const FileBody* src_data, Image* image) noexcept
+void image_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some assignment/copy overhead

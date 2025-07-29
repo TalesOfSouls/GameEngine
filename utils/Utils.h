@@ -34,7 +34,7 @@ struct FileBody {
 };
 
 FORCE_INLINE
-bool is_equal(const byte* __restrict region1, const byte* __restrict region2, uint64 size) noexcept
+bool is_equal(const byte* __restrict region1, const byte* __restrict region2, uint64 size) NO_EXCEPT
 {
     return memcmp(region1, region2, size) == 0;
 }
@@ -60,7 +60,7 @@ void str_output(const char* __restrict str, ...) {
 }
 
 inline
-void swap_memory(void* __restrict a, void* __restrict b, size_t size) noexcept {
+void swap_memory(void* __restrict a, void* __restrict b, size_t size) NO_EXCEPT {
     byte* p = (byte*) a;
     byte* q = (byte*) b;
 

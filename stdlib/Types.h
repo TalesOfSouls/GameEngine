@@ -23,6 +23,12 @@
 
 #define ARRAY_COUNT(a) ((a) == NULL ? 0 : (sizeof(a) / sizeof((a)[0])))
 
+#ifdef DEBUG
+    #define NO_EXCEPT
+#else
+    #define NO_EXCEPT noexcept
+#endif
+
 typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;

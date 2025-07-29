@@ -7,22 +7,22 @@ static void test_is_equal() {
     uint8_t region3[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x09};
 
     // Test equal regions
-    ASSERT_TRUE(is_equal(region1, region2, sizeof(region1)));
+    TEST_TRUE(is_equal(region1, region2, sizeof(region1)));
 
     // Test unequal regions
-    ASSERT_FALSE(is_equal(region1, region3, sizeof(region1)));
+    TEST_FALSE(is_equal(region1, region3, sizeof(region1)));
 
     // Test partial equality
-    ASSERT_TRUE(is_equal(region1, region2, 4));
+    TEST_TRUE(is_equal(region1, region2, 4));
 
     // Test unequal partial regions
-    ASSERT_FALSE(is_equal(region1 + 4, region3 + 4, 4));
+    TEST_FALSE(is_equal(region1 + 4, region3 + 4, 4));
 
     // Test smaller than 4 bytes
-    ASSERT_TRUE(is_equal(region1, region2, 2));
+    TEST_TRUE(is_equal(region1, region2, 2));
 
     // Test empty regions
-    ASSERT_TRUE(is_equal(region1, region2, 0));
+    TEST_TRUE(is_equal(region1, region2, 0));
 }
 
 static void test_is_empty() {
@@ -32,25 +32,25 @@ static void test_is_empty() {
     uint8_t region4[] = {0x01, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00};
 
     // Test empty region
-    ASSERT_TRUE(is_empty(region1, sizeof(region1)));
+    TEST_TRUE(is_empty(region1, sizeof(region1)));
 
     // Test non-empty region
-    ASSERT_FALSE(is_empty(region2, sizeof(region2)));
+    TEST_FALSE(is_empty(region2, sizeof(region2)));
 
     // Test partial empty region
-    ASSERT_TRUE(is_empty(region1, 4));
+    TEST_TRUE(is_empty(region1, 4));
 
     // Test partial non-empty region
-    ASSERT_FALSE(is_empty(region2 + 4, 4));
+    TEST_FALSE(is_empty(region2 + 4, 4));
 
     // Test smaller than 4 bytes
-    ASSERT_TRUE(is_empty(region3, sizeof(region3)));
+    TEST_TRUE(is_empty(region3, sizeof(region3)));
 
     // Test non-empty smaller than 4 bytes
-    ASSERT_FALSE(is_empty(region4, sizeof(region4)));
+    TEST_FALSE(is_empty(region4, sizeof(region4)));
 
     // Test empty region with size 0
-    ASSERT_TRUE(is_empty(region1, 0));
+    TEST_TRUE(is_empty(region1, 0));
 }
 
 #if PERFORMANCE_TEST

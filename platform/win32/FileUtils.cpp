@@ -308,7 +308,7 @@ void file_read(FileHandle fp, FileBody* __restrict file, uint64 offset = 0, uint
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
         file->content = NULL;
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
 
         return;
     }
@@ -318,7 +318,7 @@ void file_read(FileHandle fp, FileBody* __restrict file, uint64 offset = 0, uint
     if (offset >= file_size) {
         file->size = 0;
         file->content = NULL;
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
 
         return;
     }
@@ -331,19 +331,21 @@ void file_read(FileHandle fp, FileBody* __restrict file, uint64 offset = 0, uint
     }
 
     // Move the file pointer to the offset position
-    LARGE_INTEGER li;
-    li.QuadPart = offset;
-    if (SetFilePointerEx(fp, li, NULL, FILE_BEGIN) == 0) {
-        file->content = NULL;
-        ASSERT_SIMPLE(false);
+    if (offset) {
+        LARGE_INTEGER li;
+        li.QuadPart = offset;
+        if (SetFilePointerEx(fp, li, NULL, FILE_BEGIN) == 0) {
+            file->content = NULL;
+            ASSERT_TRUE(false);
 
-        return;
+            return;
+        }
     }
 
     DWORD bytes_read;
     if (!ReadFile(fp, file->content, (uint32) read_length, &bytes_read, NULL)) {
         file->content = NULL;
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
 
         return;
     }
@@ -352,6 +354,54 @@ void file_read(FileHandle fp, FileBody* __restrict file, uint64 offset = 0, uint
     file->size = bytes_read;
 
     LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+}
+
+uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UINT64)
+{
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(fp, &size)) {
+        return 0;
+    }
+
+    uint64 file_size = size.QuadPart;
+    if (offset >= file_size) {
+        return 0;
+    }
+
+    // Adjust the length to read so that it does not exceed the file size
+    uint64 read_length = OMS_MIN(length, file_size - offset);
+
+    // Move file pointer
+    if (offset) {
+        LARGE_INTEGER li;
+        li.QuadPart = offset;
+        if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
+            return 0;
+        }
+    }
+
+    const DWORD chunk_size = 64 * 1024;
+    BYTE buffer[chunk_size];
+    DWORD bytes_read = 0;
+    uint64 total_read = 0;
+    uint64 line_count = 0;
+
+    while (total_read < read_length) {
+        DWORD to_read = (DWORD)((read_length - total_read) > chunk_size ? chunk_size : (read_length - total_read));
+        if (!ReadFile(fp, buffer, to_read, &bytes_read, NULL) || bytes_read == 0) {
+            break;
+        }
+
+        for (DWORD i = 0; i < bytes_read; ++i) {
+            if (buffer[i] == '\n') {
+                ++line_count;
+            }
+        }
+
+        total_read += bytes_read;
+    }
+
+    return line_count;
 }
 
 inline
@@ -524,24 +574,24 @@ inline
 bool file_read_async(
     FileHandle fp,
     FileBodyAsync* __restrict file,
-    uint64_t offset = 0,
-    uint64_t length = MAX_UINT64,
+    uint64 offset = 0,
+    uint64 length = MAX_UINT64,
     RingMemory* __restrict ring = NULL
 ) {
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
         file->content = NULL;
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
 
         return false;
     }
 
     // Ensure the offset and length do not exceed the file size
-    uint64_t file_size = size.QuadPart;
+    uint64 file_size = size.QuadPart;
     if (offset >= file_size) {
         file->size = 0;
         file->content = NULL;
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
 
         return false;
     }
@@ -555,7 +605,7 @@ bool file_read_async(
     }
 
     if (!file->content) {
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
 
         return false;
     }
@@ -572,7 +622,7 @@ bool file_read_async(
         if (error != ERROR_IO_PENDING) {
             free(file->content);
             file->content = NULL;
-            ASSERT_SIMPLE(false);
+            ASSERT_TRUE(false);
 
             return false;
         }
@@ -712,14 +762,14 @@ file_append(FileHandle fp, const char* file)
     PROFILE(PROFILE_FILE_UTILS, file, false, true);
 
     if (fp == INVALID_HANDLE_VALUE) {
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
         return false;
     }
 
     DWORD written;
     DWORD length = (DWORD) str_length(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
         return false;
     }
 
@@ -734,13 +784,13 @@ file_append(FileHandle fp, const char* file, size_t length)
     PROFILE(PROFILE_FILE_UTILS, file, false, true);
 
     if (fp == INVALID_HANDLE_VALUE) {
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
         return false;
     }
 
     DWORD written;
     if (!WriteFile(fp, file, (uint32) length, &written, NULL)) {
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
         return false;
     }
 

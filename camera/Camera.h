@@ -117,7 +117,7 @@ void camera_init(Camera* camera) {
 }
 
 static inline
-void camera_update_vectors(Camera* camera) noexcept
+void camera_update_vectors(Camera* camera) NO_EXCEPT
 {
     f32 cos_ori_x = cosf(OMS_DEG2RAD(camera->orientation.x));
     camera->front.x = cos_ori_x * cosf(OMS_DEG2RAD(camera->orientation.y));
@@ -133,7 +133,7 @@ void camera_update_vectors(Camera* camera) noexcept
     vec3_normalize(&camera->up);
 }
 
-void camera_rotate(Camera* camera, int32 dx, int32 dy) noexcept
+void camera_rotate(Camera* camera, int32 dx, int32 dy) NO_EXCEPT
 {
     camera->state_changes |= CAMERA_STATE_CHANGE_NORMAL;
     camera->orientation.x += dy * camera->sensitivity;
@@ -160,7 +160,7 @@ void camera_movement(
     CameraMovement* __restrict movement,
     f32 dt,
     bool relative_to_world = true
-) noexcept {
+) NO_EXCEPT {
     camera->state_changes |= CAMERA_STATE_CHANGE_NORMAL;
     f32 velocity = camera->speed * dt;
 
@@ -293,7 +293,7 @@ void camera_movement(
 }
 
 inline
-void camera_orth_matrix_lh(Camera* __restrict camera) noexcept
+void camera_orth_matrix_lh(Camera* __restrict camera) NO_EXCEPT
 {
     //mat4_identity(camera->orth);
     camera->orth[15] = 1.0f;
@@ -307,7 +307,7 @@ void camera_orth_matrix_lh(Camera* __restrict camera) noexcept
 }
 
 inline
-void camera_orth_matrix_rh_opengl(Camera* __restrict camera) noexcept
+void camera_orth_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
 {
     //mat4_identity(camera->orth);
     camera->orth[15] = 1.0f;
@@ -321,7 +321,7 @@ void camera_orth_matrix_rh_opengl(Camera* __restrict camera) noexcept
 }
 
 inline
-void camera_orth_matrix_rh_vulkan(Camera* __restrict camera) noexcept
+void camera_orth_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
 {
     //mat4_identity(camera->orth);
     camera->orth[15] = 1.0f;
@@ -335,7 +335,7 @@ void camera_orth_matrix_rh_vulkan(Camera* __restrict camera) noexcept
 }
 
 inline
-void camera_projection_matrix_lh(Camera* __restrict camera) noexcept
+void camera_projection_matrix_lh(Camera* __restrict camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -349,7 +349,7 @@ void camera_projection_matrix_lh(Camera* __restrict camera) noexcept
 }
 
 inline
-void camera_projection_matrix_rh_opengl(Camera* __restrict camera) noexcept
+void camera_projection_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -363,7 +363,7 @@ void camera_projection_matrix_rh_opengl(Camera* __restrict camera) noexcept
 }
 
 inline
-void camera_projection_matrix_rh_vulkan(Camera* __restrict camera) noexcept
+void camera_projection_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -380,7 +380,7 @@ void camera_projection_matrix_rh_vulkan(Camera* __restrict camera) noexcept
 // This is usually not used, since it is included in the view matrix
 // expects the identity matrix
 inline
-void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* translation) noexcept
+void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* translation) NO_EXCEPT
 {
     translation[12] = camera->location.x;
     translation[13] = camera->location.y;
@@ -388,7 +388,7 @@ void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* t
 }
 
 inline
-void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* translation) noexcept
+void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* translation) NO_EXCEPT
 {
     translation[3] = camera->location.x;
     translation[7] = camera->location.y;
@@ -396,7 +396,7 @@ void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* t
 }
 
 void
-camera_view_matrix_lh(Camera* __restrict camera) noexcept
+camera_view_matrix_lh(Camera* __restrict camera) NO_EXCEPT
 {
     v3_f32 zaxis = { camera->front.x, camera->front.y, camera->front.z };
 
@@ -428,7 +428,7 @@ camera_view_matrix_lh(Camera* __restrict camera) noexcept
 }
 
 void
-camera_view_matrix_rh_opengl(Camera* __restrict camera) noexcept
+camera_view_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
 {
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
@@ -460,7 +460,7 @@ camera_view_matrix_rh_opengl(Camera* __restrict camera) noexcept
 }
 
 void
-camera_view_matrix_rh_vulkan(Camera* __restrict camera) noexcept
+camera_view_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
 {
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
@@ -492,7 +492,7 @@ camera_view_matrix_rh_vulkan(Camera* __restrict camera) noexcept
 }
 
 inline
-f32 camera_step_closer(GpuApiType type, f32 value) noexcept {
+f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT {
     // WARNING: The value depends on the near and far plane.
     // The reason for this is they will get smaller and smaller with increasing zfar values
     // until the difference effectively becomes 0 -> vertices occupy the same zindex -> zfighting
@@ -513,7 +513,7 @@ f32 camera_step_closer(GpuApiType type, f32 value) noexcept {
 }
 
 inline
-f32 camera_step_away(GpuApiType type, f32 value) noexcept {
+f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT {
     // WARNING: The value depends on the near and far plane.
     // The reason for this is they will get smaller and smaller with increasing zfar values
     // until the difference effectively becomes 0 -> vertices occupy the same zindex -> zfighting

@@ -5,12 +5,12 @@ static void test_hashmap_alloc() {
     HashMap hm = {};
     hashmap_alloc(&hm, 3, sizeof(HashEntryInt32));
 
-    ASSERT_NOT_EQUALS(hm.table, NULL);
-    ASSERT_TRUE(hm.buf.count > 0);
+    TEST_NOT_EQUALS(hm.table, NULL);
+    TEST_TRUE(hm.buf.count > 0);
 
     hashmap_free(&hm);
-    ASSERT_EQUALS(hm.buf.size, 0);
-    ASSERT_EQUALS(hm.buf.memory, NULL);
+    TEST_EQUALS(hm.buf.size, 0);
+    TEST_EQUALS(hm.buf.memory, NULL);
 }
 
 static void test_hashmap_insert_int32() {
@@ -21,21 +21,21 @@ static void test_hashmap_insert_int32() {
 
     hashmap_insert(&hm, "test1", 1);
     entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "test1");
-    ASSERT_NOT_EQUALS(entry, NULL);
-    ASSERT_EQUALS(entry->value, 1);
+    TEST_NOT_EQUALS(entry, NULL);
+    TEST_EQUALS(entry->value, 1);
 
     hashmap_insert(&hm, "test2", 2);
     entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "test2");
-    ASSERT_NOT_EQUALS(entry, NULL);
-    ASSERT_EQUALS(entry->value, 2);
+    TEST_NOT_EQUALS(entry, NULL);
+    TEST_EQUALS(entry->value, 2);
 
     hashmap_insert(&hm, "test3", 3);
     entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "test3");
-    ASSERT_NOT_EQUALS(entry, NULL);
-    ASSERT_EQUALS(entry->value, 3);
+    TEST_NOT_EQUALS(entry, NULL);
+    TEST_EQUALS(entry->value, 3);
 
     entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "invalid");
-    ASSERT_EQUALS(entry, NULL);
+    TEST_EQUALS(entry, NULL);
 
     hashmap_free(&hm);
 }
@@ -58,9 +58,9 @@ static void test_hashmap_dump_load() {
 
     int64 dump_size = hashmap_dump(&hm_dump, out);
     int64 load_size = hashmap_load(&hm_load, out);
-    ASSERT_EQUALS(dump_size, load_size);
-    ASSERT_MEMORY_EQUALS(hm_dump.table, hm_load.table, sizeof(uint16) * hm_dump.buf.count);
-    ASSERT_MEMORY_EQUALS(hm_dump.buf.memory, hm_load.buf.memory, hm_dump.buf.size);
+    TEST_EQUALS(dump_size, load_size);
+    TEST_MEMORY_EQUALS(hm_dump.table, hm_load.table, sizeof(uint16) * hm_dump.buf.count);
+    TEST_MEMORY_EQUALS(hm_dump.buf.memory, hm_load.buf.memory, hm_dump.buf.size);
 
     hashmap_free(&hm_dump);
     hashmap_free(&hm_load);

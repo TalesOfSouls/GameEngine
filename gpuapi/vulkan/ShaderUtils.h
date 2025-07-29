@@ -68,8 +68,8 @@ VkShaderModule gpuapi_shader_make(VkDevice device, const char* source, int32 sou
     VkResult result = vkCreateShaderModule(device, &create_info, NULL, &shader_module);
 
     if (result != VK_SUCCESS) {
-        LOG_1("Vulkan vkCreateShaderModule: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkCreateShaderModule: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
 
         return VK_NULL_HANDLE;
     }
@@ -301,8 +301,8 @@ VkPipeline gpuapi_pipeline_make(
 
     VkResult result;
     if ((result = vkCreatePipelineLayout(device, &pipeline_info_layout, NULL, pipeline_layout)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkCreatePipelineLayout: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkCreatePipelineLayout: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
 
         return NULL;
     }
@@ -324,8 +324,8 @@ VkPipeline gpuapi_pipeline_make(
     pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
     if ((result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, pipeline)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkCreateGraphicsPipelines: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkCreateGraphicsPipelines: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
 
         return NULL;
     }
@@ -358,8 +358,8 @@ void gpuapi_descriptor_set_layout_create(
 
     VkResult result;
     if ((result = vkCreateDescriptorSetLayout(device, &layout_info, NULL, descriptor_set_layout)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkCreateDescriptorSetLayout: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkCreateDescriptorSetLayout: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
     }
 }
 
@@ -390,8 +390,8 @@ void vulkan_descriptor_pool_create(
 
     VkResult result;
     if ((result = vkCreateDescriptorPool(device, &poolInfo, NULL, descriptor_pool)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkCreateDescriptorPool: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkCreateDescriptorPool: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
     }
 }
 
@@ -417,8 +417,8 @@ void vulkan_descriptor_sets_create(
 
     VkResult result;
     if ((result = vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkAllocateDescriptorSets: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkAllocateDescriptorSets: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
 
         return;
     }

@@ -5,8 +5,8 @@ static void test_evaluator_evaluate() {
     char expr[64];
     memcpy(expr, "(2 * 4 - 1 + 3) / 2", sizeof("(2 * 4 - 1 + 3) / 2"));
 
-    ASSERT_EQUALS(evaluator_evaluate(expr), 5);
-    ASSERT_NOT_EQUALS(evaluator_evaluate(expr), 1);
+    TEST_EQUALS(evaluator_evaluate(expr), 5);
+    TEST_NOT_EQUALS(evaluator_evaluate(expr), 1);
 }
 
 static void test_evaluator_evaluate_variables() {
@@ -18,23 +18,23 @@ static void test_evaluator_evaluate_variables() {
         {"y", -1}
     };
 
-    ASSERT_EQUALS(evaluator_evaluate(expr, 2, (const EvaluatorVariable *) &variables), 5);
+    TEST_EQUALS(evaluator_evaluate(expr, 2, (const EvaluatorVariable *) &variables), 5);
 }
 
 static void test_evaluator_evaluate_function() {
     char expr[64];
 
     memcpy(expr, "1 + min(2, 3)", sizeof("1 + min(2, 3)"));
-    ASSERT_EQUALS(evaluator_evaluate(expr), 3);
+    TEST_EQUALS(evaluator_evaluate(expr), 3);
 
     memcpy(expr, "1 + max(2, 3)", sizeof("1 + max(2, 3)"));
-    ASSERT_EQUALS(evaluator_evaluate(expr), 4);
+    TEST_EQUALS(evaluator_evaluate(expr), 4);
 
     const EvaluatorVariable variables[1] = {
         {"x", 2}
     };
     memcpy(expr, "x + max(x * 2, 3 * x) / x", sizeof("x + max(x * 2, 3 * x) / x"));
-    ASSERT_EQUALS(evaluator_evaluate(expr, 1, (const EvaluatorVariable *) &variables), 5);
+    TEST_EQUALS(evaluator_evaluate(expr, 1, (const EvaluatorVariable *) &variables), 5);
 }
 
 #ifdef UBER_TEST

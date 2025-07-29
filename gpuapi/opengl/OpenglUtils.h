@@ -33,8 +33,8 @@
     {
         GLenum err;
         while ((err = glGetError()) != GL_NO_ERROR) {
-            LOG_1("Opengl error: %d", {{LOG_DATA_INT32, (int32 *) &err}});
-            ASSERT_SIMPLE(err == GL_NO_ERROR);
+            LOG_1("Opengl error: %d", {LOG_DATA_INT32, (int32 *) &err});
+            ASSERT_TRUE(err == GL_NO_ERROR);
         }
     }
 
@@ -62,7 +62,7 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
     }
 
     LOG_1(message);
-    ASSERT_SIMPLE(false);
+    ASSERT_TRUE(false);
 }
 
 inline

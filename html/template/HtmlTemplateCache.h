@@ -101,7 +101,7 @@ void html_template_build(const FileBody* in, FileBody* out) {
         &memory
     );
 
-    ASSERT_SIMPLE(ast);
+    ASSERT_TRUE(ast);
 }
 
 // @performance This combines load and build, that should be two separate functions

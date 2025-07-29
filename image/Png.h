@@ -427,7 +427,7 @@ void png_filter_reconstruct(uint32 width, uint32 height, uint32 color_type, cons
                     }
                 } break;
             default: {
-                ASSERT_SIMPLE(false);
+                ASSERT_TRUE(false);
             }
         }
 
@@ -443,12 +443,12 @@ void generate_default_png_references(const FileBody* file, Png* png)
 
     if (png->size < PNG_IHDR_SIZE + PNG_HEADER_SIZE) {
         // This shouldn't happen
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
         return;
     }
 
     // The first chunk MUST be IHDR -> we handle it here
-    ASSERT_SIMPLE_CONST(PNG_HEADER_SIZE + PNG_IHDR_SIZE == 33);
+    ASSERT_TRUE_CONST(PNG_HEADER_SIZE + PNG_IHDR_SIZE == 33);
     memcpy(png, file->content, PNG_HEADER_SIZE + PNG_IHDR_SIZE);
 
     png->ihdr.length = SWAP_ENDIAN_BIG(png->ihdr.length);
@@ -476,7 +476,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
         || src.ihdr.interlace != 0
     ) {
         // We don't support this type of png (see comment below)
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
 
         /*
         Color   Allowed     Interpretation
@@ -639,7 +639,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
             stream.pos += 2;
 
             //uint16 nlen = *((uint16 *) stream.pos);
-            ASSERT_SIMPLE(len == ~(*((uint16 *) stream.pos)));
+            ASSERT_TRUE(len == ~(*((uint16 *) stream.pos)));
             stream.pos += 2;
 
 
@@ -647,7 +647,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
             stream.pos += len;
         } else if (BTYPE == 3) {
             // Invalid BTYPE / reserved
-            ASSERT_SIMPLE(false);
+            ASSERT_TRUE(false);
 
             return false;
         } else {

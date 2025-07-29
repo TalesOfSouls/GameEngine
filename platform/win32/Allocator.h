@@ -34,7 +34,7 @@ void* platform_alloc(size_t size)
     void* ptr = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     DEBUG_MEMORY_INIT((uintptr_t) ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
-    LOG_3("[INFO] Allocated %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_3("[INFO] Allocated %n B", {LOG_DATA_UINT64, &size});
 
     return ptr;
 }
@@ -50,7 +50,7 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
     size = ROUND_TO_NEAREST(size, _page_size);
 
     void* ptr = VirtualAlloc(NULL, size + alignment + sizeof(void*), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-    ASSERT_SIMPLE(ptr);
+    ASSERT_TRUE(ptr);
 
     // We want an aligned memory area but mmap doesn't really support that.
     // That's why we have to manually offset our memory area.
@@ -60,7 +60,7 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
 
     DEBUG_MEMORY_INIT((uintptr_t) aligned_ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
-    LOG_3("[INFO] Aligned allocated %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_3("[INFO] Aligned allocated %n B", {LOG_DATA_UINT64, &size});
 
     return aligned_ptr;
 }
@@ -91,14 +91,14 @@ void* platform_shared_alloc(HANDLE* fd, const char* name, size_t size)
     size = ROUND_TO_NEAREST(size, _page_size);
 
     *fd = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, (DWORD) size, name);
-    ASSERT_SIMPLE(*fd);
+    ASSERT_TRUE(*fd);
 
     void* shm_ptr = MapViewOfFile(*fd, FILE_MAP_ALL_ACCESS, 0, 0, size);
-    ASSERT_SIMPLE(shm_ptr);
+    ASSERT_TRUE(shm_ptr);
 
     DEBUG_MEMORY_INIT((uintptr_t) shm_ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
-    LOG_3("[INFO] Shared allocated %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_3("[INFO] Shared allocated %n B", {LOG_DATA_UINT64, &size});
 
     return shm_ptr;
 }
@@ -107,11 +107,11 @@ inline
 void* platform_shared_open(HANDLE* fd, const char* name, size_t size)
 {
     *fd = OpenFileMappingA(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, name);
-    ASSERT_SIMPLE(*fd);
+    ASSERT_TRUE(*fd);
 
     void* shm_ptr = MapViewOfFile(*fd, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, (DWORD) size);
-    ASSERT_SIMPLE(shm_ptr);
-    LOG_3("[INFO] Shared opened %n B", {{LOG_DATA_UINT64, &size}});
+    ASSERT_TRUE(shm_ptr);
+    LOG_3("[INFO] Shared opened %n B", {LOG_DATA_UINT64, &size});
 
     return shm_ptr;
 }

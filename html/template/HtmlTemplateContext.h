@@ -25,17 +25,17 @@ struct HtmlTemplateContextStack {
 };
 
 void pushContext(HtmlTemplateContextStack* stack, HtmlTemplateContext context) {
-    ASSERT_SIMPLE(stack->top < MAX_STACK_SIZE);
+    ASSERT_TRUE(stack->top < MAX_STACK_SIZE);
     stack->stack[stack->top++] = context;
 }
 
 HtmlTemplateContext popContext(HtmlTemplateContextStack* stack) {
-    ASSERT_SIMPLE(stack->top > 0);
+    ASSERT_TRUE(stack->top > 0);
     return stack->stack[--stack->top];
 }
 
 HtmlTemplateContext peekContext(HtmlTemplateContextStack* stack) {
-    ASSERT_SIMPLE(stack->top > 0);
+    ASSERT_TRUE(stack->top > 0);
     return stack->stack[stack->top - 1];
 }
 

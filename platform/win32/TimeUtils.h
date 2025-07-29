@@ -64,8 +64,8 @@ uint64 time_mu()
     static LARGE_INTEGER frequency;
     QueryPerformanceFrequency(&frequency);
 
-    ASSERT_SIMPLE(counter.QuadPart != frequency.QuadPart);
-    ASSERT_SIMPLE(counter.QuadPart != 1);
+    ASSERT_TRUE(counter.QuadPart != frequency.QuadPart);
+    ASSERT_TRUE(counter.QuadPart != 1);
 
     return (counter.QuadPart * 1000000) / frequency.QuadPart;
 }

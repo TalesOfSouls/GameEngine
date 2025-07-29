@@ -224,7 +224,7 @@ void quaternion_rotate_vector(v3_f32* __restrict vec, const v4_f32* __restrict q
 inline
 void quaternion_rotate_active(v4_f32* __restrict p, const v4_f32* __restrict quat, const v4_f32* __restrict quat_inv)
 {
-    //ASSERT_SIMPLE(OMS_ABS_F32(x * x + y * y + z * z + w * z - 1.0f) < 0.01);
+    //ASSERT_TRUE(OMS_ABS_F32(x * x + y * y + z * z + w * z - 1.0f) < 0.01);
 
     v4_f32 p_tmp;
     quaternion_multiply(&p_tmp, quat_inv, p);
@@ -235,7 +235,7 @@ void quaternion_rotate_active(v4_f32* __restrict p, const v4_f32* __restrict qua
 inline
 void quaternion_rotate_passive(v4_f32* __restrict p, const v4_f32* __restrict quat, const v4_f32* __restrict quat_inv)
 {
-    //ASSERT_SIMPLE(OMS_ABS_F32(x * x + y * y + z * z + w * w - 1.0f) < 0.01);
+    //ASSERT_TRUE(OMS_ABS_F32(x * x + y * y + z * z + w * w - 1.0f) < 0.01);
 
     v4_f32 p_tmp;
     quaternion_multiply(&p_tmp, quat, p);

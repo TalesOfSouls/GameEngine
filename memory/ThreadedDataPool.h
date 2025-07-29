@@ -59,33 +59,33 @@ void thrd_pool_init(ThreadedDataPool* buf, byte* data, uint32 count, uint32 chun
 }
 
 FORCE_INLINE
-void thrd_pool_free(ThreadedDataPool* buf) noexcept
+void thrd_pool_free(ThreadedDataPool* buf) NO_EXCEPT
 {
     chunk_free((ChunkMemory *) buf);
 }
 
 FORCE_INLINE
-int32 thrd_pool_reserve(ThreadedDataPool* buf, uint32 elements = 1) noexcept
+int32 thrd_pool_reserve(ThreadedDataPool* buf, uint32 elements = 1) NO_EXCEPT
 {
     return chunk_reserve((ChunkMemory *) buf, elements);
 }
 
 FORCE_INLINE
-byte* thrd_pool_get_element(ThreadedDataPool* buf, uint64 element, bool zeroed = false) noexcept
+byte* thrd_pool_get_element(ThreadedDataPool* buf, uint64 element, bool zeroed = false) NO_EXCEPT
 {
     return chunk_get_element((ChunkMemory *) buf, element, zeroed);
 }
 
 // Find a unused/unlocked element in the data pool
 FORCE_INLINE
-int32 thrd_pool_get_unused(ThreadedDataPool* buf, int32 start_index = 0) noexcept
+int32 thrd_pool_get_unused(ThreadedDataPool* buf, int32 start_index = 0) NO_EXCEPT
 {
     return thrd_chunk_get_unset((ThreadedChunkMemory *) buf, buf->used, start_index);
 }
 
 // Release an element to be used by someone else
 FORCE_INLINE
-void thrd_pool_release(ThreadedDataPool* buf, int32 element) noexcept
+void thrd_pool_release(ThreadedDataPool* buf, int32 element) NO_EXCEPT
 {
     thrd_chunk_set_unset(element, buf->used);
 }

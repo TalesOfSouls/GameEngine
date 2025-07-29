@@ -5,88 +5,88 @@
 static void test_swap_endian_16() {
     uint16_t val = 0x1234;
     uint16_t swapped = SWAP_ENDIAN_16(val);
-    ASSERT_EQUALS(0x3412, swapped);
+    TEST_EQUALS(0x3412, swapped);
 
     val = 0xABCD;
     swapped = SWAP_ENDIAN_16(val);
-    ASSERT_EQUALS(0xCDAB, swapped);
+    TEST_EQUALS(0xCDAB, swapped);
 }
 
 static void test_swap_endian_32() {
     uint32_t val = 0x12345678;
     uint32_t swapped = SWAP_ENDIAN_32(val);
-    ASSERT_EQUALS(0x78563412, swapped);
+    TEST_EQUALS(0x78563412, swapped);
 
     val = 0xABCDEF01;
     swapped = SWAP_ENDIAN_32(val);
-    ASSERT_EQUALS(0x01EFCDAB, swapped);
+    TEST_EQUALS(0x01EFCDAB, swapped);
 }
 
 static void test_swap_endian_64() {
     uint64_t val = 0x123456789ABCDEF0;
     uint64_t swapped = SWAP_ENDIAN_64(val);
-    ASSERT_EQUALS(0xF0DEBC9A78563412, swapped);
+    TEST_EQUALS(0xF0DEBC9A78563412, swapped);
 
     val = 0xAABBCCDDEEFF1122;
     swapped = SWAP_ENDIAN_64(val);
-    ASSERT_EQUALS(0x2211FFEEDDCCBBAA, swapped);
+    TEST_EQUALS(0x2211FFEEDDCCBBAA, swapped);
 }
 
 static void test_is_little_endian() {
     bool is_little = is_little_endian();
     #if _WIN32 || __LITTLE_ENDIAN__
-        ASSERT_TRUE(is_little);
+        TEST_TRUE(is_little);
     #else
-        ASSERT_FALSE(is_little);
+        TEST_FALSE(is_little);
     #endif
 }
 
 static void test_endian_swap_uint16() {
     uint16 val = 0x1234;
     uint16 swapped = endian_swap(val);
-    ASSERT_EQUALS(0x3412, swapped);
+    TEST_EQUALS(0x3412, swapped);
 
     val = 0xABCD;
     swapped = endian_swap(val);
-    ASSERT_EQUALS(0xCDAB, swapped);
+    TEST_EQUALS(0xCDAB, swapped);
 }
 
 static void test_endian_swap_int16() {
     int16 val = 0x1234;
     int16 swapped = endian_swap(val);
-    ASSERT_EQUALS(0x3412, swapped);
+    TEST_EQUALS(0x3412, swapped);
 }
 
 static void test_endian_swap_uint32() {
     uint32 val = 0x12345678;
     uint32 swapped = endian_swap(val);
-    ASSERT_EQUALS(0x78563412, swapped);
+    TEST_EQUALS(0x78563412, swapped);
 
     val = 0xABCDEF01;
     swapped = endian_swap(val);
-    ASSERT_EQUALS(0x01EFCDAB, swapped);
+    TEST_EQUALS(0x01EFCDAB, swapped);
 }
 
 static void test_endian_swap_int32() {
     int32 val = 0x12345678;
     int32 swapped = endian_swap(val);
-    ASSERT_EQUALS(0x78563412, swapped);
+    TEST_EQUALS(0x78563412, swapped);
 }
 
 static void test_endian_swap_uint64() {
     uint64 val = 0x123456789ABCDEF0;
     uint64 swapped = endian_swap(val);
-    ASSERT_EQUALS(0xF0DEBC9A78563412, swapped);
+    TEST_EQUALS(0xF0DEBC9A78563412, swapped);
 
     val = 0xAABBCCDDEEFF1122;
     swapped = endian_swap(val);
-    ASSERT_EQUALS(0x2211FFEEDDCCBBAA, swapped);
+    TEST_EQUALS(0x2211FFEEDDCCBBAA, swapped);
 }
 
 static void test_endian_swap_int64() {
     int64 val = 0x123456789ABCDEF0;
     int64 swapped = endian_swap(val);
-    ASSERT_EQUALS((int64) 0xF0DEBC9A78563412, swapped);
+    TEST_EQUALS((int64) 0xF0DEBC9A78563412, swapped);
 }
 
 static void test_endian_swap_float() {
@@ -96,7 +96,7 @@ static void test_endian_swap_float() {
     val_as_int = endian_swap(val_as_int);
     float swapped;
     memcpy(&swapped, &val_as_int, sizeof(swapped));
-    ASSERT_TRUE(swapped != val); // Ensure the value has changed due to endian swap
+    TEST_TRUE(swapped != val); // Ensure the value has changed due to endian swap
 }
 
 static void test_endian_swap_double() {
@@ -106,7 +106,7 @@ static void test_endian_swap_double() {
     val_as_int = endian_swap(val_as_int);
     double swapped;
     memcpy(&swapped, &val_as_int, sizeof(swapped));
-    ASSERT_TRUE(swapped != val); // Ensure the value has changed due to endian swap
+    TEST_TRUE(swapped != val); // Ensure the value has changed due to endian swap
 }
 
 #ifdef UBER_TEST

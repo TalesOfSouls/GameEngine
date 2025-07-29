@@ -106,7 +106,7 @@ struct LogDataArray{
     LogData data[LOG_DATA_ARRAY];
 };
 
-byte* log_get_memory() noexcept
+byte* log_get_memory() NO_EXCEPT
 {
     if (_log_memory->pos + MAX_LOG_LENGTH > _log_memory->size) {
         _log_memory->pos = 0;
@@ -221,7 +221,7 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
         return;
     }
 
-    ASSERT_SIMPLE(str_length(format) + str_length(file) + str_length(function) + 50 < MAX_LOG_LENGTH);
+    ASSERT_TRUE(str_length(format) + str_length(file) + str_length(function) + 50 < MAX_LOG_LENGTH);
 
     mutex_lock(&_log_memory->mtx);
 
@@ -306,21 +306,48 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
 #define LOG_TO_FILE() log_to_file()
 #define LOG_FLUSH() log_flush()
 
+// WARNING: This is just an annoying helper function required for MSVC which doesn't allow (LogData) {type, value} as a return/type case
+inline
+LogData makeLogData(LogDataType type, void* value) {
+    LogData d = {type, value};
+    return d;
+}
+#define LOG_ENTRY(type, value) makeLogData(type, (void*)(value))
+
+// WARNING: Unfortunately this helper function is required since post c++20 nested-brace initialize no longer support array initialization
+#include <initializer_list>
+inline
+LogDataArray makeLogDataArray(std::initializer_list<LogData> list) {
+    LogDataArray arr = {};
+    int32 i = 0;
+
+    for (std::initializer_list<LogData>::const_iterator it = list.begin(); it != list.end(); ++it) {
+        if (i >= LOG_DATA_ARRAY) {
+            break;
+        }
+
+        const LogData& item = *it;
+        arr.data[i++] = item;
+    }
+
+    return arr;
+}
+
 #if LOG_LEVEL == 4
-    #define LOG_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_2(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_3(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_4(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_1(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_2(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_3(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_4(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
 
-    #define LOG_TRUE_1(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_TRUE_2(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_TRUE_3(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_TRUE_4(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_1(should_log, format, ...) if ((should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_2(should_log, format, ...) if ((should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_3(should_log, format, ...) if ((should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_4(should_log, format, ...) if ((should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
 
-    #define LOG_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_FALSE_2(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_FALSE_3(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_FALSE_4(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_2(should_log, format, ...) if (!(should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_3(should_log, format, ...) if (!(should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_4(should_log, format, ...) if (!(should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
 
     #define LOG_IF_1(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
     #define LOG_IF_2(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
@@ -330,7 +357,7 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
     #define LOG_CYCLE_START(var_name) uint64 var_name##_start_time = intrin_timestamp_counter()
     #define LOG_CYCLE_END(var_name, format) \
         uint64 var_name##_duration = (uint64) (intrin_timestamp_counter() - var_name##_start_time); \
-        LOG_1((format), {{LOG_DATA_UINT64, &var_name##_duration}})
+        LOG_1((format), {LOG_DATA_UINT64, &var_name##_duration})
 
     // Only intended for manual debugging
     // Of course a developer could always use printf but by providing this option,
@@ -344,19 +371,19 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
         compiler_debug_print((debug_str)); \
     })
 #elif LOG_LEVEL == 3
-    #define LOG_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_2(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_3(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_1(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_2(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_3(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_4(format, ...) ((void) 0)
 
-    #define LOG_TRUE_1(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_TRUE_2(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_TRUE_3(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_1(should_log, format, ...) if ((should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_2(should_log, format, ...) if ((should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_3(should_log, format, ...) if ((should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_TRUE_4(should_log, format, ...) ((void) 0)
 
-    #define LOG_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_FALSE_2(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_FALSE_3(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_2(should_log, format, ...) if (!(should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_3(should_log, format, ...) if (!(should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_FALSE_4(should_log, format, ...) ((void) 0)
 
     #define LOG_IF_1(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
@@ -368,23 +395,23 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
     #define LOG_CYCLE_START(var_name) uint64 var_name##_start_time = intrin_timestamp_counter()
     #define LOG_CYCLE_END(var_name, format) \
         uint64 var_name##_duration = (uint64) (intrin_timestamp_counter() - var_name##_start_time); \
-        LOG_1((format), {{LOG_DATA_UINT64, &var_name##_duration}})
+        LOG_1((format), {LOG_DATA_UINT64, &var_name##_duration})
 
     #define DEBUG_VERBOSE(str) ((void) 0)
     #define DEBUG_FORMAT_VERBOSE(str, ...) ((void) 0)
 #elif LOG_LEVEL == 2
-    #define LOG_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_2(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_1(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_2(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_3(format, ...) ((void) 0)
     #define LOG_4(format, ...) ((void) 0)
 
-    #define LOG_TRUE_1(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_TRUE_2(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_1(should_log, format, ...) if ((should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_2(should_log, format, ...) if ((should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_TRUE_3(should_log, format, ...) ((void) 0)
     #define LOG_TRUE_4(should_log, format, ...) ((void) 0)
 
-    #define LOG_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
-    #define LOG_FALSE_2(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_2(should_log, format, ...) if (!(should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_FALSE_3(should_log, format, ...) ((void) 0)
     #define LOG_FALSE_4(should_log, format, ...) ((void) 0)
 
@@ -397,22 +424,22 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
     #define LOG_CYCLE_START(var_name) uint64 var_name##_start_time = intrin_timestamp_counter()
     #define LOG_CYCLE_END(var_name, format) \
         uint64 var_name##_duration = (uint64) (intrin_timestamp_counter() - var_name##_start_time); \
-        LOG_1((format), {{LOG_DATA_UINT64, &var_name##_duration}})
+        LOG_1((format), {LOG_DATA_UINT64, &var_name##_duration})
 
     #define DEBUG_VERBOSE(str) ((void) 0)
     #define DEBUG_FORMAT_VERBOSE(str, ...) ((void) 0)
 #elif LOG_LEVEL == 1
-    #define LOG_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_1(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_2(format, ...) ((void) 0)
     #define LOG_3(format, ...) ((void) 0)
     #define LOG_4(format, ...) ((void) 0)
 
-    #define LOG_TRUE_1(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_1(should_log, format, ...) if ((should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_TRUE_2(should_log, format, ...) ((void) 0)
     #define LOG_TRUE_3(should_log, format, ...) ((void) 0)
     #define LOG_TRUE_4(should_log, format, ...) ((void) 0)
 
-    #define LOG_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_FALSE_2(should_log, format, ...) ((void) 0)
     #define LOG_FALSE_3(should_log, format, ...) ((void) 0)
     #define LOG_FALSE_4(should_log, format, ...) ((void) 0)

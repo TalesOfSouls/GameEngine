@@ -48,6 +48,7 @@ struct Asset {
     uint16 reference_count;
 
     // Actual memory address and specific asset data
+    // @question The problem with this is self is probably not even the data but an object like Audio or Video
     byte* self;
 
     // An asset can reference up to N other assets

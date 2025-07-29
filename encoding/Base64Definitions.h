@@ -33,13 +33,13 @@ static const int8 BASE64_LOOKUP[256] = {
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 };
 
-inline
+inline constexpr
 size_t base64_encoded_length(size_t data_length) {
     return 4 * ((data_length + 2) / 3);
 }
 
-inline
-size_t base64_encoded_length(size_t encoded_length) {
+inline constexpr
+size_t base64_decoded_length(size_t encoded_length) {
     return encoded_length / 4 * 3;
 }
 

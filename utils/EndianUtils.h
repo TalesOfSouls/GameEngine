@@ -26,26 +26,26 @@
 #endif
 
 inline
-bool is_little_endian() noexcept
+bool is_little_endian() NO_EXCEPT
 {
     uint32 num = 1;
     return ((int32) (*(char *) & num)) == 1;
 }
 
 inline
-uint16 endian_swap(uint16 val) noexcept
+uint16 endian_swap(uint16 val) NO_EXCEPT
 {
     return ((val << 8) | (val >> 8));
 }
 
 inline
-int16 endian_swap(int16 val) noexcept
+int16 endian_swap(int16 val) NO_EXCEPT
 {
     return (int16) ((val << 8) | (val >> 8));
 }
 
 inline
-uint32 endian_swap(uint32 val) noexcept
+uint32 endian_swap(uint32 val) NO_EXCEPT
 {
     return ((val << 24)
         | ((val & 0xFF00) << 8)
@@ -54,7 +54,7 @@ uint32 endian_swap(uint32 val) noexcept
 }
 
 inline
-int32 endian_swap(int32 val) noexcept
+int32 endian_swap(int32 val) NO_EXCEPT
 {
     return (int32) ((val << 24)
         | ((val & 0xFF00) << 8)
@@ -63,7 +63,7 @@ int32 endian_swap(int32 val) noexcept
 }
 
 inline
-uint64 endian_swap(uint64 val) noexcept
+uint64 endian_swap(uint64 val) NO_EXCEPT
 {
     return ((val << 56)
         | ((val & 0x000000000000FF00ULL) << 40)
@@ -76,7 +76,7 @@ uint64 endian_swap(uint64 val) noexcept
 }
 
 inline
-int64 endian_swap(int64 val) noexcept
+int64 endian_swap(int64 val) NO_EXCEPT
 {
     return (int64) ((val << 56)
         | ((val & 0x000000000000FF00ULL) << 40)
@@ -89,13 +89,13 @@ int64 endian_swap(int64 val) noexcept
 }
 
 inline
-f32 endian_swap(f32 val) noexcept
+f32 endian_swap(f32 val) NO_EXCEPT
 {
     return (f32) endian_swap(val);
 }
 
 inline
-f64 endian_swap(f64 val) noexcept
+f64 endian_swap(f64 val) NO_EXCEPT
 {
     return (f64) endian_swap(val);
 }

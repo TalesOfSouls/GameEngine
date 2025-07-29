@@ -82,7 +82,7 @@ void window_restore(Window* w)
 
 void window_create(Window* __restrict window, void* proc)
 {
-    ASSERT_SIMPLE(proc);
+    ASSERT_TRUE(proc);
 
     WNDPROC wndproc = (WNDPROC) proc;
     WNDCLASSEXA wc = {};
@@ -130,7 +130,7 @@ void window_create(Window* __restrict window, void* proc)
         NULL, NULL, window->hInstance, window
     );
 
-    ASSERT_SIMPLE(window->hwnd);
+    ASSERT_TRUE(window->hwnd);
 }
 
 void window_open(Window* window)

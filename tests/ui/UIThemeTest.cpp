@@ -11,13 +11,13 @@ static void test_theme_from_file_txt() {
     theme_from_file_txt(&theme, "./../../GameEditor/assets/themes/default/scene1.themetxt", &ring);
 
     UIAttributeGroup* group = theme_style_group(&theme, "#cmd_window");
-    ASSERT_NOT_EQUALS(group, NULL);
-    ASSERT_TRUE(group->attribute_count > 0);
+    TEST_NOT_EQUALS(group, NULL);
+    TEST_TRUE(group->attribute_count > 0);
 
     UIAttribute* attr = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_POSITION_X);
-    ASSERT_NOT_EQUALS(attr, NULL);
-    ASSERT_EQUALS(attr->datatype, UI_ATTRIBUTE_DATA_TYPE_F32);
-    ASSERT_EQUALS_WITH_DELTA(attr->value_float, 0.0f, 0.001f);
+    TEST_NOT_EQUALS(attr, NULL);
+    TEST_EQUALS(attr->datatype, UI_ATTRIBUTE_DATA_TYPE_F32);
+    TEST_EQUALS_WITH_DELTA(attr->value_float, 0.0f, 0.001f);
 
     platform_free((void **) &theme.data);
     ring_free(&ring);
@@ -38,17 +38,17 @@ static void test_theme_to_from_data() {
 
     int64 dump_size = theme_to_data(&theme_dump, out);
     int64 load_size = theme_from_data(out, &theme_load);
-    ASSERT_EQUALS(dump_size, load_size);
-    ASSERT_MEMORY_EQUALS(theme_dump.data, theme_load.data, (uint32) (load_size * 0.8));
+    TEST_EQUALS(dump_size, load_size);
+    TEST_MEMORY_EQUALS(theme_dump.data, theme_load.data, (uint32) (load_size * 0.8));
 
     UIAttributeGroup* group = theme_style_group(&theme_load, "#cmd_window");
-    ASSERT_NOT_EQUALS(group, NULL);
-    ASSERT_TRUE(group->attribute_count > 0);
+    TEST_NOT_EQUALS(group, NULL);
+    TEST_TRUE(group->attribute_count > 0);
 
     UIAttribute* attr = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_POSITION_X);
-    ASSERT_NOT_EQUALS(attr, NULL);
-    ASSERT_EQUALS(attr->datatype, UI_ATTRIBUTE_DATA_TYPE_F32);
-    ASSERT_EQUALS_WITH_DELTA(attr->value_float, 0.0f, 0.001f);
+    TEST_NOT_EQUALS(attr, NULL);
+    TEST_EQUALS(attr->datatype, UI_ATTRIBUTE_DATA_TYPE_F32);
+    TEST_EQUALS_WITH_DELTA(attr->value_float, 0.0f, 0.001f);
 
     platform_free((void **) &theme_load.data);
     platform_free((void **) &theme_dump.data);

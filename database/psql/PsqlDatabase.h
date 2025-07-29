@@ -21,7 +21,7 @@
 inline
 int32 db_open_psql(DatabaseConnection* db)
 {
-    ASSERT_SIMPLE(sizeof(db->con) >= sizeof(pqxx::connection));
+    ASSERT_TRUE(sizeof(db->con) >= sizeof(pqxx::connection));
 
     PGconn* db_con = (PGconn *) db->con;
 

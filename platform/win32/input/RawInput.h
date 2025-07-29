@@ -71,7 +71,7 @@ uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemo
 
                     if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
                         // @todo Log
-                        ASSERT_SIMPLE(false);
+                        ASSERT_TRUE(false);
                     }
                 } break;
             case RIM_TYPEKEYBOARD: {
@@ -90,7 +90,7 @@ uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemo
 
                     if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
                         // @todo Log
-                        ASSERT_SIMPLE(false);
+                        ASSERT_TRUE(false);
                     }
                 } break;
         }
@@ -165,7 +165,7 @@ uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory
 
                         if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
                             // @todo Log
-                            ASSERT_SIMPLE(false);
+                            ASSERT_TRUE(false);
                         }
                     } else if (rdi.hid.usUsage == 0x04) {
                         if (states[controller_found].handle_controller != NULL) {
@@ -185,7 +185,7 @@ uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory
 
                         if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
                             // @todo Log
-                            ASSERT_SIMPLE(false);
+                            ASSERT_TRUE(false);
                         }
                     }
                 } break;
@@ -434,7 +434,7 @@ int16 input_handle_buffered(int32 buffer_size, Input* __restrict states, int32 s
         }
     }
 
-    ASSERT_SIMPLE(input != (uint32) -1);
+    ASSERT_TRUE(input != (uint32) -1);
 
     return input_count;
 }

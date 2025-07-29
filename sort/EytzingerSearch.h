@@ -8,7 +8,7 @@
 // Consider this https://en.algorithmica.org/hpc/data-structures/binary-search/
 
 static
-void eytzinger_rearrange(byte* arr, byte* temp, size_t start, size_t* index, size_t num, size_t size) noexcept {
+void eytzinger_rearrange(byte* arr, byte* temp, size_t start, size_t* index, size_t num, size_t size) NO_EXCEPT {
     if (start >= num) {
         return;
     }

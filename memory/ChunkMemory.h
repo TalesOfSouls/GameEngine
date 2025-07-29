@@ -41,15 +41,15 @@ struct ChunkMemory {
 inline
 void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(chunk_size);
-    ASSERT_SIMPLE(count);
+    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(count);
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
     LOG_1("[INFO] Allocating ChunkMemory");
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
+        + sizeof(uint64) * CEIL_DIV(count, 64) // free
         + alignment * 2; // overhead for alignment
 
     buf->memory = alignment < 2
@@ -71,16 +71,16 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
 inline
 void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(chunk_size);
-    ASSERT_SIMPLE(count);
+    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(count);
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
+        + sizeof(uint64) * CEIL_DIV(count, 64) // free
         + alignment * 2; // overhead for alignment
 
-    buf->memory = buffer_get_memory(data, size);
+    buf->memory = buffer_get_memory(data, size, alignment, true);
 
     buf->count = count;
     buf->size = size;
@@ -99,13 +99,13 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk
 inline
 void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
 {
-    ASSERT_SIMPLE(chunk_size);
-    ASSERT_SIMPLE(count);
+    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(count);
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, alignment) // free
+        + sizeof(uint64) * CEIL_DIV(count, 64) // free
         + alignment * 2; // overhead for alignment
 
     buf->memory = (byte *) ROUND_TO_NEAREST((uintptr_t) data, alignment);
@@ -120,6 +120,8 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, i
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
     buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
+
+    memset(buf->memory, 0, buf->size);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -140,19 +142,19 @@ void chunk_free(ChunkMemory* buf)
 }
 
 FORCE_INLINE
-uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) noexcept {
+uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) NO_EXCEPT {
     return (uint32) ((uintptr_t) pos - (uintptr_t) buf->memory) / buf->chunk_size;
 }
 
 inline
-byte* chunk_get_element(ChunkMemory* buf, uint32 element, bool zeroed = false) noexcept
+byte* chunk_get_element(ChunkMemory* buf, uint32 element, bool zeroed = false) NO_EXCEPT
 {
     if (element >= buf->count) {
         return NULL;
     }
 
     byte* offset = buf->memory + element * buf->chunk_size;
-    ASSERT_SIMPLE(offset);
+    ASSERT_TRUE(offset);
 
     if (zeroed) {
         memset((void *) offset, 0, buf->chunk_size);
@@ -164,7 +166,7 @@ byte* chunk_get_element(ChunkMemory* buf, uint32 element, bool zeroed = false) n
 }
 
 // This is a special case of the chunk_reserve code where we try to find n unset elements
-int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) noexcept {
+int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT {
     if ((uint32) start_index >= state_count) {
         start_index = 0;
     }
@@ -207,8 +209,7 @@ int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) 
     return -1;
 }
 
-inline
-int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) noexcept
+int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
 {
     if ((uint32) (buf->last_pos + 1) >= buf->count) {
         buf->last_pos = -1;
@@ -316,14 +317,13 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) noexcept
 }
 
 inline
-void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index) noexcept
+void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index) NO_EXCEPT
 {
     buf->free[free_index] &= ~(1ULL << bit_index);
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + (free_index * 64 + bit_index) * buf->chunk_size), buf->chunk_size);
 }
 
-inline
-void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count = 1) noexcept
+void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count = 1) NO_EXCEPT
 {
     uint64 free_index = element / 64;
     uint32 bit_index = element & 63;
@@ -381,7 +381,7 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data)
     memcpy(data, buf->memory, buf->size);
     data += buf->size;
 
-    LOG_1("[INFO] Dumped ChunkMemory: %n B", {{LOG_DATA_UINT64, (void *) &buf->size}});
+    LOG_1("[INFO] Dumped ChunkMemory: %n B", {LOG_DATA_UINT64, (void *) &buf->size});
 
     return data - start;
 }
@@ -416,7 +416,7 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
 
     buf->free = (uint64 *) (buf->memory + buf->count * buf->chunk_size);
 
-    LOG_1("[INFO] Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_1("[INFO] Loaded ChunkMemory: %n B", {LOG_DATA_UINT64, &buf->size});
 
     return buf->size;
 }

@@ -22,7 +22,7 @@
 typedef SSIZE_T ssize_t;
 
 #if DEBUG
-    #define UNREACHABLE() ASSERT_SIMPLE(false); __assume(0)
+    #define UNREACHABLE() ASSERT_TRUE(false); __assume(0)
 #else
     #define UNREACHABLE() __assume(0)
 #endif
@@ -40,7 +40,7 @@ typedef SSIZE_T ssize_t;
 #define compiler_prefetch_l3(mem) __prefetch((mem))
 
 inline
-int32 compiler_find_first_bit_r2l(uint64 mask) noexcept {
+int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
     if (!mask) {
         return -1;
     }
@@ -50,7 +50,7 @@ int32 compiler_find_first_bit_r2l(uint64 mask) noexcept {
 }
 
 inline
-int32 compiler_find_first_bit_r2l(uint32 mask) noexcept {
+int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
     if (!mask) {
         return -1;
     }
@@ -60,7 +60,7 @@ int32 compiler_find_first_bit_r2l(uint32 mask) noexcept {
 }
 
 inline
-int32 compiler_find_first_bit_l2r(uint64 mask) noexcept {
+int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
     if (!mask) {
         return -1;
     }
@@ -70,7 +70,7 @@ int32 compiler_find_first_bit_l2r(uint64 mask) noexcept {
 }
 
 inline
-int32 compiler_find_first_bit_l2r(uint32 mask) noexcept {
+int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
     if (!mask) {
         return -1;
     }
@@ -80,7 +80,7 @@ int32 compiler_find_first_bit_l2r(uint32 mask) noexcept {
 }
 
 inline
-void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) noexcept {
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_EXCEPT {
     __cpuidex((int32 *) cpu_info, function_id, level);
 }
 

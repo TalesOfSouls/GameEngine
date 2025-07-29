@@ -46,7 +46,7 @@ struct Window {
 };
 
 inline
-void window_backup_state(Window* __restrict w) noexcept
+void window_backup_state(Window* __restrict w) NO_EXCEPT
 {
     w->state_old.style = GetWindowLongPtr(w->hwnd, GWL_STYLE);
     w->state_old.width = w->width;
@@ -56,7 +56,7 @@ void window_backup_state(Window* __restrict w) noexcept
 }
 
 inline
-void window_restore_state(Window* __restrict w) noexcept
+void window_restore_state(Window* __restrict w) NO_EXCEPT
 {
     w->width = w->state_old.width;
     w->height = w->state_old.height;

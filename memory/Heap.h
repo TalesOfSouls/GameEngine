@@ -26,7 +26,7 @@ struct Heap {
 };
 
 void heap_alloc(Heap* heap, uint32 element_size, uint64 capacity, int32 (*compare)(const void*, const void*)) {
-    ASSERT_SIMPLE(element_size * capacity);
+    ASSERT_TRUE(element_size * capacity);
 
     heap->elements = (byte *) platform_alloc(element_size * capacity + element_size);
     if (!heap->elements) {
@@ -38,6 +38,8 @@ void heap_alloc(Heap* heap, uint32 element_size, uint64 capacity, int32 (*compar
     heap->size = 0;
     heap->compare = compare;
     heap->helper_mem = heap->elements + element_size;
+
+    // @todo memset 0
 }
 
 void heap_free(Heap* heap)
@@ -47,7 +49,7 @@ void heap_free(Heap* heap)
 }
 
 void heap_init(Heap* heap, BufferMemory* buf, uint32 element_size, uint64 capacity, int32 (*compare)(const void*, const void*)) {
-    ASSERT_SIMPLE(element_size * capacity);
+    ASSERT_TRUE(element_size * capacity);
 
     heap->elements = buffer_get_memory(buf, element_size * capacity, 8, true);
     if (!heap->elements) {

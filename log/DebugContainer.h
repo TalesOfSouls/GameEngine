@@ -22,6 +22,7 @@ struct DebugContainer {
     #elif __linux__
         int32 log_fp;
     #endif
+
     LogMemory* log_memory;
 
     alignas(8) atomic_64 int64* stats_counter;

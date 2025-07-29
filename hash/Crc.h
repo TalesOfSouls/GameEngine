@@ -49,7 +49,7 @@ static const uint32 crc_table[256] =
 };
 
 inline
-void crc32_table_fill(uint32* table) noexcept
+void crc32_table_fill(uint32* table) NO_EXCEPT
 {
     uint8 index = 0;
     uint8 z;
@@ -65,7 +65,7 @@ void crc32_table_fill(uint32* table) noexcept
 }
 
 inline
-uint32 crc32_software_u8_table(const uint8* data, uint32 length) noexcept
+uint32 crc32_software_u8_table(const uint8* data, uint32 length) NO_EXCEPT
 {
 	uint32 crc = 0xFFFFFFFF;
 	while (length-- != 0) {
@@ -78,7 +78,7 @@ uint32 crc32_software_u8_table(const uint8* data, uint32 length) noexcept
 }
 
 inline
-uint32 crc32_software_u8(const byte* data, size_t length) noexcept
+uint32 crc32_software_u8(const byte* data, size_t length) NO_EXCEPT
 {
     uint32 crc = 0xFFFFFFFF;
 
@@ -100,7 +100,7 @@ uint32 crc32_software_u8(const byte* data, size_t length) noexcept
 }
 
 inline
-uint32 crc32_intrin_u8(const byte* data, size_t length) noexcept
+uint32 crc32_intrin_u8(const byte* data, size_t length) NO_EXCEPT
 {
     uint32 crc = 0xFFFFFFFF;
     for (size_t i = 0; i < length; ++i) {
@@ -111,7 +111,7 @@ uint32 crc32_intrin_u8(const byte* data, size_t length) noexcept
 }
 
 inline
-uint32 crc32_intrin_u16(const uint16* data, size_t length) noexcept
+uint32 crc32_intrin_u16(const uint16* data, size_t length) NO_EXCEPT
 {
     uint32 crc = 0xFFFFFFFF;
     for (size_t i = 0; i < length; ++i) {
@@ -122,7 +122,7 @@ uint32 crc32_intrin_u16(const uint16* data, size_t length) noexcept
 }
 
 inline
-uint32 crc32_intrin_u32(const uint32* data, size_t length) noexcept
+uint32 crc32_intrin_u32(const uint32* data, size_t length) NO_EXCEPT
 {
     uint32 crc = 0xFFFFFFFF;
     for (size_t i = 0; i < length; ++i) {
@@ -133,7 +133,7 @@ uint32 crc32_intrin_u32(const uint32* data, size_t length) noexcept
 }
 
 inline
-uint32 crc32_intrin_u64(const uint64* data, size_t length) noexcept
+uint32 crc32_intrin_u64(const uint64* data, size_t length) NO_EXCEPT
 {
     uint64 crc = 0xFFFFFFFF;
     for (size_t i = 0; i < length; ++i) {

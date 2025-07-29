@@ -4,7 +4,7 @@
 #include "../stdlib/Types.h"
 #include "../utils/Utils.h"
 
-size_t quicksort_partition(void* arr, size_t size, size_t low, size_t high, int32 (*compare)(const void* __restrict, const void* __restrict)) noexcept {
+size_t quicksort_partition(void* arr, size_t size, size_t low, size_t high, int32 (*compare)(const void* __restrict, const void* __restrict)) NO_EXCEPT {
     char* base = (char*) arr;
     void* pivot = base + high * size;
     size_t i = low;
@@ -20,7 +20,7 @@ size_t quicksort_partition(void* arr, size_t size, size_t low, size_t high, int3
     return i;
 }
 
-void quicksort(void* arr, size_t size, size_t low, size_t high, int32 (*compare)(const void* __restrict, const void* __restrict)) noexcept {
+void quicksort(void* arr, size_t size, size_t low, size_t high, int32 (*compare)(const void* __restrict, const void* __restrict)) NO_EXCEPT {
     if (low < high) {
         size_t pi = quicksort_partition(arr, size, low, high, compare);
 

@@ -15,7 +15,7 @@
 
 #define strtok_r strtok_s
 
-uint32 key_to_unicode(byte scan_code, byte vkey, byte keyboard_state[256]) noexcept
+uint32 key_to_unicode(byte scan_code, byte vkey, byte keyboard_state[256]) NO_EXCEPT
 {
     WCHAR char_buffer[5] = {};
     int32 result = ToUnicode(vkey, scan_code, keyboard_state, char_buffer, 5, 0);

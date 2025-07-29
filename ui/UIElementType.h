@@ -134,7 +134,7 @@ int32 ui_element_type_to_id(const char* str)
         return UI_ELEMENT_TYPE_MANUAL;
     }
 
-    ASSERT_SIMPLE(false);
+    ASSERT_TRUE(false);
 
     return -1;
 }

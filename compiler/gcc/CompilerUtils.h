@@ -18,7 +18,7 @@
 #define EXPORT_LIB extern "C" __attribute__((visibility("default")))
 
 #if DEBUG
-    #define UNREACHABLE() ASSERT_SIMPLE(false); __builtin_unreachable()
+    #define UNREACHABLE() ASSERT_TRUE(false); __builtin_unreachable()
 #else
     #define UNREACHABLE() __builtin_unreachable()
 #endif
@@ -37,7 +37,7 @@
 #define compiler_prefetch_l2(mem) __builtin_prefetch((mem), 0, 2)
 #define compiler_prefetch_l3(mem) __builtin_prefetch((mem), 0, 1)
 
-int32 compiler_find_first_bit_r2l(uint64 mask) noexcept {
+int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
     if (!mask) {
         return -1;
     }
@@ -49,7 +49,7 @@ int32 compiler_find_first_bit_r2l(uint64 mask) noexcept {
     #endif
 }
 
-int32 compiler_find_first_bit_r2l(uint32 mask) noexcept {
+int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
     if (!mask) {
         return -1;
     }
@@ -61,7 +61,7 @@ int32 compiler_find_first_bit_r2l(uint32 mask) noexcept {
     #endif
 }
 
-int32 compiler_find_first_bit_l2r(uint64 mask) noexcept {
+int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
     if (!mask) {
         return -1;
     }
@@ -73,7 +73,7 @@ int32 compiler_find_first_bit_l2r(uint64 mask) noexcept {
     #endif
 }
 
-int32 compiler_find_first_bit_l2r(uint32 mask) noexcept {
+int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
     if (!mask) {
         return -1;
     }
@@ -94,7 +94,7 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id) {
 */
 
 inline
-void compiler_cpuid(uint32 cpu_info[4], int32 function_id) noexcept {
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id) NO_EXCEPT {
     asm volatile(
         "cpuid"
         : "=a" (cpu_info[0]), "=b" (cpu_info[1]), "=c" (cpu_info[2]), "=d" (cpu_info[3])
@@ -103,7 +103,7 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id) noexcept {
 }
 
 inline
-void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) noexcept {
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) NO_EXCEPT {
     asm volatile(
         "cpuid"
         : "=a" (cpu_info[0]), "=b" (cpu_info[1]), "=c" (cpu_info[2]), "=d" (cpu_info[3])

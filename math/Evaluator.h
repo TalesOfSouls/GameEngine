@@ -45,7 +45,7 @@ void evaluator_push_operator(EvaluatorOperatorStack* stack, char op) {
 }
 
 char evaluator_pop_operator(EvaluatorOperatorStack* stack) {
-    ASSERT_SIMPLE(stack->top >= 0);
+    ASSERT_TRUE(stack->top >= 0);
 
     return stack->items[stack->top--];
 }
@@ -67,7 +67,7 @@ void evaluator_push_value(EvaluatorValueStack* stack, f32 value) {
 }
 
 f32 evaluator_pop_value(EvaluatorValueStack* stack) {
-    ASSERT_SIMPLE(stack->top >= 0);
+    ASSERT_TRUE(stack->top >= 0);
 
     return stack->items[stack->top--];
 }
@@ -129,7 +129,7 @@ f32 evaluator_evaluate_expression(const char* expr) {
                 ++ptr;
             }
 
-            ASSERT_SIMPLE(*ptr == '(');
+            ASSERT_TRUE(*ptr == '(');
 
             ++ptr;
             const char* args_start = ptr;
@@ -144,7 +144,7 @@ f32 evaluator_evaluate_expression(const char* expr) {
                 ++ptr;
             }
 
-            ASSERT_SIMPLE(depth == 0);
+            ASSERT_TRUE(depth == 0);
 
             char name[32];
             memcpy(name, start, ptr - start);
@@ -267,7 +267,7 @@ f32 evaluator_evaluate_function(const char* name, const char* args) {
 }
 
 f32 evaluator_evaluate(const char* expr, int32 variable_count = 0, const EvaluatorVariable* variables = NULL) {
-    ASSERT_SIMPLE(str_length(expr) > 0);
+    ASSERT_TRUE(str_length(expr) > 0);
 
     // Handle variables
     char expr_internal[1024];

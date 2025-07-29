@@ -52,7 +52,7 @@ f32 tan_approx(f32 x) {
 inline
 f32 asin_approx(f32 x) {
     // Undefined for |x| > 1
-    ASSERT_SIMPLE(x >= -1.0f && x <= 1.0f);
+    ASSERT_TRUE(x >= -1.0f && x <= 1.0f);
 
     f32 result = x;
     f32 term = x;
@@ -92,7 +92,7 @@ f32 atan_approx(f32 x) {
 
 inline
 f32 sqrt_approx(f32 a) {
-    ASSERT_SIMPLE(a >= 0);
+    ASSERT_TRUE(a >= 0);
 
     int32_t i = *(int32_t*)&a;
     // Magic number for initial guess
@@ -109,7 +109,7 @@ f32 sqrt_approx(f32 a) {
 
 inline
 f32 rsqrt_approx(f32 a) {
-    ASSERT_SIMPLE(a >= 0);
+    ASSERT_TRUE(a >= 0);
 
     // Initial guess using magic number (Quake III hack)
     f32 x = a;
@@ -150,7 +150,7 @@ f32 exp_approx(f32 x) {
 
 inline
 f32 log_approx(f32 x) {
-    ASSERT_SIMPLE(x > 0);
+    ASSERT_TRUE(x > 0);
 
     // Polynomial approximation
     f32 y = (x - 1) / (x + 1);
@@ -199,7 +199,7 @@ f64 tan_approx(f64 x) {
 inline
 f64 asin_approx(f64 x) {
     // Undefined for |x| > 1
-    ASSERT_SIMPLE(x >= -1.0 && x <= 1.0);
+    ASSERT_TRUE(x >= -1.0 && x <= 1.0);
 
     f64 result = x;
     f64 term = x;
@@ -239,7 +239,7 @@ f64 atan_approx(f64 x) {
 
 inline
 f64 sqrt_approx(f64 a) {
-    ASSERT_SIMPLE(a >= 0);
+    ASSERT_TRUE(a >= 0);
 
     int64_t i = *(int64_t*)&a;
     // Magic number for initial guess
@@ -256,7 +256,7 @@ f64 sqrt_approx(f64 a) {
 
 inline
 f64 rsqrt_approx(f64 a) {
-    ASSERT_SIMPLE(a >= 0);
+    ASSERT_TRUE(a >= 0);
 
     // Initial guess using magic number (Quake III hack)
     f64 x = a;
@@ -297,7 +297,7 @@ f64 exp_approx(f64 x) {
 
 inline
 f64 log_approx(f64 x) {
-    ASSERT_SIMPLE(x > 0);
+    ASSERT_TRUE(x > 0);
 
     // Polynomial approximation
     f64 y = (x - 1) / (x + 1);

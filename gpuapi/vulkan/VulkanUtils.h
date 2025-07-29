@@ -40,8 +40,8 @@
         do {                                                                    \
             VkResult err = (x);                                                 \
             if (err) {                                                          \
-                LOG_1("Vulkan error: %d", {{LOG_DATA_INT32, (int32 *) &err}});  \
-                ASSERT_SIMPLE(false);                                           \
+                LOG_1("Vulkan error: %d", {LOG_DATA_INT32, (int32 *) &err});  \
+                ASSERT_TRUE(false);                                           \
             }                                                                   \
         } while (0)
 #else
@@ -148,7 +148,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
         || (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     ) {
         LOG_1(debug_callback_data->pMessage);
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
     }
 
     return VK_FALSE;
@@ -165,12 +165,12 @@ void gpuapi_debug_messenger_setup(VkInstance instance, VkDebugUtilsMessengerEXT*
 
     PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (!func) {
-        ASSERT_SIMPLE(func);
+        ASSERT_TRUE(func);
         return;
     }
 
     if (func(instance, &create_info, NULL, debug_messenger) != VK_SUCCESS) {
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
     }
 }
 
@@ -183,8 +183,8 @@ void vulkan_instance_create(
     if (validation_layer_count
         && (err = vulkan_check_validation_layer_support(validation_layers, validation_layer_count, ring))
     ) {
-        LOG_1("Vulkan validation_layer missing: %d", {{LOG_DATA_CHAR_STR, (void *) validation_layers[-err - 1]}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan validation_layer missing: %d", {LOG_DATA_CHAR_STR, (void *) validation_layers[-err - 1]});
+        ASSERT_TRUE(false);
 
         return;
     }
@@ -192,8 +192,8 @@ void vulkan_instance_create(
     if (extension_count
         && (err = vulkan_check_extension_support(extensions, extension_count, ring))
     ) {
-        LOG_1("Vulkan extension missing: %d", {{LOG_DATA_CHAR_STR, (void *) extensions[-err - 1]}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan extension missing: %d", {LOG_DATA_CHAR_STR, (void *) extensions[-err - 1]});
+        ASSERT_TRUE(false);
 
         return;
     }
@@ -229,8 +229,8 @@ void vulkan_instance_create(
 
     VkResult result;
     if ((result = vkCreateInstance(&create_info, NULL, instance)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkCreateInstance: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkCreateInstance: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
     }
 }
 
@@ -245,7 +245,7 @@ void vulkan_surface_create(VkInstance instance, VkSurfaceKHR* surface, Window* w
 
         VkResult result;
         if ((result = vkCreateWin32SurfaceKHR(instance, &surface_create_info, NULL, surface)) != VK_SUCCESS) {
-            LOG_1("Vulkan vkCreateWin32SurfaceKHR: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+            LOG_1("Vulkan vkCreateWin32SurfaceKHR: %d", {LOG_DATA_INT32, (int32 *) &result});
             return;
         }
     #elif __linux__
@@ -315,8 +315,8 @@ VulkanQueueFamilyIndices vulkan_find_queue_families(VkPhysicalDevice physical_de
 
         VkResult result;
         if ((result = vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support)) != VK_SUCCESS) {
-            LOG_1("Vulkan vkGetPhysicalDeviceSurfaceSupportKHR: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-            ASSERT_SIMPLE(false);
+            LOG_1("Vulkan vkGetPhysicalDeviceSurfaceSupportKHR: %d", {LOG_DATA_INT32, (int32 *) &result});
+            ASSERT_TRUE(false);
 
             return indices;
         }
@@ -393,7 +393,7 @@ void gpuapi_pick_physical_device(
     }
 
     LOG_1("Vulkan failed to find physical device");
-    ASSERT_SIMPLE(false);
+    ASSERT_TRUE(false);
 }
 
 void gpuapi_create_logical_device(
@@ -442,8 +442,8 @@ void gpuapi_create_logical_device(
 
     VkResult result;
     if ((result = vkCreateDevice(physical_device, &create_info, NULL, device)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkCreateDevice: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkCreateDevice: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
     }
 
     vkGetDeviceQueue(*device, indices.graphics_family, 0, graphics_queue);
@@ -528,8 +528,8 @@ void gpuapi_swapchain_create(
 
     VkResult result;
     if ((result = vkCreateSwapchainKHR(device, &create_info, NULL, swapchain)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkCreateSwapchainKHR: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkCreateSwapchainKHR: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
 
         return;
     }
@@ -590,8 +590,8 @@ void vulkan_image_views_create(
         create_info.subresourceRange.layerCount = 1;
 
         if ((result = vkCreateImageView(device, &create_info, NULL, &swapchain_image_views[i])) != VK_SUCCESS) {
-            LOG_1("Vulkan vkCreateImageView: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-            ASSERT_SIMPLE(false);
+            LOG_1("Vulkan vkCreateImageView: %d", {LOG_DATA_INT32, (int32 *) &result});
+            ASSERT_TRUE(false);
         }
     }
 }
@@ -637,8 +637,8 @@ void vulkan_render_pass_create(
 
     VkResult result;
     if ((result = vkCreateRenderPass(device, &render_pass_info, NULL, render_pass)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkCreateRenderPass: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkCreateRenderPass: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
     }
 }
 
@@ -665,8 +665,8 @@ void vulkan_framebuffer_create(
         framebuffer_info.layers = 1;
 
         if ((result = vkCreateFramebuffer(device, &framebuffer_info, NULL, &framebuffers[i])) != VK_SUCCESS) {
-            LOG_1("Vulkan vkCreateFramebuffer: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-            ASSERT_SIMPLE(false);
+            LOG_1("Vulkan vkCreateFramebuffer: %d", {LOG_DATA_INT32, (int32 *) &result});
+            ASSERT_TRUE(false);
         }
     }
 }
@@ -684,8 +684,8 @@ void vulkan_command_pool_create(
 
     VkResult result;
     if ((result = vkCreateCommandPool(device, &pool_info, NULL, command_pool)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkCreateCommandPool: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkCreateCommandPool: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
     }
 }
 
@@ -699,8 +699,8 @@ void gpuapi_command_buffer_create(VkDevice device, VkCommandPool command_pool, V
 
     VkResult result;
     if ((result = vkAllocateCommandBuffers(device, &alloc_info, command_buffers)) != VK_SUCCESS) {
-        LOG_1("Vulkan vkAllocateCommandBuffers: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-        ASSERT_SIMPLE(false);
+        LOG_1("Vulkan vkAllocateCommandBuffers: %d", {LOG_DATA_INT32, (int32 *) &result});
+        ASSERT_TRUE(false);
     }
 }
 
@@ -721,8 +721,8 @@ void vulkan_sync_objects_create(
             || (result = vkCreateSemaphore(device, &semaphore_info, NULL, &frames_in_flight->render_finished_semaphores[i])) != VK_SUCCESS
             || (result = vkCreateFence(device, &fence_info, NULL, &frames_in_flight->fences[i])) != VK_SUCCESS
         ) {
-            LOG_1("Vulkan vulkan_sync_objects_create: %d", {{LOG_DATA_INT32, (int32 *) &result}});
-            ASSERT_SIMPLE(false);
+            LOG_1("Vulkan vulkan_sync_objects_create: %d", {LOG_DATA_INT32, (int32 *) &result});
+            ASSERT_TRUE(false);
         }
     }
 }
@@ -746,7 +746,7 @@ void vulkan_buffer_create(
     VkDevice device, VkPhysicalDevice physical_device,
     VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory
 ) {
-    ASSERT_SIMPLE(size > 0);
+    ASSERT_TRUE(size > 0);
 
     VkBufferCreateInfo buffer_info = {};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;

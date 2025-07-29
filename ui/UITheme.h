@@ -41,7 +41,7 @@ UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
 {
     HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&theme->hash_map, group_name);
     if (!entry) {
-        ASSERT_SIMPLE(false);
+        ASSERT_TRUE(false);
         return NULL;
     }
 
@@ -49,7 +49,7 @@ UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
 }
 
 static inline
-int compare_by_attribute_id(const void* __restrict a, const void* __restrict b) noexcept {
+int compare_by_attribute_id(const void* __restrict a, const void* __restrict b) NO_EXCEPT {
     UIAttribute* attr_a = (UIAttribute *) a;
     UIAttribute* attr_b = (UIAttribute *) b;
 
@@ -75,7 +75,7 @@ void theme_from_file_txt(
 ) {
     FileBody file = {};
     file_read(path, &file, ring);
-    ASSERT_SIMPLE(file.size);
+    ASSERT_TRUE(file.size);
 
     const char* pos = (char *) file.content;
 

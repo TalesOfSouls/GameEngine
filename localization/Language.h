@@ -25,7 +25,7 @@ void language_from_file_txt(
 ) {
     FileBody file = {};
     file_read(path, &file, ring);
-    ASSERT_SIMPLE(file.size);
+    ASSERT_TRUE(file.size);
 
     // count elements
     language->count = 1;

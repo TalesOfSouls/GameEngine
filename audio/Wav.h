@@ -55,7 +55,7 @@ struct Wav {
 void generate_default_wav_references(const byte* data, uint32 size, Wav* wav)
 {
     wav->size = size;
-    ASSERT_SIMPLE(size >= WAV_HEADER_SIZE);
+    ASSERT_TRUE(size >= WAV_HEADER_SIZE);
 
     // Check if we can copy memory directly
     // The struct layout and header size should match on x86, but we still check it

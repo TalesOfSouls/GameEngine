@@ -48,7 +48,7 @@ struct Tga {
     byte* data; // WARNING: This is not the owner of the data. The owner is the FileBody
 };
 
-void generate_default_tga_references(const FileBody* file, Tga* tga) noexcept
+void generate_default_tga_references(const FileBody* file, Tga* tga) NO_EXCEPT
 {
     tga->size = (uint32) file->size;
     tga->data = file->content;
@@ -76,7 +76,7 @@ void generate_default_tga_references(const FileBody* file, Tga* tga) noexcept
         + tga->header.color_map_length * (tga->header.color_map_bits / 8); // can be 0
 }
 
-void image_tga_generate(const FileBody* src_data, Image* image) noexcept
+void image_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some assignment/copy overhead

@@ -40,7 +40,7 @@ static const byte optable[128] = {
     3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3
 };
 
-int32 qoi_encode(const Image* image, byte* data) noexcept
+int32 qoi_encode(const Image* image, byte* data) NO_EXCEPT
 {
     byte* start = data;
     data += image_header_to_data(image, data);
@@ -192,7 +192,7 @@ int32 qoi_encode(const Image* image, byte* data) noexcept
 }
 
 static
-int32 qoi_decode_4(const byte* data, Image* image) noexcept
+int32 qoi_decode_4(const byte* data, Image* image) NO_EXCEPT
 {
     uint32 px_len = image->width * image->height * 4;
     v4_byte px = {0, 0, 0, 255};
@@ -243,7 +243,7 @@ int32 qoi_decode_4(const byte* data, Image* image) noexcept
 }
 
 static
-int32 qoi_decode_3(const byte* data, Image* image) noexcept
+int32 qoi_decode_3(const byte* data, Image* image) NO_EXCEPT
 {
 	uint32 px_len = image->width * image->height * 3;
     v3_byte px = {0, 0, 0};
@@ -290,7 +290,7 @@ int32 qoi_decode_3(const byte* data, Image* image) noexcept
     return px_len;
 }
 
-int32 qoi_decode(const byte* data, Image* image) noexcept
+int32 qoi_decode(const byte* data, Image* image) NO_EXCEPT
 {
 	LOG_3("QOI decode image");
     int32 header_length = image_header_from_data(data, image);

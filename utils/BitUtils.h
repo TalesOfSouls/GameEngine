@@ -60,7 +60,7 @@ struct BitWalk {
 };
 
 inline
-void bits_walk(BitWalk* stream, uint32 bits_to_walk) noexcept
+void bits_walk(BitWalk* stream, uint32 bits_to_walk) NO_EXCEPT
 {
     stream->bit_pos += bits_to_walk;
     stream->pos += stream->bit_pos / 8;
@@ -68,7 +68,7 @@ void bits_walk(BitWalk* stream, uint32 bits_to_walk) noexcept
 }
 
 inline
-void bits_flush(BitWalk* stream) noexcept
+void bits_flush(BitWalk* stream) NO_EXCEPT
 {
     if (stream->bit_pos > 0) {
         stream->bit_pos = 0;
@@ -286,7 +286,7 @@ void bits_flush(BitWalk* stream) noexcept
 // }
 
 static
-inline int32 find_first_set_bit(int32 value) noexcept {
+inline int32 find_first_set_bit(int32 value) NO_EXCEPT {
     if (value == 0) {
         return 0;
     }
@@ -314,7 +314,7 @@ inline int32 find_first_set_bit(int32 value) noexcept {
 }
 
 inline
-uint32 bits_reverse(uint32 data, uint32 count) noexcept
+uint32 bits_reverse(uint32 data, uint32 count) NO_EXCEPT
 {
     uint32 reversed = 0;
     for (uint32 i = 0; i <= (count / 2); ++i) {
@@ -346,7 +346,7 @@ static const byte BIT_COUNT_LOOKUP_TABLE[256] = {
 };
 
 inline
-byte bits_count(uint64 data, bool use_abm = false) noexcept {
+byte bits_count(uint64 data, bool use_abm = false) NO_EXCEPT {
     if (use_abm) {
         return (byte) intrin_bits_count_64(data);
     } else {
@@ -362,7 +362,7 @@ byte bits_count(uint64 data, bool use_abm = false) noexcept {
 }
 
 inline
-byte bits_count(uint32 data, bool use_abm = false) noexcept {
+byte bits_count(uint32 data, bool use_abm = false) NO_EXCEPT {
     if (use_abm) {
         return (byte) intrin_bits_count_32(data);
     } else {
@@ -374,13 +374,13 @@ byte bits_count(uint32 data, bool use_abm = false) noexcept {
 }
 
 inline
-byte bits_count(uint16 data) noexcept {
+byte bits_count(uint16 data) NO_EXCEPT {
     return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
         + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF];
 }
 
 inline
-byte bits_count(uint8 data) noexcept {
+byte bits_count(uint8 data) NO_EXCEPT {
     return BIT_COUNT_LOOKUP_TABLE[data];
 }
 

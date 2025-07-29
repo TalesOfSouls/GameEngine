@@ -22,7 +22,7 @@ void audio_from_file(Audio* __restrict audio, const char* __restrict path, RingM
     FileBody file = {};
     file_read(path, &file, ring);
 
-    ASSERT_SIMPLE(file.size);
+    ASSERT_TRUE(file.size);
 
     if (str_ends_with(path, ".wav")) {
         wav_from_data(file.content, (uint32) file.size, audio, ring);
