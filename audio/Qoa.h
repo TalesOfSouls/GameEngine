@@ -414,8 +414,7 @@ uint32 qoa_decode_frame(const byte* bytes, uint32 channels, QoaLms* lms, int16* 
 uint32 qoa_decode(const byte* data, Audio* audio)
 {
 	LOG_3("QOA decode audio");
-    uint32 header_length = audio_header_from_data(data, audio);
-    uint32 p = header_length;
+    uint32 p = 0;
 	uint32 frame_size;
     byte* sample_ptr = audio->data;
 
@@ -430,7 +429,7 @@ uint32 qoa_decode(const byte* data, Audio* audio)
 	} while (frame_size && p < audio->size && audio->size - p >= limit);
     // @question do we really need the audio->size - p >= limit check?
 
-	return header_length + audio->size;
+	return audio->size;
 }
 
 #endif

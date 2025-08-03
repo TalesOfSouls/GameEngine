@@ -37,20 +37,33 @@ struct ChunkMemory {
     alignas(8) uint64* free;
 };
 
+inline
+uint32 chunk_size_element(uint32 element_size, int32 alignment = 64)
+{
+    return ROUND_TO_NEAREST(element_size, alignment);
+}
+
+inline
+uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = 64)
+{
+    element_size = chunk_size_element(element_size, alignment);
+
+    return count * element_size
+        + sizeof(uint64) * CEIL_DIV(count, 64) // free
+        + alignment * 2; // overhead for alignment
+}
+
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignment = 64)
+void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alignment = 64)
 {
-    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
     LOG_1("[INFO] Allocating ChunkMemory");
 
-    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
-
-    uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
-        + alignment * 2; // overhead for alignment
+    element_size = chunk_size_element(element_size, alignment);
+    uint64 size = chunk_size_total(count, element_size, alignment);
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)
@@ -58,68 +71,64 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
 
     buf->count = count;
     buf->size = size;
-    buf->chunk_size = chunk_size;
+    buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * element_size), alignment);
 
     memset(buf->memory, 0, buf->size);
 }
 
 inline
-void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
+void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 element_size, int32 alignment = 64)
 {
-    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
 
-    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
+    element_size = chunk_size_element(element_size, alignment);
 
-    uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
-        + alignment * 2; // overhead for alignment
+    uint64 size = chunk_size_total(count, element_size, alignment);
 
     buf->memory = buffer_get_memory(data, size, alignment, true);
 
     buf->count = count;
     buf->size = size;
-    buf->chunk_size = chunk_size;
+    buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), 64);
+    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * element_size), 64);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
-void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
+void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 element_size, int32 alignment = 64)
 {
-    ASSERT_TRUE(chunk_size);
+    ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
 
-    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
+    element_size = chunk_size_element(element_size, alignment);
 
-    uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
-        + alignment * 2; // overhead for alignment
+    uint64 size = chunk_size_total(count, element_size, alignment);
 
     buf->memory = (byte *) ROUND_TO_NEAREST((uintptr_t) data, alignment);
 
     buf->count = count;
     buf->size = size;
-    buf->chunk_size = chunk_size;
+    buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * element_size), alignment);
 
     memset(buf->memory, 0, buf->size);
 

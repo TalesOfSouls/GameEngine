@@ -398,6 +398,7 @@ void input_handle(LPARAM lParam, Input* __restrict states, int state_count, Ring
     input_raw_handle((RAWINPUT *) lpb, states, state_count, time);
 }
 
+// buffer_size = max input messages
 int16 input_handle_buffered(int32 buffer_size, Input* __restrict states, int32 state_count, RingMemory* ring, uint64 time)
 {
     uint32 cb_size;

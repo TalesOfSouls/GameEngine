@@ -64,7 +64,10 @@ inline
 void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_size, int32 count)
 {
     ASSERT_TRUE(chunk_size);
-    LOG_1("Create AMS Component for %n assets and %n B", {LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size});
+    LOG_1(
+        "Create AMS Component for %n assets and %n B",
+        {LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}
+    );
 
     chunk_init(&ac->asset_memory, buf, count, chunk_size, 64);
     mutex_init(&ac->mtx, NULL);
@@ -74,7 +77,10 @@ inline
 void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32 count)
 {
     ASSERT_TRUE(chunk_size);
-    LOG_1("Create AMS Component for %n assets and %n B", {LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size});
+    LOG_1(
+        "Create AMS Component for %n assets and %n B",
+        {LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}
+    );
 
     ac->asset_memory.count = count;
     ac->asset_memory.chunk_size = chunk_size;
@@ -167,6 +173,7 @@ Asset* thrd_ams_get_asset_wait(AssetManagementSystem* ams, const char* key) {
     while (!(state = atomic_get_acquire(&((Asset *) entry->value)->is_loaded))) {}
     if (state < 0) {
         // Marked for removal
+        // @question Consider to change the state and return the asset?
         return NULL;
     }
 
@@ -190,6 +197,7 @@ Asset* thrd_ams_get_asset_wait(AssetManagementSystem* ams, const char* key, uint
     while (!(state = atomic_get_acquire(&((Asset *) entry->value)->is_loaded))) {}
     if (state < 0) {
         // Marked for removal
+        // @question Consider to change the state and return the asset?
         return NULL;
     }
 

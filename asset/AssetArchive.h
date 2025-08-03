@@ -32,6 +32,7 @@
 #define ASSET_ARCHIVE_VERSION 1
 
 struct AssetArchiveElement {
+    // @question Why are we not using AssetType as data type?
     uint32 type;
 
     uint32 start;
@@ -129,6 +130,28 @@ AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int
     return &archive->header.asset_element[id];
 }
 
+static uint32 asset_type_size(int32 type)
+{
+    switch (type) {
+        case ASSET_TYPE_GENERAL:
+            return 0;
+        case ASSET_TYPE_AUDIO:
+            return sizeof(Audio);
+        case ASSET_TYPE_FONT:
+            return sizeof(Font);
+        case ASSET_TYPE_IMAGE:
+            return sizeof(Image);
+        case ASSET_TYPE_OBJ:
+            return sizeof(Mesh);
+        case ASSET_TYPE_LANGUAGE:
+            return sizeof(Language);
+        case ASSET_TYPE_THEME:
+            return sizeof(UIThemeStyle);
+        default:
+            UNREACHABLE();
+    }
+}
+
 void asset_archive_load(
     AssetArchive* archive,
     const char* path,
@@ -156,10 +179,10 @@ void asset_archive_load(
     archive->mmf = file_mmf_handle(archive->fd_async);
 
     FileBody file = {};
-    file.size = 64;
+    file.size = sizeof(AssetArchiveHeader); // We only want to read the header at first
 
     // Find header size
-    file.content = ring_get_memory(ring, file.size, 4);
+    file.content = ring_get_memory(ring, file.size, 8);
     file_read(archive->fd, &file, 0, file.size);
     file.size = asset_archive_header_size(archive, file.content);
 
@@ -170,13 +193,16 @@ void asset_archive_load(
             - sizeof(archive->header.version)
             - sizeof(archive->header.asset_count)
             - sizeof(archive->header.asset_dependency_count),
-        4
+        8
     );
 
     archive->header.asset_element = (AssetArchiveElement *) archive->data;
 
+    // Reset file position
+    file_seek(archive->fd, 0);
+
     // Read entire header
-    file.content = ring_get_memory(ring, file.size);
+    file.content = ring_get_memory(ring, file.size, 8);
     file_read(archive->fd, &file, 0, file.size);
     asset_archive_header_load(&archive->header, file.content, steps);
 
@@ -206,6 +232,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
 
     // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
     AssetArchiveElement* element = &archive->header.asset_element[id & 0x00FFFFFF];
+    ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
 
     byte component_id = archive->asset_type_map[element->type];
     //AssetComponent* ac = &ams->asset_components[component_id];
@@ -230,7 +257,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     // A solution could be a function called thrd_ams_get_reserve_wait() that reserves, if not available
     // However, that function would have to lock the ams during that entire time
 
-    if (element->type == 0) {
+    if (element->type == ASSET_TYPE_GENERAL) {
         asset = thrd_ams_reserve_asset(ams, (byte) component_id, id_str, element->uncompressed);
         asset->official_id = id;
         asset->ram_size = element->uncompressed;
@@ -255,7 +282,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
 
         // This happens while the file system loads the data
         // The important part is to reserve the uncompressed file size, not the compressed one
-        asset = thrd_ams_reserve_asset(ams, (byte) component_id, id_str, element->uncompressed);
+        asset = thrd_ams_reserve_asset(ams, (byte) component_id, id_str, element->uncompressed + asset_type_size(element->type));
         asset->official_id = id;
 
         asset->state |= ASSET_STATE_IN_RAM;
@@ -268,6 +295,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
                 Texture* texture = (Texture *) asset->self;
                 texture->image.pixels = (byte *) (texture + 1);
 
+                file.content += image_header_from_data(file.content, &texture->image);
                 qoi_decode(file.content, &texture->image);
 
                 asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
@@ -284,6 +312,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
                 Audio* audio = (Audio *) asset->self;
                 audio->data = (byte *) (audio + 1);
 
+                file.content += audio_header_from_data(file.content, audio);
                 qoa_decode(file.content, audio);
             } break;
             case ASSET_TYPE_OBJ: {

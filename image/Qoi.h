@@ -17,7 +17,6 @@
 #define QOI_OP_LUMA555 0b00000000
 #define QOI_OP_LUMA222 0b10000000
 #define QOI_OP_LUMA777 0b01000000
-
 #define QOI_OP_RUN 0b11000000
 
 // These definitions are important and impact how large our run can be:
@@ -26,9 +25,9 @@
 #define QOI_OP_RGB  0b11111110
 #define QOI_OP_RGBA 0b11111111
 
-#define QOI_MASK_1 0b10000000
+//#define QOI_MASK_1 0b10000000
 #define QOI_MASK_2 0b11000000
-#define QOI_MASK_3 0b11100000
+//#define QOI_MASK_3 0b11100000
 
 // @performance I feel like there is some more optimization possible by handling fully transparent pixels in a special way
 // @todo We need to implement monochrome handling, which is very important for game assets that often use monochrome assets for all kinds of things (e.g. translucency)
@@ -43,7 +42,6 @@ static const byte optable[128] = {
 int32 qoi_encode(const Image* image, byte* data) NO_EXCEPT
 {
     byte* start = data;
-    data += image_header_to_data(image, data);
 
     v4_byte index[64];
 	memset(index, 0, sizeof(index));
@@ -293,18 +291,15 @@ int32 qoi_decode_3(const byte* data, Image* image) NO_EXCEPT
 int32 qoi_decode(const byte* data, Image* image) NO_EXCEPT
 {
 	LOG_3("QOI decode image");
-    int32 header_length = image_header_from_data(data, image);
-
     const int32 channels = (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);
 
-    int32 len = 0;
     if (channels == 4) {
-        len = qoi_decode_4(data + header_length, image);
+        return qoi_decode_4(data, image);
     } else if (channels == 3) {
-        len = qoi_decode_3(data + header_length, image);
+        return qoi_decode_3(data, image);
     }
 
-    return header_length + len;
+    return 0;
 }
 
 #endif

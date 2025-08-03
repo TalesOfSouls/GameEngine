@@ -38,7 +38,7 @@ static int64_t _test_total_start;
     printf("========================================================================================================================\n"); \
     printf(                                                                                                                               \
         "%s %5d   (%5d/%5d)   %8.2f\n\n",                                                                                                 \
-        _test_global_assert_count ? "[NG]" : "[OK]",                                                                                      \
+        _test_global_assert_error_count ? "[NG]" : "[OK]",                                                                                      \
         _test_global_count,                                                                                                               \
         _test_global_assert_count - _test_global_assert_error_count,                                                                      \
         _test_global_assert_count,                                                                                                        \

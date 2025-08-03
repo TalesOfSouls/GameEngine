@@ -24,6 +24,11 @@
 #include "../../log/Stats.h"
 #include "../../log/PerformanceProfiler.h"
 
+// @todo create some simple wrapper functions that create file pointers for:
+//  1. game data location
+//  2. save data location
+//  3. download location
+
 typedef HANDLE FileHandle;
 typedef HANDLE MMFHandle;
 typedef OVERLAPPED file_overlapped;
@@ -84,6 +89,14 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path)
 
     memcpy(path, self_path, self_path_length);
     str_copy_short(path + self_path_length, temp);
+}
+
+void file_seek(FileHandle fh, uint64 pos)
+{
+    LARGE_INTEGER li;
+    li.QuadPart = pos;
+
+    SetFilePointer(fh, li.LowPart, &li.HighPart, FILE_BEGIN);
 }
 
 inline uint64
@@ -455,6 +468,9 @@ bool file_read_line(
 
     return true;
 }
+
+// @todo implement
+// void file_write_handle();
 
 inline bool
 file_write(const char* __restrict path, const FileBody* __restrict file)

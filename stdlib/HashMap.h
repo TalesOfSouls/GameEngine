@@ -143,13 +143,14 @@ struct HashMapRef {
 };
 
 // @todo Change so the hashmap can grow or maybe even better create a static and dynamic version
+// count ideally should be a power of 2 for better data alignment
 inline
 void hashmap_alloc(HashMap* hm, int32 count, int32 element_size, int32 alignment = 64)
 {
     LOG_1("[INFO] Allocate HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
     byte* data = (byte *) platform_alloc(
-        count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        count * sizeof(uint16)
+        + chunk_size_total(count, element_size, alignment)
     );
 
     hm->table = (uint16 *) data;
@@ -157,20 +158,21 @@ void hashmap_alloc(HashMap* hm, int32 count, int32 element_size, int32 alignment
 
     ASSERT_MEM_ZERO(
         data,
-        count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        count * sizeof(uint16)
+        + chunk_size_total(count, element_size, alignment)
     );
 }
 
+// count ideally should be a power of 2 for better data alignment
 inline
 void hashmap_alloc(HashMapRef* hmr, int32 count, int32 data_element_size, int32 alignment = 64)
 {
     const int32 element_size = sizeof(HashEntryInt32Int32);
     LOG_1("[INFO] Allocate HashMap for %n elements with %n B per element", LOG_ENTRY(LOG_DATA_INT32, &count), LOG_ENTRY(LOG_DATA_INT32, &element_size));
     byte* data = (byte *) platform_alloc_aligned(
-        count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hmr->hm.buf.free)
-        + count * data_element_size,
+        count * sizeof(uint16)
+        + chunk_size_total(count, element_size, alignment)
+        + chunk_size_total(count, data_element_size, alignment),
         alignment
     );
 
@@ -180,9 +182,9 @@ void hashmap_alloc(HashMapRef* hmr, int32 count, int32 data_element_size, int32 
 
     ASSERT_MEM_ZERO(
         data,
-        count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hmr->hm.buf.free)
-        + count * data_element_size
+        count * sizeof(uint16)
+        + chunk_size_total(count, element_size, alignment)
+        + chunk_size_total(count, data_element_size, alignment)
     );
 }
 
@@ -197,14 +199,15 @@ void hashmap_free(HashMap* hm)
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
+// count ideally should be a power of 2 for better data alignment
 inline
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring, int32 alignment = 64) NO_EXCEPT
 {
     LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
     byte* data = ring_get_memory(
         ring,
-        count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free),
+        count * sizeof(uint16)
+        + chunk_size_total(count, element_size, alignment),
         alignment,
         true
     );
@@ -214,20 +217,21 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ri
 
     ASSERT_MEM_ZERO(
         data,
-        count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        count * sizeof(uint16)
+        + chunk_size_total(count, element_size, alignment)
     );
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
+// count ideally should be a power of 2 for better data alignment
 inline
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf, int32 alignment = 64) NO_EXCEPT
 {
     LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
     byte* data = buffer_get_memory(
         buf,
-        count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free),
+        count * sizeof(uint16)
+        + chunk_size_total(count, element_size, alignment),
         alignment,
         true
     );
@@ -237,12 +241,13 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* 
 
     ASSERT_MEM_ZERO(
         data,
-        count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        count * sizeof(uint16)
+        + chunk_size_total(count, element_size, alignment)
     );
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
+// count ideally should be a power of 2 for better data alignment
 inline
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf, int32 alignment = 64) NO_EXCEPT
 {
