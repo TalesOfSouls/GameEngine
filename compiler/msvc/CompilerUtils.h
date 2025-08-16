@@ -39,47 +39,42 @@ typedef SSIZE_T ssize_t;
 #define compiler_prefetch_l2(mem) __prefetch((mem))
 #define compiler_prefetch_l3(mem) __prefetch((mem))
 
-inline
+#define HOT_CODE __declspec(code_seg(".text$hot"))
+#define COLD_CODE __declspec(code_seg(".text$cold"))
+
+FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
-    if (!mask) {
-        return -1;
-    }
+    ASSERT_TRUE(mask);
 
     unsigned long index;
     return _BitScanForward64(&index, mask) ? index : -1;
 }
 
-inline
+FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
-    if (!mask) {
-        return -1;
-    }
+    ASSERT_TRUE(mask);
 
     unsigned long index;
     return _BitScanForward(&index, mask) ? index : -1;
 }
 
-inline
+FORCE_INLINE
 int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
-    if (!mask) {
-        return -1;
-    }
+    ASSERT_TRUE(mask);
 
     unsigned long index;
     return _BitScanReverse64(&index, mask) ? index : -1;
 }
 
-inline
+FORCE_INLINE
 int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
-    if (!mask) {
-        return -1;
-    }
+    ASSERT_TRUE(mask);
 
     unsigned long index;
     return _BitScanReverse(&index, mask) ? index : -1;
 }
 
-inline
+FORCE_INLINE
 void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_EXCEPT {
     __cpuidex((int32 *) cpu_info, function_id, level);
 }

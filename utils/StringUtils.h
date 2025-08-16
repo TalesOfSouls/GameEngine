@@ -1426,7 +1426,7 @@ void str_move_to(const char** str, char delim) NO_EXCEPT
 }
 
 // Negative pos counts backwards
-inline
+FORCE_INLINE
 void str_move_to_pos(const char** str, int32 pos) NO_EXCEPT
 {
     *str += pos >= 0

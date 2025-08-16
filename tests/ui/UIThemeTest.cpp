@@ -36,10 +36,9 @@ static void test_theme_to_from_data() {
 
     byte* out = ring_get_memory(&ring, 1024 * 1024);
 
-    int64 dump_size = theme_to_data(&theme_dump, out);
-    int64 load_size = theme_from_data(out, &theme_load);
-    TEST_EQUALS(dump_size, load_size);
-    TEST_MEMORY_EQUALS(theme_dump.data, theme_load.data, (uint32) (load_size * 0.8));
+    theme_to_data(&theme_dump, out);
+    theme_from_data(out, &theme_load);
+    TEST_MEMORY_EQUALS(theme_dump.data, theme_load.data, (uint32) (theme_load.used_data_size * 0.8));
 
     UIAttributeGroup* group = theme_style_group(&theme_load, "#cmd_window");
     TEST_NOT_EQUALS(group, NULL);

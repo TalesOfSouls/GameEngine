@@ -355,8 +355,8 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
             if (p1[i] != p2[i])                                            \
             {                                                              \
                 ++_test_global_assert_error_count;                         \
-                snprintf(_test_log[_test_global_assert_error_count], 1024, \
-                         "%4i: mismatch at offset %" PRId64, __LINE__, i); \
+                snprintf(_test_log[_test_assert_error_count++], 1024, \
+                         "%4i: Memory mismatch at offset %" PRId64, __LINE__, i); \
                 break;                                                     \
             }                                                              \
         }                                                                  \

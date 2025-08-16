@@ -172,7 +172,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* keys, in
 }
 
 inline
-void perfect_hashmap_alloc(PerfectHashMap* hm, int32 count, int32 element_size, int32 alignment = 64)
+void perfect_hashmap_alloc(PerfectHashMap* hm, int32 count, int32 element_size, int32 alignment = 32)
 {
     LOG_1("[INFO] Allocating PerfectHashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
     hm->map_count = count;
@@ -184,7 +184,7 @@ void perfect_hashmap_alloc(PerfectHashMap* hm, int32 count, int32 element_size, 
 }
 
 inline
-void perfect_hashmap_alloc(PerfectHashMapRef* hmr, int32 count, int32 total_data_size, int32 alignment = 64)
+void perfect_hashmap_alloc(PerfectHashMapRef* hmr, int32 count, int32 total_data_size, int32 alignment = 32)
 {
     hmr->hm.entry_size = sizeof(PerfectHashEntryInt32Int32);
     LOG_1("[INFO] Allocating PerfectHashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &hmr->hm.entry_size});

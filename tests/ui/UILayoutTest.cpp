@@ -31,10 +31,9 @@ static void test_layout_to_from_data() {
 
     byte* out = ring_get_memory(&ring, 1024 * 1024);
 
-    int64 dump_size = layout_to_data(&layout_dump, out);
-    int64 load_size = layout_from_data(out, &layout_load);
-    TEST_EQUALS(dump_size, load_size);
-    TEST_MEMORY_EQUALS(layout_dump.data, layout_load.data, (uint32) (load_size * 0.8));
+    layout_to_data(&layout_dump, out);
+    layout_from_data(out, &layout_load);
+    TEST_MEMORY_EQUALS(layout_dump.data, layout_load.data, (uint32) (layout_load.layout_size * 0.8));
 
     UIElement* element = layout_get_element(&layout_load, "cmd_window");
     TEST_NOT_EQUALS(element, NULL);

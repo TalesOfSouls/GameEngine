@@ -36,52 +36,25 @@ struct coms_pthread_rwlock_t {
     bool exclusive;
 };
 
-inline
-int32 mutex_init(mutex* mutex, mutexattr_t*)
-{
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    InitializeCriticalSection(mutex);
-
-    return 0;
+// We use Macros to avoid the function call overhead and exception handling overhead
+#define mutex_init(mutex, attr) { \
+    ASSERT_TRUE((mutex)); \
+    InitializeCriticalSection((mutex)); \
 }
 
-inline
-int32 mutex_destroy(mutex* mutex)
-{
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    DeleteCriticalSection(mutex);
-
-    return 0;
+#define mutex_destroy(mutex) { \
+    ASSERT_TRUE((mutex)); \
+    DeleteCriticalSection((mutex)); \
 }
 
-inline
-int32 mutex_lock(mutex* mutex)
-{
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    EnterCriticalSection(mutex);
-
-    return 0;
+#define mutex_lock(mutex) { \
+    ASSERT_TRUE((mutex)); \
+    EnterCriticalSection((mutex)); \
 }
 
-inline
-int32 mutex_unlock(mutex* mutex)
-{
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    LeaveCriticalSection(mutex);
-
-    return 0;
+#define mutex_unlock(mutex) { \
+    ASSERT_TRUE((mutex)); \
+    LeaveCriticalSection((mutex)); \
 }
 
 #endif

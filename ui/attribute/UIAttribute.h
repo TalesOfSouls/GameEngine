@@ -33,6 +33,7 @@ struct UIAttribute {
 
 struct UIAttributeGroup {
     // @question Why is this a uint32 instead of uint16, I think it doesn't matter due to the alignment?!
+    // UIAttribute which comes afterwards would result in an alignment anyways?!
     uint32 attribute_count;
     // We don't use a pointer since this would prevent us from copying around the main data owner
     // The UIAttribute values come directly after UIAttributeGroup (e.g. group + 1 in memory)

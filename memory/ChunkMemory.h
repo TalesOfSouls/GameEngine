@@ -30,6 +30,9 @@ struct ChunkMemory {
     int32 last_pos;
     uint32 count;
     uint32 chunk_size;
+
+    // WARNING: The alignment may increase the original chunk size e.g.
+    // element_size = 14, alignment = 32 => chunk_size = 32
     uint32 alignment;
 
     // length = count
@@ -37,14 +40,14 @@ struct ChunkMemory {
     alignas(8) uint64* free;
 };
 
-inline
-uint32 chunk_size_element(uint32 element_size, int32 alignment = 64)
+FORCE_INLINE
+uint32 chunk_size_element(uint32 element_size, int32 alignment = 32)
 {
     return ROUND_TO_NEAREST(element_size, alignment);
 }
 
 inline
-uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = 64)
+uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = 32)
 {
     element_size = chunk_size_element(element_size, alignment);
 
@@ -55,7 +58,7 @@ uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = 64)
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alignment = 64)
+void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alignment = 32)
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
@@ -76,13 +79,13 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alig
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * element_size), alignment);
+    buf->free = (uint64 *) ROUND_TO_NEAREST((uint64) ((uintptr_t) (buf->memory + count * element_size)), (uint64) alignment);
 
     memset(buf->memory, 0, buf->size);
 }
 
 inline
-void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 element_size, int32 alignment = 64)
+void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 element_size, int32 alignment = 32)
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
@@ -108,7 +111,7 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 eleme
 }
 
 inline
-void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 element_size, int32 alignment = 64)
+void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 element_size, int32 alignment = 32)
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
@@ -128,7 +131,7 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 element_size,
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * element_size), alignment);
+    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * element_size), (uint64) alignment);
 
     memset(buf->memory, 0, buf->size);
 
@@ -148,6 +151,12 @@ void chunk_free(ChunkMemory* buf)
 
     buf->size = 0;
     buf->memory = NULL;
+}
+
+FORCE_INLINE
+uint64* chunk_find_free_array(const ChunkMemory* buf)
+{
+    return (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + buf->count * buf->chunk_size), (uint64) buf->alignment);
 }
 
 FORCE_INLINE
@@ -175,7 +184,8 @@ byte* chunk_get_element(ChunkMemory* buf, uint32 element, bool zeroed = false) N
 }
 
 // This is a special case of the chunk_reserve code where we try to find n unset elements
-int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT {
+int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
+{
     if ((uint32) start_index >= state_count) {
         start_index = 0;
     }
@@ -190,7 +200,7 @@ int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) 
         return free_index * 64 + bit_index;
     }
 
-    for (uint32 i = 0; i < state_count; i+= 64) {
+    for (uint32 i = 0; i < state_count; i+= 32) {
         if (state[free_index] != 0xFFFFFFFFFFFFFFFF) {
             bit_index = compiler_find_first_bit_r2l(~state[free_index]);
 
@@ -252,7 +262,7 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
             // Skip fully filled ranges
             ++free_index;
             bit_index = 0;
-            i += 64;
+            i += 32;
             consecutive_free_bits = 0;
 
             continue;

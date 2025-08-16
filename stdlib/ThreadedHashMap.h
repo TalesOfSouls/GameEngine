@@ -25,25 +25,25 @@ struct ThreadedHashMap {
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void thrd_hashmap_create(ThreadedHashMap* hm, int32 count, int32 element_size, RingMemory* ring)
+void thrd_hashmap_create(ThreadedHashMap* hm, int32 count, int32 element_size, RingMemory* ring, int32 alignment = 32)
 {
-    hashmap_create((HashMap *) hm, count, element_size, ring);
+    hashmap_create((HashMap *) hm, count, element_size, ring, alignment);
     mutex_init(&hm->mtx, NULL);
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void thrd_hashmap_create(ThreadedHashMap* hm, int32 count, int32 element_size, BufferMemory* buf)
+void thrd_hashmap_create(ThreadedHashMap* hm, int32 count, int32 element_size, BufferMemory* buf, int32 alignment = 32)
 {
-    hashmap_create((HashMap *) hm, count, element_size, buf);
+    hashmap_create((HashMap *) hm, count, element_size, buf, alignment);
     mutex_init(&hm->mtx, NULL);
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void thrd_hashmap_create(ThreadedHashMap* hm, int32 count, int32 element_size, byte* buf)
+void thrd_hashmap_create(ThreadedHashMap* hm, int32 count, int32 element_size, byte* buf, int32 alignment = 32)
 {
-    hashmap_create((HashMap *) hm, count, element_size, buf);
+    hashmap_create((HashMap *) hm, count, element_size, buf, alignment);
     mutex_init(&hm->mtx, NULL);
 }
 

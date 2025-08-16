@@ -502,7 +502,7 @@ UIThemeStyle* cmd_theme_load_sync(
     return theme;
 }
 
-inline
+FORCE_INLINE
 void cmd_layout_populate_sync(
     AppCmdBuffer*,
     UILayout* layout, const UIThemeStyle* theme
@@ -695,6 +695,7 @@ void cmd_iterate(AppCmdBuffer* cb)
 // Solution 2: create a mask for the chunk->free which will be set (and only then locked) after everything is done
 //              This has the risk that if it takes a long time we may run out of free indices for insert
 //              This shouldn't happen since the command buffer shouldn't fill up in just 1-3 frames
+inline
 void thrd_cmd_iterate(AppCmdBuffer* cb)
 {
     mutex_lock(&cb->mtx);

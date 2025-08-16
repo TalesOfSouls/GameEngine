@@ -28,7 +28,11 @@ struct UIThemeStyle {
     // @performance Switch to perfect hash map
     HashMap hash_map;
 
+    // Total size of the theme incl. hash_map
     uint32 data_size;
+    uint32 used_data_size;
+
+    // This buffer is used also by the hash_map
     byte* data;
 
     // @question It feels weird that this is here, especially considering we could have multiple fonts
@@ -36,7 +40,7 @@ struct UIThemeStyle {
     Font* font;
 };
 
-inline
+FORCE_INLINE
 UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
 {
     HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&theme->hash_map, group_name);
@@ -48,7 +52,7 @@ UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
     return (UIAttributeGroup *) (theme->data + entry->value);
 }
 
-static inline
+static FORCE_INLINE
 int compare_by_attribute_id(const void* __restrict a, const void* __restrict b) NO_EXCEPT {
     UIAttribute* attr_a = (UIAttribute *) a;
     UIAttribute* attr_b = (UIAttribute *) b;
@@ -103,7 +107,13 @@ void theme_from_file_txt(
 
     // @performance This is probably horrible since we are not using a perfect hashing function (1 hash -> 1 index)
     //      I wouldn't be surprised if we have a 50% hash overlap (2 hashes -> 1 index)
-    hashmap_create(&theme->hash_map, temp_group_count, sizeof(HashEntryInt32), theme->data);
+    hashmap_create(
+        &theme->hash_map,
+        temp_group_count,
+        sizeof(HashEntryInt32),
+        theme->data,
+        ROUND_TO_NEAREST(sizeof(HashEntryInt32), 32)
+    );
     int32 data_offset = (int32) hashmap_size(&theme->hash_map);
 
     UIAttributeGroup* temp_group = NULL;
@@ -159,6 +169,10 @@ void theme_from_file_txt(
                 data_offset += sizeof(UIAttributeGroup);
             }
 
+            if (str_length(block_name) + 1 > HASH_MAP_MAX_KEY_LENGTH) {
+                LOG_1("Identifier %s too long", {LOG_DATA_CHAR_STR, block_name});
+            }
+
             continue;
         }
 
@@ -198,6 +212,8 @@ void theme_from_file_txt(
         str_move_to(&pos, '\n');
     }
 
+    theme->used_data_size = data_offset;
+
     // We still need to sort the last group
     sort_introsort(temp_group + 1, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
     // @todo This is where we create the Eytzinger order if we want to use it
@@ -226,7 +242,7 @@ void ui_theme_parse_group(HashEntryInt32* entry, byte* data, const byte** in)
         if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
             attribute_reference[j].value_int = SWAP_ENDIAN_LITTLE(*((int32 *) *in));
             *in += sizeof(attribute_reference[j].value_int);
-        } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
+        } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_F32) {
             attribute_reference[j].value_float = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
             *in += sizeof(attribute_reference[j].value_float);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
@@ -275,10 +291,20 @@ int32 theme_from_data(
     int32 version = SWAP_ENDIAN_LITTLE(*((int32 *) in));
     in += sizeof(version);
 
+    theme->used_data_size = SWAP_ENDIAN_LITTLE(*((uint32 *) in));
+    in += sizeof(theme->used_data_size);
+
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
     // The value is a int64 (because this is the value of the chunk buffer size but the hashmap only allows int32)
-    hashmap_create(&theme->hash_map, (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)), sizeof(HashEntryInt32), theme->data);
+    // @question Assuming 32 byte alignment is extremely risky
+    hashmap_create(
+        &theme->hash_map,
+        (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)),
+        sizeof(HashEntryInt32),
+        theme->data,
+        ROUND_TO_NEAREST(sizeof(HashEntryInt32), 32)
+    );
 
     in += hashmap_load(&theme->hash_map, in);
 
@@ -299,7 +325,7 @@ int32 theme_from_data(
 // Calculates the maximum theme size
 // Not every group has all the attributes (most likely only a small subset)
 // However, an accurate calculation is probably too slow and not needed most of the time
-inline
+FORCE_INLINE
 int64 theme_data_size_max(const UIThemeStyle* theme)
 {
     return hashmap_size(&theme->hash_map)
@@ -308,7 +334,7 @@ int64 theme_data_size_max(const UIThemeStyle* theme)
 
 // @todo Why do even need **pos, shouldn't it just be *pos
 static inline
-void ui_theme_serialize_group(const HashEntryInt32* entry, byte* data, byte** out)
+void ui_theme_serialize_group(const HashEntryInt32* entry, const byte* data, byte** out)
 {
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of theme->data
@@ -326,10 +352,12 @@ void ui_theme_serialize_group(const HashEntryInt32* entry, byte* data, byte** ou
         *((byte *) *out) = attribute_reference[j].datatype;
         *out += sizeof(attribute_reference[j].datatype);
 
+        // Careful the sizeof() below returns the actual value size but the union size is actually larger
+        // This is fine as long as we remember when loading the data to zero out the other bytes
         if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
             *((int32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_int);
             *out += sizeof(attribute_reference[j].value_int);
-        } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
+        } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_F32) {
             *((f32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_float);
             *out += sizeof(attribute_reference[j].value_float);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
@@ -375,6 +403,9 @@ int32 theme_to_data(
     // version
     *((int32 *) out) = SWAP_ENDIAN_LITTLE(UI_THEME_VERSION);
     out += sizeof(int32);
+
+    *((uint32 *) out) = SWAP_ENDIAN_LITTLE(theme->used_data_size);
+    out += sizeof(theme->used_data_size);
 
     // hashmap
     out += hashmap_dump(&theme->hash_map, out);

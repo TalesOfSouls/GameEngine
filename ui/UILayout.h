@@ -62,10 +62,12 @@ struct UILayout {
 
     // UI data
     // Only the size of the fixed layout, doesn't include the theme specific data
+    // This is needed to know where we can add theme specific data into the data memory area
     uint32 layout_size;
 
-    // Total possible size (hard limited to 4 GB)
+    // Total used size (hard limited to 4 GB)
     uint32 data_size;
+    uint32 used_data_size;
 
     // Holds the ui elements
     // The structure of the data is as follows:
@@ -109,8 +111,8 @@ struct UILayout {
     // WARNING: This memory is shared between different layouts
     uint32 active_vertex_count;
 
-    // Not the data owner (see data above)
-    // @bug Conflicting comment above, see editor_setup allocation (the allocation seems like it is the owner of vertex mem)
+    // Currently this is a separate memory area than the data above
+    // @question Do we want to make this part of the data above?
     Vertex3DSamplerTextureColor* vertices_active;
 
     // Used during the initialization so that every element knows where we currently are during the setup process

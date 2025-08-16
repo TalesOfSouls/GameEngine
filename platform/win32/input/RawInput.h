@@ -398,8 +398,8 @@ void input_handle(LPARAM lParam, Input* __restrict states, int state_count, Ring
     input_raw_handle((RAWINPUT *) lpb, states, state_count, time);
 }
 
-// buffer_size = max input messages
-int16 input_handle_buffered(int32 buffer_size, Input* __restrict states, int32 state_count, RingMemory* ring, uint64 time)
+// max_inputs = max input messages
+int16 input_handle_buffered(int32 max_inputs, Input* __restrict states, int32 state_count, RingMemory* ring, uint64 time)
 {
     uint32 cb_size;
     GetRawInputBuffer(NULL, &cb_size, sizeof(RAWINPUTHEADER));
@@ -408,7 +408,7 @@ int16 input_handle_buffered(int32 buffer_size, Input* __restrict states, int32 s
     }
 
     // Max input messages (e.g. 16)
-    cb_size *= buffer_size;
+    cb_size *= max_inputs;
 
     PRAWINPUT raw_input = (PRAWINPUT) ring_get_memory(ring, cb_size, 4);
 

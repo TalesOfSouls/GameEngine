@@ -42,49 +42,24 @@ struct coms_pthread_t {
     void* stack;
 };
 
-FORCE_INLINE
-int32 futex_wait(volatile int32* futex, int32 val) {
-    return syscall(SYS_futex, futex, FUTEX_WAIT, val, NULL, NULL, 0);
+#define futex_wait(futex, val) syscall(SYS_futex, futex, FUTEX_WAIT, val, NULL, NULL, 0)
+#define futex_wake(futex, n) syscall(SYS_futex, futex, FUTEX_WAKE, n, NULL, NULL, 0)
+
+#define mutex_init(a, b) ((void) 0)
+#define mutex_init(a, b, c) ((void) 0)
+#define mutex_destroy(a, b) ((void) 0)
+
+#define mutex_lock(mutex) { \
+    ASSERT_TRUE((mutex)); \
+    while (atomic_fetch_set_acquire(&(mutex)->futex, 1) != 0) { \
+        futex_wait(&(mutex)->futex, 1); \
+    } \
 }
 
-FORCE_INLINE
-int32 futex_wake(volatile int32* futex, int32 n) {
-    return syscall(SYS_futex, futex, FUTEX_WAKE, n, NULL, NULL, 0);
-}
-
-FORCE_INLINE
-int32 mutex_init(mutex* mutex, mutexattr_t*) {
-    return mutex == NULL ? 1 : 0;
-}
-
-FORCE_INLINE
-int32 mutex_destroy(mutex* mutex) {
-    return mutex == NULL ? 1 : 0;
-}
-
-inline
-int32 mutex_lock(mutex* mutex) {
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    while (atomic_fetch_set_acquire(&mutex->futex, 1) != 0) {
-        futex_wait(&mutex->futex, 1);
-    }
-
-    return 0;
-}
-
-inline
-int32 mutex_unlock(mutex* mutex) {
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    atomic_set_release(&mutex->futex, 0);
-    futex_wake(&mutex->futex, 1);
-
-    return 0;
+#define mutex_unlock(mutex) { \
+    ASSERT_TRUE((mutex)); \
+    atomic_set_release(&(mutex)->futex, 0); \
+    futex_wake(&(mutex)->futex, 1); \
 }
 
 #endif

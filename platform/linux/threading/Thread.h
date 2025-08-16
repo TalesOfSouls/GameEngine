@@ -24,10 +24,11 @@
 #include "Atomic.h"
 
 inline
-int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg) {
-    if (thread == NULL || start_routine == NULL) {
-        return 1;
-    }
+int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg) NO_EXCEPT
+{
+    // @question Do we want to pin threads automatically to p cores based on a utilization score?
+    ASSERT_TRUE(thread);
+    ASSERT_TRUE(start_routine);
 
     const uint64 stack_size = 1 * MEGABYTE;
     thread->stack = platform_alloc_aligned(stack_size, 64);
@@ -47,7 +48,8 @@ int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_rou
 }
 
 FORCE_INLINE
-int32 coms_pthread_join(coms_pthread_t thread, void** retval) {
+int32 coms_pthread_join(coms_pthread_t thread, void** retval) NO_EXCEPT
+{
     int32 res = syscall(SYS_waitid, P_PID, thread, retval, WEXITED, NULL) == -1
         ? 1
         : 0;
@@ -58,16 +60,16 @@ int32 coms_pthread_join(coms_pthread_t thread, void** retval) {
 }
 
 FORCE_INLINE
-int32 coms_pthread_detach(coms_pthread_t) {
+int32 coms_pthread_detach(coms_pthread_t) NO_EXCEPT
+{
     // In Linux, threads are automatically detached when they exit.
     return 0;
 }
 
 inline
-int32 coms_pthread_cond_init(mutex_cond* cond, coms_pthread_condattr_t*) {
-    if (cond == NULL) {
-        return 1;
-    }
+int32 coms_pthread_cond_init(mutex_cond* cond, coms_pthread_condattr_t*) NO_EXCEPT
+{
+    ASSERT_TRUE(cond);
 
     cond->futex = 0;
 
@@ -75,15 +77,16 @@ int32 coms_pthread_cond_init(mutex_cond* cond, coms_pthread_condattr_t*) {
 }
 
 FORCE_INLINE
-int32 coms_pthread_cond_destroy(mutex_cond* cond) {
+int32 coms_pthread_cond_destroy(mutex_cond* cond) NO_EXCEPT
+{
     return cond == NULL ? 1 : 0;
 }
 
 inline
-int32 mutex_condimedwait(mutex_cond* cond, mutex* mutex, const struct timespec*) {
-    if (cond == NULL || mutex == NULL) {
-        return 1;
-    }
+int32 mutex_condimedwait(mutex_cond* cond, mutex* mutex, const struct timespec*) NO_EXCEPT
+{
+    ASSERT_TRUE(cond);
+    ASSERT_TRUE(mutex);
 
     int32 oldval = atomic_get_acquire(&cond->futex);
     mutex_unlock(mutex);
@@ -94,15 +97,15 @@ int32 mutex_condimedwait(mutex_cond* cond, mutex* mutex, const struct timespec*)
 }
 
 FORCE_INLINE
-int32 coms_pthread_cond_wait(mutex_cond* cond, mutex* mutex) {
+int32 coms_pthread_cond_wait(mutex_cond* cond, mutex* mutex) NO_EXCEPT
+{
     return mutex_condimedwait(cond, mutex, NULL);
 }
 
-inline
-int32 coms_pthread_cond_signal(mutex_cond* cond) {
-    if (cond == NULL) {
-        return 1;
-    }
+FORCE_INLINE
+int32 coms_pthread_cond_signal(mutex_cond* cond) NO_EXCEPT
+{
+    ASSERT_TRUE(cond);
 
     atomic_increment_release(&cond->futex);
     futex_wake(&cond->futex, 1);
@@ -110,11 +113,10 @@ int32 coms_pthread_cond_signal(mutex_cond* cond) {
     return 0;
 }
 
-inline
-int32 coms_pthread_cond_broadcast(mutex_cond* cond) {
-    if (cond == NULL) {
-        return 1;
-    }
+FORCE_INLINE
+int32 coms_pthread_cond_broadcast(mutex_cond* cond) NO_EXCEPT
+{
+    ASSERT_TRUE(cond);
 
     atomic_increment_release(&cond->futex);
     futex_wake(&cond->futex, INT32_MAX);
@@ -122,11 +124,10 @@ int32 coms_pthread_cond_broadcast(mutex_cond* cond) {
     return 0;
 }
 
-inline
-int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* rwlock, const coms_pthread_rwlockattr_t*) {
-    if (rwlock == NULL) {
-        return 1;
-    }
+FORCE_INLINE
+int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* rwlock, const coms_pthread_rwlockattr_t*) NO_EXCEPT
+{
+    ASSERT_TRUE(rwlock);
 
     rwlock->futex = 0;
     rwlock->exclusive = false;
@@ -134,20 +135,18 @@ int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* rwlock, const coms_pthread
     return 0;
 }
 
-inline
-int32 coms_pthread_rwlock_destroy(coms_pthread_rwlock_t* rwlock) {
-    if (rwlock == NULL) {
-        return 1;
-    }
+FORCE_INLINE
+int32 coms_pthread_rwlock_destroy(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
+{
+    ASSERT_TRUE(rwlock);
 
     return 0;
 }
 
 inline
-int32 coms_pthread_rwlock_rdlock(coms_pthread_rwlock_t* rwlock) {
-    if (rwlock == NULL) {
-        return 1;
-    }
+int32 coms_pthread_rwlock_rdlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
+{
+    ASSERT_TRUE(rwlock);
 
     while (true) {
         int32 val = atomic_get_acquire(&rwlock->futex);
@@ -161,10 +160,9 @@ int32 coms_pthread_rwlock_rdlock(coms_pthread_rwlock_t* rwlock) {
 }
 
 inline
-int32 coms_pthread_rwlock_tryrdlock(coms_pthread_rwlock_t* rwlock) {
-    if (rwlock == NULL) {
-        return 1;
-    }
+int32 coms_pthread_rwlock_tryrdlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
+{
+    ASSERT_TRUE(rwlock);
 
     int32 val = atomic_get_acquire(&rwlock->futex);
     if (val >= 0 && __atomic_compare_exchange_n(&rwlock->futex, &val, val + 1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
@@ -175,10 +173,9 @@ int32 coms_pthread_rwlock_tryrdlock(coms_pthread_rwlock_t* rwlock) {
 }
 
 inline
-int32 coms_pthread_rwlock_wrlock(coms_pthread_rwlock_t* rwlock) {
-    if (rwlock == NULL) {
-        return 1;
-    }
+int32 coms_pthread_rwlock_wrlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
+{
+    ASSERT_TRUE(rwlock);
 
     while (true) {
         int32 val = atomic_get_acquire(&rwlock->futex);
@@ -193,10 +190,9 @@ int32 coms_pthread_rwlock_wrlock(coms_pthread_rwlock_t* rwlock) {
 }
 
 inline
-int32 coms_pthread_rwlock_trywrlock(coms_pthread_rwlock_t* rwlock) {
-    if (rwlock == NULL) {
-        return 1;
-    }
+int32 coms_pthread_rwlock_trywrlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
+{
+    ASSERT_TRUE(rwlock);
 
     int32 val = atomic_get_acquire(&rwlock->futex);
     if (val == 0 && __atomic_compare_exchange_n(&rwlock->futex, &val, -1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
@@ -208,10 +204,9 @@ int32 coms_pthread_rwlock_trywrlock(coms_pthread_rwlock_t* rwlock) {
 }
 
 inline
-int32 coms_pthread_rwlock_unlock(coms_pthread_rwlock_t* rwlock) {
-    if (rwlock == NULL) {
-        return 1;
-    }
+int32 coms_pthread_rwlock_unlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
+{
+    ASSERT_TRUE(rwlock);
 
     if (rwlock->exclusive) {
         rwlock->exclusive = false;
@@ -228,7 +223,8 @@ int32 coms_pthread_rwlock_unlock(coms_pthread_rwlock_t* rwlock) {
 }
 
 FORCE_INLINE
-uint32 pcthread_get_num_procs() {
+uint32 pcthread_get_num_procs() NO_EXCEPT
+{
     return sysconf(_SC_NPROCESSORS_ONLN);
 }
 

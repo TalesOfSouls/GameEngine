@@ -35,7 +35,7 @@ struct ThreadPool {
 
     // 1 = waiting for run, 2 = running, 0 = completed, -1 = canceling
     alignas(4) atomic_32 int32 state;
-    alignas(4) atomic_32 int32 id_counter;
+    alignas(4) atomic_32 uint32 id_counter;
 
     DebugContainer* debug_container;
 };
@@ -83,7 +83,7 @@ THREAD_RETURN thread_pool_worker(void* arg)
 
         // When the worker functions of the thread pool get woken up it is possible that the work is already dequeued
         // by another thread -> we need to check if the work is actually valid
-        if (work->state <= POOL_WORKER_STATE_COMPLETED || work->id <= 0) {
+        if (work->state <= POOL_WORKER_STATE_COMPLETED) {
             atomic_set_release((volatile int32*) &work->state, POOL_WORKER_STATE_COMPLETED);
             continue;
         }
@@ -241,9 +241,10 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
 
     ring_move_pointer((RingMemory *) &pool->work_queue, &pool->work_queue.head, pool->element_size, 8);
 
-    if (temp_job->id == 0) {
-        temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1);
-    }
+    // @performance Do we really want to do this under all circumstances?
+    //  There are many situations where we don't need an id
+    // +1 because otherwise the very first job would be id = 0 which is not a valid id
+    temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1) + 1;
 
     coms_pthread_cond_broadcast(&pool->work_cond);
     mutex_unlock(&pool->work_mutex);
@@ -265,10 +266,10 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
         return NULL;
     }
 
-    if (temp_job->id == 0) {
-        // +1 because otherwise the very first job would be id = 0 which is not a valid id
-        temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1) + 1;
-    }
+    // @performance Do we really want to do this under all circumstances?
+    //  There are many situations where we don't need an id
+    // +1 because otherwise the very first job would be id = 0 which is not a valid id
+    temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1) + 1;
 
     temp_job->state = POOL_WORKER_STATE_WAITING;
 

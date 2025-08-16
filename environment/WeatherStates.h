@@ -1,0 +1,8 @@
+enum WeatherStates : uint32 {
+    WEATHER_STATES_SUNNY = 1 << 0,
+    WEATHER_STATES_RAINING = 1 << 2,
+    WEATHER_STATES_STORMING = 1 << 3,
+    WEATHER_STATES_HAIL = 1 << 4,
+    WEATHER_STATES_SNOWING = 1 << 6,
+    WEATHER_STATES_BLIZZARD = 1 << 7,
+};

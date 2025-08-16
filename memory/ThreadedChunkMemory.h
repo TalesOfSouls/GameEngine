@@ -35,7 +35,7 @@ struct ThreadedChunkMemory {
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignment = 64)
+void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignment = 32)
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -70,7 +70,7 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
 }
 
 inline
-void thrd_chunk_init(ThreadedChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
+void thrd_chunk_init(ThreadedChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = 32)
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -102,7 +102,7 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, BufferMemory* data, uint32 count,
 }
 
 inline
-void thrd_chunk_init(ThreadedChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
+void thrd_chunk_init(ThreadedChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = 32)
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);

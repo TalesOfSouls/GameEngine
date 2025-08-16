@@ -14,12 +14,12 @@
 #include "ThreadDefines.h"
 #include <windows.h>
 
-inline
-int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg)
+FORCE_INLINE
+int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg) NO_EXCEPT
 {
-    if (thread == NULL || start_routine == NULL) {
-        return 1;
-    }
+    // @question Do we want to pin threads automatically to p cores based on a utilization score?
+    ASSERT_TRUE(thread);
+    ASSERT_TRUE(start_routine);
 
     thread->h = CreateThread(NULL, 0, start_routine, arg, 0, NULL);
     if (thread->h == NULL) {
@@ -29,8 +29,8 @@ int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_rou
     return 0;
 }
 
-inline
-int32 coms_pthread_join(coms_pthread_t thread, void**)
+FORCE_INLINE
+int32 coms_pthread_join(coms_pthread_t thread, void**) NO_EXCEPT
 {
     WaitForSingleObject(thread.h, INFINITE);
     CloseHandle(thread.h);
@@ -38,8 +38,8 @@ int32 coms_pthread_join(coms_pthread_t thread, void**)
     return 0;
 }
 
-inline
-int32 coms_pthread_detach(coms_pthread_t thread)
+FORCE_INLINE
+int32 coms_pthread_detach(coms_pthread_t thread) NO_EXCEPT
 {
     CloseHandle(thread.h);
 
@@ -47,32 +47,28 @@ int32 coms_pthread_detach(coms_pthread_t thread)
 }
 
 // WARNING: We don't support windows events since they are much slower than conditional variables/mutexes
-inline
-int32 coms_pthread_cond_init(mutex_cond* cond, coms_pthread_condattr_t*)
+FORCE_INLINE
+int32 coms_pthread_cond_init(mutex_cond* cond, coms_pthread_condattr_t*) NO_EXCEPT
 {
-    if (cond == NULL) {
-        return 1;
-    }
-
+    ASSERT_TRUE(cond);
     InitializeConditionVariable(cond);
 
     return 0;
 }
 
-inline
-int32 coms_pthread_cond_destroy(mutex_cond*)
+FORCE_INLINE
+int32 coms_pthread_cond_destroy(mutex_cond*) NO_EXCEPT
 {
     /* Windows does not have a destroy for conditionals */
     return 0;
 }
 
 // @question Can't we turn timespec in a typedef of uint64? I would like to avoid the time.h class
-inline
-int32 mutex_condimedwait(mutex_cond* cond, mutex* mutex, const timespec* abstime)
+FORCE_INLINE
+int32 mutex_condimedwait(mutex_cond* cond, mutex* mutex, const timespec* abstime) NO_EXCEPT
 {
-    if (cond == NULL || mutex == NULL) {
-        return 1;
-    }
+    ASSERT_TRUE(cond);
+    ASSERT_TRUE(mutex);
 
     if (!SleepConditionVariableCS(cond, mutex, timespec_to_ms(abstime))) {
         return 1;
@@ -81,46 +77,37 @@ int32 mutex_condimedwait(mutex_cond* cond, mutex* mutex, const timespec* abstime
     return 0;
 }
 
-inline
-int32 coms_pthread_cond_wait(mutex_cond* cond, mutex* mutex)
+FORCE_INLINE
+int32 coms_pthread_cond_wait(mutex_cond* cond, mutex* mutex) NO_EXCEPT
 {
-    if (cond == NULL || mutex == NULL) {
-        return 1;
-    }
+    ASSERT_TRUE(cond);
+    ASSERT_TRUE(mutex);
 
     return mutex_condimedwait(cond, mutex, NULL);
 }
 
-inline
-int32 coms_pthread_cond_signal(mutex_cond* cond)
+FORCE_INLINE
+int32 coms_pthread_cond_signal(mutex_cond* cond) NO_EXCEPT
 {
-    if (cond == NULL) {
-        return 1;
-    }
-
+    ASSERT_TRUE(cond);
     WakeConditionVariable(cond);
 
     return 0;
 }
 
-inline
-int32 coms_pthread_cond_broadcast(mutex_cond* cond)
+FORCE_INLINE
+int32 coms_pthread_cond_broadcast(mutex_cond* cond) NO_EXCEPT
 {
-    if (cond == NULL) {
-        return 1;
-    }
-
+    ASSERT_TRUE(cond);
     WakeAllConditionVariable(cond);
 
     return 0;
 }
 
-inline
-int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* rwlock, const coms_pthread_rwlockattr_t*)
+FORCE_INLINE
+int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* rwlock, const coms_pthread_rwlockattr_t*) NO_EXCEPT
 {
-    if (rwlock == NULL) {
-        return 1;
-    }
+    ASSERT_TRUE(rwlock);
 
     InitializeSRWLock(&rwlock->lock);
     rwlock->exclusive = false;
@@ -128,40 +115,32 @@ int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* rwlock, const coms_pthread
     return 0;
 }
 
-inline
-int32 coms_pthread_rwlock_destroy(coms_pthread_rwlock_t*)
+FORCE_INLINE
+int32 coms_pthread_rwlock_destroy(coms_pthread_rwlock_t*) NO_EXCEPT
 {
     return 0;
 }
 
-inline
-int32 coms_pthread_rwlock_rdlock(coms_pthread_rwlock_t* rwlock)
+FORCE_INLINE
+int32 coms_pthread_rwlock_rdlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
 {
-    if (rwlock == NULL) {
-        return 1;
-    }
-
+    ASSERT_TRUE(rwlock);
     AcquireSRWLockShared(&rwlock->lock);
 
     return 0;
 }
 
-inline
-int32 coms_pthread_rwlock_tryrdlock(coms_pthread_rwlock_t* rwlock)
+FORCE_INLINE
+int32 coms_pthread_rwlock_tryrdlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
 {
-    if (rwlock == NULL) {
-        return 1;
-    }
-
+    ASSERT_TRUE(rwlock);
     return !TryAcquireSRWLockShared(&rwlock->lock);
 }
 
-inline
-int32 coms_pthread_rwlock_wrlock(coms_pthread_rwlock_t* rwlock)
+FORCE_INLINE
+int32 coms_pthread_rwlock_wrlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
 {
-    if (rwlock == NULL) {
-        return 1;
-    }
+    ASSERT_TRUE(rwlock);
 
     AcquireSRWLockExclusive(&rwlock->lock);
     rwlock->exclusive = true;
@@ -169,12 +148,10 @@ int32 coms_pthread_rwlock_wrlock(coms_pthread_rwlock_t* rwlock)
     return 0;
 }
 
-inline
-int32 coms_pthread_rwlock_trywrlock(coms_pthread_rwlock_t  *rwlock)
+FORCE_INLINE
+int32 coms_pthread_rwlock_trywrlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
 {
-    if (rwlock == NULL) {
-        return 1;
-    }
+    ASSERT_TRUE(rwlock);
 
     BOOLEAN ret = TryAcquireSRWLockExclusive(&rwlock->lock);
     if (ret) {
@@ -184,12 +161,10 @@ int32 coms_pthread_rwlock_trywrlock(coms_pthread_rwlock_t  *rwlock)
     return ret;
 }
 
-inline
-int32 coms_pthread_rwlock_unlock(coms_pthread_rwlock_t* rwlock)
+FORCE_INLINE
+int32 coms_pthread_rwlock_unlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
 {
-    if (rwlock == NULL) {
-        return 1;
-    }
+    ASSERT_TRUE(rwlock);
 
     if (rwlock->exclusive) {
         rwlock->exclusive = false;
@@ -201,8 +176,8 @@ int32 coms_pthread_rwlock_unlock(coms_pthread_rwlock_t* rwlock)
     return 0;
 }
 
-inline
-uint32 pcthread_get_num_procs()
+FORCE_INLINE
+uint32 pcthread_get_num_procs() NO_EXCEPT
 {
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);

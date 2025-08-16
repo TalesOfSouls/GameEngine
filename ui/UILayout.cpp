@@ -145,7 +145,13 @@ void layout_from_file_txt(
     // 2. Iteration: Fill HashMap
     // @performance This is probably horrible since we are not using a perfect hashing function (1 hash -> 1 index)
     //      I wouldn't be surprised if we have a 50% hash overlap (2 hashes -> 1 index)
-    hashmap_create(&layout->hash_map, temp_element_count, sizeof(HashEntryInt32), layout->data);
+    hashmap_create(
+        &layout->hash_map,
+        temp_element_count,
+        sizeof(HashEntryInt32),
+        layout->data,
+        ROUND_TO_NEAREST(sizeof(HashEntryInt32), 32)
+    );
     int64 hm_size = hashmap_size(&layout->hash_map);
 
     pos = (char *) file.content;
@@ -185,6 +191,10 @@ void layout_from_file_txt(
         str_copy_move_until(block_name, &pos, ":"); ++pos;
         str_copy_move_until(block_type, &pos, " \r\n");
         str_move_past(&pos, '\n');
+
+        if (str_length(block_name) + 1 > HASH_MAP_MAX_KEY_LENGTH) {
+            LOG_1("Identifier %s too long", {LOG_DATA_CHAR_STR, block_name});
+        }
 
         // Insert new element
         UIElement* element = (UIElement *) element_data;
@@ -272,6 +282,11 @@ void layout_from_file_txt(
         str_move_past(&pos, '\n');
         root_children[child++] = ((HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name))->value;
     }
+
+    layout->layout_size = (uint32) (element_data - layout->data);
+
+    // They are the same until we add theme specific information
+    layout->used_data_size = layout->layout_size;
 }
 
 static
@@ -421,6 +436,12 @@ int32 layout_to_data(
     // version
     *((int32 *) out) = SWAP_ENDIAN_LITTLE(UI_LAYOUT_VERSION);
     out += sizeof(int32);
+
+    // layout_size
+    *((uint32 *) out) = SWAP_ENDIAN_LITTLE(layout->layout_size);
+    out += sizeof(layout->layout_size);
+
+    // We don't save the used_data_size because that depends on the respective theme
 
     // hashmap
     out += hashmap_dump(&layout->hash_map, out);
@@ -578,9 +599,20 @@ int32 layout_from_data(
     int32 version = SWAP_ENDIAN_LITTLE(*((int32 *) in));
     in += sizeof(version);
 
+    layout->layout_size = SWAP_ENDIAN_LITTLE(*((uint32 *) in));
+    in += sizeof(layout->layout_size);
+
+    layout->used_data_size = layout->layout_size;
+
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
-    hashmap_create(&layout->hash_map, (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)), sizeof(HashEntryInt32), layout->data);
+    hashmap_create(
+        &layout->hash_map,
+        (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)),
+        sizeof(HashEntryInt32),
+        layout->data,
+        ROUND_TO_NEAREST(sizeof(HashEntryInt32), 32)
+    );
 
     in += hashmap_load(&layout->hash_map, in);
 
@@ -591,8 +623,6 @@ int32 layout_from_data(
         HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
         ui_layout_parse_element(entry, layout->data, &in);
     } chunk_iterate_end;
-
-    layout->layout_size = (uint32) (in - data);
 
     LOG_1("Loaded layout");
 
@@ -615,9 +645,12 @@ void layout_from_theme(
         layout->font = theme->font;
     }
 
-    // Current position where we can the different sub elements (e.g. :hover, :active, ...)
+    // Current position where we can add the different sub elements (e.g. :hover, :active, ...)
     // We make sure that the offset is a multiple of 8 bytes for better alignment
     uint32 dynamic_pos = ROUND_TO_NEAREST(layout->layout_size, 8);
+
+    // @bug Don't we have to overwrite the layout->data after layout_size to 0, to avoid bugs?
+    // This could be especially true when loading another theme
 
     // We first need to handle the default element -> iterate all elements but only handle the default style
     // The reason for this is, later on in the specialized style we use the base style and copy it over as foundation
@@ -747,6 +780,9 @@ void layout_from_theme(
             } break;
         }
     } chunk_iterate_end;
+
+    // @bug I think this is wrong, I think we are missing some dynamic data ()
+    layout->used_data_size = layout->layout_size + dynamic_pos;
 }
 
 void ui_layout_update(UILayout* layout, UIElement* element) {
@@ -816,6 +852,9 @@ void ui_layout_update(UILayout* layout, UIElement* element) {
 // I don't think so but it would be nice
 // This function caches the vertices
 void ui_layout_update_dfs(UILayout* layout, UIElement* element, byte category = 0) {
+    ASSERT_TRUE(layout);
+    ASSERT_TRUE(element);
+
     if (element->type == UI_ELEMENT_TYPE_MANUAL
         || !(element->state_flag & UI_ELEMENT_STATE_VISIBLE)
         || !(element->state_flag & UI_ELEMENT_STATE_CHANGED)
@@ -852,7 +891,11 @@ uint32 ui_layout_render_dfs(
     uint32 vertex_count = 0;
 
     if (element->vertex_count_active && element->category == category) {
-        memcpy(vertices, layout->vertices_active + element->vertices_active_offset, sizeof(*vertices) * element->vertex_count_active);
+        memcpy(
+            vertices,
+            layout->vertices_active + element->vertices_active_offset,
+            sizeof(*vertices) * element->vertex_count_active
+        );
         vertices += element->vertex_count_active;
         vertex_count += element->vertex_count_active;
     }
@@ -862,12 +905,24 @@ uint32 ui_layout_render_dfs(
         for (int32 i = 0; i < element->children_count - 1; ++i) {
             intrin_prefetch_l2(layout->data + children[i + 1]);
 
-            uint32 child_vertex_count = ui_layout_render_dfs(layout, (UIElement *) (layout->data + children[i]), vertices, category);
+            uint32 child_vertex_count = ui_layout_render_dfs(
+                layout,
+                (UIElement *) (layout->data + children[i]),
+                vertices,
+                category
+            );
+
             vertices += child_vertex_count;
             vertex_count += child_vertex_count;
         }
 
-        uint32 child_vertex_count = ui_layout_render_dfs(layout, (UIElement *) (layout->data + children[element->children_count - 1]), vertices, category);
+        uint32 child_vertex_count = ui_layout_render_dfs(
+            layout,
+            (UIElement *) (layout->data + children[element->children_count - 1]),
+            vertices,
+            category
+        );
+
         vertices += child_vertex_count;
         vertex_count += child_vertex_count;
     }
@@ -891,7 +946,12 @@ uint32 ui_layout_update_render_dfs(
     if (element->category == category) {
         ui_layout_update(layout, element);
 
-        memcpy(vertices, layout->vertices_active + element->vertices_active_offset, sizeof(*vertices) * element->vertex_count_active);
+        memcpy(
+            vertices,
+            layout->vertices_active + element->vertices_active_offset,
+            sizeof(*vertices) * element->vertex_count_active
+        );
+
         vertices += element->vertex_count_active;
         vertex_count += element->vertex_count_active;
     }
@@ -901,12 +961,24 @@ uint32 ui_layout_update_render_dfs(
         for (int32 i = 0; i < element->children_count - 1; ++i) {
             intrin_prefetch_l2(layout->data + children[i + 1]);
 
-            uint32 child_vertex_count = ui_layout_update_render_dfs(layout, (UIElement *) (layout->data + children[i]), vertices, category);
+            uint32 child_vertex_count = ui_layout_update_render_dfs(
+                layout,
+                (UIElement *) (layout->data + children[i]),
+                vertices,
+                category
+            );
+
             vertices += child_vertex_count;
             vertex_count += child_vertex_count;
         }
 
-        uint32 child_vertex_count = ui_layout_update_render_dfs(layout, (UIElement *) (layout->data + children[element->children_count - 1]), vertices, category);
+        uint32 child_vertex_count = ui_layout_update_render_dfs(
+            layout,
+            (UIElement *) (layout->data + children[element->children_count - 1]),
+            vertices,
+            category
+        );
+
         vertices += child_vertex_count;
         vertex_count += child_vertex_count;
     }
@@ -914,13 +986,13 @@ uint32 ui_layout_update_render_dfs(
     return vertex_count;
 }
 
-inline
+FORCE_INLINE
 uint32 layout_element_from_location(UILayout* layout, uint16 x, uint16 y) NO_EXCEPT
 {
     return layout->ui_chroma_codes[layout->width * y / 4 + x / 4];
 }
 
-inline
+FORCE_INLINE
 UIElement* layout_get_element(const UILayout* __restrict layout, const char* __restrict element) NO_EXCEPT
 {
     HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry((HashMap *) &layout->hash_map, element);
@@ -931,13 +1003,13 @@ UIElement* layout_get_element(const UILayout* __restrict layout, const char* __r
     return (UIElement *) (layout->data + entry->value);
 }
 
-inline
+FORCE_INLINE
 void* layout_get_element_state(const UILayout* layout, UIElement* element) NO_EXCEPT
 {
     return layout->data + element->state;
 }
 
-inline
+FORCE_INLINE
 void* layout_get_element_style(const UILayout* layout, UIElement* element, UIStyleType style_type) NO_EXCEPT
 {
     if (!element) {
@@ -947,7 +1019,7 @@ void* layout_get_element_style(const UILayout* layout, UIElement* element, UISty
     return layout->data + element->style_types[style_type];
 }
 
-inline
+FORCE_INLINE
 UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element) NO_EXCEPT
 {
     if (!element) {
@@ -957,7 +1029,7 @@ UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element)
     return (UIElement *) (layout->data + element->parent);
 }
 
-inline
+FORCE_INLINE
 UIElement* layout_get_element_child(const UILayout* layout, UIElement* element, uint16 child) NO_EXCEPT
 {
     if (!element) {

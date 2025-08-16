@@ -145,8 +145,11 @@ struct HashMapRef {
 // @todo Change so the hashmap can grow or maybe even better create a static and dynamic version
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_alloc(HashMap* hm, int32 count, int32 element_size, int32 alignment = 64)
+void hashmap_alloc(HashMap* hm, int32 count, int32 element_size, int32 alignment = 32)
 {
+    // This ensures 4 byte alignment
+    count = ROUND_TO_NEAREST(count, 2);
+
     LOG_1("[INFO] Allocate HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
     byte* data = (byte *) platform_alloc(
         count * sizeof(uint16)
@@ -165,8 +168,11 @@ void hashmap_alloc(HashMap* hm, int32 count, int32 element_size, int32 alignment
 
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_alloc(HashMapRef* hmr, int32 count, int32 data_element_size, int32 alignment = 64)
+void hashmap_alloc(HashMapRef* hmr, int32 count, int32 data_element_size, int32 alignment = 32)
 {
+    // This ensures 4 byte alignment
+    count = ROUND_TO_NEAREST(count, 2);
+
     const int32 element_size = sizeof(HashEntryInt32Int32);
     LOG_1("[INFO] Allocate HashMap for %n elements with %n B per element", LOG_ENTRY(LOG_DATA_INT32, &count), LOG_ENTRY(LOG_DATA_INT32, &element_size));
     byte* data = (byte *) platform_alloc_aligned(
@@ -201,8 +207,13 @@ void hashmap_free(HashMap* hm)
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring, int32 alignment = 64) NO_EXCEPT
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring, int32 alignment = 32) NO_EXCEPT
 {
+    ASSERT_TRUE(ring);
+
+    // This ensures 4 byte alignment
+    count = ROUND_TO_NEAREST(count, 2);
+
     LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
     byte* data = ring_get_memory(
         ring,
@@ -225,8 +236,13 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ri
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf, int32 alignment = 64) NO_EXCEPT
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf, int32 alignment = 32) NO_EXCEPT
 {
+    ASSERT_TRUE(buf);
+
+    // This ensures 4 byte alignment
+    count = ROUND_TO_NEAREST(count, 2);
+
     LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
     byte* data = buffer_get_memory(
         buf,
@@ -249,8 +265,11 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* 
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf, int32 alignment = 64) NO_EXCEPT
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf, int32 alignment = 32) NO_EXCEPT
 {
+    // This ensures 4 byte alignment
+    count = ROUND_TO_NEAREST(count, 2);
+
     LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
     hm->table = (uint16 *) buf;
     chunk_init(&hm->buf, buf + sizeof(uint16) * count, count, element_size, alignment);
@@ -262,23 +281,18 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf, int
     );
 }
 
-inline
-void hashmap_update_data_pointer(HashMap* hm, byte* data) NO_EXCEPT
-{
-    hm->table = (uint16 *) data;
-    hm->buf.memory = data + sizeof(uint16) * hm->buf.count;
-}
-
 // Calculates how large a hashmap will be
-inline
-int64 hashmap_size(int count, int32 element_size) NO_EXCEPT
+FORCE_INLINE
+int64 hashmap_size(int32 count, int32 element_size, int32 alignment = 32) NO_EXCEPT
 {
-    return count * sizeof(element_size) // table
-        + count * element_size // elements
-        + sizeof(uint64) * CEIL_DIV(count, 64); // free
+    // This ensures 4 byte alignment
+    count = ROUND_TO_NEAREST(count, 2);
+
+    return count * sizeof(uint16) // table
+        + chunk_size_total(count, element_size, alignment); // elements
 }
 
-inline
+FORCE_INLINE
 int64 hashmap_size(const HashMap* hm) NO_EXCEPT
 {
     return hm->buf.count * sizeof(uint16) + hm->buf.size;
@@ -586,6 +600,7 @@ HashEntry* hashmap_get_entry_by_element(HashMap* hm, uint32 element) NO_EXCEPT
     return (HashEntry *) chunk_get_element(&hm->buf, element - 1, false);
 }
 
+inline
 HashEntry* hashmap_get_entry(HashMap* hm, const char* key) NO_EXCEPT {
     uint64 index = hash_djb2(key) % hm->buf.count;
     HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
@@ -604,6 +619,7 @@ HashEntry* hashmap_get_entry(HashMap* hm, const char* key) NO_EXCEPT {
     return NULL;
 }
 
+inline
 byte* hashmap_get_value(HashMapRef* hmr, const char* key) NO_EXCEPT {
     uint64 index = hash_djb2(key) % hmr->hm.buf.count;
     HashEntryInt32Int32* entry = (HashEntryInt32Int32 *) chunk_get_element(&hmr->hm.buf, hmr->hm.table[index] - 1, false);
@@ -622,6 +638,7 @@ byte* hashmap_get_value(HashMapRef* hmr, const char* key) NO_EXCEPT {
     return NULL;
 }
 
+inline
 uint32 hashmap_get_element(const HashMap* hm, const char* key) NO_EXCEPT {
     uint64 index = hash_djb2(key) % hm->buf.count;
     const HashEntry* entry = (const HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, hm->table[index] - 1, false);
@@ -898,7 +915,7 @@ void hashmap_remove(HashMap* hm, int32 key) NO_EXCEPT {
     }
 }
 
-inline
+FORCE_INLINE
 int32 hashmap_value_size(const HashMap* hm) NO_EXCEPT
 {
     return (uint32) (
@@ -950,11 +967,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps =
             } else if (value_size == 8) {
                 *((int64 *) data) = SWAP_ENDIAN_LITTLE(((HashEntryInt64 *) entry)->value);
             } else {
-                if (entry->value) {
-                    memcpy(data, entry->value, value_size);
-                } else {
-                    memset(data, 0, value_size);
-                }
+                memcpy(data, entry->value ? entry->value : 0, value_size);
             }
             data += value_size;
         } else {
