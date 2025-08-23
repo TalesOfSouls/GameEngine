@@ -30,6 +30,8 @@ struct DebugContainer {
     PerformanceProfileResult* perf_stats;
     PerformanceProfiler** perf_current_scope;
     int32* perf_active;
+    int32 perf_profile_history_count;
+    PerformanceProfileThread* perf_profile_history;
 };
 
 #endif

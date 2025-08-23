@@ -45,6 +45,7 @@ struct ThreadPool {
 static
 THREAD_RETURN thread_pool_worker(void* arg)
 {
+    _thread_local_id = (int32) thread_current_id();
     ThreadPool* pool = (ThreadPool *) arg;
 
     if (pool->debug_container) {
@@ -64,7 +65,9 @@ THREAD_RETURN thread_pool_worker(void* arg)
     PoolWorker* work;
 
     while (true) {
+        THREAD_TICK(_thread_local_id);
         mutex_lock(&pool->work_mutex);
+
         while (pool->state > 1 && queue_is_empty(&pool->work_queue)) {
             coms_pthread_cond_wait(&pool->work_cond, &pool->work_mutex);
         }
@@ -91,7 +94,10 @@ THREAD_RETURN thread_pool_worker(void* arg)
         atomic_increment_release(&pool->working_cnt);
         atomic_set_release((volatile int32*) &work->state, POOL_WORKER_STATE_RUNNING);
         LOG_3("ThreadPool worker started");
-        work->func(work);
+        {
+            PROFILE(PROFILE_THREADPOOL_WORK, NULL, PROFILE_FLAG_ADD_HISTORY);
+            work->func(work);
+        }
         LOG_3("ThreadPool worker ended");
 
         // @question Do I really need state and id both? seems like setting one should be sufficient
@@ -150,7 +156,8 @@ void thread_pool_alloc(
 
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
-        coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        THREAD_LOG_NAME(id, "pool");
         coms_pthread_detach(thread);
     }
 
@@ -187,7 +194,8 @@ void thread_pool_create(
 
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
-        coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        THREAD_LOG_NAME(id, "pool");
         coms_pthread_detach(thread);
     }
 

@@ -33,7 +33,39 @@
     {
         GLenum err;
         while ((err = glGetError()) != GL_NO_ERROR) {
-            LOG_1("Opengl error: %d", {LOG_DATA_INT32, (int32 *) &err});
+            switch (err) {
+                case GL_INVALID_ENUM: {
+                    LOG_1("Opengl error (invalid enumeration parameter)");
+                    break;
+                }
+                case GL_INVALID_VALUE: {
+                    LOG_1("Opengl error (invalid parameter)");
+                    break;
+                }
+                case GL_INVALID_OPERATION: {
+                    LOG_1("Opengl error (invalid state and parameter combination)");
+                    break;
+                }
+                case GL_STACK_OVERFLOW: {
+                    LOG_1("Opengl error (stack overflow)");
+                    break;
+                }
+                case GL_STACK_UNDERFLOW: {
+                    LOG_1("Opengl error (stack underflow)");
+                    break;
+                }
+                case GL_OUT_OF_MEMORY: {
+                    LOG_1("Opengl error (couldn't allocate memory)");
+                    break;
+                }
+                case GL_INVALID_FRAMEBUFFER_OPERATION: {
+                    LOG_1("Opengl error (reading/writing from/to incomplete framebuffer)");
+                    break;
+                }
+                default:
+                    LOG_1("Opengl error: %d", {LOG_DATA_INT32, (int32 *) &err});
+            }
+
             ASSERT_TRUE(err == GL_NO_ERROR);
         }
     }
@@ -65,19 +97,19 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
     ASSERT_TRUE(false);
 }
 
-inline
-void change_viewport(int32 width, int32 height, int32 offset_x = 0, int32 offset_y = 0)
+FORCE_INLINE
+void change_viewport(f32 width, f32 height, int32 offset_x = 0, int32 offset_y = 0)
 {
-    glViewport(offset_x, offset_y, width, height);
+    glViewport(offset_x, offset_y, (int32) width, (int32) height);
 }
 
-inline
+FORCE_INLINE
 void vsync_set(int32 on)
 {
     wglSwapIntervalEXT((int32) on);
 }
 
-inline
+FORCE_INLINE
 void wireframe_mode(bool on)
 {
     glPolygonMode(GL_FRONT_AND_BACK, on ? GL_LINE : GL_FILL);
@@ -400,6 +432,8 @@ void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data)
 
 // @todo change name. vulkan and directx have different functions for vertex buffer updates
 // @question vertex_count is a count where offset is bytes, this seems inconsistent
+// WARNING: if the offset is 0 you MUST provide the max. number of vertices for rendering,
+//  otherwise a subsequent call to the same vbo may fail if it has more vertices
 inline
 void gpuapi_vertex_buffer_update(
     uint32 vbo,

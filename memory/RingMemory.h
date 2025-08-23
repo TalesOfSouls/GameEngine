@@ -46,7 +46,7 @@ inline
 void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
 {
     ASSERT_TRUE(size);
-    PROFILE(PROFILE_RING_ALLOC, NULL, false, true);
+    PROFILE(PROFILE_RING_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Allocating RingMemory: %n B", {LOG_DATA_UINT64, &size});
 
     ring->memory = alignment < 2

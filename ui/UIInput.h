@@ -92,7 +92,7 @@ void ui_input_state_unserialize(UIInputState* __restrict state, const byte** __r
 void ui_input_state_populate(const UIAttributeGroup* __restrict group, UIInputState* __restrict state) {
 
     UIAttribute* attributes = (UIAttribute *) (group + 1);
-    for (uint32 i = 0; i < group->attribute_count; ++i) {
+    for (int32 i = 0; i < group->attribute_count; ++i) {
         switch (attributes[i].attribute_id) {
             case UI_ATTRIBUTE_TYPE_TYPE: {
                     state->type = (UIInputType) attributes[i].value_int;
@@ -181,7 +181,7 @@ void ui_input_element_populate(
     UIAttribute* attributes = (UIAttribute *) (group + 1);
 
     // First set all values, which we can set immediately
-    for (uint32 i = 0; i < group->attribute_count; ++i) {
+    for (int32 i = 0; i < group->attribute_count; ++i) {
         switch (attributes[i].attribute_id) {
             case UI_ATTRIBUTE_TYPE_POSITION_X:
             case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH:

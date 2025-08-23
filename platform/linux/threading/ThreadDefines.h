@@ -42,6 +42,8 @@ struct coms_pthread_t {
     void* stack;
 };
 
+uint64 thread_local _thread_local_id;
+
 #define futex_wait(futex, val) syscall(SYS_futex, futex, FUTEX_WAIT, val, NULL, NULL, 0)
 #define futex_wake(futex, n) syscall(SYS_futex, futex, FUTEX_WAKE, n, NULL, NULL, 0)
 

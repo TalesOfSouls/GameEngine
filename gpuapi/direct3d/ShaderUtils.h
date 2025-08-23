@@ -76,7 +76,7 @@ ID3D12PipelineState* gpuapi_pipeline_make(
     ID3DBlob* fragment_shader,
     ID3DBlob*
 ) {
-    PROFILE(PROFILE_PIPELINE_MAKE, NULL, false, true);
+    PROFILE(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Create pipeline");
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_info = {};

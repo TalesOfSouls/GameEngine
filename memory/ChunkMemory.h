@@ -41,13 +41,13 @@ struct ChunkMemory {
 };
 
 FORCE_INLINE
-uint32 chunk_size_element(uint32 element_size, int32 alignment = 32)
+uint32 chunk_size_element(uint32 element_size, int32 alignment = 32) NO_EXCEPT
 {
     return ROUND_TO_NEAREST(element_size, alignment);
 }
 
-inline
-uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = 32)
+FORCE_INLINE
+uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = 32) NO_EXCEPT
 {
     element_size = chunk_size_element(element_size, alignment);
 
@@ -62,7 +62,7 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alig
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
+    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
@@ -154,7 +154,7 @@ void chunk_free(ChunkMemory* buf)
 }
 
 FORCE_INLINE
-uint64* chunk_find_free_array(const ChunkMemory* buf)
+uint64* chunk_find_free_array(const ChunkMemory* buf) NO_EXCEPT
 {
     return (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + buf->count * buf->chunk_size), (uint64) buf->alignment);
 }

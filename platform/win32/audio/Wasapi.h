@@ -41,7 +41,7 @@ typedef HRESULT WINAPI IAudioClient_GetService_t(IAudioClient*, REFIID, void**);
 // END: Dynamically load DirectSound
 
 void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
-    LOG_1("Load audio API");
+    LOG_1("Load audio API WASAPI");
 
     HMODULE ole32 = LoadLibraryExA((LPCSTR) "ole32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!ole32) {
@@ -142,18 +142,20 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
 
 inline
 void audio_play(AudioSetting* setting, WasapiSetting* api_setting) {
-    if (!api_setting->audio_handle) {
+    ASSERT_TRUE(api_setting->audio_handle);
+    /*if (!api_setting->audio_handle) {
         return;
-    }
+    }*/
 
     api_setting->audio_handle->Start();
 }
 
 inline
 void audio_stop(AudioSetting* setting, WasapiSetting* api_setting) {
-    if (!api_setting->audio_handle) {
+    ASSERT_TRUE(api_setting->audio_handle);
+    /*if (!api_setting->audio_handle) {
         return;
-    }
+    }*/
 
     api_setting->audio_handle->Stop();
 }

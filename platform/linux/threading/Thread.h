@@ -22,6 +22,7 @@
 #include "../Allocator.h"
 #include "ThreadDefines.h"
 #include "Atomic.h"
+#include "../../../log/PerformanceProfiler.h"
 
 inline
 int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg) NO_EXCEPT
@@ -37,19 +38,22 @@ int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_rou
 
     // The + stack_size is required since the stack is used "downwards"
     thread->h = clone((int32 (*)(void*))start_routine, (void *) ((uintptr_t) thread->stack + stack_size), flags, arg);
-
     if (thread->h == -1) {
-        LOG_1("Thread creation faild");
-
-        return 1;
+        LOG_1("Thread creation failed");
+        return -1;
     }
 
-    return 0;
+    int32 thread_id = (int32) thread->h;
+    THREAD_LOG_CREATE(thread_id);
+
+    return thread_id;
 }
 
 FORCE_INLINE
 int32 coms_pthread_join(coms_pthread_t thread, void** retval) NO_EXCEPT
 {
+    THREAD_LOG_DELETE((int32) thread.h);
+
     int32 res = syscall(SYS_waitid, P_PID, thread, retval, WEXITED, NULL) == -1
         ? 1
         : 0;
@@ -60,13 +64,13 @@ int32 coms_pthread_join(coms_pthread_t thread, void** retval) NO_EXCEPT
 }
 
 FORCE_INLINE
-int32 coms_pthread_detach(coms_pthread_t) NO_EXCEPT
+int32 coms_pthread_detach([[maybe_unused]] coms_pthread_t thread) NO_EXCEPT
 {
     // In Linux, threads are automatically detached when they exit.
     return 0;
 }
 
-inline
+FORCE_INLINE
 int32 coms_pthread_cond_init(mutex_cond* cond, coms_pthread_condattr_t*) NO_EXCEPT
 {
     ASSERT_TRUE(cond);
@@ -183,6 +187,7 @@ int32 coms_pthread_rwlock_wrlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
             rwlock->exclusive = true;
             break;
         }
+
         futex_wait(&rwlock->futex, val);
     }
 
@@ -229,5 +234,12 @@ uint32 pcthread_get_num_procs() NO_EXCEPT
 }
 
 #define coms_pthread_exit(a) { return (a); }
+
+// WARNING: Rather use _thread_local_id variable to avoid the syscall
+FORCE_INLINE
+int32 thread_current_id()
+{
+    return (int32) syscall(SYS_gettid);
+}
 
 #endif

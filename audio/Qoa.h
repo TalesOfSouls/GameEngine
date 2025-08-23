@@ -323,7 +323,7 @@ uint32 qoa_encode(const Audio* audio, byte* data) {
 	//uint32 num_slices = (sample_count + QOA_SLICE_LEN - 1) / QOA_SLICE_LEN;
 
     QoaLms lms[QOA_MAX_CHANNELS];
-    for (uint32 i = 0; i < audio->channels; ++i) {
+    for (int32 i = 0; i < audio->channels; ++i) {
         /*
         Set the initial LMS weights to {0, 0, -1, 2}. This helps with the
         prediction of the first few ms of a file.

@@ -95,15 +95,15 @@ int32 max_directx_version()
 
 inline
 void change_viewport(
-    int32 width, int32 height,
+    f32 width, f32 height,
     ID3D12GraphicsCommandList* command_buffer, D3D12_VIEWPORT* viewport, D3D12_RECT* scissor_rect
 )
 {
-    viewport->Width = (f32) width;
-    viewport->Height = (f32) height;
+    viewport->Width = width;
+    viewport->Height = height;
 
-    scissor_rect->right = width;
-    scissor_rect->bottom = height;
+    scissor_rect->right = (int32) width;
+    scissor_rect->bottom = (int32) height;
 
     command_buffer->RSSetViewports(1, viewport);
     command_buffer->RSSetScissorRects(1, scissor_rect);

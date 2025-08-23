@@ -35,7 +35,7 @@ inline
 void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
     ASSERT_TRUE(size);
-    PROFILE(PROFILE_BUFFER_ALLOC, NULL, false, true);
+    PROFILE(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Allocating BufferMemory: %n B", {LOG_DATA_UINT64, &size});
 
     buf->memory = alignment < 2

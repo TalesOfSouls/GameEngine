@@ -591,7 +591,7 @@ int32 layout_from_data(
     const byte* __restrict data,
     UILayout* __restrict layout
 ) {
-    PROFILE(PROFILE_LAYOUT_FROM_DATA, NULL, false, true);
+    PROFILE(PROFILE_LAYOUT_FROM_DATA, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Load layout");
 
     const byte* in = data;
@@ -636,7 +636,7 @@ void layout_from_theme(
     UILayout* __restrict layout,
     const UIThemeStyle* __restrict theme
 ) {
-    PROFILE(PROFILE_LAYOUT_FROM_THEME, NULL, false, true);
+    PROFILE(PROFILE_LAYOUT_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Load theme for layout");
 
     // @todo Handle animations
@@ -989,6 +989,7 @@ uint32 ui_layout_update_render_dfs(
 FORCE_INLINE
 uint32 layout_element_from_location(UILayout* layout, uint16 x, uint16 y) NO_EXCEPT
 {
+    // UI elements have a precision of 4 pixels
     return layout->ui_chroma_codes[layout->width * y / 4 + x / 4];
 }
 

@@ -314,10 +314,10 @@ inline int32 find_first_set_bit(int32 value) NO_EXCEPT {
 }
 
 inline
-uint32 bits_reverse(uint32 data, uint32 count) NO_EXCEPT
+uint32 bits_reverse(uint32 data, int32 count) NO_EXCEPT
 {
     uint32 reversed = 0;
-    for (uint32 i = 0; i <= (count / 2); ++i) {
+    for (int32 i = 0; i <= (count / 2); ++i) {
         uint32 inv = count - i - 1;
         reversed |= ((data >> i) & 0x1) << inv;
         reversed |= ((data >> inv) & 0x1) << i;

@@ -115,6 +115,7 @@ int32 vertex_line_create(
 
 // @performance Do we really want to create the UI as one continuous mesh?
 // Individual meshes without degenerates might be faster
+// @question Do we really want this to be inline? we are calling this function very often -> a lot of inlined code size
 inline
 int32 vertex_rect_create(
     Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex, int32 sampler,

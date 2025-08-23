@@ -30,7 +30,7 @@ void* cmd_shader_load_sync(
     ID3D12Device* __restrict device, ID3D12PipelineState** __restrict pipeline, ID3D12RootSignature* __restrict pipeline_layout,
     D3D12_INPUT_ELEMENT_DESC* __restrict descriptor_set_layouts, int32 layout_count
 ) {
-    PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, false, true);
+    PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
     char asset_id[9];
 
     ID3DBlob* shader_assets[SHADER_TYPE_SIZE];

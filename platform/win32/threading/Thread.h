@@ -13,8 +13,9 @@
 #include "../TimeUtils.h"
 #include "ThreadDefines.h"
 #include <windows.h>
+#include "../../../log/PerformanceProfiler.h"
 
-FORCE_INLINE
+inline
 int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg) NO_EXCEPT
 {
     // @question Do we want to pin threads automatically to p cores based on a utilization score?
@@ -23,15 +24,23 @@ int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_rou
 
     thread->h = CreateThread(NULL, 0, start_routine, arg, 0, NULL);
     if (thread->h == NULL) {
-        return 1;
+        LOG_1("Thread creation failed");
+        return -1;
     }
 
-    return 0;
+    int32 thread_id = (int32) GetThreadId(thread->h);
+    THREAD_LOG_CREATE(thread_id);
+
+    return thread_id;
 }
+
+// @bug when we close a thread we need to cleanup create_thread_profile_history(thread_id);
 
 FORCE_INLINE
 int32 coms_pthread_join(coms_pthread_t thread, void**) NO_EXCEPT
 {
+    THREAD_LOG_DELETE((int32) GetThreadId(thread.h));
+
     WaitForSingleObject(thread.h, INFINITE);
     CloseHandle(thread.h);
 
@@ -186,5 +195,11 @@ uint32 pcthread_get_num_procs() NO_EXCEPT
 }
 
 #define coms_pthread_exit(a) { return (a); }
+
+FORCE_INLINE
+int32 thread_current_id()
+{
+    return (int32) GetCurrentThreadId();
+}
 
 #endif

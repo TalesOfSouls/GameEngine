@@ -56,7 +56,7 @@ struct AudioInstance {
 
     uint64 effect;
     uint32 sample_index;
-    byte channels;
+    sbyte channels;
 
     // @todo How to implement audio that is only supposed to be played after a certain other sound file is finished
     // e.g. queueing soundtracks/ambient noise

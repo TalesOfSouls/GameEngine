@@ -35,6 +35,8 @@ struct Mesh {
     //      Interleaved: [position normal tex_coord] [color] (elements depend on vertex_type)
     //      Separate: [position] [normal] [tex_coord] [color] (separate array for elements)
     uint32 vertex_type;
+    // @bug What if it is a transforming mesh? don't we need the max_vertex_count as well?
+    // However, that might be more something for the ECS?
     uint32 vertex_count; // can mean only position or combination of position, normal, tex, ...
     f32* vertices;
 

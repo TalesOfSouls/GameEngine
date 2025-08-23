@@ -10,10 +10,7 @@
 #define COMS_LOG_PERFORMANCE_PROFILER_H
 
 #include "../stdlib/Types.h"
-#include "../utils/TimeUtils.h"
-#include "../thread/Spinlock.cpp"
 #include "../thread/Atomic.h"
-#include "../hash/GeneralHash.h"
 #include "../architecture/Intrinsics.h"
 #include "../compiler/CompilerUtils.h"
 #include "Log.h"
@@ -23,6 +20,8 @@
     enum TimingStats {
         PROFILE_TEMP,
 
+        PROFILE_SLEEP, // Used to time sleep
+        PROFILE_SPIN, // Used to time cpu spins
         PROFILE_MEMORY_ALLOC,
         PROFILE_FILE_UTILS,
         PROFILE_BUFFER_ALLOC,
@@ -49,11 +48,20 @@
         PROFILE_VERTEX_RECT_CREATE,
         PROFILE_VERTEX_TEXT_CREATE,
         PROFILE_PIPELINE_MAKE,
+        PROFILE_THREADPOOL_WORK,
 
         PROFILE_SIZE,
     };
 #endif
 
+enum PerformanceProfileFlag : uint32 {
+    PROFILE_FLAG_NONE = 0,
+    PROFILE_FLAG_STATELESS = 1 << 0,
+    PROFILE_FLAG_SHOULD_LOG = 1 << 1,
+    PROFILE_FLAG_ADD_HISTORY = 1 << 2,
+};
+
+// @question Should this store the thread_id?
 struct PerformanceProfileResult {
     alignas(8) atomic_64 const char* name;
 
@@ -67,6 +75,102 @@ struct PerformanceProfileResult {
 static PerformanceProfileResult* _perf_stats = NULL;
 static int32* _perf_active = NULL;
 
+// Used to show historic values
+struct PerformanceProfileHistory {
+    uint64 start;
+    uint64 end;
+    int32 id;
+    PerformanceProfileResult perf;
+};
+
+#define MAX_PERFORMANCE_PROFILE_HISTORY 10000
+struct PerformanceProfileThread {
+    int32 thread_id;
+    uint32 pos;
+
+    // WARNING: This only shows tha last tick but when rendering the rendering thread may be way slower
+    // As a result you will only output every n-th tick
+    uint64 tick;
+    const char* name;
+    PerformanceProfileHistory history[MAX_PERFORMANCE_PROFILE_HISTORY];
+};
+
+static int32 _perf_profile_history_count = 0;
+static PerformanceProfileThread* _perf_profile_history;
+
+inline
+void thread_profile_history_create(int32 thread_id, const char* name = NULL)
+{
+    for (int32 i = 1; i < _perf_profile_history_count; ++i) {
+        if (_perf_profile_history[i].thread_id == 0) {
+            // @bug this should probably be an atomic operation to ensure no other thread is doing this
+            _perf_profile_history[i].thread_id = thread_id;
+            _perf_profile_history[i].pos = 0;
+            _perf_profile_history[i].name = name;
+            _perf_profile_history[i].tick = 0;
+            return;
+        }
+    }
+}
+
+inline
+void thread_profile_name(int32 thread_id, const char* name = NULL)
+{
+    for (int32 i = 1; i < _perf_profile_history_count; ++i) {
+        if (_perf_profile_history[i].thread_id == thread_id) {
+            _perf_profile_history[i].name = name;
+            return;
+        }
+    }
+}
+
+inline
+void thread_profile_history_delete(int32 thread_id)
+{
+    for (int32 i = 1; i < _perf_profile_history_count; ++i) {
+        if (_perf_profile_history[i].thread_id == thread_id) {
+            // @bug this should probably be an atomic operation to ensure no other thread is doing this
+            _perf_profile_history[i].thread_id = 0;
+            return;
+        }
+    }
+}
+
+struct PerformanceThreadProfiler {
+    bool is_active;
+    int32 _id;
+    uint64 start_cycle;
+
+    PerformanceThreadProfiler(
+        int32 id
+    ) NO_EXCEPT {
+        if (!_perf_active || !*_perf_active || !_perf_profile_history_count) {
+            this->is_active = false;
+
+            return;
+        }
+
+        this->_id = id;
+        this->start_cycle = intrin_timestamp_counter();
+    }
+
+    ~PerformanceThreadProfiler() NO_EXCEPT {
+        if (!this->is_active) {
+            return;
+        }
+
+        uint64 end_cycle = intrin_timestamp_counter();
+
+        for (int32 i = 0; i < _perf_profile_history_count; ++i) {
+            if (_perf_profile_history[i].thread_id == this->_id) {
+                _perf_profile_history[i].tick = OMS_MAX(end_cycle - this->start_cycle, 0);
+
+                return;
+            }
+        }
+    }
+};
+
 struct PerformanceProfiler;
 static thread_local PerformanceProfiler** _perf_current_scope = NULL; // Used when sharing profiler across dlls and threads (threads unlikely)
 static thread_local PerformanceProfiler* _perf_current_scope_internal; // Used when in dll or thread and no shared pointer found
@@ -76,6 +180,7 @@ struct PerformanceProfiler {
     const char* name;
     const char* info_msg;
     int32 _id;
+    uint32 _flags;
 
     int64 start_cycle;
     int64 total_cycle;
@@ -83,14 +188,11 @@ struct PerformanceProfiler {
 
     PerformanceProfiler* parent;
 
-    bool auto_log;
-    bool is_stateless;
-
     // @question Do we want to make the self cost represent calls * "self_time/cycle"
     // Stateless allows to ONLY output to log instead of storing the performance data in an array
     PerformanceProfiler(
         int32 id, const char* scope_name, const char* info = NULL,
-        bool stateless = false, bool should_log = false
+        uint32 flags = 0
     ) NO_EXCEPT {
         if (!_perf_active || !*_perf_active) {
             this->is_active = false;
@@ -100,17 +202,18 @@ struct PerformanceProfiler {
 
         this->is_active = true;
         this->_id = id;
+
+        // @question is this even required
         atomic_increment_acquire_release(&_perf_stats[id].counter);
 
         this->name = scope_name;
         this->info_msg = info;
-        this->is_stateless = stateless;
-        this->auto_log = stateless || should_log;
+        this->_flags = flags;
 
         this->total_cycle = 0;
         this->self_cycle = 0;
 
-        if (this->is_stateless) {
+        if (this->_flags & PROFILE_FLAG_STATELESS) {
             this->parent = NULL;
         } else if (_perf_current_scope) {
             this->parent = *_perf_current_scope;
@@ -129,18 +232,38 @@ struct PerformanceProfiler {
         }
 
         uint64 end_cycle = intrin_timestamp_counter();
-        this->total_cycle = OMS_MAX(end_cycle - start_cycle, 0);
+        this->total_cycle = OMS_MAX(end_cycle - this->start_cycle, 0);
         this->self_cycle += total_cycle;
 
         // Store result
         PerformanceProfileResult temp_perf = {};
-        PerformanceProfileResult* perf = this->is_stateless ? &temp_perf : &_perf_stats[this->_id];
+        PerformanceProfileResult* perf = (this->_flags & PROFILE_FLAG_STATELESS) ? &temp_perf : &_perf_stats[this->_id];
 
         perf->name = this->name;
         perf->total_cycle = this->total_cycle;
         perf->self_cycle = this->self_cycle;
 
-        if (!this->is_stateless) {
+        // Add performance log to log history
+        if (this->_flags & PROFILE_FLAG_ADD_HISTORY && _perf_profile_history_count) {
+            for (int32 i = 0; i < _perf_profile_history_count; ++i) {
+                if (_perf_profile_history[i].thread_id == _thread_local_id) {
+                    int32 pos = _perf_profile_history[i].pos;
+                    _perf_profile_history[i].history[pos].id = this->_id;
+                    _perf_profile_history[i].history[pos].start = this->start_cycle;
+                    _perf_profile_history[i].history[pos].end = end_cycle;
+                    memcpy(&_perf_profile_history[i].history[pos].perf, perf, sizeof(*perf));
+
+                    ++_perf_profile_history[i].pos;
+                    if (_perf_profile_history[i].pos >= MAX_PERFORMANCE_PROFILE_HISTORY) {
+                        _perf_profile_history[i].pos = 0;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        if (!(this->_flags & PROFILE_FLAG_STATELESS)) {
             if (this->parent) {
                 this->parent->self_cycle -= this->total_cycle;
                 perf->parent = this->parent->_id;
@@ -153,7 +276,9 @@ struct PerformanceProfiler {
             }
         }
 
-        if (this->auto_log) {
+        if ((this->_flags & PROFILE_FLAG_STATELESS)
+            || (this->_flags & PROFILE_FLAG_SHOULD_LOG)
+        ) {
             if (this->info_msg && this->info_msg[0]) {
                 LOG_2(
                     "[PERF] %s (%s): %n cycles",
@@ -201,18 +326,26 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     // Only these function can properly handle self-time calculation
     // Use these whenever you want to profile an entire function
     #define PROFILE(id, ...) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, ##__VA_ARGS__)
-
     #define PROFILE_START(id, name) if(_perf_active && *_perf_active) performance_profiler_start((id), (name))
     #define PROFILE_END(id) if(_perf_active && *_perf_active) performance_profiler_end((id))
     #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
     #define PROFILE_RESET(id) if(_perf_active && *_perf_active) performance_profiler_reset((id))
+
+    #define THREAD_LOG_CREATE(id, ...) thread_profile_history_create((id), ##__VA_ARGS__)
+    #define THREAD_LOG_NAME(id, name) thread_profile_name((id), (name))
+    #define THREAD_LOG_DELETE(id) thread_profile_history_delete((id))
+    #define THREAD_TICK(id) PerformanceThreadProfiler __profile_thread_##__func__##_##__LINE__((id))
 #else
     #define PROFILE(id, ...) ((void) 0)
-
     #define PROFILE_START(id, name) ((void) 0)
     #define PROFILE_END(id) ((void) 0)
     #define PROFILE_SCOPE(id, name) ((void) 0)
     #define PROFILE_RESET(id) ((void) 0)
+
+    #define THREAD_LOG_CREATE(id, ...) ((void) 0)
+    #define THREAD_LOG_NAME(id, name) ((void) 0)
+    #define THREAD_LOG_DELETE(id) ((void) 0)
+    #define THREAD_TICK(id) ((void) 0)
 #endif
 
 #endif

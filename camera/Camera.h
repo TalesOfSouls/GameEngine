@@ -53,8 +53,8 @@ struct Camera {
     f32 sensitivity;
     f32 zoom;
 
-    uint16 viewport_width;
-    uint16 viewport_height;
+    f32 viewport_width;
+    f32 viewport_height;
 
     f32 fov;
     f32 znear;
@@ -299,8 +299,8 @@ void camera_orth_matrix_lh(Camera* __restrict camera) NO_EXCEPT
     camera->orth[15] = 1.0f;
     mat4_ortho_sparse_lh(
         camera->orth,
-        0.0f, (f32) camera->viewport_width,
-        0.0f, (f32) camera->viewport_height,
+        0.0f, camera->viewport_width,
+        0.0f, camera->viewport_height,
         camera->znear,
         camera->zfar
     );
@@ -313,8 +313,8 @@ void camera_orth_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
     camera->orth[15] = 1.0f;
     mat4_ortho_sparse_rh_opengl(
         camera->orth,
-        0.0f, (f32) camera->viewport_width,
-        0.0f, (f32) camera->viewport_height,
+        0.0f, camera->viewport_width,
+        0.0f, camera->viewport_height,
         camera->znear,
         camera->zfar
     );
@@ -327,8 +327,8 @@ void camera_orth_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
     camera->orth[15] = 1.0f;
     mat4_ortho_sparse_rh_vulkan(
         camera->orth,
-        0.0f, (f32) camera->viewport_width,
-        0.0f, (f32) camera->viewport_height,
+        0.0f, camera->viewport_width,
+        0.0f, camera->viewport_height,
         camera->znear,
         camera->zfar
     );

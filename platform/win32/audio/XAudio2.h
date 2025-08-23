@@ -34,7 +34,7 @@ HRESULT WINAPI XAudio2CreateStub(IXAudio2**, UINT32, XAUDIO2_PROCESSOR) {
 // END: Dynamically load XAudio2
 
 void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
-    LOG_1("Load audio API");
+    LOG_1("Load audio API XAudio2");
 
     CoInitialize(NULL);
     HMODULE lib = LoadLibraryExA((LPCSTR) "xaudio2_9.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -112,18 +112,20 @@ void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
 
 inline
 void audio_play(AudioSetting* setting, XAudio2Setting* api_setting) {
-    if (!api_setting->source_voice) {
+    ASSERT_TRUE(api_setting->source_voice);
+    /*if (!api_setting->source_voice) {
         return;
-    }
+    }*/
 
     api_setting->source_voice->Start(0, XAUDIO2_COMMIT_NOW);
 }
 
 inline
 void audio_stop(AudioSetting* setting, XAudio2Setting* api_setting) {
-    if (!api_setting->source_voice) {
+    ASSERT_TRUE(api_setting->source_voice);
+    /*if (!api_setting->source_voice) {
         return;
-    }
+    }*/
 
     api_setting->source_voice->Stop(0, XAUDIO2_COMMIT_NOW);
 }

@@ -102,7 +102,7 @@ void file_seek(FileHandle fh, uint64 pos)
 inline uint64
 file_size(const char* path)
 {
-    PROFILE(PROFILE_FILE_UTILS, path, false, true);
+    PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     // @performance Profile against fseek strategy
     FileHandle fp;
@@ -146,7 +146,7 @@ file_size(const char* path)
 inline
 bool file_exists(const char* path)
 {
-    PROFILE(PROFILE_FILE_UTILS, path, false, true);
+    PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     DWORD file_attr;
 
@@ -165,7 +165,7 @@ bool file_exists(const char* path)
 inline void
 file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __restrict ring = NULL)
 {
-    PROFILE(PROFILE_FILE_UTILS, path, false, true);
+    PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == '.') {
@@ -232,7 +232,7 @@ file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __
 inline
 void file_read(const char* __restrict path, FileBody* __restrict file, uint64 offset, uint64 length = MAX_UINT64, RingMemory* __restrict ring = NULL)
 {
-    PROFILE(PROFILE_FILE_UTILS, path, false, true);
+    PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == '.') {
@@ -475,7 +475,7 @@ bool file_read_line(
 inline bool
 file_write(const char* __restrict path, const FileBody* __restrict file)
 {
-    PROFILE(PROFILE_FILE_UTILS, path, false, true);
+    PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == '.') {
@@ -522,7 +522,7 @@ file_write(const char* __restrict path, const FileBody* __restrict file)
 inline void
 file_copy(const char* __restrict src, const char* __restrict dst)
 {
-    PROFILE(PROFILE_FILE_UTILS, src, false, true);
+    PROFILE(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
 
     if (*src == '.') {
         char src_full_path[MAX_PATH];
@@ -728,7 +728,7 @@ FileHandle file_read_async_handle(const char* path)
 
 bool file_append(const char* __restrict path, const char* __restrict file)
 {
-    PROFILE(PROFILE_FILE_UTILS, path, false, true);
+    PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == '.') {
@@ -775,7 +775,7 @@ bool file_append(const char* __restrict path, const char* __restrict file)
 inline bool
 file_append(FileHandle fp, const char* file)
 {
-    PROFILE(PROFILE_FILE_UTILS, file, false, true);
+    PROFILE(PROFILE_FILE_UTILS, file, PROFILE_FLAG_SHOULD_LOG);
 
     if (fp == INVALID_HANDLE_VALUE) {
         ASSERT_TRUE(false);
@@ -797,7 +797,7 @@ file_append(FileHandle fp, const char* file)
 inline bool
 file_append(FileHandle fp, const char* file, size_t length)
 {
-    PROFILE(PROFILE_FILE_UTILS, file, false, true);
+    PROFILE(PROFILE_FILE_UTILS, file, PROFILE_FLAG_SHOULD_LOG);
 
     if (fp == INVALID_HANDLE_VALUE) {
         ASSERT_TRUE(false);
@@ -818,7 +818,7 @@ file_append(FileHandle fp, const char* file, size_t length)
 inline bool
 file_append(const char* __restrict path, const FileBody* __restrict file)
 {
-    PROFILE(PROFILE_FILE_UTILS, path, false, true);
+    PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == '.') {

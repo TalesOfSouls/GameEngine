@@ -18,7 +18,7 @@ enum TaskScheduleFlag : uint32 {
     TASK_SCHEDULE_FLAG_COMPLETED = 1 << 1,
     TASK_SCHEDULE_FLAG_REPEAT = 1 << 2, // After completion, reset and run again
     TASK_SCHEDULE_FLAG_CONTINUOUS = 1 << 3, // Needs to run every iteration or only once until end time
-}
+};
 
 struct TaskSchedule {
     uint32 flags;
@@ -32,7 +32,7 @@ struct TaskSchedule {
 
 // Multithreading: Single consumer (one thread) multiple producers (multiple threads)
 struct TaskScheduler {
-    ThreadPool pool;
+    ThreadPool* pool;
 
     int32 task_count;
     TaskSchedule* tasks;
@@ -41,7 +41,6 @@ struct TaskScheduler {
     // This way we can quickly find all tasks that should be run without re-ordering the tasks array every time
     // To be fair re-ordering the tasks array isn't that slow but we may need a fixed memory position for pointers
     alignas(4) atomic_32 int32* priorities;
-
     alignas(8) atomic_64 uint64* free;
 
     mutex lock;
@@ -53,14 +52,14 @@ void scheduler_alloc(TaskScheduler* scheduler, int32 count) NO_EXCEPT
     byte* data = (byte *) platform_alloc_aligned(
         count * sizeof(TaskSchedule)
         + count * sizeof(int32)
-        + CEIL_DIV(count, 64) * sizeof(scheduler->free)
+        + CEIL_DIV(count, 64) * sizeof(*scheduler->free)
         + 128,
         64
     );
 
     scheduler->tasks = (TaskSchedule *) data;
-    scheduler->priorities = ROUND_TO_NEAREST((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
-    scheduler->free = ROUND_TO_NEAREST((uintptr_t) (scheduler->priorities + count), 64);
+    scheduler->priorities = (volatile int32 *) ROUND_TO_NEAREST((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
+    scheduler->free = (volatile uint64 *) ROUND_TO_NEAREST((uintptr_t) (scheduler->priorities + count), 64);
 
     mutex_init(&scheduler->lock, NULL);
 }
@@ -72,20 +71,20 @@ void scheduler_create(TaskScheduler* scheduler, int32 count, BufferMemory* buf) 
         buf,
         count * sizeof(TaskSchedule)
         + count * sizeof(int32)
-        + CEIL_DIV(count, 64) * sizeof(scheduler->free)
+        + CEIL_DIV(count, 64) * sizeof(*scheduler->free)
         + 128,
         64, true
     );
 
     scheduler->tasks = (TaskSchedule *) data;
-    scheduler->priorities = ROUND_TO_NEAREST((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
-    scheduler->free = ROUND_TO_NEAREST((uintptr_t) (scheduler->priorities + count), 64);
+    scheduler->priorities = (volatile int32 *) ROUND_TO_NEAREST((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
+    scheduler->free = (volatile uint64 *) ROUND_TO_NEAREST((uintptr_t) (scheduler->priorities + count), 64);
 
     mutex_init(&scheduler->lock, NULL);
 }
 
 static
-int32 scheduler_get_unset(uint64* state, uint32 state_count) NO_EXCEPT {
+int32 scheduler_get_unset(volatile uint64* state, uint32 state_count) NO_EXCEPT {
     uint32 free_index = 0;
     uint32 bit_index = 0;
 
@@ -117,18 +116,17 @@ int32 scheduler_get_unset(uint64* state, uint32 state_count) NO_EXCEPT {
     return -1;
 }
 
-inline
+static inline
 void scheduler_add(TaskScheduler* scheduler, TaskSchedule* task) NO_EXCEPT
 {
     mutex_lock(&scheduler->lock);
     int32 idx = scheduler_get_unset(scheduler->free, scheduler->task_count);
-
     if (idx < 0) {
+        mutex_unlock(&scheduler->lock);
         return;
     }
 
-    memcpy(scheduler->tasks[idx], task, sizeof(TaskSchedule));
-    mutex_unlock(&scheduler->lock);
+    memcpy(&scheduler->tasks[idx], task, sizeof(TaskSchedule));
 
     for (int32 i = 0; i < scheduler->task_count; ++i) {
         if (scheduler->tasks[scheduler->priorities[i]].start > task->start
@@ -137,7 +135,7 @@ void scheduler_add(TaskScheduler* scheduler, TaskSchedule* task) NO_EXCEPT
             // Next element starts later -> this task needs to come before
 
             // Move larger elements 1 over
-            memmove(scheduler->priorities + i + 1, scheduler->priorities + i, scheduler->task_count - i - 1);
+            memmove((void *) (scheduler->priorities + i + 1), (void *) (scheduler->priorities + i), scheduler->task_count - i - 1);
 
             // Insert new element
             scheduler->priorities[i] = idx;
@@ -145,6 +143,8 @@ void scheduler_add(TaskScheduler* scheduler, TaskSchedule* task) NO_EXCEPT
             break;
         }
     }
+
+    mutex_unlock(&scheduler->lock);
 }
 
 FORCE_INLINE
@@ -157,7 +157,7 @@ void scheduler_remove(TaskScheduler* scheduler, uint32 element) NO_EXCEPT
     scheduler->free[free_index] &= ~(1ULL << bit_index);
 
     for (int32 i = 0; i < scheduler->task_count; ++i) {
-        scheduler->tasks[element].start = -1;
+        scheduler->tasks[element].start = 0;
     }
 
     mutex_unlock(&scheduler->lock);
@@ -166,7 +166,7 @@ void scheduler_remove(TaskScheduler* scheduler, uint32 element) NO_EXCEPT
 FORCE_INLINE
 void scheduler_free(TaskScheduler* scheduler) NO_EXCEPT
 {
-    platform_aligned_free(scheduler->tasks);
+    platform_aligned_free((void **) &scheduler->tasks);
     mutex_destroy(&scheduler->lock);
 }
 
@@ -174,25 +174,26 @@ void scheduler_free(TaskScheduler* scheduler) NO_EXCEPT
 void scheduler_run(TaskScheduler* scheduler, uint64 current_time) NO_EXCEPT
 {
     for (int32 i = 0; i < scheduler->task_count; ++i) {
-        TaskSchedule* task = scheduler->priorities[i];
+        TaskSchedule* task = &scheduler->tasks[scheduler->priorities[i]];
 
         // Check if task should be played
-        if (scheduler->tasks[i].start <= current_time
-            || (scheduler->tasks[i].end != 0 && scheduler->tasks[i].end <= current_time)
+        if (task->start <= current_time
+            || (task->end != 0 && task->end <= current_time)
         ) {
             break;
         }
 
         // Already running or completed tasks are skipped
-        if ((scheduler->tasks[i].flags & TASK_SCHEDULE_FLAG_RUNNING)
-            || (scheduler->tasks[i].flags & TASK_SCHEDULE_FLAG_COMPLETED)
+        if ((task->flags & TASK_SCHEDULE_FLAG_RUNNING)
+            || (task->flags & TASK_SCHEDULE_FLAG_COMPLETED)
         ) {
             continue;
         }
 
         // @todo run in thread pool
         // @todo pass current time as well in data -> create new struct for data
-        scheduler->tasks[i].task_func(&scheduler->tasks[i]);
+        // @question Do we even want this to call the pool in here? Maybe we want an iterator where we can decide per task if it should run in a pool or something else.
+        task->task_func(&scheduler->tasks[i]);
     }
 }
 

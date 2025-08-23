@@ -361,7 +361,7 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
     // Check if asset already loaded
     char id_str[9];
     int_to_hex(asset_id, id_str);
-    PROFILE(PROFILE_CMD_ASSET_LOAD_SYNC, id_str, false, true);
+    PROFILE(PROFILE_CMD_ASSET_LOAD_SYNC, id_str, PROFILE_FLAG_SHOULD_LOG);
 
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, id_str);
 
@@ -386,7 +386,7 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
 
 inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) {
     LOG_1("Load texture %d", {LOG_DATA_CHAR_STR, (void *) name});
-    PROFILE(PROFILE_CMD_ASSET_LOAD_SYNC, name, false, true);
+    PROFILE(PROFILE_CMD_ASSET_LOAD_SYNC, name, PROFILE_FLAG_SHOULD_LOG);
 
     // Check if asset already loaded
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, name);
@@ -419,7 +419,7 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id)
     char id_str[9];
     int_to_hex(asset_id, id_str);
 
-    PROFILE(PROFILE_CMD_FONT_LOAD_SYNC, id_str, false, true);
+    PROFILE(PROFILE_CMD_FONT_LOAD_SYNC, id_str, PROFILE_FLAG_SHOULD_LOG);
 
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, id_str);
 
@@ -443,7 +443,7 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id)
 inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name)
 {
     LOG_1("Load font %s", {LOG_DATA_CHAR_STR, (void *) name});
-    PROFILE(PROFILE_CMD_FONT_LOAD_SYNC, name, false, true);
+    PROFILE(PROFILE_CMD_FONT_LOAD_SYNC, name, PROFILE_FLAG_SHOULD_LOG);
 
     // Check if asset already loaded
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, name);
@@ -471,7 +471,7 @@ UILayout* cmd_layout_load_sync(
     AppCmdBuffer* __restrict cb,
     UILayout* __restrict layout, const char* __restrict layout_path
 ) {
-    PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path, false, true);
+    PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Load layout %s", {LOG_DATA_CHAR_STR, (void *) layout_path});
 
     FileBody layout_file = {};
@@ -492,7 +492,7 @@ UIThemeStyle* cmd_theme_load_sync(
     AppCmdBuffer* __restrict cb,
     UIThemeStyle* __restrict theme, const char* __restrict theme_path
 ) {
-    PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, theme_path, false, true);
+    PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, theme_path, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Load theme %s", {LOG_DATA_CHAR_STR, (void *) theme_path});
 
     FileBody theme_file = {};
@@ -518,7 +518,7 @@ UILayout* cmd_ui_load_sync(
     UIThemeStyle* __restrict theme, const char* __restrict theme_path,
     const Camera* __restrict camera
 ) {
-    PROFILE(PROFILE_CMD_UI_LOAD_SYNC, layout_path, false, true);
+    PROFILE(PROFILE_CMD_UI_LOAD_SYNC, layout_path, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Load ui with layout %s and theme %s", {LOG_DATA_CHAR_STR, (void *) layout_path}, {LOG_DATA_CHAR_STR, (void *) theme_path});
 
     if (!cmd_layout_load_sync(cb, layout, layout_path)) {

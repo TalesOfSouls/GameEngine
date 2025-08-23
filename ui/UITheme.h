@@ -227,12 +227,12 @@ void ui_theme_parse_group(HashEntryInt32* entry, byte* data, const byte** in)
 
     UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
 
-    group->attribute_count = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    group->attribute_count = SWAP_ENDIAN_LITTLE(*((int32 *) *in));
     *in += sizeof(group->attribute_count);
 
     UIAttribute* attribute_reference = (UIAttribute *) (group + 1);
 
-    for (uint32 j = 0; j < group->attribute_count; ++j) {
+    for (int32 j = 0; j < group->attribute_count; ++j) {
         attribute_reference[j].attribute_id = (UIAttributeType) SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
         *in += sizeof(attribute_reference[j].attribute_id);
 
@@ -283,7 +283,7 @@ int32 theme_from_data(
     const byte* __restrict data,
     UIThemeStyle* __restrict theme
 ) {
-    PROFILE(PROFILE_THEME_FROM_THEME, NULL, false, true);
+    PROFILE(PROFILE_THEME_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Load theme");
 
     const byte* in = data;
@@ -340,12 +340,12 @@ void ui_theme_serialize_group(const HashEntryInt32* entry, const byte* data, byt
     // Probably depends on the from_txt function and the start of theme->data
     UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
 
-    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(group->attribute_count);
+    *((int32 *) *out) = SWAP_ENDIAN_LITTLE(group->attribute_count);
     *out += sizeof(group->attribute_count);
 
     UIAttribute* attribute_reference = (UIAttribute *) (group + 1);
 
-    for (uint32 j = 0; j < group->attribute_count; ++j) {
+    for (int32 j = 0; j < group->attribute_count; ++j) {
         *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].attribute_id);
         *out += sizeof(attribute_reference[j].attribute_id);
 

@@ -14,7 +14,7 @@
 #include "../architecture/Intrinsics.h"
 #include "../thread/ThreadDefines.h"
 #include "../utils/StringUtils.h"
-#include "../utils/TimeUtils.h"
+#include "DebugMemory.h"
 
 /**
  * The logging is both using file logging and in-memory logging.
@@ -106,6 +106,34 @@ struct LogDataArray{
     LogData data[LOG_DATA_ARRAY];
 };
 
+#if _WIN32
+    static inline
+    uint64 log_sys_time()
+    {
+        SYSTEMTIME systemTime;
+        FILETIME fileTime;
+        ULARGE_INTEGER largeInt;
+
+        GetLocalTime(&systemTime);
+        SystemTimeToFileTime(&systemTime, &fileTime);
+
+        // Convert FILETIME to a 64-bit integer
+        largeInt.LowPart = fileTime.dwLowDateTime;
+        largeInt.HighPart = fileTime.dwHighDateTime;
+
+        return ((uint64) (largeInt.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+    }
+#else
+    static inline
+    uint64 log_sys_time()
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+
+        return (uint64) ts.tv_sec * 1000000ULL + (uint64) ts.tv_nsec / 1000ULL;
+    }
+#endif
+
 byte* log_get_memory() NO_EXCEPT
 {
     if (_log_memory->pos + MAX_LOG_LENGTH > _log_memory->size) {
@@ -181,7 +209,7 @@ void log(const char* str, const char* file, const char* function, int32 line)
         msg->function = function;
         msg->line = line;
         msg->message = (char *) (msg + 1);
-        msg->time = system_time();
+        msg->time = log_sys_time();
         msg->newline = '\n';
 
         int32 message_length = (int32) OMS_MIN((int32) (MAX_LOG_LENGTH - sizeof(LogMessage) - 1), len);
@@ -200,6 +228,8 @@ void log(const char* str, const char* file, const char* function, int32 line)
             compiler_debug_print(msg->message);
             compiler_debug_print("\n");
         #endif
+
+        DEBUG_MEMORY_WRITE((uintptr_t) msg, sizeof(*msg) + message_length);
 
         if (_log_memory->size - _log_memory->pos < MAX_LOG_LENGTH) {
             log_to_file();
@@ -230,7 +260,7 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
     msg->function = function;
     msg->line = line;
     msg->message = (char *) (msg + 1);
-    msg->time = system_time();
+    msg->time = log_sys_time();
     msg->newline = '\n';
 
     char temp_format[MAX_LOG_LENGTH];
@@ -294,6 +324,8 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
         compiler_debug_print(msg->message);
         compiler_debug_print("\n");
     #endif
+
+    DEBUG_MEMORY_WRITE((uintptr_t) msg, sizeof(*msg) + MAX_LOG_LENGTH);
 
     if (_log_memory->size - _log_memory->pos < MAX_LOG_LENGTH) {
         log_to_file();

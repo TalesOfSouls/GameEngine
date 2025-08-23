@@ -259,7 +259,7 @@ GLuint gpuapi_pipeline_make(
     GLuint fragment_shader,
     GLint geometry_shader
 ) {
-    PROFILE(PROFILE_PIPELINE_MAKE, NULL, false, true);
+    PROFILE(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Create pipeline");
     GLuint program = glCreateProgram();
 

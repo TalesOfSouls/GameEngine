@@ -619,7 +619,7 @@ int64 str_to_int(const char* str, const char** pos = NULL) NO_EXCEPT
 }
 
 inline
-int32 int_to_str(int64 number, char str[15], const char thousands) NO_EXCEPT
+int32 int_to_str(int64 number, char str[15], char thousands) NO_EXCEPT
 {
     if (number == 0) {
         *str++ = '0';

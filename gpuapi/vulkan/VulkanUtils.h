@@ -70,7 +70,7 @@ struct VulkanSwapChainSupportDetails {
 
 inline
 void change_viewport(
-    int32 width, int32 height,
+    f32 width, f32 height,
     VkCommandBuffer command_buffer, VkExtent2D swapchain_extent,
     int32 offset_x = 0, int32 offset_y = 0
 )
@@ -78,8 +78,8 @@ void change_viewport(
     VkViewport viewport = {};
     viewport.x = (f32) offset_x;
     viewport.y = (f32) offset_y;
-    viewport.width = (f32) width;
-    viewport.height = (f32) height;
+    viewport.width = width;
+    viewport.height = height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);

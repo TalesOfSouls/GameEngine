@@ -13,9 +13,12 @@
 #include <windows.h>
 #include <time.h>
 #include "../../stdlib/Types.h"
+#include "../../log/PerformanceProfiler.h"
 
 void usleep(uint64 microseconds)
 {
+    PROFILE(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
+
     LARGE_INTEGER frequency, start, end;
     QueryPerformanceFrequency(&frequency);
     QueryPerformanceCounter(&start);
@@ -67,7 +70,7 @@ uint64 time_mu()
     ASSERT_TRUE(counter.QuadPart != frequency.QuadPart);
     ASSERT_TRUE(counter.QuadPart != 1);
 
-    return (counter.QuadPart * 1000000) / frequency.QuadPart;
+    return (counter.QuadPart * 1000000ULL) / frequency.QuadPart;
 }
 
 inline

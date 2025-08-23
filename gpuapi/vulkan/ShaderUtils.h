@@ -204,7 +204,7 @@ VkPipeline gpuapi_pipeline_make(
     VkShaderModule vertex_shader, VkShaderModule fragment_shader,
     VkShaderModule
 ) {
-    PROFILE(PROFILE_PIPELINE_MAKE, NULL, false, true);
+    PROFILE(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Create pipeline");
     VkPipelineShaderStageCreateInfo vertex_shader_stage_info = {};
     vertex_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -401,11 +401,11 @@ void vulkan_descriptor_sets_create(
     VkImageView texture_image_view, VkSampler& texture_sampler,
     VkBuffer* __restrict uniform_buffers,
     size_t uniform_buffer_object_size,
-    uint32 frames_in_flight, RingMemory* ring
+    int32 frames_in_flight, RingMemory* ring
 )
 {
     VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout *) ring_get_memory(ring, sizeof(VkDescriptorSetLayout) * frames_in_flight, 64);
-    for (uint32 i = 0; i < frames_in_flight; ++i) {
+    for (int32 i = 0; i < frames_in_flight; ++i) {
         layouts[i] = descriptor_set_layout;
     }
 
@@ -424,7 +424,7 @@ void vulkan_descriptor_sets_create(
     }
 
     // @todo this is shader specific, it shouldn't be here
-    for (uint32 i = 0; i < frames_in_flight; ++i) {
+    for (int32 i = 0; i < frames_in_flight; ++i) {
         VkDescriptorBufferInfo buffer_info = {};
         buffer_info.buffer = uniform_buffers[i];
         buffer_info.offset = 0;

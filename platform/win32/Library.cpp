@@ -51,7 +51,7 @@ bool library_load(Library* lib)
 
     lib->handle = LoadLibraryA((LPCSTR) dst);
     if (!lib->handle) {
-        lib->is_valid= false;
+        lib->is_valid = false;
         ASSERT_TRUE(false);
 
         return lib->is_valid;

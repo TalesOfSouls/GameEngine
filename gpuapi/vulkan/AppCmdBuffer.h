@@ -26,7 +26,7 @@ void* cmd_shader_load_sync(
     VkDevice device, VkRenderPass render_pass, VkPipelineLayout* __restrict pipeline_layout, VkPipeline* __restrict pipeline,
     VkDescriptorSetLayout* __restrict descriptor_set_layouts
 ) {
-    PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, false, true);
+    PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
     char asset_id[9];
 
     VkShaderModule shader_assets[SHADER_TYPE_SIZE];

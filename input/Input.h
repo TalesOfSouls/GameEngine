@@ -29,7 +29,7 @@
 
 // How many concurrent primary key/button presses can be handled?
 #define MAX_KEY_PRESSES 5
-#define MAX_KEY_PRESS_TYPES (2 * MAX_KEY_PRESSES)
+#define MAX_KEY_PRESS_TYPES 7
 
 // How many keys/buttons do we support for the devices
 #define MAX_KEYBOARD_KEYS 255
@@ -220,10 +220,7 @@ bool input_action_exists(const InputKey* active_keys, int16 key, KeyPressType pr
         || (active_keys[4].scan_code == key && active_keys[4].key_state == press_type)
         || (active_keys[4].scan_code == key && active_keys[4].key_state == press_type)
         || (active_keys[5].scan_code == key && active_keys[5].key_state == press_type)
-        || (active_keys[6].scan_code == key && active_keys[6].key_state == press_type)
-        || (active_keys[7].scan_code == key && active_keys[7].key_state == press_type)
-        || (active_keys[8].scan_code == key && active_keys[8].key_state == press_type)
-        || (active_keys[9].scan_code == key && active_keys[9].key_state == press_type);
+        || (active_keys[6].scan_code == key && active_keys[6].key_state == press_type);
 }
 
 inline
@@ -235,10 +232,7 @@ bool input_is_down(const InputKey* active_keys, int16 key) NO_EXCEPT
         || (active_keys[3].scan_code == key && active_keys[3].key_state != KEY_PRESS_TYPE_RELEASED)
         || (active_keys[4].scan_code == key && active_keys[4].key_state != KEY_PRESS_TYPE_RELEASED)
         || (active_keys[5].scan_code == key && active_keys[5].key_state != KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[6].scan_code == key && active_keys[6].key_state != KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[7].scan_code == key && active_keys[7].key_state != KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[8].scan_code == key && active_keys[8].key_state != KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[9].scan_code == key && active_keys[9].key_state != KEY_PRESS_TYPE_RELEASED);
+        || (active_keys[6].scan_code == key && active_keys[6].key_state != KEY_PRESS_TYPE_RELEASED);
 }
 
 inline
@@ -250,10 +244,7 @@ bool input_is_pressed(const InputKey* active_keys, int16 key) NO_EXCEPT
         || (active_keys[3].scan_code == key && active_keys[3].key_state == KEY_PRESS_TYPE_PRESSED)
         || (active_keys[4].scan_code == key && active_keys[4].key_state == KEY_PRESS_TYPE_PRESSED)
         || (active_keys[5].scan_code == key && active_keys[5].key_state == KEY_PRESS_TYPE_PRESSED)
-        || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_PRESSED)
-        || (active_keys[7].scan_code == key && active_keys[7].key_state == KEY_PRESS_TYPE_PRESSED)
-        || (active_keys[8].scan_code == key && active_keys[8].key_state == KEY_PRESS_TYPE_PRESSED)
-        || (active_keys[9].scan_code == key && active_keys[9].key_state == KEY_PRESS_TYPE_PRESSED);
+        || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_PRESSED);
 }
 
 inline
@@ -266,10 +257,7 @@ bool input_is_held(const InputKey* active_keys, int16 key) NO_EXCEPT
         || (active_keys[4].scan_code == key && active_keys[4].key_state == KEY_PRESS_TYPE_HELD)
         || (active_keys[4].scan_code == key && active_keys[4].key_state == KEY_PRESS_TYPE_HELD)
         || (active_keys[5].scan_code == key && active_keys[5].key_state == KEY_PRESS_TYPE_HELD)
-        || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_HELD)
-        || (active_keys[7].scan_code == key && active_keys[7].key_state == KEY_PRESS_TYPE_HELD)
-        || (active_keys[8].scan_code == key && active_keys[8].key_state == KEY_PRESS_TYPE_HELD)
-        || (active_keys[9].scan_code == key && active_keys[9].key_state == KEY_PRESS_TYPE_HELD);
+        || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_HELD);
 }
 
 inline
@@ -282,10 +270,7 @@ bool input_is_released(const InputKey* active_keys, int16 key) NO_EXCEPT
         || (active_keys[4].scan_code == key && active_keys[4].key_state == KEY_PRESS_TYPE_RELEASED)
         || (active_keys[4].scan_code == key && active_keys[4].key_state == KEY_PRESS_TYPE_RELEASED)
         || (active_keys[5].scan_code == key && active_keys[5].key_state == KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[7].scan_code == key && active_keys[7].key_state == KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[8].scan_code == key && active_keys[8].key_state == KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[9].scan_code == key && active_keys[9].key_state == KEY_PRESS_TYPE_RELEASED);
+        || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_RELEASED);
 }
 
 inline
@@ -298,10 +283,7 @@ bool input_was_down(const InputKey* active_keys, int16 key) NO_EXCEPT
         || (active_keys[4].scan_code == key && active_keys[4].key_state == KEY_PRESS_TYPE_RELEASED)
         || (active_keys[4].scan_code == key && active_keys[4].key_state == KEY_PRESS_TYPE_RELEASED)
         || (active_keys[5].scan_code == key && active_keys[5].key_state == KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[7].scan_code == key && active_keys[7].key_state == KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[8].scan_code == key && active_keys[8].key_state == KEY_PRESS_TYPE_RELEASED)
-        || (active_keys[9].scan_code == key && active_keys[9].key_state == KEY_PRESS_TYPE_RELEASED);
+        || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_RELEASED);
 }
 
 inline
@@ -316,6 +298,7 @@ bool inputs_are_down(
         && (key4 == 0 || input_is_down(active_keys, key4));
 }
 
+FORCE_INLINE
 void input_add_callback(InputMapping* mapping, uint8 hotkey, InputCallback callback) NO_EXCEPT
 {
     mapping->hotkeys[hotkey].callback = callback;

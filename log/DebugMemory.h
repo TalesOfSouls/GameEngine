@@ -13,10 +13,12 @@
 #include "../thread/Atomic.h"
 
 #ifndef DEBUG_MEMORY_RANGE_MAX
+    // How many memory actions do we store?
     #define DEBUG_MEMORY_RANGE_MAX 500
 #endif
 
 #ifndef DEBUG_MEMORY_RANGE_RES_MAX
+    // How many reserved actions do we store?
     #define DEBUG_MEMORY_RANGE_RES_MAX 100
 #endif
 
@@ -181,6 +183,8 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
             return;
         }
     }
+
+    // @todo move over memory ranges and
 }
 
 // @bug This probably requires thread safety

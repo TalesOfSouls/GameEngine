@@ -32,7 +32,7 @@ HRESULT WINAPI DirectSoundCreate8Stub(LPCGUID, LPDIRECTSOUND8*, LPUNKNOWN) {
 // END: Dynamically load DirectSound
 
 void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_setting) {
-    LOG_1("Load audio API");
+    LOG_1("Load audio API DirectSound");
 
     HMODULE lib = LoadLibraryExA((LPCSTR) "dsound.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!lib) {
@@ -103,18 +103,20 @@ void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_settin
 inline
 void audio_play(AudioSetting*, DirectSoundSetting* api_setting)
 {
-    if (!api_setting->secondary_buffer) {
+    ASSERT_TRUE(api_setting->secondary_buffer);
+    /*if (!api_setting->secondary_buffer) {
         return;
-    }
+    }*/
 
     api_setting->secondary_buffer->Play(0, 0, DSBPLAY_LOOPING);
 }
 
 inline
 void audio_stop(AudioSetting*, DirectSoundSetting* api_setting) {
-    if (!api_setting->secondary_buffer) {
+    ASSERT_TRUE(api_setting->secondary_buffer);
+    /*if (!api_setting->secondary_buffer) {
         return;
-    }
+    }*/
 
     api_setting->secondary_buffer->Stop();
 }

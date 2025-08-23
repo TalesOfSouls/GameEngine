@@ -24,14 +24,13 @@
 #include "ThreadJob.h"
 #include "ThreadPool.h"
 
-void thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
+int32 thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 {
     LOG_1("[INFO] Thread starting");
-
-    coms_pthread_create(&worker->thread, NULL, routine, arg);
-
     LOG_INCREMENT(DEBUG_COUNTER_THREAD);
     LOG_2("[INFO] %d threads running", {LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]});
+
+    return coms_pthread_create(&worker->thread, NULL, routine, arg);
 }
 
 void thread_stop(Worker* worker)

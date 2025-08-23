@@ -26,8 +26,8 @@
     #include "SIMD_I8_AVX512.h"
 #endif
 
-int simd_equal(const byte* a, const byte* b, uint32 size, uint32 steps = 8) {
-    uint32 i = 0;
+int simd_equal(const byte* a, const byte* b, int32 size, int32 steps = 8) {
+    int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) b, steps);
 
