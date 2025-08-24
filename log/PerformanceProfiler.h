@@ -101,6 +101,7 @@ struct PerformanceThreadHistory {
 };
 
 // Used to show historic values per thread unlike PerformanceStatHistory which doesn't differentiate between threads
+// @todo we probably want to log thread performance per frame for a chart
 #define MAX_PERFORMANCE_THREAD_HISTORY 10000
 struct PerformanceProfileThread {
     int32 thread_id;

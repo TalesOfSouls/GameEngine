@@ -31,6 +31,7 @@ struct DebugMemoryRange {
     const char* function_name;
 };
 
+// @todo We probably want a way to log usage per frame for a chart
 struct DebugMemory {
     uint64 usage;
     uintptr_t start;

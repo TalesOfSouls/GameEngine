@@ -13,6 +13,7 @@
 #include "../../stdlib/Types.h"
 #include <basetsd.h>
 #include <intrin.h>
+#include <string.h>
 
 #define PACKED_STRUCT  __pragma(pack(push, 1))
 #define UNPACKED_STRUCT __pragma(pack(pop))
@@ -82,13 +83,50 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_E
 #define compiler_is_bit_set_r2l(num, pos) _bittest(num, pos)
 #define compiler_is_bit_set_64_r2l(num, pos) _bittest64(num, pos)
 
-/*
 FORCE_INLINE
-void compiler_memcpy_medium(void* dst, const void* src, size_t size) NO_EXCEPT
+void compiler_memcpy_unaligned(void* __restrict dst, const void* __restrict src, size_t size)
 {
-    // faster than windows memcpy for values up to a couple kb but larger than a couple of bytes
-    __movsb((unsigned char*) dst, (const unsigned char*) src, size);
+    #if ARM
+        memcpy(dst, src, size);
+    #else
+        __movsb((unsigned char*) dst, (const unsigned char*) src, size);
+    #endif
 }
-*/
+
+// 8 byte alignment required and size needs to be multiple of 8
+FORCE_INLINE
+void compiler_memcpy_aligned(void* __restrict dst, const void* __restrict src, size_t size)
+{
+    ASSERT_TRUE((size & 7) == 0);
+
+    #if ARM
+        memcpy(dst, src, size);
+    #else
+        __movsq((unsigned char*) dst, (const unsigned char*) src, size / 8);
+    #endif
+}
+
+FORCE_INLINE
+void compiler_memset_unaligned(void* dst, int value, size_t size) {
+
+    #if ARM
+        memcpy(dst, src, size);
+    #else
+        __stosb((unsigned char*)dst, (unsigned char)value, size);
+    #endif
+}
+
+// 8 byte alignment required and size needs to be multiple of 8
+FORCE_INLINE
+void compiler_memset_aligned(void* dst, int value, size_t size) {
+    ASSERT_TRUE((size & 7) == 0);
+
+    #if ARM
+        memcpy(dst, src, size);
+    #else
+        __stosq((unsigned char*)dst, (unsigned char)value, size / 8);
+    #endif
+}
+
 
 #endif

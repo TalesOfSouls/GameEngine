@@ -8,6 +8,7 @@
 // @question See PerformanceProfiler (hashmap) and implement same here
 // The problem with that is, the hash map is much slower
 // and we probably want to maybe use this (at least partially) in release mode?
+// @todo We probably want a history array to look at some values in a chart
 #ifndef DEBUG_COUNTER
     #define DEBUG_COUNTER 1
     enum DebugCounter {
@@ -35,6 +36,7 @@ static atomic_64 int64* _stats_counter = NULL;
 inline
 void reset_counter(int32 id) NO_EXCEPT
 {
+    // @question do we want to also use _perf_active?
     if (!_stats_counter) {
         return;
     }

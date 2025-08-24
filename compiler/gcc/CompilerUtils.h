@@ -113,4 +113,29 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) NO_EXCEP
     );
 }
 
+
+FORCE_INLINE
+void compiler_memcpy_unaligned(void* __restrict dst, const void* __restrict src, size_t size)
+{
+    __builtin_memcpy(dst, src, size);
+}
+
+// 8 byte alignment required
+FORCE_INLINE
+void compiler_memcpy_aligned(void* __restrict dst, const void* __restrict src, size_t size)
+{
+    __builtin_memcpy(dst, src, size);
+}
+
+FORCE_INLINE
+void compiler_memset_unaligned(void* dst, int value, size_t size) {
+    __builtin_memset(dst, value, size);
+}
+
+// 8 byte alignment required and size needs to be multiple of 8
+FORCE_INLINE
+void compiler_memset_aligned(void* dst, int value, size_t size) {
+    __builtin_memset(dst, value, size);
+}
+
 #endif
