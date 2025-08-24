@@ -335,7 +335,7 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
     return (int32) free_element;
 }
 
-inline
+FORCE_INLINE
 void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index) NO_EXCEPT
 {
     buf->free[free_index] &= ~(1ULL << bit_index);

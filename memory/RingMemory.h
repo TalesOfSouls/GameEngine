@@ -132,7 +132,7 @@ byte* ring_calculate_position(const RingMemory* ring, uint64 size, uint32 aligne
     return head;
 }
 
-inline
+FORCE_INLINE
 void ring_reset(RingMemory* ring) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE((uintptr_t) ring->memory, ring->size);
@@ -235,7 +235,7 @@ byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint32 aligned = 4, 
 
 // Used if the ring only contains elements of a certain size
 // This way you can get a certain element
-inline
+FORCE_INLINE
 byte* ring_get_element(const RingMemory* ring, uint64 element, uint64 size) NO_EXCEPT
 {
     DEBUG_MEMORY_READ((uintptr_t) (ring->memory + element * size), 1);

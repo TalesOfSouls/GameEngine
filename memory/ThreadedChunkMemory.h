@@ -213,7 +213,7 @@ int32 thrd_chunk_get_unset(atomic_64 uint64* state, uint32 state_count, int32 st
     return -1;
 }
 
-inline
+FORCE_INLINE
 int32 thrd_chunk_reserve(ThreadedChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
 {
     mutex_lock(&buf->lock);

@@ -60,23 +60,23 @@ void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_si
     queue->element_size = element_size;
 }
 
-inline
+FORCE_INLINE
 void queue_free(Queue* queue) NO_EXCEPT
 {
     ring_free((RingMemory *) queue);
 }
 
-inline
+FORCE_INLINE
 bool queue_is_empty(const Queue* queue) NO_EXCEPT {
     return queue->head == queue->tail;
 }
 
-inline
+FORCE_INLINE
 void queue_set_empty(Queue* queue) NO_EXCEPT {
     queue->head = queue->tail;
 }
 
-inline
+FORCE_INLINE
 bool queue_is_full(Queue* queue) NO_EXCEPT {
     return !ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment);
 }
@@ -220,13 +220,13 @@ byte* queue_dequeue_keep(Queue* queue) NO_EXCEPT
     return data;
 }
 
-inline
+FORCE_INLINE
 byte* queue_dequeue_start(const Queue* queue) NO_EXCEPT
 {
     return queue->tail;
 }
 
-inline
+FORCE_INLINE
 void queue_dequeue_end(Queue* queue) NO_EXCEPT
 {
     ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);

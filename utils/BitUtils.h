@@ -13,21 +13,22 @@
 #include "../stdlib/Types.h"
 #include "../architecture/Intrinsics.h"
 
-// @todo Replace many of these functions with intrinsic functions
-//      This file can remain but the callers should get adjusted
-//      Obviously we would have to check at runtime if ABM is supported
-
 // Left to right (big endian)
 // "bits" refers to the bits of the data type (e.g. 8, 16, 32, 64)
 #define IS_BIT_SET_L2R(num, pos, bits) ((bool) ((num) & (1 << ((bits - 1) - (pos)))))
+#define IS_BIT_SET_64_L2R(num, pos, bits) ((bool) ((num) & (1ULL << ((bits - 1) - (pos)))))
 #define BIT_SET_L2R(num, pos, bits) ((num) | (1U << ((bits - 1) - (pos))))
+#define BIT_SET_64_L2R(num, pos, bits) ((num) | (1ULL << ((bits - 1) - (pos))))
 #define BIT_UNSET_L2R(num, pos, bits) ((num) & ~(1U << ((bits - 1) - (pos))))
+#define BIT_UNSET_64_L2R(num, pos, bits) ((num) & ~(1ULL << ((bits - 1) - (pos))))
 #define BIT_FLIP_L2R(num, pos, bits) ((num) ^ (1U << ((bits - 1) - (pos))))
-#define BIT_SET_TO_L2R(num, pos, x, bits) (((num) & ~((uint32_t)(1) << ((bits) - 1 - (pos)))) | (((uint32_t)(x) & 1U) << ((bits) - 1 - (pos))))
+#define BIT_FLIP_64_L2R(num, pos, bits) ((num) ^ (1ULL << ((bits - 1) - (pos))))
+#define BIT_SET_TO_L2R(num, pos, x, bits) (((num) & ~(1U << ((bits) - 1 - (pos)))) | (((uint32_t)(x) & 1U) << ((bits) - 1 - (pos))))
+#define BIT_SET_TO_64_L2R(num, pos, x, bits) (((num) & ~(1ULL << ((bits) - 1 - (pos)))) | (((uint64_t)(x) & 1ULL) << ((bits) - 1 - (pos))))
 #define BITS_GET_8_L2R(num, pos, to_read) (((num) >> (8 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
 #define BITS_GET_16_L2R(num, pos, to_read) (((num) >> (16 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
 #define BITS_GET_32_L2R(num, pos, to_read) (((num) >> (32 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
-#define BITS_GET_64_L2R(num, pos, to_read) (((num) >> (64 - (pos) - (to_read))) & ((1ULL << (to_read)) - 1))
+#define BITS_GET_64_L2R(num, pos, to_read) (((num) >> (64ULL - (pos) - (to_read))) & ((1ULL << (to_read)) - 1))
 
 // Merges an array of bytes as an int value (16bit, 32bit, 64bit)
 // Depending on the endianness of the system you could simply cast the array
@@ -38,10 +39,14 @@
 // Right to left (little endian)
 #define IS_BIT_SET_R2L(num, pos) ((bool) ((num) & (1 << (pos))))
 #define IS_BIT_SET_64_R2L(num, pos) ((bool) ((num) & (1ULL << (pos))))
-#define BIT_SET_R2L(num, pos) ((num) | ((uint32) 1 << (pos)))
-#define BIT_UNSET_R2L(num, pos) ((num) & ~((uint32) 1 << (pos)))
-#define BIT_FLIP_R2L(num, pos) ((num) ^ ((uint32) 1 << (pos)))
-#define BIT_SET_TO_R2L(num, pos, x) (((num) & ~((uint32_t)(1) << (pos))) | ((uint32_t)(x) << (pos)))
+#define BIT_SET_R2L(num, pos) ((num) | (1U << (pos)))
+#define BIT_SET_64_R2L(num, pos) ((num) | (1ULL << (pos)))
+#define BIT_UNSET_R2L(num, pos) ((num) & ~(1U << (pos)))
+#define BIT_UNSET_64_R2L(num, pos) ((num) & ~(1ULL << (pos)))
+#define BIT_FLIP_R2L(num, pos) ((num) ^ (1U << (pos)))
+#define BIT_FLIP_64_R2L(num, pos) ((num) ^ (1ULL << (pos)))
+#define BIT_SET_TO_R2L(num, pos, x) (((num) & ~(1U << (pos))) | ((uint32_t)(x) << (pos)))
+#define BIT_SET_TO_64_R2L(num, pos, x) (((num) & ~(1ULL << (pos))) | ((uint64_t)(x) << (pos)))
 // @performance Try to use this version over the L2R version for performance reasons
 #define BITS_GET_8_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
 #define BITS_GET_16_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
@@ -285,32 +290,73 @@ void bits_flush(BitWalk* stream) NO_EXCEPT
 //     return bits;
 // }
 
-static
-inline int32 find_first_set_bit(int32 value) NO_EXCEPT {
+inline
+int32 first_set_bit_r2l(int32 value) NO_EXCEPT {
     if (value == 0) {
         return 0;
     }
 
-    #if __GNUC__ || __clang__
-        return __builtin_ffs(value);
-    #elif _MSC_VER
-        unsigned long index;
-        if (_BitScanForward(&index, value)) {
-            return (int32) index + 1;
-        } else {
-            return 0;
+    int32 index = 1;
+    while (value) {
+        if (value & 1) {
+            return index;
         }
-    #else
-        int32 index = 1;
-        while (value) {
-            if (value & 1) {
-                return index;
-            }
-            value >>= 1;
-            index++;
-        }
+
+        value >>= 1;
+        ++index;
+    }
+
+    return 0;
+}
+
+inline
+int32 first_set_bit_r2l(int64 value) {
+    if (value == 0) {
         return 0;
-    #endif
+    }
+
+    int32 index = 1;
+    while (value) {
+        if (value & 1ULL) return index;
+        value >>= 1;
+        ++index;
+    }
+
+    return 0;
+}
+
+inline
+int32 first_set_bit_l2r(int32 value) NO_EXCEPT {
+    if (value == 0) {
+        return 0;
+    }
+
+    int32 index = 1;
+    for (int32 i = 31; i >= 0; --i) {
+        if (value & (1 << i)) {
+            return index;
+        }
+
+        ++index;
+    }
+    return 0;
+}
+
+inline
+int32 first_set_bit_l2r(int64 value) {
+    if (value == 0) {
+        return 0;
+    }
+
+    int32 index = 1;
+    for (int32 i = 63; i >= 0; --i) {
+        if (value & (1ULL << i)) {
+            return index;
+        }
+
+        ++index;
+    }
+    return 0;
 }
 
 inline
@@ -321,6 +367,18 @@ uint32 bits_reverse(uint32 data, int32 count) NO_EXCEPT
         uint32 inv = count - i - 1;
         reversed |= ((data >> i) & 0x1) << inv;
         reversed |= ((data >> inv) & 0x1) << i;
+    }
+
+    return reversed;
+}
+
+inline
+uint64 bits_reverse(uint64 data, int32 count) NO_EXCEPT {
+    uint64 reversed = 0;
+    for (int32 i = 0; i <= (count / 2); ++i) {
+        int32 inv = count - i - 1;
+        reversed |= ((data >> i) & 0x1ULL) << inv;
+        reversed |= ((data >> inv) & 0x1ULL) << i;
     }
 
     return reversed;
@@ -345,11 +403,11 @@ static const byte BIT_COUNT_LOOKUP_TABLE[256] = {
     4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 };
 
-inline
+FORCE_INLINE
 byte bits_count(uint64 data, bool use_abm = false) NO_EXCEPT {
-    if (use_abm) {
+    if (use_abm) { [[unlikely]]
         return (byte) intrin_bits_count_64(data);
-    } else {
+    } else { [[likely]]
         return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
             + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF]
             + BIT_COUNT_LOOKUP_TABLE[(data >> 16) & 0xFF]
@@ -361,11 +419,11 @@ byte bits_count(uint64 data, bool use_abm = false) NO_EXCEPT {
     }
 }
 
-inline
+FORCE_INLINE
 byte bits_count(uint32 data, bool use_abm = false) NO_EXCEPT {
-    if (use_abm) {
+    if (use_abm) { [[unlikely]]
         return (byte) intrin_bits_count_32(data);
-    } else {
+    } else { [[likely]]
         return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
             + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF]
             + BIT_COUNT_LOOKUP_TABLE[(data >> 16) & 0xFF]
@@ -373,13 +431,13 @@ byte bits_count(uint32 data, bool use_abm = false) NO_EXCEPT {
     }
 }
 
-inline
+FORCE_INLINE
 byte bits_count(uint16 data) NO_EXCEPT {
     return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
         + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF];
 }
 
-inline
+FORCE_INLINE
 byte bits_count(uint8 data) NO_EXCEPT {
     return BIT_COUNT_LOOKUP_TABLE[data];
 }

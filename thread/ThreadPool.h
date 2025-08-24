@@ -156,7 +156,7 @@ void thread_pool_alloc(
 
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
-        int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        [[maybe_unused]] int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
         THREAD_LOG_NAME(id, "pool");
         coms_pthread_detach(thread);
     }
@@ -194,7 +194,7 @@ void thread_pool_create(
 
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
-        int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        [[maybe_unused]] int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
         THREAD_LOG_NAME(id, "pool");
         coms_pthread_detach(thread);
     }

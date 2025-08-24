@@ -27,9 +27,9 @@ struct DebugContainer {
 
     alignas(8) atomic_64 int64* stats_counter;
 
-    PerformanceProfileResult* perf_stats;
+    PerformanceStatHistory* perf_stats;
     PerformanceProfiler** perf_current_scope;
-    int32* perf_active;
+    volatile int32* perf_active;
     int32 perf_profile_history_count;
     PerformanceProfileThread* perf_profile_history;
 };

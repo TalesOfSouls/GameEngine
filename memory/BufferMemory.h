@@ -82,7 +82,7 @@ void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 6
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
-inline
+FORCE_INLINE
 void buffer_reset(BufferMemory* buf) NO_EXCEPT
 {
     // @bug aren't we wasting element 0 (see get_memory, we are not using 0 only next element)

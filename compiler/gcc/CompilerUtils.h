@@ -84,6 +84,9 @@ int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
     #endif
 }
 
+#define compiler_is_bit_set_r2l(num, pos) ((bool) ((num) & (1 << (pos))))
+#define compiler_is_bit_set_64_r2l(num, pos) ((bool) ((num) & (1ULL << (pos))))
+
 /*
 #include <cpuid.h>
 inline

@@ -12,7 +12,12 @@
 #include "../stdlib/Types.h"
 #include "ChunkMemory.h"
 
-// WARNING: Structure needs to be the same as RingMemory
+// WARNING: Structure needs to be the same as ChunkMemory
+// Opposite to the ChunkMemory we can see if someone currently has a pointer to the data
+// This allows us to optimize the memory layout whenever data is unused
+// @todo We still need to implement this optimization by implementing a defragment function
+//  ChunkMemory can not be defragmented because we don't know if a chunk is currently referenced or not
+// @todo We also need a HashMap
 struct DataPool {
     byte* memory;
 
@@ -153,7 +158,7 @@ int32 pool_get_unused(DataPool* buf, int32 start_index = 0) NO_EXCEPT
 }
 
 // Release an element to be used by someone else
-inline
+FORCE_INLINE
 void pool_release(DataPool* buf, int32 element) NO_EXCEPT
 {
     uint32 free_index = element / 64;
