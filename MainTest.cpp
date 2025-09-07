@@ -1,5 +1,5 @@
 #define UBER_TEST 1
-#define PERFORMANCE_TEST 0
+#define PERFORMANCE_TEST 1
 
 //#include "math/EvaluatorTest.cpp"
 #include "tests/memory/ChunkMemoryTest.cpp"

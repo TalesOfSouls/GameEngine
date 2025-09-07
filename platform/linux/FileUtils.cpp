@@ -24,7 +24,7 @@
 
 #include "../../stdlib/Types.h"
 #include "../../utils/Utils.h"
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
 #include "../../utils/StringUtils.h"
 #include "../../memory/RingMemory.h"
 #include "../../log/PerformanceProfiler.h"
@@ -105,7 +105,7 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path)
     ++self_path_length;
 
     memcpy(path, self_path, self_path_length);
-    str_copy_short(path + self_path_length, temp);
+    str_copy(path + self_path_length, temp);
 }
 
 // @todo implement relative path support, similar to UtilsWin32
@@ -436,8 +436,8 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
 
         char full_path[MAX_PATH];
         // @performance This is bad, we are internally moving two times too often to the end of full_path
-        //      Maybe make str_copy_short return the length, same as append?
-        str_copy_short(full_path, base_path);
+        //      Maybe make str_copy return the length, same as append?
+        str_copy(full_path, base_path);
         if (!str_ends_with(base_path, "/")) {
             str_concat_append(full_path, "/");
         }

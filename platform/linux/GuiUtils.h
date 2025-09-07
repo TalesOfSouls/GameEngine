@@ -49,7 +49,7 @@ void clipboard_get(char* text, int32 max_length)
             );
 
             if (data) {
-                str_copy_short(text, clipboard_text, max_length);
+                str_copy(text, clipboard_text, max_length);
                 XFree(data);
             }
         }

@@ -76,7 +76,7 @@ enum KeyPressType : byte {
 };
 
 struct Hotkey {
-    // negative hotkeys mean any of them needs to be matched, positive hotkeys means all of them need to be matched
+    // negative hotkeys mean any of them needs to match, positive hotkeys means all of them need to match
     // mixing positive and negative keys for one hotkey is not possible
     // index = hotkey, value = key id
     int16 scan_codes[MAX_HOTKEY_COMBINATION];
@@ -136,12 +136,24 @@ enum GeneralInputState : byte {
     INPUT_STATE_GENERAL_BUTTON_CHANGE = 1 << 0,
     INPUT_STATE_GENERAL_MOUSE_CHANGE = 1 << 1,
     INPUT_STATE_GENERAL_MOUSE_MOVEMENT = 1 << 2,
-    INPUT_STATE_GENERAL_TYPING_MODE = 1 << 3,
+    INPUT_STATE_GENERAL_TYPING_MODE = 1 << 3, // Used for typing in chat box etc. otherwise we could have conflicts with hotkeys
+    INPUT_STATE_GENERAL_HOTKEY_ACTIVE = 1 << 4, // At least one hotkey is active
+};
+
+union ControllerHandler {
+    #ifdef _WIN32
+        int32 id; // used by XInput
+        HANDLE handle; // used by raw input controller
+        LPDIRECTINPUTDEVICE8* direct; // used by direct input controller
+    #endif
 };
 
 struct Input {
     // Device
     InputConnectionType connection_type;
+
+    byte general_states;
+    byte controller_type;
 
     #ifdef _WIN32
         // @question maybe replace with id?!
@@ -150,20 +162,16 @@ struct Input {
         HANDLE handle_mouse;
 
         // @todo support all three versions
-        int32 controller_id; // used by XInput
-        HANDLE handle_controller; // used by raw input controller
-        LPDIRECTINPUTDEVICE8* direct_controller; // used by direct input controller
     #endif
 
-    byte controller_type;
-    byte general_states;
+    ControllerHandler controller;
 
     InputState state;
     uint64 time_last_input_check;
 
     // @todo this should probably be somewhere else
     // @todo don't we need multiple deadzones? triggers, sticks
-    uint32 deadzone = 10;
+    uint32 deadzone;
     char text[512];
 
     // This data is passed to the hotkey callback
@@ -210,7 +218,7 @@ void input_clean_state(InputKey* active_keys, KeyPressType press_status = KEY_PR
     }
 }
 
-inline
+FORCE_INLINE
 bool input_action_exists(const InputKey* active_keys, int16 key, KeyPressType press_type = KEY_PRESS_TYPE_PRESSED) NO_EXCEPT
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state == press_type)
@@ -223,7 +231,7 @@ bool input_action_exists(const InputKey* active_keys, int16 key, KeyPressType pr
         || (active_keys[6].scan_code == key && active_keys[6].key_state == press_type);
 }
 
-inline
+FORCE_INLINE
 bool input_is_down(const InputKey* active_keys, int16 key) NO_EXCEPT
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state != KEY_PRESS_TYPE_RELEASED)
@@ -235,7 +243,7 @@ bool input_is_down(const InputKey* active_keys, int16 key) NO_EXCEPT
         || (active_keys[6].scan_code == key && active_keys[6].key_state != KEY_PRESS_TYPE_RELEASED);
 }
 
-inline
+FORCE_INLINE
 bool input_is_pressed(const InputKey* active_keys, int16 key) NO_EXCEPT
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state == KEY_PRESS_TYPE_PRESSED)
@@ -247,7 +255,7 @@ bool input_is_pressed(const InputKey* active_keys, int16 key) NO_EXCEPT
         || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_PRESSED);
 }
 
-inline
+FORCE_INLINE
 bool input_is_held(const InputKey* active_keys, int16 key) NO_EXCEPT
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state == KEY_PRESS_TYPE_HELD)
@@ -260,7 +268,7 @@ bool input_is_held(const InputKey* active_keys, int16 key) NO_EXCEPT
         || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_HELD);
 }
 
-inline
+FORCE_INLINE
 bool input_is_released(const InputKey* active_keys, int16 key) NO_EXCEPT
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state == KEY_PRESS_TYPE_RELEASED)
@@ -273,7 +281,7 @@ bool input_is_released(const InputKey* active_keys, int16 key) NO_EXCEPT
         || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_RELEASED);
 }
 
-inline
+FORCE_INLINE
 bool input_was_down(const InputKey* active_keys, int16 key) NO_EXCEPT
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state == KEY_PRESS_TYPE_RELEASED)
@@ -286,7 +294,7 @@ bool input_was_down(const InputKey* active_keys, int16 key) NO_EXCEPT
         || (active_keys[6].scan_code == key && active_keys[6].key_state == KEY_PRESS_TYPE_RELEASED);
 }
 
-inline
+FORCE_INLINE
 bool inputs_are_down(
     const InputKey* active_keys,
     int16 key0, int16 key1 = 0, int16 key2 = 0, int16 key3 = 0, int16 key4 = 0
@@ -307,7 +315,7 @@ void input_add_callback(InputMapping* mapping, uint8 hotkey, InputCallback callb
 // We are binding hotkeys bi-directional:
 //      Which keys are required for a certain hotkey
 //      What are the hotkeys a key can trigger
-void
+inline void
 input_add_hotkey(
     InputMapping* mapping, uint8 hotkey,
     int16 key0, int16 key1 = 0, int16 key2 = 0,
@@ -320,10 +328,8 @@ input_add_hotkey(
 
     // Define required keys for hotkey
     // Note: -1 since the hotkeys always MUST start at 1 (0 is a special value for empty)
-    if (key0) {
-        mapping->hotkeys[(hotkey - 1)].scan_codes[count++] = key0;
-        key0 = OMS_ABS_INT16(key0);
-    }
+    mapping->hotkeys[(hotkey - 1)].scan_codes[count++] = key0;
+    key0 = OMS_ABS_INT16(key0);
 
     if (key1) {
         // Note: -1 since the hotkeys MUST start at 1 (0 is a special value for empty)
@@ -338,7 +344,7 @@ input_add_hotkey(
     }
 }
 
-inline
+FORCE_INLINE
 bool hotkey_is_active(const uint16* active_hotkeys, uint16 hotkey) NO_EXCEPT
 {
     return active_hotkeys[0] == hotkey
@@ -465,6 +471,8 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
 
     // General Keys
     int32 count = 0;
+
+    // @question Shouldn't the array size be a macro?
     InputKey keys[5];
 
     for (uint16 i = 0; i < 32; ++i) {
@@ -480,10 +488,8 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
         }
     }
 
-    if (count > 0) {
-        for (int32 i = 0; i < count; ++i) {
-            input_set_state(input->state.active_keys, &keys[i]);
-        }
+    for (int32 i = 0; i < count; ++i) {
+        input_set_state(input->state.active_keys, &keys[i]);
     }
 
     input->general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
@@ -491,6 +497,9 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
 
 void input_hotkey_state(Input* input) NO_EXCEPT
 {
+    // @performance Can't we have a input state that checks if we even have to check the input?
+    // careful even no active keys may require a minor update because we need to set it to inactive
+
     InputState* state = &input->state;
     memset(state->active_hotkeys, 0, sizeof(uint16) * MAX_KEY_PRESSES);
 
@@ -613,6 +622,7 @@ void input_hotkey_state(Input* input) NO_EXCEPT
 }
 
 // @todo We probably need a way to unset a specific key and hotkey after processing it
+inline
 bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32 dt = 0.0f) NO_EXCEPT {
     for (int32 i = 0; i < MAX_KEY_PRESS_TYPES; ++i) {
         if (state->active_keys[i].scan_code == key) {

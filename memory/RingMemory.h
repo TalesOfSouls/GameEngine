@@ -12,7 +12,7 @@
 #include <string.h>
 #include "../stdlib/Types.h"
 #include "../utils/EndianUtils.h"
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 
 #include "BufferMemory.h"
 #include "../log/Log.h"
@@ -83,7 +83,7 @@ void ring_init(RingMemory* ring, byte* buf, uint64 size, uint32 alignment = 64)
 {
     ASSERT_TRUE(size);
 
-    ring->memory = (byte *) ROUND_TO_NEAREST((uintptr_t) buf, (uint64) alignment);
+    ring->memory = (byte *) OMS_ALIGN_UP((uintptr_t) buf, (uint64) alignment);
 
     ring->end = ring->memory + size;
     ring->head = ring->memory;
@@ -119,8 +119,8 @@ byte* ring_calculate_position(const RingMemory* ring, uint64 size, uint32 aligne
         head += (aligned - (address & (aligned - 1))) % aligned;
     }
 
-    size = ROUND_TO_NEAREST(size, (uint64) aligned);
-    if (head + size > ring->end) {
+    size = OMS_ALIGN_UP(size, (uint64) aligned);
+    if (head + size > ring->end) { [[unlikely]]
         head = ring->memory;
 
         if (aligned > 1) {
@@ -154,8 +154,8 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned
         *pos += (aligned - (address& (aligned - 1))) % aligned;
     }
 
-    size = ROUND_TO_NEAREST(size, (uint64) aligned);
-    if (*pos + size > ring->end) {
+    size = OMS_ALIGN_UP(size, (uint64) aligned);
+    if (*pos + size > ring->end) { [[unlikely]]
         *pos = ring->memory;
 
         if (aligned > 1) {
@@ -178,8 +178,8 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, uint32 aligned = 4, bool ze
         ring->head += (aligned - (address& (aligned - 1))) % aligned;
     }
 
-    size = ROUND_TO_NEAREST(size, (uint64) aligned);
-    if (ring->head + size > ring->end) {
+    size = OMS_ALIGN_UP(size, (uint64) aligned);
+    if (ring->head + size > ring->end) { [[unlikely]]
         ring_reset(ring);
 
         if (aligned > 1) {
@@ -214,8 +214,8 @@ byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint32 aligned = 4, 
         pos += (aligned - (address& (aligned - 1))) % aligned;
     }
 
-    size = ROUND_TO_NEAREST(size, (uint64) aligned);
-    if (pos + size > ring->end) {
+    size = OMS_ALIGN_UP(size, (uint64) aligned);
+    if (pos + size > ring->end) { [[unlikely]]
         ring_reset(ring);
 
         if (aligned > 1) {
@@ -254,12 +254,14 @@ bool ring_commit_safe(const RingMemory* ring, uint64 size, uint32 aligned = 4) N
     // This is not 100% correct BUT it is way faster than any correct version I can come up with
     uint64 max_mem_required = size + (aligned - 1) * 2;
 
+    // @question Is it beneficial to define the first if as [[likely]]?
+    // The first if should be the most likely in a situation with a decently fast runing dequeue
     if (ring->tail < ring->head) {
         return ((uint64) (ring->end - ring->head)) >= max_mem_required
             || ((uint64) (ring->tail - ring->memory)) >= max_mem_required;
     } else if (ring->tail > ring->head) {
         return ((uint64) (ring->tail - ring->head)) >= max_mem_required;
-    } else {
+    } else { [[unlikely]]
         return true;
     }
 }
@@ -278,12 +280,14 @@ bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, uint32 aligned
     // This doesn't have to be atomic since we assume single producer/consumer and a commit is performed by the consumer
     uint64 head = (uint64) ring->head;
 
+    // @question Is it beneficial to define the first if as [[likely]]?
+    // The first if should be the most likely in a situation with a decently fast runing dequeue
     if (tail < head) {
         return ((uint64) (ring->end - head)) >= max_mem_required
             || ((uint64) (tail - (uint64) ring->memory)) >= max_mem_required;
     } else if (tail > head) {
         return ((uint64) (tail - head)) >= max_mem_required;
-    } else {
+    } else { [[unlikely]]
         return true;
     }
 }

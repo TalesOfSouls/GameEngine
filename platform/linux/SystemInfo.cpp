@@ -265,7 +265,7 @@ uint32 display_info_get(DisplayInfo* info) {
             char name[64];
             uint32 width, height, hz;
             if (sscanf(line, "%s connected %dx%d+%*d+%*d %d", name, &width, &height, &hz) == 4) {
-                str_copy_short(info[count].name, name);
+                str_copy(info[count].name, name);
                 info[count].width = width;
                 info[count].height = height;
                 info[count].hz = hz;

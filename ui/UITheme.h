@@ -112,7 +112,7 @@ void theme_from_file_txt(
         temp_group_count,
         sizeof(HashEntryInt32),
         theme->data,
-        ROUND_TO_NEAREST(sizeof(HashEntryInt32), 32)
+        OMS_ALIGN_UP(sizeof(HashEntryInt32), 32)
     );
     int32 data_offset = (int32) hashmap_size(&theme->hash_map);
 
@@ -303,7 +303,7 @@ int32 theme_from_data(
         (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)),
         sizeof(HashEntryInt32),
         theme->data,
-        ROUND_TO_NEAREST(sizeof(HashEntryInt32), 32)
+        OMS_ALIGN_UP(sizeof(HashEntryInt32), 32)
     );
 
     in += hashmap_load(&theme->hash_map, in);

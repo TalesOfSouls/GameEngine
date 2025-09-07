@@ -13,7 +13,7 @@
 #include "../stdlib/Types.h"
 #include "Asset.h"
 #include "../memory/ChunkMemory.h"
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 #include "../utils/BitUtils.h"
 #include "../stdlib/HashMap.h"
 #include "../log/DebugMemory.h"
@@ -41,6 +41,9 @@ struct AssetComponent {
     mutex mtx;
 };
 
+// @performance This doesn't really have anything to do with the AMS but how we currently operate
+// We have everything on the gpu also in RAM. This is probably stupid and needs to be changed.
+// Once core stuff is on the gpu, it should be removed from RAM (at least after n seconds)
 struct AssetManagementSystem {
     // Used to find an asset in any asset component
     HashMap hash_map;

@@ -12,10 +12,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include "../stdlib/Types.h"
-#include "../utils/TestUtils.h"
-
-#define HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
-#define HAS_CHAR(x, c) (HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
+#include "../utils/Assert.h"
 
 // WARNING: We need this function because the other function relies on none-constexpr performance features
 constexpr
@@ -29,23 +26,24 @@ size_t str_length_constexpr(const char* str) NO_EXCEPT {
 
 inline
 size_t str_length(const char* str) NO_EXCEPT {
-    const char* ptr = str;
+        const char* ptr = str;
 
-    // Align the pointer to the size of size_t
-    for (; (uintptr_t) ptr % sizeof(size_t) != 0; ++ptr) {
-        if (*ptr == '\0') {
+    while ((uintptr_t)ptr % sizeof(size_t) != 0) {
+        if (*ptr == '\0')
             return ptr - str;
-        }
+        ++ptr;
     }
 
-    // Check one longword (size_t) at a time
-    const size_t* longword_ptr = (const size_t *) ptr;
+    const size_t* longword_ptr = (const size_t*)ptr;
+
     while (true) {
-        // Ensure we don't read past the end of the string
-        const char* end_ptr = (const char *) longword_ptr + sizeof(size_t);
-        for (const char* cp = (const char *) longword_ptr; cp < end_ptr; ++cp) {
-            if (*cp == '\0') {
-                return cp - str;
+        size_t v = *longword_ptr;
+
+        if (OMS_HAS_ZERO(v)) {
+            const char* cp = (const char*)longword_ptr;
+            for (size_t i = 0; i < sizeof(size_t); ++i) {
+                if (cp[i] == '\0')
+                    return cp + i - str;
             }
         }
 
@@ -70,15 +68,53 @@ const char* str_find_constexpr(const char* str, const char* needle) NO_EXCEPT {
 }
 
 inline
-const char* str_find(const char* str, const char* needle) NO_EXCEPT {
+const char* str_find(const char* haystack, const char* needle) NO_EXCEPT {
+    const char first = needle[0];
     size_t needle_len = str_length(needle);
-    size_t str_len = str_length(str);
-    size_t limit = str_len - needle_len + 1;
+    const char* ptr = haystack;
 
-    for (size_t i = 0; i < limit; ++i) {
-        if (str[i] == needle[0] && memcmp(&str[i + 1], &needle[1], needle_len - 1) == 0) {
-            return &str[i];
+    while (*ptr != '\0') {
+        // Align pointer for size_t access
+        while ((uintptr_t) ptr % sizeof(size_t) != 0 && *ptr != '\0') {
+            if (*ptr == first) {
+                break;
+            }
+
+            ++ptr;
         }
+
+        if (*ptr == '\0') {
+            break;
+        }
+
+        // Word-wise scanning
+        const size_t* wptr = (const size_t*) ptr;
+        const size_t first_mask = ((size_t) -1 / 0xFF) * first;
+
+        while (true) {
+            size_t v = *wptr;
+            if (((v - ((size_t)-1 / 0xFF)) & ~v & (((size_t)-1 / 0xFF) * 0x80))
+                || (((v ^ first_mask) - ((size_t)-1 / 0xFF)) & ~(v ^ first_mask) & (((size_t)-1 / 0xFF) * 0x80))
+            ) {
+                break;
+            }
+
+            ++wptr;
+        }
+
+        ptr = (const char*)wptr;
+
+        const char* p1 = ptr;
+        size_t i = 0;
+        while (i < needle_len && p1[i] != '\0' && p1[i] == needle[i]) {
+            ++i;
+        }
+
+        if (i == needle_len) {
+            return ptr;
+        }
+
+        ++ptr;
     }
 
     return NULL;
@@ -176,7 +212,7 @@ const char* str_find(const char* str, char needle) NO_EXCEPT {
     const size_t* word_ptr = (const size_t *) str;
     while (true) {
         size_t word = *word_ptr++;
-        if (HAS_CHAR(word, target)) {
+        if (OMS_HAS_CHAR(word, target)) {
             const char* byte_ptr = (const char *) (word_ptr - 1);
             for (size_t i = 0; i < sizeof(size_t); ++i) {
                 if (byte_ptr[i] == target) {
@@ -185,7 +221,7 @@ const char* str_find(const char* str, char needle) NO_EXCEPT {
             }
         }
 
-        if (HAS_ZERO(word)) {
+        if (OMS_HAS_ZERO(word)) {
             const char* byte_ptr = (const char *) (word_ptr - 1);
             for (size_t i = 0; i < sizeof(size_t); ++i) {
                 if (byte_ptr[i] == '\0') {
@@ -256,11 +292,11 @@ int32 utf8_decode(const char* __restrict in, uint32* __restrict codepoint) NO_EX
         return 4;
     }
 
-    return -1;
+    return 0;
 }
 
 inline
-int32 utf8_decode(const uint32 codepoint, char* __restrict out) NO_EXCEPT {
+int32 utf8_decode(const uint32 codepoint, char* out) NO_EXCEPT {
     if (codepoint <= 0x7F) {
         // 1-byte sequence (ASCII)
         out[0] = (char) codepoint;
@@ -289,7 +325,8 @@ int32 utf8_decode(const uint32 codepoint, char* __restrict out) NO_EXCEPT {
         return 4;
     }
 
-    return -1;
+    // @bug For some reason this can happen for alt tab etc. That's why we need to allow this special case.
+    return 0;
 }
 
 inline
@@ -311,15 +348,13 @@ int32 utf8_str_length(const char* in) NO_EXCEPT {
 }
 
 inline
-void string_to_utf8(const uint32* in, char* out) NO_EXCEPT {
+void string_to_utf8(const uint32* __restrict in, char* __restrict out) NO_EXCEPT {
     char buffer[5] = {0};
     while (*in) {
-        int32 len = utf8_encode(*in, buffer);
-        if (len > 0) {
-            strncat(out, buffer, len);
+        int32 len = utf8_encode(*in++, buffer);
+        for (int32 i = 0; i < len; ++i) {
+            *out++ = buffer[i];
         }
-
-        ++in;
     }
 }
 
@@ -523,7 +558,7 @@ bool str_is_float(const char* str) NO_EXCEPT {
     bool has_dot = false;
 
     if (*str == '-' || *str == '+') {
-        str++;
+        ++str;
     }
 
     while (*str) {
@@ -584,6 +619,26 @@ int64 str_to_int(const char* str, const char** pos = NULL) NO_EXCEPT
     }
 
     return result * sign;
+}
+
+inline
+int32 int_length(int64 number) NO_EXCEPT {
+    if (number == 0) {
+        return 1;
+    }
+
+    int len = 0;
+    if (number < 0) {
+        ++len;
+        number = -number;
+    }
+
+    while (number > 0) {
+        number /= 10;
+        ++len;
+    }
+
+    return len;
 }
 
 inline
@@ -659,7 +714,56 @@ int32 int_to_str(int64 number, char str[12]) NO_EXCEPT {
 }
 
 inline constexpr
-int32 uint_to_str(uint64 number, char str[12]) NO_EXCEPT {
+int32 int_to_str(uint64 number, char str[12]) NO_EXCEPT {
+    int32 i = -1;
+
+    do {
+        str[++i] = number % 10 + '0';
+        number /= 10;
+    } while (number > 0);
+
+    for (int32 j = 0, k = i; j < k; ++j, --k) {
+        char temp = str[j];
+        str[j] = str[k];
+        str[k] = temp;
+    }
+
+    str[++i] = '\0';
+
+    return i;
+}
+
+inline constexpr
+int32 int_to_str(int32 number, char str[12]) NO_EXCEPT {
+    int32 i = -1;
+    int32 sign = number;
+
+    if (number < 0) {
+        number = -number;
+    }
+
+    do {
+        str[++i] = number % 10 + '0';
+        number /= 10;
+    } while (number > 0);
+
+    if (sign < 0) {
+        str[++i] = '-';
+    }
+
+    for (int32 j = 0, k = i; j < k; ++j, --k) {
+        char temp = str[j];
+        str[j] = str[k];
+        str[k] = temp;
+    }
+
+    str[++i] = '\0';
+
+    return i;
+}
+
+inline constexpr
+int32 int_to_str(uint32 number, char str[12]) NO_EXCEPT {
     int32 i = -1;
 
     do {
@@ -783,16 +887,60 @@ int64 hex_to_int(const char* hex) NO_EXCEPT
 inline
 size_t str_count(const char* __restrict str, const char* __restrict substr) NO_EXCEPT
 {
-    size_t l1 = str_length(str);
-    size_t l2 = str_length(substr);
+    size_t count = 0;
+    size_t substr_len = str_length(substr);
 
-    if (l2 == 0 || l1 < l2) {
-        return 0;
+    const char* s = str;
+    char first = substr[0];
+
+    // Align pointer for word-wise scanning
+    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != '\0') {
+        if (*s == first) {
+            // Compare remaining substring
+            size_t i = 1;
+            while (i < substr_len && s[i] != '\0' && s[i] == substr[i]) {
+                ++i;
+            }
+
+            if (i == substr_len) {
+                ++count;
+                s += substr_len;
+                continue;
+            }
+        }
+
+        ++s;
     }
 
-    size_t count = 0;
-    for (str = str_find(str, substr); str; str = str_find(str + l2, substr)) {
-        ++count;
+    const size_t* wptr = (const size_t*)s;
+
+    while (true) {
+        size_t v = *wptr;
+        if (OMS_HAS_ZERO(v) || OMS_HAS_CHAR(v, first)) {
+            break; // null byte or first char found
+        }
+
+        ++wptr;
+    }
+
+    s = (const char*) wptr;
+
+    // Fallback to byte-by-byte scanning for matches
+    while (*s != '\0') {
+        if (*s == first) {
+            size_t i = 1;
+            while (i < substr_len && s[i] != '\0' && s[i] == substr[i]) {
+                ++i;
+            }
+
+            if (i == substr_len) {
+                ++count;
+                s += substr_len;
+                continue;
+            }
+        }
+
+        ++s;
     }
 
     return count;
@@ -813,15 +961,45 @@ int32 is_eol(const char* str) NO_EXCEPT
 inline
 int32 str_copy_until(char* __restrict dest, const char* __restrict src, char delim) NO_EXCEPT
 {
-    int32 len = 0;
-    while (*src != delim && *src != '\0') {
-        *dest++ = *src++;
-        ++len;
+    const char* s = src;
+    char* d = dest;
+
+    if (*s == '\0' || *s == delim) {
+        *d = '\0';
+
+        return 0;
     }
 
-    *dest = '\0';
+    // Align pointer for size_t access
+    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != '\0' && *s != delim) {
+        *d++ = *s++;
+    }
 
-    return len;
+    const size_t delim_mask = ((size_t)-1 / 0xFF) * delim;
+    const size_t* wptr = (const size_t*) s;
+
+    while (true) {
+        size_t v = *wptr;
+
+        // Detect either null or delimiter
+        if (OMS_HAS_ZERO(v) || OMS_HAS_ZERO(v ^ delim_mask)) {
+            const char* cp = (const char*) wptr;
+            for (size_t i = 0; i < sizeof(size_t); ++i) {
+                if (cp[i] == '\0' || cp[i] == delim) {
+                    size_t len = cp + i - src;
+                    for (size_t j = 0; j < len; ++j) {
+                        dest[j] = src[j];
+                    }
+
+                    dest[len] = '\0';
+
+                    return (int32) len;
+                }
+            }
+        }
+
+        ++wptr;
+    }
 }
 
 inline
@@ -844,79 +1022,130 @@ void str_copy_until(char* __restrict dest, const char* __restrict src, const cha
 }
 
 inline constexpr
-void str_copy_short(char* __restrict dest, const char* __restrict src, int32 length) NO_EXCEPT
+void str_copy(char* __restrict dest, const char* __restrict src, int32 length) NO_EXCEPT
 {
-    int32 i = -1;
-    while (*src != '\0' && ++i < length - 1) {
-        *dest++ = *src++;
+    int32 copied = 0;
+
+    // Align src pointer to size_t boundary
+    while ((uintptr_t)src % sizeof(size_t) != 0 && copied < length - 1) {
+        char c = *src++;
+        *dest++ = c;
+        ++copied;
+
+        if (c == '\0') {
+            return;
+        }
+    }
+
+    const size_t* wptr = (const size_t*) src;
+    size_t* dptr = (size_t*) dest;
+
+    while (copied + (int32) sizeof(size_t) < length) {
+        size_t v = *wptr;
+        if (OMS_HAS_ZERO(v)) {
+            break;
+        }
+
+        *dptr++ = v;
+        ++wptr;
+        copied += sizeof(size_t);
+    }
+
+    // Copy remaining bytes one by one
+    src = (const char*)wptr;
+    dest = (char*)dptr;
+    while (copied < length - 1) {
+        char c = *src++;
+        *dest++ = c;
+        ++copied;
+
+        if (c == '\0') {
+            break;
+        }
     }
 
     *dest = '\0';
 }
 
 inline constexpr
-void str_copy_short(char* __restrict dest, const char* __restrict src) NO_EXCEPT
+void str_copy(char* __restrict dest, const char* __restrict src) NO_EXCEPT
 {
-    while (*src != '\0') {
-        *dest++ = *src++;
+    // Align src pointer
+    while ((uintptr_t)src % sizeof(size_t) != 0) {
+        char c = *src++;
+        *dest++ = c;
+        if (c == '\0') return;
     }
 
-    *dest = '\0';
-}
+    const size_t* wptr = (const size_t*)src;
+    size_t* dptr = (size_t*)dest;
 
-inline constexpr
-int32 str_copy(char* __restrict dest, const char* __restrict src) NO_EXCEPT
-{
-    int32 length = 0;
-    while (*src != '\0') {
-        ++length;
-        *dest++ = *src++;
+    while (true) {
+        size_t v = *wptr;
+        if (OMS_HAS_ZERO(v)) break; // null byte found
+        *dptr++ = v;
+        wptr++;
     }
-
-    *dest = '\0';
-
-    return length;
-}
-
-inline
-void str_copy_long(char* __restrict dest, const char* __restrict src) NO_EXCEPT
-{
-    char* d = dest;
-    const char *s = src;
-
-    // Align destination to its natural alignment
-    while (((uintptr_t) d & (sizeof(uintptr_t) - 1)) != 0 && *s != '\0') {
-        *d++ = *s++;
-    }
-
-    // Copy using larger chunks (size of uintptr_t)
-    uintptr_t* aligned_dest = (uintptr_t *) d;
-    const uintptr_t* aligned_src = (const uintptr_t *) s;
-
-    while (*aligned_src != 0) {
-        *aligned_dest++ = *aligned_src++;
-    }
-
-    d = (char *) aligned_dest;
-    s = (const char *) aligned_src;
 
     // Copy remaining bytes
-    while (*s != '\0') {
-        *d++ = *s++;
+    src = (const char*)wptr;
+    dest = (char*)dptr;
+    while (true) {
+        char c = *src++;
+        *dest++ = c;
+        if (c == '\0') break;
     }
-
-    *d = '\0';
 }
 
 inline
 void str_copy_move_until(char* __restrict dest, const char* __restrict* __restrict src, char delim) NO_EXCEPT
 {
-    while (**src != delim && **src != '\0') {
-        *dest++ = **src;
-        ++(*src);
+    const char* s = *src;
+    char* d = dest;
+
+    // Copy unaligned prefix
+    while ((uintptr_t)s % sizeof(size_t) != 0) {
+        char c = *s++;
+        if (c == '\0' || c == delim) {
+            *d = '\0';
+            *src = s - 1; // leave src at delimiter or null
+
+            return;
+        }
+
+        *d++ = c;
     }
 
-    *dest = '\0';
+    const size_t delim_mask = ((size_t)-1 / 0xFF) * delim;
+    const size_t* wptr = (const size_t*) s;
+    size_t* dptr = (size_t*) d;
+
+    while (true) {
+        size_t v = *wptr;
+
+        // Check for delimiter or null byte
+        if (OMS_HAS_ZERO(v) || OMS_HAS_ZERO(v ^ delim_mask)) {
+            break;
+        }
+
+        *dptr++ = v;
+        ++wptr;
+    }
+
+    // Copy remaining bytes byte-by-byte
+    s = (const char*)wptr;
+    d = (char*)dptr;
+    while (true) {
+        char c = *s++;
+        if (c == '\0' || c == delim) {
+            break;
+        }
+
+        *d++ = c;
+    }
+
+    *d = '\0';
+    *src = s - 1;
 }
 
 inline
@@ -940,7 +1169,7 @@ void str_copy_move_until(char* __restrict dest, const char* __restrict* __restri
 }
 
 inline
-int32 strcpy_to_eol(const char* src, char* dst) NO_EXCEPT
+int32 str_copy_to_eol(const char* src, char* dst) NO_EXCEPT
 {
     int32 offset = 0;
     while (!is_eol(src) && *src != '\0')  {
@@ -989,19 +1218,43 @@ str_concat_new(
 inline void
 str_concat_append(char* dst, const char* src) NO_EXCEPT
 {
-    while (*dst) {
-        ++dst;
-    }
-
-    str_copy_short(dst, src);
+    dst += str_length(dst);
+    str_copy(dst, src);
 }
 
 inline void
 str_concat_new(char* dst, const char* src1, const char* src2, const char* src3) NO_EXCEPT
 {
-    while (*src1) { *dst++ = *src1++; }
-    while (*src2) { *dst++ = *src2++; }
-    while (*src3) { *dst++ = *src3++; }
+    const char* sources[3] = { src1, src2, src3 };
+
+    for (int s = 0; s < 3; ++s) {
+        const char* src = sources[s];
+
+        // Align src pointer
+        while ((uintptr_t)src % sizeof(size_t) != 0 && *src != '\0') {
+            *dst++ = *src++;
+        }
+
+        const size_t* wptr = (const size_t*)src;
+        size_t* dptr = (size_t*)dst;
+
+        while (true) {
+            size_t v = *wptr;
+            if (OMS_HAS_ZERO(v)) {
+                break;
+            }
+
+            *dptr++ = v;
+            ++wptr;
+        }
+
+        // Copy remaining bytes byte-by-byte
+        src = (const char*)wptr;
+        dst = (char*)dptr;
+        while (*src != '\0') {
+            *dst++ = *src++;
+        }
+    }
 
     *dst = '\0';
 }
@@ -1018,7 +1271,7 @@ str_concat_append(char* dst, size_t dst_length, const char* src, size_t src_leng
 inline void
 str_concat_append(char* dst, size_t dst_length, const char* src) NO_EXCEPT
 {
-    str_copy_short(&dst[dst_length], src);
+    str_copy(&dst[dst_length], src);
 }
 
 inline int64
@@ -1109,10 +1362,38 @@ char* strtok(char* str, const char* __restrict delim, char** key) NO_EXCEPT {
 inline constexpr
 bool str_contains(const char* __restrict haystack, const char* __restrict needle) NO_EXCEPT
 {
-    // @performance would it make sense to only check until haystack - strlen(needle)?
-    // I'm not sure the strlen overhead is worth it
-    while (*haystack != '\0') {
-        const char* p1 = haystack;
+    const char first = needle[0];
+    const char* ptr = haystack;
+
+    while (*ptr != '\0') {
+        // Align pointer for size_t access
+        while ((uintptr_t)ptr % sizeof(size_t) != 0 && *ptr != '\0') {
+            if (*ptr == first) {
+                break;
+            }
+
+            ++ptr;
+        }
+
+        if (*ptr == '\0') {
+            break;
+        }
+
+        // Word-wise scanning
+        const size_t* wptr = (const size_t*) ptr;
+        while (true) {
+            size_t v = *wptr;
+            if (OMS_HAS_CHAR(v, first)) {
+                break;
+            }
+
+            ++wptr;
+        }
+
+        ptr = (const char*) wptr;
+
+        // Fallback byte-by-byte compare for needle
+        const char* p1 = ptr;
         const char* p2 = needle;
 
         while (*p1 != '\0' && *p2 != '\0' && *p1 == *p2) {
@@ -1124,7 +1405,7 @@ bool str_contains(const char* __restrict haystack, const char* __restrict needle
             return true;
         }
 
-        ++haystack;
+        ++ptr;
     }
 
     return false;
@@ -1150,6 +1431,37 @@ bool str_contains(const char* __restrict haystack, const char* __restrict needle
 
         ++haystack;
         --length;
+    }
+
+    return false;
+}
+
+inline constexpr
+bool byte_contains(
+    const byte* __restrict haystack, size_t haystack_len,
+    const byte* __restrict needle, size_t needle_len) NO_EXCEPT
+{
+    size_t skip[256];
+    for (size_t i = 0; i < 256; ++i) {
+        skip[i] = needle_len;
+    }
+
+    for (size_t i = 0; i < needle_len - 1; ++i) {
+        skip[needle[i]] = needle_len - i - 1;
+    }
+
+    size_t i = 0;
+    while (i <= haystack_len - needle_len) {
+        size_t j = needle_len;
+        while (j > 0 && needle[j - 1] == haystack[i + j - 1]) {
+            --j;
+        }
+
+        if (j == 0) {
+            return true;
+        }
+
+        i += skip[haystack[i + needle_len - 1]];
     }
 
     return false;
@@ -1314,7 +1626,7 @@ void str_replace(const char* str, const char* __restrict search, const char* __r
     size_t replace_len = str_length(replace);
 
     if (search_len == 0) {
-        str_copy_short(result, str);
+        str_copy(result, str);
         return;
     }
 
@@ -1333,7 +1645,7 @@ void str_replace(const char* str, const char* __restrict search, const char* __r
         str = current;
     }
 
-    str_copy_short(result_ptr, str);
+    str_copy(result_ptr, str);
 }
 
 /*
@@ -1366,19 +1678,71 @@ bool is_whitespace(char str) NO_EXCEPT
 inline
 int32 str_to_eol(const char* str) NO_EXCEPT
 {
-    int32 offset = 0;
-    while (!is_eol(str) && *str++ != '\0')  {
-        ++offset;
+    const char* ptr = str;
+
+    if (*ptr == '\0') return 0;
+
+    // Process unaligned bytes first
+    while ((uintptr_t) ptr % sizeof(size_t) != 0 && *ptr != '\0') {
+        if (*ptr == '\n' || *ptr == '\r') {
+            return (int32) (ptr - str);
+        }
+
+        ++ptr;
     }
 
-    return offset;
+    // Word-wise scanning
+    const size_t* wptr = (const size_t *) ptr;
+
+    const size_t nl_mask = ((size_t) -1 / 0xFF) * '\n';
+    const size_t cr_mask = ((size_t) -1 / 0xFF) * '\r';
+
+    while (true) {
+        size_t v = *wptr;
+
+        if (OMS_HAS_ZERO(v) || OMS_HAS_ZERO(v ^ nl_mask) || OMS_HAS_ZERO(v ^ cr_mask)) {
+            // Fallback to byte-by-byte inside this word
+            const char* cp = (const char*) wptr;
+            for (size_t i = 0; i < sizeof(size_t); ++i) {
+                if (cp[i] == '\n' || cp[i] == '\r' || cp[i] == '\0') {
+                    return (int32) (cp + i - str);
+                }
+            }
+        }
+
+        ++wptr;
+    }
 }
 
 inline
 int32 str_to(const char* str, char delim) NO_EXCEPT
 {
-    int32 offset = 0;
-    while (*str != delim && *str++ != '\0')  {
+    int32_t offset = 0;
+    const size_t delim_mask = ((size_t)-1 / 0xFF) * (uint8_t)delim;
+
+    // Align to size_t
+    while ((uintptr_t)str % sizeof(size_t) != 0 && *str != '\0' && *str != delim) {
+        ++str;
+        ++offset;
+    }
+
+    const size_t* wptr = (const size_t*)str;
+
+    while (true) {
+        size_t v = *wptr;
+        // Check for zero or delimiter byte
+        if (OMS_HAS_ZERO(v ^ delim_mask)) {
+            break;
+        }
+
+        ++wptr;
+        offset += sizeof(size_t);
+    }
+
+    // Scan remaining bytes byte-by-byte
+    str = (const char*)wptr;
+    while (*str != '\0' && *str != delim) {
+        ++str;
         ++offset;
     }
 
@@ -1388,9 +1752,32 @@ int32 str_to(const char* str, char delim) NO_EXCEPT
 inline
 void str_move_to(const char** str, char delim) NO_EXCEPT
 {
-    while (**str != delim && **str != '\0')  {
-        ++(*str);
+    const char* s = *str;
+
+    // Handle unaligned prefix
+    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != '\0' && *s != delim) {
+        ++s;
     }
+
+    const size_t delim_mask = ((size_t)-1 / 0xFF) * (uint8_t)delim;
+    const size_t* wptr = (const size_t*)s;
+
+    while (true) {
+        size_t v = *wptr;
+        if (OMS_HAS_ZERO(v) || OMS_HAS_ZERO(v ^ delim_mask)) {
+            break;
+        }
+
+        ++wptr;
+    }
+
+    // Fallback to byte scan
+    s = (const char*) wptr;
+    while (*s != '\0' && *s != delim) {
+        ++s;
+    }
+
+    *str = s;
 }
 
 // Negative pos counts backwards
@@ -1405,13 +1792,38 @@ void str_move_to_pos(const char** str, int32 pos) NO_EXCEPT
 inline
 void str_move_past(const char* __restrict* __restrict str, char delim) NO_EXCEPT
 {
-    while (**str != delim && **str != '\0')  {
-        ++(*str);
+    const char* s = *str;
+
+    // Handle unaligned prefix
+    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != '\0' && *s != delim) {
+        ++s;
     }
 
-    if (**str == delim) {
-        ++(*str);
+    const size_t delim_mask = ((size_t)-1 / 0xFF) * (uint8_t)delim;
+    const size_t* wptr = (const size_t*)s;
+
+    // Word-wise scan
+    while (true) {
+        size_t v = *wptr;
+        if (OMS_HAS_ZERO(v) || OMS_HAS_ZERO(v ^ delim_mask)) {
+            break;
+        }
+
+        ++wptr;
     }
+
+    // Fallback to byte scan
+    s = (const char*)wptr;
+    while (*s != '\0' && *s != delim) {
+        ++s;
+    }
+
+    // Move past delimiter if present
+    if (*s == delim) {
+        ++s;
+    }
+
+    *str = s;
 }
 
 inline
@@ -1625,7 +2037,7 @@ int32 float_to_str(f64 value, char* buffer, int32 precision = 5) NO_EXCEPT
     };
 
     f32 scale = powers_of_ten[precision];
-    value = OMS_ROUND_POSITIVE(value * scale) / scale;
+    value = OMS_ROUND_POSITIVE_32(value * scale) / scale;
 
     // Handle integer part
     int32 int_part = (int32) value;
@@ -1782,6 +2194,108 @@ void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) N
                     buffer += float_to_str(val, buffer, precision);
                 } break;
                 case 'T': {
+                    int64 time = va_arg(args, int64);
+                    format_time_hh_mm_ss(buffer, time);
+                    buffer += 8;
+                } break;
+                default: {
+                    // Handle unknown format specifiers
+                    *buffer++ = '%';
+                } break;
+            }
+        }
+
+        ++format;
+    }
+
+    *buffer = '\0';
+    va_end(args);
+}
+
+void sprintf_fast_s(char* __restrict buffer, size_t length, const char* __restrict format, ...) NO_EXCEPT {
+    va_list args;
+    va_start(args, format);
+
+    char* start = buffer;
+
+    while (*format) {
+        size_t remainder = length - (buffer - start) - 1;
+        if (remainder <= 0) {
+            break;
+        } else if (*format == '\\' && format[1] == '%') {
+            ++format;
+            *buffer++ = *format;
+        } else if (*format != '%') {
+            *buffer++ = *format;
+        } else {
+            ++format;
+
+            switch (*format) {
+                case 's': {
+                    const char* str = va_arg(args, const char*);
+                    while (*str && remainder) {
+                        --remainder;
+                        *buffer++ = *str++;
+                    }
+                } break;
+                case 'c': {
+                    *buffer++ = (char) va_arg(args, int32);
+                } break;
+                case 'n': {
+                    int64 val = va_arg(args, int64);
+                    int32 len = int_length(val);
+                    if (remainder < len + len / 3 + 1) {
+                        break;
+                    }
+
+                    buffer += int_to_str(val, buffer, ',');
+                } break;
+                case 'd': {
+                    int32 val = va_arg(args, int32);
+                    if (remainder < int_length(val)) {
+                        break;
+                    }
+
+                    buffer += int_to_str(val, buffer);
+                } break;
+                case 'l': {
+                    int64 val = va_arg(args, int64);
+                    if (remainder < int_length(val)) {
+                        break;
+                    }
+
+                    buffer += int_to_str(val, buffer);
+                } break;
+                case 'f': {
+                    f64 val = va_arg(args, f64);
+
+                    // Default precision
+                    int32 precision = 5;
+
+                    // Check for optional precision specifier
+                    const char* prec_ptr = format + 1;
+                    if (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                        precision = 0;
+                        while (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                            precision = precision * 10 + (*prec_ptr - '0');
+                            prec_ptr++;
+                        }
+
+                        format = prec_ptr - 1;
+                    }
+
+                    // @bug + 5 is a lazy way to handle the digits before the decimal
+                    if (remainder < precision + 5) {
+                        break;
+                    }
+
+                    buffer += float_to_str(val, buffer, precision);
+                } break;
+                case 'T': {
+                     if (remainder < 8) {
+                        break;
+                    }
+
                     int64 time = va_arg(args, int64);
                     format_time_hh_mm_ss(buffer, time);
                     buffer += 8;

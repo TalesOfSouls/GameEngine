@@ -19,11 +19,11 @@ constexpr auto GetRawTypeName() {
     constexpr const char* suffix = "]";
 
     constexpr const char* start = str_find_constexpr(fn, prefix);
-    constexpr const char* adjusted_start = start ? start + str_length_constexpr(prefix) : fn;
+    constexpr const char* adjusted_start = start ? start + str_length(prefix) : fn;
 
     constexpr const char* end = str_find_constexpr(adjusted_start, suffix);
     constexpr const char* final_start = end ? adjusted_start : fn;
-    constexpr size_t length = end ? (end - adjusted_start) : str_length_constexpr(adjusted_start);
+    constexpr size_t length = end ? (end - adjusted_start) : str_length(adjusted_start);
 
     // Create a struct that holds the string in a constexpr-friendly way
     struct Result {

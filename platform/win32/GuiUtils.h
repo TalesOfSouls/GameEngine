@@ -12,10 +12,11 @@
 #include <windows.h>
 #include "Window.h"
 #include "../../stdlib/Types.h"
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
+#include "../../compiler/CompilerUtils.h"
 
 // @question Shouldn't this function and the next one accept a parameter of what to add/remove?
-inline
+FORCE_INLINE
 void window_remove_style(Window* w)
 {
     LONG_PTR style = GetWindowLongPtrA(w->hwnd, GWL_STYLE);
@@ -23,7 +24,7 @@ void window_remove_style(Window* w)
     SetWindowLongPtr(w->hwnd, GWL_STYLE, style);
 }
 
-inline
+FORCE_INLINE
 void window_add_style(Window* w)
 {
     LONG_PTR style = GetWindowLongPtrA(w->hwnd, GWL_STYLE);
@@ -31,21 +32,21 @@ void window_add_style(Window* w)
     SetWindowLongPtr(w->hwnd, GWL_STYLE, style);
 }
 
-inline
+FORCE_INLINE
 void monitor_resolution(const Window* __restrict w, v2_int32* __restrict resolution)
 {
     resolution->width = GetDeviceCaps(w->hdc, HORZRES);
     resolution->height = GetDeviceCaps(w->hdc, VERTRES);
 }
 
-inline
+FORCE_INLINE
 void monitor_resolution(Window* w)
 {
     w->width = (uint16) GetDeviceCaps(w->hdc, HORZRES);
     w->height = (uint16) GetDeviceCaps(w->hdc, VERTRES);
 }
 
-inline
+FORCE_INLINE
 void window_resolution(Window* w)
 {
     RECT rect;
@@ -80,7 +81,7 @@ void window_restore(Window* w)
     );
 }
 
-void window_create(Window* __restrict window, void* proc)
+void window_create(Window* __restrict window, void* __restrict proc)
 {
     ASSERT_TRUE(proc);
 
@@ -102,7 +103,7 @@ void window_create(Window* __restrict window, void* proc)
         return;
     }
 
-    if (window->is_fullscreen) {
+    if (window->state_flag & WINDOW_STATE_FLAG_FULLSCREEN) {
         window->width  = (uint16) GetSystemMetrics(SM_CXSCREEN);
 	    window->height = (uint16) GetSystemMetrics(SM_CYSCREEN);
 
@@ -133,6 +134,7 @@ void window_create(Window* __restrict window, void* proc)
     ASSERT_TRUE(window->hwnd);
 }
 
+inline
 void window_open(Window* window)
 {
     ShowWindow(window->hwnd, SW_SHOW);
@@ -143,6 +145,7 @@ void window_open(Window* window)
     window->state_changes |= WINDOW_STATE_CHANGE_FOCUS;
 }
 
+inline
 void window_close(Window* window)
 {
     CloseWindow(window->hwnd);

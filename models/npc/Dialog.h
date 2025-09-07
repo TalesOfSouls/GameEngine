@@ -1,7 +1,26 @@
+/**
+ * Jingga
+ *
+ * @copyright Jingga
+ * @license   OMS License 2.0
+ * @version   1.0.0
+ * @link      https://jingga.app
+ */
+#ifndef COMS_MODELS_NPC_DIALOG_H
+#define COMS_MODELS_NPC_DIALOG_H
+
 #include "../../stdlib/Types.h"
 #include "../mob/player/Reputation.h"
 #include "DialogType.h"
+#include "DialogSentiment.h"
 #include "CharacterMood.h"
+
+enum DialogTiming {
+    DIALOG_TIMING_ANY,
+    DIALOG_TIMING_BEFORE,
+    DIALOG_TIMING_DURING,
+    DIALOG_TIMING_AFTER,
+};
 
 struct Dialog {
     // The id of this dialog
@@ -50,5 +69,9 @@ struct Dialog {
 
     CharacterMood mood;
 
+    // E.g. player did something bad -> say something nasty
+    DialogSentiment dialog_sentiment;
     DialogType dialog_type;
 };
+
+#endif

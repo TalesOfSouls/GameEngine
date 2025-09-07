@@ -28,7 +28,7 @@ struct DatabasePool {
     DatabaseConnection* connections;
 
     // Bitfield showing which connections are free and which are in use
-    alignas(8) atomic_64 uint64* free;
+    atomic_64 uint64* free;
 };
 
 void db_pool_alloc(DatabasePool* pool, uint8 count) {
@@ -41,7 +41,7 @@ void db_pool_alloc(DatabasePool* pool, uint8 count) {
         + 64 * 2; // overhead for alignment
 
     pool->connections = (DatabaseConnection *) platform_alloc_aligned(size, 64);
-    pool->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (pool->connections + count * sizeof(DatabaseConnection)), 64);
+    pool->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (pool->connections + count * sizeof(DatabaseConnection)), 64);
     pool->count = count;
 }
 
@@ -64,9 +64,10 @@ void db_pool_free(DatabasePool* pool) {
 
 // Returns free database connection or null if none could be found
 // @todo implement db_pool_get_wait(pool, waittime)
-inline
+FORCE_INLINE
 const DatabaseConnection* db_pool_get(DatabasePool* pool) NO_EXCEPT {
-    int32 id = thrd_chunk_get_unset(pool->free, (pool->count - 1) / 64, 0);
+    // @question Why are we not using reserve?
+    int32 id = thrd_chunk_reserve_one(pool->free, (pool->count - 1) / 64, 0);
 
     return id >= 0 ? &pool->connections[id] : NULL;
 }

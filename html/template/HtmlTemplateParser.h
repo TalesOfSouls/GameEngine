@@ -77,9 +77,9 @@ struct HtmlTemplateASTNode {
 };
 
 HtmlTemplateASTNode* html_template_node_create(HtmlTemplateNodeType type, const HtmlTemplateToken* token, byte** memory) {
-    *memory = (byte *) ROUND_TO_NEAREST((uintptr_t) *memory, 32);
+    *memory = (byte *) OMS_ALIGN_UP((uintptr_t) *memory, 32);
     HtmlTemplateASTNode* node = (HtmlTemplateASTNode *) *memory;
-    *memory = (byte *) ROUND_TO_NEAREST((uintptr_t) (*memory + sizeof(HtmlTemplateASTNode)), 32);
+    *memory = (byte *) OMS_ALIGN_UP((uintptr_t) (*memory + sizeof(HtmlTemplateASTNode)), 32);
 
     node->type = type;
     node->left = NULL;

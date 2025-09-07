@@ -12,7 +12,7 @@
 #include <malloc.h>
 #include <windows.h>
 #include "../../stdlib/Types.h"
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
 #include "../../log/DebugMemory.h"
 #include "../../log/Stats.h"
 #include "../../log/Log.h"
@@ -29,7 +29,7 @@ void* platform_alloc(size_t size)
         _page_size = 1;
     }
 
-    size = ROUND_TO_NEAREST(size, _page_size);
+    size = OMS_ALIGN_UP(size, _page_size);
 
     void* ptr = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     DEBUG_MEMORY_INIT((uintptr_t) ptr, size);
@@ -46,8 +46,8 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
         _page_size = 1;
     }
 
-    size = ROUND_TO_NEAREST(size + sizeof(void*) + alignment - 1, alignment);
-    size = ROUND_TO_NEAREST(size, _page_size);
+    size = OMS_ALIGN_UP(size + sizeof(void*) + alignment - 1, alignment);
+    size = OMS_ALIGN_UP(size, _page_size);
 
     void* ptr = VirtualAlloc(NULL, size + alignment + sizeof(void*), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     ASSERT_TRUE(ptr);
@@ -55,7 +55,7 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
     // We want an aligned memory area but mmap doesn't really support that.
     // That's why we have to manually offset our memory area.
     // However, when freeing the pointer later on we need the actual start of the memory area, not the manually offset one.
-    void* aligned_ptr = (void *) ROUND_TO_NEAREST((uintptr_t) ptr + sizeof(void*), alignment);
+    void* aligned_ptr = (void *) OMS_ALIGN_UP((uintptr_t) ptr + sizeof(void*), alignment);
     ((void**) aligned_ptr)[-1] = ptr;
 
     DEBUG_MEMORY_INIT((uintptr_t) aligned_ptr, size);
@@ -88,7 +88,7 @@ void* platform_shared_alloc(HANDLE* fd, const char* name, size_t size)
         _page_size = 1;
     }
 
-    size = ROUND_TO_NEAREST(size, _page_size);
+    size = OMS_ALIGN_UP(size, _page_size);
 
     *fd = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, (DWORD) size, name);
     ASSERT_TRUE(*fd);

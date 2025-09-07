@@ -5,10 +5,6 @@
 #include "../stdlib/Types.h"
 #include "../thread/Atomic.h"
 
-// @question See PerformanceProfiler (hashmap) and implement same here
-// The problem with that is, the hash map is much slower
-// and we probably want to maybe use this (at least partially) in release mode?
-// @todo We probably want a history array to look at some values in a chart
 #ifndef DEBUG_COUNTER
     #define DEBUG_COUNTER 1
     enum DebugCounter {
@@ -31,47 +27,59 @@
     };
 #endif
 
-static atomic_64 int64* _stats_counter = NULL;
+#define MAX_STATS_COUNTER_HISTORY 1000
+struct StatCounterHistory {
+    atomic_32 int32 pos;
+    atomic_64 int64 stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE];
+};
+static StatCounterHistory* _stats_counter = NULL;
+static volatile int32* _stats_counter_active = NULL;
 
-inline
-void reset_counter(int32 id) NO_EXCEPT
-{
-    // @question do we want to also use _perf_active?
-    if (!_stats_counter) {
+FORCE_INLINE
+void stats_snapshot() {
+    if (!_stats_counter_active || !*_stats_counter_active) {
         return;
     }
 
-    atomic_set_release(&_stats_counter[id], 0);
+    int32 pos = atomic_increment_wrap_acquire_release(&_stats_counter->pos, MAX_STATS_COUNTER_HISTORY);
+    memset(
+        (void *) &_stats_counter->stats[pos * DEBUG_COUNTER_SIZE],
+        0,
+        DEBUG_COUNTER_SIZE * sizeof(int64)
+    );
 }
 
-inline
+FORCE_INLINE
 void log_increment(int32 id, int64 by = 1) NO_EXCEPT
 {
-    if (!_stats_counter) {
+    if (!_stats_counter_active || !*_stats_counter_active) {
         return;
     }
 
-    atomic_add_acquire(&_stats_counter[id], by);
+    int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
+    atomic_add_relaxed(&_stats_counter->stats[pos + id], by);
 }
 
-inline
+FORCE_INLINE
 void log_decrement(int32 id, int64 by = 1) NO_EXCEPT
 {
-    if (!_stats_counter) {
+    if (!_stats_counter_active || !*_stats_counter_active) {
         return;
     }
 
-    atomic_sub_acquire(&_stats_counter[id], by);
+    int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
+    atomic_sub_relaxed(&_stats_counter->stats[pos + id], by);
 }
 
-inline
+FORCE_INLINE
 void log_counter(int32 id, int64 value) NO_EXCEPT
 {
-    if (!_stats_counter) {
+    if (!_stats_counter_active || !*_stats_counter_active) {
         return;
     }
 
-    atomic_set_release(&_stats_counter[id], value);
+    int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
+    atomic_set_relaxed(&_stats_counter->stats[pos + id], value);
 }
 
 #if (!DEBUG && !INTERNAL) || RELEASE
@@ -79,13 +87,15 @@ void log_counter(int32 id, int64 value) NO_EXCEPT
     #define LOG_INCREMENT_BY(a, b) ((void) 0)
     #define LOG_DECREMENT(a) ((void) 0)
     #define LOG_COUNTER(a, b) ((void) 0)
-    #define RESET_COUNTER(a) ((void) 0)
+
+    #define STATS_SNAPSHOT() ((void) 0)
 #else
     #define LOG_INCREMENT(a) log_increment((a), 1)
     #define LOG_INCREMENT_BY(a, b) log_increment((a), (b))
     #define LOG_DECREMENT(a) log_decrement((a), 1)
     #define LOG_COUNTER(a, b) log_counter((a), (b))
-    #define RESET_COUNTER(a) reset_counter((a))
+
+    #define STATS_SNAPSHOT() stats_snapshot()
 #endif
 
 #endif

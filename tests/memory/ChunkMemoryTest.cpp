@@ -6,7 +6,7 @@ static void test_chunk_alloc() {
     chunk_alloc(&mem, 10, 10);
 
     TEST_TRUE(memcmp(mem.memory, mem.memory + 1, 10 * 10) == 0);
-    TEST_EQUALS(mem.size, 10 * 64 + 8 * 1); // chunks are aligned to 64
+    TEST_EQUALS((uintptr_t) mem.free, (uintptr_t) mem.memory + 10 * 32);
     TEST_EQUALS(*mem.free, 0);
 
     chunk_free(&mem);
@@ -19,9 +19,10 @@ static void test_chunk_id_from_memory() {
     chunk_alloc(&mem, 10, 10);
 
     TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory), 0);
-    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 64), 1);
-    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 127), 1);
-    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 128), 2);
+    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 32), 1);
+    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 64), 2);
+    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 95), 2);
+    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 96), 3);
 
     chunk_free(&mem);
 }
@@ -30,7 +31,7 @@ static void test_chunk_get_element() {
     ChunkMemory mem = {};
     chunk_alloc(&mem, 10, 10);
 
-    TEST_EQUALS(chunk_get_element(&mem, 2), mem.memory + 128);
+    TEST_EQUALS(chunk_get_element(&mem, 2), mem.memory + 64);
 
     chunk_free(&mem);
 }

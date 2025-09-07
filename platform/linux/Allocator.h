@@ -14,7 +14,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include "../../stdlib/Types.h"
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
 #include "../../log/DebugMemory.h"
 #include "../../log/Stats.h"
 #include "../../log/Log.h"
@@ -34,7 +34,7 @@ void* platform_alloc(size_t size)
         _page_size = (int32) sysconf(_SC_PAGESIZE);
     }
 
-    size = ROUND_TO_NEAREST(size + sizeof(size_t), _page_size);
+    size = OMS_ALIGN_UP(size + sizeof(size_t), _page_size);
 
     void* ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     ASSERT_TRUE(ptr != MAP_FAILED);
@@ -55,8 +55,8 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
         _page_size = (int32) sysconf(_SC_PAGESIZE);
     }
 
-    size = ROUND_TO_NEAREST(size + sizeof(void *) + sizeof(size_t) + alignment - 1, alignment);
-    size = ROUND_TO_NEAREST(size, _page_size);
+    size = OMS_ALIGN_UP(size + sizeof(void *) + sizeof(size_t) + alignment - 1, alignment);
+    size = OMS_ALIGN_UP(size, _page_size);
 
     void* ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     ASSERT_TRUE(ptr != MAP_FAILED);
@@ -66,7 +66,7 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
     // However, when freeing the pointer later on we need the actual start of the memory area, not the manually offset one.
     // We do the same with the size, which is required when freeing
     uintptr_t raw_address = (uintptr_t) ptr + sizeof(void *) + sizeof(size_t);
-    void* aligned_ptr = (void *) ROUND_TO_NEAREST(raw_address, alignment);
+    void* aligned_ptr = (void *) OMS_ALIGN_UP(raw_address, alignment);
 
     *((void **) ((uintptr_t) aligned_ptr - sizeof(void *) - sizeof(size_t))) = ptr;
     *((size_t *) ((uintptr_t) aligned_ptr - sizeof(size_t))) = size;
@@ -106,7 +106,7 @@ void* platform_shared_alloc(int32* fd, const char* name, size_t size)
     *fd = shm_open(name, O_CREAT | O_RDWR, 0666);
     ASSERT_TRUE(*fd != -1);
 
-    size = ROUND_TO_NEAREST(size + sizeof(size_t), _page_size);
+    size = OMS_ALIGN_UP(size + sizeof(size_t), _page_size);
 
     ftruncate(*fd, size);
 
@@ -128,7 +128,7 @@ void* platform_shared_open(int32* fd, const char* name, size_t size)
     *fd = shm_open(name, O_RDWR, 0666);
     ASSERT_TRUE(*fd != -1);
 
-    size = ROUND_TO_NEAREST(size + sizeof(size_t), _page_size);
+    size = OMS_ALIGN_UP(size + sizeof(size_t), _page_size);
 
     void* shm_ptr = mmap(NULL, size, PROT_READ, MAP_SHARED, *fd, 0);
     ASSERT_TRUE(shm_ptr);

@@ -43,17 +43,17 @@ void adjust_aligned_position(
     if (alignment & UI_ALIGN_H_RIGHT) {
         *x -= width;
     } else if (alignment & UI_ALIGN_H_CENTER) {
-        *x -= width / 2;
+        *x -= width / 2.0f;
     }
 
     if (alignment & UI_ALIGN_V_TOP) {
         *y -= height;
     } else if (alignment & UI_ALIGN_V_CENTER) {
-        *y -= height / 2;
+        *y -= height / 2.0f;
     }
 }
 
-static inline
+static FORCE_INLINE
 void adjust_aligned_position(
     v4_f32* vec,
     byte alignment
@@ -62,53 +62,53 @@ void adjust_aligned_position(
     if (alignment & UI_ALIGN_H_RIGHT) {
         vec->x -= vec->width;
     } else if (alignment & UI_ALIGN_H_CENTER) {
-        vec->x -= vec->width / 2;
+        vec->x -= vec->width / 2.0f;
     }
 
     if (alignment & UI_ALIGN_V_TOP) {
         vec->y -= vec->height;
     } else if (alignment & UI_ALIGN_V_CENTER) {
-        vec->y -= vec->height / 2;
+        vec->y -= vec->height / 2.0f;
     }
 }
 
 inline
 int32 vertex_line_create(
-    Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex,
-    v2_f32 start, v2_f32 end, f32 thickness, byte alignment,
+    Vertex3DSamplerTextureColor* vertices, f32 zindex,
+    v2_f32 start, v2_f32 end, f32 thickness,
     uint32 rgba = 0
 ) NO_EXCEPT {
-    if (alignment & UI_ALIGN_H_RIGHT) {
-        start.x -= thickness;
-        end.x -= thickness;
-    } else if (alignment & UI_ALIGN_H_CENTER) {
-        start.x -= thickness / 2;
-        end.x -= thickness / 2;
-    }
+    f32 dx = end.x - start.x;
+    f32 dy = end.y - start.y;
 
-    if (alignment & UI_ALIGN_V_TOP) {
-        start.y -= thickness;
-        end.y -= thickness;
-    } else if (alignment & UI_ALIGN_V_CENTER) {
-        start.y -= thickness / 2;
-        end.y -= thickness / 2;
-    }
+    // Normalize direction
+    f32 len = intrin_rsqrt_f32(dx * dx + dy * dy);
+    dx *= len;
+    dy *= len;
 
-    f32 n1 = -(end.y - start.y);
-    f32 n2 = end.x - start.x;
-    f32 n_ = intrin_rsqrt_f32(n2 * n2 + n1 * n1);
-    f32 norm1 = n1 * n_;
-    f32 norm2 = n2 * n_;
+    // Perpendicular vector (normalized)
+    f32 px = -dy;
+    f32 py = dx;
+
+    // Scale by half-thickness
+    f32 hx = px * (thickness * 0.5f);
+    f32 hy = py * (thickness * 0.5f);
+
+    // Four corners of the line quad
+    v2_f32 v0 = { start.x - hx, start.y - hy };
+    v2_f32 v1 = { start.x + hx, start.y + hy };
+    v2_f32 v2 = { end.x   - hx, end.y   - hy };
+    v2_f32 v3 = { end.x   + hx, end.y   + hy };
 
     int32 idx = 0;
 
-    vertices[idx++] = {{start.x, start.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{start.x + thickness * norm1, start.y + thickness * norm2, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{end.x, end.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{v0.x, v0.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
 
-    vertices[idx++] = {{end.x, end.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{end.x + thickness * norm1, end.y + thickness * norm2, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{start.x + thickness * norm1, start.y + thickness * norm2, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
 
     return idx;
 }
@@ -150,7 +150,7 @@ int32 vertex_rect_create(
     return idx;
 }
 
-static inline
+static
 f32 text_calculate_dimensions_height(
     const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
 ) NO_EXCEPT {
@@ -168,7 +168,7 @@ f32 text_calculate_dimensions_height(
     return y;
 }
 
-static inline
+static
 f32 text_calculate_dimensions_width(
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
 ) NO_EXCEPT {
@@ -198,7 +198,7 @@ f32 text_calculate_dimensions_width(
     return OMS_MAX(x, offset_x);
 }
 
-static inline
+static
 void text_calculate_dimensions(
     f32* __restrict width, f32* __restrict height,
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length

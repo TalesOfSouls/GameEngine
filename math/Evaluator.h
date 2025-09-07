@@ -11,7 +11,7 @@
 
 #include "../stdlib/Types.h"
 #include "../utils/StringUtils.h"
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 #include "../compiler/CompilerUtils.h"
 #include <string.h>
 #include <math.h>
@@ -228,7 +228,7 @@ f32 evaluator_evaluate_function(const char* name, const char* args) {
         char arg1[64], arg2[64];
         memcpy(arg1, args, comma - args);
         arg1[comma - args] = '\0';
-        str_copy_short(arg2, comma + 1);
+        str_copy(arg2, comma + 1);
 
         // Recursively evaluate the arguments
         f32 val1 = evaluator_evaluate_expression(arg1);
@@ -245,7 +245,7 @@ f32 evaluator_evaluate_function(const char* name, const char* args) {
         char arg1[64], arg2[64];
         memcpy(arg1, args, comma - args);
         arg1[comma - args] = '\0';
-        str_copy_short(arg2, comma + 1);
+        str_copy(arg2, comma + 1);
 
         // Recursively evaluate the arguments
         f32 val1 = evaluator_evaluate_expression(arg1);

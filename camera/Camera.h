@@ -10,6 +10,7 @@
 #define COMS_CAMERA_H
 
 #include "../stdlib/Types.h"
+#include "../stdlib/GameMathTypes.h"
 #include "../math/matrix/MatrixFloat32.h"
 #include "../compiler/CompilerUtils.h"
 #include "CameraMovement.h"
@@ -66,7 +67,7 @@ struct Camera {
     alignas(64) f32 orth[16];
 };
 
-inline
+static FORCE_INLINE
 void camera_init_rh_opengl(Camera* camera) {
     camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, -1.0f};
@@ -75,7 +76,7 @@ void camera_init_rh_opengl(Camera* camera) {
     camera->world_up = {0.0f, 1.0f, 0.0f};
 }
 
-inline
+static FORCE_INLINE
 void camera_init_rh_vulkan(Camera* camera) {
     camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, -1.0f};
@@ -84,7 +85,7 @@ void camera_init_rh_vulkan(Camera* camera) {
     camera->world_up = {0.0f, -1.0f, 0.0f};
 }
 
-inline
+static FORCE_INLINE
 void camera_init_lh(Camera* camera) {
     camera->orientation = {0.0f, 90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, 1.0f};
@@ -133,6 +134,7 @@ void camera_update_vectors(Camera* camera) NO_EXCEPT
     vec3_normalize(&camera->up);
 }
 
+inline
 void camera_rotate(Camera* camera, int32 dx, int32 dy) NO_EXCEPT
 {
     camera->state_changes |= CAMERA_STATE_CHANGE_NORMAL;
@@ -155,6 +157,7 @@ void camera_rotate(Camera* camera, int32 dx, int32 dy) NO_EXCEPT
 }
 
 // you can have up to 4 camera movement inputs at the same time
+inline
 void camera_movement(
     Camera* __restrict camera,
     CameraMovement* __restrict movement,
@@ -229,7 +232,8 @@ void camera_movement(
         for (int32 i = 0; i < CAMERA_MAX_INPUTS; i++) {
             switch(movement[i]) {
                 case CAMERA_MOVEMENT_NONE: {
-                } break;
+                    return;
+                };
                 case CAMERA_MOVEMENT_FORWARD: {
                         camera->location.x += forward.x * velocity;
                         camera->location.y += forward.y * velocity;
@@ -379,7 +383,7 @@ void camera_projection_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
 
 // This is usually not used, since it is included in the view matrix
 // expects the identity matrix
-inline
+FORCE_INLINE
 void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* translation) NO_EXCEPT
 {
     translation[12] = camera->location.x;
@@ -387,7 +391,7 @@ void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* t
     translation[14] = camera->location.z;
 }
 
-inline
+FORCE_INLINE
 void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* translation) NO_EXCEPT
 {
     translation[3] = camera->location.x;
@@ -398,7 +402,7 @@ void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* t
 void
 camera_view_matrix_lh(Camera* __restrict camera) NO_EXCEPT
 {
-    v3_f32 zaxis = { camera->front.x, camera->front.y, camera->front.z };
+    v3_f32 zaxis = camera->front;
 
     v3_f32 xaxis;
     vec3_cross(&xaxis, &camera->world_up, &zaxis);
@@ -531,6 +535,67 @@ f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT {
         default:
             UNREACHABLE();
     }
+}
+
+// Creates the frustum planes (the frustum consists of 6 planes)
+// Each plane is describes as: ax + by + cz + d = 0 (4 parameters)
+inline
+void mat4_frustum_planes(Frustum* frustum, f32 radius, const f32* matrix) NO_EXCEPT
+{
+    // @todo make this a setting
+    // @bug fix to row-major system
+    // @todo don't use 2d arrays
+    f32 znear = 0.125;
+    f32 zfar = radius * 32 + 64;
+
+    frustum->plane[0 * 4 + 0] = matrix[3] + matrix[0];
+    frustum->plane[0 * 4 + 1] = matrix[7] + matrix[4];
+    frustum->plane[0 * 4 + 2] = matrix[11] + matrix[8];
+    frustum->plane[0 * 4 + 3] = matrix[15] + matrix[12];
+
+    frustum->plane[1 * 4 + 0] = matrix[3] - matrix[0];
+    frustum->plane[1 * 4 + 1] = matrix[7] - matrix[4];
+    frustum->plane[1 * 4 + 2] = matrix[11] - matrix[8];
+    frustum->plane[1 * 4 + 3] = matrix[15] - matrix[12];
+
+    frustum->plane[2 * 4 + 0] = matrix[3] + matrix[1];
+    frustum->plane[2 * 4 + 1] = matrix[7] + matrix[5];
+    frustum->plane[2 * 4 + 2] = matrix[11] + matrix[9];
+    frustum->plane[2 * 4 + 3] = matrix[15] + matrix[13];
+
+    frustum->plane[3 * 4 + 0] = matrix[3] - matrix[1];
+    frustum->plane[3 * 4 + 1] = matrix[7] - matrix[5];
+    frustum->plane[3 * 4 + 2] = matrix[11] - matrix[9];
+    frustum->plane[3 * 4 + 3] = matrix[15] - matrix[13];
+
+    frustum->plane[4 * 4 + 0] = znear * matrix[3] + matrix[2];
+    frustum->plane[4 * 4 + 1] = znear * matrix[7] + matrix[6];
+    frustum->plane[4 * 4 + 2] = znear * matrix[11] + matrix[10];
+    frustum->plane[4 * 4 + 3] = znear * matrix[15] + matrix[14];
+
+    frustum->plane[5 * 4 + 0] = zfar * matrix[3] - matrix[2];
+    frustum->plane[5 * 4 + 1] = zfar * matrix[7] - matrix[6];
+    frustum->plane[5 * 4 + 2] = zfar * matrix[11] - matrix[10];
+    frustum->plane[5 * 4 + 3] = zfar * matrix[15] - matrix[14];
+}
+
+inline
+bool aabb_intersects_frustum(const AABB* box, const Frustum* f){
+    // "fast AABB/frustum" using positive vertex test
+    for(int32 i = 0; i < 24; i += 6){
+        const f32* plane = &f->plane[i];
+        v3_f32 positive = {
+            plane[0] >= 0 ? box->max.x : box->min.x,
+            plane[1] >= 0 ? box->max.y : box->min.y,
+            plane[2] >= 0 ? box->max.z : box->min.z
+        };
+
+        if(plane[0] * positive.x + plane[1] * positive.y + plane[2] * positive.z + plane[3] < 0) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 #if OPENGL

@@ -33,7 +33,7 @@ HRESULT WINAPI XAudio2CreateStub(IXAudio2**, UINT32, XAUDIO2_PROCESSOR) {
 }
 // END: Dynamically load XAudio2
 
-void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
+void audio_load(HWND hwnd, AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) {
     LOG_1("Load audio API XAudio2");
 
     CoInitialize(NULL);
@@ -74,7 +74,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
     wf.wFormatTag = WAVE_FORMAT_PCM;
     wf.nChannels = 2;
     wf.wBitsPerSample = (uint16) ((setting->sample_size * 8) / wf.nChannels); // = sample_size per channel
-    wf.nBlockAlign = (wf.nChannels * wf.wBitsPerSample) / 8; // = sample_szie
+    wf.nBlockAlign = compiler_div_pow2(wf.nChannels * wf.wBitsPerSample, 8); // = sample_szie
     wf.nSamplesPerSec = setting->sample_rate;
     wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign; // = buffer_size
     wf.cbSize = 0;
@@ -111,7 +111,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
 }
 
 inline
-void audio_play(AudioSetting* setting, XAudio2Setting* api_setting) {
+void audio_play(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) {
     ASSERT_TRUE(api_setting->source_voice);
     /*if (!api_setting->source_voice) {
         return;
@@ -121,7 +121,7 @@ void audio_play(AudioSetting* setting, XAudio2Setting* api_setting) {
 }
 
 inline
-void audio_stop(AudioSetting* setting, XAudio2Setting* api_setting) {
+void audio_stop(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) {
     ASSERT_TRUE(api_setting->source_voice);
     /*if (!api_setting->source_voice) {
         return;
@@ -131,7 +131,7 @@ void audio_stop(AudioSetting* setting, XAudio2Setting* api_setting) {
 }
 
 inline
-void audio_free(AudioSetting* setting, XAudio2Setting* api_setting)
+void audio_free(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting)
 {
     if (api_setting->source_voice) {
         api_setting->source_voice->DestroyVoice();
@@ -161,7 +161,7 @@ void audio_free(AudioSetting* setting, XAudio2Setting* api_setting)
  * For other audio APIs we maybe have to do something else
  */
 inline
-uint32 audio_buffer_fillable(const AudioSetting* setting, const XAudio2Setting* api_setting)
+uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const XAudio2Setting* __restrict api_setting)
 {
     PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
     if (!api_setting->source_voice) {
@@ -178,7 +178,7 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const XAudio2Setting* 
 }
 
 inline
-void audio_play_buffer(AudioSetting* setting, XAudio2Setting* api_setting) {
+void audio_play_buffer(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) {
     PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
 
     if (!api_setting->source_voice || setting->sample_buffer_size == 0) {

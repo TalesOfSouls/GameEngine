@@ -16,7 +16,7 @@
 #include "../../../input/ControllerType.h"
 #include "../../../input/ControllerInput.h"
 #include "controller/DualShock4.h"
-#include "../../../utils/TestUtils.h"
+#include "../../../utils/Assert.h"
 #include "../../../memory/RingMemory.h"
 #include <winDNS.h>
 
@@ -24,7 +24,7 @@
 // Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions required
 // aligned memory. So far we only figured out that 4 bytes works, maybe this needs to be 8 in the future?!
 
-uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory* ring)
+uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory* __restrict ring)
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
@@ -100,7 +100,7 @@ uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemo
 }
 
 // WARNING: While this works we highly recommend to use hid_init_controllers
-uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* ring)
+uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* __restrict ring)
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
@@ -131,11 +131,11 @@ uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory
         switch (rdi.dwType) {
             case RIM_TYPEHID: {
                     if (rdi.hid.usUsage == 0x05) {
-                        if (states[controller_found].handle_controller != NULL) {
+                        if (states[controller_found].controller.handle != NULL) {
                             ++controller_found;
                         }
 
-                        states[controller_found].handle_controller = pRawInputDeviceList[i].hDevice;
+                        states[controller_found].controller.handle = pRawInputDeviceList[i].hDevice;
                         // @bug This is not always true, how to check?
                         states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
 
@@ -168,11 +168,11 @@ uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory
                             ASSERT_TRUE(false);
                         }
                     } else if (rdi.hid.usUsage == 0x04) {
-                        if (states[controller_found].handle_controller != NULL) {
+                        if (states[controller_found].controller.handle != NULL) {
                             ++controller_found;
                         }
 
-                        states[controller_found].handle_controller = pRawInputDeviceList[i].hDevice;
+                        states[controller_found].controller.handle = pRawInputDeviceList[i].hDevice;
                         // @bug This is not always true, how to check?
                         states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
                         states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
@@ -196,7 +196,7 @@ uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory
     return i;
 }
 
-inline
+FORCE_INLINE
 void input_mouse_position(HWND hwnd, v2_int32* pos)
 {
     POINT p;
@@ -206,6 +206,7 @@ void input_mouse_position(HWND hwnd, v2_int32* pos)
     }
 }
 
+static
 int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32 state_count, uint64 time)
 {
     int16 input_count = 0;
@@ -353,7 +354,7 @@ int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
         // But we would still need to register them, right?
         // Ideally we wouldn't even have to register them then because they would still pollute the general buffer
         while (i < state_count
-            && states[i].handle_controller != raw->header.hDevice
+            && states[i].controller.handle != raw->header.hDevice
         ) {
             ++i;
         }
@@ -381,7 +382,7 @@ int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
     return input_count;
 }
 
-void input_handle(LPARAM lParam, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
+void input_handle(LPARAM lParam, Input* __restrict states, int state_count, RingMemory* __restrict ring, uint64 time)
 {
     uint32 db_size;
     GetRawInputData((HRAWINPUT) lParam, RID_INPUT, NULL, &db_size, sizeof(RAWINPUTHEADER));
@@ -399,7 +400,7 @@ void input_handle(LPARAM lParam, Input* __restrict states, int state_count, Ring
 }
 
 // max_inputs = max input messages
-int16 input_handle_buffered(int32 max_inputs, Input* __restrict states, int32 state_count, RingMemory* ring, uint64 time)
+int16 input_handle_buffered(int32 max_inputs, Input* __restrict states, int32 state_count, RingMemory* __restrict ring, uint64 time)
 {
     uint32 cb_size;
     GetRawInputBuffer(NULL, &cb_size, sizeof(RAWINPUTHEADER));

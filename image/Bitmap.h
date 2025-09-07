@@ -16,6 +16,7 @@
 #include "../utils/Utils.h"
 #include "../utils/EndianUtils.h"
 #include "Image.h"
+#include "../compiler/CompilerUtils.h"
 
 // See: https://en.wikipedia.org/wiki/BMP_file_format
 // IMPORTANT: Remember that we are not using packing for the headers
@@ -276,9 +277,9 @@ void image_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
     image->pixel_count = image->width * image->height;
 
     // rows are 4 bytes multiples in length
-    uint32 width = ROUND_TO_NEAREST(src.dib_header.width, 4);
+    uint32 width = OMS_ALIGN_UP(src.dib_header.width, 4);
 
-    uint32 pixel_bytes = src.dib_header.bits_per_pixel / 8;
+    uint32 pixel_bytes = compiler_div_pow2(src.dib_header.bits_per_pixel, 8);
     byte alpha_offset = pixel_bytes > 3;
 
     image->image_settings |= (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT) == 0

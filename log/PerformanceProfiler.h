@@ -63,34 +63,38 @@ enum PerformanceProfileFlag : uint32 {
 
 // @question Should this store the thread_id?
 struct PerformanceProfileResult {
-    alignas(8) atomic_64 const char* name;
+    atomic_64 const char* name;
 
     // WARNING: rdtsc doesn't really return cycle count but we will just call it that
-    alignas(8) atomic_64 int64 total_cycle;
-    alignas(8) atomic_64 int64 self_cycle;
+    atomic_64 int64 total_cycle;
+    atomic_64 int64 self_cycle;
 
-    alignas(4) atomic_32 uint32 counter;
+    atomic_32 uint32 counter;
     uint32 parent;
 };
 
 // If we call PROFILE_SNAPSHOT after every frame this number is the same as the amount frames can store
 #define MAX_PERFORMANCE_STATS_HISTORY 1000
 struct PerformanceStatHistory {
-    int32 count = MAX_PERFORMANCE_STATS_HISTORY;
-    alignas(4) atomic_32 int32 pos;
+    atomic_32 int32 pos;
     PerformanceProfileResult perfs[MAX_PERFORMANCE_STATS_HISTORY * PROFILE_SIZE];
 };
 // This contains all stats usually for one frame
 static PerformanceStatHistory* _perf_stats = NULL;
 static volatile int32* _perf_active = NULL;
 
-inline
-void profile_stats_snapshot() {
+FORCE_INLINE
+void profile_performance_snapshot() NO_EXCEPT {
     if (!_perf_stats || !*_perf_active) {
         return;
     }
 
-    atomic_increment_wrap_relaxed(&_perf_stats->pos, _perf_stats->count);
+    int32 pos = atomic_increment_wrap_acquire_release(&_perf_stats->pos, ARRAY_COUNT(_perf_stats->perfs) / PROFILE_SIZE);
+    memset(
+        &_perf_stats->perfs[pos * PROFILE_SIZE],
+        0,
+        PROFILE_SIZE * sizeof(PerformanceProfileResult)
+    );
 }
 
 struct PerformanceThreadHistory {
@@ -105,7 +109,7 @@ struct PerformanceThreadHistory {
 #define MAX_PERFORMANCE_THREAD_HISTORY 10000
 struct PerformanceProfileThread {
     int32 thread_id;
-    alignas(4) atomic_32 uint32 pos;
+    atomic_32 uint32 pos;
 
     // WARNING: This only shows tha last tick but when rendering the rendering thread may be way slower
     // As a result you will only output every n-th tick
@@ -117,7 +121,7 @@ static int32 _perf_thread_history_count = 0;
 static PerformanceProfileThread* _perf_thread_history;
 
 inline
-void thread_profile_history_create(int32 thread_id, const char* name = NULL)
+void thread_profile_history_create(int32 thread_id, const char* name = NULL) NO_EXCEPT
 {
     for (int32 i = 1; i < _perf_thread_history_count; ++i) {
         if (_perf_thread_history[i].thread_id == 0) {
@@ -132,7 +136,7 @@ void thread_profile_history_create(int32 thread_id, const char* name = NULL)
 }
 
 inline
-void thread_profile_name(int32 thread_id, const char* name = NULL)
+void thread_profile_name(int32 thread_id, const char* name = NULL) NO_EXCEPT
 {
     for (int32 i = 1; i < _perf_thread_history_count; ++i) {
         if (_perf_thread_history[i].thread_id == thread_id) {
@@ -191,8 +195,10 @@ struct PerformanceThreadProfiler {
 };
 
 struct PerformanceProfiler;
-static thread_local PerformanceProfiler** _perf_current_scope = NULL; // Used when sharing profiler across dlls and threads (threads unlikely)
-static thread_local PerformanceProfiler* _perf_current_scope_internal; // Used when in dll or thread and no shared pointer found
+// Used when sharing profiler across dlls and threads (threads unlikely)
+static thread_local PerformanceProfiler** _perf_current_scope = NULL;
+// Used when in dll or thread and no shared pointer found
+static thread_local PerformanceProfiler* _perf_current_scope_internal;
 struct PerformanceProfiler {
     bool is_active;
 
@@ -223,8 +229,8 @@ struct PerformanceProfiler {
         this->_id = id;
 
         // @question is this even required
-        int32 pos = atomic_get_acquire(&_perf_stats->pos);
-        atomic_increment_acquire_release(&_perf_stats[pos].perfs[id].counter);
+        int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
+        atomic_increment_relaxed(&_perf_stats->perfs[pos + id].counter);
 
         this->name = scope_name;
         this->info_msg = info;
@@ -255,13 +261,13 @@ struct PerformanceProfiler {
         this->total_cycle = OMS_MAX(end_cycle - this->start_cycle, 0);
         this->self_cycle += total_cycle;
 
-        int32 pos = atomic_get_acquire(&_perf_stats->pos);
+        int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
 
         // Store result
         PerformanceProfileResult temp_perf = {};
         PerformanceProfileResult* perf = (this->_flags & PROFILE_FLAG_STATELESS)
             ? &temp_perf
-            : &_perf_stats[pos].perfs[this->_id];
+            : &_perf_stats->perfs[pos + this->_id];
 
         perf->name = this->name;
         perf->total_cycle = this->total_cycle;
@@ -321,30 +327,15 @@ struct PerformanceProfiler {
 };
 
 inline
-void performance_profiler_reset(int32 id) NO_EXCEPT
-{
-    if (!_perf_active || !*_perf_active) {
-        return;
-    }
-
-    int32 pos = atomic_get_acquire(&_perf_stats->pos);
-
-    PerformanceProfileResult* perf = &_perf_stats[pos].perfs[id];
-    perf->total_cycle = 0;
-    perf->self_cycle = 0;
-    perf->parent = 0;
-}
-
-inline
 void performance_profiler_start(int32 id, const char* name) NO_EXCEPT
 {
     if (!_perf_active || !*_perf_active) {
         return;
     }
 
-    int32 pos = atomic_get_acquire(&_perf_stats->pos);
+    int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
 
-    PerformanceProfileResult* perf = &_perf_stats[pos].perfs[id];
+    PerformanceProfileResult* perf = &_perf_stats->perfs[pos + id];
     perf->name = name;
     perf->self_cycle = -((int64) intrin_timestamp_counter());
 }
@@ -356,9 +347,9 @@ void performance_profiler_end(int32 id) NO_EXCEPT
         return;
     }
 
-    int32 pos = atomic_get_acquire(&_perf_stats->pos);
+    int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
 
-    PerformanceProfileResult* perf = &_perf_stats[pos].perfs[id];
+    PerformanceProfileResult* perf = &_perf_stats->perfs[pos + id];
     perf->total_cycle = intrin_timestamp_counter() + perf->self_cycle;
     perf->self_cycle = perf->total_cycle;
 }
@@ -370,8 +361,7 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     #define PROFILE_START(id, name) performance_profiler_start((id), (name))
     #define PROFILE_END(id) performance_profiler_end((id))
     #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
-    #define PROFILE_RESET(id) performance_profiler_reset((id))
-    #define PROFILE_SNAPSHOT() profile_stats_snapshot((id))
+    #define PROFILE_SNAPSHOT() profile_performance_snapshot()
 
     #define THREAD_LOG_CREATE(id, ...) thread_profile_history_create((id), ##__VA_ARGS__)
     #define THREAD_LOG_NAME(id, name) thread_profile_name((id), (name))
@@ -382,7 +372,6 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     #define PROFILE_START(id, name) ((void) 0)
     #define PROFILE_END(id) ((void) 0)
     #define PROFILE_SCOPE(id, name) ((void) 0)
-    #define PROFILE_RESET(id) ((void) 0)
     #define PROFILE_SNAPSHOT() ((void) 0)
 
     #define THREAD_LOG_CREATE(id, ...) ((void) 0)

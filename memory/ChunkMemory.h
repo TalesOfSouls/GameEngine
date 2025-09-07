@@ -11,7 +11,7 @@
 
 #include <string.h>
 #include "../stdlib/Types.h"
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/BitUtils.h"
 #include "../compiler/CompilerUtils.h"
@@ -43,7 +43,7 @@ struct ChunkMemory {
 FORCE_INLINE
 uint32 chunk_size_element(uint32 element_size, int32 alignment = 32) NO_EXCEPT
 {
-    return ROUND_TO_NEAREST(element_size, alignment);
+    return OMS_ALIGN_UP(element_size, alignment);
 }
 
 FORCE_INLINE
@@ -79,7 +79,7 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alig
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uint64) ((uintptr_t) (buf->memory + count * element_size)), (uint64) alignment);
+    buf->free = (uint64 *) OMS_ALIGN_UP((uint64) ((uintptr_t) (buf->memory + count * element_size)), (uint64) alignment);
 
     memset(buf->memory, 0, buf->size);
 }
@@ -105,7 +105,7 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 eleme
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * element_size), 64);
+    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * element_size), 64);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -120,7 +120,7 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 element_size,
 
     uint64 size = chunk_size_total(count, element_size, alignment);
 
-    buf->memory = (byte *) ROUND_TO_NEAREST((uintptr_t) data, alignment);
+    buf->memory = (byte *) OMS_ALIGN_UP((uintptr_t) data, alignment);
 
     buf->count = count;
     buf->size = size;
@@ -131,7 +131,7 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 element_size,
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * element_size), (uint64) alignment);
+    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * element_size), (uint64) alignment);
 
     memset(buf->memory, 0, buf->size);
 
@@ -156,7 +156,7 @@ void chunk_free(ChunkMemory* buf)
 FORCE_INLINE
 uint64* chunk_find_free_array(const ChunkMemory* buf) NO_EXCEPT
 {
-    return (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + buf->count * buf->chunk_size), (uint64) buf->alignment);
+    return (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + buf->count * buf->chunk_size), (uint64) buf->alignment);
 }
 
 FORCE_INLINE
@@ -167,6 +167,7 @@ uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) NO_EXCEPT {
 inline
 byte* chunk_get_element(ChunkMemory* buf, uint32 element, bool zeroed = false) NO_EXCEPT
 {
+    // @question How is this even possible? Isn't an assert enough?
     if (element >= buf->count) {
         return NULL;
     }
@@ -174,7 +175,7 @@ byte* chunk_get_element(ChunkMemory* buf, uint32 element, bool zeroed = false) N
     byte* offset = buf->memory + element * buf->chunk_size;
     ASSERT_TRUE(offset);
 
-    if (zeroed) {
+    if (zeroed) { [[unlikely]]
         memset((void *) offset, 0, buf->chunk_size);
     }
 
@@ -183,15 +184,16 @@ byte* chunk_get_element(ChunkMemory* buf, uint32 element, bool zeroed = false) N
     return offset;
 }
 
-// This is a special case of the chunk_reserve code where we try to find n unset elements
-int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
+// This is effectively the same as reserve with elements = 1 which allows for some performance improvements
+// state_count = number of maximum elements in the state array.
+int32 chunk_reserve_one(uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
 {
-    if ((uint32) start_index >= state_count) {
+    if ((uint32) start_index >= state_count) { [[unlikely]]
         start_index = 0;
     }
 
     uint32 free_index = start_index / 64;
-    uint32 bit_index = start_index & 63;
+    uint32 bit_index = MODULO_2(start_index, 64);
 
     // Check standard simple solution
     if (!IS_BIT_SET_64_R2L(state[free_index], bit_index)) {
@@ -200,16 +202,13 @@ int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) 
         return free_index * 64 + bit_index;
     }
 
-    for (uint32 i = 0; i < state_count; i+= 32) {
+    for (uint32 i = 0; i < state_count; i+= 64) {
         if (state[free_index] != 0xFFFFFFFFFFFFFFFF) {
             bit_index = compiler_find_first_bit_r2l(~state[free_index]);
 
             uint32 id = free_index * 64 + bit_index;
-            if (id >= state_count) {
-                ++free_index;
-                if (free_index * 64 >= state_count) {
-                    free_index = 0;
-                }
+            if (id >= state_count) { [[unlikely]]
+                free_index = 0;
 
                 continue;
             }
@@ -217,10 +216,52 @@ int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) 
             state[free_index] |= (1ULL << bit_index);
 
             return id;
+        } else {
+            ++free_index;
+            if (free_index * 64 >= state_count) {
+                free_index = 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+FORCE_INLINE
+int32 chunk_reserve_one(ChunkMemory* buf) NO_EXCEPT
+{
+    if ((uint32) (buf->last_pos + 1) >= buf->count) { [[unlikely]]
+        buf->last_pos = -1;
+    }
+
+    uint32 free_index = (buf->last_pos + 1) / 64;
+    uint32 bit_index = MODULO_2(buf->last_pos + 1, 64);
+
+    // Check standard simple solution
+    if (!IS_BIT_SET_64_R2L(buf->free[free_index], bit_index)) {
+        buf->free[free_index] |= (1ULL << bit_index);
+        ++buf->last_pos;
+
+        return free_index * 64 + bit_index;
+    }
+
+    uint32 total_words = (buf->count + 63) / 64;
+
+    for (uint32 w = 0; w < total_words; ++w) {
+        if (buf->free[free_index] != 0xFFFFFFFFFFFFFFFF) {
+            bit_index = compiler_find_first_bit_r2l(~buf->free[free_index]);
+
+            uint32 id = free_index * 64 + bit_index;
+            if (id < buf->count) { [[likely]]
+                buf->free[free_index] |= (1ULL << bit_index);
+                buf->last_pos = id;
+
+                return id;
+            }
         }
 
         ++free_index;
-        if (free_index * 64 >= state_count) {
+        if (free_index * 64 >= buf->count) { [[unlikely]]
             free_index = 0;
         }
     }
@@ -228,14 +269,15 @@ int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) 
     return -1;
 }
 
+// use chunk_reserve_one if possible
 int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
 {
-    if ((uint32) (buf->last_pos + 1) >= buf->count) {
+    if ((uint32) (buf->last_pos + 1) >= buf->count) { [[unlikely]]
         buf->last_pos = -1;
     }
 
     uint32 free_index = (buf->last_pos + 1) / 64;
-    uint32 bit_index = (buf->last_pos + 1) & 63;
+    uint32 bit_index = MODULO_2(buf->last_pos + 1, 64);
 
     // Check standard simple solution
     if (elements == 1 && !IS_BIT_SET_64_R2L(buf->free[free_index], bit_index)) {
@@ -249,21 +291,21 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
     uint32 i = 0;
     uint32 consecutive_free_bits = 0;
 
-    while (free_element < 0 && i++ <= buf->count) {
-        if (free_index * 64 + bit_index + elements - consecutive_free_bits > buf->count) {
+    while (i++ <= buf->count) {
+        if (buf->free[free_index] == 0xFFFFFFFFFFFFFFFF) {
+            // Skip fully filled ranges
+            ++free_index;
+            bit_index = 0;
+            i += 64;
+            consecutive_free_bits = 0;
+
+            continue;
+        } else if (free_index * 64 + bit_index + elements - consecutive_free_bits > buf->count) { [[unlikely]]
             // Go to beginning after overflow
             i += buf->count - (free_index * 64 + bit_index);
             consecutive_free_bits = 0;
             free_index = 0;
             bit_index = 0;
-
-            continue;
-        } else if (buf->free[free_index] == 0xFFFFFFFFFFFFFFFF) {
-            // Skip fully filled ranges
-            ++free_index;
-            bit_index = 0;
-            i += 32;
-            consecutive_free_bits = 0;
 
             continue;
         }
@@ -294,7 +336,7 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
         if (consecutive_free_bits == elements) {
             free_element = free_index * 64 + bit_index - elements;
             uint32 possible_free_index = free_element / 64;
-            uint32 possible_bit_index = free_element & 63;
+            uint32 possible_bit_index = MODULO_2(free_element, 64);
 
             // Mark as used
             if (elements == 1) {
@@ -323,8 +365,12 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
         }
     }
 
-    if (free_element < 0) {
+    if (free_element < 0) { [[unlikely]]
         LOG_3("No free chunk memory index found");
+
+        // This shouldn't happen in an ideal world and we should adjust our code
+        ASSERT_TRUE_CONST(false);
+
         return -1;
     }
 
@@ -332,7 +378,7 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
 
     buf->last_pos = free_element;
 
-    return (int32) free_element;
+    return free_element;
 }
 
 FORCE_INLINE
@@ -345,7 +391,7 @@ void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index) NO
 void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count = 1) NO_EXCEPT
 {
     uint64 free_index = element / 64;
-    uint32 bit_index = element & 63;
+    uint32 bit_index = MODULO_2(element, 64);
 
     if (element == 1) {
         chunk_free_element(buf, free_index, bit_index);

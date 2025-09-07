@@ -9,7 +9,7 @@
 #ifndef COMS_COMPILER_COMPILER_UTILS_H
 #define COMS_COMPILER_COMPILER_UTILS_H
 
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 
 #if _MSC_VER
     #include "msvc/CompilerUtils.h"

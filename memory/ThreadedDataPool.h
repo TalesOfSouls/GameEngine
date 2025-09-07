@@ -30,11 +30,11 @@ struct ThreadedDataPool {
 
     // length = count
     // free describes which locations are used and which are free
-    alignas(8) atomic_64 uint64* free;
+    atomic_64 uint64* free;
 
     // Chunk implementation ends here
     // This is a bit field that specifies which elements in the data pool are currently in use
-    alignas(8) atomic_64 uint64* used;
+    atomic_64 uint64* used;
 
     mutex mtx;
 };
@@ -78,9 +78,9 @@ byte* thrd_pool_get_element(ThreadedDataPool* buf, uint64 element, bool zeroed =
 
 // Find a unused/unlocked element in the data pool
 FORCE_INLINE
-int32 thrd_pool_get_unused(ThreadedDataPool* buf, int32 start_index = 0) NO_EXCEPT
+int32 thrd_pool_reserve_unused(ThreadedDataPool* buf, int32 start_index = 0) NO_EXCEPT
 {
-    return thrd_chunk_get_unset((ThreadedChunkMemory *) buf, buf->used, start_index);
+    return thrd_chunk_reserve_one((ThreadedChunkMemory *) buf, buf->used, start_index);
 }
 
 // Release an element to be used by someone else

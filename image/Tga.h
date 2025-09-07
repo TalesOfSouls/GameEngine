@@ -13,6 +13,7 @@
 #include "../stdlib/Types.h"
 #include "../utils/Utils.h"
 #include "../utils/EndianUtils.h"
+#include "../compiler/CompilerUtils.h"
 #include "Image.h"
 
 // See: https://en.wikipedia.org/wiki/Truevision_TGA
@@ -73,7 +74,7 @@ void generate_default_tga_references(const FileBody* file, Tga* tga) NO_EXCEPT
 
     tga->pixels = file->content + TGA_HEADER_SIZE
         + tga->header.id_length // can be 0
-        + tga->header.color_map_length * (tga->header.color_map_bits / 8); // can be 0
+        + tga->header.color_map_length * compiler_div_pow2(tga->header.color_map_bits, 8); // can be 0
 }
 
 void image_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
@@ -87,7 +88,7 @@ void image_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
     image->height = src.header.height;
     image->pixel_count = image->width * image->height;
 
-    uint32 pixel_bytes = src.header.bits_per_pixel / 8;
+    uint32 pixel_bytes = compiler_div_pow2(src.header.bits_per_pixel, 8);
     byte alpha_offset = pixel_bytes > 3;
 
     image->image_settings |= (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT) == 0

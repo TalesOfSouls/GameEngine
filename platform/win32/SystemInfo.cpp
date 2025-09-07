@@ -44,6 +44,7 @@
 #pragma comment(lib, "cfgmgr32.lib")
 #pragma comment(lib, "comsuppw.lib")
 
+inline
 uint64 system_private_memory_usage()
 {
     PROCESS_MEMORY_COUNTERS_EX pmc;
@@ -56,6 +57,7 @@ uint64 system_private_memory_usage()
     return pmc.PrivateUsage;
 }
 
+inline
 uint64 system_app_memory_usage()
 {
     MEMORY_BASIC_INFORMATION mbi;
@@ -75,6 +77,7 @@ uint64 system_app_memory_usage()
     return total_size;
 }
 
+FORCE_INLINE
 uint16 system_language_code()
 {
     LANGID lang_id = GetUserDefaultUILanguage();
@@ -87,6 +90,7 @@ uint16 system_language_code()
     return (local_name[0] << 8) | local_name[1];
 }
 
+FORCE_INLINE
 uint16 system_country_code()
 {
     LANGID lang_id = GetUserDefaultUILanguage();
@@ -357,6 +361,7 @@ void os_info_get(OSInfo* info) {
     info->minor = version_info.dwMinorVersion;
 }
 
+FORCE_INLINE
 void ram_info_get(RamInfo* info) {
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
@@ -494,7 +499,7 @@ uint32 display_info_get(DisplayInfo* info) {
         mode.dmSize = sizeof(mode);
 
         if (EnumDisplaySettingsA(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
-            str_copy_short(info[i].name, device.DeviceName);
+            str_copy(info[i].name, device.DeviceName);
             info[i].width = mode.dmPelsWidth;
             info[i].height = mode.dmPelsHeight;
             info[i].hz = mode.dmDisplayFrequency;
@@ -507,6 +512,7 @@ uint32 display_info_get(DisplayInfo* info) {
     return i;
 }
 
+inline
 bool is_dedicated_gpu_connected() {
     DISPLAY_DEVICEA displayDevice;
     displayDevice.cb = sizeof(DISPLAY_DEVICEA);

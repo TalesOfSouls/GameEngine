@@ -15,6 +15,7 @@
 #include "../../stdlib/Types.h"
 #include "../../log/PerformanceProfiler.h"
 
+inline
 void usleep(uint64 microseconds)
 {
     PROFILE(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
@@ -34,7 +35,21 @@ void usleep(uint64 microseconds)
     } while (true);
 }
 
+inline
 uint64 system_time() {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    struct tm local_tm;
+    localtime_r(&ts.tv_sec, &local_tm);
+
+    time_t local_epoch = mktime(&local_tm);
+
+    return (uint64_t) local_epoch * 1000000ULL + (uint64_t)ts.tv_nsec / 1000ULL;
+}
+
+inline
+uint64 system_time_utc() {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
 
@@ -50,6 +65,7 @@ uint64 time_index() {
     return (uint64) ts.tv_sec * 1000000ULL + (uint64) (ts.tv_nsec / 1000);
 }
 
+inline
 uint64 time_mu() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);

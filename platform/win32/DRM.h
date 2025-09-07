@@ -2,6 +2,7 @@
 #define COMS_PLATFORM_WIN32_DRM
 
 #include <windows.h>
+#include <psapi.h>
 #include <winternl.h>
 #include "../../stdlib/Types.h"
 
@@ -28,7 +29,7 @@ typedef NTSTATUS (WINAPI *pNtSetInformationThread)(
     ULONG ThreadInformationLength
 );
 
-bool prevent_debugger_attach()
+bool drm_prevent_debugger_attach()
 {
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
     if (!ntdll) {
@@ -45,7 +46,7 @@ bool prevent_debugger_attach()
     return NtSetInformationThread(GetCurrentThread(), ThreadHideFromDebugger, nullptr, 0) == 0;
 }
 
-bool is_being_debugged()
+bool drm_is_being_debugged()
 {
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
     if (!ntdll) {
@@ -80,11 +81,9 @@ bool is_being_debugged()
 #include <string.h>
 #pragma comment(lib, "bcrypt.lib")
 
-bool verify_code_integrity(
-    byte* exe_buffer,
-    size_t buffer_length,
-    const byte* expected_hash,
-    size_t expected_hash_len
+bool drm_verify_code_integrity(
+    byte* __restrict exe_buffer, uint32 buffer_length,
+    const byte* __restrict expected_hash, uint32 expected_hash_len
 ) {
     BCRYPT_ALG_HANDLE algorithm = NULL;
     BCRYPT_HASH_HANDLE hHash = NULL;
@@ -185,8 +184,9 @@ bool verify_code_integrity(
     return false;
 }
 
+
 // Example: process_names = { "x64dbg.exe", "cheatengine-x86_64.exe", "ollydbg.exe" };
-bool check_for_processes(const char** process_names, int32 count) {
+bool drm_check_process_name(const char** process_names, int32 count) {
     DWORD processes[1024], cb_needed;
     if (!EnumProcesses(processes, sizeof(processes), &cb_needed)) {
         return false;
@@ -227,7 +227,7 @@ struct WindowTitleSearchContext {
     bool found;
 };
 
-static BOOL CALLBACK enum_windows_callback(HWND hWnd, LPARAM lParam) {
+static BOOL CALLBACK drm_enum_windows_callback(HWND hWnd, LPARAM lParam) {
     WindowTitleSearchContext* ctx = (WindowTitleSearchContext *) lParam;
 
     char window_title[256];
@@ -244,9 +244,9 @@ static BOOL CALLBACK enum_windows_callback(HWND hWnd, LPARAM lParam) {
     return true;
 }
 
-bool check_for_window_titles(const char** window_titles, int32 count) {
+bool drm_check_window_title(const char** window_titles, int32 count) {
     WindowTitleSearchContext ctx = { window_titles, count, false };
-    EnumWindows(enum_windows_callback, (LPARAM) &ctx);
+    EnumWindows(drm_enum_windows_callback, (LPARAM) &ctx);
 
     return ctx.found;
 }

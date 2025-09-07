@@ -10,7 +10,7 @@
 #define COMS_HTML_TEMPLATE_CONTEXT_H
 
 #include "../../stdlib/Types.h"
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
 
 struct HtmlTemplateContext {
     int32 scope_level;

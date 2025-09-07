@@ -51,7 +51,4 @@
     #define intrin_timestamp_counter() __builtin_readcyclecounter()
 #endif
 
-// a * b + c
-#define intrin_fmadd(a, b, c) vgetq_lane_f32(vmlaq_f32(vdupq_n_f32(c), vdupq_n_f32(a), vdupq_n_f32(b)), 0)
-
 #endif

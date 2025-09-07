@@ -12,7 +12,7 @@
 #include <string.h>
 #include "../stdlib/Types.h"
 #include "../memory/ChunkMemory.h"
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 #include "../utils/BitUtils.h"
 #include "../stdlib/HashMap.h"
 #include "../log/DebugMemory.h"
@@ -72,7 +72,7 @@ Entity* ecs_get_entity(EntityComponentSystem* ecs, int32 entity_id)
     int32 raw_id = entity_id & 0x00FFFFFF;
 
     int32 byte_index = raw_id / 64;
-    int32 bit_index = raw_id & 63;
+    int32 bit_index = MODULO_2(raw_id, 64);
 
     return IS_BIT_SET_64_R2L(ecs->entities[ecs_type].free[byte_index], bit_index) ?
         (Entity *) chunk_get_element(&ecs->entities[ecs_type], raw_id)
@@ -82,7 +82,7 @@ Entity* ecs_get_entity(EntityComponentSystem* ecs, int32 entity_id)
 Entity* ecs_reserve_entity(EntityComponentSystem* ecs, uint32 entity_type)
 {
     ChunkMemory* mem = &ecs->entities[entity_type];
-    int32 free_entity = chunk_reserve(mem, 1);
+    int32 free_entity = chunk_reserve_one(mem);
     if (free_entity < 0) {
         ASSERT_TRUE(free_entity >= 0);
         return NULL;
@@ -98,7 +98,7 @@ Entity* ecs_reserve_entity(EntityComponentSystem* ecs, uint32 entity_type)
 Entity* ecs_insert_entity(EntityComponentSystem* ecs, Entity* entity_temp, int32 entity_type)
 {
     ChunkMemory* mem = &ecs->entities[entity_type];
-    int32 free_entity = chunk_reserve(mem, 1);
+    int32 free_entity = chunk_reserve_one(mem);
     if (free_entity < 0) {
         ASSERT_TRUE(free_entity >= 0);
         return NULL;

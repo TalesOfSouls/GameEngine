@@ -13,7 +13,7 @@
 #include "../system/Allocator.h"
 #include "../thread/Thread.h"
 
-enum TaskScheduleFlag : uint32 {
+enum TaskScheduleFlag : uint8 {
     TASK_SCHEDULE_FLAG_RUNNING = 1 << 0,
     TASK_SCHEDULE_FLAG_COMPLETED = 1 << 1,
     TASK_SCHEDULE_FLAG_REPEAT = 1 << 2, // After completion, reset and run again
@@ -21,27 +21,26 @@ enum TaskScheduleFlag : uint32 {
 };
 
 struct TaskSchedule {
-    uint32 flags;
     uint64 start;
     uint64 end;
-    uint64 repeat_interval;
-    byte repeat_count;
+    uint8 flags;
+    int8 repeat_count; // -1 = infinite
+    uint16 repeat_interval; // 1 = 100 ms, smaller intervals are not required?!
     ThreadJobFunc task_func;
     void* data;
 };
 
 // Multithreading: Single consumer (one thread) multiple producers (multiple threads)
 struct TaskScheduler {
-    ThreadPool* pool;
-
     int32 task_count;
     TaskSchedule* tasks;
+    ThreadPool* pool;
 
     // Array which holds the tasks array indices ordered by start time
     // This way we can quickly find all tasks that should be run without re-ordering the tasks array every time
     // To be fair re-ordering the tasks array isn't that slow but we may need a fixed memory position for pointers
-    alignas(4) atomic_32 int32* priorities;
-    alignas(8) atomic_64 uint64* free;
+    atomic_32 int32* priorities;
+    atomic_64 uint64* free;
 
     mutex lock;
 };
@@ -58,8 +57,8 @@ void scheduler_alloc(TaskScheduler* scheduler, int32 count) NO_EXCEPT
     );
 
     scheduler->tasks = (TaskSchedule *) data;
-    scheduler->priorities = (volatile int32 *) ROUND_TO_NEAREST((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
-    scheduler->free = (volatile uint64 *) ROUND_TO_NEAREST((uintptr_t) (scheduler->priorities + count), 64);
+    scheduler->priorities = (volatile int32 *) OMS_ALIGN_UP((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
+    scheduler->free = (volatile uint64 *) OMS_ALIGN_UP((uintptr_t) (scheduler->priorities + count), 64);
 
     mutex_init(&scheduler->lock, NULL);
 }
@@ -77,8 +76,8 @@ void scheduler_create(TaskScheduler* scheduler, int32 count, BufferMemory* buf) 
     );
 
     scheduler->tasks = (TaskSchedule *) data;
-    scheduler->priorities = (volatile int32 *) ROUND_TO_NEAREST((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
-    scheduler->free = (volatile uint64 *) ROUND_TO_NEAREST((uintptr_t) (scheduler->priorities + count), 64);
+    scheduler->priorities = (volatile int32 *) OMS_ALIGN_UP((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
+    scheduler->free = (volatile uint64 *) OMS_ALIGN_UP((uintptr_t) (scheduler->priorities + count), 64);
 
     mutex_init(&scheduler->lock, NULL);
 }
@@ -135,7 +134,11 @@ void scheduler_add(TaskScheduler* scheduler, TaskSchedule* task) NO_EXCEPT
             // Next element starts later -> this task needs to come before
 
             // Move larger elements 1 over
-            memmove((void *) (scheduler->priorities + i + 1), (void *) (scheduler->priorities + i), scheduler->task_count - i - 1);
+            memmove(
+                (void *) (scheduler->priorities + i + 1),
+                (void *) (scheduler->priorities + i),
+                scheduler->task_count - i - 1
+            );
 
             // Insert new element
             scheduler->priorities[i] = idx;
@@ -151,7 +154,7 @@ FORCE_INLINE
 void scheduler_remove(TaskScheduler* scheduler, uint32 element) NO_EXCEPT
 {
     uint64 free_index = element / 64;
-    uint32 bit_index = element & 63;
+    uint32 bit_index = MODULO_2(element, 64);
 
     mutex_lock(&scheduler->lock);
     scheduler->free[free_index] &= ~(1ULL << bit_index);

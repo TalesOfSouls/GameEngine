@@ -20,6 +20,7 @@
 #endif
 
 #include "../../stdlib/Types.h"
+#include "../../compiler/CompilerUtils.h"
 
 #ifdef _MSC_VER
     #define intrin_sqrt_f32(a) _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss((a))))
@@ -58,14 +59,11 @@
 #define intrin_prefetch_l2(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T1)
 #define intrin_prefetch_l3(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T2)
 
-// a * b + c
-#define intrin_fmadd(a, b, c) _mm_cvtss_f32(_mm_fmadd_ss(_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)))
-
-inline
+FORCE_INLINE
 uint64 intrin_timestamp_counter() NO_EXCEPT {
-    _mm_mfence();
+    _mm_lfence();
     uint64 res = __rdtsc();
-    _mm_mfence();
+    _mm_lfence();
 
     return res;
 }

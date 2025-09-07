@@ -10,7 +10,7 @@
 #define COMS_COMPILER_GCC_COMPILER_UTILS_H
 
 #include "../../stdlib/Types.h"
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
 
 #define PACKED_STRUCT  __attribute__((__packed__))
 #define UNPACKED_STRUCT ((void) 0)
@@ -42,7 +42,7 @@
 
 FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
-    ASSERT_TRUE(mask);
+    ASSERT_STRICT(mask);
 
     #if __LITTLE_ENDIAN__
         return 63 - __builtin_clzll(mask);
@@ -53,7 +53,7 @@ int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
 
 FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
-    ASSERT_TRUE(mask);
+    ASSERT_STRICT(mask);
 
     #if __LITTLE_ENDIAN__
         return __builtin_ctz(mask);
@@ -64,7 +64,7 @@ int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
 
 FORCE_INLINE
 int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
-    ASSERT_TRUE(mask);
+    ASSERT_STRICT(mask);
 
     #if __LITTLE_ENDIAN__
         return 63 - __builtin_clzll(mask);
@@ -75,7 +75,7 @@ int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
 
 FORCE_INLINE
 int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
-    ASSERT_TRUE(mask);
+    ASSERT_STRICT(mask);
 
     #if __LITTLE_ENDIAN__
         return __builtin_ctz(mask);
@@ -86,6 +86,8 @@ int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
 
 #define compiler_is_bit_set_r2l(num, pos) ((bool) ((num) & (1 << (pos))))
 #define compiler_is_bit_set_64_r2l(num, pos) ((bool) ((num) & (1ULL << (pos))))
+
+#define compiler_div_pow2(a, b) a >> __builtin_ctz(b)
 
 /*
 #include <cpuid.h>
@@ -113,7 +115,6 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) NO_EXCEP
     );
 }
 
-
 FORCE_INLINE
 void compiler_memcpy_unaligned(void* __restrict dst, const void* __restrict src, size_t size)
 {
@@ -137,5 +138,9 @@ FORCE_INLINE
 void compiler_memset_aligned(void* dst, int value, size_t size) {
     __builtin_memset(dst, value, size);
 }
+
+#define SWAP_ENDIAN_16(val) __builtin_bswap16((val))
+#define SWAP_ENDIAN_32(val) __builtin_bswap32((val))
+#define SWAP_ENDIAN_64(val) __builtin_bswap64((val))
 
 #endif

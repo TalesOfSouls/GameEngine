@@ -9,7 +9,7 @@
 #ifndef COMS_COMPILER_COMPILER_UTILS_H
 #define COMS_COMPILER_COMPILER_UTILS_H
 
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 #include "../stdlib/Types.h"
 
 #if _MSC_VER
@@ -35,7 +35,7 @@ constexpr const char* RemoveQualifiers(const char* typeName) {
     const char* qualifiers[] = {"enum ", "struct ", "class ", "const ", "volatile ", "restrict "};
 
     for (const char* qual : qualifiers) {
-        size_t len = str_length_constexpr(qual);
+        size_t len = str_length(qual);
         if (str_compare(typeName, qual, len) == 0) {
             return typeName + len;
         }

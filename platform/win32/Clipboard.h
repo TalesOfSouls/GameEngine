@@ -24,7 +24,7 @@ void clipboard_get(char* text, int32 max_length)
         if (clipboard_data) {
             const char* clipboard_text = (const char*) GlobalLock(clipboard_data);
             if (clipboard_text) {
-                str_copy_short(text, clipboard_text, max_length);
+                str_copy(text, clipboard_text, max_length);
                 GlobalUnlock(clipboard_data);
             }
         }

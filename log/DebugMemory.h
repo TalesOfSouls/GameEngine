@@ -13,7 +13,7 @@
 #include "../thread/Atomic.h"
 
 #ifndef DEBUG_MEMORY_RANGE_MAX
-    // How many memory actions do we store?
+    // How many memory actions do we store per memory arena?
     #define DEBUG_MEMORY_RANGE_MAX 500
 #endif
 
@@ -37,8 +37,8 @@ struct DebugMemory {
     uintptr_t start;
     uint64 size;
 
-    alignas(4) atomic_32 uint32 action_idx;
-    alignas(4) atomic_32 uint32 reserve_action_idx;
+    atomic_32 uint32 action_idx;
+    atomic_32 uint32 reserve_action_idx;
     DebugMemoryRange last_action[DEBUG_MEMORY_RANGE_MAX];
     DebugMemoryRange reserve_action[DEBUG_MEMORY_RANGE_RES_MAX];
 };
@@ -58,7 +58,7 @@ enum MemoryDebugType {
     MEMORY_DEBUG_TYPE_SUBREGION = 3,
 };
 
-inline
+static FORCE_INLINE
 DebugMemory* debug_memory_find(uintptr_t start) NO_EXCEPT
 {
     for (uint64 i = 0; i < _dmc->memory_size; ++i) {
@@ -118,11 +118,7 @@ void debug_memory_log(uintptr_t start, uint64 size, int32 type, const char* func
         return;
     }
 
-    uint32 idx = atomic_fetch_add_relaxed(&mem->action_idx, 1);
-    if (idx >= ARRAY_COUNT(mem->last_action)) {
-        atomic_set_release(&mem->action_idx, 1);
-        idx %= ARRAY_COUNT(mem->last_action);
-    }
+    uint32 idx = atomic_increment_wrap_relaxed(&mem->action_idx, ARRAY_COUNT(mem->last_action));
 
     DebugMemoryRange* dmr = &mem->last_action[idx];
     dmr->type = type;
@@ -150,11 +146,7 @@ void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* 
         return;
     }
 
-    uint32 idx = atomic_fetch_add_relaxed(&mem->reserve_action_idx, 1);
-    if (idx >= ARRAY_COUNT(mem->reserve_action)) {
-        atomic_set_release(&mem->reserve_action_idx, 1);
-        idx %= ARRAY_COUNT(mem->reserve_action);
-    }
+    uint32 idx = atomic_increment_wrap_relaxed(&mem->reserve_action_idx, ARRAY_COUNT(mem->reserve_action));
 
     DebugMemoryRange* dmr = &mem->reserve_action[idx];
     dmr->type = type;

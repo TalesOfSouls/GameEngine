@@ -3,21 +3,24 @@
 
 #include <windows.h>
 #include "../../stdlib/Types.h"
+#include "../../utils/StringUtils.h"
 #include "../../data/AntiCheat.h"
 
 struct AntiCheatProcessInfo {
-    DWORD pid;
+    uint32 pid;
     bool scanned;
     bool cheat_detected;
+    bool is_active;
 };
 
 // Scan a process's memory for the byte pattern
 // helper_memory is a temp buffer that can be used to load running process data
 // If the process is larger than the helper memory it will only be loaded partially
+static
 bool anti_cheat_memory_scan(
     HANDLE hProcess,
-    const AntiCheatSignature* patterns, size_t pattern_count,
-    byte* helper_memory, size_t helper_memory_size
+    const AntiCheatSignature* __restrict patterns, size_t pattern_count,
+    byte* __restrict helper_memory, size_t helper_memory_size
 ) {
     SYSTEM_INFO sys_info;
     GetSystemInfo(&sys_info);
@@ -36,15 +39,14 @@ bool anti_cheat_memory_scan(
 
             if (ReadProcessMemory(hProcess, addr, helper_memory, read_size, &bytes_read)) {
                 for (size_t p = 0; p < pattern_count; ++p) {
-                    const AntiCheatSignature& sig = patterns[p];
-
-                    if (sig.pattern_len > bytes_read)
+                    const AntiCheatSignature* sig = &patterns[p];
+                    if (sig->length > bytes_read) {
                         continue;
+                    }
 
-                    for (size_t i = 0; i <= bytes_read - sig.pattern_len; ++i) {
-                        if (memcmp(sig.encrypted_pattern, helper_memory + i, sig.pattern_len) == 0) {
-                            return true;
-                        }
+                    // @bug in theory our signature is split across 2 read chunks
+                    if (byte_contains(helper_memory, bytes_read, sig->encrypted_pattern, sig->length)) {
+                        return true;
                     }
                 }
             }
@@ -57,27 +59,26 @@ bool anti_cheat_memory_scan(
 }
 
 // Scan processes using tracking array
+inline
 void anti_cheat_process_scan(
-    AntiCheatSignature* patterns, int32 pattern_count,
-    AntiCheatProcessInfo* list, int32 process_count,
-    byte* helper_memory,
-    size_t helper_memory_size
+    const AntiCheatSignature* __restrict patterns, int32 pattern_count,
+    AntiCheatProcessInfo* __restrict list, int32 process_count,
+    byte* __restrict helper_memory, size_t helper_memory_size
 ) {
     for (int32 i = 0; i < process_count; ++i) {
-        if (list->pid || list[i].scanned) {
+        if (list[i].scanned) {
+            // @todo how to remove no longer active processes?
+            // maybe handle that outside in regular intervals... check all running processes
             continue;
         }
 
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, list[i].pid);
+        list[i].scanned = true;
         if (hProcess) {
             // @question Maybe we should pass the decrypted_pattern?
-            bool found = anti_cheat_memory_scan(hProcess, patterns, pattern_count, helper_memory, helper_memory_size);
-            list[i].cheat_detected = found;
-            list[i].scanned = true;
+            list[i].cheat_detected = anti_cheat_memory_scan(hProcess, patterns, pattern_count, helper_memory, helper_memory_size);
 
             CloseHandle(hProcess);
-        } else {
-            list[i].scanned = true;
         }
     }
 }

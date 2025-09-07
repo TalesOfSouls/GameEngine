@@ -150,7 +150,7 @@ void layout_from_file_txt(
         temp_element_count,
         sizeof(HashEntryInt32),
         layout->data,
-        ROUND_TO_NEAREST(sizeof(HashEntryInt32), 32)
+        OMS_ALIGN_UP(sizeof(HashEntryInt32), 32)
     );
     int64 hm_size = hashmap_size(&layout->hash_map);
 
@@ -611,7 +611,7 @@ int32 layout_from_data(
         (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)),
         sizeof(HashEntryInt32),
         layout->data,
-        ROUND_TO_NEAREST(sizeof(HashEntryInt32), 32)
+        OMS_ALIGN_UP(sizeof(HashEntryInt32), 32)
     );
 
     in += hashmap_load(&layout->hash_map, in);
@@ -647,7 +647,7 @@ void layout_from_theme(
 
     // Current position where we can add the different sub elements (e.g. :hover, :active, ...)
     // We make sure that the offset is a multiple of 8 bytes for better alignment
-    uint32 dynamic_pos = ROUND_TO_NEAREST(layout->layout_size, 8);
+    uint32 dynamic_pos = OMS_ALIGN_UP(layout->layout_size, 8);
 
     // @bug Don't we have to overwrite the layout->data after layout_size to 0, to avoid bugs?
     // This could be especially true when loading another theme
@@ -987,7 +987,7 @@ uint32 ui_layout_update_render_dfs(
 }
 
 FORCE_INLINE
-uint32 layout_element_from_location(UILayout* layout, uint16 x, uint16 y) NO_EXCEPT
+uint32 layout_element_from_location(const UILayout* layout, uint16 x, uint16 y) NO_EXCEPT
 {
     // UI elements have a precision of 4 pixels
     return layout->ui_chroma_codes[layout->width * y / 4 + x / 4];
@@ -1021,7 +1021,7 @@ void* layout_get_element_style(const UILayout* layout, UIElement* element, UISty
 }
 
 FORCE_INLINE
-UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element) NO_EXCEPT
+UIElement* layout_get_element_parent(const UILayout* layout, const UIElement* element) NO_EXCEPT
 {
     if (!element) {
         return NULL;
@@ -1031,7 +1031,7 @@ UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element)
 }
 
 FORCE_INLINE
-UIElement* layout_get_element_child(const UILayout* layout, UIElement* element, uint16 child) NO_EXCEPT
+UIElement* layout_get_element_child(const UILayout* layout, const UIElement* element, uint16 child) NO_EXCEPT
 {
     if (!element) {
         return NULL;

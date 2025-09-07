@@ -17,6 +17,7 @@
 #include "../../../audio/AudioSetting.h"
 #include "../../../log/Log.h"
 #include "../../../audio/Audio.cpp"
+#include "../../../compiler/CompilerUtils.h"
 
 struct DirectSoundSetting {
     LPDIRECTSOUND8 audio_handle;
@@ -31,7 +32,7 @@ HRESULT WINAPI DirectSoundCreate8Stub(LPCGUID, LPDIRECTSOUND8*, LPUNKNOWN) {
 }
 // END: Dynamically load DirectSound
 
-void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_setting) {
+void audio_load(HWND hwnd, AudioSetting* __restrict setting, DirectSoundSetting* __restrict api_setting) {
     LOG_1("Load audio API DirectSound");
 
     HMODULE lib = LoadLibraryExA((LPCSTR) "dsound.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -59,7 +60,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_settin
     wf.wFormatTag = WAVE_FORMAT_PCM;
     wf.nChannels = 2;
     wf.wBitsPerSample = 16;
-    wf.nBlockAlign = (wf.nChannels * wf.wBitsPerSample) / 8;
+    wf.nBlockAlign = (WORD) compiler_div_pow2(wf.nChannels * wf.wBitsPerSample, 8);
     wf.nSamplesPerSec = setting->sample_rate;
     wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
     wf.cbSize = 0;
@@ -101,7 +102,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_settin
 }
 
 inline
-void audio_play(AudioSetting*, DirectSoundSetting* api_setting)
+void audio_play(AudioSetting*, DirectSoundSetting* __restrict api_setting)
 {
     ASSERT_TRUE(api_setting->secondary_buffer);
     /*if (!api_setting->secondary_buffer) {
@@ -112,7 +113,7 @@ void audio_play(AudioSetting*, DirectSoundSetting* api_setting)
 }
 
 inline
-void audio_stop(AudioSetting*, DirectSoundSetting* api_setting) {
+void audio_stop(AudioSetting*, DirectSoundSetting* __restrict api_setting) {
     ASSERT_TRUE(api_setting->secondary_buffer);
     /*if (!api_setting->secondary_buffer) {
         return;
@@ -122,7 +123,7 @@ void audio_stop(AudioSetting*, DirectSoundSetting* api_setting) {
 }
 
 inline
-void audio_free(AudioSetting*, DirectSoundSetting* api_setting)
+void audio_free(AudioSetting*, DirectSoundSetting* __restrict api_setting)
 {
     if (api_setting->audio_handle) {
         api_setting->audio_handle->Release();
@@ -141,7 +142,7 @@ void audio_free(AudioSetting*, DirectSoundSetting* api_setting)
  * Calculates the samples in bytes to generate for the buffer
  */
 inline
-uint32 audio_buffer_fillable(const AudioSetting* setting, const DirectSoundSetting* api_setting)
+uint32 audio_buffer_fillable(const AudioSetting* setting, const DirectSoundSetting* __restrict api_setting)
 {
     PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
 
@@ -173,7 +174,7 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const DirectSoundSetti
 }
 
 inline
-void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
+void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* __restrict api_setting)
 {
     PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
     if (setting->sample_buffer_size == 0) {

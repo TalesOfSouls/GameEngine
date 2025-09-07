@@ -18,17 +18,18 @@ enum CommandType {
     CMD_ASSET_LOAD,
     CMD_FILE_LOAD,
     CMD_FONT_LOAD,
-    CMD_FONT_CREATE,
+    CMD_INTERNAL_FONT_CREATE,
     CMD_TEXTURE_LOAD,
-    CMD_TEXTURE_CREATE, // Only for internal use
+    CMD_INTERNAL_TEXTURE_CREATE,
     CMD_AUDIO_PLAY,
-    CMD_AUDIO_ENQUEUE, // Only for internal use
+    CMD_INTERNAL_AUDIO_ENQUEUE,
     CMD_SHADER_LOAD,
     CMD_UI_LOAD,
 };
 
 typedef void* (*CommandFunction)(void* data);
 
+// Another name for this concept is event queue and the command below is a generic event
 struct Command {
     CommandType type;
     CommandFunction callback;

@@ -36,7 +36,7 @@ int32 atomic_increment_wrap_relaxed(volatile int32* value, int32 threshold) NO_E
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -63,7 +63,7 @@ int32 atomic_increment_wrap_acquire(volatile int32* value, int32 threshold) NO_E
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -90,7 +90,7 @@ int32 atomic_increment_wrap_release(volatile int32* value, int32 threshold) NO_E
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -117,7 +117,7 @@ int32 atomic_increment_wrap_acquire_release(volatile int32* value, int32 thresho
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -144,7 +144,7 @@ uint32 atomic_increment_wrap_relaxed(volatile uint32* value, uint32 threshold) N
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -171,7 +171,7 @@ uint32 atomic_increment_wrap_acquire(volatile uint32* value, uint32 threshold) N
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -198,7 +198,7 @@ uint32 atomic_increment_wrap_release(volatile uint32* value, uint32 threshold) N
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -225,7 +225,7 @@ uint32 atomic_increment_wrap_acquire_release(volatile uint32* value, uint32 thre
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -252,7 +252,7 @@ int64 atomic_increment_wrap_relaxed(volatile int64* value, int64 threshold) NO_E
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -279,7 +279,7 @@ int64 atomic_increment_wrap_acquire(volatile int64* value, int64 threshold) NO_E
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -306,7 +306,7 @@ int64 atomic_increment_wrap_release(volatile int64* value, int64 threshold) NO_E
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -333,7 +333,7 @@ int64 atomic_increment_wrap_acquire_release(volatile int64* value, int64 thresho
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -360,7 +360,7 @@ uint64 atomic_increment_wrap_relaxed(volatile uint64* value, uint64 threshold) N
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -387,7 +387,7 @@ uint64 atomic_increment_wrap_acquire(volatile uint64* value, uint64 threshold) N
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -414,7 +414,7 @@ uint64 atomic_increment_wrap_release(volatile uint64* value, uint64 threshold) N
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value
@@ -441,7 +441,7 @@ uint64 atomic_increment_wrap_acquire_release(volatile uint64* value, uint64 thre
         );
 
         if (prev == old) {
-            return old;
+            return next;
         }
 
         // failed, retry with new observed value

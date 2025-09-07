@@ -33,28 +33,37 @@ struct Queue {
     uint32 element_size;
 };
 
-inline
+typedef void* (*QueueFunction)(void* data);
+
+// General purpose event for event queues
+struct QueueEvent {
+    int16 type;
+    QueueFunction callback;
+    byte data[256];
+};
+
+FORCE_INLINE
 void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, uint32 alignment = 64)
 {
-    element_size = ROUND_TO_NEAREST(element_size, alignment);
+    element_size = OMS_ALIGN_UP(element_size, alignment);
 
     ring_alloc((RingMemory *) queue, element_count * element_size, alignment);
     queue->element_size = element_size;
 }
 
-inline
+FORCE_INLINE
 void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 element_size, uint32 alignment = 64)
 {
-    element_size = ROUND_TO_NEAREST(element_size, alignment);
+    element_size = OMS_ALIGN_UP(element_size, alignment);
 
     ring_init((RingMemory *) queue, buf, element_count * element_size, alignment);
     queue->element_size = element_size;
 }
 
-inline
+FORCE_INLINE
 void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_size, uint32 alignment = 64)
 {
-    element_size = ROUND_TO_NEAREST(element_size, alignment);
+    element_size = OMS_ALIGN_UP(element_size, alignment);
 
     ring_init((RingMemory *) queue, buf, element_count * element_size, alignment);
     queue->element_size = element_size;
@@ -158,13 +167,13 @@ byte* queue_enqueue_safe_atomic(Queue* queue, const byte* data) NO_EXCEPT
     return mem;
 }
 
-inline
+FORCE_INLINE
 byte* queue_enqueue_start(Queue* queue) NO_EXCEPT
 {
     return ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 
-inline
+FORCE_INLINE
 void queue_enqueue_end(Queue* queue) NO_EXCEPT
 {
     ring_move_pointer((RingMemory *) queue, &queue->head, queue->element_size, queue->alignment);

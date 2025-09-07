@@ -32,7 +32,7 @@ void template_find(const char* path, va_list args) {
     }
 
     *total_file_size += file_size(path);
-    str_copy_short(paths[*path_count], path, 256);
+    str_copy(paths[*path_count], path, 256);
     ++(*path_count);
 }
 

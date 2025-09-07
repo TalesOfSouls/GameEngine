@@ -9,7 +9,7 @@
 #ifndef COMS_STDLIB_SIMD_H
 #define COMS_STDLIB_SIMD_H
 
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 
 // Adjusts the step size based on the memory alignment
 inline

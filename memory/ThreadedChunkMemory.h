@@ -24,11 +24,11 @@ struct ThreadedChunkMemory {
 
     // length = count
     // free describes which locations are used and which are free
-    alignas(8) atomic_64 uint64* free;
+    atomic_64 uint64* free;
 
     // Chunk implementation ends here
     // The completeness indicates if the data is completely written to
-    alignas(8) atomic_64 uint64* completeness;
+    atomic_64 uint64* completeness;
 
     mutex lock;
 };
@@ -42,7 +42,7 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
     LOG_1("[INFO] Allocating ChunkMemory");
 
-    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
+    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
         + sizeof(uint64) * CEIL_DIV(count, 64) // free
@@ -60,8 +60,8 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->completeness = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->completeness = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
 
     memset(buf->memory, 0, buf->size);
     mutex_init(&buf->lock, NULL);
@@ -75,7 +75,7 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, BufferMemory* data, uint32 count,
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
 
-    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
+    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
         + sizeof(uint64) * CEIL_DIV(count, 64) // free
@@ -93,8 +93,8 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, BufferMemory* data, uint32 count,
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->completeness = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->completeness = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
 
     mutex_init(&buf->lock, NULL);
 
@@ -107,7 +107,7 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, byte* data, uint32 count, uint32 
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
 
-    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
+    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
         + sizeof(uint64) * CEIL_DIV(count, 64) // free
@@ -126,8 +126,8 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, byte* data, uint32 count, uint32 
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->completeness = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->completeness = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
 
     mutex_init(&buf->lock, NULL);
 
@@ -158,19 +158,19 @@ byte* thrd_chunk_get_element(ThreadedChunkMemory* buf, uint32 element, bool zero
 inline
 void thrd_chunk_set_unset(uint32 element, atomic_64 uint64* state) NO_EXCEPT {
     int32 free_index = element / 64;
-    int32 bit_index = element & 63;
+    int32 bit_index = MODULO_2(element, 64);
 
     uint64 mask = ~(1ULL << bit_index);
     atomic_fetch_and_release(&state[free_index], mask);
 }
 
-int32 thrd_chunk_get_unset(atomic_64 uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT {
+int32 thrd_chunk_reserve_one(atomic_64 uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT {
     if ((uint32) start_index >= state_count) {
         start_index = 0;
     }
 
     uint32 free_index = start_index / 64;
-    uint32 bit_index = start_index & 63;
+    uint32 bit_index = MODULO_2(start_index, 64);
 
     // Check standard simple solution
     uint64 current = atomic_get_acquire(&state[free_index]);
@@ -191,6 +191,8 @@ int32 thrd_chunk_get_unset(atomic_64 uint64* state, uint32 state_count, int32 st
             while (j < 3 && (bit_index = compiler_find_first_bit_r2l(inverted)) >= 0) {
                 uint32 id = free_index * 64 + bit_index;
                 if (id >= state_count) {
+                    free_index = 0;
+
                     break;
                 }
 
@@ -202,11 +204,11 @@ int32 thrd_chunk_get_unset(atomic_64 uint64* state, uint32 state_count, int32 st
                 inverted = ~new_free;
                 ++j;
             }
-        }
-
-        ++free_index;
-        if (free_index * 64 >= state_count) {
-            free_index = 0;
+        } else {
+            ++free_index;
+            if (free_index * 64 >= state_count) {
+                free_index = 0;
+            }
         }
     }
 
@@ -226,7 +228,7 @@ int32 thrd_chunk_reserve(ThreadedChunkMemory* buf, uint32 elements = 1) NO_EXCEP
 inline
 void thrd_chunk_free_element(ThreadedChunkMemory* buf, uint64 free_index, int32 bit_index) NO_EXCEPT
 {
-    alignas(8) atomic_64 uint64* target = &buf->free[free_index];
+    atomic_64 uint64* target = &buf->free[free_index];
     uint64 old_value, new_value;
 
     do {
@@ -246,7 +248,7 @@ inline
 void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 element_count = 1) NO_EXCEPT
 {
     uint64 free_index = element / 64;
-    uint32 bit_index = element & 63;
+    uint32 bit_index = MODULO_2(element, 64);
 
     if (element == 1) {
         thrd_chunk_free_element(buf, free_index, bit_index);
@@ -261,7 +263,7 @@ void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 e
         uint64 mask = ((1ULL << bits_in_current_block) - 1) << bit_index;
 
         uint64 old_value, new_value;
-        alignas(8) atomic_64 uint64* target = &buf->free[free_index];
+        atomic_64 uint64* target = &buf->free[free_index];
 
         do {
             old_value = atomic_get_relaxed(target);

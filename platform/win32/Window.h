@@ -11,26 +11,25 @@
 
 #include <windows.h>
 #include "../../stdlib/Types.h"
+#include "../../compiler/CompilerUtils.h"
 #include "../../system/Window.h"
 
 typedef HINSTANCE WindowInstance;
 
 struct Window {
-    // @question Should we implement a virtual width/height (e.g. I think apple has that where physical resolution < virtual resolution?!)
+    // @question Should we implement a virtual width/height
+    //  e.g. I think apple has that where physical resolution < virtual resolution?!
     uint16 width;
     uint16 height;
 
     uint16 x;
     uint16 y;
 
-    // 1. position
-    // 2. focus
-    // 3. size
-    // 4. fullscreen
+    // WindowStateChanges
     byte state_changes;
-    // @todo replace bools with states
-    bool is_focused;
-    bool is_fullscreen;
+
+    // WindowsStateFlag
+    byte state_flag;
 
     HWND hwnd;
     HDC hdc;
@@ -40,13 +39,13 @@ struct Window {
     // The problem is the main program doesn't know which gpuapi we are using, so maybe a void pointer?
     HGLRC openGLRC;
 
-    // @question why do we need the name?
-    char name[32];
     WindowState state_old;
+
+    const char* name;
 };
 
-inline
-void window_backup_state(Window* __restrict w) NO_EXCEPT
+FORCE_INLINE
+void window_backup_state(Window* w) NO_EXCEPT
 {
     w->state_old.style = GetWindowLongPtr(w->hwnd, GWL_STYLE);
     w->state_old.width = w->width;
@@ -55,8 +54,8 @@ void window_backup_state(Window* __restrict w) NO_EXCEPT
     w->state_old.y = w->y;
 }
 
-inline
-void window_restore_state(Window* __restrict w) NO_EXCEPT
+FORCE_INLINE
+void window_restore_state(Window* w) NO_EXCEPT
 {
     w->width = w->state_old.width;
     w->height = w->state_old.height;

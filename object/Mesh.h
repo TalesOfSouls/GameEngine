@@ -530,7 +530,7 @@ int32 mesh_from_data(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) mesh->data,
         (int32 *) mesh->data,
-        offset / 4, // everything is 4 bytes -> easy to swap
+        compiler_div_pow2(offset, 4), // everything is 4 bytes -> easy to swap
         steps
     );
 
@@ -621,7 +621,7 @@ int32 mesh_to_data(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) data,
         (int32 *) data,
-        size / 4, // everything in here is 4 bytes -> easy to swap
+        compiler_div_pow2(size, 4), // everything in here is 4 bytes -> easy to swap
         steps
     );
 

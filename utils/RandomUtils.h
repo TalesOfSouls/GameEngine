@@ -11,8 +11,11 @@
 
 #include <stdlib.h>
 #include "../stdlib/Types.h"
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 #include "../utils/TimeUtils.h"
+
+thread_local uint32 _rng_state_32;
+thread_local uint64 _rng_state_64;
 
 // PERFORMANCE: Approx. 4x faster than rand()
 inline
@@ -47,6 +50,7 @@ uint64 rand_fast(uint64* state) {
     return x;
 }
 
+FORCE_INLINE
 uint32 rand_fast(uint32* state, int32 max) {
     return (uint32) (((uint64) rand_fast(state) * max) >> 32);
 }
@@ -93,7 +97,7 @@ int32 random_weighted_index(const int32* arr, int32 array_count)
 // WARNING: The allowed_chars string length needs to be of power 2 for performance reasons
 //      Supporting any allowed_chars length is trivial but usually we prefer the performance improvement
 void random_string(const char* allowed_chars, uint32 allowed_length, char* out, int32 out_length) {
-    ASSERT_TRUE(allowed_length & 2 == 0);
+    ASSERT_TRUE((allowed_length & 2) == 0);
 
     const uint32 mask = allowed_length - 1;
 
@@ -104,7 +108,7 @@ void random_string(const char* allowed_chars, uint32 allowed_length, char* out, 
         uint64 rand_val = rand_fast(&x);
 
         for (int32 j = 0; j < 8 && i < out_length; ++j, ++i) {
-            out[i] = allowed_chars[((rand_val >> (8 * j)) & 0xFF) & allowed_length];
+            out[i] = allowed_chars[((rand_val >> (8 * j)) & 0xFF) & mask];
         }
     }
 

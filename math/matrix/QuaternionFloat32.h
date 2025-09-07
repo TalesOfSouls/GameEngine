@@ -10,7 +10,7 @@
 #ifndef COMS_MATH_MATRIX_QUATERNION_FLOAT32_H
 #define COMS_MATH_MATRIX_QUATERNION_FLOAT32_H
 
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
 #include "MatrixFloat32.h"
 
 #if ARM

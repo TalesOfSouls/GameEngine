@@ -24,7 +24,7 @@
 #include <vector>
 #include "../../stdlib/Types.h"
 #include "../../utils/StringUtils.h"
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
 #include "../../object/Texture.h"
 #include "../../image/Image.cpp"
 #include "../../log/Log.h"

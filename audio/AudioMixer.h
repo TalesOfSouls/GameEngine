@@ -71,7 +71,7 @@ enum AudioMixerState {
 struct AudioMixer {
     ChunkMemory audio_instances;
     AudioMixerState state_old;
-    alignas(8) atomic_64 int32 state_new;
+    atomic_32 int32 state_new;
 
     uint64 effect;
 
@@ -126,7 +126,7 @@ bool audio_mixer_is_active(AudioMixer* mixer) {
 
 void audio_mixer_play(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL)
 {
-    int32 index = chunk_reserve(&mixer->audio_instances, 1);
+    int32 index = chunk_reserve_one(&mixer->audio_instances);
     if (index < 0) {
         return;
     }
@@ -145,7 +145,7 @@ void audio_mixer_play(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* 
 
 void audio_mixer_play(AudioMixer* mixer, AudioInstance* settings)
 {
-    int32 index = chunk_reserve(&mixer->audio_instances, 1);
+    int32 index = chunk_reserve_one(&mixer->audio_instances);
     if (index < 0) {
         return;
     }
@@ -203,7 +203,7 @@ int32 apply_speed(int16* buffer, uint32 buffer_size, f32 speed) {
     }
 
     // Has to be multiple of 2 to ensure stereo is implemented correctly
-    uint32 new_size = ROUND_TO_NEAREST((uint32) (buffer_size / speed), 2);
+    uint32 new_size = OMS_ALIGN_UP((uint32) (buffer_size / speed), 2);
 
     // Speed up
     if (speed > 1.0f) {

@@ -40,7 +40,7 @@ typedef HRESULT WINAPI IAudioClient_Stop_t(IAudioClient*);
 typedef HRESULT WINAPI IAudioClient_GetService_t(IAudioClient*, REFIID, void**);
 // END: Dynamically load DirectSound
 
-void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
+void audio_load(HWND hwnd, AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) {
     LOG_1("Load audio API WASAPI");
 
     HMODULE ole32 = LoadLibraryExA((LPCSTR) "ole32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -141,7 +141,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
 }
 
 inline
-void audio_play(AudioSetting* setting, WasapiSetting* api_setting) {
+void audio_play(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) {
     ASSERT_TRUE(api_setting->audio_handle);
     /*if (!api_setting->audio_handle) {
         return;
@@ -151,7 +151,7 @@ void audio_play(AudioSetting* setting, WasapiSetting* api_setting) {
 }
 
 inline
-void audio_stop(AudioSetting* setting, WasapiSetting* api_setting) {
+void audio_stop(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) {
     ASSERT_TRUE(api_setting->audio_handle);
     /*if (!api_setting->audio_handle) {
         return;
@@ -161,7 +161,7 @@ void audio_stop(AudioSetting* setting, WasapiSetting* api_setting) {
 }
 
 inline
-void audio_free(AudioSetting* setting, WasapiSetting* api_setting)
+void audio_free(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting)
 {
     if (!api_setting->render_client) {
         api_setting->render_client->Release();
@@ -173,7 +173,7 @@ void audio_free(AudioSetting* setting, WasapiSetting* api_setting)
 }
 
 inline
-uint32 audio_buffer_fillable(const AudioSetting* setting, const WasapiSetting* api_setting)
+uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const WasapiSetting* __restrict api_setting)
 {
     PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
     if (!api_setting->audio_handle) {
@@ -190,7 +190,7 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const WasapiSetting* a
 }
 
 inline
-void audio_play_buffer(AudioSetting* setting, WasapiSetting* api_setting) {
+void audio_play_buffer(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) {
     PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
     if (!api_setting->audio_handle || setting->sample_buffer_size == 0) {
         return;

@@ -9,7 +9,7 @@
 #ifndef COMS_COMPILER_MSVC_COMPILER_UTILS_H
 #define COMS_COMPILER_MSVC_COMPILER_UTILS_H
 
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
 #include "../../stdlib/Types.h"
 #include <basetsd.h>
 #include <intrin.h>
@@ -19,8 +19,6 @@
 #define UNPACKED_STRUCT __pragma(pack(pop))
 
 #define EXPORT_LIB extern "C" __declspec(dllexport)
-
-typedef SSIZE_T ssize_t;
 
 #if DEBUG
     #define UNREACHABLE() ASSERT_TRUE(false); __assume(0)
@@ -45,7 +43,7 @@ typedef SSIZE_T ssize_t;
 
 FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
-    ASSERT_TRUE(mask);
+    ASSERT_STRICT(mask);
 
     unsigned long index;
     return _BitScanForward64(&index, mask) ? index : -1;
@@ -53,7 +51,7 @@ int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
 
 FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
-    ASSERT_TRUE(mask);
+    ASSERT_STRICT(mask);
 
     unsigned long index;
     return _BitScanForward(&index, mask) ? index : -1;
@@ -61,7 +59,7 @@ int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
 
 FORCE_INLINE
 int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
-    ASSERT_TRUE(mask);
+    ASSERT_STRICT(mask);
 
     unsigned long index;
     return _BitScanReverse64(&index, mask) ? index : -1;
@@ -69,7 +67,7 @@ int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
 
 FORCE_INLINE
 int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
-    ASSERT_TRUE(mask);
+    ASSERT_STRICT(mask);
 
     unsigned long index;
     return _BitScanReverse(&index, mask) ? index : -1;
@@ -82,6 +80,108 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_E
 
 #define compiler_is_bit_set_r2l(num, pos) _bittest(num, pos)
 #define compiler_is_bit_set_64_r2l(num, pos) _bittest64(num, pos)
+
+FORCE_INLINE
+uint32 compiler_div_pow2(uint32 a, uint32 b)
+{
+    unsigned long index;
+    _BitScanForward(&index, b);
+
+    return (uint32) (a >> index);
+}
+
+FORCE_INLINE
+size_t compiler_div_pow2(size_t a, size_t b)
+{
+    unsigned long index;
+    _BitScanForward64(&index, b);
+
+    return (size_t) (a >> index);
+}
+
+FORCE_INLINE
+uint16 compiler_div_pow2(uint16 a, uint16 b) {
+    unsigned long index = 0;
+    _BitScanForward(&index, (uint32) b);
+
+    return (uint16) (a >> index);
+}
+
+FORCE_INLINE
+size_t compiler_div_pow2(size_t a, uint32 b)
+{
+    unsigned long index;
+    _BitScanForward(&index, b);
+
+    return (size_t) (a >> index);
+}
+
+FORCE_INLINE
+uint16 compiler_div_pow2(uint16 a, uint32 b) {
+    unsigned long index = 0;
+    _BitScanForward(&index, b);
+
+    return (uint16) (a >> index);
+}
+
+FORCE_INLINE
+uint32 compiler_div_pow2(uint32 a, int32 b)
+{
+    unsigned long index;
+    _BitScanForward(&index, b);
+
+    return (uint32) (a >> index);
+}
+
+FORCE_INLINE
+int32 compiler_div_pow2(int32 a, int32 b)
+{
+    unsigned long index;
+    _BitScanForward(&index, b);
+
+    return (int32) (a >> index);
+}
+
+FORCE_INLINE
+uint16 compiler_div_pow2(uint16 a, int16 b) {
+    unsigned long index = 0;
+    _BitScanForward(&index, (uint32) b);
+
+    return (uint16) (a >> index);
+}
+
+FORCE_INLINE
+size_t compiler_div_pow2(size_t a, int32 b)
+{
+    unsigned long index;
+    _BitScanForward(&index, b);
+
+    return (size_t) (a >> index);
+}
+
+FORCE_INLINE
+uint16 compiler_div_pow2(uint16 a, int32 b) {
+    unsigned long index = 0;
+    _BitScanForward(&index, b);
+
+    return (uint16) (a >> index);
+}
+
+FORCE_INLINE
+byte compiler_div_pow2(byte a, int32 b) {
+    unsigned long index = 0;
+    _BitScanForward(&index, b);
+
+    return (byte) (a >> index);
+}
+
+FORCE_INLINE
+byte compiler_div_pow2(byte a, uint32 b) {
+    unsigned long index = 0;
+    _BitScanForward(&index, b);
+
+    return (byte) (a >> index);
+}
 
 FORCE_INLINE
 void compiler_memcpy_unaligned(void* __restrict dst, const void* __restrict src, size_t size)
@@ -97,12 +197,12 @@ void compiler_memcpy_unaligned(void* __restrict dst, const void* __restrict src,
 FORCE_INLINE
 void compiler_memcpy_aligned(void* __restrict dst, const void* __restrict src, size_t size)
 {
-    ASSERT_TRUE((size & 7) == 0);
+    ASSERT_STRICT((size & 7) == 0);
 
     #if ARM
         memcpy(dst, src, size);
     #else
-        __movsq((unsigned char*) dst, (const unsigned char*) src, size / 8);
+        __movsq((unsigned long long*) dst, (const unsigned long long*) src, compiler_div_pow2(size, 8));
     #endif
 }
 
@@ -112,21 +212,24 @@ void compiler_memset_unaligned(void* dst, int value, size_t size) {
     #if ARM
         memcpy(dst, src, size);
     #else
-        __stosb((unsigned char*)dst, (unsigned char)value, size);
+        __stosb((unsigned char*) dst, (unsigned char) value, size);
     #endif
 }
 
 // 8 byte alignment required and size needs to be multiple of 8
 FORCE_INLINE
 void compiler_memset_aligned(void* dst, int value, size_t size) {
-    ASSERT_TRUE((size & 7) == 0);
+    ASSERT_STRICT((size & 7) == 0);
 
     #if ARM
         memcpy(dst, src, size);
     #else
-        __stosq((unsigned char*)dst, (unsigned char)value, size / 8);
+        __stosq((unsigned __int64*) dst, (unsigned __int64) value, compiler_div_pow2(size, 8));
     #endif
 }
 
+#define SWAP_ENDIAN_16(val) _byteswap_ushort((val))
+#define SWAP_ENDIAN_32(val) _byteswap_ulong((val))
+#define SWAP_ENDIAN_64(val) _byteswap_uint64((val))
 
 #endif

@@ -119,7 +119,7 @@ void html_template_variable_set(const char* name, HtmlTemplateValue value, HtmlT
 
     // If the variable doesn't exist, add it to the symbol table
     if (symbol_table_size < MAX_VARIABLES) {
-        str_copy_short(symbol_table[symbol_table_size].name, name);
+        str_copy(symbol_table[symbol_table_size].name, name);
         switch (value.type) {
             case VALUE_BOOL: {
                 symbol_table[symbol_table_size].type = VAR_BOOL;

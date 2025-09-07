@@ -10,7 +10,7 @@
 #define COMS_PLATFORM_WIN32_INPUT_CONNECTION_TYPE_H
 
 // Important, since some connection protocols differ between for example USB and Bluetooth (see Playstation DualSense)
-enum InputConnectionType {
+enum InputConnectionType : byte {
     INPUT_CONNECTION_TYPE_NONE,
     INPUT_CONNECTION_TYPE_USB,
     INPUT_CONNECTION_TYPE_BLUETOOTH,

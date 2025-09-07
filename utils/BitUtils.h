@@ -68,7 +68,7 @@ inline
 void bits_walk(BitWalk* stream, uint32 bits_to_walk) NO_EXCEPT
 {
     stream->bit_pos += bits_to_walk;
-    stream->pos += stream->bit_pos / 8;
+    stream->pos += compiler_div_pow2(stream->bit_pos, 8);
     stream->bit_pos %= 8;
 }
 

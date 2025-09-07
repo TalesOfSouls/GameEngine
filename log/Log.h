@@ -264,14 +264,14 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
     msg->newline = '\n';
 
     char temp_format[MAX_LOG_LENGTH];
-    str_copy_short(msg->message, format);
+    str_copy(msg->message, format);
 
     for (int32 i = 0; i < LOG_DATA_ARRAY; ++i) {
         if (data.data[i].type == LOG_DATA_VOID || data.data[i].type == LOG_DATA_NONE) {
             break;
         }
 
-        str_copy_short(temp_format, msg->message);
+        str_copy(temp_format, msg->message);
 
         switch (data.data[i].type) {
             case LOG_DATA_NONE: {

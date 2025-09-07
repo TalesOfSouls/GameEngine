@@ -15,6 +15,7 @@
 #include "../../stdlib/Types.h"
 #include "../../log/PerformanceProfiler.h"
 
+inline
 void usleep(uint64 microseconds)
 {
     PROFILE(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
@@ -46,6 +47,24 @@ uint64 system_time()
 
     return ((uint64) (largeInt.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
 }
+
+inline
+uint64 system_time_utc()
+{
+    SYSTEMTIME systemTime;
+    FILETIME fileTime;
+    ULARGE_INTEGER largeInt;
+
+    GetSystemTime(&systemTime);
+    SystemTimeToFileTime(&systemTime, &fileTime);
+
+    // Convert FILETIME to a 64-bit integer
+    largeInt.LowPart = fileTime.dwLowDateTime;
+    largeInt.HighPart = fileTime.dwHighDateTime;
+
+    return ((uint64) (largeInt.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+}
+
 
 // Used as initializer for 64bit random number generators instead of time()
 inline

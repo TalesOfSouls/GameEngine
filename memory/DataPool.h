@@ -45,7 +45,7 @@ void pool_alloc(DataPool* buf, uint32 count, uint32 chunk_size, int32 alignment 
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
     LOG_1("Allocating DataPool");
 
-    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
+    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
         + sizeof(uint64) * CEIL_DIV(count, 64) // free
@@ -63,8 +63,8 @@ void pool_alloc(DataPool* buf, uint32 count, uint32 chunk_size, int32 alignment 
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->used = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->free + count), 6alignment4);
+    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->used = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), 6alignment4);
 
     memset(buf->memory, 0, buf->size);
 
@@ -77,7 +77,7 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 count, uint32 chunk_siz
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
 
-    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
+    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
         + sizeof(uint64) * CEIL_DIV(count, 64) // free
@@ -95,8 +95,8 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 count, uint32 chunk_siz
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->used = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->used = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -107,7 +107,7 @@ void pool_init(DataPool* buf, byte* data, uint32 count, uint32 chunk_size, int32
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
 
-    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
+    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
         + sizeof(uint64) * CEIL_DIV(count, 64) // free
@@ -126,8 +126,8 @@ void pool_init(DataPool* buf, byte* data, uint32 count, uint32 chunk_size, int32
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->used = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->used = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -152,9 +152,9 @@ byte* pool_get_element(DataPool* buf, uint64 element, bool zeroed = false) NO_EX
 
 // Find a unused/unlocked element in the data pool
 FORCE_INLINE
-int32 pool_get_unused(DataPool* buf, int32 start_index = 0) NO_EXCEPT
+int32 pool_reserve_unused(DataPool* buf, int32 start_index = 0) NO_EXCEPT
 {
-    return chunk_get_unset(buf->used, buf->count, start_index);
+    return chunk_reserve_one(buf->used, buf->count, start_index);
 }
 
 // Release an element to be used by someone else
@@ -162,7 +162,7 @@ FORCE_INLINE
 void pool_release(DataPool* buf, int32 element) NO_EXCEPT
 {
     uint32 free_index = element / 64;
-    uint32 bit_index = element & 63;
+    uint32 bit_index = MODULO_2(element, 64);
     buf->used[free_index] |= (1ULL << bit_index);
 }
 

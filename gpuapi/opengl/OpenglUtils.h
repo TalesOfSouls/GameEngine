@@ -11,7 +11,7 @@
 
 #include "../../stdlib/Types.h"
 #include "../../memory/RingMemory.h"
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
 #include "../../object/Texture.h"
 #include "../../image/Image.cpp"
 #include "../../utils/StringUtils.h"

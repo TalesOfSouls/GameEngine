@@ -22,20 +22,24 @@ struct ThreadPool {
     // This is not a threaded queue since we want to handle the mutex in here, not in the queue for finer control
     Queue work_queue;
 
+    // @performance Could it make more sense to use a spinlock for the thread pool?
+    // Is probably overkill if we cannot really utilize it a lot -> we would have a lot of spinning
     mutex work_mutex;
     mutex_cond work_cond;
     mutex_cond working_cond;
 
     // By design the working_cnt is <= thread_cnt
-    alignas(4) atomic_32 int32 working_cnt;
-    alignas(4) atomic_32 int32 thread_cnt;
+    atomic_32 int32 working_cnt;
+    atomic_32 int32 thread_cnt;
 
     int32 size;
     int32 element_size;
 
+    // @question Why are we using atomics if we are using mutex at the same time?
+    //  I think because the mutex is actually intended for the queue.
     // 1 = waiting for run, 2 = running, 0 = completed, -1 = canceling
-    alignas(4) atomic_32 int32 state;
-    alignas(4) atomic_32 uint32 id_counter;
+    atomic_32 int32 state;
+    atomic_32 uint32 id_counter;
 
     DebugContainer* debug_container;
 };
@@ -54,8 +58,12 @@ THREAD_RETURN thread_pool_worker(void* arg)
         _dmc = pool->debug_container->dmc;
         _perf_stats = pool->debug_container->perf_stats;
         _perf_active = pool->debug_container->perf_active;
+        _stats_counter_active = pool->debug_container->stats_counter_active;
         _stats_counter = pool->debug_container->stats_counter;
+
+        // @question Why do we even need to to this?
         *_perf_active = *pool->debug_container->perf_active;
+        *_stats_counter_active = *pool->debug_container->stats_counter_active;
     }
 
     // @bug Why doesn't this work? There must be some threading issue
@@ -161,7 +169,7 @@ void thread_pool_alloc(
         coms_pthread_detach(thread);
     }
 
-    LOG_2("[INFO] %d threads running", {LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]});
+    LOG_2("[INFO] %d threads running", {LOG_DATA_INT64, (void *) &_stats_counter->stats[atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD]});
 }
 
 void thread_pool_create(
@@ -199,7 +207,7 @@ void thread_pool_create(
         coms_pthread_detach(thread);
     }
 
-    LOG_2("[INFO] %d threads running", {LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]});
+    LOG_2("[INFO] %d threads running", {LOG_DATA_INT64, (void *) &_stats_counter->stats[atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD]});
 }
 
 void thread_pool_wait(ThreadPool* pool)
@@ -252,11 +260,14 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
     // @performance Do we really want to do this under all circumstances?
     //  There are many situations where we don't need an id
     // +1 because otherwise the very first job would be id = 0 which is not a valid id
+    // @question Why do I even need an atomic if we are in a mutex locked region?
     temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1) + 1;
 
     coms_pthread_cond_broadcast(&pool->work_cond);
     mutex_unlock(&pool->work_mutex);
 
+    // @bug Do we really want to return the pointer? it might be overwritten at some point
+    // How do we know it's the original job or a new/overwritten one?
     return temp_job;
 }
 

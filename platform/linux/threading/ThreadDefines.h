@@ -21,7 +21,7 @@
 typedef THREAD_RETURN (*ThreadJobFunc)(void*);
 
 struct mutex {
-    alignas(4) atomic_32 int32 futex;
+    atomic_32 int32 futex;
 };
 
 typedef void mutexattr_t;
@@ -29,11 +29,11 @@ typedef void coms_pthread_condattr_t;
 typedef void coms_pthread_rwlockattr_t;
 
 struct mutex_cond {
-    alignas(4) atomic_32 int32 futex;
+    atomic_32 int32 futex;
 } ;
 
 struct coms_pthread_rwlock_t {
-    alignas(4) atomic_32 int32 futex;
+    atomic_32 int32 futex;
     bool exclusive;
 };
 

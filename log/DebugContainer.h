@@ -25,11 +25,11 @@ struct DebugContainer {
 
     LogMemory* log_memory;
 
-    alignas(8) atomic_64 int64* stats_counter;
-
+    StatCounterHistory* stats_counter;
     PerformanceStatHistory* perf_stats;
     PerformanceProfiler** perf_current_scope;
     volatile int32* perf_active;
+    volatile int32* stats_counter_active;
     int32 perf_profile_history_count;
     PerformanceProfileThread* perf_profile_history;
 };

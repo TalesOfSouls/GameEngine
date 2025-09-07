@@ -10,7 +10,7 @@
 #define COMS_UTILS_MATH_UTILS_H
 
 #include "../stdlib/Types.h"
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 
 // WARNING: Don't use any of these functions yet. They are too imprecise and too slow
 

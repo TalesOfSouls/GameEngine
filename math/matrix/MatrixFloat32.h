@@ -11,7 +11,7 @@
 
 #include <string.h>
 #include <math.h>
-#include "../../utils/TestUtils.h"
+#include "../../utils/Assert.h"
 #include "../../architecture/Intrinsics.h"
 
 // INFO: I thought we could remove some of the functions.
@@ -22,7 +22,7 @@
 //      However, on MSVC this is not the case and the pointer version has more and slower assembly code vs. the
 //      pass-by-value function
 
-inline
+FORCE_INLINE
 void vec2_normalize(f32* __restrict x, f32* __restrict y) NO_EXCEPT
 {
     f32 d = intrin_rsqrt_f32((*x) * (*x) + (*y) * (*y));
@@ -31,93 +31,93 @@ void vec2_normalize(f32* __restrict x, f32* __restrict y) NO_EXCEPT
     *y *= d;
 }
 
-inline
+FORCE_INLINE
 void vec2_add(v2_f32* __restrict vec, const v2_f32* a, const v2_f32* b) NO_EXCEPT
 {
     vec->x = a->x + b->x;
     vec->y = a->y + b->y;
 }
 
-inline
+FORCE_INLINE
 void vec2_add(v2_f32* __restrict vec, const v2_f32* b) NO_EXCEPT
 {
     vec->x += b->x;
     vec->y += b->y;
 }
 
-inline
+FORCE_INLINE
 void vec2_sub(v2_f32* __restrict vec, const v2_f32* __restrict a, const v2_f32* __restrict b) NO_EXCEPT
 {
     vec->x = a->x - b->x;
     vec->y = a->y - b->y;
 }
 
-inline
+FORCE_INLINE
 void vec2_sub(v2_f32* __restrict vec, const v2_f32* __restrict b) NO_EXCEPT
 {
     vec->x -= b->x;
     vec->y -= b->y;
 }
 
-inline
+FORCE_INLINE
 void vec2_mul(v2_f32* __restrict vec, const v2_f32* __restrict a, f32 s) NO_EXCEPT
 {
     vec->x = a->x * s;
     vec->y = a->y * s;
 }
 
-inline
+FORCE_INLINE
 void vec2_mul(v2_f32* vec, f32 s) NO_EXCEPT
 {
     vec->x *= s;
     vec->y *= s;
 }
 
-inline
+FORCE_INLINE
 f32 vec2_mul(const v2_f32* a, const v2_f32* b) NO_EXCEPT
 {
     return a->x * b->x + a->y * b->y;
 }
 
-inline
+FORCE_INLINE
 void vec2_mul(v2_f32* __restrict vec, const v2_f32* a, const v2_f32* b) NO_EXCEPT
 {
     vec->x = a->x * b->x;
     vec->y = a->y * b->y;
 }
 
-inline
+FORCE_INLINE
 void vec2_mul(v2_f32* vec, const v2_f32* b) NO_EXCEPT
 {
     vec->x *= b->x;
     vec->y *= b->y;
 }
 
-inline
+FORCE_INLINE
 f32 vec2_cross(const v2_f32* a, const v2_f32* b) NO_EXCEPT
 {
     return a->x * b->y - a->y * b->x;
 }
 
-inline
+FORCE_INLINE
 f32 vec2_dot(const v2_f32* a, const v2_f32* b) NO_EXCEPT
 {
     return a->x * b->x + a->y * b->y;
 }
 
-inline
+FORCE_INLINE
 f32 vec3_length(f32 x, f32 y, f32 z) NO_EXCEPT
 {
     return sqrtf(x * x + y * y + z * z);
 }
 
-inline
+FORCE_INLINE
 f32 vec3_length(v3_f32* vec) NO_EXCEPT
 {
     return sqrtf(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
 }
 
-inline
+FORCE_INLINE
 void vec3_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z) NO_EXCEPT
 {
     f32 d = intrin_rsqrt_f32((*x) * (*x) + (*y) * (*y) + (*z) * (*z));
@@ -127,7 +127,7 @@ void vec3_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z) NO_
     *z *= d;
 }
 
-inline
+FORCE_INLINE
 void vec3_normalize(v3_f32* vec) NO_EXCEPT
 {
     f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
@@ -137,7 +137,7 @@ void vec3_normalize(v3_f32* vec) NO_EXCEPT
     vec->z *= d;
 }
 
-inline
+FORCE_INLINE
 void vec3_add(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) NO_EXCEPT
 {
     vec->x = a->x + b->x;
@@ -145,7 +145,7 @@ void vec3_add(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) NO_EXCEP
     vec->z = a->z + b->z;
 }
 
-inline
+FORCE_INLINE
 void vec3_add(v3_f32* __restrict vec, const v3_f32* b) NO_EXCEPT
 {
     vec->x += b->x;
@@ -153,7 +153,7 @@ void vec3_add(v3_f32* __restrict vec, const v3_f32* b) NO_EXCEPT
     vec->z += b->z;
 }
 
-inline
+FORCE_INLINE
 void vec3_sub(v3_f32* __restrict vec, const v3_f32* __restrict a, const v3_f32* __restrict b) NO_EXCEPT
 {
     vec->x = a->x - b->x;
@@ -161,7 +161,7 @@ void vec3_sub(v3_f32* __restrict vec, const v3_f32* __restrict a, const v3_f32* 
     vec->z = a->z - b->z;
 }
 
-inline
+FORCE_INLINE
 void vec3_sub(v3_f32* __restrict vec, const v3_f32* __restrict b) NO_EXCEPT
 {
     vec->x -= b->x;
@@ -169,7 +169,7 @@ void vec3_sub(v3_f32* __restrict vec, const v3_f32* __restrict b) NO_EXCEPT
     vec->z -= b->z;
 }
 
-inline
+FORCE_INLINE
 void vec3_mul(v3_f32* __restrict vec, const v3_f32* __restrict a, f32 s) NO_EXCEPT
 {
     vec->x = a->x * s;
@@ -177,7 +177,7 @@ void vec3_mul(v3_f32* __restrict vec, const v3_f32* __restrict a, f32 s) NO_EXCE
     vec->z = a->z * s;
 }
 
-inline
+FORCE_INLINE
 void vec3_mul(v3_f32* vec, f32 s) NO_EXCEPT
 {
     vec->x *= s;
@@ -185,13 +185,13 @@ void vec3_mul(v3_f32* vec, f32 s) NO_EXCEPT
     vec->z *= s;
 }
 
-inline
+FORCE_INLINE
 f32 vec3_mul(const v3_f32* a, const v3_f32* b) NO_EXCEPT
 {
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
-inline
+FORCE_INLINE
 void vec3_mul(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) NO_EXCEPT
 {
     vec->x = a->x * b->x;
@@ -199,7 +199,7 @@ void vec3_mul(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) NO_EXCEP
     vec->z = a->z * b->z;
 }
 
-inline
+FORCE_INLINE
 void vec3_mul(v3_f32* vec, const v3_f32* b) NO_EXCEPT
 {
     vec->x *= b->x;
@@ -207,6 +207,7 @@ void vec3_mul(v3_f32* vec, const v3_f32* b) NO_EXCEPT
     vec->z *= b->z;
 }
 
+FORCE_INLINE
 void vec3_cross(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) NO_EXCEPT
 {
     vec->x = a->y * b->z - a->z * b->y;
@@ -214,12 +215,13 @@ void vec3_cross(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) NO_EXC
     vec->z = a->x * b->y - a->y * b->x;
 }
 
-inline
+FORCE_INLINE
 f32 vec3_dot(const v3_f32* a, const v3_f32* b) NO_EXCEPT
 {
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
+FORCE_INLINE
 void vec4_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z, f32* __restrict w) NO_EXCEPT
 {
     f32 d = intrin_rsqrt_f32((*x) * (*x) + (*y) * (*y) + (*z) * (*z) + (*w) * (*w));
@@ -230,7 +232,7 @@ void vec4_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z, f32
     *w *= d;
 }
 
-inline
+FORCE_INLINE
 void vec4_add(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) NO_EXCEPT
 {
     vec->x = a->x + b->x;
@@ -239,7 +241,7 @@ void vec4_add(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) NO_EXCEP
     vec->w = a->w + b->w;
 }
 
-inline
+FORCE_INLINE
 void vec4_add(v4_f32* __restrict vec, const v4_f32* b) NO_EXCEPT
 {
     vec->x += b->x;
@@ -248,7 +250,7 @@ void vec4_add(v4_f32* __restrict vec, const v4_f32* b) NO_EXCEPT
     vec->w += b->w;
 }
 
-inline
+FORCE_INLINE
 void vec4_sub(v4_f32* __restrict vec, const v4_f32* __restrict a, const v4_f32* __restrict b) NO_EXCEPT
 {
     vec->x = a->x - b->x;
@@ -257,7 +259,7 @@ void vec4_sub(v4_f32* __restrict vec, const v4_f32* __restrict a, const v4_f32* 
     vec->w = a->w - b->w;
 }
 
-inline
+FORCE_INLINE
 void vec4_sub(v4_f32* __restrict vec, const v4_f32* __restrict b) NO_EXCEPT
 {
     vec->x -= b->x;
@@ -266,7 +268,7 @@ void vec4_sub(v4_f32* __restrict vec, const v4_f32* __restrict b) NO_EXCEPT
     vec->w -= b->w;
 }
 
-inline
+FORCE_INLINE
 void vec4_mul(v4_f32* __restrict vec, const v4_f32* __restrict a, f32 s) NO_EXCEPT
 {
     vec->x = a->x * s;
@@ -275,7 +277,7 @@ void vec4_mul(v4_f32* __restrict vec, const v4_f32* __restrict a, f32 s) NO_EXCE
     vec->w = a->w * s;
 }
 
-inline
+FORCE_INLINE
 void vec4_mul(v4_f32* vec, f32 s) NO_EXCEPT
 {
     vec->x *= s;
@@ -284,13 +286,13 @@ void vec4_mul(v4_f32* vec, f32 s) NO_EXCEPT
     vec->w *= s;
 }
 
-inline
+FORCE_INLINE
 f32 vec4_mul(const v4_f32* a, const v4_f32* b) NO_EXCEPT
 {
     return a->x * b->x + a->y * b->y + a->z * b->z + a->w * b->w;
 }
 
-inline
+FORCE_INLINE
 void vec4_mul(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) NO_EXCEPT
 {
     vec->x = a->x * b->x;
@@ -299,7 +301,7 @@ void vec4_mul(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) NO_EXCEP
     vec->w = a->w * b->w;
 }
 
-inline
+FORCE_INLINE
 void vec4_mul(v4_f32* vec, const v4_f32* b) NO_EXCEPT
 {
     vec->x *= b->x;
@@ -308,13 +310,13 @@ void vec4_mul(v4_f32* vec, const v4_f32* b) NO_EXCEPT
     vec->w *= b->w;
 }
 
-inline
+FORCE_INLINE
 f32 vec4_dot(const v4_f32* a, const v4_f32* b) NO_EXCEPT
 {
     return a->x * b->x + a->y * b->y + a->z * b->z + a->w * b->w;
 }
 
-inline
+FORCE_INLINE
 void vec4_cross(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b, const v4_f32* c) NO_EXCEPT
 {
     vec->x = a->y * (b->z * c->w - b->w * c->z) - a->z * (b->y * c->w - b->w * c->y) + a->w * (b->y * c->z - b->z * c->y);
@@ -323,7 +325,7 @@ void vec4_cross(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b, const 
     vec->w = -(a->x * (b->y * c->z - b->z * c->y) - a->y * (b->x * c->z - b->z * c->x) + a->z * (b->x * c->y - b->y * c->x));
 }
 
-inline
+FORCE_INLINE
 void mat3_identity(f32* matrix) NO_EXCEPT
 {
     matrix[0] = 1.0f; matrix[1] = 0.0f; matrix[2] = 0.0f;
@@ -331,13 +333,13 @@ void mat3_identity(f32* matrix) NO_EXCEPT
     matrix[6] = 0.0f; matrix[7] = 0.0f; matrix[8] = 1.0f;
 }
 
-inline
+FORCE_INLINE
 void mat3_identity_sparse(f32* matrix) NO_EXCEPT
 {
     matrix[0] = 1.0f; matrix[4] = 1.0f; matrix[8] = 1.0f;
 }
 
-inline
+FORCE_INLINE
 void mat3_identity(__m128* matrix) NO_EXCEPT
 {
     matrix[0] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
@@ -345,7 +347,7 @@ void mat3_identity(__m128* matrix) NO_EXCEPT
     matrix[2] = _mm_set_ps(0.0f, 0.0f, 1.0f, 0.0f);
 }
 
-inline
+FORCE_INLINE
 void mat4_identity(f32* matrix) NO_EXCEPT
 {
     matrix[0] = 1.0f;  matrix[1] = 0.0f;  matrix[2] = 0.0f;  matrix[3] = 0.0f;
@@ -354,13 +356,13 @@ void mat4_identity(f32* matrix) NO_EXCEPT
     matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
 }
 
-inline
+FORCE_INLINE
 void mat4_identity_sparse(f32* matrix) NO_EXCEPT
 {
     matrix[0] = 1.0f; matrix[5] = 1.0f; matrix[10] = 1.0f; matrix[15] = 1.0f;
 }
 
-inline
+FORCE_INLINE
 void mat4_identity(__m128* matrix) NO_EXCEPT
 {
     matrix[0] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
@@ -371,6 +373,7 @@ void mat4_identity(__m128* matrix) NO_EXCEPT
 
 // x, y, z need to be normalized
 // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
+inline
 void mat4_rotation(f32* matrix, f32 x, f32 y, f32 z, f32 angle) NO_EXCEPT
 {
     ASSERT_TRUE(OMS_ABS_F32(x * x + y * y + z * z - 1.0f) < 0.01);
@@ -413,6 +416,7 @@ void mat4_rotation(f32* matrix, f32 x, f32 y, f32 z, f32 angle) NO_EXCEPT
     matrix[15] = 1.0f;
 }
 
+inline
 void mat4_rotation(f32* matrix, f32 pitch, f32 yaw, f32 roll) NO_EXCEPT
 {
     f32 cos_pitch = cosf(pitch);
@@ -443,7 +447,7 @@ void mat4_rotation(f32* matrix, f32 pitch, f32 yaw, f32 roll) NO_EXCEPT
     matrix[15] = 1.0f;
 }
 
-inline
+FORCE_INLINE
 void mat3vec3_mult(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result) NO_EXCEPT
 {
     result[0] = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2];
@@ -451,7 +455,7 @@ void mat3vec3_mult(const f32* __restrict matrix, const f32* __restrict vector, f
     result[2] = matrix[6] * vector[0] + matrix[7] * vector[1] + matrix[8] * vector[2];
 }
 
-inline
+FORCE_INLINE
 void mat4vec4_mult(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result) NO_EXCEPT
 {
     result[0] = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2] + matrix[3] * vector[3];
@@ -461,6 +465,7 @@ void mat4vec4_mult(const f32* __restrict matrix, const f32* __restrict vector, f
 }
 
 // @question could simple mul add sse be faster?
+FORCE_INLINE
 void mat4vec4_mult_sse(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result) NO_EXCEPT
 {
     __m128 vec = _mm_load_ps(vector);
@@ -474,24 +479,26 @@ void mat4vec4_mult_sse(const f32* __restrict matrix, const f32* __restrict vecto
 }
 
 // @question could simple mul add sse be faster?
+FORCE_INLINE
 void mat4vec4_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, f32* __restrict result) NO_EXCEPT
 {
-    for (int32 i = 0; i < 4; ++i) {
-        __m128 dot = _mm_dp_ps(matrix[i], *vector, 0xF1);
-
-        result[i] = _mm_cvtss_f32(dot);
-    }
+    result[0] = _mm_cvtss_f32(_mm_dp_ps(matrix[0], *vector, 0xF1));
+    result[1] = _mm_cvtss_f32(_mm_dp_ps(matrix[1], *vector, 0xF1));
+    result[2] = _mm_cvtss_f32(_mm_dp_ps(matrix[2], *vector, 0xF1));
+    result[3] = _mm_cvtss_f32(_mm_dp_ps(matrix[3], *vector, 0xF1));
 }
 
 // @question could simple mul add sse be faster?
+FORCE_INLINE
 void mat4vec4_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, __m128* __restrict result) NO_EXCEPT
 {
-    for (int32 i = 0; i < 4; ++i) {
-        result[i] = _mm_dp_ps(matrix[i], *vector, 0xF1);
-    }
+    result[0] = _mm_dp_ps(matrix[0], *vector, 0xF1);
+    result[1] = _mm_dp_ps(matrix[1], *vector, 0xF1);
+    result[2] = _mm_dp_ps(matrix[2], *vector, 0xF1);
+    result[3] = _mm_dp_ps(matrix[3], *vector, 0xF1);
 }
 
-inline
+FORCE_INLINE
 void mat4mat4_mult(const f32* __restrict a, const f32* __restrict b, f32* __restrict result) NO_EXCEPT
 {
     result[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12];
@@ -523,71 +530,19 @@ void mat4mat4_mult_simd(const f32* __restrict a, const f32* __restrict b, f32* _
     __m128 row3 = _mm_load_ps(&b[8]);
     __m128 row4 = _mm_load_ps(&b[12]);
 
-    for (int32 i = 3; i >= 0; --i) {
-        __m128 vW = _mm_load_ps(&a[i * 4]);
+    for (int32 i = 0; i < 4; i++) {
+        __m128 r = _mm_mul_ps(_mm_broadcast_ss(&a[i*4 + 0]), row1);
+        r = _mm_fmadd_ps(_mm_broadcast_ss(&a[i*4 + 1]), row2, r);
+        r = _mm_fmadd_ps(_mm_broadcast_ss(&a[i*4 + 2]), row3, r);
+        r = _mm_fmadd_ps(_mm_broadcast_ss(&a[i*4 + 3]), row4, r);
 
-        __m128 vX = _mm_shuffle_ps(vW, vW, _MM_SHUFFLE(0, 0, 0, 0));
-        __m128 vY = _mm_shuffle_ps(vW, vW, _MM_SHUFFLE(1, 1, 1, 1));
-        __m128 vZ = _mm_shuffle_ps(vW, vW, _MM_SHUFFLE(2, 2, 2, 2));
-        vW = _mm_shuffle_ps(vW, vW, _MM_SHUFFLE(3, 3, 3, 3));
-
-        vX = _mm_mul_ps(vX, row1);
-        vY = _mm_mul_ps(vY, row2);
-        vZ = _mm_mul_ps(vZ, row3);
-        vW = _mm_mul_ps(vW, row4);
-
-        vX = _mm_add_ps(vX, vZ);
-        vY = _mm_add_ps(vY, vW);
-        vX = _mm_add_ps(vX, vY);
-
-        _mm_store_ps(&result[i * 4], vX);
+        _mm_store_ps(&result[i*4], r);
     }
 }
 
-// @performance Consider to replace with 1d array
-void mat4_frustum_planes(f32 planes[6][4], f32 radius, f32 *matrix) NO_EXCEPT
-{
-    // @todo make this a setting
-    // @bug fix to row-major system
-    // @todo don't use 2d arrays
-    f32 znear = 0.125;
-    f32 zfar = radius * 32 + 64;
-
-    f32 *m = matrix;
-
-    planes[0][0] = m[3] + m[0];
-    planes[0][1] = m[7] + m[4];
-    planes[0][2] = m[11] + m[8];
-    planes[0][3] = m[15] + m[12];
-
-    planes[1][0] = m[3] - m[0];
-    planes[1][1] = m[7] - m[4];
-    planes[1][2] = m[11] - m[8];
-    planes[1][3] = m[15] - m[12];
-
-    planes[2][0] = m[3] + m[1];
-    planes[2][1] = m[7] + m[5];
-    planes[2][2] = m[11] + m[9];
-    planes[2][3] = m[15] + m[13];
-
-    planes[3][0] = m[3] - m[1];
-    planes[3][1] = m[7] - m[5];
-    planes[3][2] = m[11] - m[9];
-    planes[3][3] = m[15] - m[13];
-
-    planes[4][0] = znear * m[3] + m[2];
-    planes[4][1] = znear * m[7] + m[6];
-    planes[4][2] = znear * m[11] + m[10];
-    planes[4][3] = znear * m[15] + m[14];
-
-    planes[5][0] = zfar * m[3] - m[2];
-    planes[5][1] = zfar * m[7] - m[6];
-    planes[5][2] = zfar * m[11] - m[10];
-    planes[5][3] = zfar * m[15] - m[14];
-}
-
+FORCE_INLINE
 void mat4_frustum_sparse_rh(
-    f32 *matrix,
+    f32* matrix,
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
  ) NO_EXCEPT {
@@ -617,8 +572,9 @@ void mat4_frustum_sparse_rh(
     //matrix[15] = 0.0f;
 }
 
+FORCE_INLINE
 void mat4_frustum_sparse_lh(
-    f32 *matrix,
+    f32* matrix,
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
  ) NO_EXCEPT {
@@ -649,9 +605,9 @@ void mat4_frustum_sparse_lh(
 }
 
 // fov needs to be in rad
-inline
+FORCE_INLINE
 void mat4_perspective_sparse_lh(
-    f32 *matrix, f32 fov, f32 aspect,
+    f32* matrix, f32 fov, f32 aspect,
     f32 znear, f32 zfar
 ) NO_EXCEPT {
     ASSERT_TRUE(znear > 0.0f);
@@ -663,9 +619,9 @@ void mat4_perspective_sparse_lh(
     mat4_frustum_sparse_lh(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
 }
 
-inline
+FORCE_INLINE
 void mat4_perspective_sparse_rh(
-    f32 *matrix, f32 fov, f32 aspect,
+    f32* matrix, f32 fov, f32 aspect,
     f32 znear, f32 zfar
 ) NO_EXCEPT {
     ASSERT_TRUE(znear > 0.0f);
@@ -677,8 +633,9 @@ void mat4_perspective_sparse_rh(
     mat4_frustum_sparse_rh(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
 }
 
+FORCE_INLINE
 void mat4_ortho_sparse_lh(
-    f32 *matrix,
+    f32* matrix,
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
 ) NO_EXCEPT {
@@ -707,8 +664,9 @@ void mat4_ortho_sparse_lh(
     matrix[15] = 1.0f;
 }
 
+FORCE_INLINE
 void mat4_ortho_sparse_rh_opengl(
-    f32 *matrix,
+    f32* matrix,
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
 ) NO_EXCEPT {
@@ -737,8 +695,9 @@ void mat4_ortho_sparse_rh_opengl(
     matrix[15] = 1.0f;
 }
 
+FORCE_INLINE
 void mat4_ortho_sparse_rh_vulkan(
-    f32 *matrix,
+    f32* matrix,
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
 ) NO_EXCEPT {
@@ -767,35 +726,16 @@ void mat4_ortho_sparse_rh_vulkan(
     matrix[15] = 1.0f;
 }
 
+FORCE_INLINE
 void mat4_translate(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
-    f32 temp[16];
-    memcpy(temp, matrix, sizeof(f32) * 16);
-
-    f32 translation_matrix[16];
-    translation_matrix[0] = 1.0f;   translation_matrix[1] = 0.0f;   translation_matrix[2] = 0.0f;   translation_matrix[3] = dx;
-    translation_matrix[4] = 0.0f;   translation_matrix[5] = 1.0f;   translation_matrix[6] = 0.0f;   translation_matrix[7] = dy;
-    translation_matrix[8] = 0.0f;   translation_matrix[9] = 0.0f;   translation_matrix[10] = 1.0f;  translation_matrix[11] = dz;
-    translation_matrix[12] = 0.0f; translation_matrix[13] = 0.0f; translation_matrix[14] = 0.0f; translation_matrix[15] = 1.0f;
-
-    mat4mat4_mult(temp, translation_matrix, matrix);
+    matrix[3]  += matrix[0] * dx + matrix[1] * dy + matrix[2]  * dz;
+    matrix[7]  += matrix[4] * dx + matrix[5] * dy + matrix[6]  * dz;
+    matrix[11] += matrix[8] * dx + matrix[9] * dy + matrix[10] * dz;
+    matrix[15] += matrix[12] * dx + matrix[13] * dy + matrix[14] * dz;
 }
 
-void mat4_translate_simd(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
-{
-    alignas(64) f32 temp[16];
-    memcpy(temp, matrix, sizeof(f32) * 16);
-
-    alignas(64) f32 translation_matrix[16];
-    translation_matrix[0] = 1.0f;   translation_matrix[1] = 0.0f;   translation_matrix[2] = 0.0f;   translation_matrix[3] = dx;
-    translation_matrix[4] = 0.0f;   translation_matrix[5] = 1.0f;   translation_matrix[6] = 0.0f;   translation_matrix[7] = dy;
-    translation_matrix[8] = 0.0f;   translation_matrix[9] = 0.0f;   translation_matrix[10] = 1.0f;  translation_matrix[11] = dz;
-    translation_matrix[12] = 0.0f; translation_matrix[13] = 0.0f; translation_matrix[14] = 0.0f; translation_matrix[15] = 1.0f;
-
-    mat4mat4_mult_simd(temp, translation_matrix, matrix);
-}
-
-inline
+FORCE_INLINE
 void mat4_translation(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
     matrix[0] = 1.0f;   matrix[1] = 0.0f;   matrix[2] = 0.0f;   matrix[3] = dx;
@@ -804,7 +744,7 @@ void mat4_translation(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
     matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
 }
 
-inline
+FORCE_INLINE
 void mat4_translation_sparse(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
     matrix[3] = dx;
@@ -812,16 +752,16 @@ void mat4_translation_sparse(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
     matrix[11] = dz;
 }
 
-inline
+FORCE_INLINE
 void mat4_scale(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
-    matrix[0] = dx;   matrix[1] = 0.0f;   matrix[2] = 0.0f;   matrix[3] = 0.0f;
-    matrix[4] = 0.0f;   matrix[5] = dy;   matrix[6] = 0.0f;   matrix[7] = 0.0f;
-    matrix[8] = 0.0f;   matrix[9] = 0.0f;   matrix[10] = dz;  matrix[11] = 0.0f;
+    matrix[0] = dx;    matrix[1] = 0.0f;  matrix[2] = 0.0f;  matrix[3] = 0.0f;
+    matrix[4] = 0.0f;  matrix[5] = dy;    matrix[6] = 0.0f;  matrix[7] = 0.0f;
+    matrix[8] = 0.0f;  matrix[9] = 0.0f;  matrix[10] = dz;   matrix[11] = 0.0f;
     matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
 }
 
-inline
+FORCE_INLINE
 void mat4_scale_sparse(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
     matrix[0] = dx;
@@ -829,7 +769,7 @@ void mat4_scale_sparse(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
     matrix[10] = dz;
 }
 
-inline
+FORCE_INLINE
 void mat4_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO_EXCEPT
 {
     transposed[1] = matrix[4];
@@ -846,7 +786,7 @@ void mat4_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO
     transposed[14] = matrix[11];
 }
 
-inline
+FORCE_INLINE
 void mat4_transpose(f32* matrix) NO_EXCEPT
 {
     f32 temp;
@@ -876,7 +816,7 @@ void mat4_transpose(f32* matrix) NO_EXCEPT
     matrix[14] = temp;
 }
 
-inline
+FORCE_INLINE
 void mat3_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO_EXCEPT
 {
     transposed[1] = matrix[3];
@@ -887,7 +827,7 @@ void mat3_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO
     transposed[7] = matrix[5];
 }
 
-inline
+FORCE_INLINE
 void mat3_transpose(f32* matrix) NO_EXCEPT
 {
     f32 temp;
@@ -905,14 +845,14 @@ void mat3_transpose(f32* matrix) NO_EXCEPT
     matrix[7] = temp;
 }
 
-inline
+FORCE_INLINE
 void mat2_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO_EXCEPT
 {
     transposed[1] = matrix[2];
     transposed[2] = matrix[1];
 }
 
-inline
+FORCE_INLINE
 void mat2_transpose(f32* matrix) NO_EXCEPT
 {
     f32 temp = matrix[1];
@@ -941,7 +881,7 @@ void vec3_normal(
     vec3_normalize(normal);
 }
 
-inline
+FORCE_INLINE
 void vec3_barycenter(
     v3_f32* __restrict barycenter,
     const v3_f32* __restrict a, const v3_f32* __restrict b, const v3_f32* __restrict c

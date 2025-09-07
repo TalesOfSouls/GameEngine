@@ -23,6 +23,9 @@
 #include "../system/FileUtils.cpp"
 #include "Command.h"
 
+// The Application Command Buffer is a shotgun tool to run commands in a "generalized" way
+// The developer can enqueue pre-defined command types which are then run
+// You can also think of this as an event queue.
 struct AppCmdBuffer {
     // @performance A queue would be much faster than ChunkMemory.
     // We only use Chunk memory since we might want to run only certain commands instead of all of them

@@ -243,7 +243,7 @@ int32 font_to_data(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) file.content,
         (int32 *) file.content,
-        size / 4, // everything in here is 4 bytes -> easy to swap
+        compiler_div_pow2(size, 4), // everything in here is 4 bytes -> easy to swap
         steps
     );
 

@@ -12,7 +12,7 @@
 #include <string.h>
 #include "../stdlib/Types.h"
 #include "../utils/EndianUtils.h"
-#include "../utils/TestUtils.h"
+#include "../utils/Assert.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
 #include "../log/PerformanceProfiler.h"
@@ -104,7 +104,7 @@ byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4, bool 
         buf->head += (aligned - (address & (aligned - 1))) % aligned;
     }
 
-    size = ROUND_TO_NEAREST(size, aligned);
+    size = OMS_ALIGN_UP(size, aligned);
     ASSERT_TRUE(buf->head + size <= buf->end);
 
     if (zeroed) {

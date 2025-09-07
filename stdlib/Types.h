@@ -51,19 +51,23 @@ typedef intptr_t smm;
 
 #define atomic_8 volatile
 #define atomic_16 volatile
-#define atomic_32 volatile
-#define atomic_64 volatile
+#define atomic_32 alignas(4) volatile
+#define atomic_64 alignas(8) volatile
 
+// PI
 #define OMS_PI 3.14159265358979323846f
 #define OMS_PI_OVER_TWO (OMS_PI / 2.0f)
 #define OMS_PI_OVER_FOUR (OMS_PI / 4.0f)
 #define OMS_TWO_PI (2.0f * OMS_PI)
 
+// Limits
 #define OMS_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define OMS_MIN(a, b) ((a) > (b) ? (b) : (a))
-
+#define OMS_MAX_BRANCHLESS(a, b) (a) ^ (((a) ^ (b)) & -((a) < (b)))
+#define OMS_MIN_BRANCHLESS(a, b) (b) ^ (((a) ^ (b)) & -((a) < (b)))
 #define OMS_CLAMP(val, low, high) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
 
+// Abs
 #define OMS_ABS(a) ((a) > 0 ? (a) : -(a))
 #define OMS_ABS_INT8(a) ((uint8) ((a) & 0x7F))
 #define OMS_ABS_INT16(a) ((uint16) ((a) & 0x7FFF))
@@ -72,15 +76,47 @@ typedef intptr_t smm;
 #define OMS_ABS_F32(a) ((f32) (((int32) (a)) & 0x7FFFFFFF))
 #define OMS_ABS_F64(a) ((f64) (((int64) (a)) & 0x7FFFFFFFFFFFFFFF))
 
+// Trig
 #define OMS_DEG2RAD(angle) ((angle) * OMS_PI / 180.0f)
 #define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI)
 
-#define ROUND_TO_NEAREST(a, b) (((a) + ((b) - 1)) & ~((b) - 1))
-#define OMS_ROUND_POSITIVE(x) ((int32)((x) + 0.5f))
-#define OMS_ROUND(x) (((x) >= 0) ? ((int32)((x) + 0.5f)) : ((int32)((x) - 0.5f)))
+// Rounding
+#define OMS_ROUND_POSITIVE_32(x) ((int32)((x) + 0.5f))
+#define OMS_ROUND_POSITIVE_64(x) ((int64)((x) + 0.5f))
+#define OMS_ROUND(x) (((x) >= 0) ? (f32)((int32)((x) + 0.5f)) : (f32)((int32)((x) - 0.5f)))
 
 #define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
 #define OMS_CEIL(x) ((x) == (int32)(x) ? (int32)(x) : ((x) > 0 ? (int32)(x) + 1 : (int32)(x)))
+
+#define FLOORF(x) ((float)((int)(x) - ((x) < 0.0f && (x) != (int)(x))))
+
+// Zero and comparison
+#define OMS_EPSILON_F32 1.19209290e-07f
+#define OMS_EPSILON_F64 2.2204460492503131e-16
+
+#define OMS_IS_ZERO_F32(x) (OMS_ABS(x) < OMS_EPSILON_F32)
+#define OMS_IS_ZERO_F64(x) (OMS_ABS(x) < OMS_EPSILON_F64)
+#define OMS_FEQUAL_F32(a, b) (OMS_ABS((a) - (b)) < OMS_EPSILON_F32)
+#define OMS_FEQUAL_F64(a, b) (OMS_ABS((a) - (b)) < OMS_EPSILON_F64)
+
+#define OMS_HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
+#define OMS_HAS_CHAR(x, c) (OMS_HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
+
+// Bitwise utilities
+#define OMS_IS_POW2(x) (((x) > 0) && (((x) & ((x) - 1)) == 0))
+#define OMS_ALIGN_UP(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
+#define OMS_ALIGN_DOWN(x, align) ((x) & ~((align) - 1))
+#define OMS_IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
+#define OMS_HAS_FLAG(val, flag) (((val) & (flag)))
+#define OMS_SET_FLAG(val, flag) ((val) |= (flag))
+#define OMS_CLEAR_FLAG(val, flag) ((val) &= ~(flag))
+#define OMS_TOGGLE_FLAG(val, flag) ((val) ^= (flag))
+
+// This is the same as using % but for sufficiently large wrapping this is faster
+// WARNING: if wrap is a power of 2 don't use this but use the & operator
+//          I recommend to use this macro if wrap >= 1,000
+#define OMS_WRAPPED_INCREMENT(value, wrap) ++value; if (value >= wrap) [[unlikely]] value = 0
+#define OMS_WRAPPED_DECREMENT(value, wrap) --value; if (value < 0) [[unlikely]] value = wrap - 1
 
 // Casting between e.g. f32 and int32 without changing bits
 #define BITCAST(x, new_type) bitcast_impl_##new_type(x)
@@ -94,6 +130,10 @@ DEFINE_BITCAST_FUNCTION(f32, uint32)
 DEFINE_BITCAST_FUNCTION(uint32, f32)
 DEFINE_BITCAST_FUNCTION(f64, uint64)
 DEFINE_BITCAST_FUNCTION(uint64, f64)
+DEFINE_BITCAST_FUNCTION(f32, int32)
+DEFINE_BITCAST_FUNCTION(int32, f32)
+DEFINE_BITCAST_FUNCTION(f64, int64)
+DEFINE_BITCAST_FUNCTION(int64, f64)
 
 #define FLOAT_CAST_EPS 0.001953125f
 
@@ -395,14 +435,13 @@ struct m_f64 {
 #define FLOAT32_EXP_SHIFT 23
 #define FLOAT32_EXP_BIAS 127
 
-uint16 float_to_f16(float f) {
-    uint32_t f_bits = *((uint32_t*)&f);
-    uint16_t f16_bits = 0;
+f16 float_to_f16(f32 f) NO_EXCEPT {
+    uint32 f_bits = *((uint32*)&f);
 
     // Extract sign, exponent, and fraction from float
-    uint16_t sign = (f_bits & FLOAT32_SIGN_MASK) >> 16;
-    int32_t exponent = (int32_t) ((f_bits & FLOAT32_EXP_MASK) >> FLOAT32_EXP_SHIFT) - FLOAT32_EXP_BIAS + HALF_FLOAT_EXP_BIAS;
-    uint32_t fraction = (f_bits & FLOAT32_FRAC_MASK) >> (FLOAT32_EXP_SHIFT - HALF_FLOAT_EXP_SHIFT);
+    uint16 sign = (f_bits & FLOAT32_SIGN_MASK) >> 16;
+    int32 exponent = (int32) ((f_bits & FLOAT32_EXP_MASK) >> FLOAT32_EXP_SHIFT) - FLOAT32_EXP_BIAS + HALF_FLOAT_EXP_BIAS;
+    uint32 fraction = (f_bits & FLOAT32_FRAC_MASK) >> (FLOAT32_EXP_SHIFT - HALF_FLOAT_EXP_SHIFT);
 
     if (exponent <= 0) {
         if (exponent < -10) {
@@ -416,15 +455,13 @@ uint16 float_to_f16(float f) {
         fraction = 0;
     }
 
-    f16_bits = (uint16_t) (sign | (exponent << HALF_FLOAT_EXP_SHIFT) | (fraction & HALF_FLOAT_FRAC_MASK));
-
-    return f16_bits;
+    return (f16) (sign | (exponent << HALF_FLOAT_EXP_SHIFT) | (fraction & HALF_FLOAT_FRAC_MASK));
 }
 
-f32 f16_to_float(f16 f) {
-    uint32_t sign = (f & HALF_FLOAT_SIGN_MASK) << 16;
-    int32_t exponent = (f & HALF_FLOAT_EXP_MASK) >> HALF_FLOAT_EXP_SHIFT;
-    uint32_t fraction = (f & HALF_FLOAT_FRAC_MASK) << (FLOAT32_EXP_SHIFT - HALF_FLOAT_EXP_SHIFT);
+f32 f16_to_float(f16 f) NO_EXCEPT {
+    uint32 sign = (f & HALF_FLOAT_SIGN_MASK) << 16;
+    int32 exponent = (f & HALF_FLOAT_EXP_MASK) >> HALF_FLOAT_EXP_SHIFT;
+    uint32 fraction = (f & HALF_FLOAT_FRAC_MASK) << (FLOAT32_EXP_SHIFT - HALF_FLOAT_EXP_SHIFT);
 
     if (exponent == 0) {
         if (fraction != 0) {
@@ -441,7 +478,7 @@ f32 f16_to_float(f16 f) {
         exponent += FLOAT32_EXP_BIAS - HALF_FLOAT_EXP_BIAS;
     }
 
-    uint32_t f_bits = sign | (exponent << FLOAT32_EXP_SHIFT) | fraction;
+    uint32 f_bits = sign | (exponent << FLOAT32_EXP_SHIFT) | fraction;
 
     return BITCAST(f_bits, f32);
 }

@@ -31,12 +31,12 @@ template<const WebBinaryValue* binary_struct, int32 count>
 constexpr int32 web_binary_schema_size() {
     int32 size = 0;
     for (int32 i = 0; i < count; ++i) {
-        size += str_length_constexpr(binary_struct[i].name) + 1;
-        size += str_length_constexpr(binary_struct[i].type) + 1;
+        size += str_length(binary_struct[i].name) + 1;
+        size += str_length(binary_struct[i].type) + 1;
 
         // Add size for nested schema if present
         if (binary_struct[i].nested_schema) {
-            size += str_length_constexpr(binary_struct[i].nested_schema) + 1;
+            size += str_length(binary_struct[i].nested_schema) + 1;
         } else {
             size += 1; // Empty string for no nested schema
         }
@@ -59,16 +59,16 @@ constexpr auto web_binary_schema() {
 
     char* buffer = schema.data;
     for (int32 i = 0; i < count; ++i) {
-        str_copy_short(buffer, binary_struct[i].name);
-        buffer += str_length_constexpr(binary_struct[i].name) + 1;
+        str_copy(buffer, binary_struct[i].name);
+        buffer += str_length(binary_struct[i].name) + 1;
 
-        str_copy_short(buffer, binary_struct[i].type);
-        buffer += str_length_constexpr(binary_struct[i].type) + 1;
+        str_copy(buffer, binary_struct[i].type);
+        buffer += str_length(binary_struct[i].type) + 1;
 
         // Write nested schema if present
         if (binary_struct[i].nested_schema) {
-            str_copy_short(buffer, binary_struct[i].nested_schema);
-            buffer += str_length_constexpr(binary_struct[i].nested_schema) + 1;
+            str_copy(buffer, binary_struct[i].nested_schema);
+            buffer += str_length(binary_struct[i].nested_schema) + 1;
         } else {
             *buffer++ = '\0'; // Empty string
         }

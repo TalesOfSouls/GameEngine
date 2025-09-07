@@ -91,11 +91,11 @@ void hid_init_controllers(Input* __restrict states, RingMemory* ring) {
 
         // Check for game controllers (Generic Desktop Page, Gamepad or Joystick Usage)
         if (caps.UsagePage == 0x01 && caps.Usage == 0x05) {
-            if (states[controller_found].handle_controller != NULL) {
+            if (states[controller_found].controller.handle != NULL) {
                 ++controller_found;
             }
 
-            states[controller_found].handle_controller = device_handle;
+            states[controller_found].controller.handle = device_handle;
             // @bug This is not always true, how to check?
             states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
 
@@ -117,11 +117,11 @@ void hid_init_controllers(Input* __restrict states, RingMemory* ring) {
                 states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
             }
         } else if (caps.UsagePage == 0x01 && caps.Usage == 0x04) {
-            if (states[controller_found].handle_controller != NULL) {
+            if (states[controller_found].controller.handle != NULL) {
                 ++controller_found;
             }
 
-            states[controller_found].handle_controller = device_handle;
+            states[controller_found].controller.handle = device_handle;
             // @bug This is not always true, how to check?
             states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
             states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
@@ -139,7 +139,7 @@ uint32 hid_device_poll(Input* state, uint64 time) {
     UCHAR buffer[128];
     DWORD bytes_read;
 
-    if (!ReadFile(state->handle_controller, buffer, sizeof(buffer), &bytes_read, NULL)) {
+    if (!ReadFile(state->controller.handle, buffer, sizeof(buffer), &bytes_read, NULL)) {
         return 0;
     }
 

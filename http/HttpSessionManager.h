@@ -42,7 +42,7 @@ SessionManager* session_manager_alloc(
     size_t initial_capacity,
     int32 alignment = 64
 ) {
-    size_t internal_buffer_size = ROUND_TO_NEAREST(sizeof(Session) * initial_capacity, 4096);
+    size_t internal_buffer_size = OMS_ALIGN_UP(sizeof(Session) * initial_capacity, 4096);
     byte* internal_buffer = (byte *) platform_alloc_aligned(internal_buffer_size, alignment);
 
     // distribute internal_buffer to:
