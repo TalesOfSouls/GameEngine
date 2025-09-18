@@ -242,4 +242,13 @@ int32 thread_current_id()
     return (int32) syscall(SYS_gettid);
 }
 
+#if DEBUG || INTERNAL
+    // This information is usually only needed in debug and internal builds
+    #define THREAD_CURRENT_ID(a) a = thread_current_id()
+    #define THREAD_CPU_ID(a) a = thread_cpu_id()
+#else
+    #define THREAD_CURRENT_ID(a) ((void) 0)
+    #define THREAD_CPU_ID(a) ((void) 0)
+#endif
+
 #endif

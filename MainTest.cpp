@@ -5,8 +5,8 @@
 #include "tests/memory/ChunkMemoryTest.cpp"
 #include "tests/memory/RingMemoryTest.cpp"
 #include "tests/stdlib/HashMapTest.cpp"
-//#include "tests/ui/UILayoutTest.cpp"
-//#include "tests/ui/UIThemeTest.cpp"
+#include "tests/ui/UILayoutTest.cpp"
+#include "tests/ui/UIThemeTest.cpp"
 #include "tests/utils/BitUtilsTest.cpp"
 #include "tests/utils/EndianUtilsTest.cpp"
 #include "tests/utils/StringUtilsTest.cpp"
@@ -27,8 +27,8 @@ int main() {
     MemoryChunkMemoryTest();
     MemoryRingMemoryTest();
     StdlibHashMapTest();
-    //UIUILayoutTest();
-    //UIUIThemeTest();
+    UIUILayoutTest();
+    UIUIThemeTest();
     UtilsBitUtilsTest();
     UtilsEndianUtilsTest();
     UtilsStringUtilsTest();

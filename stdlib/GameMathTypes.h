@@ -11,15 +11,23 @@
 
 #include "Types.h"
 
-struct AABB {
+struct AABB_f32 {
     v3_f32 min;
     v3_f32 max;
+};
+
+struct AABB_int32 {
+    v3_int32 min;
+    v3_int32 max;
 };
 
 struct Frustum {
     // A frustum consists of 6 planes where every plane has the form ax + by + cz + d = 0
     // This means every plane requires 4 parameters
-    f32 plane[6 * 4];
+    union {
+        f32 plane[6 * 4];
+        v4_f32 eq[6];
+    };
 };
 
 #endif

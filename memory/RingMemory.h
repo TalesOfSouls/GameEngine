@@ -67,7 +67,7 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, uint32 alignmen
 {
     ASSERT_TRUE(size);
 
-    ring->memory = buffer_get_memory(buf, size, alignment, true);
+    ring->memory = buffer_get_memory(buf, size, alignment);
 
     ring->end = ring->memory + size;
     ring->head = ring->memory;
@@ -110,23 +110,13 @@ void ring_free(RingMemory* ring)
 }
 
 inline
-byte* ring_calculate_position(const RingMemory* ring, uint64 size, uint32 aligned = 4) NO_EXCEPT
+byte* ring_calculate_position(const RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
-    byte* head = ring->head;
-
-    if (aligned > 1) {
-        uintptr_t address = (uintptr_t) head;
-        head += (aligned - (address & (aligned - 1))) % aligned;
-    }
-
+    byte* head = (byte *) OMS_ALIGN_UP((uintptr_t) ring->head, aligned);
     size = OMS_ALIGN_UP(size, (uint64) aligned);
-    if (head + size > ring->end) { [[unlikely]]
-        head = ring->memory;
 
-        if (aligned > 1) {
-            uintptr_t address = (uintptr_t) head;
-            head += (aligned - (address & (aligned - 1))) % aligned;
-        }
+    if (head + size > ring->end) { [[unlikely]]
+        head = (byte *) OMS_ALIGN_UP((uintptr_t) ring->memory, aligned);
     }
 
     return head;
@@ -141,7 +131,7 @@ void ring_reset(RingMemory* ring) NO_EXCEPT
 
 // Moves a pointer based on the size you want to consume (new position = after consuming size)
 // Usually used to move head or tail pointer (generically called here = pos)
-void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned = 4) NO_EXCEPT
+void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
     ASSERT_TRUE(size <= ring->size);
 
@@ -149,19 +139,11 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned
     // However, we better do it once here than manually in every place that uses this function
     DEBUG_MEMORY_READ((uintptr_t) *pos, size);
 
-    if (aligned > 1) {
-        uintptr_t address = (uintptr_t) *pos;
-        *pos += (aligned - (address& (aligned - 1))) % aligned;
-    }
-
+    *pos = (byte *) OMS_ALIGN_UP((uintptr_t) *pos, aligned);
     size = OMS_ALIGN_UP(size, (uint64) aligned);
-    if (*pos + size > ring->end) { [[unlikely]]
-        *pos = ring->memory;
 
-        if (aligned > 1) {
-            uintptr_t address = (uintptr_t) *pos;
-            *pos += (aligned - (address & (aligned - 1))) % aligned;
-        }
+    if (*pos + size > ring->end) { [[unlikely]]
+        *pos = (byte *) OMS_ALIGN_UP((uintptr_t) ring->memory, aligned);
     }
 
     *pos += size;
@@ -169,27 +151,17 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned
 
 // @todo Implement a function called ring_grow_memory that tries to grow a memory range
 // this of course is only possible if the memory range is the last memory range returned and if the growing part still fits into the ring
-byte* ring_get_memory(RingMemory* ring, uint64 size, uint32 aligned = 4, bool zeroed = false) NO_EXCEPT
+byte* ring_get_memory(RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
     ASSERT_TRUE(size <= ring->size);
 
-    if (aligned > 1) {
-        uintptr_t address = (uintptr_t) ring->head;
-        ring->head += (aligned - (address& (aligned - 1))) % aligned;
-    }
-
+    ring->head = (byte *) OMS_ALIGN_UP((uintptr_t) ring->head, aligned);
     size = OMS_ALIGN_UP(size, (uint64) aligned);
+
     if (ring->head + size > ring->end) { [[unlikely]]
         ring_reset(ring);
 
-        if (aligned > 1) {
-            uintptr_t address = (uintptr_t) ring->head;
-            ring->head += (aligned - (address & (aligned - 1))) % aligned;
-        }
-    }
-
-    if (zeroed) {
-        memset((void *) ring->head, 0, size);
+        ring->head = (byte *) OMS_ALIGN_UP((uintptr_t) ring->head, aligned);
     }
 
     DEBUG_MEMORY_WRITE((uintptr_t) ring->head, size);
@@ -203,29 +175,17 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, uint32 aligned = 4, bool ze
 }
 
 // Same as ring_get_memory but DOESN'T move the head
-byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint32 aligned = 4, bool zeroed = false) NO_EXCEPT
+byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
     ASSERT_TRUE(size <= ring->size);
 
-    byte* pos = ring->head;
-
-    if (aligned > 1) {
-        uintptr_t address = (uintptr_t) pos;
-        pos += (aligned - (address& (aligned - 1))) % aligned;
-    }
-
+    byte* pos = (byte *) OMS_ALIGN_UP((uintptr_t) ring->head, aligned);
     size = OMS_ALIGN_UP(size, (uint64) aligned);
+
     if (pos + size > ring->end) { [[unlikely]]
         ring_reset(ring);
 
-        if (aligned > 1) {
-            uintptr_t address = (uintptr_t) pos;
-            pos += (aligned - (address & (aligned - 1))) % aligned;
-        }
-    }
-
-    if (zeroed) {
-        memset((void *) pos, 0, size);
+        pos = (byte *) OMS_ALIGN_UP((uintptr_t) pos, aligned);
     }
 
     DEBUG_MEMORY_WRITE((uintptr_t) pos, size);
@@ -247,7 +207,7 @@ byte* ring_get_element(const RingMemory* ring, uint64 element, uint64 size) NO_E
  * Checks if one additional element can be inserted without overwriting the tail index
  */
 inline
-bool ring_commit_safe(const RingMemory* ring, uint64 size, uint32 aligned = 4) NO_EXCEPT
+bool ring_commit_safe(const RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
     // aligned * 2 since that should be the maximum overhead for an element
     // -1 since that is the worst case, we can't be missing a complete alignment because than it would be already aligned
@@ -267,7 +227,7 @@ bool ring_commit_safe(const RingMemory* ring, uint64 size, uint32 aligned = 4) N
 }
 
 inline
-bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, uint32 aligned = 4) NO_EXCEPT
+bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
     // aligned * 2 since that should be the maximum overhead for an element
     // -1 since that is the worst case, we can't be missing a complete alignment because than it would be already aligned

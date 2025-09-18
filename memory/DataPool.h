@@ -145,9 +145,9 @@ int32 pool_reserve(DataPool* buf, uint32 elements = 1) NO_EXCEPT
 }
 
 FORCE_INLINE
-byte* pool_get_element(DataPool* buf, uint64 element, bool zeroed = false) NO_EXCEPT
+byte* pool_get_element(DataPool* buf, uint64 element) NO_EXCEPT
 {
-    return chunk_get_element((ChunkMemory *) buf, element, zeroed);
+    return chunk_get_element((ChunkMemory *) buf, element);
 }
 
 // Find a unused/unlocked element in the data pool

@@ -71,9 +71,9 @@ int32 thrd_pool_reserve(ThreadedDataPool* buf, uint32 elements = 1) NO_EXCEPT
 }
 
 FORCE_INLINE
-byte* thrd_pool_get_element(ThreadedDataPool* buf, uint64 element, bool zeroed = false) NO_EXCEPT
+byte* thrd_pool_get_element(ThreadedDataPool* buf, uint64 element) NO_EXCEPT
 {
-    return chunk_get_element((ChunkMemory *) buf, element, zeroed);
+    return chunk_get_element((ChunkMemory *) buf, element);
 }
 
 // Find a unused/unlocked element in the data pool

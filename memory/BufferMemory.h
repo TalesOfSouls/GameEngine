@@ -91,25 +91,14 @@ void buffer_reset(BufferMemory* buf) NO_EXCEPT
 }
 
 inline
-byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4, bool zeroed = false) NO_EXCEPT
+byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4) NO_EXCEPT
 {
     ASSERT_TRUE(size <= buf->size);
 
-    if (aligned == 0) {
-        aligned = (byte) OMS_MAX(buf->element_alignment, 1);
-    }
-
-    if (aligned > 1) {
-        uintptr_t address = (uintptr_t) buf->head;
-        buf->head += (aligned - (address & (aligned - 1))) % aligned;
-    }
-
+    buf->head = (byte *) OMS_ALIGN_UP((uintptr_t) buf->head, aligned);
     size = OMS_ALIGN_UP(size, aligned);
-    ASSERT_TRUE(buf->head + size <= buf->end);
 
-    if (zeroed) {
-        memset((void *) buf->head, 0, size);
-    }
+    ASSERT_TRUE(buf->head + size <= buf->end);
 
     DEBUG_MEMORY_WRITE((uintptr_t) buf->head, size);
 

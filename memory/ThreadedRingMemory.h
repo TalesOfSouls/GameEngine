@@ -91,10 +91,10 @@ void thrd_ring_move_pointer(ThreadedRingMemory* ring, byte** pos, uint64 size, b
 }
 
 FORCE_INLINE
-byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned = 4, bool zeroed = false) NO_EXCEPT
+byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned = 4) NO_EXCEPT
 {
     mutex_lock(&ring->lock);
-    byte* result = ring_get_memory((RingMemory *) ring, size, aligned, zeroed);
+    byte* result = ring_get_memory((RingMemory *) ring, size, aligned);
     mutex_unlock(&ring->lock);
 
     return result;
@@ -102,10 +102,10 @@ byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned =
 
 // Same as ring_get_memory but DOESN'T move the head
 FORCE_INLINE
-byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte aligned = 4, bool zeroed = false) NO_EXCEPT
+byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte aligned = 4) NO_EXCEPT
 {
     mutex_lock(&ring->lock);
-    byte* result = ring_get_memory_nomove((RingMemory *) ring, size, aligned, zeroed);
+    byte* result = ring_get_memory_nomove((RingMemory *) ring, size, aligned);
     mutex_unlock(&ring->lock);
 
     return result;

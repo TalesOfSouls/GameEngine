@@ -21,7 +21,11 @@
     #define MAX_PATH PATH_MAX
 #endif
 
+// Counts the elements in an array IFF its size is defined at compile time
 #define ARRAY_COUNT(a) ((a) == NULL ? 0 : (sizeof(a) / sizeof((a)[0])))
+
+// Gets the size of a struct member
+#define MEMBER_SIZEOF(type, member) (sizeof( ((type *)0)->member ))
 
 #ifdef DEBUG
     #define NO_EXCEPT
@@ -61,20 +65,37 @@ typedef intptr_t smm;
 #define OMS_TWO_PI (2.0f * OMS_PI)
 
 // Limits
-#define OMS_MAX(a, b) ((a) > (b) ? (a) : (b))
-#define OMS_MIN(a, b) ((a) > (b) ? (b) : (a))
-#define OMS_MAX_BRANCHLESS(a, b) (a) ^ (((a) ^ (b)) & -((a) < (b)))
-#define OMS_MIN_BRANCHLESS(a, b) (b) ^ (((a) ^ (b)) & -((a) < (b)))
-#define OMS_CLAMP(val, low, high) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
+#define OMS_MAX_BRANCHED(a, b) ((a) > (b) ? (a) : (b))
+#define OMS_MIN_BRANCHED(a, b) ((a) > (b) ? (b) : (a))
+#define OMS_MAX_BRANCHLESS(a, b) ((a) ^ (((a) ^ (b)) & -((a) < (b))))
+#define OMS_MIN_BRANCHLESS(a, b) ((b) ^ (((a) ^ (b)) & -((a) < (b))))
+#define OMS_CLAMP_BRANCHED(val, low, high) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
+#define OMS_CLAMP_BRANCHLESS(val, low, high) \
+    ((val) ^ (((val) ^ (low)) & -(int32)((val) < (low))) ^ \
+    ((((val) ^ ((val) ^ (low)) & -(int32)((val) < (low)))) ^ (high)) & -(int32)((((val) ^ ((val) ^ (low)) & -(int32)((val) < (low)))) < (high)))
 
 // Abs
 #define OMS_ABS(a) ((a) > 0 ? (a) : -(a))
-#define OMS_ABS_INT8(a) ((uint8) ((a) & 0x7F))
-#define OMS_ABS_INT16(a) ((uint16) ((a) & 0x7FFF))
-#define OMS_ABS_INT32(a) ((uint32) ((a) & 0x7FFFFFFF))
-#define OMS_ABS_INT64(a) ((uint64) ((a) & 0x7FFFFFFFFFFFFFFF))
-#define OMS_ABS_F32(a) ((f32) (((int32) (a)) & 0x7FFFFFFF))
-#define OMS_ABS_F64(a) ((f64) (((int64) (a)) & 0x7FFFFFFFFFFFFFFF))
+#define OMS_ABS_INT8(a) (((a) ^ ((a) >> 7)) - ((a) >> 7))
+#define OMS_ABS_INT16(a) (((a) ^ ((a) >> 15)) - ((a) >> 15))
+#define OMS_ABS_INT32(a) (((a) ^ ((a) >> 31)) - ((a) >> 31))
+#define OMS_ABS_INT64(a) (((a) ^ ((a) >> 63)) - ((a) >> 63))
+
+inline
+f32 OMS_ABS_F32(f32 a) {
+    union { f32 f; uint32 i; } u;
+    u.f = a;
+    u.i &= 0x7FFFFFFF;
+    return u.f;
+}
+
+inline
+f64 OMS_ABS_F64(f64 a) {
+    union { f64 f; uint64 i; } u;
+    u.f = a;
+    u.i &= 0x7FFFFFFFFFFFFFFF;
+    return u.f;
+}
 
 // Trig
 #define OMS_DEG2RAD(angle) ((angle) * OMS_PI / 180.0f)
@@ -126,6 +147,7 @@ typedef intptr_t smm;
         u.src = src; \
         return u.dst; \
     }
+
 DEFINE_BITCAST_FUNCTION(f32, uint32)
 DEFINE_BITCAST_FUNCTION(uint32, f32)
 DEFINE_BITCAST_FUNCTION(f64, uint64)
@@ -421,6 +443,15 @@ struct m_f64 {
     size_t m, n;
 };
 
+// @todo We cannot use FORCE_INLINE because CompilerUtils depends on this file -> circular dependency
+inline v2_f32 to_v2_f32(v2_int32 vec) { return {(f32) vec.x, (f32) vec.y}; }
+inline v3_f32 to_v3_f32(v3_int32 vec) { return {(f32) vec.x, (f32) vec.y, (f32) vec.z}; }
+inline v4_f32 to_v4_f32(v4_int32 vec) { return {(f32) vec.x, (f32) vec.y, (f32) vec.z, (f32) vec.w}; }
+
+inline v2_int32 to_v2_int32(v2_f32 vec) { return {(int32) vec.x, (int32) vec.y}; }
+inline v3_int32 to_v3_int32(v3_f32 vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z}; }
+inline v4_int32 to_v4_int32(v4_f32 vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z, (int32) vec.w}; }
+
 #define HALF_FLOAT_SIGN_MASK 0x8000
 #define HALF_FLOAT_EXP_MASK 0x7C00
 #define HALF_FLOAT_FRAC_MASK 0x03FF
@@ -482,5 +513,18 @@ f32 f16_to_float(f16 f) NO_EXCEPT {
 
     return BITCAST(f_bits, f32);
 }
+
+// Simple iterator implementation
+#define iterator_start(start, end, obj) {   \
+    uint32 _i = start;                      \
+    while (_i++ < end) {
+
+#define iterator_end    \
+        obj += 1;       \
+    }}                  \
+
+#include "../compiler/CompilerUtils.h"
+#include "../architecture/Intrinsics.h"
+#include "../platform/Platform.h"
 
 #endif

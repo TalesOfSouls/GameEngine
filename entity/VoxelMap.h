@@ -6,12 +6,14 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef COMS_ENTITY_VOXEL_MAP_C
-#define COMS_ENTITY_VOXEL_MAP_C
+#ifndef COMS_ENTITY_VOXEL_MAP_H
+#define COMS_ENTITY_VOXEL_MAP_H
 
 #include "../stdlib/Types.h"
 #include "../stdlib/GameMathTypes.h"
 #include "../stdlib/HashMap.h"
+#include "../math/matrix/MatrixFloat32.h"
+#include "../math/matrix/MatrixInt32.h"
 
 struct Voxel {
     uint16 type;
@@ -24,17 +26,31 @@ struct VoxelFace {
     uint8 rotation;
 };
 
+// Used for greedy meshing
+// This holds temporary information about the Face
+struct VoxelMaskCell {
+    VoxelFace face;
+    bool is_filled;
+};
+
+// @todo Move to Voxel type enum
+inline
+bool voxel_is_solid(int32 type) {
+    return type != 0;
+}
+
 #define VOXEL_CHUNK_SIZE 32
 
 struct VoxelChunkMesh {
     // Interleaved vertex: position (float3), normal (packed int8x3),
     // type (uint16), rotation (uint8), padding (uint8)
     // Layout kept simple; adjust to your renderer.
-    f32 vertices[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 3 * sizeof(f32)]; // [num_vertices * 3]
-    uint16 types[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * sizeof(uint16)]; // [num_vertices] // @question not sure i need this information here
-    uint8 normals[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 3 * sizeof(uint8)]; // [num_vertices * 3]
-    uint8 rotations[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * sizeof(uint8)];// [num_vertices] // @question not sure i need this information here
-    uint32 indices[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 2 *sizeof(uint32)]; // [num_vertices * 2]
+    // @question Consider to change some of the types below vectors (vertices and normals at least)
+    v3_f32 vertices[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 3]; // [num_vertices * 3]
+    uint16 types[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE]; // [num_vertices] // @question not sure i need this information here
+    v3_byte normals[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE]; // [num_vertices * 3]
+    uint8 rotations[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE];// [num_vertices] // @question not sure i need this information here
+    uint32 indices[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 2]; // [num_vertices * 2]
     uint32 num_vertices;
     uint32 num_indices;
     uint32 cap_vertices;
@@ -46,26 +62,36 @@ struct VoxelChunkMesh {
 // @performance The current implementation is incredibly space inefficient
 //  We are using always the same chunk size even if it only contains one block
 struct VoxelChunk {
+    // This is the count of elements used in the DataPool memory
+    // Strictly speaking this is not required because we could calculate the element count based on the data below
+    // However, then we would have to calculate it every time.
+    // We are exchanging memory for computational headroom
+    int32 element_count;
+
+    // The chunk coordinate in world space
     v3_int32 coord;
 
+    // @todo This should be variable size and be positioned after the Chunk
+    // The ChunkMemory which contains all the chunks then will hold multiple elements
+    // 1 element = VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * sizeof(Voxel) + sizeof(VoxelChunk)
     Voxel vox[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE];
 
     // Needs remesh
-    bool dirty;
+    bool is_dirty;
 
     // World-space AABB
     // Used to check if the chunk intersects with the view frustum planes
-    AABB bounds;
+    AABB_int32 bounds;
 
     VoxelChunkMesh mesh;
 }
 
-static inline
+static FORCE_INLINE
 uint64 voxel_chunk_coord_pack(int32 x, int32 y, int32 z) NO_EXCEPT {
     // We check if only the lowest 21 bits are set
-    ASSERT_STRICT((((uint32)(x)) & ~((1u << 21) - 1u)) == 0);
-    ASSERT_STRICT((((uint32)(y)) & ~((1u << 21) - 1u)) == 0);
-    ASSERT_STRICT((((uint32)(z)) & ~((1u << 21) - 1u)) == 0);
+    ASSERT_STRICT((((uint32) (x)) & ~((1u << 21) - 1u)) == 0);
+    ASSERT_STRICT((((uint32) (y)) & ~((1u << 21) - 1u)) == 0);
+    ASSERT_STRICT((((uint32) (z)) & ~((1u << 21) - 1u)) == 0);
 
     // 21 bits per axis signed (fits +/- 1,048,575)
     uint64 ux = ((uint64) (uint32) x) & 0x1FFFFF;
@@ -75,122 +101,37 @@ uint64 voxel_chunk_coord_pack(int32 x, int32 y, int32 z) NO_EXCEPT {
     return (ux) | (uy << 21) | (uz << 42);
 }
 
+FORCE_INLINE
 HashEntry* hashmap_insert(HashMap* hm, int32 x, int32 y, int32 z, VoxelChunk* chunk) NO_EXCEPT {
-    // @question Do we really want to do it like this or should the data be variable length?
-    // This means we would have to reserve n chunks based on the size of the VoxelChunk
-    int32 element = chunk_reserve_one(&hm->buf);
-    if (element < 0) {
-        return NULL;
-    }
-
-    HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, element, true);
-
-    entry->value = (byte *) entry + sizeof(HashEntry);
-
     uint64 key = voxel_chunk_coord_pack(x, y, z);
-    *((uint64 *) entry->key) = key;
-
-    // @bug this doesn't fully copy the Chunk since the chunk itself also has pointers
-    // We need to memcpy that data as well, we should assume that it is stored at the end of the Chunk
-    memcpy(entry->value, value, sizeof(*chunk));
-
-    uint64 index = key % hm->buf.count;
-    uint16* target = &hm->table[index];
-    while (*target) {
-        HashEntry* tmp = (HashEntry*) chunk_get_element(&hm->buf, *target - 1, false);
-        target = &tmp->next;
-    }
-    *target = (uint16) (element + 1);
-
-    return entry;
+    return hashmap_insert(hm, key, (void *) chunk);
 }
 
-// @performance If we had a doubly linked list we could delete keys much easier
-// However that would make insertion slower
-// Maybe we create a nother hashmap that is doubly linked
+FORCE_INLINE
 void hashmap_remove(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT {
     uint64 key = voxel_chunk_coord_pack(x, y, z);
-    uint64 index = key % hm->buf.count;
-    HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
-    HashEntry* prev = NULL;
-
-    uint32 element_id = hm->table[index];
-
-    while (entry != NULL) {
-         if (*((uint64 *) entry->key) == key) {
-            if (prev == NULL) {
-                hm->table[index] = entry->next;
-            } else {
-                prev->next = entry->next;
-            }
-
-            chunk_free_elements(&hm->buf, element_id - 1);
-
-            return;
-        }
-
-        element_id = entry->next;
-        prev = entry;
-        entry = (HashEntry *) chunk_get_element(&hm->buf, entry->next - 1, false);
-    }
+    hashmap_remove(hm, key);
 }
 
-inline
+FORCE_INLINE
 HashEntry* hashmap_get_entry(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT {
     uint64 key = voxel_chunk_coord_pack(x, y, z);
-    uint64 index = key % hm->buf.count;
-    HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
-
-    while (entry != NULL) {
-        if (*((uint64 *) entry->key) == key) {
-            DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
-            return entry;
-        }
-
-        entry = (HashEntry *) chunk_get_element(&hm->buf, entry->next - 1, false);
-    }
-
-    return NULL;
+    return hashmap_get_entry(hm, key);
 }
 
-inline
+FORCE_INLINE
 VoxelChunk* hashmap_get_value(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT {
     HashEntryVoidP* entry = (HashEntryVoidP *) hashmap_get_entry(hm, x, y, z);
 
     return entry ? (VoxelChunk *) entry->value : NULL;
 }
 
-// By using this we can directly fill the hash map without copying data over
-HashEntry* hashmap_reserve_value(HashMap* hm, const char* key) NO_EXCEPT {
-    int32 element = chunk_reserve_one(&hm->buf);
-    if (element < 0) {
-        return NULL;
-    }
-
-    HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, element, true);
-
-    entry->value = (byte *) entry + sizeof(HashEntry);
-
-    *((uint64 *) entry->key) = voxel_chunk_coord_pack(x, y, z);
-
-    entry->next = 0;
-
-    uint16* target = &hm->table[index];
-    while (*target) {
-        HashEntry* tmp = (HashEntry*) chunk_get_element(&hm->buf, *target - 1, false);
-        target = &tmp->next;
-    }
-    *target = (uint16) (element + 1);
-
-    return entry;
-}
-
 FORCE_INLINE
 void voxel_chunk_create(VoxelChunk* chunk, int32 x, int32 y, int32 z) {
     chunk->bounds.min = {x * VOXEL_CHUNK_SIZE, y * VOXEL_CHUNK_SIZE, z * VOXEL_CHUNK_SIZE};
     chunk->bounds.max = {(x + 1) * VOXEL_CHUNK_SIZE, (y + 1) * VOXEL_CHUNK_SIZE, (z + 1) * VOXEL_CHUNK_SIZE};
-    chunk->cap_vertices = 1024;
-    chunk->cap_indices = 1024 * 2;
+    chunk->cap_vertices = VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE;
+    chunk->cap_indices = VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 2;
 }
 
 // Calculates the index in a 1-dimensional array
@@ -226,31 +167,29 @@ void voxel_chunk_set(VoxelChunk* chunk, int32 x, int32 y, int32 z, Voxel v)
     }
 
     chunk->vox[voxel_index_get(x, y, z)] = v;
-    chunk->dirty = true;
+    chunk->is_dirty = true;
 }
 
 inline
 void voxel_chunk_vertex_push(
     VoxelChunk* chunk,
-    f32 x, f32 y, f32 z,
-    int32 nx, int32 ny, int32 nz, // Normal
-    VoxelFace a
+    v3_f32 coord,
+    v3_byte normal,
+    const VoxelFace* face
 ) {
     // We currently don't support growing chunks
-    ASSERT_TRUE(chunk->mesh.num_vertices <= VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE);
+    ASSERT_TRUE(chunk->mesh.num_vertices <= VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 3);
 
     uint32 i = chunk->mesh.num_vertices++;
 
-    chunk->mesh.vertices[i * 3 + 0] = x;
-    chunk->mesh.vertices[i * 3 + 1] = y;
-    chunk->mesh.vertices[i * 3 + 2] = z;
+    chunk->mesh.vertices[i] = coord;
 
-    c->mesh.normals[i * 3 + 0] = (uint8) (nx * 127 + 127);
-    c->mesh.normals[i * 3 + 1] = (uint8) (ny * 127 + 127);
-    c->mesh.normals[i * 3 + 2] = (uint8) (nz * 127 + 127);
+    c->mesh.normals[i].x = normal.x * 127 + 127;
+    c->mesh.normals[i].y = normal.y * 127 + 127;
+    c->mesh.normals[i].z = normal.z * 127 + 127;
 
-    c->mesh.types[i] = a.type;
-    c->mesh.rotations[i] = a.rotation;
+    c->mesh.types[i] = face->type;
+    c->mesh.rotations[i] = face->rotation;
 }
 
 inline
@@ -275,17 +214,17 @@ void voxel_chunk_quad_push(
 inline
 Voxel voxel_world_map_get(
     HashMap* map,
-    int32 chunk_x, int32 chunk_y, int32 chunk_z,
+    v3_int32 chunk_coord,
     int32 x, int32 y, int32 z,
 ) {
-    while(x < 0) { x += VOXEL_CHUNK_SIZE; --chunk_x; }
-    while(y < 0) { y += VOXEL_CHUNK_SIZE; --chunk_y; }
-    while(z < 0) { z += VOXEL_CHUNK_SIZE; --chunk_z; }
-    while(x >= VOXEL_CHUNK_SIZE) { x -= VOXEL_CHUNK_SIZE; ++chunk_x; }
-    while(y >= VOXEL_CHUNK_SIZE) { y -= VOXEL_CHUNK_SIZE; ++chunk_y; }
-    while(z >= VOXEL_CHUNK_SIZE) { z -= VOXEL_CHUNK_SIZE; ++chunk_z; }
+    while(x < 0) { x += VOXEL_CHUNK_SIZE; --chunk_coord.x; }
+    while(y < 0) { y += VOXEL_CHUNK_SIZE; --chunk_coord.y; }
+    while(z < 0) { z += VOXEL_CHUNK_SIZE; --chunk_coord.z; }
+    while(x >= VOXEL_CHUNK_SIZE) { x -= VOXEL_CHUNK_SIZE; ++chunk_coord.x; }
+    while(y >= VOXEL_CHUNK_SIZE) { y -= VOXEL_CHUNK_SIZE; ++chunk_coord.y; }
+    while(z >= VOXEL_CHUNK_SIZE) { z -= VOXEL_CHUNK_SIZE; ++chunk_coord.z; }
 
-    HashEntry* entry = hashmap_get_entry(map, chunk_x, chunk_y, chunk_z);
+    HashEntry* entry = hashmap_get_entry(map, chunk_coord.x, chunk_coord.y, chunk_coord.z);
     if (!entry) {
         // Is air
         return {0, 0};
@@ -293,7 +232,7 @@ Voxel voxel_world_map_get(
 
     VoxelChunk* chunk = (VoxelChunk *) entry->value;
 
-    return voxel_get(chunk, x, y, z);
+    return voxel_chunk_get(chunk, x, y, z);
 }
 
 // Builds the greedy mash of a chunk
@@ -303,60 +242,230 @@ void voxel_chunk_mesh_build(HashMap* map, VoxelChunk* chunk)
     chunk->mesh.num_vertices = 0;
     chunk->mesh.num_indices = 0;
 
+    // @bug This is probably using up all our stack memory once we multithread it
+    VoxelMaskCell mask[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE];
+
     // Build quads between solid/air slabs
     // x,y,z are the axis 0-2
     for (int32 axis = 0; axis < 3; ++axis) {
         int32 u = (axis + 1) % 3;
         int32 v = (axis + 2) % 3;
 
-        int32 du[3] = {}; du[axis] = 1;
-        int32 dv[3] = {}; dv[v] = 1;
-        int32 duu[3] = {}; duu[u] = 1;
+        v3_int32 du = {}; du.vec[axis] = 1;
+        v3_int32 dv = {}; dv.vec[v] = 1;
+        v3_int32 duu = {}; duu.vec[u] = 1;
 
         for (int32 d = -1; d < VOXEL_CHUNK_SIZE; ++d) {
-            int32 x_offset = axis == 0 ? d : 0;
-            int32 y_offset = axis == 1 ? d : 0;
-            int32 z_offset = axis == 2 ? d : 0;
+            v3_int32 offset = {
+                axis == 0 ? d : 0,
+                axis == 1 ? d : 0,
+                axis == 2 ? d : 0
+            };
 
+            // Fill mask with faces between slices d and d + 1 along the axis
             for (int32 j = 0; j < VOXEL_CHUNK_SIZE; ++j) {
-                int32 dv_x = x_offset + j * dv[0];
-                int32 dv_y = y_offset + j * dv[1];
-                int32 dv_z = z_offset + j * dv[2];
+                v3_int32 dv_offset;
+                vec3_muladd(&dv_offset, &offset, &dv, j);
 
                 for (int32 i = 0; i < VOXEL_CHUNK_SIZE; ++i) {
-                    int32 x = dv_x + i * duu[0];
-                    int32 y = dv_y + i * duu[1];
-                    int32 z = dv_z + i * duu[2];
+                    v3_int32 vec;
+                    vec3_muladd(&vec, &dv_offset, &duu, i);
 
-                    Voxel a;
-                    if (d >= 0) {
-                        a = voxel_world_map_get(map, chunk->coord.x, chunk->coord.y, chunk->coord.z, x, y, z);
-                    } else {
-                        a = {0, 0};
-                    }
+                    Voxel a = (d >= 0)
+                        ? voxel_world_map_get(map, chunk->coord, vec.x, vec.y, vec.z)
+                        : {0, 0};
 
-                    Voxel b;
-                    if (d < VOXEL_CHUNK_SIZE - 1) {
-                        b = voxel_world_map_get(map, chunk->coord.x, chunk->coord.y, chunk->coord.z, x + du[0], y + du[1], z + du[2]);
-                    } else {
-                        b = {0, 0};
-                    }
+                    vec3_add(vec, du);
+                    Voxel b = (d < VOXEL_CHUNK_SIZE - 1)
+                        ? voxel_world_map_get(map, chunk->coord, vec.x, vec.y, vec.z)
+                        : {0, 0};
+
+                    VoxelMaskCell* mask_temp = &mask[j * VOXEL_CHUNK_SIZE + i];
 
                     // If one voxel is air and the other is solid we need to create a face
-                    // @todo This needs to be expanded to semi-transparent voxels as well
-                    if ((a.type == 0) != (b.type == 0)) {
-
-                    } else {
-
+                    mask_temp->is_filled = voxel_is_solid(a.type) != voxel_is_solid(b.type)
+                    if (mask_temp->is_filled) {
+                        // Face is oriented towards a solid voxel
+                        bool front = voxel_is_solid(b.type);
+                        mask_temp->face.type = front ? b.type : a.type;
+                        mask_temp->face.rotation = front ? b.rotation : a.rotation;
                     }
                 }
             }
+
+            // Greedy merge rectangles in the mask
+            for (int32 j = 0; j < VOXEL_CHUNK_SIZE;) {
+                for (int32 i = 0; i < VOXEL_CHUNK_SIZE;) {
+                    if (!mask[j * VOXEL_CHUNK_SIZE + i].is_filled) {
+                        ++i;
+                        continue;
+                    }
+
+                    VoxelFace* face = &mask[j * VOXEL_CHUNK_SIZE + i].face;
+
+                    // Calculate width
+                    int32 width = 1;
+                    while (i + width < VOXEL_CHUNK_SIZE
+                        && mask[j * VOXEL_CHUNK_SIZE + i + width].is_filled
+                        && memcmp(&mask[j * VOXEL_CHUNK_SIZE + i + width].face, face, sizeof(VoxelFace)) == 0
+                    ) {
+                        ++width;
+                    }
+
+                    // Calculate height
+                    int32 height = 1;
+                    bool done = false;
+                    while (j + h < VOXEL_CHUNK_SIZE && !done) {
+                        for (int32 k = 0; k < width; ++k) {
+                            VoxelMaskCell* mask_temp = &mask[(j + width) * VOXEL_CHUNK_SIZE + i + k];
+                            if (!(mask_temp->filled
+                                && memcmp(&mask_temp->face, face, sizeof(VoxelFace)) == 0)
+                            ) {
+                                done = true;
+                                break;
+                            }
+                        }
+
+                        // @performance Consider to replace with jump in if above
+                        if (done) {
+                            break;
+                        }
+
+                        ++height;
+                    }
+
+                    // Create Quad of size width + height
+                    // The origin is in voxel space at i,j between slabs d and d+1
+                    // Build the oriented vertices
+                    v3_int32 normal = {};
+                    if (axis == 0) {
+                        if (d >= 0
+                            && d < VOXEL_CHUNK_SIZE - 1
+                            && voxel_is_solid(voxel_world_map_get(map, chunk->coord, d + 1, j, i))
+                        ) {
+                            normal.x = -1;
+                        } else if (voxel_is_solid(voxel_world_map_get(map, chunk->coord, d, j, i)) || d == -1) {
+                            normal.x = 1;
+                        } else {
+                            normal.x = -1;
+                        }
+                    } else if (axis == 1) {
+                        if (d >= 0
+                            && d < VOXEL_CHUNK_SIZE - 1
+                            && voxel_is_solid(voxel_world_map_get(map, chunk->coord, i, d + 1, j))
+                        ) {
+                            normal.y = -1;
+                        } else if (voxel_is_solid(voxel_world_map_get(map, chunk->coord, i, d, j)) || d == -1) {
+                            normal.y = 1;
+                        } else {
+                            normal.y = -1;
+                        }
+                    } else if (axis == 2) {
+                        if (d >= 0
+                            && d < VOXEL_CHUNK_SIZE - 1
+                            && voxel_is_solid(voxel_world_map_get(map, chunk->coord, j, i, d + 1))
+                        ) {
+                            normal.z = -1;
+                        } else if (voxel_is_solid(voxel_world_map_get(map, chunk->coord, j, i, d)) || d == -1) {
+                            normal.z = 1;
+                        } else {
+                            normal.z = -1;
+                        }
+                    }
+
+                    v3_f32 base = {
+                        (f32) chunk->coord.x * VOXEL_CHUNK_SIZE,
+                        (f32) chunk->coord.y * VOXEL_CHUNK_SIZE,
+                        (f32) chunk->coord.z * VOXEL_CHUNK_SIZE
+                    };
+                    v3_f32 x = {};
+                    v3_f32 y = {};
+                    v3_f32 z = {};
+
+                    x[axis] = (f32) ((d + 1) * (normal.x > 0) + d * (normal.x <= 0));
+
+                    y[u] = (f32) i;
+                    y[v] = (f32) j;
+
+                    z[u] = (f32) width;
+
+                    v3_f32 world = {};
+                    world[v] = (f32) height;
+
+                    uint32 vbase = chunk->mesh.num_vertices;
+
+                    v3_f32 base_temp = base;
+                    vec3_add(base_temp, x);
+                    vec3_add(base_temp, y);
+                    v3_f32 base_temp2 = base_temp;
+
+                    voxel_chunk_vertex_push(chunk, base_temp, normal, face);
+
+                    vec3_add(base_temp, z);
+                    voxel_chunk_vertex_push(chunk, base_temp, normal, face);
+
+                    vec3_add(base_temp, world);
+                    voxel_chunk_vertex_push(chunk, base_temp, normal, face);
+
+                    vec3_add(base_temp2, world);
+                    voxel_chunk_vertex_push(chunk, base_temp2, normal, face);
+
+                    if (vec3_sum(&normal) >= 0) {
+                        voxel_chunk_quad_push(chunk, vbase, vbase + 1, vbase + 2, vbase + 3);
+                    } else {
+                        voxel_chunk_quad_push(chunk, vbase, vbase + 3, vbase + 2, vbase + 1);
+                    }
+
+                    for (int32 jj = 0; jj < height; ++jj) {
+                        for (int32 ii = 0; ii < width; ++ii) {
+                            mask[(j + jj) * VOXEL_CHUNK_SIZE + i + ii].is_filled = false;
+                        }
+                    }
+
+                    i += width;
+                }
+
+                int32 nextj = j + 1;
+                for (; nextj < VOXEL_CHUNK_SIZE; ++nextj) {
+                    bool any = false;
+
+                    for (int32 ii = 0; ii < VOXEL_CHUNK_SIZE; ++ii) {
+                        if (mask[nextj * VOXEL_CHUNK_SIZE + ii].is_filled) {
+                            any = true;
+                            break;
+                        }
+                    }
+
+                    // @performance Consider to replace with jump in if above
+                    if (any) {
+                        break;
+                    }
+                }
+
+                j = nextj;
+            }
         }
     }
+
+    chunk->is_dirty = false;
 }
 
+struct VoxelDrawChunk {
+    VoxelChunk* chunk;
+
+    // Distance squared to the camera
+    // Used for sorting
+    f32 dist2;
+};
+
+struct VoxelChunkDrawQueue {
+    uint32 size;
+    uint32 count;
+    VoxelDrawChunk* elements;
+};
+
 struct VoxelOctNode {
-    AABB box; // loose bounds
+    AABB_int32 box; // loose bounds
     VoxelOctNode* child[8]; // children or NULL
     VoxelChunk** chunks; // dynamic array of chunks overlapping this node
     uint32 count;
@@ -369,31 +478,135 @@ struct VoxelOctree {
     f32 looseness; // >1.0 (e.g., 1.5)
 };
 
+static inline
+voxel_octnode_create(VoxelOctNode* node, const AABB_int32* box){
+    node->box = *box;
+
+    for(int32 i = 0; i < 8; ++i) {
+        node->child[i] = NULL;
+    }
+
+    node->chunks=NULL;
+    node->count=0;
+    node->cap=0;
+}
+
 static
-void voxel_octree_rebuild(Octree* t, const ChunkMap* map)
+void voxel_octnode_insert(VoxelOctNode* node, const VoxelChunk* chunk, int32 depth, int32 max_depth) {
+    if(depth == max_depth){
+        if(node->count == node->cap){
+            node->cap = node->cap
+                ? node->cap * 2
+                : 4;
+
+            node->chunks=(VoxelChunk**)realloc(node->chunks, sizeof(VoxelChunk *) * node->cap);
+        }
+
+        node->chunks[node->count++] = chunk;
+
+        return;
+    }
+
+    // subdivide bounds
+    v3_int32 cmin = node->box.min
+    v3_int32 cmax = node->box.max;
+    v3_int32 half = vec3_scale(vec3_sub(cmax,cmin), 0.5f);
+    v3_int32 ctr = vec3_add(cmin, half);
+
+    AABB_int32 child_box[8];
+    for (int32 i = 0; i < 8; ++i) {
+        v3_int32 mn = {
+            (i & 1) ? ctr.x : cmin.x,
+            (i & 2) ? ctr.y : cmin.y,
+            (i & 4) ? ctr.z : cmin.z
+        };
+
+        v3_int32 mx = {
+            (i & 1) ? cmax.x: ctr.x ,
+            (i & 2) ? cmax.y: ctr.y ,
+            (i & 4) ? cmax.z: ctr.z
+        };
+
+        child_box[i] = (AABB_int32){ mn, mx };
+    }
+
+    // attempt to place chunk in a single child; if overlaps multiple, store here
+    int32 single = -1;
+    for (int32 i = 0; i < 8; ++i) {
+        if (aabb_overlap(child_box[i], c->bounds)){
+            if (single == -1) {
+                single = i;
+            } else {
+                single = -2;
+                break;
+            }
+        }
+    }
+
+    if (single >= 0) {
+        if(!node->child[single]) {
+            voxel_octnode_create(&node->child[single], child_box[single]);
+        }
+
+        voxel_octnode_insert(node->child[single], chunk, depth+1, max_depth);
+
+        return;
+    }
+
+    // overlap multiple children -> keep at this node
+    if (node->count==node->cap) {
+        node->cap = node->cap
+            ? node->cap * 2
+            : 4;
+
+        node->chunks=(VoxelChunk**)realloc(node->chunks, sizeof(VoxelChunk *) * node->cap);
+    }
+
+    node->chunks[node->count++] = (VoxelChunk*) chunk;
+}
+
+static
+void voxel_octree_rebuild(VoxelOctree* tree, const ChunkMap* map)
 {
     // destroy and rebuild from chunk map (simple approach; can be made incremental)
-    octnode_free(t->root);
+    // @todo instead of free set to 0
+    voxel_octnode_free(t->root);
 
     // compute bounds from map contents, fallback to origin cube
-    aabb wb = { v3(-512,-512,-512), v3(512,512,512) };
-    t->root = octnode_create(aabb_loosen(wb, t->looseness));
+    AABB_int32 wb = { {-512,-512,-512}, {512,512,512} };
+    tree->root = voxel_octnode_create(node, aabb_loosen(wb, tree->looseness));
 
     // iterate map slots
-    for(uint32_t i = 0; i < map->cap; ++i) {
-        Chunk* c = map->vals[i];
+    // @bug this won't work for our map implementation
+    for(uint32 i = 0; i < map->cap; ++i) {
+        Chunk* chunk = map->vals[i];
 
-        if(!c) {
+        if(!chunk) {
             continue;
         }
 
-        octnode_insert(t->root, c, 0, t->max_depth);
+        voxel_octnode_insert(tree->root, chunk, 0, tree->max_depth);
     }
 }
 
 struct VoxelWorld {
-    HashMap map; // sparse chunks
-    VoxelOctree oct; // spatial index (optional)
+    // This contains the actual chunk data
+    // The element size is not a full chunk but sizeof(VoxelChunk) + length*length*sizeof(Voxel)
+    DataPool mem;
+
+    // This contains the pointer to the VoxelChunk stored in the chunk memory (HashEntryVoidPKeyInt64)
+    // We don't directly store the chunks in here because then we would have to support dynamic size hashmap entries
+    // This wouldn't be impossible but make the memory handling more complex
+    // @todo we need to implement a defragment function that allows us to defragment DataPool
+    //  -> optimize free space because highly fragmented data will make new allocation difficult
+    //  -> this needs to be implemented here because the HashMap also needs to update it's reference
+    //  -> For that we need to iterate every element in the hashmap and try to find a better position and update the value
+    //  -> However, this might not be needed at all depending on how much overhead memory we allow for DataPool
+    HashMap map;
+
+    // Octree used for the rendering
+    VoxelOctree oct;
+
     bool use_octree;
 };
 
@@ -405,7 +618,7 @@ void voxel_world_remesh_dirty(VoxelWorld* vw) NO_EXCEPT {
             continue
         };
 
-        if(chunk->dirty) {
+        if(chunk->is_dirty) {
             voxel_chunk_mesh_build(chunk, &vw->map);
         }
     }
@@ -457,7 +670,7 @@ voxel_world_create(VoxelWorld* vw) {
         }
     }
 
-    voxel_world_remash_dirty(vw);
+    voxel_world_remesh_dirty(vw);
 }
 
 #endif

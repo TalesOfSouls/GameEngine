@@ -97,7 +97,7 @@ void ui_layout_assign_children(
 
         // Set child offset
         HashEntryInt32* child_entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name);
-        children[current_child_pos] = child_entry->value;
+        children[current_child_pos] = (uint32) child_entry->value;
 
         // Create a reference to the parent element for the child element
         UIElement* child_element = (UIElement *) (layout->data + child_entry->value);
@@ -248,7 +248,8 @@ void layout_from_file_txt(
         str_copy_move_until(block_name, &pos, ":");
         str_move_past(&pos, '\n');
 
-        UIElement* element = (UIElement *) (layout->data + ((HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name))->value);
+        HashEntryInt32 * entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name);
+        UIElement* element = (UIElement *) (layout->data + entry->value);
         ui_layout_assign_children(layout, element, pos, level);
 
         // ui_layout_assign_children doesn't move the pos pointer
@@ -280,7 +281,7 @@ void layout_from_file_txt(
 
         str_copy_move_until(block_name, &pos, ":");
         str_move_past(&pos, '\n');
-        root_children[child++] = ((HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name))->value;
+        root_children[child++] = (uint32) ((HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name))->value;
     }
 
     layout->layout_size = (uint32) (element_data - layout->data);
@@ -444,7 +445,7 @@ int32 layout_to_data(
     // We don't save the used_data_size because that depends on the respective theme
 
     // hashmap
-    out += hashmap_dump(&layout->hash_map, out);
+    out += hashmap_dump(&layout->hash_map, out, MEMBER_SIZEOF(HashEntryInt32, value));
 
     // UIElement data
     uint32 chunk_id = 0;
@@ -614,7 +615,7 @@ int32 layout_from_data(
         OMS_ALIGN_UP(sizeof(HashEntryInt32), 32)
     );
 
-    in += hashmap_load(&layout->hash_map, in);
+    in += hashmap_load(&layout->hash_map, in, MEMBER_SIZEOF(HashEntryInt32, value));
 
     // layout data
     // @performance We are iterating the hashmap twice (hashmap_load and here)

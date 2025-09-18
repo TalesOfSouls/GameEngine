@@ -49,7 +49,8 @@ struct ThreadPool {
 static
 THREAD_RETURN thread_pool_worker(void* arg)
 {
-    _thread_local_id = (int32) thread_current_id();
+    THREAD_CURRENT_ID(_thread_local_id);
+    THREAD_CPU_ID(_thread_cpu_id);
     ThreadPool* pool = (ThreadPool *) arg;
 
     if (pool->debug_container) {
@@ -295,6 +296,7 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
     return temp_job;
 }
 
+inline
 void thread_pool_add_work_end(ThreadPool* pool)
 {
     queue_enqueue_end(&pool->work_queue);

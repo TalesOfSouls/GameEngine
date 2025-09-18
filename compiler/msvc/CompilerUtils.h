@@ -81,6 +81,8 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_E
 #define compiler_is_bit_set_r2l(num, pos) _bittest(num, pos)
 #define compiler_is_bit_set_64_r2l(num, pos) _bittest64(num, pos)
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 uint32 compiler_div_pow2(uint32 a, uint32 b)
 {
@@ -90,6 +92,8 @@ uint32 compiler_div_pow2(uint32 a, uint32 b)
     return (uint32) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 size_t compiler_div_pow2(size_t a, size_t b)
 {
@@ -99,6 +103,8 @@ size_t compiler_div_pow2(size_t a, size_t b)
     return (size_t) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 uint16 compiler_div_pow2(uint16 a, uint16 b) {
     unsigned long index = 0;
@@ -107,6 +113,8 @@ uint16 compiler_div_pow2(uint16 a, uint16 b) {
     return (uint16) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 size_t compiler_div_pow2(size_t a, uint32 b)
 {
@@ -116,6 +124,8 @@ size_t compiler_div_pow2(size_t a, uint32 b)
     return (size_t) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 uint16 compiler_div_pow2(uint16 a, uint32 b) {
     unsigned long index = 0;
@@ -124,6 +134,8 @@ uint16 compiler_div_pow2(uint16 a, uint32 b) {
     return (uint16) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 uint32 compiler_div_pow2(uint32 a, int32 b)
 {
@@ -133,6 +145,8 @@ uint32 compiler_div_pow2(uint32 a, int32 b)
     return (uint32) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 int32 compiler_div_pow2(int32 a, int32 b)
 {
@@ -142,6 +156,8 @@ int32 compiler_div_pow2(int32 a, int32 b)
     return (int32) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 uint16 compiler_div_pow2(uint16 a, int16 b) {
     unsigned long index = 0;
@@ -150,6 +166,8 @@ uint16 compiler_div_pow2(uint16 a, int16 b) {
     return (uint16) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 size_t compiler_div_pow2(size_t a, int32 b)
 {
@@ -159,6 +177,8 @@ size_t compiler_div_pow2(size_t a, int32 b)
     return (size_t) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 uint16 compiler_div_pow2(uint16 a, int32 b) {
     unsigned long index = 0;
@@ -167,6 +187,8 @@ uint16 compiler_div_pow2(uint16 a, int32 b) {
     return (uint16) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 byte compiler_div_pow2(byte a, int32 b) {
     unsigned long index = 0;
@@ -175,6 +197,8 @@ byte compiler_div_pow2(byte a, int32 b) {
     return (byte) (a >> index);
 }
 
+// Optimized way to calculate the division where b is a power of 2
+// Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
 byte compiler_div_pow2(byte a, uint32 b) {
     unsigned long index = 0;
@@ -231,5 +255,12 @@ void compiler_memset_aligned(void* dst, int value, size_t size) {
 #define SWAP_ENDIAN_16(val) _byteswap_ushort((val))
 #define SWAP_ENDIAN_32(val) _byteswap_ulong((val))
 #define SWAP_ENDIAN_64(val) _byteswap_uint64((val))
+
+#include <math.h>
+FORCE_INLINE
+void sincosf(f32 x, f32* sin, f32* cos) {
+    *sin = sinf(x);
+    *cos = cosf(x);
+}
 
 #endif

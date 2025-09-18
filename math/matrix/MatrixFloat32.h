@@ -11,16 +11,12 @@
 
 #include <string.h>
 #include <math.h>
+#include "../../stdlib/Types.h"
 #include "../../utils/Assert.h"
 #include "../../architecture/Intrinsics.h"
+#include "../../compiler/CompilerUtils.h"
 
-// INFO: I thought we could remove some of the functions.
-//      Sometimes we have a function that modifies the original value
-//      and then we also have the same function that fills a new result value.
-//      On gcc the optimized code creates the same assembly if we would just choose to return the new value
-//      vs. modifying a value by pointer.
-//      However, on MSVC this is not the case and the pointer version has more and slower assembly code vs. the
-//      pass-by-value function
+// Pass-by-value is faster in most cases
 
 FORCE_INLINE
 void vec2_normalize(f32* __restrict x, f32* __restrict y) NO_EXCEPT
@@ -32,10 +28,28 @@ void vec2_normalize(f32* __restrict x, f32* __restrict y) NO_EXCEPT
 }
 
 FORCE_INLINE
+f32 vec2_sum(v2_f32* vec) NO_EXCEPT
+{
+    return vec->x + vec->y;
+}
+
+FORCE_INLINE
+f32 vec2_sum(v2_f32 vec) NO_EXCEPT
+{
+    return vec.x + vec.y;
+}
+
+FORCE_INLINE
 void vec2_add(v2_f32* __restrict vec, const v2_f32* a, const v2_f32* b) NO_EXCEPT
 {
     vec->x = a->x + b->x;
     vec->y = a->y + b->y;
+}
+
+FORCE_INLINE
+v2_f32 vec2_add(v2_f32 a, v2_f32 b) NO_EXCEPT
+{
+    return {a.x + b.x, a.y + b.y};
 }
 
 FORCE_INLINE
@@ -53,6 +67,12 @@ void vec2_sub(v2_f32* __restrict vec, const v2_f32* __restrict a, const v2_f32* 
 }
 
 FORCE_INLINE
+v2_f32 vec2_sub(v2_f32 a, v2_f32 b) NO_EXCEPT
+{
+    return {a.x - b.x, a.y - b.y};
+}
+
+FORCE_INLINE
 void vec2_sub(v2_f32* __restrict vec, const v2_f32* __restrict b) NO_EXCEPT
 {
     vec->x -= b->x;
@@ -64,6 +84,12 @@ void vec2_mul(v2_f32* __restrict vec, const v2_f32* __restrict a, f32 s) NO_EXCE
 {
     vec->x = a->x * s;
     vec->y = a->y * s;
+}
+
+FORCE_INLINE
+v2_f32 vec2_mul(v2_f32 a, f32 s) NO_EXCEPT
+{
+    return {a.x * s, a.y * s};
 }
 
 FORCE_INLINE
@@ -87,10 +113,27 @@ void vec2_mul(v2_f32* __restrict vec, const v2_f32* a, const v2_f32* b) NO_EXCEP
 }
 
 FORCE_INLINE
+v2_f32 vec2_mul(v2_f32 a, v2_f32 b) NO_EXCEPT
+{
+    return {a.x * b.x, a.y * b.y};
+}
+
+FORCE_INLINE
 void vec2_mul(v2_f32* vec, const v2_f32* b) NO_EXCEPT
 {
     vec->x *= b->x;
     vec->y *= b->y;
+}
+
+FORCE_INLINE
+void vec2_fma(v2_f32* __restrict vec, const v2_f32* a, const v2_f32* b, f32 scalar) NO_EXCEPT {
+    vec->x = a->x + b->x * scalar;
+    vec->y = a->y + b->y * scalar;
+}
+
+FORCE_INLINE
+v2_f32 vec2_fma(v2_f32 a, v2_f32 b, f32 scalar) NO_EXCEPT {
+    return {a.x + b.x * scalar, a.y + b.y * scalar};
 }
 
 FORCE_INLINE
@@ -100,9 +143,21 @@ f32 vec2_cross(const v2_f32* a, const v2_f32* b) NO_EXCEPT
 }
 
 FORCE_INLINE
+f32 vec2_cross(v2_f32 a, v2_f32 b) NO_EXCEPT
+{
+    return a.x * b.y - a.y * b.x;
+}
+
+FORCE_INLINE
 f32 vec2_dot(const v2_f32* a, const v2_f32* b) NO_EXCEPT
 {
     return a->x * b->x + a->y * b->y;
+}
+
+FORCE_INLINE
+f32 vec2_dot(v2_f32 a, v2_f32 b) NO_EXCEPT
+{
+    return a.x * b.x + a.y * b.y;
 }
 
 FORCE_INLINE
@@ -115,6 +170,12 @@ FORCE_INLINE
 f32 vec3_length(v3_f32* vec) NO_EXCEPT
 {
     return sqrtf(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
+}
+
+FORCE_INLINE
+f32 vec3_length(v3_f32 vec) NO_EXCEPT
+{
+    return sqrtf(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 }
 
 FORCE_INLINE
@@ -138,11 +199,29 @@ void vec3_normalize(v3_f32* vec) NO_EXCEPT
 }
 
 FORCE_INLINE
+f32 vec3_sum(v3_f32* vec) NO_EXCEPT
+{
+    return vec->x + vec->y + vec->z;
+}
+
+FORCE_INLINE
+f32 vec3_sum(v3_f32 vec) NO_EXCEPT
+{
+    return vec.x + vec.y + vec.z;
+}
+
+FORCE_INLINE
 void vec3_add(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) NO_EXCEPT
 {
     vec->x = a->x + b->x;
     vec->y = a->y + b->y;
     vec->z = a->z + b->z;
+}
+
+FORCE_INLINE
+v3_f32 vec3_add(v3_f32 a, v3_f32 b) NO_EXCEPT
+{
+    return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
 
 FORCE_INLINE
@@ -162,6 +241,12 @@ void vec3_sub(v3_f32* __restrict vec, const v3_f32* __restrict a, const v3_f32* 
 }
 
 FORCE_INLINE
+v3_f32 vec3_sub(v3_f32 a, v3_f32 b) NO_EXCEPT
+{
+    return {a.x - b.x, a.y - b.y, a.z - b.z};
+}
+
+FORCE_INLINE
 void vec3_sub(v3_f32* __restrict vec, const v3_f32* __restrict b) NO_EXCEPT
 {
     vec->x -= b->x;
@@ -175,6 +260,12 @@ void vec3_mul(v3_f32* __restrict vec, const v3_f32* __restrict a, f32 s) NO_EXCE
     vec->x = a->x * s;
     vec->y = a->y * s;
     vec->z = a->z * s;
+}
+
+FORCE_INLINE
+v3_f32 vec3_mul(v3_f32 a, v3_f32 b) NO_EXCEPT
+{
+    return {a.x * b.x, a.y * b.y, a.z * b.z};
 }
 
 FORCE_INLINE
@@ -208,6 +299,18 @@ void vec3_mul(v3_f32* vec, const v3_f32* b) NO_EXCEPT
 }
 
 FORCE_INLINE
+void vec3_fma(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b, f32 scalar) NO_EXCEPT {
+    vec->x = a->x + b->x * scalar;
+    vec->y = a->y + b->y * scalar;
+    vec->z = a->z + b->z * scalar;
+}
+
+FORCE_INLINE
+v3_f32 vec3_fma(v3_f32 a, v3_f32 b, f32 scalar) NO_EXCEPT {
+    return {a.x + b.x * scalar, a.x + b.x * scalar, a.x + b.x * scalar};
+}
+
+FORCE_INLINE
 void vec3_cross(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) NO_EXCEPT
 {
     vec->x = a->y * b->z - a->z * b->y;
@@ -216,9 +319,21 @@ void vec3_cross(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) NO_EXC
 }
 
 FORCE_INLINE
+v3_f32 vec3_cross(v3_f32 a, v3_f32 b) NO_EXCEPT
+{
+    return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
+}
+
+FORCE_INLINE
 f32 vec3_dot(const v3_f32* a, const v3_f32* b) NO_EXCEPT
 {
     return a->x * b->x + a->y * b->y + a->z * b->z;
+}
+
+FORCE_INLINE
+f32 vec3_dot(v3_f32 a, v3_f32 b) NO_EXCEPT
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 FORCE_INLINE
@@ -242,6 +357,12 @@ void vec4_add(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) NO_EXCEP
 }
 
 FORCE_INLINE
+v4_f32 vec4_add(v4_f32 a, v4_f32 b) NO_EXCEPT
+{
+    return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
+}
+
+FORCE_INLINE
 void vec4_add(v4_f32* __restrict vec, const v4_f32* b) NO_EXCEPT
 {
     vec->x += b->x;
@@ -257,6 +378,12 @@ void vec4_sub(v4_f32* __restrict vec, const v4_f32* __restrict a, const v4_f32* 
     vec->y = a->y - b->y;
     vec->z = a->z - b->z;
     vec->w = a->w - b->w;
+}
+
+FORCE_INLINE
+v4_f32 vec4_sub(v4_f32 a, v4_f32 b) NO_EXCEPT
+{
+    return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
 }
 
 FORCE_INLINE
@@ -287,6 +414,12 @@ void vec4_mul(v4_f32* vec, f32 s) NO_EXCEPT
 }
 
 FORCE_INLINE
+v4_f32 vec4_mul(v4_f32 vec, f32 s) NO_EXCEPT
+{
+    return {vec.x * s, vec.y * s, vec.z * s, vec.w * s};
+}
+
+FORCE_INLINE
 f32 vec4_mul(const v4_f32* a, const v4_f32* b) NO_EXCEPT
 {
     return a->x * b->x + a->y * b->y + a->z * b->z + a->w * b->w;
@@ -299,6 +432,12 @@ void vec4_mul(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) NO_EXCEP
     vec->y = a->y * b->y;
     vec->z = a->z * b->z;
     vec->w = a->w * b->w;
+}
+
+FORCE_INLINE
+v4_f32 vec4_mul(v4_f32 a, v4_f32 b) NO_EXCEPT
+{
+    return {a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w};
 }
 
 FORCE_INLINE
@@ -317,12 +456,29 @@ f32 vec4_dot(const v4_f32* a, const v4_f32* b) NO_EXCEPT
 }
 
 FORCE_INLINE
+f32 vec4_dot(v4_f32 a, v4_f32 b) NO_EXCEPT
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+FORCE_INLINE
 void vec4_cross(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b, const v4_f32* c) NO_EXCEPT
 {
     vec->x = a->y * (b->z * c->w - b->w * c->z) - a->z * (b->y * c->w - b->w * c->y) + a->w * (b->y * c->z - b->z * c->y);
     vec->y = -(a->x * (b->z * c->w - b->w * c->z) - a->z * (b->x * c->w - b->w * c->x) + a->w * (b->x * c->z - b->z * c->x));
     vec->z = a->x * (b->y * c->w - b->w * c->y) - a->y * (b->x * c->w - b->w * c->x) + a->w * (b->x * c->y - b->y * c->x);
     vec->w = -(a->x * (b->y * c->z - b->z * c->y) - a->y * (b->x * c->z - b->z * c->x) + a->z * (b->x * c->y - b->y * c->x));
+}
+
+FORCE_INLINE
+v4_f32 vec4_cross(v4_f32 a, v4_f32 b, v4_f32 c) NO_EXCEPT
+{
+    return {
+        a.y * (b.z * c.w - b.w * c.z) - a.z * (b.y * c.w - b.w * c.y) + a.w * (b.y * c.z - b.z * c.y),
+        -(a.x * (b.z * c.w - b.w * c.z) - a.z * (b.x * c.w - b.w * c.x) + a.w * (b.x * c.z - b.z * c.x)),
+        a.x * (b.y * c.w - b.w * c.y) - a.y * (b.x * c.w - b.w * c.x) + a.w * (b.x * c.y - b.y * c.x),
+        -(a.x * (b.y * c.z - b.z * c.y) - a.y * (b.x * c.z - b.z * c.x) + a.z * (b.x * c.y - b.y * c.x))
+    };
 }
 
 FORCE_INLINE
@@ -376,11 +532,13 @@ void mat4_identity(__m128* matrix) NO_EXCEPT
 inline
 void mat4_rotation(f32* matrix, f32 x, f32 y, f32 z, f32 angle) NO_EXCEPT
 {
-    ASSERT_TRUE(OMS_ABS_F32(x * x + y * y + z * z - 1.0f) < 0.01);
+    ASSERT_TRUE(OMS_ABS_F32(x * x + y * y + z * z - 1.0f) < 0.01f);
 
     // @todo replace with quaternions
-    f32 s = sinf(angle);
-    f32 c = cosf(angle);
+    f32 s;
+    f32 c;
+    sincosf(angle, &s, &c);
+
     f32 m = 1 - c;
 
     f32 mx = m * x;
@@ -419,12 +577,17 @@ void mat4_rotation(f32* matrix, f32 x, f32 y, f32 z, f32 angle) NO_EXCEPT
 inline
 void mat4_rotation(f32* matrix, f32 pitch, f32 yaw, f32 roll) NO_EXCEPT
 {
-    f32 cos_pitch = cosf(pitch);
-    f32 sin_pitch = sinf(pitch);
-    f32 cos_yaw = cosf(yaw);
-    f32 sin_yaw = sinf(yaw);
-    f32 cos_roll = cosf(roll);
-    f32 sin_roll = sinf(roll);
+    f32 cos_pitch;
+    f32 sin_pitch;
+    sincosf(pitch, &sin_pitch, &cos_pitch);
+
+    f32 cos_yaw;
+    f32 sin_yaw;
+    sincosf(yaw, &sin_yaw, &cos_yaw);
+
+    f32 cos_roll;
+    f32 sin_roll;
+    sincosf(roll, &sin_roll, &cos_roll);
 
     matrix[0] = cos_yaw * cos_roll;
     matrix[1] = cos_yaw * sin_roll;
@@ -881,6 +1044,28 @@ void vec3_normal(
     vec3_normalize(normal);
 }
 
+inline
+v3_f32 vec3_normal(
+    v3_f32 a, v3_f32 b, v3_f32 c
+) NO_EXCEPT {
+    v3_f32 edge1;
+    v3_f32 edge2;
+
+    // Calculate two edges of the triangle
+    edge1.x = b.x - a.x;
+    edge1.y = b.y - a.y;
+    edge1.z = b.z - a.z;
+
+    edge2.x = c.x - a.x;
+    edge2.y = c.y - a.y;
+    edge2.z = c.z - a.z;
+
+    v3_f32 normal = vec3_cross(edge1, edge2);
+    vec3_normalize(&normal);
+
+    return normal;
+}
+
 FORCE_INLINE
 void vec3_barycenter(
     v3_f32* __restrict barycenter,
@@ -889,6 +1074,17 @@ void vec3_barycenter(
     barycenter->x = (a->x + b->x + c->x) / 3.0f;
     barycenter->y = (a->y + b->y + c->y) / 3.0f;
     barycenter->z = (a->z + b->z + c->z) / 3.0f;
+}
+
+FORCE_INLINE
+v3_f32 vec3_barycenter(
+    v3_f32 a, v3_f32 b, v3_f32 c
+) NO_EXCEPT {
+    return {
+        (a.x + b.x + c.x) / 3.0f,
+        (a.y + b.y + c.y) / 3.0f,
+        (a.z + b.z + c.z) / 3.0f
+    };
 }
 
 #endif

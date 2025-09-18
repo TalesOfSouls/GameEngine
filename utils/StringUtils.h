@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include "../stdlib/Types.h"
+#include "../compiler/CompilerUtils.h"
 #include "../utils/Assert.h"
 
 // WARNING: We need this function because the other function relies on none-constexpr performance features

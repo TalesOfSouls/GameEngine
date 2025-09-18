@@ -292,7 +292,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
     {                                                        \
         ++_test_assert_count;                                \
         ++_test_global_assert_count;                         \
-        if ((a) != true)                                     \
+        if (!(a))                                            \
         {                                                    \
             ++_test_global_assert_error_count;               \
             snprintf(                                        \
@@ -306,7 +306,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
     {                                                        \
         ++_test_assert_count;                                \
         ++_test_global_assert_count;                         \
-        if ((a) != false)                                    \
+        if ((a))                                             \
         {                                                    \
             ++_test_global_assert_error_count;               \
             snprintf(                                        \
@@ -320,7 +320,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
     {                                                        \
         ++_test_assert_count;                                \
         ++_test_global_assert_count;                         \
-        if constexpr ((a) != true)                           \
+        if constexpr (!(a))                                  \
         {                                                    \
             ++_test_global_assert_error_count;               \
             snprintf(                                        \
@@ -334,7 +334,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
     {                                                        \
         ++_test_assert_count;                                \
         ++_test_global_assert_count;                         \
-        if constexpr ((a) != false)                          \
+        if constexpr ((a))                                   \
         {                                                    \
             ++_test_global_assert_error_count;               \
             snprintf(                                        \

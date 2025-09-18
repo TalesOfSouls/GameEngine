@@ -202,4 +202,10 @@ int32 thread_current_id()
     return (int32) GetCurrentThreadId();
 }
 
+FORCE_INLINE
+int32 thread_cpu_id()
+{
+    return (int32) GetCurrentProcessorNumber();
+}
+
 #endif

@@ -58,7 +58,8 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 asset_compo
     LOG_1("Create AMS for %n assets", {LOG_DATA_INT32, &count});
     hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
     ams->asset_component_count = asset_component_count;
-    ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64, true);
+    ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64);
+    memset(ams->asset_components, 0, asset_component_count * sizeof(AssetComponent));
 }
 
 // Different AMS components can have different chunk sizes
@@ -164,7 +165,6 @@ Asset* thrd_ams_get_asset(AssetManagementSystem* ams, const char* key) {
     return (Asset *) entry->value;
 }
 
-inline
 Asset* thrd_ams_get_asset_wait(AssetManagementSystem* ams, const char* key) {
     HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
 
@@ -188,31 +188,6 @@ Asset* thrd_ams_get_asset_wait(AssetManagementSystem* ams, const char* key) {
     return (Asset *) entry->value;
 }
 
-inline
-Asset* thrd_ams_get_asset_wait(AssetManagementSystem* ams, const char* key, uint64 hash) {
-    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key, hash);
-
-    if (!entry) {
-        return NULL;
-    }
-
-    int32 state = 0;
-    while (!(state = atomic_get_acquire(&((Asset *) entry->value)->is_loaded))) {}
-    if (state < 0) {
-        // Marked for removal
-        // @question Consider to change the state and return the asset?
-        return NULL;
-    }
-
-    DEBUG_MEMORY_READ(
-        (uint64) (entry ? ((Asset *) entry->value)->self : 0),
-        entry ? ((Asset *) entry->value)->ram_size : 0
-    );
-
-    return (Asset *) entry->value;
-}
-
-inline
 Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0)
 {
     // @bug Isn't hashmap_get_reserve unsafe for threading?
@@ -231,7 +206,7 @@ Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* ams, byte type, co
     uint16 elements = ams_calculate_chunks(ac, size, overhead);
     int32 free_data = chunk_reserve(&ac->asset_memory, elements);
 
-    byte* data = chunk_get_element(&ac->asset_memory, free_data, true);
+    byte* data = chunk_get_element(&ac->asset_memory, free_data);
 
     asset->component_id = type;
     asset->self = data;
@@ -401,7 +376,7 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name
         return NULL;
     }
 
-    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data, true);
+    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
     Asset* asset = (Asset *) hashmap_reserve(&ams->hash_map, name)->value;
 
     asset->component_id = type;
@@ -433,7 +408,7 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char*
     }
     mutex_unlock(&ams->asset_components[type].mtx);
 
-    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data, true);
+    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
 
     Asset asset = {};
 

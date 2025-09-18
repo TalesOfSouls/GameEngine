@@ -72,7 +72,7 @@ void scheduler_create(TaskScheduler* scheduler, int32 count, BufferMemory* buf) 
         + count * sizeof(int32)
         + CEIL_DIV(count, 64) * sizeof(*scheduler->free)
         + 128,
-        64, true
+        64
     );
 
     scheduler->tasks = (TaskSchedule *) data;

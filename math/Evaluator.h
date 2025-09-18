@@ -259,7 +259,7 @@ f32 evaluator_evaluate_function(const char* name, const char* args) {
     } else if (str_compare(name, "abs") == 0) {
         // Evaluate the single argument
         f32 val = evaluator_evaluate_expression(args);
-        return OMS_ABS(val); // Return the absolute value
+        return OMS_ABS_F32(val); // Return the absolute value
     }
 
     // Handle unknown functions (you can add more functions as needed)

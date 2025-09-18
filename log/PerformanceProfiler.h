@@ -109,6 +109,7 @@ struct PerformanceThreadHistory {
 #define MAX_PERFORMANCE_THREAD_HISTORY 10000
 struct PerformanceProfileThread {
     int32 thread_id;
+    int32 cpu_id;
     atomic_32 uint32 pos;
 
     // WARNING: This only shows tha last tick but when rendering the rendering thread may be way slower
@@ -127,6 +128,7 @@ void thread_profile_history_create(int32 thread_id, const char* name = NULL) NO_
         if (_perf_thread_history[i].thread_id == 0) {
             // @bug this should probably be an atomic operation to ensure no other thread is doing this
             _perf_thread_history[i].thread_id = thread_id;
+            _perf_thread_history[i].cpu_id = 0;
             _perf_thread_history[i].pos = 0;
             _perf_thread_history[i].name = name;
             _perf_thread_history[i].tick = 0;
@@ -282,6 +284,7 @@ struct PerformanceProfiler {
                         MAX_PERFORMANCE_THREAD_HISTORY
                     );
 
+                    _perf_thread_history[i].cpu_id = _thread_cpu_id;
                     _perf_thread_history[i].history[hist_pos].id = this->_id;
                     _perf_thread_history[i].history[hist_pos].start = this->start_cycle;
                     _perf_thread_history[i].history[hist_pos].end = end_cycle;

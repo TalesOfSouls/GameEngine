@@ -125,8 +125,8 @@ void camera_update_vectors(Camera* camera) NO_EXCEPT
     camera->front.y = sinf(OMS_DEG2RAD(camera->orientation.x));
     camera->front.z = cos_ori_x * sinf(OMS_DEG2RAD(camera->orientation.y));
 
-    vec3_cross(&camera->right, &camera->front, &camera->world_up);
-    vec3_cross(&camera->up, &camera->right, &camera->front);
+    camera->right = vec3_cross(camera->front, camera->world_up);
+    camera->up = vec3_cross(camera->right, camera->front);
 
     // We checked if combining these 3 into a single SIMD function, but it was slower
     vec3_normalize(&camera->right);
@@ -220,11 +220,8 @@ void camera_movement(
     } else {
         v3_f32 forward = camera->front;
 
-        v3_f32 right;
-        vec3_cross(&right, &camera->world_up, &forward);
-
-        v3_f32 up;
-        vec3_cross(&up, &right, &forward);
+        v3_f32 right = vec3_cross(camera->world_up, forward);
+        v3_f32 up = vec3_cross(right, forward);
 
         vec3_normalize(&right);
         vec3_normalize(&up);
@@ -404,14 +401,12 @@ camera_view_matrix_lh(Camera* __restrict camera) NO_EXCEPT
 {
     v3_f32 zaxis = camera->front;
 
-    v3_f32 xaxis;
-    vec3_cross(&xaxis, &camera->world_up, &zaxis);
+    v3_f32 xaxis = vec3_cross(camera->world_up, zaxis);
     vec3_normalize(&xaxis);
 
-    v3_f32 yaxis;
-    vec3_cross(&yaxis, &zaxis, &xaxis);
+    v3_f32 yaxis = vec3_cross(zaxis, xaxis);
 
-    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
+   // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
     // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
     camera->view[0] = xaxis.x;
     camera->view[1] = yaxis.x;
@@ -425,9 +420,9 @@ camera_view_matrix_lh(Camera* __restrict camera) NO_EXCEPT
     camera->view[9] = yaxis.z;
     camera->view[10] = zaxis.z;
     camera->view[11] = 0;
-    camera->view[12] = -vec3_dot(&xaxis, &camera->location);
-    camera->view[13] = -vec3_dot(&yaxis, &camera->location);
-    camera->view[14] = -vec3_dot(&zaxis, &camera->location);
+    camera->view[12] = -vec3_dot(xaxis, camera->location);
+    camera->view[13] = -vec3_dot(yaxis, camera->location);
+    camera->view[14] = -vec3_dot(zaxis, camera->location);
     camera->view[15] = 1.0f;
 }
 
@@ -436,14 +431,12 @@ camera_view_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
 {
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
-    v3_f32 xaxis;
-    vec3_cross(&xaxis, &zaxis, &camera->world_up);
+    v3_f32 xaxis = vec3_cross(zaxis, camera->world_up);
     vec3_normalize(&xaxis);
 
-    v3_f32 yaxis;
-    vec3_cross(&yaxis, &zaxis, &xaxis);
+    v3_f32 yaxis = vec3_cross(zaxis, xaxis);
 
-    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
+   // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
     // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
     camera->view[0] = xaxis.x;
     camera->view[1] = yaxis.x;
@@ -457,9 +450,9 @@ camera_view_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
     camera->view[9] = yaxis.z;
     camera->view[10] = zaxis.z;
     camera->view[11] = 0;
-    camera->view[12] = -vec3_dot(&xaxis, &camera->location);
-    camera->view[13] = -vec3_dot(&yaxis, &camera->location);
-    camera->view[14] = -vec3_dot(&zaxis, &camera->location);
+    camera->view[12] = -vec3_dot(xaxis, camera->location);
+    camera->view[13] = -vec3_dot(yaxis, camera->location);
+    camera->view[14] = -vec3_dot(zaxis, camera->location);
     camera->view[15] = 1.0f;
 }
 
@@ -468,14 +461,12 @@ camera_view_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
 {
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
-    v3_f32 xaxis;
-    vec3_cross(&xaxis, &zaxis, &camera->world_up);
+    v3_f32 xaxis = vec3_cross(zaxis, camera->world_up);
     vec3_normalize(&xaxis);
 
-    v3_f32 yaxis;
-    vec3_cross(&yaxis, &zaxis, &xaxis);
+    v3_f32 yaxis = vec3_cross(zaxis, xaxis);
 
-    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
+   // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
     // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
     camera->view[0] = xaxis.x;
     camera->view[1] = yaxis.x;
@@ -489,9 +480,9 @@ camera_view_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
     camera->view[9] = yaxis.z;
     camera->view[10] = zaxis.z;
     camera->view[11] = 0;
-    camera->view[12] = -vec3_dot(&xaxis, &camera->location);
-    camera->view[13] = -vec3_dot(&yaxis, &camera->location);
-    camera->view[14] = -vec3_dot(&zaxis, &camera->location);
+    camera->view[12] = -vec3_dot(xaxis, camera->location);
+    camera->view[13] = -vec3_dot(yaxis, camera->location);
+    camera->view[14] = -vec3_dot(zaxis, camera->location);
     camera->view[15] = 1.0f;
 }
 
@@ -580,7 +571,7 @@ void mat4_frustum_planes(Frustum* frustum, f32 radius, const f32* matrix) NO_EXC
 }
 
 inline
-bool aabb_intersects_frustum(const AABB* box, const Frustum* f){
+bool aabb_intersects_frustum(const AABB_f32* box, const Frustum* f){
     // "fast AABB/frustum" using positive vertex test
     for(int32 i = 0; i < 24; i += 6){
         const f32* plane = &f->plane[i];

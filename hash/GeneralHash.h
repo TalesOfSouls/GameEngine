@@ -25,6 +25,20 @@ uint64 hash_djb2(const char* key) NO_EXCEPT
 }
 
 inline
+uint64 hash_djb2(void* value) NO_EXCEPT
+{
+    const char* key = (const char*) value;
+    uint64 hash = 5381;
+    int32 c;
+
+    while (((c = *key++))) {
+        hash = ((hash << 5) + hash) + c;
+    }
+
+    return hash;
+}
+
+inline
 uint64 hash_sdbm(const byte* key) NO_EXCEPT
 {
     uint64 hash = 0;

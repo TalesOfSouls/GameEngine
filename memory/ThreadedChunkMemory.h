@@ -150,9 +150,9 @@ uint32 thrd_chunk_id_from_memory(const ThreadedChunkMemory* buf, const byte* pos
 }
 
 FORCE_INLINE
-byte* thrd_chunk_get_element(ThreadedChunkMemory* buf, uint32 element, bool zeroed = false) NO_EXCEPT
+byte* thrd_chunk_get_element(ThreadedChunkMemory* buf, uint32 element) NO_EXCEPT
 {
-    return chunk_get_element((ChunkMemory *) buf, element, zeroed);
+    return chunk_get_element((ChunkMemory *) buf, element);
 }
 
 inline

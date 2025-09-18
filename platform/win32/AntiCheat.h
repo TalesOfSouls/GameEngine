@@ -44,7 +44,7 @@ bool anti_cheat_memory_scan(
                         continue;
                     }
 
-                    // @bug in theory our signature is split across 2 read chunks
+                    // @bug in theory our signature can be split across 2 read chunks
                     if (byte_contains(helper_memory, bytes_read, sig->encrypted_pattern, sig->length)) {
                         return true;
                     }

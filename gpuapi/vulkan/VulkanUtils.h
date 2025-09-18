@@ -404,7 +404,8 @@ void gpuapi_create_logical_device(
 ) {
     VulkanQueueFamilyIndices indices = vulkan_find_queue_families(physical_device, surface, ring);
 
-    VkDeviceQueueCreateInfo* queue_create_infos = (VkDeviceQueueCreateInfo *) ring_get_memory(ring, 2 * sizeof(VkDeviceQueueCreateInfo), 4, true);
+    VkDeviceQueueCreateInfo* queue_create_infos = (VkDeviceQueueCreateInfo *) ring_get_memory(ring, 2 * sizeof(VkDeviceQueueCreateInfo), 4);
+    memset(queue_create_infos, 0, 2 * sizeof(VkDeviceQueueCreateInfo));
 
     f32 queue_priority = 1.0f;
     uint32 queue_create_info_count = 1;

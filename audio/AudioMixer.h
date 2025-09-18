@@ -468,15 +468,15 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) {
         bool has_origin = !is_empty((byte *) &sound->origin.audio_location, sizeof(sound->origin.audio_location));
 
         if (has_location && has_origin) {
-            vec3_sub(&to_sound, &sound->origin.audio_location, &mixer->camera.audio_location);
+            to_sound = vec3_sub(sound->origin.audio_location, mixer->camera.audio_location);
 
-            f32 distance = vec3_length(&to_sound);
+            f32 distance = vec3_length(to_sound);
             if (distance) {
-                f32 distance_attenuation = OMS_MAX(0.0f, 1.0f - (distance / 50.0f));
+                f32 distance_attenuation = OMS_MAX_BRANCHED(0.0f, 1.0f - (distance / 50.0f));
 
                 vec3_normalize(&to_sound);
-                f32 alignment = vec3_dot(&mixer->camera.audio_lookat, &to_sound);
-                f32 directional_attenuation = OMS_MAX(0.0f, alignment);
+                f32 alignment = vec3_dot(mixer->camera.audio_lookat, to_sound);
+                f32 directional_attenuation = OMS_MAX_BRANCHED(0.0f, alignment);
 
                 total_attenuation = distance_attenuation * directional_attenuation;
             }

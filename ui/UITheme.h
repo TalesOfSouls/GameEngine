@@ -124,7 +124,7 @@ void theme_from_file_txt(
     str_move_past(&pos, '\n');
 
     char attribute_name[32];
-    char block_name[HASH_MAP_MAX_KEY_LENGTH];
+    char block_name[128]; // HASH_MAP_MAX_KEY_LENGTH would probably result in a buffer overflow
     bool last_token_newline = false;
     bool block_open = false;
     while (*pos != '\0') {
@@ -148,6 +148,10 @@ void theme_from_file_txt(
         /////////////////////////////////////////////////////////
         if (!block_open) {
             str_copy_move_until(block_name, &pos, " \r\n");
+            // @bug handle block_name length >= HASH_MAP_MAX_KEY_LENGTH
+            // Why? well because we only store HASH_MAP_MAX_KEY_LENGTH - 1 in the hash map key
+            // That means we could overwrite existing keys e.g. #btn_SOME_LONGER_NAME vs #ipt_SAME_LONG_NAME
+            // In the above case the key uses the last HASH_MAP_MAX_KEY_LENGTH - 1 characters therefore ignoring the prefix
 
             // All blocks need to start with #. In the past this wasn't the case and may not be in the future. This is why we keep this if here.
             if (*block_name == '#' || *block_name == '.') {
@@ -306,7 +310,7 @@ int32 theme_from_data(
         OMS_ALIGN_UP(sizeof(HashEntryInt32), 32)
     );
 
-    in += hashmap_load(&theme->hash_map, in);
+    in += hashmap_load(&theme->hash_map, in, MEMBER_SIZEOF(HashEntryInt32, value));
 
     // theme data
     // Layout: first load the size of the group, then load the individual attributes
@@ -340,6 +344,11 @@ void ui_theme_serialize_group(const HashEntryInt32* entry, const byte* data, byt
     // Probably depends on the from_txt function and the start of theme->data
     UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
 
+    // Careful this serializes the group to a different offset than it is currently in memory
+    // This means the entry->value (which represents the offset) is no longer correct when we load it
+    // As a solution when we load the theme we move it back to the memory position where it was originally located
+    // @question alternatively we could do out + entry->value as the storage location?
+    //  If we would do that the loading might be faster since we don't have to jump in memory and can just load it in order?
     *((int32 *) *out) = SWAP_ENDIAN_LITTLE(group->attribute_count);
     *out += sizeof(group->attribute_count);
 
@@ -408,7 +417,7 @@ int32 theme_to_data(
     out += sizeof(theme->used_data_size);
 
     // hashmap
-    out += hashmap_dump(&theme->hash_map, out);
+    out += hashmap_dump(&theme->hash_map, out, MEMBER_SIZEOF(HashEntryInt32, value));
 
     // theme data
     // Layout: first save the size of the group, then save the individual attributes

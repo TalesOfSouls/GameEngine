@@ -36,9 +36,6 @@ struct coms_pthread_rwlock_t {
     bool exclusive;
 };
 
-// This way we don't have to use sys calls more than once to get the thread id.
-int32 thread_local _thread_local_id;
-
 // We use Macros to avoid the function call overhead and exception handling overhead
 #define mutex_init(mutex, attr) { \
     ASSERT_TRUE((mutex)); \

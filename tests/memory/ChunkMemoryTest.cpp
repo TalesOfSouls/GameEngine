@@ -36,6 +36,18 @@ static void test_chunk_get_element() {
     chunk_free(&mem);
 }
 
+static void test_chunk_reserve_one() {
+    ChunkMemory mem = {};
+    chunk_alloc(&mem, 10, 10);
+
+    TEST_EQUALS(chunk_reserve_one(&mem), 0);
+    TEST_EQUALS(chunk_reserve_one(&mem), 1);
+    TEST_TRUE(IS_BIT_SET_64_R2L(*mem.free, 0));
+    TEST_TRUE(IS_BIT_SET_64_R2L(*mem.free, 1));
+
+    chunk_free(&mem);
+}
+
 static void test_chunk_reserve() {
     ChunkMemory mem = {};
     chunk_alloc(&mem, 10, 10);
@@ -102,6 +114,34 @@ static void test_chunk_reserve_last_element() {
     chunk_free(&mem);
 }
 
+static void test_chunk_dump_load() {
+    ChunkMemory mem = {};
+    chunk_alloc(&mem, 10, 10);
+
+    uint32* a = (uint32 *) chunk_get_element(&mem, chunk_reserve_one(&mem));
+    uint32* b = (uint32 *) chunk_get_element(&mem, chunk_reserve_one(&mem));
+
+    *a = 5;
+    *b = 10;
+
+    byte test_out[1024];
+    chunk_dump(&mem, test_out);
+
+    ChunkMemory mem2 = {};
+    chunk_alloc(&mem2, 10, 10);
+    chunk_load(&mem2, test_out);
+
+    uint32* c = (uint32 *) chunk_get_element(&mem2, 0);
+    uint32* d = (uint32 *) chunk_get_element(&mem2, 1);
+
+    TEST_EQUALS(mem.size, mem2.size);
+    TEST_EQUALS(*a, *c);
+    TEST_EQUALS(*b, *d);
+
+    chunk_free(&mem);
+    chunk_free(&mem2);
+}
+
 #if !DEBUG
     static void test_chunk_reserve_full() {
         ChunkMemory mem = {};
@@ -134,10 +174,12 @@ int main() {
     TEST_RUN(test_chunk_alloc);
     TEST_RUN(test_chunk_id_from_memory);
     TEST_RUN(test_chunk_get_element);
+    TEST_RUN(test_chunk_reserve_one);
     TEST_RUN(test_chunk_reserve);
     TEST_RUN(test_chunk_free_elements);
     TEST_RUN(test_chunk_reserve_wrapping);
     TEST_RUN(test_chunk_reserve_last_element);
+    TEST_RUN(test_chunk_dump_load);
 
     #if !DEBUG
         TEST_RUN(test_chunk_reserve_full);

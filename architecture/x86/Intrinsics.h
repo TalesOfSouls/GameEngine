@@ -61,11 +61,11 @@
 
 FORCE_INLINE
 uint64 intrin_timestamp_counter() NO_EXCEPT {
-    _mm_lfence();
-    uint64 res = __rdtsc();
-    _mm_lfence();
+    #if DEBUG || INTERNAL
+        _mm_lfence();
+    #endif
 
-    return res;
+    return __rdtsc();
 }
 
 #endif

@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "../stdlib/Types.h"
+#include "../compiler/CompilerUtils.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
 #include "Atomic.h"
@@ -22,8 +23,8 @@
 #endif
 
 #include "ThreadJob.h"
-#include "ThreadPool.h"
 
+FORCE_INLINE
 int32 thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 {
     LOG_1("[INFO] Thread starting");
@@ -32,6 +33,7 @@ int32 thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
     return coms_pthread_create(&worker->thread, NULL, routine, arg);
 }
 
+FORCE_INLINE
 void thread_stop(Worker* worker)
 {
     atomic_set_release(&worker->state, 0);
@@ -40,5 +42,14 @@ void thread_stop(Worker* worker)
     LOG_1("[INFO] Thread ended");
     LOG_DECREMENT(DEBUG_COUNTER_THREAD);
 }
+
+#if DEBUG || INTERNAL
+    // This information is usually only needed in debug and internal builds
+    #define THREAD_CURRENT_ID(a) a = thread_current_id()
+    #define THREAD_CPU_ID(a) a = thread_cpu_id()
+#else
+    #define THREAD_CURRENT_ID(a) ((void) 0)
+    #define THREAD_CPU_ID(a) ((void) 0)
+#endif
 
 #endif

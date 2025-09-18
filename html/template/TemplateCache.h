@@ -26,7 +26,7 @@ void template_find(const char* path, va_list args) {
         uint32 old_max_path_count = *max_path_count;
 
         *max_path_count += 1000;
-        char* new_paths = (char *) ring_get_memory(ring, (*max_path_count) * 256 * sizeof(char), 8, true);
+        char* new_paths = (char *) ring_get_memory(ring, (*max_path_count) * 256 * sizeof(char), 8);
         memcpy(new_paths, *paths, old_max_path_count * 256 * sizeof(char));
         *paths = new_paths;
     }
@@ -52,7 +52,8 @@ void template_cache_alloc(
 
     uint32 max_path_count = 1000;
     uint32 path_count = 0;
-    char* paths = (char *) ring_get_memory(ring, max_path_count * 256 * sizeof(char), 8, true);
+    char* paths = (char *) ring_get_memory(ring, max_path_count * 256 * sizeof(char), 8);
+    memset(paths, 0, max_path_count * 256 * sizeof(char));
     uint32 total_file_size = 0;
 
     iterate_directory(basedir, file_ending, template_find, &paths, &path_count, &max_path_count, &total_file_size, ring);

@@ -171,7 +171,7 @@ struct Input {
 
     // @todo this should probably be somewhere else
     // @todo don't we need multiple deadzones? triggers, sticks
-    uint32 deadzone;
+    int32 deadzone;
     char text[512];
 
     // This data is passed to the hotkey callback
@@ -192,16 +192,18 @@ void input_init(Input* input, uint8 size, void* callback_data, BufferMemory* buf
     input->input_mapping1.hotkeys = (Hotkey *) buffer_get_memory(
         buf,
         input->input_mapping1.hotkey_count * sizeof(Hotkey),
-        4, true
+        4
     );
+    memset(input->input_mapping1.hotkeys, 0, input->input_mapping1.hotkey_count * sizeof(Hotkey));
 
     // Init mapping2
     input->input_mapping2.hotkey_count = size;
     input->input_mapping2.hotkeys = (Hotkey *) buffer_get_memory(
         buf,
         input->input_mapping2.hotkey_count * sizeof(Hotkey),
-        4, true
+        4
     );
+    memset(input->input_mapping2.hotkeys, 0, input->input_mapping2.hotkey_count * sizeof(Hotkey));
 }
 
 inline

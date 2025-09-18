@@ -181,7 +181,7 @@ f32 text_calculate_dimensions_width(
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 
         if (character == '\n') {
-            x = OMS_MAX(x, offset_x);
+            x = OMS_MAX_BRANCHED(x, offset_x);
             offset_x = 0;
 
             continue;
@@ -195,7 +195,7 @@ f32 text_calculate_dimensions_width(
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
 
-    return OMS_MAX(x, offset_x);
+    return OMS_MAX_BRANCHED(x, offset_x);
 }
 
 static
@@ -215,7 +215,7 @@ void text_calculate_dimensions(
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 
         if (character == '\n') {
-            x = OMS_MAX(x, offset_x);
+            x = OMS_MAX_BRANCHED(x, offset_x);
             y += line_height;
 
             offset_x = 0;
@@ -231,7 +231,7 @@ void text_calculate_dimensions(
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
 
-    *width = OMS_MAX(x, offset_x);
+    *width = OMS_MAX_BRANCHED(x, offset_x);
     *height = y;
 }
 
@@ -284,7 +284,7 @@ v3_int32 vertex_text_create(
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {
             rendered_height += line_height_scaled;
-            rendered_width = OMS_MAX(rendered_width, offset_x - dimension.x);
+            rendered_width = OMS_MAX_BRANCHED(rendered_width, offset_x - dimension.x);
 
             dimension.y -= line_height_scaled;
             offset_x = dimension.x;
