@@ -16,7 +16,7 @@ struct FramesInFlightContainer {
     uint32 count;
     uint32 index;
     OpenglFrameData* framebuffers;
-    GLsync framebuffer_sync;
+    GpuFence framebuffer_sync;
 };
 
 #endif

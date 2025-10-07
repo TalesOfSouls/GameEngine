@@ -34,6 +34,16 @@ uint32 rand_fast(uint32* state) {
     return x;
 }
 
+FORCE_INLINE
+uint32 rand_fast() {
+    return rand_fast(&_rng_state_32);
+}
+
+FORCE_INLINE
+f32 rand_fast_percent() {
+    return (f32) rand_fast(&_rng_state_32) / (f32) MAX_UINT32;
+}
+
 inline
 uint64 rand_fast(uint64* state) {
     static const uint64 z = 0x9FB21C651E98DF25;
@@ -53,6 +63,18 @@ uint64 rand_fast(uint64* state) {
 FORCE_INLINE
 uint32 rand_fast(uint32* state, int32 max) {
     return (uint32) (((uint64) rand_fast(state) * max) >> 32);
+}
+
+FORCE_INLINE
+uint32 rand_fast(int32 max) {
+    return (uint32) (((uint64) rand_fast(&_rng_state_32) * max) >> 32);
+}
+
+FORCE_INLINE
+uint32 rand_fast(int32 min, int32 max) {
+    uint32 span = (uint32)(max - min);
+    uint32 r = (uint32) (((uint64) rand_fast(&_rng_state_32) * span) >> 32);
+    return (uint32) (min + r);
 }
 
 /**

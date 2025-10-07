@@ -29,13 +29,10 @@
 
 // How many concurrent primary key/button presses can be handled?
 #define MAX_KEY_PRESSES 5
-#define MAX_KEY_PRESS_TYPES 7
 
 // How many keys/buttons do we support for the devices
 #define MAX_KEYBOARD_KEYS 255
-#define MAX_MOUSE_KEYS 10
-
-#define MIN_INPUT_DEVICES 2
+#define MAX_MOUSE_KEYS 7
 
 // How many buttons together are allowed to form a hotkey
 #define MAX_HOTKEY_COMBINATION 3
@@ -46,14 +43,12 @@
 #define INPUT_KEYBOARD_PREFIX 1 << 13
 #define INPUT_CONTROLLER_PREFIX 1 << 14
 
-enum InputType {
+enum InputType : byte {
     INPUT_TYPE_NONE = 0,
     INPUT_TYPE_MOUSE_KEYBOARD = 1 << 0,
     INPUT_TYPE_CONTROLLER = 1 << 2,
     INPUT_TYPE_OTHER = 1 << 3,
 };
-
-#define MIN_CONTROLLER_DEVICES 4
 
 #define INPUT_LONG_PRESS_DURATION 250
 
@@ -92,13 +87,13 @@ struct InputMapping {
 };
 
 struct InputKey {
-    // Includes flag for mouse, keyboard, controller
+    // @question Do we really need scan_code and virtual_code both?
     uint16 scan_code;
     uint16 virtual_code;
     KeyPressType key_state;
-    uint64 time; // when was this action performed (useful to decide if key state is held vs pressed)
     bool is_processed;
     int16 value; // e.g. stick/trigger keys have additional values
+    uint64 time; // when was this action performed (useful to decide if key state is held vs pressed)
 };
 
 // @question Maybe we should also add a third key_down array for controllers and some special controller functions here to just handle everything in one struct
@@ -108,28 +103,15 @@ struct InputState {
     uint16 active_hotkeys[MAX_KEY_PRESSES];
 
     // Active keys
-    InputKey active_keys[MAX_KEY_PRESS_TYPES];
+    InputKey active_keys[MAX_KEY_PRESSES];
 
-    // @question Couldn't we make the values below 16 bit?
-    int32 dx;
-    int32 dy;
+    // Usually used by controllers
+    // E.g. index 0 = primary stick or mouse, index 1 = secondary stick, index 2 = thumb trackpad
+    int16 dx[3];
+    int16 dy[3];
 
-    uint32 x;
-    uint32 y;
-
-    // Secondary coordinate input (usually used by controllers)
-    int32 dx2;
-    int32 dy2;
-
-    uint32 x2;
-    uint32 y2;
-
-    // Tertiary coordinate input (usually used by controllers)
-    int32 dx3;
-    int32 dy3;
-
-    uint32 x3;
-    uint32 y3;
+    int16 x[3];
+    int16 y[3];
 };
 
 enum GeneralInputState : byte {
@@ -177,6 +159,7 @@ struct Input {
     // This data is passed to the hotkey callback
     void* callback_data;
 
+    // We allow a hotkey to be mapped in two different ways = allow alternative hotkey combination
     InputMapping input_mapping1;
     InputMapping input_mapping2;
 };
@@ -210,13 +193,13 @@ inline
 void input_clean_state(InputKey* active_keys, KeyPressType press_status = KEY_PRESS_TYPE_RELEASED) NO_EXCEPT
 {
     if (press_status) {
-        for (int32 i = 0; i < MAX_KEY_PRESS_TYPES; ++i) {
+        for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
             if (active_keys[i].key_state == press_status) {
                 memset(&active_keys[i], 0, sizeof(InputKey));
             }
         }
     } else {
-        memset(active_keys, 0, MAX_KEY_PRESS_TYPES * sizeof(InputKey));
+        memset(active_keys, 0, MAX_KEY_PRESSES * sizeof(InputKey));
     }
 }
 
@@ -394,7 +377,7 @@ void input_set_state(InputKey* __restrict active_keys, const InputKey* __restric
     InputKey* free_state = NULL;
 
     // Insert new key state or change if key already exists
-    for (int32 i = 0; i < MAX_KEY_PRESS_TYPES; ++i) {
+    for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
         if (!free_state && active_keys[i].scan_code == 0) {
             free_state = &active_keys[i];
         } else if (active_keys[i].scan_code == new_key->scan_code) {
@@ -444,31 +427,31 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     // @todo this code means we cannot change this behavior (e.g. swap mouse view to dpad, swap sticks, ...)
     // @todo This is also not very general, maybe we can fix it like we did with analog vs digital key (instead of bool flag maybe bit flag)
     if (OMS_ABS_INT8(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL]) > input->deadzone) {
-        input->state.dx += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] / 8;
+        input->state.dx[0] += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] / 8;
         input->general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
     } else {
-        input->state.dx = 0;
+        input->state.dx[0] = 0;
     }
 
     if (OMS_ABS_INT8(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL]) > input->deadzone) {
-        input->state.dy += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] / 8;
+        input->state.dy[0] += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] / 8;
         input->general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
     } else {
-        input->state.dy = 0;
+        input->state.dy[0] = 0;
     }
 
     if (OMS_ABS_INT8(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
-        input->state.dx2 += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
+        input->state.dx[1] += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
         // @todo needs state change flag like mouse?!
     } else {
-        input->state.dx2 = 0;
+        input->state.dx[1] = 0;
     }
 
     if (OMS_ABS_INT8(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
-        input->state.dy2 += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
+        input->state.dy[1] += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
         // @todo needs state change flag like mouse?!
     } else {
-        input->state.dy2 = 0;
+        input->state.dy[1] = 0;
     }
 
     // General Keys
@@ -519,7 +502,7 @@ void input_hotkey_state(Input* input) NO_EXCEPT
 
         // Create keyboard state array
         byte keyboard_state[256] = {};
-        for (int32 key_state = 0; key_state < MAX_KEY_PRESS_TYPES; ++key_state) {
+        for (int32 key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
             if (state->active_keys[key_state].scan_code == 0
                 || state->active_keys[key_state].key_state == KEY_PRESS_TYPE_RELEASED
             ) {
@@ -531,7 +514,7 @@ void input_hotkey_state(Input* input) NO_EXCEPT
         }
 
         // Check if all keys result in text, if not -> is potential hotkey -> shouldn't output any text
-        for (int32 key_state = 0; key_state < MAX_KEY_PRESS_TYPES; ++key_state) {
+        for (int32 key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
             if ((input->general_states & INPUT_STATE_GENERAL_TYPING_MODE)
                 && (state->active_keys[key_state].scan_code & INPUT_KEYBOARD_PREFIX)
                 && state->active_keys[key_state].key_state != KEY_PRESS_TYPE_RELEASED
@@ -561,7 +544,7 @@ void input_hotkey_state(Input* input) NO_EXCEPT
 
         if (input_characters) {
             // Mark keys
-            for (int32 key_state = 0; key_state < MAX_KEY_PRESS_TYPES; ++key_state) {
+            for (int32 key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
                 state->active_keys[key_state].is_processed = true;
                 state->active_keys[key_state].time = 0; // @todo fix
             }
@@ -626,7 +609,7 @@ void input_hotkey_state(Input* input) NO_EXCEPT
 // @todo We probably need a way to unset a specific key and hotkey after processing it
 inline
 bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32 dt = 0.0f) NO_EXCEPT {
-    for (int32 i = 0; i < MAX_KEY_PRESS_TYPES; ++i) {
+    for (int32 i = 0; i < ARRAY_COUNT(state->active_keys); ++i) {
         if (state->active_keys[i].scan_code == key) {
             return (f32) (time - state->active_keys[i].time) / 1000.0f >= (dt == 0.0f ? INPUT_LONG_PRESS_DURATION : dt);
         }
@@ -638,7 +621,7 @@ bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32
 // @todo I wrote this code at 9am after staying awake for the whole night and that is how that code looks like... fix it!
 bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f32 dt = 0.0f) NO_EXCEPT {
     bool is_longpress = false;
-    for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
+    for (int32 i = 0; i < ARRAY_COUNT(input->state.active_hotkeys); ++i) {
         if (input->state.active_hotkeys[i] != hotkey) {
             continue;
         }
@@ -686,7 +669,7 @@ bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f3
 uint32 input_get_typed_character(InputState* state, uint64 time, uint64 dt) NO_EXCEPT
 {
     byte keyboard_state[256] = {};
-    for (int32 key_state = 0; key_state < MAX_KEY_PRESS_TYPES; ++key_state) {
+    for (int32 key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
         if (state->active_keys[key_state].scan_code == 0
             || state->active_keys[key_state].key_state == KEY_PRESS_TYPE_RELEASED
         ) {
@@ -697,7 +680,7 @@ uint32 input_get_typed_character(InputState* state, uint64 time, uint64 dt) NO_E
         keyboard_state[state->active_keys[key_state].virtual_code & 0x00FF] = 0x80;
     }
 
-    for (int32 key_state = 0; key_state < MAX_KEY_PRESS_TYPES; ++key_state) {
+    for (int32 key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
         if (state->active_keys[key_state].scan_code == 0
             || (state->active_keys[key_state].is_processed
                 && state->active_keys[key_state].time - time <= dt)

@@ -36,7 +36,7 @@ struct WebAppMatchPattern {
     int32 app_id;
 };
 
-const char* web_app_function_name_table[] = {
+constexpr const char* web_app_function_name_table[] = {
     "app_load",
     "app_handle_request",
 };

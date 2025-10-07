@@ -144,6 +144,10 @@ void compiler_memset_aligned(void* dst, int value, size_t size) {
 #define SWAP_ENDIAN_64(val) __builtin_bswap64((val))
 
 #include <math.h>
-#define sincosf(x, sin, cos) sincosf(x, &sin, &cos)
+#define SINCOSF(x, s, c) s = sinf(x); c = cosf(x)
+FORCE_INLINE
+void sincosf(f32 x, f32* sin, f32* cos) {
+    sincosf(x, sin, cos)
+}
 
 #endif

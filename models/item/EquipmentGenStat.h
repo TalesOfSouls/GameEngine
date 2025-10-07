@@ -6,15 +6,15 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef COMS_MODELS_EQUIPMENT_TYPE_H
-#define COMS_MODELS_EQUIPMENT_TYPE_H
+#ifndef COMS_MODELS_EQUIPMENT_GEN_STAT_H
+#define COMS_MODELS_EQUIPMENT_GEN_STAT_H
 
 #include "../../stdlib/Types.h"
 
 #include "../mob/MobStats.h"
 #include "ItemStatsDistribution.h"
 
-struct EquipmentType {
+struct EquipmentGenStat {
     byte slot;
     uint32 char_class;
     bool is_dual;

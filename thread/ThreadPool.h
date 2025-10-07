@@ -105,7 +105,9 @@ THREAD_RETURN thread_pool_worker(void* arg)
         LOG_3("ThreadPool worker started");
         {
             PROFILE(PROFILE_THREADPOOL_WORK, NULL, PROFILE_FLAG_ADD_HISTORY);
+            LOG_INCREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
             work->func(work);
+            LOG_DECREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
         }
         LOG_3("ThreadPool worker ended");
 

@@ -1521,6 +1521,16 @@
 #define GL_WAIT_FAILED 0x911D
 #define GL_TIMEOUT_IGNORED 0xFFFFFFFFFFFFFFFFull
 
+#define GL_MAP_READ_BIT 0x0001
+#define GL_MAP_WRITE_BIT 0x0002
+#define GL_MAP_PERSISTENT_BIT 0x00000040
+#define GL_MAP_COHERENT_BIT 0x00000080
+#define GL_DYNAMIC_STORAGE_BIT 0x0100
+#define GL_CLIENT_STORAGE_BIT 0x0200
+#define GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT 0x00004000
+#define GL_BUFFER_IMMUTABLE_STORAGE 0x821F
+#define GL_BUFFER_STORAGE_FLAGS 0x8220
+
 typedef unsigned int GLenum;
 typedef unsigned char GLboolean;
 typedef unsigned int GLbitfield;
@@ -1539,5 +1549,11 @@ typedef double GLclampd;
 typedef void GLvoid;
 typedef char GLchar;
 typedef struct __GLsync* GLsync;
+typedef uint64_t GLuint64EXT;
+
+// Custom defines
+typedef GLsync GpuFence;
+
+bool OPENGL_HAS_NVIDIA_EXT;
 
 #endif

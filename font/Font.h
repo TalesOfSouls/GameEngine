@@ -87,79 +87,80 @@ void font_from_file_txt(
 
     const char* pos = (char *) file.content;
 
-    bool start = true;
     char block_name[32];
-
-    int32 glyph_index = 0;
 
     int32 image_width = 0;
     int32 image_height = 0;
 
     char* texture_pos = font->texture_name;
 
+    // Font header
     while (*pos != '\0') {
-        if (start) {
-            // Parsing general data
-            int32 i = 0;
-            while (*pos != '\0' && *pos != ' ' && *pos != ':' && *pos != '\n' && i < 31) {
-                block_name[i] = *pos;
-                ++pos;
-                ++i;
-            }
+        // Parsing general data
+        int32 i = 0;
+        while (*pos != '\0' && *pos != ' ' && *pos != ':' && *pos != '\n' && i < 31) {
+            block_name[i] = *pos;
+            ++pos;
+            ++i;
+        }
 
-            block_name[i] = '\0';
+        block_name[i] = '\0';
 
-            // Go to value
-            while (*pos == ' ' || *pos == '\t' || *pos == ':') {
-                ++pos;
-            }
-
-            if (str_compare(block_name, "texture") == 0) {
-                while (*pos != '\n') {
-                    *texture_pos++ = *pos++;
-                }
-
-                *texture_pos++ = '\0';
-            } else if (str_compare(block_name, "font_size") == 0) {
-                font->size = str_to_float(pos, &pos);
-            } else if (str_compare(block_name, "line_height") == 0) {
-                font->line_height = str_to_float(pos, &pos);
-            } else if (str_compare(block_name, "image_width") == 0) {
-                image_width = (int32) str_to_int(pos, &pos);
-            } else if (str_compare(block_name, "image_height") == 0) {
-                image_height = (int32) str_to_int(pos, &pos);
-            } else if (str_compare(block_name, "glyph_count") == 0) {
-                // glyph_count has to be the last general element
-                font->glyph_count = (uint32) str_to_int(pos, &pos);
-                start = false;
-            }
-
-            // Go to next line
-            while (*pos != '\0' && *pos++ != '\n') {};
-        } else {
-            // Parsing glyphs
-            // In the text file we don't have to define width and height of the character, we calculate that here
-            font->glyphs[glyph_index] = {
-                (uint32) str_to_int(pos, &pos),
-                {0.0f, 0.0f, str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos)},
-                {str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos)}
-            };
-
-            font->glyphs[glyph_index].metrics.width = font->glyphs[glyph_index].coords.end.x - font->glyphs[glyph_index].coords.start.x;
-            font->glyphs[glyph_index].metrics.height = font->glyphs[glyph_index].coords.end.y - font->glyphs[glyph_index].coords.start.y;
-
-            font->glyphs[glyph_index].coords.start.x /= image_width;
-            font->glyphs[glyph_index].coords.end.x /= image_width;
-
-            font->glyphs[glyph_index].coords.start.y /= image_height;
-            font->glyphs[glyph_index].coords.end.y /= image_height;
-
-            ++glyph_index;
-
-            // Go to next line
-            while (*pos != '\n' && *pos != '\0') { ++pos; };
+        // Go to value
+        while (*pos == ' ' || *pos == '\t' || *pos == ':') {
             ++pos;
         }
+
+        if (str_compare(block_name, "texture") == 0) {
+            while (*pos != '\n') {
+                *texture_pos++ = *pos++;
+            }
+
+            *texture_pos++ = '\0';
+        } else if (str_compare(block_name, "font_size") == 0) {
+            font->size = str_to_float(pos, &pos);
+        } else if (str_compare(block_name, "line_height") == 0) {
+            font->line_height = str_to_float(pos, &pos);
+        } else if (str_compare(block_name, "image_width") == 0) {
+            image_width = (int32) str_to_int(pos, &pos);
+        } else if (str_compare(block_name, "image_height") == 0) {
+            image_height = (int32) str_to_int(pos, &pos);
+        } else if (str_compare(block_name, "glyph_count") == 0) {
+            // glyph_count has to be the last general element
+            font->glyph_count = (uint32) str_to_int(pos, &pos);
+            break;
+        }
+
+        // Go to next line
+        while (*pos != '\0' && *pos++ != '\n') {};
+    }
+
+    int32 glyph_index = 0;
+
+    // Body
+    while (*pos != '\0') {
+        // Parsing glyphs
+        // In the text file we don't have to define width and height of the character, we calculate that here
+        font->glyphs[glyph_index] = {
+            (uint32) str_to_int(pos, &pos), // codepoint
+            {0.0f, 0.0f, str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos)},
+            {str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos)}
+        };
+
+        font->glyphs[glyph_index].metrics.width = font->glyphs[glyph_index].coords.end.x - font->glyphs[glyph_index].coords.start.x;
+        font->glyphs[glyph_index].metrics.height = font->glyphs[glyph_index].coords.end.y - font->glyphs[glyph_index].coords.start.y;
+
+        font->glyphs[glyph_index].coords.start.x /= image_width;
+        font->glyphs[glyph_index].coords.end.x /= image_width;
+
+        font->glyphs[glyph_index].coords.start.y /= image_height;
+        font->glyphs[glyph_index].coords.end.y /= image_height;
+
+        ++glyph_index;
+
+        // Go to next line
+        while (*pos != '\n' && *pos != '\0') { ++pos; };
+        ++pos;
     }
 }
 
@@ -256,7 +257,7 @@ f32 font_line_height(Font* font, f32 size) NO_EXCEPT
     return font->line_height * size / font->size;
 }
 
-inline
+FORCE_INLINE
 void font_invert_coordinates(Font* font)
 {
     // @todo Implement y-offset correction

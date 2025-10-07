@@ -12,7 +12,7 @@
 #include "../stdlib/Types.h"
 #include "../compiler/CompilerUtils.h"
 
-enum GpuAttributeType {
+enum GpuAttributeType : byte {
     GPU_ATTRIBUTE_TYPE_VERTEX_3D,
     GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL,
     GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR,

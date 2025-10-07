@@ -6,6 +6,7 @@
 #include "../thread/Atomic.h"
 
 #ifndef DEBUG_COUNTER
+    // Defining the standard counter stat types if not already defined by the user
     #define DEBUG_COUNTER 1
     enum DebugCounter {
         DEBUG_COUNTER_MEM_ALLOC,
@@ -15,13 +16,21 @@
 
         DEBUG_COUNTER_THREAD,
 
+        // How many threads are active, not just initialized
+        DEBUG_COUNTER_THREAD_ACTIVE,
+
         DEBUG_COUNTER_GPU_VERTEX_UPLOAD,
         DEBUG_COUNTER_GPU_UNIFORM_UPLOAD,
         DEBUG_COUNTER_GPU_DRAW_CALLS,
         DEBUG_COUNTER_GPU_DOWNLOAD,
 
+        // Network byte transfer
         DEBUG_COUNTER_NETWORK_OUT_RAW,
         DEBUG_COUNTER_NETWORK_IN_RAW,
+
+        // Network packet transfer count
+        DEBUG_COUNTER_NETWORK_OUT_COUNT,
+        DEBUG_COUNTER_NETWORK_IN_COUNT,
 
         DEBUG_COUNTER_SIZE
     };

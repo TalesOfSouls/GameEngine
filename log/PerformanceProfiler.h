@@ -13,15 +13,16 @@
 #include "../thread/Atomic.h"
 #include "../architecture/Intrinsics.h"
 #include "../compiler/CompilerUtils.h"
+#include "../thread/ThreadDefines.h"
 #include "Log.h"
 
 #ifndef PERFORMANCE_PROFILE_STATS
+    // Defining the standard timing stat types if not already defined by the user
     #define PERFORMANCE_PROFILE_STATS 1
     enum TimingStats {
         PROFILE_TEMP,
 
-        PROFILE_SLEEP, // Used to time sleep
-        PROFILE_SPIN, // Used to time cpu spins
+        PROFILE_SLEEP, // Used to time sleep (careful, also used in spinlocks)
         PROFILE_MEMORY_ALLOC,
         PROFILE_FILE_UTILS,
         PROFILE_BUFFER_ALLOC,
@@ -49,6 +50,8 @@
         PROFILE_VERTEX_TEXT_CREATE,
         PROFILE_PIPELINE_MAKE,
         PROFILE_THREADPOOL_WORK,
+        PROFILE_MAIN, // Used to profile the main loop
+        PROFILE_GPU, // Used to profile the total gpu time
 
         PROFILE_SIZE,
     };
@@ -56,8 +59,14 @@
 
 enum PerformanceProfileFlag : uint32 {
     PROFILE_FLAG_NONE = 0,
+
+    // Stateless allows to ONLY output to log instead of storing the performance data in an array
     PROFILE_FLAG_STATELESS = 1 << 0,
+
+    // Should be logged as well instead of just storing it in memory
     PROFILE_FLAG_SHOULD_LOG = 1 << 1,
+
+    // Should be added to history, sometimes we don't want any historic data for a performance metric
     PROFILE_FLAG_ADD_HISTORY = 1 << 2,
 };
 
@@ -77,9 +86,9 @@ struct PerformanceProfileResult {
 #define MAX_PERFORMANCE_STATS_HISTORY 1000
 struct PerformanceStatHistory {
     atomic_32 int32 pos;
+    // This contains all stats usually per frame in a 1D array
     PerformanceProfileResult perfs[MAX_PERFORMANCE_STATS_HISTORY * PROFILE_SIZE];
 };
-// This contains all stats usually for one frame
 static PerformanceStatHistory* _perf_stats = NULL;
 static volatile int32* _perf_active = NULL;
 
@@ -118,9 +127,14 @@ struct PerformanceProfileThread {
     const char* name;
     PerformanceThreadHistory history[MAX_PERFORMANCE_THREAD_HISTORY];
 };
+// How many threads do we support?
 static int32 _perf_thread_history_count = 0;
 static PerformanceProfileThread* _perf_thread_history;
 
+/**
+ * Used to create a new thread history
+ * Every thread needs one if you want to store historic values
+ */
 inline
 void thread_profile_history_create(int32 thread_id, const char* name = NULL) NO_EXCEPT
 {
@@ -137,6 +151,7 @@ void thread_profile_history_create(int32 thread_id, const char* name = NULL) NO_
     }
 }
 
+// Sets the user defined name of a thread by id
 inline
 void thread_profile_name(int32 thread_id, const char* name = NULL) NO_EXCEPT
 {
@@ -196,6 +211,25 @@ struct PerformanceThreadProfiler {
     }
 };
 
+// @performance This should only be called async to avoid blocking (e.g. render loop)
+// Careful, this is not thread safe by itself
+inline
+void performance_log_to_file() NO_EXCEPT
+{
+    // we don't log an empty log pool
+    if (!_perf_stats) {
+        return;
+    }
+
+    int32 count = PROFILE_SIZE;
+    LOG_1("[BEGIN] Performance log (count %d)", {LOG_DATA_INT32, &count});
+
+    int32 size = sizeof(*_perf_stats);
+    LOG_1((const char *) _perf_stats, {LOG_DATA_RAW, &size});
+
+    LOG_1("[END] Performance log");
+}
+
 struct PerformanceProfiler;
 // Used when sharing profiler across dlls and threads (threads unlikely)
 static thread_local PerformanceProfiler** _perf_current_scope = NULL;
@@ -215,8 +249,6 @@ struct PerformanceProfiler {
 
     PerformanceProfiler* parent;
 
-    // @question Do we want to make the self cost represent calls * "self_time/cycle"
-    // Stateless allows to ONLY output to log instead of storing the performance data in an array
     PerformanceProfiler(
         int32 id, const char* scope_name, const char* info = NULL,
         uint32 flags = 0
@@ -275,7 +307,7 @@ struct PerformanceProfiler {
         perf->total_cycle = this->total_cycle;
         perf->self_cycle = this->self_cycle;
 
-        // Add performance log to log history
+        // Add performance log to history
         if (this->_flags & PROFILE_FLAG_ADD_HISTORY && _perf_thread_history_count) {
             for (int32 i = 0; i < _perf_thread_history_count; ++i) {
                 if (_perf_thread_history[i].thread_id == _thread_local_id) {
@@ -330,7 +362,7 @@ struct PerformanceProfiler {
 };
 
 inline
-void performance_profiler_start(int32 id, const char* name) NO_EXCEPT
+void performance_profiler_start(int32 id, const char* name = NULL) NO_EXCEPT
 {
     if (!_perf_active || !*_perf_active) {
         return;
@@ -340,7 +372,7 @@ void performance_profiler_start(int32 id, const char* name) NO_EXCEPT
 
     PerformanceProfileResult* perf = &_perf_stats->perfs[pos + id];
     perf->name = name;
-    perf->self_cycle = -((int64) intrin_timestamp_counter());
+    perf->self_cycle -= (int64) intrin_timestamp_counter();
 }
 
 inline
@@ -353,18 +385,22 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
 
     PerformanceProfileResult* perf = &_perf_stats->perfs[pos + id];
-    perf->total_cycle = intrin_timestamp_counter() + perf->self_cycle;
-    perf->self_cycle = perf->total_cycle;
+    perf->self_cycle += intrin_timestamp_counter();
+    perf->total_cycle = perf->self_cycle;
 }
+
+// @todo Implement a performance_to_file() function
+// This would allow us to compare performance profiles
 
 #if LOG_LEVEL > 1
     // Only these function can properly handle self-time calculation
     // Use these whenever you want to profile an entire function
     #define PROFILE(id, ...) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, ##__VA_ARGS__)
-    #define PROFILE_START(id, name) performance_profiler_start((id), (name))
+    #define PROFILE_START(id, ...) performance_profiler_start((id), ##__VA_ARGS__)
     #define PROFILE_END(id) performance_profiler_end((id))
     #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
     #define PROFILE_SNAPSHOT() profile_performance_snapshot()
+    #define PROFILE_LOG_TO_FILE() performance_log_to_file()
 
     #define THREAD_LOG_CREATE(id, ...) thread_profile_history_create((id), ##__VA_ARGS__)
     #define THREAD_LOG_NAME(id, name) thread_profile_name((id), (name))
@@ -372,15 +408,15 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     #define THREAD_TICK(id) PerformanceThreadProfiler __profile_thread_##__func__##_##__LINE__((id))
 #else
     #define PROFILE(id, ...) ((void) 0)
-    #define PROFILE_START(id, name) ((void) 0)
+    #define PROFILE_START(id, ...) ((void) 0)
     #define PROFILE_END(id) ((void) 0)
     #define PROFILE_SCOPE(id, name) ((void) 0)
     #define PROFILE_SNAPSHOT() ((void) 0)
+    #define PROFILE_LOG_TO_FILE() ((void) 0)
 
     #define THREAD_LOG_CREATE(id, ...) ((void) 0)
     #define THREAD_LOG_NAME(id, name) ((void) 0)
     #define THREAD_LOG_DELETE(id) ((void) 0)
-    #define THREAD_TICK(id) ((void) 0)
 #endif
 
 #endif

@@ -192,6 +192,58 @@ DEFINE_BITCAST_FUNCTION(int64, f64)
 #define MHZ 1000000
 #define GHZ 1000000000
 
+struct v2_int8 {
+    union {
+        struct {
+            int8 x, y;
+        };
+
+        struct {
+            int8 width, height;
+        };
+
+        struct {
+            int8 min, max;
+        };
+
+        union {
+            int8 v[2];
+            int16 val;
+        };
+    };
+};
+
+struct v3_int8 {
+    union {
+        struct {
+            int8 x, y, z;
+        };
+
+        struct {
+            int8 r, g, b;
+        };
+
+        int8 v[3];
+    };
+};
+
+struct v4_int8 {
+    union {
+        struct {
+            int8 x, y, z, w;
+        };
+
+        struct {
+            int8 r, g, b, a;
+        };
+
+        union {
+            int8 v[4];
+            int32 val;
+        };
+    };
+};
+
 struct v3_byte {
     union {
         struct {
@@ -223,6 +275,27 @@ struct v4_byte {
     };
 };
 
+struct v2_int16 {
+    union {
+        struct {
+            int16 x, y;
+        };
+
+        struct {
+            int16 width, height;
+        };
+
+        struct {
+            int16 min, max;
+        };
+
+        union {
+            int16 v[2];
+            int32 val;
+        };
+    };
+};
+
 struct v4_int16 {
     union {
         struct {
@@ -249,6 +322,10 @@ struct v2_int32 {
 
         struct {
             int32 width, height;
+        };
+
+        struct {
+            int32 min, max;
         };
 
         int32 v[2];
@@ -329,6 +406,10 @@ struct v2_f32 {
 
         struct {
             f32 width, height;
+        };
+
+        struct {
+            f32 min, max;
         };
 
         f32 v[2];

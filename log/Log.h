@@ -9,10 +9,11 @@
 #ifndef COMS_LOG_H
 #define COMS_LOG_H
 
+// Keep includes to a minimum to avoid circular dependencies
+// Log is used in many other header files
 #include "../stdlib/Types.h"
 #include "../compiler/CompilerUtils.h"
 #include "../architecture/Intrinsics.h"
-#include "../thread/ThreadDefines.h"
 #include "../utils/StringUtils.h"
 #include "DebugMemory.h"
 
@@ -50,10 +51,72 @@
     #define MAX_LOG_MESSAGES 256
 #endif
 
+// We need to make some platform specific defines here to avoid including other header files
+// Other header files most likely would also use the log header creating circular dependencies
+// As a result we are kinda implementing some things twice
 #if _WIN32
+    #include <stdio.h>
+    #include <windows.h>
+    #include <time.h>
+
     static HANDLE _log_fp;
+    typedef volatile long log_spinlock32;
+
+    FORCE_INLINE
+    void log_spinlock_init(log_spinlock32* lock) {
+        lock = 0;
+    }
+
+    FORCE_INLINE
+    void log_spinlock_start(log_spinlock32* lock, int32 delay = 10) {
+        while (InterlockedExchange(lock, 1) != 0) {
+            LARGE_INTEGER frequency, start, end;
+            QueryPerformanceFrequency(&frequency);
+            QueryPerformanceCounter(&start);
+
+            long long target = start.QuadPart + (delay * frequency.QuadPart) / 1000000;
+
+            do {
+                QueryPerformanceCounter(&end);
+            } while (end.QuadPart < target);
+        }
+    }
+
+    FORCE_INLINE
+    void log_spinlock_end(log_spinlock32* lock) {
+        InterlockedExchange(lock, 0);
+    }
 #elif __linux__
+    #include <time.h>
+    #include <sys/time.h>
+    #include <unistd.h>
+
     static int32 _log_fp;
+    typedef volatile int32 log_spinlock32;
+
+    inline
+    void log_spinlock_start(log_spinlock32* lock, int32 delay = 10) {
+        while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE) != 0) {
+            struct timespec start, now;
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            uint64 target_ns = usec * 1000ULL;
+
+            do {
+                clock_gettime(CLOCK_MONOTONIC, &now);
+                uint64 elapsed = (now.tv_sec - start.tv_sec) * 1000000000ULL
+                    + (now.tv_nsec - start.tv_nsec);
+
+                if (elapsed >= target_ns) {
+                    break;
+                }
+            } while (true);
+        }
+    }
+
+    FORCE_INLINE
+    void log_spinlock_end(log_spinlock32* lock) {
+        __atomic_store_n(lock, 0, __ATOMIC_RELEASE);
+    }
 #endif
 
 struct LogMemory {
@@ -62,8 +125,7 @@ struct LogMemory {
     uint64 size;
     uint64 pos;
 
-    // @performance Should I use spinlock?
-    mutex mtx;
+    log_spinlock32 lock;
 };
 static LogMemory* _log_memory = NULL;
 
@@ -80,7 +142,10 @@ enum LogDataType {
     LOG_DATA_CHAR,
     LOG_DATA_CHAR_STR,
     LOG_DATA_FLOAT32,
-    LOG_DATA_FLOAT64
+    LOG_DATA_FLOAT64,
+
+    // Used to log raw data
+    LOG_DATA_RAW
 };
 
 struct LogMessage {
@@ -108,7 +173,7 @@ struct LogDataArray{
 
 #if _WIN32
     static inline
-    uint64 log_sys_time()
+    uint64 log_sys_time() NO_EXCEPT
     {
         SYSTEMTIME systemTime;
         FILETIME fileTime;
@@ -125,7 +190,7 @@ struct LogDataArray{
     }
 #else
     static inline
-    uint64 log_sys_time()
+    uint64 log_sys_time() NO_EXCEPT
     {
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
@@ -134,6 +199,7 @@ struct LogDataArray{
     }
 #endif
 
+static inline
 byte* log_get_memory() NO_EXCEPT
 {
     if (_log_memory->pos + MAX_LOG_LENGTH > _log_memory->size) {
@@ -149,7 +215,8 @@ byte* log_get_memory() NO_EXCEPT
 }
 
 // @performance This should only be called async to avoid blocking (e.g. render loop)
-void log_to_file()
+// Careful, this is not thread safe by itself
+void log_to_file(const void* data, size_t size) NO_EXCEPT
 {
     // we don't log an empty log pool
     if (!_log_memory || _log_memory->pos == 0 || !_log_fp) {
@@ -160,8 +227,8 @@ void log_to_file()
         DWORD written;
         WriteFile(
             _log_fp,
-            (char *) _log_memory->memory,
-            (uint32) _log_memory->pos,
+            (char *) data,
+            (uint32) size,
             &written,
             NULL
         );
@@ -172,35 +239,54 @@ void log_to_file()
 
         write(
             _log_fp,
-            (char *) _log_memory->memory,
-            (uint32) _log_memory->pos
+            (char *) data,
+            (uint32) size
         );
     #endif
 }
 
 // Same as log_to_file with the exception that reset the log pos to avoid repeated output
 inline
-void log_flush()
+void log_flush() NO_EXCEPT
 {
     if (!_log_memory || _log_memory->pos == 0 || !_log_fp) {
         return;
     }
 
-    mutex_lock(&_log_memory->mtx);
-    log_to_file();
+    log_spinlock_start(&_log_memory->lock, 0);
+    log_to_file(_log_memory->memory, _log_memory->pos);
     _log_memory->pos = 0;
-    mutex_unlock(&_log_memory->mtx);
+    log_spinlock_end(&_log_memory->lock);
 }
 
-void log(const char* str, const char* file, const char* function, int32 line)
+static inline
+void log_to_terminal(uint64 time, const char* msg) NO_EXCEPT
+{
+    char time_str[13];
+    format_time_hh_mm_ss_ms(time_str, time / 1000ULL);
+    compiler_debug_print(time_str);
+    compiler_debug_print(" ");
+    compiler_debug_print(msg);
+    compiler_debug_print("\n");
+}
+
+void log(const char* str, const char* file, const char* function, int32 line) NO_EXCEPT
 {
     if (!_log_memory) {
         return;
     }
 
-    mutex_lock(&_log_memory->mtx);
+    log_spinlock_start(&_log_memory->lock, 0);
 
     int32 len = (int32) str_length(str);
+
+    // Ensure that we have enough space in our log memory, otherwise log to file
+    int32 total_len = (len + (MAX_LOG_LENGTH - 1) / MAX_LOG_LENGTH) * sizeof(LogMessage) + len;
+    if (_log_memory->size - (_log_memory->pos + total_len) < MAX_LOG_LENGTH) {
+        log_to_file(_log_memory->memory, _log_memory->pos);
+        _log_memory->pos = 0;
+    }
+
     while (len > 0) {
         LogMessage* msg = (LogMessage *) log_get_memory();
 
@@ -221,26 +307,16 @@ void log(const char* str, const char* file, const char* function, int32 line)
 
         #if DEBUG || VERBOSE
             // In debug mode we always output the log message to the debug console
-            char time_str[13];
-            format_time_hh_mm_ss_ms(time_str, msg->time / 1000ULL);
-            compiler_debug_print(time_str);
-            compiler_debug_print(" ");
-            compiler_debug_print(msg->message);
-            compiler_debug_print("\n");
+            log_to_terminal(msg->time, msg->message);
         #endif
 
         DEBUG_MEMORY_WRITE((uintptr_t) msg, sizeof(*msg) + message_length);
-
-        if (_log_memory->size - _log_memory->pos < MAX_LOG_LENGTH) {
-            log_to_file();
-            _log_memory->pos = 0;
-        }
     }
 
-    mutex_unlock(&_log_memory->mtx);
+    log_spinlock_end(&_log_memory->lock);
 }
 
-void log(const char* format, LogDataArray data, const char* file, const char* function, int32 line)
+void log(const char* format, LogDataArray data, const char* file, const char* function, int32 line) NO_EXCEPT
 {
     if (!_log_memory) {
         return;
@@ -253,7 +329,27 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
 
     ASSERT_TRUE(str_length(format) + str_length(file) + str_length(function) + 50 < MAX_LOG_LENGTH);
 
-    mutex_lock(&_log_memory->mtx);
+    log_spinlock_start(&_log_memory->lock, 0);
+
+    // Is data raw output?
+    if (data.data[0].type == LOG_DATA_RAW) {
+        // If length is larger than buffer directly log to file
+        int32 total_len = *((int32 *) data.data[0].value);
+        #if DEBUG || VERBOSE
+            // In debug mode we always output the log message to the debug console
+            log_to_terminal(log_sys_time(), format);
+        #endif
+
+        // NOTE: We are not storing raw data in memory
+        //      This is because we need \0 terminated text in memory and only allow MAX_LOG_LENGTH
+        //      The raw data doesn't fulfill \0 and probably also doesn't fulfill MAX_LOG_LENGTH
+
+        log_to_file(format, total_len);
+
+        log_spinlock_end(&_log_memory->lock);
+
+        return;
+    }
 
     LogMessage* msg = (LogMessage *) log_get_memory();
     msg->file = file;
@@ -317,30 +413,25 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
 
     #if DEBUG || VERBOSE
         // In debug mode we always output the log message to the debug console
-        char time_str[13];
-        format_time_hh_mm_ss_ms(time_str, msg->time / 1000ULL);
-        compiler_debug_print(time_str);
-        compiler_debug_print(" ");
-        compiler_debug_print(msg->message);
-        compiler_debug_print("\n");
+        log_to_terminal(msg->time, msg->message);
     #endif
 
     DEBUG_MEMORY_WRITE((uintptr_t) msg, sizeof(*msg) + MAX_LOG_LENGTH);
 
     if (_log_memory->size - _log_memory->pos < MAX_LOG_LENGTH) {
-        log_to_file();
+        log_to_file(_log_memory->memory, _log_memory->pos);
         _log_memory->pos = 0;
     }
 
-    mutex_unlock(&_log_memory->mtx);
+    log_spinlock_end(&_log_memory->lock);
 }
 
-#define LOG_TO_FILE() log_to_file()
+#define LOG_TO_FILE() log_to_file(_log_memory->memory, _log_memory->pos)
 #define LOG_FLUSH() log_flush()
 
 // WARNING: This is just an annoying helper function required for MSVC which doesn't allow (LogData) {type, value} as a return/type case
 inline
-LogData makeLogData(LogDataType type, void* value) {
+LogData makeLogData(LogDataType type, void* value) NO_EXCEPT {
     LogData d = {type, value};
     return d;
 }
@@ -349,7 +440,7 @@ LogData makeLogData(LogDataType type, void* value) {
 // WARNING: Unfortunately this helper function is required since post c++20 nested-brace initialize no longer support array initialization
 #include <initializer_list>
 inline
-LogDataArray makeLogDataArray(std::initializer_list<LogData> list) {
+LogDataArray makeLogDataArray(std::initializer_list<LogData> list) NO_EXCEPT {
     LogDataArray arr = {};
     int32 i = 0;
 

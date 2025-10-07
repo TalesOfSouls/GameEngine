@@ -537,7 +537,7 @@ void mat4_rotation(f32* matrix, f32 x, f32 y, f32 z, f32 angle) NO_EXCEPT
     // @todo replace with quaternions
     f32 s;
     f32 c;
-    sincosf(angle, &s, &c);
+    SINCOSF(angle, s, c);
 
     f32 m = 1 - c;
 
@@ -579,15 +579,15 @@ void mat4_rotation(f32* matrix, f32 pitch, f32 yaw, f32 roll) NO_EXCEPT
 {
     f32 cos_pitch;
     f32 sin_pitch;
-    sincosf(pitch, &sin_pitch, &cos_pitch);
+    SINCOSF(pitch, sin_pitch, cos_pitch);
 
     f32 cos_yaw;
     f32 sin_yaw;
-    sincosf(yaw, &sin_yaw, &cos_yaw);
+    SINCOSF(yaw, sin_yaw, cos_yaw);
 
     f32 cos_roll;
     f32 sin_roll;
-    sincosf(roll, &sin_roll, &cos_roll);
+    SINCOSF(roll, sin_roll, cos_roll);
 
     matrix[0] = cos_yaw * cos_roll;
     matrix[1] = cos_yaw * sin_roll;

@@ -98,19 +98,64 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
 }
 
 FORCE_INLINE
-void change_viewport(f32 width, f32 height, int32 offset_x = 0, int32 offset_y = 0)
+GpuFence gpuapi_fence_create() NO_EXCEPT
+{
+    return (GpuFence) 0;
+}
+
+FORCE_INLINE
+void gpuapi_fence_lock(GpuFence* fence) NO_EXCEPT {
+    if (fence) {
+        ASSERT_TRUE_CONST(false);
+        glDeleteSync(*fence);
+        *fence = 0;
+    }
+
+    *fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+}
+
+// Checks if a fence is unlocked
+inline
+bool gpuapi_fence_is_unlocked(GpuFence* fence) NO_EXCEPT {
+    if (!(*fence)) {
+        return true;
+    }
+
+    GLenum res = glClientWaitSync(*fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0); /* timeout 0 -> poll */
+    if (res == GL_ALREADY_SIGNALED || res == GL_CONDITION_SATISFIED) {
+        // GPU is done; delete sync and mark slot free
+        glDeleteSync(*fence);
+        *fence = 0;
+
+        return true;
+    }
+
+    ASSERT_TRUE_CONST(false);
+
+    return false;
+}
+
+FORCE_INLINE
+void gpuapi_fence_delete(GpuFence* fence) NO_EXCEPT
+{
+    glDeleteSync(*fence);
+    *fence = 0;
+}
+
+FORCE_INLINE
+void change_viewport(f32 width, f32 height, int32 offset_x = 0, int32 offset_y = 0) NO_EXCEPT
 {
     glViewport(offset_x, offset_y, (int32) width, (int32) height);
 }
 
 FORCE_INLINE
-void vsync_set(int32 on)
+void vsync_set(int32 on) NO_EXCEPT
 {
     wglSwapIntervalEXT((int32) on);
 }
 
 FORCE_INLINE
-void wireframe_mode(bool on)
+void wireframe_mode(bool on) NO_EXCEPT
 {
     glPolygonMode(GL_FRONT_AND_BACK, on ? GL_LINE : GL_FILL);
 }
@@ -121,7 +166,8 @@ struct OpenglInfo {
     int32 minor;
 };
 
-void opengl_info(OpenglInfo* info)
+inline
+void opengl_info(OpenglInfo* info) NO_EXCEPT
 {
     info->renderer = (char *) glGetString(GL_RENDERER);
     info->major = 1;
@@ -142,7 +188,7 @@ void opengl_info(OpenglInfo* info)
 
 // @todo rename to gpuapi_*
 inline
-uint32 get_texture_data_type(uint32 texture_data_type)
+uint32 get_texture_data_type(uint32 texture_data_type) NO_EXCEPT
 {
     switch (texture_data_type) {
         case TEXTURE_DATA_TYPE_2D: {
@@ -179,8 +225,8 @@ uint32 get_texture_data_type(uint32 texture_data_type)
 // 5. texture_use
 
 // @todo this should have a gpuapi_ name
-inline
-void prepare_texture(Texture* texture)
+FORCE_INLINE
+void prepare_texture(Texture* texture) NO_EXCEPT
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
 
@@ -191,8 +237,9 @@ void prepare_texture(Texture* texture)
 
 // @todo this should have a gpuapi_ name
 inline
-void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
+void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0) NO_EXCEPT
 {
+    PROFILE_START(PROFILE_GPU);
     // @todo also handle different texture formats (R, RG, RGB, 1 byte vs 4 byte per pixel)
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
     glTexImage2D(
@@ -205,13 +252,14 @@ void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
     if (mipmap_level > -1) {
         glGenerateMipmap(GL_TEXTURE_2D);
     }
+    PROFILE_END(PROFILE_GPU);
 
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings));
 }
 
 // @todo this should have a gpuapi_ name
-inline
-void texture_use(const Texture* texture)
+FORCE_INLINE
+void texture_use(const Texture* texture) NO_EXCEPT
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
 
@@ -220,13 +268,13 @@ void texture_use(const Texture* texture)
 }
 
 // @todo this should have a gpuapi_ name
-inline
-void texture_delete(Texture* texture) {
+FORCE_INLINE
+void texture_delete(Texture* texture) NO_EXCEPT {
     glDeleteTextures(1, &texture->id);
 }
 
 inline
-void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int32 count) {
+void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -257,7 +305,7 @@ void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int32 count) {
 }
 
 inline
-void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int32 count) {
+void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -277,7 +325,7 @@ void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int32 cou
 }
 
 inline
-void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int32 count) {
+void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -302,7 +350,7 @@ void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int32 count
 }
 
 inline
-void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int32 count) {
+void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -324,7 +372,7 @@ void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int32 count) {
 }
 
 inline
-void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int32 count) {
+void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -344,7 +392,7 @@ void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int32 cou
 }
 
 inline
-void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int32 count) {
+void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -363,8 +411,8 @@ void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int32 count
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-inline
-int calculate_face_size(int components, int32 faces)
+FORCE_INLINE
+int32 calculate_face_size(int components, int32 faces) NO_EXCEPT
 {
     return sizeof(GLfloat) * 6 * components * faces;
 }
@@ -372,7 +420,7 @@ int calculate_face_size(int components, int32 faces)
 // generates faces
 // data is no longer needed after this
 inline
-uint32 gpuapi_buffer_generate(int32 size, const void* data)
+uint32 gpuapi_buffer_generate(int32 size, const void* data) NO_EXCEPT
 {
     uint32 vbo;
 
@@ -386,7 +434,7 @@ uint32 gpuapi_buffer_generate(int32 size, const void* data)
 }
 
 inline
-uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data)
+uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data) NO_EXCEPT
 {
     uint32 vbo;
 
@@ -399,8 +447,66 @@ uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data)
     return vbo;
 }
 
+// data is the pointer to the gpu data the process can now write to
 inline
-uint32 gpuapi_framebuffer_generate()
+uint32 gpuapi_buffer_generate_persistent(size_t size, void** data) NO_EXCEPT
+{
+    ASSERT_TRUE(MODULO_2(size, 8) == 0);
+    uint32 vbo;
+
+    // @performance Profile GL_MAP_COHERENT_BIT vs. calling glFlushMappedBufferRange
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferStorage(
+        GL_ARRAY_BUFFER, size, NULL,
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT | GL_DYNAMIC_STORAGE_BIT
+    );
+
+    *data = glMapBufferRange(
+        GL_ARRAY_BUFFER, 0, (size_t) size,
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT
+    );
+
+    ASSERT_TRUE(*data);
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
+
+    return vbo;
+}
+
+FORCE_INLINE
+void gpuapi_buffer_persistent_delete(GLuint vbo) NO_EXCEPT
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+}
+
+// region_start is the start of that specific persistent buffer region
+//      what i mean by this we may have one large persistent buffer where one part contains the camera matrix, another ui data etc.
+//      and every region may have double/triple buffering
+// frame_index usually 0, 1, 2 in triple buffer
+// region_size size per sub-buffer (not the complete triple buffer but one of the triple buffers)
+//      e.g. for a camera it would be 4x4 float matrix = 16*sizeof(float)
+//      -> total subregion if we use triple buffering = 16*sizeof(float)*3
+//      -> careful we are aligning the region_size to 16 bytes since some work better with that alignment or is even required in some cases
+// WARNING: This doesn't check for locks in fences
+//          You have to create your own fences and check them before calling this function
+//          The reason for this is only you know which fence to use and how many you need for the entire region
+//          Each subregion * count_of_buffers needs its own fence
+/*
+inline
+void gpuapi_draw_buffer_subregion(void* region_start, int32 frame_index, size_t region_size) NO_EXCEPT
+{
+    region_size = OMS_ALIGN_UP(region_size, 16);
+    size_t offset = frame_index * region_size;
+
+    glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+}
+*/
+
+FORCE_INLINE
+uint32 gpuapi_framebuffer_generate() NO_EXCEPT
 {
     uint32 fbo;
 
@@ -410,8 +516,8 @@ uint32 gpuapi_framebuffer_generate()
     return fbo;
 }
 
-inline
-uint32 gpuapi_renderbuffer_generate()
+FORCE_INLINE
+uint32 gpuapi_renderbuffer_generate() NO_EXCEPT
 {
     uint32 rbo;
 
@@ -421,11 +527,13 @@ uint32 gpuapi_renderbuffer_generate()
     return rbo;
 }
 
-inline
-void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data)
+FORCE_INLINE
+void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data) NO_EXCEPT
 {
+    PROFILE_START(PROFILE_GPU);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+    PROFILE_END(PROFILE_GPU);
 
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 }
@@ -438,8 +546,9 @@ inline
 void gpuapi_vertex_buffer_update(
     uint32 vbo,
     const void* data, int32 vertex_size, int32 vertex_count, int32 offset = 0
-)
+) NO_EXCEPT
 {
+    PROFILE_START(PROFILE_GPU);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     // @performance Does this if even make sense or is glBufferSubData always the better choice?
     if (offset) {
@@ -450,13 +559,14 @@ void gpuapi_vertex_buffer_update(
     } else {
         glBufferData(GL_ARRAY_BUFFER, vertex_size * vertex_count, data, GL_DYNAMIC_DRAW);
     }
+    PROFILE_END(PROFILE_GPU);
     ASSERT_GPU_API();
 
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, vertex_size * vertex_count - offset);
 }
 
-inline
-uint32 gpuapi_shaderbuffer_generate(int32 size, const void* data)
+FORCE_INLINE
+uint32 gpuapi_shaderbuffer_generate(int32 size, const void* data) NO_EXCEPT
 {
     uint32 sbo;
 
@@ -467,8 +577,8 @@ uint32 gpuapi_shaderbuffer_generate(int32 size, const void* data)
     return sbo;
 }
 
-inline
-uint32 gpuapi_uniformbuffer_generate(int32 size, const void* data)
+FORCE_INLINE
+uint32 gpuapi_uniformbuffer_generate(int32 size, const void* data) NO_EXCEPT
 {
     uint32 ubo;
 
@@ -479,8 +589,8 @@ uint32 gpuapi_uniformbuffer_generate(int32 size, const void* data)
     return ubo;
 }
 
-inline
-uint32 gpuapi_buffer_element_generate(int32 size, uint32 *data)
+FORCE_INLINE
+uint32 gpuapi_buffer_element_generate(int32 size, uint32 *data) NO_EXCEPT
 {
     uint32 ebo;
 
@@ -491,8 +601,8 @@ uint32 gpuapi_buffer_element_generate(int32 size, uint32 *data)
     return ebo;
 }
 
-inline
-uint32 gpuapi_vertex_array_generate()
+FORCE_INLINE
+uint32 gpuapi_vertex_array_generate() NO_EXCEPT
 {
     uint32 vao;
     glGenVertexArrays(1, &vao);
@@ -501,26 +611,27 @@ uint32 gpuapi_vertex_array_generate()
     return vao;
 }
 
-inline
-void gpuapi_unbind_all()
+FORCE_INLINE
+void gpuapi_unbind_all() NO_EXCEPT
 {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
 
-inline
-void gpuapi_buffer_delete(GLuint buffer)
+FORCE_INLINE
+void gpuapi_buffer_delete(GLuint buffer) NO_EXCEPT
 {
     glDeleteBuffers(1, &buffer);
 }
 
-inline
-void gpuapi_vertex_array_delete(GLuint buffer)
+FORCE_INLINE
+void gpuapi_vertex_array_delete(GLuint buffer) NO_EXCEPT
 {
     glDeleteVertexArrays(1, &buffer);
 }
 
-int get_gpu_free_memory()
+inline
+int32 get_gpu_free_memory()
 {
     GLint available = 0;
     glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &available);

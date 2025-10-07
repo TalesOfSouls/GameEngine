@@ -11,44 +11,47 @@
 
 #include "../../../stdlib/Types.h"
 #include "../../../utils/Utils.h"
+#include "../../../utils/RandomUtils.h"
 #include "Drop.h"
+#include "../../item/ItemRarity.h"
+
+// Loot tables are 2-layered
+//      1. basic item selection
+//      2. only if defined individual drop distributions
 
 // @todo how to do class specific loot table?
 struct LootTable {
-    // Chance this table becomes effective at all
-    // Useful to define multiple loot tables for a mob e.g. normal drop + 1 rare guarantueed
-    f32 table_chance;
-
     uint64* items;
-    int32 table_size;
+    int32 item_count;
 
-    // If drop chance = -1 -> use default rarity drop chance
-    f32* item_drop_chances;
+    RarityDropChance item_drop_chances;
+    RarityDropCount item_drop_count;
 
-    // How many stacks of that item should be dropped
-    // Usually only used for consumables
-    int32* item_min_drop_count;
-    int32* item_max_drop_count;
+    // should item drops be unique?
     bool item_unique;
 
-    // How many "different" items should be dropped
-    uint32 item_min_count;
-    uint32 item_max_count;
+    // @performance
+    // @todo We don't want the stuff below in here since this means we have to reserve the space
+    // It would be nicer if we could make it optional
 
     // How much gold should be dropped
-    uint32 gold_min_count;
-    uint32 gold_max_count;
+    // Only used if defined otherwise global list is used
+    // This is important so we can create a gold leprechaun / pixiu
+    f32 gold_drop_probability;
+    v2_int32 gold;
 
     // How much xp should be dropped
-    uint32 xp_min_count;
-    uint32 xp_max_count;
+    // Only used if defined otherwise global list is used
+    // This is important so we can create a xp leprechaun / maybe owl as symbol instead
+    // -1 use general xp
+    v2_int16 xp;
 };
 
 // 1. check if table comes into effect
 // 2. check if max item drop count is exceeded
 void loot_table_drop(const LootTable* table, Drop* drop, uint32 counter = 0)
 {
-    f32 rand = fast_rand_percentage();
+    f32 rand = rand_fast_percent();
     if (counter >= table->item_max_count
         || rand > table->table_chance
     ) {
@@ -74,7 +77,7 @@ void loot_table_drop(const LootTable* table, Drop* drop, uint32 counter = 0)
 
     drop->quantity = 1;
     if (table->item_max_drop_count[i] > 1) {
-        rand = fast_rand_percentage();
+        rand = rand_fast_percent();
         drop->quantity = OMS_MAX(table->item_min_drop_count[i], (int) ((f32) table->item_max_count * rand));
     }
 }
@@ -85,7 +88,7 @@ uint64 loot_table_drop_gold(const LootTable* table)
         return 0;
     }
 
-    f32 rand = fast_rand_percentage();
+    f32 rand = rand_fast_percent();
     if (rand > table->table_chance) {
         return 0;
     }

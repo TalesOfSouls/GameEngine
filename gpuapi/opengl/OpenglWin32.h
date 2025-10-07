@@ -357,6 +357,8 @@ extern "C" {
     WINGDIAPI void APIENTRY glVertexPointer (GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
     WINGDIAPI void APIENTRY glViewport (GLint x, GLint y, GLsizei width, GLsizei height);
 
+    /*
+    @question Why was this even here? Can we remove?
     typedef void (APIENTRY * PFNGLARRAYELEMENTEXTPROC) (GLint i);
     typedef void (APIENTRY * PFNGLDRAWARRAYSEXTPROC) (GLenum mode, GLint first, GLsizei count);
     typedef void (APIENTRY * PFNGLVERTEXPOINTEREXTPROC) (GLint size, GLenum type, GLsizei stride, GLsizei count, const GLvoid *pointer);
@@ -373,18 +375,19 @@ extern "C" {
     typedef void (APIENTRY * PFNGLADDSWAPHINTRECTWINPROC)  (GLint x, GLint y, GLsizei width, GLsizei height);
 
     typedef void (APIENTRY * PFNGLCOLORTABLEEXTPROC)
-        (GLenum target, GLenum internalFormat, GLsizei width, GLenum format,
-        GLenum type, const GLvoid *data);
+        (GLenum target, GLenum internalFormat, GLsizei width, GLenum format, GLenum type, const GLvoid *data);
     typedef void (APIENTRY * PFNGLCOLORSUBTABLEEXTPROC)
-        (GLenum target, GLsizei start, GLsizei count, GLenum format,
-        GLenum type, const GLvoid *data);
-    typedef void (APIENTRY * PFNGLGETCOLORTABLEEXTPROC)
-        (GLenum target, GLenum format, GLenum type, GLvoid *data);
-    typedef void (APIENTRY * PFNGLGETCOLORTABLEPARAMETERIVEXTPROC)
-        (GLenum target, GLenum pname, GLint *params);
-    typedef void (APIENTRY * PFNGLGETCOLORTABLEPARAMETERFVEXTPROC)
-        (GLenum target, GLenum pname, GLfloat *params);
+        (GLenum target, GLsizei start, GLsizei count, GLenum format, GLenum type, const GLvoid *data);
+    typedef void (APIENTRY * PFNGLGETCOLORTABLEEXTPROC) (GLenum target, GLenum format, GLenum type, GLvoid *data);
+    typedef void (APIENTRY * PFNGLGETCOLORTABLEPARAMETERIVEXTPROC) (GLenum target, GLenum pname, GLint *params);
+    typedef void (APIENTRY * PFNGLGETCOLORTABLEPARAMETERFVEXTPROC) (GLenum target, GLenum pname, GLfloat *params);
+
+    typedef void (APIENTRY * PFNGLMAKEBUFFERRESIDENTNVPROC) (GLenum target, GLenum access);
+    */
 }
+
+typedef const GLubyte* WINAPI type_glGetStringi(GLenum name, GLuint index);
+static type_glGetStringi* glGetStringi;
 
 typedef void WINAPI type_glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations);
 static type_glTexImage2DMultisample* glTexImage2DMultisample;
@@ -536,6 +539,18 @@ static type_glFramebufferRenderbuffer* glFramebufferRenderbuffer;
 typedef void WINAPI type_glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage);
 static type_glBufferData* glBufferData;
 
+typedef void WINAPI type_glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
+static type_glBufferStorage* glBufferStorage;
+
+typedef void* WINAPI type_glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+static type_glMapBufferRange* glMapBufferRange;
+
+typedef void WINAPI type_glUnmapBuffer(GLenum target);
+static type_glUnmapBuffer* glUnmapBuffer;
+
+typedef void WINAPI type_glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length);
+static type_glFlushMappedBufferRange* glFlushMappedBufferRange;
+
 typedef void WINAPI type_glActiveTexture(GLenum texture);
 static type_glActiveTexture* glActiveTexture;
 
@@ -600,6 +615,18 @@ typedef void WINAPI gl_debug_callback(GLenum source, GLenum type, GLuint id, GLe
 typedef void WINAPI type_glDebugMessageCallback(gl_debug_callback* callback, const void* userParam);
 static type_glDebugMessageCallback* glDebugMessageCallback;
 
+typedef void WINAPI type_glMakeBufferResidentNV(GLenum target, GLenum access);
+static type_glMakeBufferResidentNV* glMakeBufferResidentNV;
+
+typedef void WINAPI type_glMakeBufferNonResidentNV(GLenum target);
+static type_glMakeBufferNonResidentNV* glMakeBufferNonResidentNV;
+
+typedef void WINAPI type_glGetBufferParameterui64vNV(GLenum target, GLenum pname, GLuint64EXT* params);
+static type_glGetBufferParameterui64vNV* glGetBufferParameterui64vNV;
+
+typedef void WINAPI type_glVertexAttribFormatNV(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride);
+static type_glVertexAttribFormatNV* glVertexAttribFormatNV;
+
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
 #define WGL_CONTEXT_LAYER_PLANE_ARB 0x2093
@@ -650,6 +677,7 @@ static wgl_swap_interval_ext* wglSwapIntervalEXT;
 typedef const char* WINAPI wgl_get_extensions_string_ext(void);
 static wgl_get_extensions_string_ext* wglGetExtensionsStringEXT;
 
+static inline
 void set_pixel_format(HDC hdc, int32 multisampling = 0)
 {
     int32 suggested_pixel_format_idx = 0;
@@ -690,6 +718,23 @@ void set_pixel_format(HDC hdc, int32 multisampling = 0)
     SetPixelFormat(hdc, suggested_pixel_format_idx, &suggested_pixel_format);
 }
 
+static inline
+bool gl_has_extension(const char* name)
+{
+    int32 n;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+
+    for (int32 i = 0; i < n; ++i) {
+        const char* e = (const char*) glGetStringi(GL_EXTENSIONS, i);
+        if (str_compare(e, name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static
 bool gl_extensions_load()
 {
     WNDCLASSA wc = {};
@@ -762,6 +807,7 @@ const int win32_opengl_attribs[] = {
     0,
 };
 
+static inline
 void opengl_init_wgl()
 {
     wglChoosePixelFormatARB = (wgl_choose_pixel_format_arb *) wglGetProcAddress("wglChoosePixelFormatARB");
@@ -770,8 +816,10 @@ void opengl_init_wgl()
     wglGetExtensionsStringEXT = (wgl_get_extensions_string_ext *) wglGetProcAddress("wglGetExtensionsStringEXT");
 }
 
+static inline
 void opengl_init_gl()
 {
+    glGetStringi = (type_glGetStringi *) wglGetProcAddress("glGetStringi");
     glTexImage2DMultisample = (type_glTexImage2DMultisample *) wglGetProcAddress("glTexImage2DMultisample");
     glFenceSync = (type_glFenceSync *) wglGetProcAddress("glFenceSync");
     glClientWaitSync = (type_glClientWaitSync *) wglGetProcAddress("glClientWaitSync");
@@ -822,6 +870,10 @@ void opengl_init_gl()
     glRenderbufferStorageMultisample = (type_glRenderbufferStorageMultisample *) wglGetProcAddress("glRenderbufferStorageMultisample");
     glFramebufferRenderbuffer = (type_glFramebufferRenderbuffer *) wglGetProcAddress("glFramebufferRenderbuffer");
     glBufferData = (type_glBufferData *) wglGetProcAddress("glBufferData");
+    glBufferStorage = (type_glBufferStorage *) wglGetProcAddress("glBufferStorage");
+    glMapBufferRange = (type_glMapBufferRange *) wglGetProcAddress("glMapBufferRange");
+    glUnmapBuffer = (type_glUnmapBuffer *) wglGetProcAddress("glUnmapBuffer");
+    glFlushMappedBufferRange = (type_glFlushMappedBufferRange *) wglGetProcAddress("glFlushMappedBufferRange");
     glActiveTexture = (type_glActiveTexture *) wglGetProcAddress("glActiveTexture");
     glDeleteProgram = (type_glDeleteProgram *) wglGetProcAddress("glDeleteProgram");
     glDeleteVertexArrays = (type_glDeleteVertexArrays *) wglGetProcAddress("glDeleteVertexArrays");
@@ -843,8 +895,31 @@ void opengl_init_gl()
     glDrawElementsInstanced = (type_glDrawElementsInstanced *) wglGetProcAddress("glDrawElementsInstanced");
     glProgramParameteri = (type_glProgramParameteri *) wglGetProcAddress("glProgramParameteri");
     glDebugMessageCallback = (type_glDebugMessageCallback *) wglGetProcAddress("glDebugMessageCallback");
+
+    // Bind optional functions/extensions
+    constexpr const char* optional_nvidia_ext[] = {
+        "glMakeBufferResidentNV",
+        "glMakeBufferNonResidentNV",
+        "glGetBufferParameterui64vNV",
+        "glVertexAttribFormatNV",
+    };
+
+    OPENGL_HAS_NVIDIA_EXT = true;
+    for (int32 i = 0; i < ARRAY_COUNT(optional_nvidia_ext); ++i) {
+        if (!gl_has_extension(optional_nvidia_ext[i])) {
+            OPENGL_HAS_NVIDIA_EXT = false;
+            break;
+        }
+    }
+    if (OPENGL_HAS_NVIDIA_EXT) {
+        glMakeBufferResidentNV = (type_glMakeBufferResidentNV *) wglGetProcAddress("glMakeBufferResidentNV");
+        glMakeBufferNonResidentNV = (type_glMakeBufferNonResidentNV *) wglGetProcAddress("glMakeBufferNonResidentNV");
+        glGetBufferParameterui64vNV = (type_glGetBufferParameterui64vNV *) wglGetProcAddress("glGetBufferParameterui64vNV");
+        glVertexAttribFormatNV = (type_glVertexAttribFormatNV *) wglGetProcAddress("glVertexAttribFormatNV");
+    }
 }
 
+inline
 void opengl_destroy(Window* window)
 {
     wglMakeCurrent(NULL, NULL);

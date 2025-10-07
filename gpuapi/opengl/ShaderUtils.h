@@ -29,6 +29,7 @@ struct OpenglVertexInputAttributeDescription {
     void* offset;
 };
 
+inline
 int32 ogl_shader_type_index(ShaderType type)
 {
     switch (type) {
@@ -116,7 +117,7 @@ uint32 opengl_get_attrib_location(uint32 id, const char* name)
     return glGetAttribLocation(id, name);
 }
 
-inline
+FORCE_INLINE
 void opengl_check_link_errors(uint32 id, char* log)
 {
     GLint success;
@@ -126,7 +127,7 @@ void opengl_check_link_errors(uint32 id, char* log)
     }
 }
 
-inline
+FORCE_INLINE
 void opengl_check_compile_errors(uint32 id, char* log)
 {
     GLint success;
@@ -243,7 +244,7 @@ GLuint gpuapi_shader_make(GLenum type, const char* source)
     return shader;
 }
 
-inline
+FORCE_INLINE
 int32 opengl_program_get_size(uint32 program)
 {
     int32 size;
@@ -466,6 +467,7 @@ void gpuapi_attribute_info_create(GpuAttributeType type, OpenglVertexInputAttrib
     };
 }
 
+FORCE_INLINE
 void gpuapi_descriptor_set_layout_create(Shader* __restrict shader, const OpenglDescriptorSetLayoutBinding* __restrict bindings, int32 binding_length) {
     for (int32 i = 0; i < binding_length; ++i) {
         shader->descriptor_set_layout[i].binding = glGetUniformLocation(shader->id, bindings[i].name);

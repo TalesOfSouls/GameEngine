@@ -19,13 +19,16 @@ enum ObjectFlag : uint8 {
     OBJECT_FLAG_LIGHTSOURCE = 1 << 4,
     OBJECT_FLAG_INTERACTABLE = 1 << 5, // Object is dynamic (may disappear soon, e.g. dropped item)
     OBJECT_FLAG_DYNAMIC = 1 << 6, // Object is dynamic (may disappear soon, e.g. dropped item)
+    OBJECT_FLAG_MAP = 1 << 7, // Shows up on the (mini)map (e.g. terrain)
 };
 
 enum ObjectInteractionFlag : uint8 {
-    OBJECT_INTERACTION_FLAG_DESTRUCTIBLE = 1 << 0,
+    OBJECT_INTERACTION_FLAG_ACTIVE = 1 << 0, // Maybe it was interactive and is no longer
+    OBJECT_INTERACTION_FLAG_DESTRUCTIBLE = 1 << 1,
     OBJECT_INTERACTION_FLAG_MOVABLE = 1 << 2,
     OBJECT_INTERACTION_FLAG_COLLECTABLE = 1 << 3,
     OBJECT_INTERACTION_FLAG_CHANGEABLE = 1 << 4,
+    OBJECT_INTERACTION_FLAG_DROPS = 1 << 5,
 };
 
 #endif

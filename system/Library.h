@@ -30,7 +30,7 @@ struct Library {
     #endif
 
     int32 function_count;
-    const char** function_names;
+    const char* const* function_names;
     void** functions;
 };
 

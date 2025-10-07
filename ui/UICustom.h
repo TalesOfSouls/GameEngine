@@ -12,8 +12,10 @@
 struct UICustomState {
 };
 
+// Very basic custom element that only must have dimension information
+// All other information must be defined programatically
 struct UICustom {
-
+    UIAttributeDimension dimension;
 };
 
 void ui_custom_state_serialize(const UICustomState* __restrict state, byte** __restrict pos)

@@ -113,8 +113,6 @@ int32 vertex_line_create(
     return idx;
 }
 
-// @performance Do we really want to create the UI as one continuous mesh?
-// Individual meshes without degenerates might be faster
 // @question Do we really want this to be inline? we are calling this function very often -> a lot of inlined code size
 inline
 int32 vertex_rect_create(
@@ -149,6 +147,59 @@ int32 vertex_rect_create(
 
     return idx;
 }
+
+inline int32 vertex_circle_create(
+    Vertex3DSamplerTextureColor* __restrict vertices,
+    f32 zindex, int32 sampler,
+    v4_f32 dimension,
+    byte alignment,
+    int32 segments, // defines the detail (should be a multiple of 4)
+    uint32 rgba = 0, v2_f32 tex_center = {}, v2_f32 tex_edge = {}
+) NO_EXCEPT {
+    if (alignment) {
+        adjust_aligned_position(&dimension, alignment);
+    }
+
+    if (rgba) {
+        tex_center.x = -1.0f;
+        tex_center.y = BITCAST(rgba, f32);
+
+        tex_edge.x = -1.0f;
+        tex_edge.y = BITCAST(rgba, f32);
+    }
+
+    // Circle center + radii
+    f32 cx = dimension.x + dimension.width * 0.5f;
+    f32 cy = dimension.y + dimension.height * 0.5f;
+    f32 rx = dimension.width * 0.5f;
+    f32 ry = dimension.height * 0.5f;
+
+    int32 idx = 0;
+
+    // Generate a triangle fan: center + pairs of edge vertices
+    f32 s;
+    f32 c;
+    for (int32 i = 0; i < segments; ++i) {
+        f32 angle0 = (OMS_TWO_PI * i) / segments;
+        f32 angle1 = (OMS_TWO_PI * (i + 1)) / segments;
+
+        SINCOSF(angle0, s, c);
+        f32 x0 = cx + c * rx;
+        f32 y0 = cy + s * ry;
+
+        SINCOSF(angle1, s, c);
+        f32 x1 = cx + c * rx;
+        f32 y1 = cy + s * ry;
+
+        // center
+        vertices[idx++] = {{cx, cy, zindex}, sampler, tex_center};
+        vertices[idx++] = {{x0, y0, zindex}, sampler, tex_edge};
+        vertices[idx++] = {{x1, y1, zindex}, sampler, tex_edge};
+    }
+
+    return idx;
+}
+
 
 static
 f32 text_calculate_dimensions_height(

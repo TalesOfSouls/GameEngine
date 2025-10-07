@@ -15,6 +15,10 @@ enum UIDimensionFlag : byte {
     // Are the values modifiable by the user (live)
     UI_DIMENSION_POS_MODIFIABLE = 1 << 4,
     UI_DIMENSION_DIM_MODIFIABLE = 1 << 5,
+
+    // Do we use pixel or relative units
+    UI_DIMENSION_DIM_PX = 1 << 6,
+    UI_DIMENSION_SIZE_PX = 1 << 7,
 };
 
 struct UIAttributeDimension {

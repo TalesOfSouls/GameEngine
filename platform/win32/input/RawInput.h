@@ -296,19 +296,19 @@ int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
                     rect.bottom = GetSystemMetrics(SM_CYSCREEN);
                 }
 
-                states[i].state.dx += raw->data.mouse.lLastX;
-                states[i].state.dy += raw->data.mouse.lLastY;
+                states[i].state.dx[0] += (int16) (raw->data.mouse.lLastX);
+                states[i].state.dy[0] += (int16) (raw->data.mouse.lLastY);
 
-                states[i].state.x = MulDiv(raw->data.mouse.lLastX, rect.right, 65535) + rect.left;
-                states[i].state.y = MulDiv(raw->data.mouse.lLastY, rect.bottom, 65535) + rect.top;
+                states[i].state.x[0] = (int16) (MulDiv(raw->data.mouse.lLastX, rect.right, 32768) + rect.left);
+                states[i].state.y[0] = (int16) (MulDiv(raw->data.mouse.lLastY, rect.bottom, 32768) + rect.top);
 
                 states[i].general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
             } else if (raw->data.mouse.lLastX != 0 || raw->data.mouse.lLastY != 0) {
-                states[i].state.dx += raw->data.mouse.lLastX;
-                states[i].state.dy += raw->data.mouse.lLastY;
+                states[i].state.dx[0] += (int16) (raw->data.mouse.lLastX);
+                states[i].state.dy[0] += (int16) (raw->data.mouse.lLastY);
 
-                states[i].state.x = states[i].state.x + raw->data.mouse.lLastX;
-                states[i].state.y = states[i].state.y + raw->data.mouse.lLastY;
+                states[i].state.x[0] = (int16) (states[i].state.x[0] + raw->data.mouse.lLastX);
+                states[i].state.y[0] = (int16) (states[i].state.y[0] + raw->data.mouse.lLastY);
 
                 states[i].general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
             }
@@ -340,7 +340,7 @@ int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
         InputKey key = {
             (uint16) (raw->data.keyboard.MakeCode | INPUT_KEYBOARD_PREFIX),
             (uint16) (raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX),
-            new_state, time, 0, false
+            new_state, false, 0, time
         };
 
         input_set_state(states[i].state.active_keys, &key);
