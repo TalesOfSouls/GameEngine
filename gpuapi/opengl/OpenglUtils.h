@@ -449,25 +449,56 @@ uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data) NO_EXCEPT
 
 // data is the pointer to the gpu data the process can now write to
 inline
-uint32 gpuapi_buffer_generate_persistent(size_t size, void** data) NO_EXCEPT
+uint32 gpuapi_uniformbuffer_persistent_generate(size_t size, byte** data, int32 levels = 3) NO_EXCEPT
+{
+    // @todo we need to dynamically get the alignment and pass it in
+    //      For that we need to get it once and then store it in the system info struct?
+    // glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment);
+    ASSERT_TRUE(MODULO_2(size, 256) == 0);
+
+    // triple buffering;
+    size *= levels;
+
+    uint32 ubo;
+    glGenBuffers(1, &ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    glBufferStorage(
+        GL_UNIFORM_BUFFER, size, NULL,
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_DYNAMIC_STORAGE_BIT
+    );
+
+    *data = (byte *) glMapBufferRange(
+        GL_UNIFORM_BUFFER, 0, size,
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
+    );
+
+    ASSERT_GPU_API();
+    ASSERT_TRUE(*data);
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
+
+    return ubo;
+}
+
+inline
+uint32 gpuapi_buffer_persistent_generate(size_t size, void** data) NO_EXCEPT
 {
     ASSERT_TRUE(MODULO_2(size, 8) == 0);
     uint32 vbo;
-
-    // @performance Profile GL_MAP_COHERENT_BIT vs. calling glFlushMappedBufferRange
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferStorage(
         GL_ARRAY_BUFFER, size, NULL,
-        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT | GL_DYNAMIC_STORAGE_BIT
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_DYNAMIC_STORAGE_BIT
     );
 
     *data = glMapBufferRange(
         GL_ARRAY_BUFFER, 0, (size_t) size,
-        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
     );
 
+    ASSERT_GPU_API();
     ASSERT_TRUE(*data);
 
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);

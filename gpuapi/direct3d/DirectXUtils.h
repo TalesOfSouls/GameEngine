@@ -23,6 +23,12 @@
 // #include "../../../EngineDependencies/directx/d3dx12.h"
 #include "FramesInFlightContainer.h"
 
+#if DEBUG
+    #define ASSERT_GPU_API() ((void) 0)
+#else
+    #define ASSERT_GPU_API() ((void) 0)
+#endif
+
 // Replacement for the windows macro IID_PPVOID
 #define IID_PPVOID(pointer) __uuidof(**(pointer)), (void **) (pointer)
 

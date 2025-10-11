@@ -36,7 +36,8 @@
 #include "FramesInFlightContainer.h"
 
 #if DEBUG
-    #define ASSERT_GPU_API(x)                                                   \
+    #define ASSERT_GPU_API() ((void) 0)
+    #define ASSERT_GPU_API_CALL(x)                                                   \
         do {                                                                    \
             VkResult err = (x);                                                 \
             if (err) {                                                          \
@@ -45,7 +46,8 @@
             }                                                                   \
         } while (0)
 #else
-    #define ASSERT_GPU_API(x) (x)
+    #define ASSERT_GPU_API() ((void) 0)
+    #define ASSERT_GPU_API_CALL(x) (x)
 #endif
 
 PACKED_STRUCT;
@@ -755,7 +757,7 @@ void vulkan_buffer_create(
     buffer_info.usage = usage;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    ASSERT_GPU_API(vkCreateBuffer(device, &buffer_info, NULL, &buffer));
+    ASSERT_GPU_API_CALL(vkCreateBuffer(device, &buffer_info, NULL, &buffer));
 
     // Allocate memory for the buffer
     VkMemoryRequirements mem_requirements;
@@ -766,13 +768,13 @@ void vulkan_buffer_create(
     alloc_info.allocationSize = mem_requirements.size;
     alloc_info.memoryTypeIndex = vulkan_find_memory_type(physical_device, mem_requirements.memoryTypeBits, properties);
 
-    ASSERT_GPU_API(vkAllocateMemory(device, &alloc_info, NULL, &buffer_memory));
-    ASSERT_GPU_API(vkBindBufferMemory(device, buffer, buffer_memory, 0));
+    ASSERT_GPU_API_CALL(vkAllocateMemory(device, &alloc_info, NULL, &buffer_memory));
+    ASSERT_GPU_API_CALL(vkBindBufferMemory(device, buffer, buffer_memory, 0));
 }
 
 FORCE_INLINE
 void vulkan_command_buffer_reset(VkCommandBuffer command_buffer) {
-    ASSERT_GPU_API(vkResetCommandBuffer(command_buffer, 0));
+    ASSERT_GPU_API_CALL(vkResetCommandBuffer(command_buffer, 0));
 }
 
 inline
@@ -782,21 +784,21 @@ void vulkan_single_commands_begin(VkCommandBuffer command_buffer)
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    ASSERT_GPU_API(vkBeginCommandBuffer(command_buffer, &begin_info));
+    ASSERT_GPU_API_CALL(vkBeginCommandBuffer(command_buffer, &begin_info));
 }
 
 inline
 void vulkan_single_commands_end(VkQueue queue, VkCommandBuffer command_buffer)
 {
-    ASSERT_GPU_API(vkEndCommandBuffer(command_buffer));
+    ASSERT_GPU_API_CALL(vkEndCommandBuffer(command_buffer));
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &command_buffer;
 
-    ASSERT_GPU_API(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
-    ASSERT_GPU_API(vkQueueWaitIdle(queue));
+    ASSERT_GPU_API_CALL(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
+    ASSERT_GPU_API_CALL(vkQueueWaitIdle(queue));
 }
 
 inline
@@ -905,7 +907,7 @@ void load_texture_to_gpu(
     image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    ASSERT_GPU_API(vkCreateImage(device, &image_info, NULL, texture_image));
+    ASSERT_GPU_API_CALL(vkCreateImage(device, &image_info, NULL, texture_image));
 
     // Allocate memory for the image
     VkMemoryRequirements memRequirements;
@@ -916,8 +918,8 @@ void load_texture_to_gpu(
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = vulkan_find_memory_type(physical_device, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    ASSERT_GPU_API(vkAllocateMemory(device, &allocInfo, NULL, texture_image_memory));
-    ASSERT_GPU_API(vkBindImageMemory(device, *texture_image, *texture_image_memory, 0));
+    ASSERT_GPU_API_CALL(vkAllocateMemory(device, &allocInfo, NULL, texture_image_memory));
+    ASSERT_GPU_API_CALL(vkBindImageMemory(device, *texture_image, *texture_image_memory, 0));
 
     int32 image_size = image_pixel_size_from_type(texture->image.image_settings) * texture->image.width * texture->image.height;
 
@@ -977,7 +979,7 @@ void load_texture_to_gpu(
     view_info.subresourceRange.baseArrayLayer = 0;
     view_info.subresourceRange.layerCount = 1;
 
-    ASSERT_GPU_API(vkCreateImageView(device, &view_info, NULL, texture_image_view));
+    ASSERT_GPU_API_CALL(vkCreateImageView(device, &view_info, NULL, texture_image_view));
 
     // Create a sampler
     VkPhysicalDeviceProperties properties = {};
@@ -998,7 +1000,7 @@ void load_texture_to_gpu(
     sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
     sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    ASSERT_GPU_API(vkCreateSampler(device, &sampler_info, NULL, texture_sampler));
+    ASSERT_GPU_API_CALL(vkCreateSampler(device, &sampler_info, NULL, texture_sampler));
 }
 
 // @todo Rename to same name as opengl (or rename opengl obviously)

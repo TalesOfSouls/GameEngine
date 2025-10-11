@@ -54,6 +54,8 @@ struct Camera {
     f32 sensitivity;
     f32 zoom;
 
+    // @question consider to use v2_f32 with width and height value
+    // v2_f32 viewport;
     f32 viewport_width;
     f32 viewport_height;
 
@@ -62,9 +64,14 @@ struct Camera {
     f32 zfar;
     f32 aspect;
 
-    alignas(64) f32 view[16];
+    // @question Consider to replace with m4x4_f32 types
+    // Careful, you cannot change the order of this
+    // The reason is we copy all of the data to the gpu in one go in some cases
+    // If we would change the order we would also change the order of the data on the gpu
+    // This of course could brick the shaders
     alignas(64) f32 projection[16];
     alignas(64) f32 orth[16];
+    alignas(64) f32 view[16];
 };
 
 static FORCE_INLINE
@@ -419,7 +426,7 @@ camera_view_matrix_lh(Camera* __restrict camera) NO_EXCEPT
     camera->view[8] = xaxis.z;
     camera->view[9] = yaxis.z;
     camera->view[10] = zaxis.z;
-    camera->view[11] = 0;
+    camera->view[11] = 0.0f;
     camera->view[12] = -vec3_dot(xaxis, camera->location);
     camera->view[13] = -vec3_dot(yaxis, camera->location);
     camera->view[14] = -vec3_dot(zaxis, camera->location);
@@ -449,7 +456,7 @@ camera_view_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
     camera->view[8] = xaxis.z;
     camera->view[9] = yaxis.z;
     camera->view[10] = zaxis.z;
-    camera->view[11] = 0;
+    camera->view[11] = 0.0f;
     camera->view[12] = -vec3_dot(xaxis, camera->location);
     camera->view[13] = -vec3_dot(yaxis, camera->location);
     camera->view[14] = -vec3_dot(zaxis, camera->location);
@@ -479,7 +486,7 @@ camera_view_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
     camera->view[8] = xaxis.z;
     camera->view[9] = yaxis.z;
     camera->view[10] = zaxis.z;
-    camera->view[11] = 0;
+    camera->view[11] = 0.0f;
     camera->view[12] = -vec3_dot(xaxis, camera->location);
     camera->view[13] = -vec3_dot(yaxis, camera->location);
     camera->view[14] = -vec3_dot(zaxis, camera->location);
@@ -576,9 +583,9 @@ bool aabb_intersects_frustum(const AABB_f32* box, const Frustum* f){
     for(int32 i = 0; i < 24; i += 6){
         const f32* plane = &f->plane[i];
         v3_f32 positive = {
-            plane[0] >= 0 ? box->max.x : box->min.x,
-            plane[1] >= 0 ? box->max.y : box->min.y,
-            plane[2] >= 0 ? box->max.z : box->min.z
+            plane[0] >= 0.0f ? box->max.x : box->min.x,
+            plane[1] >= 0.0f ? box->max.y : box->min.y,
+            plane[2] >= 0.0f ? box->max.z : box->min.z
         };
 
         if(plane[0] * positive.x + plane[1] * positive.y + plane[2] * positive.z + plane[3] < 0) {

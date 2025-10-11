@@ -30,7 +30,7 @@ struct OpenglVertexInputAttributeDescription {
 };
 
 inline
-int32 ogl_shader_type_index(ShaderType type)
+int32 ogl_shader_type_index(ShaderType type) NO_EXCEPT
 {
     switch (type) {
         case SHADER_TYPE_VERTEX:
@@ -46,70 +46,70 @@ int32 ogl_shader_type_index(ShaderType type)
 // @todo change naming to gpuapi_uniform_buffer_update (same as vulkan)
 // @todo change from upload to uniform upload since it is a special form of upload
 FORCE_INLINE
-void gpuapi_uniform_buffer_update_value(uint32 location, bool value)
+void gpuapi_uniform_buffer_update_value(uint32 location, bool value) NO_EXCEPT
 {
     glUniform1i(location, (int32) value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
-void gpuapi_uniform_buffer_update_value(uint32 location, int32 value)
+void gpuapi_uniform_buffer_update_value(uint32 location, int32 value) NO_EXCEPT
 {
     glUniform1i(location, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
-void gpuapi_uniform_buffer_update_value(uint32 location, f32 value)
+void gpuapi_uniform_buffer_update_value(uint32 location, f32 value) NO_EXCEPT
 {
     glUniform1f(location, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
-void gpuapi_uniform_buffer_update_v2(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_v2(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniform2fv(location, 1, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 2);
 }
 
 FORCE_INLINE
-void gpuapi_uniform_buffer_update_v3(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_v3(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniform3fv(location, 1, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 3);
 }
 
 FORCE_INLINE
-void gpuapi_uniform_buffer_update_v4(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_v4(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniform4fv(location, 1, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 4);
 }
 
 FORCE_INLINE
-void gpuapi_uniform_buffer_update_m2(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_m2(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniformMatrix2fv(location, 1, GL_FALSE, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 4);
 }
 
 FORCE_INLINE
-void gpuapi_uniform_buffer_update_m3(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_m3(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniformMatrix3fv(location, 1, GL_FALSE, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 9);
 }
 
 FORCE_INLINE
-void gpuapi_uniform_buffer_update_m4(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_m4(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniformMatrix4fv(location, 1, GL_FALSE, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 16);
 }
 
 FORCE_INLINE
-uint32 opengl_get_attrib_location(uint32 id, const char* name)
+uint32 opengl_get_attrib_location(uint32 id, const char* name) NO_EXCEPT
 {
     // By using this you can retrieve the shader variable name at a point where and when you know it
     // BUT set values later on in generalized functions without knowing the shader variable name
@@ -118,7 +118,7 @@ uint32 opengl_get_attrib_location(uint32 id, const char* name)
 }
 
 FORCE_INLINE
-void opengl_check_link_errors(uint32 id, char* log)
+void opengl_check_link_errors(uint32 id, char* log) NO_EXCEPT
 {
     GLint success;
     glGetProgramiv(id, GL_LINK_STATUS, &success);
@@ -128,7 +128,7 @@ void opengl_check_link_errors(uint32 id, char* log)
 }
 
 FORCE_INLINE
-void opengl_check_compile_errors(uint32 id, char* log)
+void opengl_check_compile_errors(uint32 id, char* log) NO_EXCEPT
 {
     GLint success;
     glGetShaderiv(id, GL_COMPILE_STATUS, &success);
@@ -214,7 +214,7 @@ int32 opengl_program_optimize(const char* __restrict input, char* __restrict out
     return (int32) (write_ptr - output);
 }
 
-GLuint gpuapi_shader_make(GLenum type, const char* source)
+GLuint gpuapi_shader_make(GLenum type, const char* source) NO_EXCEPT
 {
     LOG_1("Create shader");
     GLuint shader = glCreateShader(type);
@@ -245,7 +245,7 @@ GLuint gpuapi_shader_make(GLenum type, const char* source)
 }
 
 FORCE_INLINE
-int32 opengl_program_get_size(uint32 program)
+int32 opengl_program_get_size(uint32 program) NO_EXCEPT
 {
     int32 size;
     glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &size);
@@ -259,7 +259,7 @@ GLuint gpuapi_pipeline_make(
     GLuint vertex_shader,
     GLuint fragment_shader,
     GLint geometry_shader
-) {
+) NO_EXCEPT {
     PROFILE(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Create pipeline");
     GLuint program = glCreateProgram();
@@ -313,13 +313,13 @@ GLuint gpuapi_pipeline_make(
 }
 
 FORCE_INLINE
-void gpuapi_pipeline_use(uint32 id)
+void gpuapi_pipeline_use(uint32 id) NO_EXCEPT
 {
     glUseProgram(id);
 }
 
 inline
-void gpuapi_attribute_setup(GpuAttributeType type, const OpenglVertexInputAttributeDescription* attr)
+void gpuapi_attribute_setup(GpuAttributeType type, const OpenglVertexInputAttributeDescription* attr) NO_EXCEPT
 {
     int32 length = gpuapi_attribute_count(type);
     for (int32 i = 0; i < length; ++i) {
@@ -333,7 +333,7 @@ void gpuapi_attribute_setup(GpuAttributeType type, const OpenglVertexInputAttrib
 }
 
 constexpr
-void gpuapi_attribute_info_create(GpuAttributeType type, OpenglVertexInputAttributeDescription* attr)
+void gpuapi_attribute_info_create(GpuAttributeType type, OpenglVertexInputAttributeDescription* attr) NO_EXCEPT
 {
     switch (type) {
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D: {
@@ -468,7 +468,7 @@ void gpuapi_attribute_info_create(GpuAttributeType type, OpenglVertexInputAttrib
 }
 
 FORCE_INLINE
-void gpuapi_descriptor_set_layout_create(Shader* __restrict shader, const OpenglDescriptorSetLayoutBinding* __restrict bindings, int32 binding_length) {
+void gpuapi_descriptor_set_layout_create(Shader* __restrict shader, const OpenglDescriptorSetLayoutBinding* __restrict bindings, int32 binding_length) NO_EXCEPT {
     for (int32 i = 0; i < binding_length; ++i) {
         shader->descriptor_set_layout[i].binding = glGetUniformLocation(shader->id, bindings[i].name);
         shader->descriptor_set_layout[i].name = bindings[i].name;

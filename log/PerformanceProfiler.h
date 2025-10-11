@@ -262,10 +262,6 @@ struct PerformanceProfiler {
         this->is_active = true;
         this->_id = id;
 
-        // @question is this even required
-        int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
-        atomic_increment_relaxed(&_perf_stats->perfs[pos + id].counter);
-
         this->name = scope_name;
         this->info_msg = info;
         this->_flags = flags;
@@ -296,6 +292,7 @@ struct PerformanceProfiler {
         this->self_cycle += total_cycle;
 
         int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
+        atomic_increment_relaxed(&_perf_stats->perfs[pos + this->_id].counter);
 
         // Store result
         PerformanceProfileResult temp_perf = {};

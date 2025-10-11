@@ -17,15 +17,9 @@
 #include "../../compiler/CompilerUtils.h"
 
 // Pass-by-value is faster in most cases
+// Why? Because the code most likely gets inlined and we then avoid the dereference.
 
-FORCE_INLINE
-void vec2_normalize(f32* __restrict x, f32* __restrict y) NO_EXCEPT
-{
-    f32 d = intrin_rsqrt_f32((*x) * (*x) + (*y) * (*y));
-
-    *x *= d;
-    *y *= d;
-}
+// @todo implement m3x3_f32* and m4x4_f32* functions in addition to the already existing f32* matrix functions
 
 FORCE_INLINE
 f32 vec2_sum(v2_f32* vec) NO_EXCEPT
@@ -179,16 +173,6 @@ f32 vec3_length(v3_f32 vec) NO_EXCEPT
 }
 
 FORCE_INLINE
-void vec3_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z) NO_EXCEPT
-{
-    f32 d = intrin_rsqrt_f32((*x) * (*x) + (*y) * (*y) + (*z) * (*z));
-
-    *x *= d;
-    *y *= d;
-    *z *= d;
-}
-
-FORCE_INLINE
 void vec3_normalize(v3_f32* vec) NO_EXCEPT
 {
     f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
@@ -337,17 +321,6 @@ f32 vec3_dot(v3_f32 a, v3_f32 b) NO_EXCEPT
 }
 
 FORCE_INLINE
-void vec4_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z, f32* __restrict w) NO_EXCEPT
-{
-    f32 d = intrin_rsqrt_f32((*x) * (*x) + (*y) * (*y) + (*z) * (*z) + (*w) * (*w));
-
-    *x *= d;
-    *y *= d;
-    *z *= d;
-    *w *= d;
-}
-
-FORCE_INLINE
 void vec4_add(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) NO_EXCEPT
 {
     vec->x = a->x + b->x;
@@ -482,7 +455,7 @@ v4_f32 vec4_cross(v4_f32 a, v4_f32 b, v4_f32 c) NO_EXCEPT
 }
 
 FORCE_INLINE
-void mat3_identity(f32* matrix) NO_EXCEPT
+void mat3_identity(f32 matrix[9]) NO_EXCEPT
 {
     matrix[0] = 1.0f; matrix[1] = 0.0f; matrix[2] = 0.0f;
     matrix[3] = 0.0f; matrix[4] = 1.0f; matrix[5] = 0.0f;
@@ -490,7 +463,7 @@ void mat3_identity(f32* matrix) NO_EXCEPT
 }
 
 FORCE_INLINE
-void mat3_identity_sparse(f32* matrix) NO_EXCEPT
+void mat3_identity_sparse(f32 matrix[9]) NO_EXCEPT
 {
     matrix[0] = 1.0f; matrix[4] = 1.0f; matrix[8] = 1.0f;
 }
@@ -504,7 +477,7 @@ void mat3_identity(__m128* matrix) NO_EXCEPT
 }
 
 FORCE_INLINE
-void mat4_identity(f32* matrix) NO_EXCEPT
+void mat4_identity(f32 matrix[16]) NO_EXCEPT
 {
     matrix[0] = 1.0f;  matrix[1] = 0.0f;  matrix[2] = 0.0f;  matrix[3] = 0.0f;
     matrix[4] = 0.0f;  matrix[5] = 1.0f;  matrix[6] = 0.0f;  matrix[7] = 0.0f;
@@ -513,7 +486,7 @@ void mat4_identity(f32* matrix) NO_EXCEPT
 }
 
 FORCE_INLINE
-void mat4_identity_sparse(f32* matrix) NO_EXCEPT
+void mat4_identity_sparse(f32 matrix[16]) NO_EXCEPT
 {
     matrix[0] = 1.0f; matrix[5] = 1.0f; matrix[10] = 1.0f; matrix[15] = 1.0f;
 }
@@ -530,7 +503,7 @@ void mat4_identity(__m128* matrix) NO_EXCEPT
 // x, y, z need to be normalized
 // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
 inline
-void mat4_rotation(f32* matrix, f32 x, f32 y, f32 z, f32 angle) NO_EXCEPT
+void mat4_rotation(f32 matrix[16], f32 x, f32 y, f32 z, f32 angle) NO_EXCEPT
 {
     ASSERT_TRUE(OMS_ABS_F32(x * x + y * y + z * z - 1.0f) < 0.01f);
 
@@ -575,7 +548,7 @@ void mat4_rotation(f32* matrix, f32 x, f32 y, f32 z, f32 angle) NO_EXCEPT
 }
 
 inline
-void mat4_rotation(f32* matrix, f32 pitch, f32 yaw, f32 roll) NO_EXCEPT
+void mat4_rotation(f32 matrix[16], f32 pitch, f32 yaw, f32 roll) NO_EXCEPT
 {
     f32 cos_pitch;
     f32 sin_pitch;
@@ -705,7 +678,7 @@ void mat4mat4_mult_simd(const f32* __restrict a, const f32* __restrict b, f32* _
 
 FORCE_INLINE
 void mat4_frustum_sparse_rh(
-    f32* matrix,
+    f32 matrix[16],
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
  ) NO_EXCEPT {
@@ -737,7 +710,7 @@ void mat4_frustum_sparse_rh(
 
 FORCE_INLINE
 void mat4_frustum_sparse_lh(
-    f32* matrix,
+    f32 matrix[16],
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
  ) NO_EXCEPT {
@@ -770,7 +743,7 @@ void mat4_frustum_sparse_lh(
 // fov needs to be in rad
 FORCE_INLINE
 void mat4_perspective_sparse_lh(
-    f32* matrix, f32 fov, f32 aspect,
+    f32 matrix[16], f32 fov, f32 aspect,
     f32 znear, f32 zfar
 ) NO_EXCEPT {
     ASSERT_TRUE(znear > 0.0f);
@@ -784,7 +757,7 @@ void mat4_perspective_sparse_lh(
 
 FORCE_INLINE
 void mat4_perspective_sparse_rh(
-    f32* matrix, f32 fov, f32 aspect,
+    f32 matrix[16], f32 fov, f32 aspect,
     f32 znear, f32 zfar
 ) NO_EXCEPT {
     ASSERT_TRUE(znear > 0.0f);
@@ -798,7 +771,7 @@ void mat4_perspective_sparse_rh(
 
 FORCE_INLINE
 void mat4_ortho_sparse_lh(
-    f32* matrix,
+    f32 matrix[16],
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
 ) NO_EXCEPT {
@@ -829,7 +802,7 @@ void mat4_ortho_sparse_lh(
 
 FORCE_INLINE
 void mat4_ortho_sparse_rh_opengl(
-    f32* matrix,
+    f32 matrix[16],
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
 ) NO_EXCEPT {
@@ -860,7 +833,7 @@ void mat4_ortho_sparse_rh_opengl(
 
 FORCE_INLINE
 void mat4_ortho_sparse_rh_vulkan(
-    f32* matrix,
+    f32 matrix[16],
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
 ) NO_EXCEPT {
@@ -890,7 +863,7 @@ void mat4_ortho_sparse_rh_vulkan(
 }
 
 FORCE_INLINE
-void mat4_translate(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
+void mat4_translate(f32 matrix[16], f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
     matrix[3]  += matrix[0] * dx + matrix[1] * dy + matrix[2]  * dz;
     matrix[7]  += matrix[4] * dx + matrix[5] * dy + matrix[6]  * dz;
@@ -899,7 +872,7 @@ void mat4_translate(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
 }
 
 FORCE_INLINE
-void mat4_translation(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
+void mat4_translation(f32 matrix[16], f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
     matrix[0] = 1.0f;   matrix[1] = 0.0f;   matrix[2] = 0.0f;   matrix[3] = dx;
     matrix[4] = 0.0f;   matrix[5] = 1.0f;   matrix[6] = 0.0f;   matrix[7] = dy;
@@ -908,7 +881,7 @@ void mat4_translation(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
 }
 
 FORCE_INLINE
-void mat4_translation_sparse(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
+void mat4_translation_sparse(f32 matrix[16], f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
     matrix[3] = dx;
     matrix[7] = dy;
@@ -916,7 +889,7 @@ void mat4_translation_sparse(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
 }
 
 FORCE_INLINE
-void mat4_scale(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
+void mat4_scale(f32 matrix[16], f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
     matrix[0] = dx;    matrix[1] = 0.0f;  matrix[2] = 0.0f;  matrix[3] = 0.0f;
     matrix[4] = 0.0f;  matrix[5] = dy;    matrix[6] = 0.0f;  matrix[7] = 0.0f;
@@ -925,7 +898,7 @@ void mat4_scale(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
 }
 
 FORCE_INLINE
-void mat4_scale_sparse(f32* matrix, f32 dx, f32 dy, f32 dz) NO_EXCEPT
+void mat4_scale_sparse(f32 matrix[16], f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
     matrix[0] = dx;
     matrix[5] = dy;
@@ -950,7 +923,7 @@ void mat4_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO
 }
 
 FORCE_INLINE
-void mat4_transpose(f32* matrix) NO_EXCEPT
+void mat4_transpose(f32 matrix[16]) NO_EXCEPT
 {
     f32 temp;
 
@@ -991,7 +964,7 @@ void mat3_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO
 }
 
 FORCE_INLINE
-void mat3_transpose(f32* matrix) NO_EXCEPT
+void mat3_transpose(f32 matrix[9]) NO_EXCEPT
 {
     f32 temp;
 
@@ -1016,7 +989,7 @@ void mat2_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO
 }
 
 FORCE_INLINE
-void mat2_transpose(f32* matrix) NO_EXCEPT
+void mat2_transpose(f32 matrix[4]) NO_EXCEPT
 {
     f32 temp = matrix[1];
     matrix[1] = matrix[2];
