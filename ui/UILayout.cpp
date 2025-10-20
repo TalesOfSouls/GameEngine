@@ -931,6 +931,7 @@ uint32 ui_layout_render_dfs(
     return vertex_count;
 }
 
+// @question are we even allowed to use restrict here?
 uint32 ui_layout_update_render_dfs(
     UILayout* layout,
     UIElement* __restrict element, Vertex3DSamplerTextureColor* __restrict vertices,

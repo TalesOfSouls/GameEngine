@@ -548,6 +548,9 @@ static type_glMapBufferRange* glMapBufferRange;
 typedef void* WINAPI type_glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size);
 static type_glBindBufferRange* glBindBufferRange;
 
+typedef void WINAPI type_glCopyBufferSubData(GLenum readtarget, GLenum writetarget, GLintptr readoffset, GLintptr writeoffset, GLsizeiptr size);
+static type_glCopyBufferSubData* glCopyBufferSubData;
+
 typedef void WINAPI type_glUnmapBuffer(GLenum target);
 static type_glUnmapBuffer* glUnmapBuffer;
 
@@ -876,6 +879,7 @@ void opengl_init_gl()
     glBufferStorage = (type_glBufferStorage *) wglGetProcAddress("glBufferStorage");
     glMapBufferRange = (type_glMapBufferRange *) wglGetProcAddress("glMapBufferRange");
     glBindBufferRange = (type_glBindBufferRange *) wglGetProcAddress("glBindBufferRange");
+    glCopyBufferSubData = (type_glCopyBufferSubData *) wglGetProcAddress("glCopyBufferSubData");
     glUnmapBuffer = (type_glUnmapBuffer *) wglGetProcAddress("glUnmapBuffer");
     glFlushMappedBufferRange = (type_glFlushMappedBufferRange *) wglGetProcAddress("glFlushMappedBufferRange");
     glActiveTexture = (type_glActiveTexture *) wglGetProcAddress("glActiveTexture");

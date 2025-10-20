@@ -21,6 +21,7 @@
 #include "../../system/FileUtils.cpp"
 #include "../RenderUtils.h"
 #include "Opengl.h"
+#include "PersistentGpuBuffer.h"
 
 #if _WIN32
     #include "../../platform/win32/Window.h"
@@ -420,90 +421,59 @@ int32 calculate_face_size(int components, int32 faces) NO_EXCEPT
 // generates faces
 // data is no longer needed after this
 inline
-uint32 gpuapi_buffer_generate(int32 size, const void* data) NO_EXCEPT
+uint32 gpuapi_buffer_generate(int32 type, int32 size, const void* data) NO_EXCEPT
 {
-    uint32 vbo;
+    uint32 bo;
 
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+    glGenBuffers(1, &bo);
+    glBindBuffer(type, bo);
+    glBufferData(type, size, data, GL_STATIC_DRAW);
 
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 
-    return vbo;
+    return bo;
 }
 
 inline
-uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data) NO_EXCEPT
+uint32 gpuapi_buffer_generate_dynamic(int32 type, int32 size, const void* data) NO_EXCEPT
 {
-    uint32 vbo;
+    uint32 bo;
 
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &bo);
+    glBindBuffer(type, bo);
+    glBufferData(type, size, data, GL_DYNAMIC_DRAW);
 
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 
-    return vbo;
+    return bo;
 }
 
-// data is the pointer to the gpu data the process can now write to
+// type is GL_UNIFORM_BUFFER or GL_ARRAY_BUFFER
 inline
-uint32 gpuapi_uniformbuffer_persistent_generate(size_t size, byte** data, int32 levels = 3) NO_EXCEPT
+void gpuapi_buffer_persistent_generate(int32 type, PersistentGpuBuffer* buffer) NO_EXCEPT
 {
     // @todo we need to dynamically get the alignment and pass it in
     //      For that we need to get it once and then store it in the system info struct?
     // glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment);
-    ASSERT_TRUE(MODULO_2(size, 256) == 0);
+    ASSERT_TRUE(MODULO_2(buffer->size, 256) == 0);
+    ASSERT_TRUE(MODULO_2(buffer->range_stride, 256) == 0);
 
-    // triple buffering;
-    size *= levels;
-
-    uint32 ubo;
-    glGenBuffers(1, &ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    glGenBuffers(1, &buffer->bo);
+    glBindBuffer(type, buffer->bo);
     glBufferStorage(
-        GL_UNIFORM_BUFFER, size, NULL,
+        type, buffer->size, NULL,
         GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_DYNAMIC_STORAGE_BIT
     );
 
-    *data = (byte *) glMapBufferRange(
-        GL_UNIFORM_BUFFER, 0, size,
+    buffer->data = (byte *) glMapBufferRange(
+        type, 0, buffer->size,
         GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
     );
 
     ASSERT_GPU_API();
-    ASSERT_TRUE(*data);
+    ASSERT_TRUE(buffer->data);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
-
-    return ubo;
-}
-
-inline
-uint32 gpuapi_buffer_persistent_generate(size_t size, void** data) NO_EXCEPT
-{
-    ASSERT_TRUE(MODULO_2(size, 8) == 0);
-    uint32 vbo;
-
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferStorage(
-        GL_ARRAY_BUFFER, size, NULL,
-        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_DYNAMIC_STORAGE_BIT
-    );
-
-    *data = glMapBufferRange(
-        GL_ARRAY_BUFFER, 0, (size_t) size,
-        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
-    );
-
-    ASSERT_GPU_API();
-    ASSERT_TRUE(*data);
-
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
-
-    return vbo;
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, buffer->size);
 }
 
 FORCE_INLINE
@@ -594,42 +564,6 @@ void gpuapi_vertex_buffer_update(
     ASSERT_GPU_API();
 
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, vertex_size * vertex_count - offset);
-}
-
-FORCE_INLINE
-uint32 gpuapi_shaderbuffer_generate(int32 size, const void* data) NO_EXCEPT
-{
-    uint32 sbo;
-
-    glGenBuffers(1, &sbo);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, sbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
-
-    return sbo;
-}
-
-FORCE_INLINE
-uint32 gpuapi_uniformbuffer_generate(int32 size, const void* data) NO_EXCEPT
-{
-    uint32 ubo;
-
-    glGenBuffers(1, &ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-    glBufferData(GL_UNIFORM_BUFFER, size, data, GL_STATIC_DRAW);
-
-    return ubo;
-}
-
-FORCE_INLINE
-uint32 gpuapi_buffer_element_generate(int32 size, uint32 *data) NO_EXCEPT
-{
-    uint32 ebo;
-
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
-
-    return ebo;
 }
 
 FORCE_INLINE

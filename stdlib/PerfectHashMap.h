@@ -122,7 +122,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, i
 }
 
 // Same code as above with the difference that we are using a fixed length key array instead of an array of pointers
-PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* keys, int32 key_count, int32 key_length, int32 seed_tries, RingMemory* ring)
+PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* __restrict keys, int32 key_count, int32 key_length, int32 seed_tries, RingMemory* ring)
 {
     int32* indices = (int32 *) ring_get_memory(ring, hm->map_count * sizeof(int32), 4);
     bool is_unique = false;
@@ -218,7 +218,7 @@ int64 perfect_hashmap_size(const PerfectHashMap* hm)
 
 // @bug the insert functions don't handle too long keys like the HashMap does
 inline
-void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, int32 value) NO_EXCEPT {
+void perfect_hashmap_insert(PerfectHashMap* __restrict hm, const char* __restrict key, int32 value) NO_EXCEPT {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntryInt32* entry = (PerfectHashEntryInt32 *) (hm->hash_entries + hm->entry_size * index);
 
@@ -231,7 +231,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, int32 value) NO
 }
 
 inline
-void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, int64 value) NO_EXCEPT {
+void perfect_hashmap_insert(PerfectHashMap* __restrict hm, const char* __restrict key, int64 value) NO_EXCEPT {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntryInt64* entry = (PerfectHashEntryInt64 *) (hm->hash_entries + hm->entry_size * index);
 
@@ -244,7 +244,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, int64 value) NO
 }
 
 inline
-void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, int32 value1, int32 value2) NO_EXCEPT {
+void perfect_hashmap_insert(PerfectHashMap* __restrict hm, const char* __restrict key, int32 value1, int32 value2) NO_EXCEPT {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntryInt32Int32* entry = (PerfectHashEntryInt32Int32 *) (hm->hash_entries + hm->entry_size * index);
 
@@ -283,7 +283,7 @@ void perfect_hashmap_insert(PerfectHashMapRef* hmr, const char* key, byte* data,
 }
 
 inline
-void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, uintptr_t value) NO_EXCEPT {
+void perfect_hashmap_insert(PerfectHashMap* __restrict hm, const char* __restrict key, uintptr_t value) NO_EXCEPT {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntryUIntPtr* entry = (PerfectHashEntryUIntPtr *) (hm->hash_entries + hm->entry_size * index);
 
@@ -296,7 +296,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, uintptr_t value
 }
 
 inline
-void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, void* value) NO_EXCEPT {
+void perfect_hashmap_insert(PerfectHashMap* __restrict hm, const char* __restrict key, void* __restrict value) NO_EXCEPT {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntryVoidP* entry = (PerfectHashEntryVoidP *) (hm->hash_entries + hm->entry_size * index);
 
@@ -309,7 +309,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, void* value) NO
 }
 
 inline
-void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, f32 value) NO_EXCEPT {
+void perfect_hashmap_insert(PerfectHashMap* __restrict hm, const char* __restrict key, f32 value) NO_EXCEPT {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntryFloat* entry = (PerfectHashEntryFloat *) (hm->hash_entries + hm->entry_size * index);
 
@@ -322,7 +322,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, f32 value) NO_E
 }
 
 inline
-void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, const char* value) NO_EXCEPT {
+void perfect_hashmap_insert(PerfectHashMap* __restrict hm, const char* __restrict key, const char* __restrict value) NO_EXCEPT {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntryStr* entry = (PerfectHashEntryStr *) (hm->hash_entries + hm->entry_size * index);
 
@@ -335,7 +335,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, const char* val
 }
 
 inline
-void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, const byte* value) NO_EXCEPT {
+void perfect_hashmap_insert(PerfectHashMap* __restrict hm, const char* __restrict key, const byte* __restrict value) NO_EXCEPT {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntryStr* entry = (PerfectHashEntryStr *) (hm->hash_entries + hm->entry_size * index);
 
@@ -348,7 +348,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, const byte* val
 }
 
 inline
-PerfectHashEntry* perfect_hashmap_get_entry(const PerfectHashMap* hm, const char* key) NO_EXCEPT {
+PerfectHashEntry* perfect_hashmap_get_entry(const PerfectHashMap* __restrict hm, const char* __restrict key) NO_EXCEPT {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntry* entry = (PerfectHashEntry *) (hm->hash_entries + hm->entry_size * index);
 
@@ -368,7 +368,7 @@ byte* perfect_hashmap_get_value(const PerfectHashMapRef* hmr, const char* key) N
 }
 
 inline
-void perfect_hashmap_delete_entry(PerfectHashMap* hm, const char* key) NO_EXCEPT {
+void perfect_hashmap_delete_entry(PerfectHashMap* __restrict hm, const char* __restrict key) NO_EXCEPT {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntry* entry = (PerfectHashEntry *) (hm->hash_entries + hm->entry_size * index);
 

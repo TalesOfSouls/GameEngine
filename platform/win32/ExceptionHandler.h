@@ -19,7 +19,7 @@
     #pragma comment(lib, "dbghelp.lib")
 #endif
 
-void create_minidump(EXCEPTION_POINTERS *exception_pointers) {
+void create_minidump(EXCEPTION_POINTERS* exception_pointers) {
     HANDLE fp = CreateFileA("crash_dump.dmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (fp == INVALID_HANDLE_VALUE) {
@@ -47,7 +47,7 @@ void create_minidump(EXCEPTION_POINTERS *exception_pointers) {
     CloseHandle(fp);
 }
 
-void log_stack_trace(CONTEXT *context) {
+void log_stack_trace(CONTEXT* context) {
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
 
@@ -118,7 +118,7 @@ void log_stack_trace(CONTEXT *context) {
     SymCleanup(process);
 }
 
-void print_stack_trace(CONTEXT *context) {
+void print_stack_trace(CONTEXT* context) {
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
 

@@ -16,7 +16,7 @@
 #include "../../../log/PerformanceProfiler.h"
 
 inline
-int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg) NO_EXCEPT
+int32 coms_pthread_create(coms_pthread_t* __restrict thread, void*, ThreadJobFunc start_routine, void* __restrict arg) NO_EXCEPT
 {
     // @question Do we want to pin threads automatically to p cores based on a utilization score?
     ASSERT_TRUE(thread);
@@ -57,7 +57,7 @@ int32 coms_pthread_detach(coms_pthread_t thread) NO_EXCEPT
 
 // WARNING: We don't support windows events since they are much slower than conditional variables/mutexes
 FORCE_INLINE
-int32 coms_pthread_cond_init(mutex_cond* cond, coms_pthread_condattr_t*) NO_EXCEPT
+int32 coms_pthread_cond_init(mutex_cond* __restrict cond, coms_pthread_condattr_t*) NO_EXCEPT
 {
     ASSERT_TRUE(cond);
     InitializeConditionVariable(cond);
@@ -74,7 +74,7 @@ int32 coms_pthread_cond_destroy(mutex_cond*) NO_EXCEPT
 
 // @question Can't we turn timespec in a typedef of uint64? I would like to avoid the time.h class
 FORCE_INLINE
-int32 mutex_condimedwait(mutex_cond* cond, mutex* mutex, const timespec* abstime) NO_EXCEPT
+int32 mutex_condimedwait(mutex_cond* __restrict cond, mutex* mutex, const timespec* __restrict abstime) NO_EXCEPT
 {
     ASSERT_TRUE(cond);
     ASSERT_TRUE(mutex);
@@ -87,7 +87,7 @@ int32 mutex_condimedwait(mutex_cond* cond, mutex* mutex, const timespec* abstime
 }
 
 FORCE_INLINE
-int32 coms_pthread_cond_wait(mutex_cond* cond, mutex* mutex) NO_EXCEPT
+int32 coms_pthread_cond_wait(mutex_cond* __restrict cond, mutex* __restrict mutex) NO_EXCEPT
 {
     ASSERT_TRUE(cond);
     ASSERT_TRUE(mutex);
@@ -114,7 +114,7 @@ int32 coms_pthread_cond_broadcast(mutex_cond* cond) NO_EXCEPT
 }
 
 FORCE_INLINE
-int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* rwlock, const coms_pthread_rwlockattr_t*) NO_EXCEPT
+int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* __restrict rwlock, const coms_pthread_rwlockattr_t*) NO_EXCEPT
 {
     ASSERT_TRUE(rwlock);
 

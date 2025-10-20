@@ -28,6 +28,7 @@
 
 // @todo from down here we can optimize some of the code by NOT using the wrappers
 //      the code is self contained and we could use te intrinsic functions directly
+// @todo use __restrict
 
 void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps = 16)
 {

@@ -261,6 +261,12 @@ void vec3_mul(v3_f32* vec, f32 s) NO_EXCEPT
 }
 
 FORCE_INLINE
+v3_f32 vec3_mul(v3_f32 vec, f32 s) NO_EXCEPT
+{
+    return {vec.x * s, vec.y * s, vec.z * s};
+}
+
+FORCE_INLINE
 f32 vec3_mul(const v3_f32* a, const v3_f32* b) NO_EXCEPT
 {
     return a->x * b->x + a->y * b->y + a->z * b->z;

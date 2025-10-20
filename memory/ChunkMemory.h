@@ -23,6 +23,18 @@
 #include "../system/Allocator.h"
 #include "../thread/Thread.h"
 
+// This storage system is best used for fixed sized chunks
+// What I mean by that, every element has the same size.
+// Currently a caller could reserve multiple chunks to represent a single data entity
+// This can be fine in a single threaded application
+// However, this can lead to fragmentation which is hard to clean up because
+// we can't just defragment the memory since we don't know which chunks are currently in use
+// In use could mean by pointer of id. In use data isn't allowed to move or it would become "invalid"
+// If you need a data structure that can be defragmented use DataPool, which basically builds upon ChunkMemory
+// Fixed sized data structures that use this ChunkMemory can be:
+//      1. HashMap
+//      2. Queue
+// Carefull, both examples have alternative use cases which may require variable sized elements
 struct ChunkMemory {
     byte* memory;
 
@@ -549,12 +561,35 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
             bit_index += 63; /* +64 - 1 since the loop also increases by 1 */                   \
         } else if ((buf)->free[free_index] & (1ULL << bit_index))
 
-#define chunk_iterate_end       \
+// INTERNAL: Not intended for use by any programmer
+#define chunk_iterate_end_internal { \
         ++bit_index;            \
         if (bit_index > 63) {   \
             bit_index = 0;      \
             ++free_index;       \
         }                       \
-    }}
+    }
+
+// Breaks out of the iteration
+#define chunk_iterate_break break
+
+// Skip this element
+#define chunk_iterate_continue chunk_iterate_end_internal continue
+
+// Sometimes we need to skip more than just one chunk if an element basically uses multiple chunks
+// Careful, this implementation only allows up to 63 element usages
+// Why? well otherwise we would have to increment the free_index
+// Should only be called in an if statement for skipping elements
+#define chunk_iterate_small_skip(n) bit_index += (n) - 1; chunk_iterate_continue
+
+// This is the fix to the skip from above. Only use when actually needed
+// Should only be called in an if statement for skipping elements
+#define chunk_iterate_large_skip(n) { \
+        bit_index += (n) - 1; \
+        free_index += (n) > 63 ? (n) / 64 - 1 : 0; \
+    } chunk_iterate_continue
+
+// Ends the for loop from chunk_iterate_start
+#define chunk_iterate_end chunk_iterate_end_internal }}
 
 #endif

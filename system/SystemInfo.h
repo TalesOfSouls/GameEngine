@@ -11,6 +11,7 @@
 
 #include "../stdlib/Types.h"
 #include "../architecture/CpuInfo.h"
+#include "../gpuapi/GpuInfo.h"
 
 // @todo Should we exchange some of the uints with int32? We often don't need uint
 
@@ -35,17 +36,6 @@ struct OSInfo {
 
 struct RamInfo {
     uint32 memory;
-};
-
-struct GpuInfo {
-    char vendor[16]; // @todo implement, maybe gpu api call (e.g. opengl supports this)
-    char name[32];
-    char api_version[16]; // @todo implement, maybe gpu api call (e.g. opengl supports this)
-    char shader_version[16]; // @todo implement, maybe gpu api call (e.g. opengl supports this)
-    uint32 vram;
-
-    // Kinda similar to the cache line size on the cpu
-    uint32 alignment;
 };
 
 struct DisplayInfo {

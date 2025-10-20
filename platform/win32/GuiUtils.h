@@ -52,8 +52,16 @@ void window_resolution(Window* w)
     RECT rect;
     GetClientRect(w->hwnd, &rect);
 
+    w->x = (uint16) rect.left;
+    w->y = (uint16) rect.top;
     w->width = (uint16) (rect.right - rect.left);
     w->height = (uint16) (rect.bottom - rect.top);
+
+    if (!w->width || !w->height) {
+        w->state_flag |= WINDOW_STATE_FLAG_DIMENSIONLESS;
+    } else {
+        w->state_flag &= ~WINDOW_STATE_FLAG_DIMENSIONLESS;
+    }
 }
 
 inline
@@ -152,7 +160,7 @@ void window_close(Window* window)
     DestroyWindow(window->hwnd);
 }
 
-HBITMAP CreateBitmapFromRGBA(HDC hdc, const byte* rgba, int32 width, int32 height) {
+HBITMAP CreateBitmapFromRGBA(HDC __restrict hdc, const byte* __restrict rgba, int32 width, int32 height) {
     BITMAPINFO bmi = {};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bmi.bmiHeader.biWidth = width;

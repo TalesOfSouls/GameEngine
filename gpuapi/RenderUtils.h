@@ -148,7 +148,8 @@ int32 vertex_rect_create(
     return idx;
 }
 
-inline int32 vertex_circle_create(
+inline
+int32 vertex_circle_create(
     Vertex3DSamplerTextureColor* __restrict vertices,
     f32 zindex, int32 sampler,
     v4_f32 dimension,
@@ -200,6 +201,58 @@ inline int32 vertex_circle_create(
     return idx;
 }
 
+inline
+int32 vertex_arc_create(
+    Vertex3DSamplerTextureColor* __restrict vertices,
+    f32 zindex, int32 sampler,
+    v4_f32 dimension,
+    byte alignment,
+    int32 segments,              // number of subdivisions (should be >= 3)
+    f32 start_angle,             // radians — where the arc starts
+    f32 arc_angle,               // radians — how wide the arc is (e.g. OMS_PI for semicircle)
+    uint32 rgba = 0, v2_f32 tex_center = {}, v2_f32 tex_edge = {}
+) NO_EXCEPT {
+    if (alignment) {
+        adjust_aligned_position(&dimension, alignment);
+    }
+
+    if (rgba) {
+        tex_center.x = -1.0f;
+        tex_center.y = BITCAST(rgba, f32);
+
+        tex_edge.x = -1.0f;
+        tex_edge.y = BITCAST(rgba, f32);
+    }
+
+    // Circle center + radii
+    f32 cx = dimension.x + dimension.width * 0.5f;
+    f32 cy = dimension.y + dimension.height * 0.5f;
+    f32 rx = dimension.width * 0.5f;
+    f32 ry = dimension.height * 0.5f;
+
+    int32 idx = 0;
+
+    // Generate a triangle fan over the arc
+    f32 s, c;
+    for (int32 i = 0; i < segments; ++i) {
+        f32 angle0 = start_angle + (arc_angle * (f32) i / segments);
+        f32 angle1 = start_angle + (arc_angle * (f32) (i + 1) / segments);
+
+        SINCOSF(angle0, s, c);
+        f32 x0 = cx + c * rx;
+        f32 y0 = cy + s * ry;
+
+        SINCOSF(angle1, s, c);
+        f32 x1 = cx + c * rx;
+        f32 y1 = cy + s * ry;
+
+        vertices[idx++] = {{cx, cy, zindex}, sampler, tex_center};
+        vertices[idx++] = {{x0, y0, zindex}, sampler, tex_edge};
+        vertices[idx++] = {{x1, y1, zindex}, sampler, tex_edge};
+    }
+
+    return idx;
+}
 
 static
 f32 text_calculate_dimensions_height(

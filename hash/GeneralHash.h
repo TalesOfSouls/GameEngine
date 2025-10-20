@@ -12,6 +12,18 @@
 #include "../stdlib/Types.h"
 
 inline
+uint32 hash_downscale_64(uint64 key) NO_EXCEPT
+{
+    key ^= key >> 33;
+    key *= 0xff51afd7ed558ccdULL;
+    key ^= key >> 33;
+    key *= 0xc4ceb9fe1a85ec53ULL;
+    key ^= key >> 33;
+
+    return (uint32) key;
+}
+
+inline
 uint64 hash_djb2(const char* key) NO_EXCEPT
 {
     uint64 hash = 5381;

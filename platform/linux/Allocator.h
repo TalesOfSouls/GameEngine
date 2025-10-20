@@ -97,7 +97,7 @@ void platform_aligned_free(void** aligned_ptr) {
 }
 
 inline
-void* platform_shared_alloc(int32* fd, const char* name, size_t size)
+void* platform_shared_alloc(int32* __restrict fd, const char* __restrict name, size_t size)
 {
     if (!_page_size) {
         _page_size = (int32) sysconf(_SC_PAGESIZE);
@@ -123,7 +123,7 @@ void* platform_shared_alloc(int32* fd, const char* name, size_t size)
 }
 
 inline
-void* platform_shared_open(int32* fd, const char* name, size_t size)
+void* platform_shared_open(int32* __restrict fd, const char* __restrict name, size_t size)
 {
     *fd = shm_open(name, O_RDWR, 0666);
     ASSERT_TRUE(*fd != -1);

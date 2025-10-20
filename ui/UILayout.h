@@ -39,7 +39,6 @@
 // ...
 // ============================
 
-
 // Modified for every scene
 struct UILayout {
     // This array has the size of the game window and represents in color codes where interactible ui elements are
@@ -50,6 +49,7 @@ struct UILayout {
     uint16 height;
 
     // Contains all UI elements also dynamic ones (e.g. movable windows)
+    // Every ui element has it's own color code and with that we can identify the currently hovered one
     uint32* ui_chroma_codes;
 
     // @question Maybe we should have an array of fonts (e.g. allow up to 3 fonts per layout?)
@@ -86,6 +86,8 @@ struct UILayout {
     byte* data; // Owner of the actual data
 
     // @todo replace bools with bit field
+    //      Or completely remove because we have gpu_updated which defines the state per widget
+    //      At that point we also no longer differentiate between static and dynamic content
 
     // Changes on a as needed basis
     uint32 vertex_count_static;
@@ -117,6 +119,15 @@ struct UILayout {
 
     // Used during the initialization so that every element knows where we currently are during the setup process
     uint32 active_vertex_offset;
+
+    // Bitfield array defining which ui widgets are visible
+    uint64 visible[5];
+
+    // Bitfield array defining where the data is already stored on the gpu
+    // Assuming a triple buffer = 3 bits per widget define where it lives
+    // This information then can be used to check if it still needs to be updated
+    // in the respective gpu buffer
+    uint64 gpu_updated[15];
 };
 
 #endif

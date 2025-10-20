@@ -63,6 +63,7 @@ typedef intptr_t smm;
 #define OMS_PI_OVER_TWO (OMS_PI / 2.0f)
 #define OMS_PI_OVER_FOUR (OMS_PI / 4.0f)
 #define OMS_TWO_PI (2.0f * OMS_PI)
+#define OMS_TAU OMS_TWO_PI
 
 // Limits
 #define OMS_MAX_BRANCHED(a, b) ((a) > (b) ? (a) : (b))
@@ -81,6 +82,8 @@ typedef intptr_t smm;
 #define OMS_ABS_INT32(a) (((a) ^ ((a) >> 31)) - ((a) >> 31))
 #define OMS_ABS_INT64(a) (((a) ^ ((a) >> 63)) - ((a) >> 63))
 
+// For floats the high bit is still defining the sign
+// But we need to reinterpret it as int to mask the sign
 inline
 f32 OMS_ABS_F32(f32 a) {
     union { f32 f; uint32 i; } u;
@@ -97,10 +100,6 @@ f64 OMS_ABS_F64(f64 a) {
     return u.f;
 }
 
-// Trig
-#define OMS_DEG2RAD(angle) ((angle) * OMS_PI / 180.0f)
-#define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI)
-
 // Rounding
 #define OMS_ROUND_POSITIVE_32(x) ((int32)((x) + 0.5f))
 #define OMS_ROUND_POSITIVE_64(x) ((int64)((x) + 0.5f))
@@ -110,6 +109,22 @@ f64 OMS_ABS_F64(f64 a) {
 #define OMS_CEIL(x) ((x) == (int32)(x) ? (int32)(x) : ((x) > 0 ? (int32)(x) + 1 : (int32)(x)))
 
 #define FLOORF(x) ((float)((int)(x) - ((x) < 0.0f && (x) != (int)(x))))
+
+// Fast integer division and floor, IFF the divisor **is positive**
+// (= (int) floorf((float)a/(float)b))
+// This is required because -7 / 3 = -2 with normal int division, but we want -3
+// However, 7 / 3 = 2 is what we would expect
+#define IFLOORI_POS_DIV_32(a, b) (((a) - (((b) - 1) & ((a) >> 31))) / (b))
+#define IFLOORI_POS_DIV_64(a, b) (((a) - (((b) - 1) & ((a) >> 63))) / (b))
+
+// Trig
+#define OMS_DEG2RAD(angle) ((angle) * OMS_PI / 180.0f)
+#define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI)
+
+// -pi / pi
+#define OMS_NORMALIZE_RAD(angle) ((angle) - OMS_TAU * FLOORF(((angle) + OMS_PI) / OMS_TAU))
+// 0 / 360
+#define OMS_NORMALIZE_DEG(angle) ((angle) - 360.0f * FLOORF((angle) / 360.0f))
 
 // Zero and comparison
 #define OMS_EPSILON_F32 1.19209290e-07f
@@ -123,21 +138,39 @@ f64 OMS_ABS_F64(f64 a) {
 #define OMS_HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
 #define OMS_HAS_CHAR(x, c) (OMS_HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
 
+// Math operations
+// Only useful if n is a variable BUT you as programmer know the form of the value
+#define OMS_POW2_I64(n) (1ULL << (n))
+#define OMS_POW2_I32(n) (1U << (n))
+#define OMS_DIV2_I64(n) ((n) >> 1ULL)   // n = multiple of 2
+#define OMS_DIV2_I32(n) ((n) >> 1U)     // n = multiple of 2
+#define OMS_MUL2_I64(n) ((n) << 1ULL)
+#define OMS_MUL2_I32(n) ((n) << 1U)
+
 // Bitwise utilities
-#define OMS_IS_POW2(x) (((x) > 0) && (((x) & ((x) - 1)) == 0))
+#define OMS_SIGN_32(x) (1 | ((x) >> 31 << 1))
+#define OMS_SIGN_64(x) (1LL | ((x) >> 63 << 1))
+#define OMS_IS_POW2(x) (((x) & ((x) - 1)) == 0)
 #define OMS_ALIGN_UP(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
 #define OMS_ALIGN_DOWN(x, align) ((x) & ~((align) - 1))
 #define OMS_IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
-#define OMS_HAS_FLAG(val, flag) (((val) & (flag)))
-#define OMS_SET_FLAG(val, flag) ((val) |= (flag))
-#define OMS_CLEAR_FLAG(val, flag) ((val) &= ~(flag))
-#define OMS_TOGGLE_FLAG(val, flag) ((val) ^= (flag))
+
+#define OMS_FLAG_SET(flags, bit) ((flags) |= (bit))
+#define OMS_FLAG_CLEAR(flags, bit) ((flags) &= ~(bit))
+#define OMS_FLAG_REMOVE OMS_FLAG_CLEAR
+#define OMS_FLAG_DELETE OMS_FLAG_CLEAR
+#define OMS_FLAG_TOGGLE(flags, bit) ((flags) ^= (bit))
+#define OMS_FLAG_FLIP OMS_FLAG_TOGGLE
+#define OMS_FLAG_CHECK(flags, bit) ((flags) & (bit))
+#define OMS_FLAG_IS_SET OMS_FLAG_CHECK
 
 // This is the same as using % but for sufficiently large wrapping this is faster
 // WARNING: if wrap is a power of 2 don't use this but use the & operator
 //          I recommend to use this macro if wrap >= 1,000
 #define OMS_WRAPPED_INCREMENT(value, wrap) ++value; if (value >= wrap) [[unlikely]] value = 0
 #define OMS_WRAPPED_DECREMENT(value, wrap) --value; if (value < 0) [[unlikely]] value = wrap - 1
+
+#define OMS_SWAP(type, a, b) type _oms_tmp = (a); (a) = (b); (b) = _oms_tmp
 
 // Casting between e.g. f32 and int32 without changing bits
 #define BITCAST(x, new_type) bitcast_impl_##new_type(x)

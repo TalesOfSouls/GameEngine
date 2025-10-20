@@ -82,7 +82,7 @@ void platform_aligned_free(void** aligned_ptr) {
 }
 
 inline
-void* platform_shared_alloc(HANDLE* fd, const char* name, size_t size)
+void* platform_shared_alloc(HANDLE* __restrict fd, const char* __restrict name, size_t size)
 {
     if (!_page_size) {
         _page_size = 1;
@@ -104,7 +104,7 @@ void* platform_shared_alloc(HANDLE* fd, const char* name, size_t size)
 }
 
 inline
-void* platform_shared_open(HANDLE* fd, const char* name, size_t size)
+void* platform_shared_open(HANDLE* __restrict fd, const char* __restrict name, size_t size)
 {
     *fd = OpenFileMappingA(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, name);
     ASSERT_TRUE(*fd);
@@ -117,7 +117,7 @@ void* platform_shared_open(HANDLE* fd, const char* name, size_t size)
 }
 
 inline
-void platform_shared_free(HANDLE fd, const char*, void** ptr)
+void platform_shared_free(HANDLE __restrict fd, const char*, void** __restrict ptr)
 {
     DEBUG_MEMORY_FREE((uintptr_t) *ptr);
     UnmapViewOfFile(*ptr);

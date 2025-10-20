@@ -44,7 +44,7 @@
 #pragma comment(lib, "cfgmgr32.lib")
 #pragma comment(lib, "comsuppw.lib")
 
-inline
+FORCE_INLINE
 uint64 system_private_memory_usage()
 {
     PROCESS_MEMORY_COUNTERS_EX pmc;
@@ -205,25 +205,23 @@ void mainboard_info_get(MainboardInfo* info) {
 
     // Step 7: Retrieve the data
     IWbemClassObject *pclsObj = NULL;
-    ULONG uReturn = 0;
+    ULONG ret = 0;
     while (pEnumerator) {
-        HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
-        if (0 == uReturn) {
+        HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &ret);
+        if (ret == 0) {
             break;
         }
 
         VARIANT vtProp;
         hr = pclsObj->Get(L"Product", 0, &vtProp, 0, 0);
         if (SUCCEEDED(hr)) {
-            wchar_to_char(vtProp.bstrVal);
-            sprintf_fast(info->name, sizeof(info->name), "%s", vtProp.bstrVal);
+            wchar_to_char(info->name, (wchar_t *) vtProp.bstrVal, sizeof(info->name) - 1);
             VariantClear(&vtProp);
         }
 
         hr = pclsObj->Get(L"SerialNumber", 0, &vtProp, 0, 0);
         if (SUCCEEDED(hr)) {
-            wchar_to_char(vtProp.bstrVal);
-            sprintf_fast(info->serial_number, sizeof(info->serial_number), "%s", vtProp.bstrVal);
+            wchar_to_char(info->serial_number, (wchar_t *) vtProp.bstrVal, sizeof(info->serial_number) - 1);
             VariantClear(&vtProp);
         }
 
@@ -240,7 +238,7 @@ void mainboard_info_get(MainboardInfo* info) {
     info->serial_number[sizeof(info->serial_number) - 1] = '\0';
 }
 
-int32 network_info_get(NetworkInfo* info) {
+int32 network_info_get(NetworkInfo* info, int32 limit = 4) {
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         return 0;
@@ -274,7 +272,7 @@ int32 network_info_get(NetworkInfo* info) {
 
     // Iterate over the adapters and print their MAC addresses
     pAdapter = pAdapterAddresses;
-    while (pAdapter && i < 4) {
+    while (pAdapter && i < limit) {
         if (pAdapter->PhysicalAddressLength != 0) {
             info[i].slot[63] = '\0';
             info[i].mac[23] = '\0';
@@ -343,6 +341,7 @@ void cpu_info_get(CpuInfo* info) {
     RegCloseKey(hKey);
 }
 
+inline
 void os_info_get(OSInfo* info) {
     info->vendor[15] = '\0';
     info->name[63] = '\0';
@@ -420,13 +419,13 @@ RamChannelType ram_channel_info() {
     }
 
     IWbemClassObject *pclsObj = NULL;
-    ULONG uReturn = 0;
+    ULONG ret = 0;
     int32 ram_module_count = 0;
     int32 dual_channel_capable = 0;
 
     while (pEnumerator) {
-        hres = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
-        if (uReturn == 0) break;
+        hres = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &ret);
+        if (ret == 0) break;
 
         VARIANT vtProp;
         hres = pclsObj->Get(L"BankLabel", 0, &vtProp, 0, 0);
@@ -456,26 +455,26 @@ RamChannelType ram_channel_info() {
     }
 }
 
-uint32 gpu_info_get(GpuInfo* info) {
+inline
+int32 gpu_info_get(GpuInfo* info, int32 limit = 3) {
     IDXGIFactory *pFactory = NULL;
     IDXGIAdapter *pAdapter = NULL;
     DXGI_ADAPTER_DESC adapterDesc;
 
-    HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
+    HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void **) &pFactory);
     if (FAILED(hr)) {
         return 0;
     }
 
-    uint32 i = 0;
-    while (pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND && i < 3) {
+    int32 i = 0;
+    while (pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND && i < limit) {
         hr = pAdapter->GetDesc(&adapterDesc);
         if (FAILED(hr)) {
             pAdapter->Release();
             break;
         }
 
-        wcstombs(info[i].name, adapterDesc.Description, 63);
-        info[i].name[63] = '\0';
+        wchar_to_char(info[i].name, adapterDesc.Description, 63);
         info[i].vram = (uint32) (adapterDesc.DedicatedVideoMemory / (1024 * 1024));
 
         pAdapter->Release();
@@ -487,15 +486,15 @@ uint32 gpu_info_get(GpuInfo* info) {
     return i;
 }
 
-uint32 display_info_get(DisplayInfo* info) {
+inline
+int32 display_info_get(DisplayInfo* info, int32 limit = 4) {
     DISPLAY_DEVICEA device;
     DEVMODEA mode;
 
     device.cb = sizeof(DISPLAY_DEVICEA);
 
-    uint32 i = 0;
-
-    while (EnumDisplayDevicesA(NULL, i, &device, 0)) {
+    int32 i = 0;
+    while (EnumDisplayDevicesA(NULL, i, &device, 0) && i < limit) {
         mode.dmSize = sizeof(mode);
 
         if (EnumDisplaySettingsA(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
@@ -525,6 +524,10 @@ bool is_dedicated_gpu_connected() {
                     && (str_contains(gpuDevice.DeviceID, "PCI\\VEN_10DE") // Nvidia
                         || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1002") // AMD
                         || str_contains(gpuDevice.DeviceID, "PCI\\VEN_8086") // Intel
+                        || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1E4E") // Moore Threads
+                        || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1DBA") // Innosilicon
+                        || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1D17") // Zhaoxin
+                        // @todo what about Biren?
                     )
                 ) {
                     return true;

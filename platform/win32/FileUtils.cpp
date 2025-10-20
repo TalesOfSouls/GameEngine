@@ -40,13 +40,13 @@ struct FileBodyAsync {
     OVERLAPPED ov;
 };
 
-inline
+FORCE_INLINE
 MMFHandle file_mmf_handle(FileHandle fp)
 {
     return CreateFileMappingA(fp, NULL, PAGE_READONLY, 0, 0, NULL);
 }
 
-inline
+FORCE_INLINE
 void* mmf_region_init(MMFHandle fh, size_t offset, size_t length = 0)
 {
     DWORD high = (DWORD) ((offset >> 32) & 0xFFFFFFFF);
@@ -55,12 +55,12 @@ void* mmf_region_init(MMFHandle fh, size_t offset, size_t length = 0)
     return MapViewOfFile(fh, FILE_MAP_READ, high, low, length);
 }
 
-inline
+FORCE_INLINE
 void mmf_region_release(void* fh) {
     UnmapViewOfFile(fh);
 }
 
-inline
+FORCE_INLINE
 void file_mmf_close(MMFHandle fh) {
     CloseHandle(fh);
 }
@@ -91,6 +91,7 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path)
     str_copy(path + self_path_length, temp);
 }
 
+FORCE_INLINE
 void file_seek(FileHandle fh, uint64 pos)
 {
     LARGE_INTEGER li;
@@ -230,7 +231,13 @@ file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __
 
 // @question Do we really need length? we have file.size we could use as we do in a function above
 inline
-void file_read(const char* __restrict path, FileBody* __restrict file, uint64 offset, uint64 length = MAX_UINT64, RingMemory* __restrict ring = NULL)
+void file_read(
+    const char* __restrict path,
+    FileBody* __restrict file,
+    uint64 offset,
+    uint64 length = MAX_UINT64,
+    RingMemory* __restrict ring = NULL
+)
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -316,7 +323,13 @@ void file_read(const char* __restrict path, FileBody* __restrict file, uint64 of
 }
 
 inline
-void file_read(FileHandle fp, FileBody* __restrict file, uint64 offset = 0, uint64 length = MAX_UINT64, RingMemory* __restrict ring = NULL)
+void file_read(
+    FileHandle fp,
+    FileBody* __restrict file,
+    uint64 offset = 0,
+    uint64 length = MAX_UINT64,
+    RingMemory* __restrict ring = NULL
+)
 {
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
@@ -546,7 +559,7 @@ file_copy(const char* __restrict src, const char* __restrict dst)
     }
 }
 
-inline
+FORCE_INLINE
 void file_close_handle(FileHandle fp)
 {
     CloseHandle(fp);
@@ -890,7 +903,8 @@ uint64 file_last_modified(const char* path)
     return ull.QuadPart;
 }
 
-inline void self_path(char* path)
+FORCE_INLINE
+void self_path(char* path)
 {
     GetModuleFileNameA(NULL, (LPSTR) path, MAX_PATH);
 }

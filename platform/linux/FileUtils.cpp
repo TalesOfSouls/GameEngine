@@ -36,7 +36,7 @@
 typedef int32 FileHandle;
 typedef int MMFHandle;
 
-inline
+FORCE_INLINE
 MMFHandle file_mmf_handle(FileHandle fp) {
     return fp;
 }
@@ -77,7 +77,7 @@ void mmf_region_release(void* region, size_t length = 0) {
     munmap(aligned_region, length);
 }
 
-inline
+FORCE_INLINE
 void file_mmf_close(MMFHandle fh) {
     close(fh);
 }
@@ -230,7 +230,11 @@ bool file_copy(const char* __restrict src, const char* __restrict dst) {
 }
 
 inline
-void file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __restrict ring = NULL) {
+void file_read(
+    const char* __restrict path,
+    FileBody* __restrict file,
+    RingMemory* __restrict ring = NULL
+) {
     PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     char full_path[MAX_PATH];

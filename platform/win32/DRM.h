@@ -29,6 +29,7 @@ typedef NTSTATUS (WINAPI *pNtSetInformationThread)(
     ULONG ThreadInformationLength
 );
 
+inline
 bool drm_prevent_debugger_attach()
 {
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
@@ -244,6 +245,7 @@ static BOOL CALLBACK drm_enum_windows_callback(HWND hWnd, LPARAM lParam) {
     return true;
 }
 
+inline
 bool drm_check_window_title(const char** window_titles, int32 count) {
     WindowTitleSearchContext ctx = { window_titles, count, false };
     EnumWindows(drm_enum_windows_callback, (LPARAM) &ctx);

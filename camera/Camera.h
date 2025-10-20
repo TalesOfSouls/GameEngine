@@ -34,8 +34,19 @@
 
 enum CameraStateChanges : byte {
     CAMERA_STATE_CHANGE_NONE = 0,
-    CAMERA_STATE_CHANGE_NORMAL = 1,
-    CAMERA_STATE_CHANGE_WINDOW = 2,
+    CAMERA_STATE_CHANGE_WINDOW = 1 << 0,
+    CAMERA_STATE_CHANGE_POSITION = 1 << 1,
+    CAMERA_STATE_CHANGE_ORIENTATION = 1 << 2,
+    CAMERA_STATE_CHANGE_OTHER = 1 << 3, // e.g. fov, aspect, ...
+};
+
+struct Frustum {
+    // A frustum consists of 6 planes where every plane has the form ax + by + cz + d = 0
+    // This means every plane requires 4 parameters
+    union {
+        f32 plane[6 * 4];
+        v4_f32 eq[6];
+    };
 };
 
 struct Camera {
@@ -72,10 +83,104 @@ struct Camera {
     alignas(64) f32 projection[16];
     alignas(64) f32 orth[16];
     alignas(64) f32 view[16];
+    alignas(64) Frustum frustum;
 };
 
+void camera_frustum_update(Camera* camera) NO_EXCEPT {
+    const v3_f32 pos = camera->location;
+    const v3_f32 front = camera->front;
+    const v3_f32 up = camera->up;
+    const v3_f32 right = camera->right;
+
+    // Near and far plane centers
+    v3_f32 near_center = {
+        pos.x + front.x * camera->znear,
+        pos.y + front.y * camera->znear,
+        pos.z + front.z * camera->znear
+    };
+    v3_f32 far_center = {
+        pos.x + front.x * camera->zfar,
+        pos.y + front.y * camera->zfar,
+        pos.z + front.z * camera->zfar
+    };
+
+    // Precompute near/far plane half extents
+    f32 tan_fov = tanf(camera->fov * 0.5f);
+    f32 fh = camera->zfar * tan_fov;
+    f32 fw = fh * camera->aspect;
+
+    // Precompute scaled basis vectors to avoid multiple v3_scale calls
+    v3_f32 up_fh = { up.x * fh, up.y * fh, up.z * fh };
+    v3_f32 up_negfh = { -up_fh.x, -up_fh.y, -up_fh.z };
+
+    v3_f32 right_fw = { right.x * fw, right.y * fw, right.z * fw };
+    v3_f32 right_negfw = { -right_fw.x, -right_fw.y, -right_fw.z };
+
+    v3_f32 fc_up = vec3_add(far_center, up_fh);
+    v3_f32 fc_down = vec3_add(far_center, up_negfh);
+
+    // Compute far plane corners using the pre-shifted positions
+    v3_f32 ftl = vec3_add(fc_up, right_negfw);
+    v3_f32 ftr = vec3_add(fc_up, right_fw);
+    v3_f32 fbl = vec3_add(fc_down, right_negfw);
+    v3_f32 fbr = vec3_add(fc_down, right_fw);
+
+    v3_f32 ftl_r = vec3_sub(ftl, pos);
+    v3_f32 ftr_r = vec3_sub(ftr, pos);
+    v3_f32 fbl_r = vec3_sub(fbl, pos);
+    v3_f32 fbr_r = vec3_sub(fbr, pos);
+
+    v3_f32 cross;
+
+    // Left plane: cross( ftl - pos, fbl - pos )
+    cross = vec3_cross(ftl_r, fbl_r);
+    camera->frustum.eq[0] = { cross.x, cross.y, cross.z, -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z) };
+
+    // Right plane: cross( fbr - pos, ftr - pos )
+    cross = vec3_cross(fbr_r, ftr_r);
+    camera->frustum.eq[1] = { cross.x, cross.y, cross.z, -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z) };
+
+    // Bottom plane: cross( fbl - pos, fbr - pos )
+    cross = vec3_cross(fbl_r, fbr_r);
+    camera->frustum.eq[2] = { cross.x, cross.y, cross.z, -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z) };
+
+    // Top plane: cross( ftr - pos, ftl - pos )
+    cross = vec3_cross(ftr_r, ftl_r);
+    camera->frustum.eq[3] = { cross.x, cross.y, cross.z, -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z) };
+
+    // Near plane: normal = front
+    camera->frustum.eq[4] = {
+        front.x, front.y, front.z,
+        -(front.x * near_center.x + front.y * near_center.y + front.z * near_center.z)
+    };
+
+    // Far plane: normal = -front
+    camera->frustum.eq[5] = {
+        -front.x, -front.y, -front.z,
+        (front.x * far_center.x + front.y * far_center.y + front.z * far_center.z)
+    };
+}
+
+// In some cases we only need to update the frustum based on position updates
+// This allows us to simply make shifts to the original frustum positions
+inline
+void camera_frustum_pos_update(Camera* camera, v3_f32 old_pos) NO_EXCEPT {
+    v3_f32 delta = {
+        camera->location.x - old_pos.x,
+        camera->location.y - old_pos.y,
+        camera->location.z - old_pos.z
+    };
+
+    // Update plane distances: d_new = d_old - n · delta
+    for (size_t i = 0; i < 6; ++i) {
+        camera->frustum.eq[i].w -= camera->frustum.eq[i].x * delta.x
+            + camera->frustum.eq[i].y * delta.y
+            + camera->frustum.eq[i].z * delta.z;
+    }
+}
+
 static FORCE_INLINE
-void camera_init_rh_opengl(Camera* camera) {
+void camera_init_rh_opengl(Camera* camera) NO_EXCEPT {
     camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, -1.0f};
     camera->right = {1.0f, 0.0f, 0.0f};
@@ -84,7 +189,7 @@ void camera_init_rh_opengl(Camera* camera) {
 }
 
 static FORCE_INLINE
-void camera_init_rh_vulkan(Camera* camera) {
+void camera_init_rh_vulkan(Camera* camera) NO_EXCEPT {
     camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, -1.0f};
     camera->right = {1.0f, 0.0f, 0.0f};
@@ -93,7 +198,7 @@ void camera_init_rh_vulkan(Camera* camera) {
 }
 
 static FORCE_INLINE
-void camera_init_lh(Camera* camera) {
+void camera_init_lh(Camera* camera) NO_EXCEPT {
     camera->orientation = {0.0f, 90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, 1.0f};
     camera->right = {1.0f, 0.0f, 0.0f};
@@ -101,31 +206,8 @@ void camera_init_lh(Camera* camera) {
     camera->world_up = {0.0f, 1.0f, 0.0f};
 }
 
-inline
-void camera_init(Camera* camera) {
-    camera->znear = 0.1f;
-    camera->zfar = 10000.0f;
-
-    switch (camera->gpu_api_type) {
-        case GPU_API_TYPE_NONE: {
-            camera_init_rh_opengl(camera);
-        } break;
-        case GPU_API_TYPE_OPENGL: {
-            camera_init_rh_opengl(camera);
-        } break;
-        case GPU_API_TYPE_VULKAN: {
-            camera_init_rh_vulkan(camera);
-        } break;
-        case GPU_API_TYPE_DIRECTX: {
-            camera_init_lh(camera);
-        } break;
-        default:
-            UNREACHABLE();
-    }
-}
-
 static inline
-void camera_update_vectors(Camera* camera) NO_EXCEPT
+void camera_vectors_update(Camera* camera) NO_EXCEPT
 {
     f32 cos_ori_x = cosf(OMS_DEG2RAD(camera->orientation.x));
     camera->front.x = cos_ori_x * cosf(OMS_DEG2RAD(camera->orientation.y));
@@ -144,7 +226,7 @@ void camera_update_vectors(Camera* camera) NO_EXCEPT
 inline
 void camera_rotate(Camera* camera, int32 dx, int32 dy) NO_EXCEPT
 {
-    camera->state_changes |= CAMERA_STATE_CHANGE_NORMAL;
+    camera->state_changes |= CAMERA_STATE_CHANGE_ORIENTATION;
     camera->orientation.x += dy * camera->sensitivity;
     camera->orientation.y -= dx * camera->sensitivity;
 
@@ -160,7 +242,141 @@ void camera_rotate(Camera* camera, int32 dx, int32 dy) NO_EXCEPT
         camera->orientation.y += 360.0f;
     }
 
-    camera_update_vectors(camera);
+    camera_vectors_update(camera);
+}
+
+inline
+void camera_movement(
+    Camera* __restrict camera,
+    CameraMovement movement,
+    f32 dt,
+    bool relative_to_world = true
+) NO_EXCEPT {
+    camera->state_changes |= CAMERA_STATE_CHANGE_POSITION;
+    f32 velocity = camera->speed * dt;
+
+    if (relative_to_world) {
+        switch(movement) {
+            case CAMERA_MOVEMENT_FORWARD: {
+                    camera->location.z += velocity;
+                } break;
+            case CAMERA_MOVEMENT_BACK: {
+                    camera->location.z -= velocity;
+                } break;
+            case CAMERA_MOVEMENT_LEFT: {
+                    camera->location.x -= velocity;
+                } break;
+            case CAMERA_MOVEMENT_RIGHT: {
+                    camera->location.x += velocity;
+                } break;
+            case CAMERA_MOVEMENT_UP: {
+                    camera->location.y += velocity;
+                } break;
+            case CAMERA_MOVEMENT_DOWN: {
+                    camera->location.y -= velocity;
+                } break;
+            case CAMERA_MOVEMENT_PITCH_UP: {
+                    camera->orientation.x += velocity;
+                } break;
+            case CAMERA_MOVEMENT_PITCH_DOWN: {
+                    camera->orientation.x -= velocity;
+                } break;
+            case CAMERA_MOVEMENT_ROLL_LEFT: {
+                    camera->orientation.z += velocity;
+                } break;
+            case CAMERA_MOVEMENT_ROLL_RIGHT: {
+                    camera->orientation.z -= velocity;
+                } break;
+            case CAMERA_MOVEMENT_YAW_LEFT: {
+                    camera->orientation.y += velocity;
+                } break;
+            case CAMERA_MOVEMENT_YAW_RIGHT: {
+                    camera->orientation.y -= velocity;
+                } break;
+            case CAMERA_MOVEMENT_ZOOM_IN: {
+                    camera->zoom += velocity;
+                } break;
+            case CAMERA_MOVEMENT_ZOOM_OUT: {
+                    camera->zoom -= velocity;
+                } break;
+            default: {
+                UNREACHABLE();
+            }
+        }
+    } else {
+        camera->state_changes |= CAMERA_STATE_CHANGE_ORIENTATION;
+
+        v3_f32 forward = camera->front;
+
+        v3_f32 right = vec3_cross(camera->world_up, forward);
+        v3_f32 up = vec3_cross(right, forward);
+
+        vec3_normalize(&right);
+        vec3_normalize(&up);
+
+        switch(movement) {
+            case CAMERA_MOVEMENT_NONE: {
+                return;
+            };
+            case CAMERA_MOVEMENT_FORWARD: {
+                    camera->location.x += forward.x * velocity;
+                    camera->location.y += forward.y * velocity;
+                    camera->location.z += forward.z * velocity;
+                } break;
+            case CAMERA_MOVEMENT_BACK: {
+                    camera->location.x -= forward.x * velocity;
+                    camera->location.y -= forward.y * velocity;
+                    camera->location.z -= forward.z * velocity;
+                } break;
+            case CAMERA_MOVEMENT_LEFT: {
+                    camera->location.x -= right.x * velocity;
+                    camera->location.y -= right.y * velocity;
+                    camera->location.z -= right.z * velocity;
+                } break;
+            case CAMERA_MOVEMENT_RIGHT: {
+                    camera->location.x += right.x * velocity;
+                    camera->location.y += right.y * velocity;
+                    camera->location.z += right.z * velocity;
+                } break;
+            case CAMERA_MOVEMENT_UP: {
+                    camera->location.x += up.x * velocity;
+                    camera->location.y += up.y * velocity;
+                    camera->location.z += up.z * velocity;
+                } break;
+            case CAMERA_MOVEMENT_DOWN: {
+                    camera->location.x -= up.x * velocity;
+                    camera->location.y -= up.y * velocity;
+                    camera->location.z -= up.z * velocity;
+                } break;
+            case CAMERA_MOVEMENT_PITCH_UP: {
+                    camera->orientation.x += velocity;
+                } break;
+            case CAMERA_MOVEMENT_PITCH_DOWN: {
+                    camera->orientation.x -= velocity;
+                } break;
+            case CAMERA_MOVEMENT_ROLL_LEFT: {
+                    camera->orientation.z += velocity;
+                } break;
+            case CAMERA_MOVEMENT_ROLL_RIGHT: {
+                    camera->orientation.z -= velocity;
+                } break;
+            case CAMERA_MOVEMENT_YAW_LEFT: {
+                    camera->orientation.z += velocity;
+                } break;
+            case CAMERA_MOVEMENT_YAW_RIGHT: {
+                    camera->orientation.z -= velocity;
+                } break;
+            case CAMERA_MOVEMENT_ZOOM_IN: {
+                    camera->zoom += velocity;
+                } break;
+            case CAMERA_MOVEMENT_ZOOM_OUT: {
+                    camera->zoom -= velocity;
+                } break;
+            default: {
+                UNREACHABLE();
+            }
+        }
+    }
 }
 
 // you can have up to 4 camera movement inputs at the same time
@@ -171,7 +387,7 @@ void camera_movement(
     f32 dt,
     bool relative_to_world = true
 ) NO_EXCEPT {
-    camera->state_changes |= CAMERA_STATE_CHANGE_NORMAL;
+    camera->state_changes |= CAMERA_STATE_CHANGE_POSITION;
     f32 velocity = camera->speed * dt;
 
     if (relative_to_world) {
@@ -301,7 +517,7 @@ void camera_movement(
 }
 
 inline
-void camera_orth_matrix_lh(Camera* __restrict camera) NO_EXCEPT
+void camera_orth_matrix_lh(Camera* camera) NO_EXCEPT
 {
     //mat4_identity(camera->orth);
     camera->orth[15] = 1.0f;
@@ -315,7 +531,7 @@ void camera_orth_matrix_lh(Camera* __restrict camera) NO_EXCEPT
 }
 
 inline
-void camera_orth_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
+void camera_orth_matrix_rh_opengl(Camera* camera) NO_EXCEPT
 {
     //mat4_identity(camera->orth);
     camera->orth[15] = 1.0f;
@@ -329,7 +545,7 @@ void camera_orth_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
 }
 
 inline
-void camera_orth_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
+void camera_orth_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
 {
     //mat4_identity(camera->orth);
     camera->orth[15] = 1.0f;
@@ -343,7 +559,7 @@ void camera_orth_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
 }
 
 inline
-void camera_projection_matrix_lh(Camera* __restrict camera) NO_EXCEPT
+void camera_projection_matrix_lh(Camera* camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -357,7 +573,7 @@ void camera_projection_matrix_lh(Camera* __restrict camera) NO_EXCEPT
 }
 
 inline
-void camera_projection_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
+void camera_projection_matrix_rh_opengl(Camera* camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -371,7 +587,7 @@ void camera_projection_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
 }
 
 inline
-void camera_projection_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
+void camera_projection_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -404,7 +620,7 @@ void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* t
 }
 
 void
-camera_view_matrix_lh(Camera* __restrict camera) NO_EXCEPT
+camera_view_matrix_lh(Camera* camera) NO_EXCEPT
 {
     v3_f32 zaxis = camera->front;
 
@@ -413,20 +629,20 @@ camera_view_matrix_lh(Camera* __restrict camera) NO_EXCEPT
 
     v3_f32 yaxis = vec3_cross(zaxis, xaxis);
 
-   // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
+    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
     // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
     camera->view[0] = xaxis.x;
     camera->view[1] = yaxis.x;
     camera->view[2] = zaxis.x;
-    camera->view[3] = 0.0f;
+    //camera->view[3] = 0.0f;
     camera->view[4] = xaxis.y;
     camera->view[5] = yaxis.y;
     camera->view[6] = zaxis.y;
-    camera->view[7] = 0.0f;
+    //camera->view[7] = 0.0f;
     camera->view[8] = xaxis.z;
     camera->view[9] = yaxis.z;
     camera->view[10] = zaxis.z;
-    camera->view[11] = 0.0f;
+    //camera->view[11] = 0.0f;
     camera->view[12] = -vec3_dot(xaxis, camera->location);
     camera->view[13] = -vec3_dot(yaxis, camera->location);
     camera->view[14] = -vec3_dot(zaxis, camera->location);
@@ -434,7 +650,7 @@ camera_view_matrix_lh(Camera* __restrict camera) NO_EXCEPT
 }
 
 void
-camera_view_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
+camera_view_matrix_rh_opengl(Camera* camera) NO_EXCEPT
 {
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
@@ -448,15 +664,15 @@ camera_view_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
     camera->view[0] = xaxis.x;
     camera->view[1] = yaxis.x;
     camera->view[2] = zaxis.x;
-    camera->view[3] = 0.0f;
+    //camera->view[3] = 0.0f;
     camera->view[4] = xaxis.y;
     camera->view[5] = yaxis.y;
     camera->view[6] = zaxis.y;
-    camera->view[7] = 0.0f;
+    //camera->view[7] = 0.0f;
     camera->view[8] = xaxis.z;
     camera->view[9] = yaxis.z;
     camera->view[10] = zaxis.z;
-    camera->view[11] = 0.0f;
+    //camera->view[11] = 0.0f;
     camera->view[12] = -vec3_dot(xaxis, camera->location);
     camera->view[13] = -vec3_dot(yaxis, camera->location);
     camera->view[14] = -vec3_dot(zaxis, camera->location);
@@ -464,7 +680,7 @@ camera_view_matrix_rh_opengl(Camera* __restrict camera) NO_EXCEPT
 }
 
 void
-camera_view_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
+camera_view_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
 {
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
@@ -478,15 +694,15 @@ camera_view_matrix_rh_vulkan(Camera* __restrict camera) NO_EXCEPT
     camera->view[0] = xaxis.x;
     camera->view[1] = yaxis.x;
     camera->view[2] = zaxis.x;
-    camera->view[3] = 0.0f;
+    //camera->view[3] = 0.0f;
     camera->view[4] = xaxis.y;
     camera->view[5] = yaxis.y;
     camera->view[6] = zaxis.y;
-    camera->view[7] = 0.0f;
+    //camera->view[7] = 0.0f;
     camera->view[8] = xaxis.z;
     camera->view[9] = yaxis.z;
     camera->view[10] = zaxis.z;
-    camera->view[11] = 0.0f;
+    //camera->view[11] = 0.0f;
     camera->view[12] = -vec3_dot(xaxis, camera->location);
     camera->view[13] = -vec3_dot(yaxis, camera->location);
     camera->view[14] = -vec3_dot(zaxis, camera->location);
@@ -535,6 +751,37 @@ f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT {
     }
 }
 
+inline
+void camera_init(Camera* camera) NO_EXCEPT {
+    camera->znear = 0.1f;
+    camera->zfar = 10000.0f;
+
+    switch (camera->gpu_api_type) {
+        case GPU_API_TYPE_NONE:
+        case GPU_API_TYPE_OPENGL: {
+            camera_init_rh_opengl(camera);
+            camera_projection_matrix_rh_opengl(camera);
+            camera_orth_matrix_rh_opengl(camera);
+            camera_view_matrix_rh_opengl(camera);
+        } break;
+        case GPU_API_TYPE_VULKAN: {
+            camera_init_rh_vulkan(camera);
+            camera_projection_matrix_rh_vulkan(camera);
+            camera_orth_matrix_rh_vulkan(camera);
+            camera_view_matrix_rh_vulkan(camera);
+        } break;
+        case GPU_API_TYPE_DIRECTX: {
+            camera_init_lh(camera);
+            camera_projection_matrix_lh(camera);
+            camera_orth_matrix_lh(camera);
+            camera_view_matrix_lh(camera);
+        } break;
+        default:
+            UNREACHABLE();
+    }
+}
+
+/*
 // Creates the frustum planes (the frustum consists of 6 planes)
 // Each plane is describes as: ax + by + cz + d = 0 (4 parameters)
 inline
@@ -576,12 +823,13 @@ void mat4_frustum_planes(Frustum* frustum, f32 radius, const f32* matrix) NO_EXC
     frustum->plane[5 * 4 + 2] = zfar * matrix[11] - matrix[10];
     frustum->plane[5 * 4 + 3] = zfar * matrix[15] - matrix[14];
 }
+    */
 
 inline
-bool aabb_intersects_frustum(const AABB_f32* box, const Frustum* f){
+bool aabb_intersects_frustum(const AABB_f32* __restrict box, const Frustum* __restrict frustum){
     // "fast AABB/frustum" using positive vertex test
     for(int32 i = 0; i < 24; i += 6){
-        const f32* plane = &f->plane[i];
+        const f32* plane = &frustum->plane[i];
         v3_f32 positive = {
             plane[0] >= 0.0f ? box->max.x : box->min.x,
             plane[1] >= 0.0f ? box->max.y : box->min.y,

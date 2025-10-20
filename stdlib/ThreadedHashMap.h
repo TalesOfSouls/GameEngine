@@ -54,49 +54,49 @@ void thrd_hashmap_free(ThreadedHashMap* hm)
 }
 
 inline
-void thrd_hashmap_insert(ThreadedHashMap* hm, const char* key, int32 value) {
+void thrd_hashmap_insert(ThreadedHashMap* __restrict hm, const char* __restrict key, int32 value) {
     mutex_lock(&hm->mtx);
     hashmap_insert((HashMap *) hm, key, value);
     mutex_unlock(&hm->mtx);
 }
 
 inline
-void thrd_hashmap_insert(ThreadedHashMap* hm, const char* key, int64 value) {
+void thrd_hashmap_insert(ThreadedHashMap* __restrict hm, const char* __restrict key, int64 value) {
     mutex_lock(&hm->mtx);
     hashmap_insert((HashMap *) hm, key, value);
     mutex_unlock(&hm->mtx);
 }
 
 inline
-void thrd_hashmap_insert(ThreadedHashMap* hm, const char* key, uintptr_t value) {
+void thrd_hashmap_insert(ThreadedHashMap* __restrict hm, const char* __restrict key, uintptr_t value) {
     mutex_lock(&hm->mtx);
     hashmap_insert((HashMap *) hm, key, value);
     mutex_unlock(&hm->mtx);
 }
 
 inline
-void thrd_hashmap_insert(ThreadedHashMap* hm, const char* key, void* value) {
+void thrd_hashmap_insert(ThreadedHashMap* __restrict hm, const char* __restrict key, void* __restrict value) {
     mutex_lock(&hm->mtx);
     hashmap_insert((HashMap *) hm, key, value);
     mutex_unlock(&hm->mtx);
 }
 
 inline
-void thrd_hashmap_insert(ThreadedHashMap* hm, const char* key, f32 value) {
+void thrd_hashmap_insert(ThreadedHashMap* __restrict hm, const char* __restrict key, f32 value) {
     mutex_lock(&hm->mtx);
     hashmap_insert((HashMap *) hm, key, value);
     mutex_unlock(&hm->mtx);
 }
 
 inline
-void thrd_hashmap_insert(ThreadedHashMap* hm, const char* key, const char* value) {
+void thrd_hashmap_insert(ThreadedHashMap* __restrict hm, const char* __restrict key, const char* __restrict value) {
     mutex_lock(&hm->mtx);
     hashmap_insert((HashMap *) hm, key, value);
     mutex_unlock(&hm->mtx);
 }
 
 inline
-void thrd_hashmap_insert(ThreadedHashMap* hm, const char* key, byte* value) {
+void thrd_hashmap_insert(ThreadedHashMap* __restrict hm, const char* __restrict key, byte* __restrict value) {
     mutex_lock(&hm->mtx);
     hashmap_insert((HashMap *) hm, key, value);
     mutex_unlock(&hm->mtx);
@@ -119,7 +119,7 @@ void thrd_hashmap_get_entry(ThreadedHashMap* hm, HashEntry* entry, const char* k
 }
 
 inline
-void thrd_hashmap_remove(ThreadedHashMap* hm, const char* key) {
+void thrd_hashmap_remove(ThreadedHashMap* __restrict hm, const char* __restrict key) {
     mutex_lock(&hm->mtx);
     hashmap_remove((HashMap *) hm, key);
     mutex_unlock(&hm->mtx);

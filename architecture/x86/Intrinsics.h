@@ -68,4 +68,64 @@ uint64 intrin_timestamp_counter() NO_EXCEPT {
     return __rdtsc();
 }
 
+#if __AVX2__
+    static __m128i _sink128;
+    static __m256i _sink256;
+
+    // Pre-loads 128 bit chunks of memory into cache as fast as possible
+    // size MUST be multiple of 128
+    inline
+    void intrin_prefetch_128(void* memory, size_t size)
+    {
+        void* const end = ((char *) memory) + size;
+        __m128i* p0 = (__m128i *) memory;
+        __m128i* p1 = (__m128i *) end;
+        for (const __m128i* p = p0; p < p1; ++p) {
+            _sink128 = *p;
+        }
+    }
+
+    // Pre-loads 256 bit chunks of memory into cache as fast as possible
+    // size MUST be multiple of 256
+    inline
+    void intrin_prefetch_256(void* memory, size_t size)
+    {
+        void* const end = ((char *) memory) + size;
+        __m256i* p0 = (__m256i *) memory;
+        __m256i* p1 = (__m256i *) end;
+        for (const __m256i* p = p0; p < p1; ++p) {
+            _sink256 = *p;
+        }
+    }
+#else
+    static volatile uint64_t _sink128;
+    static volatile uint64_t _sink256;
+
+    // Pre-loads 128 bit chunks of memory into cache as fast as possible
+    // size MUST be multiple of 128
+    inline
+    void intrin_prefetch_128(void* memory, size_t size)
+    {
+        void* const end = ((char *) memory) + size;
+        uint64_t* p0 = (uint64_t *) memory;
+        uint64_t* p1 = (uint64_t *) end;
+        for (const volatile uint64_t* p = p0; p < p1; ++p) {
+            _sink128 = *p;
+        }
+    }
+
+    // Pre-loads 256 bit chunks of memory into cache as fast as possible
+    // size MUST be multiple of 256
+    inline
+    void intrin_prefetch_256(void* memory, size_t size)
+    {
+        void* const end = ((char *) memory) + size;
+        uint64_t* p0 = (uint64_t *) memory;
+        uint64_t* p1 = (uint64_t *) end;
+        for (const volatile uint64_t* p = p0; p < p1; ++p) {
+            _sink256 = *p;
+        }
+    }
+#endif
+
 #endif

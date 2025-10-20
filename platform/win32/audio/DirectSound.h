@@ -142,7 +142,7 @@ void audio_free(AudioSetting*, DirectSoundSetting* __restrict api_setting)
  * Calculates the samples in bytes to generate for the buffer
  */
 inline
-uint32 audio_buffer_fillable(const AudioSetting* setting, const DirectSoundSetting* __restrict api_setting)
+uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const DirectSoundSetting* __restrict api_setting)
 {
     PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
 
@@ -174,7 +174,7 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const DirectSoundSetti
 }
 
 inline
-void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* __restrict api_setting)
+void audio_play_buffer(AudioSetting* __restrict setting, DirectSoundSetting* __restrict api_setting)
 {
     PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
     if (setting->sample_buffer_size == 0) {
