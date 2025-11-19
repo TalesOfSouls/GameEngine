@@ -43,10 +43,12 @@ struct RingMemory {
 };
 
 inline
-void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
+void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(size);
     PROFILE(PROFILE_RING_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+
+    size = OMS_ALIGN_UP(size, 64);
     LOG_1("[INFO] Allocating RingMemory: %n B", {LOG_DATA_UINT64, &size});
 
     ring->memory = alignment < 2
@@ -59,14 +61,16 @@ void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
     ring->size = size;
     ring->alignment = alignment;
 
-    memset(ring->memory, 0, ring->size);
+    // @question why is this even here?
+    compiler_memset_aligned(ring->memory, 0, ring->size);
 }
 
 inline
-void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, uint32 alignment = 64)
+void ring_init(RingMemory* __restrict ring, BufferMemory* __restrict buf, uint64 size, uint32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(size);
 
+    size = OMS_ALIGN_UP(size, (uint64) alignment);
     ring->memory = buffer_get_memory(buf, size, alignment);
 
     ring->end = ring->memory + size;
@@ -79,10 +83,11 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, uint32 alignmen
 }
 
 inline
-void ring_init(RingMemory* ring, byte* buf, uint64 size, uint32 alignment = 64)
+void ring_init(RingMemory* __restrict ring, byte* __restrict buf, uint64 size, uint32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(size);
 
+    size = OMS_ALIGN_UP(size, (uint64) alignment);
     ring->memory = (byte *) OMS_ALIGN_UP((uintptr_t) buf, (uint64) alignment);
 
     ring->end = ring->memory + size;
@@ -115,7 +120,7 @@ byte* ring_calculate_position(const RingMemory* ring, uint64 size, uint64 aligne
     byte* head = (byte *) OMS_ALIGN_UP((uintptr_t) ring->head, aligned);
     size = OMS_ALIGN_UP(size, (uint64) aligned);
 
-    if (head + size > ring->end) { [[unlikely]]
+    if (head + size > ring->end) { UNLIKELY
         head = (byte *) OMS_ALIGN_UP((uintptr_t) ring->memory, aligned);
     }
 
@@ -131,6 +136,7 @@ void ring_reset(RingMemory* ring) NO_EXCEPT
 
 // Moves a pointer based on the size you want to consume (new position = after consuming size)
 // Usually used to move head or tail pointer (generically called here = pos)
+HOT_CODE
 void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
     ASSERT_TRUE(size <= ring->size);
@@ -142,7 +148,7 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint64 aligned
     *pos = (byte *) OMS_ALIGN_UP((uintptr_t) *pos, aligned);
     size = OMS_ALIGN_UP(size, (uint64) aligned);
 
-    if (*pos + size > ring->end) { [[unlikely]]
+    if (*pos + size > ring->end) { UNLIKELY
         *pos = (byte *) OMS_ALIGN_UP((uintptr_t) ring->memory, aligned);
     }
 
@@ -151,6 +157,7 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint64 aligned
 
 // @todo Implement a function called ring_grow_memory that tries to grow a memory range
 // this of course is only possible if the memory range is the last memory range returned and if the growing part still fits into the ring
+HOT_CODE
 byte* ring_get_memory(RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
     ASSERT_TRUE(size <= ring->size);
@@ -158,7 +165,7 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCE
     ring->head = (byte *) OMS_ALIGN_UP((uintptr_t) ring->head, aligned);
     size = OMS_ALIGN_UP(size, (uint64) aligned);
 
-    if (ring->head + size > ring->end) { [[unlikely]]
+    if (ring->head + size > ring->end) { UNLIKELY
         ring_reset(ring);
 
         ring->head = (byte *) OMS_ALIGN_UP((uintptr_t) ring->head, aligned);
@@ -174,7 +181,38 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCE
     return offset;
 }
 
+byte* ring_grow_memory(RingMemory* ring, const byte* old, uint64 size_old, uint64 size_new, uint64 aligned = 4) {
+    size_new = OMS_ALIGN_UP(size_new, aligned);
+
+    const byte* expected_head = old + OMS_ALIGN_UP(size_old, aligned);
+
+    // Check if we can grow in place (no allocations since old)
+    if (expected_head == ring->head) {
+        // Check if there's enough space left in current buffer
+        if (ring->head + (size_new - size_old) <= ring->end) {
+            DEBUG_MEMORY_WRITE((uintptr_t) ring->head, size_new - size_old);
+            ring->head += (size_new - size_old);
+
+            return (byte *) old;
+        } else {
+            // Not enough space at the end — wrap and reset
+            // Allocate new space with ring_get_memory and copy over
+            byte* new_block = ring_get_memory(ring, size_new, aligned);
+            memcpy(new_block, old, size_old);
+
+            return new_block;
+        }
+    } else {
+        // Some other allocations happened — must allocate new block
+        byte* new_block = ring_get_memory(ring, size_new, aligned);
+        memcpy(new_block, old, size_old);
+
+        return new_block;
+    }
+}
+
 // Same as ring_get_memory but DOESN'T move the head
+HOT_CODE
 byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
     ASSERT_TRUE(size <= ring->size);
@@ -182,7 +220,7 @@ byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint64 aligned = 4) 
     byte* pos = (byte *) OMS_ALIGN_UP((uintptr_t) ring->head, aligned);
     size = OMS_ALIGN_UP(size, (uint64) aligned);
 
-    if (pos + size > ring->end) { [[unlikely]]
+    if (pos + size > ring->end) { UNLIKELY
         ring_reset(ring);
 
         pos = (byte *) OMS_ALIGN_UP((uintptr_t) pos, aligned);
@@ -195,7 +233,7 @@ byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint64 aligned = 4) 
 
 // Used if the ring only contains elements of a certain size
 // This way you can get a certain element
-FORCE_INLINE
+FORCE_INLINE HOT_CODE
 byte* ring_get_element(const RingMemory* ring, uint64 element, uint64 size) NO_EXCEPT
 {
     DEBUG_MEMORY_READ((uintptr_t) (ring->memory + element * size), 1);
@@ -206,48 +244,48 @@ byte* ring_get_element(const RingMemory* ring, uint64 element, uint64 size) NO_E
 /**
  * Checks if one additional element can be inserted without overwriting the tail index
  */
-inline
+inline HOT_CODE
 bool ring_commit_safe(const RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
     // aligned * 2 since that should be the maximum overhead for an element
     // -1 since that is the worst case, we can't be missing a complete alignment because than it would be already aligned
     // This is not 100% correct BUT it is way faster than any correct version I can come up with
-    uint64 max_mem_required = size + (aligned - 1) * 2;
+    const uint64 max_mem_required = size + (aligned - 1) * 2;
 
-    // @question Is it beneficial to define the first if as [[likely]]?
+    // @question Is it beneficial to define the first if as LIKELY?
     // The first if should be the most likely in a situation with a decently fast runing dequeue
     if (ring->tail < ring->head) {
         return ((uint64) (ring->end - ring->head)) >= max_mem_required
             || ((uint64) (ring->tail - ring->memory)) >= max_mem_required;
     } else if (ring->tail > ring->head) {
         return ((uint64) (ring->tail - ring->head)) >= max_mem_required;
-    } else { [[unlikely]]
+    } else { UNLIKELY
         return true;
     }
 }
 
-inline
+inline HOT_CODE
 bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, uint64 aligned = 4) NO_EXCEPT
 {
     // aligned * 2 since that should be the maximum overhead for an element
     // -1 since that is the worst case, we can't be missing a complete alignment because than it would be already aligned
     // This is not 100% correct BUT it is way faster than any correct version I can come up with
-    uint64 max_mem_required = size + (aligned - 1) * 2;
+    const uint64 max_mem_required = size + (aligned - 1) * 2;
 
     // @todo consider to switch to uintptr_t
-    uint64 tail = (uint64) atomic_get_relaxed((void **) &ring->tail);
+    const uint64 tail = (uint64) atomic_get_relaxed((void **) &ring->tail);
 
     // This doesn't have to be atomic since we assume single producer/consumer and a commit is performed by the consumer
-    uint64 head = (uint64) ring->head;
+    const uint64 head = (uint64) ring->head;
 
-    // @question Is it beneficial to define the first if as [[likely]]?
+    // @question Is it beneficial to define the first if as LIKELY?
     // The first if should be the most likely in a situation with a decently fast runing dequeue
     if (tail < head) {
         return ((uint64) (ring->end - head)) >= max_mem_required
             || ((uint64) (tail - (uint64) ring->memory)) >= max_mem_required;
     } else if (tail > head) {
         return ((uint64) (tail - head)) >= max_mem_required;
-    } else { [[unlikely]]
+    } else { UNLIKELY
         return true;
     }
 }

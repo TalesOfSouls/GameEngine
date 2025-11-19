@@ -32,11 +32,16 @@ struct Window {
     byte state_flag;
 
     HWND hwnd;
+
+    // This can only be used depending on the render api
+    // Usually this gets invalidated in software rendering
     HDC hdc;
+
     HINSTANCE hInstance;
 
     // @bug This should only be available on opengl.
     // The problem is the main program doesn't know which gpuapi we are using, so maybe a void pointer?
+    // If we do this here than we also must do SoftwareRenderer here, no?
     HGLRC openGLRC;
 
     WindowState state_old;

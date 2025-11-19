@@ -1,6 +1,6 @@
 #include "../../stdlib/Types.h"
 #include "../../stdlib/Simd.h"
-#include "../../math/matrix/MatrixFloat32.h"
+#include "../../math/matrix/Matrix.h"
 
 typedef struct {
     v3_f32 center;           // OBB center

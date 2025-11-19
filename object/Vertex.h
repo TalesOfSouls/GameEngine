@@ -11,6 +11,14 @@
 
 #include "../stdlib/Types.h"
 
+struct Vertex4DSamplerTextureColor {
+    v4_f32 position;
+    int32 sampler;
+
+    // If negative = color, positive = texture
+    v2_f32 texture_color;
+};
+
 struct Vertex3D {
     v3_f32 position;
     v3_f32 normal;

@@ -10,7 +10,6 @@
 #define COMS_COMPILER_MSVC_COMPILER_UTILS_H
 
 #include "../../utils/Assert.h"
-#include "../../stdlib/Types.h"
 #include <basetsd.h>
 #include <intrin.h>
 #include <string.h>
@@ -20,13 +19,14 @@
 
 #define EXPORT_LIB extern "C" __declspec(dllexport)
 
-#if DEBUG
+#ifdef DEBUG
     #define UNREACHABLE() ASSERT_TRUE(false); __assume(0)
 #else
     #define UNREACHABLE() __assume(0)
 #endif
 
 #define FORCE_INLINE __forceinline
+#define FORCE_FLATTEN [[msvc::flatten]]
 
 #define compiler_debug_print(message) OutputDebugStringA((message))
 
@@ -210,7 +210,11 @@ byte compiler_div_pow2(byte a, uint32 b) {
 FORCE_INLINE
 void compiler_memcpy_unaligned(void* __restrict dst, const void* __restrict src, size_t size)
 {
-    #if ARM
+    ASSERT_STRICT((size & 7) == 0);
+    ASSERT_STRICT(((uintptr_t) dst) % 8 == 0);
+    ASSERT_STRICT(((uintptr_t) src) % 8 == 0);
+
+    #ifdef __aarch64__
         memcpy(dst, src, size);
     #else
         __movsb((unsigned char*) dst, (const unsigned char*) src, size);
@@ -222,33 +226,40 @@ FORCE_INLINE
 void compiler_memcpy_aligned(void* __restrict dst, const void* __restrict src, size_t size)
 {
     ASSERT_STRICT((size & 7) == 0);
+    ASSERT_STRICT(((uintptr_t) dst) % 8 == 0);
+    ASSERT_STRICT(((uintptr_t) src) % 8 == 0);
 
-    #if ARM
+    #ifdef __aarch64__
         memcpy(dst, src, size);
     #else
-        __movsq((unsigned long long*) dst, (const unsigned long long*) src, compiler_div_pow2(size, 8));
+        __movsq((unsigned long long*) dst, (const unsigned long long*) src, size >> 3);
     #endif
 }
 
 FORCE_INLINE
 void compiler_memset_unaligned(void* dst, int value, size_t size) {
+    ASSERT_STRICT((size & 7) == 0);
+    ASSERT_STRICT(((uintptr_t) dst) % 8 == 0);
 
-    #if ARM
-        memcpy(dst, src, size);
+    #ifdef __aarch64__
+        memset(dst, 0, size);
     #else
         __stosb((unsigned char*) dst, (unsigned char) value, size);
     #endif
 }
 
+// @performance We should implement size specific version for 4, 8, 16, 32, 64 bytes
+// This way we could also implement ARM specific solutions
 // 8 byte alignment required and size needs to be multiple of 8
 FORCE_INLINE
 void compiler_memset_aligned(void* dst, int value, size_t size) {
     ASSERT_STRICT((size & 7) == 0);
+    ASSERT_STRICT(((uintptr_t) dst) % 8 == 0);
 
-    #if ARM
-        memcpy(dst, src, size);
+    #ifdef __aarch64__
+        memset(dst, 0, size);
     #else
-        __stosq((unsigned __int64*) dst, (unsigned __int64) value, compiler_div_pow2(size, 8));
+        __stosq((unsigned __int64*) dst, (unsigned __int64) value, size >> 3);
     #endif
 }
 
@@ -256,12 +267,24 @@ void compiler_memset_aligned(void* dst, int value, size_t size) {
 #define SWAP_ENDIAN_32(val) _byteswap_ulong((val))
 #define SWAP_ENDIAN_64(val) _byteswap_uint64((val))
 
+#if _WIN32 || __LITTLE_ENDIAN__
+    #define SWAP_ENDIAN_LITTLE_16(val) (val)
+    #define SWAP_ENDIAN_LITTLE_32(val) (val)
+    #define SWAP_ENDIAN_LITTLE_64(val) (val)
+    #define SWAP_ENDIAN_BIG_16(val) SWAP_ENDIAN_16(val)
+    #define SWAP_ENDIAN_BIG_32(val) SWAP_ENDIAN_32(val)
+    #define SWAP_ENDIAN_BIG_64(val) SWAP_ENDIAN_64(val)
+#else
+    #define SWAP_ENDIAN_LITTLE_16(val) SWAP_ENDIAN_16(val)
+    #define SWAP_ENDIAN_LITTLE_32(val) SWAP_ENDIAN_32(val)
+    #define SWAP_ENDIAN_LITTLE_64(val) SWAP_ENDIAN_64(val)
+    #define SWAP_ENDIAN_BIG_16(val) (val)
+    #define SWAP_ENDIAN_BIG_32(val) (val)
+    #define SWAP_ENDIAN_BIG_64(val) (val)
+#endif
+
 #include <math.h>
 #define SINCOSF(x, s, c) s = sinf(x); c = cosf(x)
-FORCE_INLINE
-void sincosf(f32 x, f32* sin, f32* cos) {
-    *sin = sinf(x);
-    *cos = cosf(x);
-}
+#define SINCOS(x, s, c) s = sin(x); c = cos(x)
 
 #endif

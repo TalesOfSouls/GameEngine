@@ -21,7 +21,7 @@
 // @question why are we passing structs by value?
 struct int32_8 {
     union {
-        #if ARM
+        #ifdef __aarch64__
             svint32_t s;
         #else
             __m256i s;

@@ -24,6 +24,7 @@
 #endif
 
 #define FORCE_INLINE __attribute__((always_inline)) inline
+#define FORCE_FLATTEN __attribute__((flatten))
 
 #include <unistd.h>
 #define compiler_debug_print(message) ({ const char* message_temp = message; while (*message_temp) { write(STDOUT_FILENO, (message_temp++), 1); } })
@@ -44,7 +45,7 @@ FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
     ASSERT_STRICT(mask);
 
-    #if __LITTLE_ENDIAN__
+    #ifdef __LITTLE_ENDIAN__
         return 63 - __builtin_clzll(mask);
     #else
         return __builtin_ctzll(mask);
@@ -55,7 +56,7 @@ FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
     ASSERT_STRICT(mask);
 
-    #if __LITTLE_ENDIAN__
+    #ifdef __LITTLE_ENDIAN__
         return __builtin_ctz(mask);
     #else
         return 31 - __builtin_clz(mask);
@@ -66,7 +67,7 @@ FORCE_INLINE
 int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
     ASSERT_STRICT(mask);
 
-    #if __LITTLE_ENDIAN__
+    #ifdef __LITTLE_ENDIAN__
         return 63 - __builtin_clzll(mask);
     #else
         return __builtin_ctzll(mask);
@@ -77,7 +78,7 @@ FORCE_INLINE
 int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
     ASSERT_STRICT(mask);
 
-    #if __LITTLE_ENDIAN__
+    #ifdef __LITTLE_ENDIAN__
         return __builtin_ctz(mask);
     #else
         return 31 - __builtin_clz(mask);
@@ -144,10 +145,7 @@ void compiler_memset_aligned(void* dst, int value, size_t size) {
 #define SWAP_ENDIAN_64(val) __builtin_bswap64((val))
 
 #include <math.h>
-#define SINCOSF(x, s, c) s = sinf(x); c = cosf(x)
-FORCE_INLINE
-void sincosf(f32 x, f32* sin, f32* cos) {
-    sincosf(x, sin, cos)
-}
+#define SINCOSF(x, s, c) sincosf(x, &s, &c)
+#define SINCOS(x, s, c) sincos(x, &s, &c)
 
 #endif

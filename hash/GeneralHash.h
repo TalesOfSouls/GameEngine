@@ -168,10 +168,10 @@ uint32 hash_murmur3_32(const byte* key, size_t len, uint32 seed = 0) NO_EXCEPT
     switch (len & 3) {
         case 3:
             k ^= key[len / 4 * 4 + 2] << 16;
-            [[fallthrough]];
+            FALLTHROUGH;
         case 2:
             k ^= key[len / 4 * 4 + 1] << 8;
-            [[fallthrough]];
+            FALLTHROUGH;
         case 1:
             k ^= key[len / 4 * 4];
             k *= 0xcc9e2d51;
@@ -235,50 +235,50 @@ uint64 hash_murmur3_64(const void* key, size_t len, uint64 seed = 0) NO_EXCEPT
     switch (len & 15) {
         case 15:
             k2 ^= ((uint64) tail[14]) << 48;
-            [[fallthrough]];
+            FALLTHROUGH;
         case 14:
             k2 ^= ((uint64) tail[13]) << 40;
-            [[fallthrough]];
+            FALLTHROUGH;
         case 13:
             k2 ^= ((uint64) tail[12]) << 32;
-            [[fallthrough]];
+            FALLTHROUGH;
         case 12:
             k2 ^= ((uint64) tail[11]) << 24;
-            [[fallthrough]];
+            FALLTHROUGH;
         case 11:
             k2 ^= ((uint64) tail[10]) << 16;
-            [[fallthrough]];
+            FALLTHROUGH;
         case 10:
             k2 ^= ((uint64) tail[9]) << 8;
-            [[fallthrough]];
+            FALLTHROUGH;
         case  9:
             k2 ^= ((uint64) tail[8]) << 0;
             k2 *= c2;
             k2 = ROTL64(k2, 33);
             k2 *= c1;
             h2 ^= k2;
-            [[fallthrough]];
+            FALLTHROUGH;
         case  8:
             k1 ^= ((uint64) tail[7]) << 56;
-            [[fallthrough]];
+            FALLTHROUGH;
         case  7:
             k1 ^= ((uint64) tail[6]) << 48;
-            [[fallthrough]];
+            FALLTHROUGH;
         case  6:
             k1 ^= ((uint64) tail[5]) << 40;
-            [[fallthrough]];
+            FALLTHROUGH;
         case  5:
             k1 ^= ((uint64) tail[4]) << 32;
-            [[fallthrough]];
+            FALLTHROUGH;
         case  4:
             k1 ^= ((uint64) tail[3]) << 24;
-            [[fallthrough]];
+            FALLTHROUGH;
         case  3:
             k1 ^= ((uint64) tail[2]) << 16;
-            [[fallthrough]];
+            FALLTHROUGH;
         case  2:
             k1 ^= ((uint64) tail[1]) << 8;
-            [[fallthrough]];
+            FALLTHROUGH;
         case  1:
             k1 ^= ((uint64) tail[0]) << 0;
             k1 *= c1;

@@ -14,7 +14,7 @@
 
 #include "../../../stdlib/Types.h"
 
-#if __linux__
+#ifdef __linux__
     #include <math.h>
     inline __m256i _mm256_div_epi32(__m256i a, __m256i b) {
         alignas(32) int32 a_array[8], b_array[8], result[8];

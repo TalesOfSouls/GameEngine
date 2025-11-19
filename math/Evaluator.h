@@ -111,8 +111,8 @@ f32 evaluator_evaluate_function(const char* name, const char* args);
 
 // Shunting-yard algorithm to evaluate the expression
 f32 evaluator_evaluate_expression(const char* expr) {
-    EvaluatorOperatorStack operators = { .items = {}, .top = -1 };
-    EvaluatorValueStack values = { .items = {}, .top = -1 };
+    EvaluatorOperatorStack operators = { {} /*.items = */, -1 /*.top = */ };
+    EvaluatorValueStack values = { {} /*.items = */, -1 /*.top = */ };
 
     const char* ptr = expr;
     while (*ptr) {
@@ -255,7 +255,7 @@ f32 evaluator_evaluate_function(const char* name, const char* args) {
     } else if (str_compare(name, "sqrt") == 0) {
         // Evaluate the single argument
         f32 val = evaluator_evaluate_expression(args);
-        return sqrtf(val); // Return the square root
+        return intrin_sqrt_f32(val); // Return the square root
     } else if (str_compare(name, "abs") == 0) {
         // Evaluate the single argument
         f32 val = evaluator_evaluate_expression(args);

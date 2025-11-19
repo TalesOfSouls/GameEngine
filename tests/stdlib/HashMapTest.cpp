@@ -120,9 +120,16 @@ HashMapStd* hashmap_test_create(uint32_t capacity) {
     return map;
 }
 
-HashEntryStd* hashmap_test_insert(HashMapStd* map, const char* key, int32_t value) {
+void hashmap_test_free(HashMapStd* map) {
+    platform_free((void **) &map->entries);
+    platform_free((void **) &map);
+}
+
+HashEntryStd* open_test_insert(HashMapStd* map, const char* key, int32_t value) {
     uint64_t hash = map->hash_function ? map->hash_function((void *) key) : hash_djb2(key);
     uint32_t index = hash % map->capacity;
+
+    str_move_to_pos(&key, -((int32) MAX_TEST_KEY_LENGTH));
 
     for (uint32_t i = 0; i < map->capacity; i++) {
         uint32_t probe = (index + i) % map->capacity;
@@ -133,12 +140,12 @@ HashEntryStd* hashmap_test_insert(HashMapStd* map, const char* key, int32_t valu
             entry->key[MAX_TEST_KEY_LENGTH - 1] = '\0';
             entry->value = value;
             entry->used = 1;
-            map->count++;
+            ++map->count;
             return entry;
-        } else if (entry->used == 1 && str_compare(entry->key, key) == 0) {
+        }/* else if (entry->used == 1 && str_compare(entry->key, key) == 0) {
             entry->value = value; // update existing
             return entry;
-        }
+        }*/
     }
 
     return NULL;
@@ -220,6 +227,12 @@ ChainTestMap* chain_test_create(uint32_t capacity, uint32_t max_nodes) {
     return map;
 }
 
+void chain_test_free(ChainTestMap* map) {
+    platform_free((void **) &map->buckets);
+    platform_free((void **) &map->nodes_pool);
+    platform_free((void **) &map);
+}
+
 // Grab a node from the free list
 static ChainTestNode* chain_test_allocate_node(ChainTestMap* map) {
     if (!map->free_list) return NULL; // No free nodes left
@@ -241,12 +254,16 @@ ChainTestNode* chain_test_insert(ChainTestMap* map, const char* key, int32_t val
     uint64_t hash = map->hash_function ? map->hash_function((void*)key) : hash_djb2(key);
     uint32_t index = hash % map->capacity;
 
+    str_move_to_pos(&key, -((int32) MAX_TEST_KEY_LENGTH));
+
     ChainTestNode* node = map->buckets[index];
     while (node) {
+        /*
         if (str_compare(node->key, key) == 0) {
             node->value = value; // Update existing
             return node;
         }
+        */
         node = node->next;
     }
 
@@ -254,12 +271,12 @@ ChainTestNode* chain_test_insert(ChainTestMap* map, const char* key, int32_t val
     ChainTestNode* new_node = chain_test_allocate_node(map);
     if (!new_node) return NULL; // Pool exhausted
 
-    strncpy(new_node->key, key, MAX_TEST_KEY_LENGTH - 1);
+    str_copy(new_node->key, key, MAX_TEST_KEY_LENGTH - 1);
     new_node->key[MAX_TEST_KEY_LENGTH - 1] = '\0';
     new_node->value = value;
     new_node->next = map->buckets[index];
     map->buckets[index] = new_node;
-    map->count++;
+    ++map->count;
 
     return new_node;
 }
@@ -304,7 +321,7 @@ void chain_test_remove(ChainTestMap* map, const char* key) {
 
 #include "../../utils/RandomUtils.h"
 
-static void _my_hashmap([[maybe_unused]] volatile void* val) {
+static void _my_hashmap(MAYBE_UNUSED volatile void* val) {
     HashMap map = {};
     hashmap_alloc(&map, HASH_MAP_MAX_COUNT, sizeof(HashEntryInt32));
     char test_key[20];
@@ -313,23 +330,27 @@ static void _my_hashmap([[maybe_unused]] volatile void* val) {
         random_string("ABCDEF0123456789", 16, test_key, 19);
 
         hashmap_insert(&map, test_key, 1);
-        [[maybe_unused]] HashEntry* entry = hashmap_get_entry(&map, test_key);
+        MAYBE_UNUSED HashEntry* entry = hashmap_get_entry(&map, test_key);
     }
+
+    hashmap_free(&map);
 }
 
-static void _open_hashmap([[maybe_unused]] volatile void* val) {
+static void _open_hashmap(MAYBE_UNUSED volatile void* val) {
     HashMapStd* map = hashmap_test_create(HASH_MAP_MAX_COUNT);
     char test_key[20];
 
     for (int32 i = 0; i < HASH_MAP_TEST_COUNT; ++i) {
         random_string("ABCDEF0123456789", 16, test_key, 19);
 
-        hashmap_test_insert(map, test_key, 1);
-        [[maybe_unused]] HashEntryStd* entry = hashmap_test_get(map, test_key);
+        open_test_insert(map, test_key, 1);
+        MAYBE_UNUSED HashEntryStd* entry = hashmap_test_get(map, test_key);
     }
+
+    hashmap_test_free(map);
 }
 
-static void _chained_hashmap([[maybe_unused]] volatile void* val) {
+static void _chained_hashmap(MAYBE_UNUSED volatile void* val) {
     ChainTestMap* map = chain_test_create(HASH_MAP_MAX_COUNT, HASH_MAP_MAX_COUNT);
     char test_key[20];
 
@@ -337,8 +358,10 @@ static void _chained_hashmap([[maybe_unused]] volatile void* val) {
         random_string("ABCDEF0123456789", 16, test_key, 19);
 
         chain_test_insert(map, test_key, 1);
-        [[maybe_unused]] ChainTestNode* entry = chain_test_get(map, test_key);
+        MAYBE_UNUSED ChainTestNode* entry = chain_test_get(map, test_key);
     }
+
+    chain_test_free(map);
 }
 
 static void test_hash_map_performance() {

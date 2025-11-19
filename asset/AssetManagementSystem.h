@@ -59,7 +59,9 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 asset_compo
     hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
     ams->asset_component_count = asset_component_count;
     ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64);
-    memset(ams->asset_components, 0, asset_component_count * sizeof(AssetComponent));
+
+    //memset(ams->asset_components, 0, asset_component_count * sizeof(AssetComponent));
+    compiler_memset_aligned(ams->asset_components, 0, OMS_ALIGN_UP(asset_component_count * sizeof(AssetComponent), 64));
 }
 
 // Different AMS components can have different chunk sizes
@@ -89,7 +91,7 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
     ac->asset_memory.count = count;
     ac->asset_memory.chunk_size = chunk_size;
     ac->asset_memory.last_pos = 0;
-    ac->asset_memory.alignment = 64;
+    ac->asset_memory.alignment = sizeof(size_t);
     ac->asset_memory.memory = buf;
     ac->asset_memory.free = (uint64 *) (ac->asset_memory.memory + ac->asset_memory.chunk_size * count);
 
@@ -523,7 +525,7 @@ Asset* thrd_ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, cons
     mutex_unlock(&ams->asset_components[asset_temp->component_id].mtx);
 
     byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
-    memcpy(asset_data, asset_temp->self, sizeof(Asset));
+    memcpy_aligned(asset_data, asset_temp->self, sizeof(Asset));
 
     asset_temp->self = asset_data;
     asset_temp->ram_size = ac->asset_memory.chunk_size * asset_temp->size;

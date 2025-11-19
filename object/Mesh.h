@@ -17,6 +17,7 @@
 #include "../utils/StringUtils.h"
 #include "../stdlib/Simd.h"
 #include "../compiler/CompilerUtils.h"
+#include "../utils/BitUtils.h"
 
 #define MESH_VERSION 1
 
@@ -81,7 +82,7 @@ void mesh_from_file_txt(
     pos += 8;
 
     // @todo us version for different handling
-    [[maybe_unused]] int32 version = (int32) str_to_int(pos, &pos); ++pos;
+    /*MAYBE_UNUSED int32 version = (int32) */str_to_int(pos, &pos); ++pos;
 
     int32 object_index = 0;
     int32 group_index = 0;
@@ -466,7 +467,7 @@ int32 mesh_from_data(
     const byte* data,
     Mesh* mesh,
     //int32 load_format = MESH_LOADING_RESTRICTION_EVERYTHING,
-    [[maybe_unused]] int32 steps = 8
+    MAYBE_UNUSED int32 steps = 8
 )
 {
     LOG_3("Load mesh");
@@ -516,7 +517,7 @@ int32 mesh_from_data(
     }
 
     /*
-    #if OPENGL
+    #if defined(OPENGL)
         if (mesh->vertex_type & VERTEX_TYPE_NORMAL) {
             for (int i = 0; i < mesh->vertex_count; ++i) {
                 mesh->vertices[i * vertex_size + 3] *= -1;
@@ -533,6 +534,7 @@ int32 mesh_from_data(
         compiler_div_pow2(offset, 4), // everything is 4 bytes -> easy to swap
         steps
     );
+    PSEUDO_USE(steps);
 
     LOG_3("Loaded mesh");
 
@@ -553,7 +555,7 @@ int32 mesh_to_data(
     const Mesh* mesh,
     byte* data,
     uint32 vertex_save_format = VERTEX_TYPE_ALL,
-    [[maybe_unused]] int32 steps = 8
+    MAYBE_UNUSED int32 steps = 8
 )
 {
     byte* pos = data;
@@ -567,10 +569,10 @@ int32 mesh_to_data(
         vertex_save_format = mesh->vertex_type;
     }
 
-    memcpy(pos, &vertex_save_format, sizeof(vertex_save_format));
+    *((uint32 *) pos) = vertex_save_format;
     pos += sizeof(vertex_save_format);
 
-    memcpy(pos, &mesh->vertex_count, sizeof(mesh->vertex_count));
+    *((uint32 *) pos) = mesh->vertex_count;
     pos += sizeof(mesh->vertex_count);
 
     // vertices
@@ -624,6 +626,7 @@ int32 mesh_to_data(
         compiler_div_pow2(size, 4), // everything in here is 4 bytes -> easy to swap
         steps
     );
+    PSEUDO_USE(steps);
 
     return size;
 }

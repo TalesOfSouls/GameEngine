@@ -34,7 +34,7 @@ uint32_t shader_get_uniform_location(
 }
 
 inline
-void gpuapi_uniform_buffer_update_value(VkDevice device, VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorType descriptorType, int32_t value)
+void gpuapi_uniform_buffer_update(VkDevice device, VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorType descriptorType, int32_t value)
 {
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = {};  // You should have a buffer holding the value
@@ -91,98 +91,98 @@ void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeD
     switch (type) {
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D: {
             attr[0] = {
-                .location = 0,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex3D, position)
+                0, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32B32_SFLOAT, // .format =
+                offsetof(Vertex3D, position) // .offset =
             };
 
             attr[1] = {
-                .location = 1,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex3D, normal)
+                1, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32B32_SFLOAT, // .format =
+                offsetof(Vertex3D, normal) // .offset =
             };
 
             attr[2] = {
-                .location = 2,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex3D, tex_coord)
+                2, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32B32_SFLOAT, // .format =
+                offsetof(Vertex3D, tex_coord) // .offset =
             };
 
             attr[3] = {
-                .location = 3,
-                .binding = 0,
-                .format = VK_FORMAT_R32_UINT,
-                .offset = offsetof(Vertex3D, color)
+                3, // .location =
+                0, // .binding =
+                VK_FORMAT_R32_UINT, // .format =
+                offsetof(Vertex3D, color) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL: {
             attr[0] = {
-                .location = 0,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex3DNormal, position)
+                0, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32B32_SFLOAT, // .format =
+                offsetof(Vertex3DNormal, position) // .offset =
             };
 
             attr[1] = {
-                .location = 1,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex3DNormal, normal)
+                1, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32B32_SFLOAT, // .format =
+                offsetof(Vertex3DNormal, normal) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR: {
             attr[0] = {
-                .location = 0,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex3DColor, position)
+                0, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32B32_SFLOAT, // .format =
+                offsetof(Vertex3DColor, position) // .offset =
             };
 
             attr[1] = {
-                .location = 1,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-                .offset = offsetof(Vertex3DColor, color)
+                1, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32B32A32_SFLOAT, // .format =
+                offsetof(Vertex3DColor, color) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR: {
             attr[0] = {
-                .location = 0,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex3DTextureColor, position)
+                0, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32B32_SFLOAT, // .format =
+                offsetof(Vertex3DTextureColor, position) // .offset =
             };
 
             attr[1] = {
-                .location = 1,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
-                .offset = offsetof(Vertex3DTextureColor, texture_color)
+                1, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32_SFLOAT, // .format =
+                offsetof(Vertex3DTextureColor, texture_color) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR: {
             attr[0] = {
-                .location = 0,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(Vertex3DSamplerTextureColor, position)
+                0, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32B32_SFLOAT, // .format =
+                offsetof(Vertex3DSamplerTextureColor, position) // .offset =
             };
 
             attr[1] = {
-                .location = 1,
-                .binding = 0,
-                .format = VK_FORMAT_R32_SINT,
-                .offset = offsetof(Vertex3DSamplerTextureColor, sampler)
+                1, // .location =
+                0, // .binding =
+                VK_FORMAT_R32_SINT, // .format =
+                offsetof(Vertex3DSamplerTextureColor, sampler) // .offset =
             };
 
             attr[2] = {
-                .location = 2,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
-                .offset = offsetof(Vertex3DSamplerTextureColor, texture_color)
+                2, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32_SFLOAT, // .format =
+                offsetof(Vertex3DSamplerTextureColor, texture_color) // .offset =
             };
         } return;
         default:
@@ -233,7 +233,7 @@ VkPipeline gpuapi_pipeline_make(
     vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input_info.vertexBindingDescriptionCount = 1;
     vertex_input_info.pVertexBindingDescriptions = &binding_description;
-    vertex_input_info.vertexAttributeDescriptionCount = ARRAY_COUNT(input_attribute_description);
+    vertex_input_info.vertexAttributeDescriptionCount = (uint32_t) ARRAY_COUNT(input_attribute_description);
     vertex_input_info.pVertexAttributeDescriptions = input_attribute_description;
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly = {};
@@ -373,12 +373,12 @@ void vulkan_descriptor_pool_create(
     // @todo Isn't this shader specific?
     VkDescriptorPoolSize poolSizes[2] = {
         {
-            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = frames_in_flight,
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, // .type =
+            frames_in_flight, // .descriptorCount =
         },
         {
-            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = frames_in_flight,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, // .type =
+            frames_in_flight, // .descriptorCount =
         }
     };
 
@@ -432,44 +432,48 @@ void vulkan_descriptor_sets_create(
 
         VkDescriptorImageInfo image_info[] = {
             {
-                .sampler = texture_sampler,
-                .imageView = texture_image_view,
-                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                texture_sampler, // .sampler =
+                texture_image_view, // .imageView =
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // .imageLayout =
             },
             { // @bug this needs to be the ui sampler
-                .sampler = texture_sampler,
-                .imageView = texture_image_view,
-                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                texture_sampler, // .sampler =
+                texture_image_view, // .imageView =
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, // .imageLayout =
             }
         };
 
         VkWriteDescriptorSet descriptor_writes[] = {
             {
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_sets[i],
-                .dstBinding = 0,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .pBufferInfo = &buffer_info,
+                VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, // .sType =
+                NULL, // .pNext =
+                descriptor_sets[i], // .dstSet =
+                0, // .dstBinding =
+                0, // .dstArrayElement =
+                1, // .descriptorCount =
+                VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, // .descriptorType =
+                NULL, // .pImageInfo =
+                &buffer_info, // .pBufferInfo =
             },
             {
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_sets[i],
-                .dstBinding = 1,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo = &image_info[0],
+                VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, // .sType =
+                NULL, // .pNext =
+                descriptor_sets[i], // .dstSet =
+                1, // .dstBinding =
+                0, // .dstArrayElement =
+                1, // .descriptorCount =
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, // .descriptorType =
+                &image_info[0], // .pImageInfo =
             },
             { // @bug this needs to be the ui sampler
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_sets[i],
-                .dstBinding = 2,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo = &image_info[1],
+                VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, // .sType =
+                NULL, // .pNext =
+                descriptor_sets[i], // .dstSet =
+                2, // .dstBinding =
+                0, // .dstArrayElement =
+                1, // .descriptorCount =
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, // .descriptorType =
+                &image_info[1], // .pImageInfo =
             }
         };
 

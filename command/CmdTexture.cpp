@@ -18,7 +18,10 @@ Asset* cmd_internal_texture_create(AppCmdBuffer* __restrict cb, Command* __restr
     }
 
     Texture* texture = (Texture *) asset->self;
-    if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN)
+    if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL
+        || cb->gpu_api_type == GPU_API_TYPE_VULKAN
+        || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
+    )
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
         image_flip_vertical(cb->thrd_mem_vol, &texture->image);
@@ -79,7 +82,10 @@ Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
 
     // Setup basic texture
     Texture* texture = (Texture *) asset->self;
-    if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN)
+    if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL
+        || cb->gpu_api_type == GPU_API_TYPE_VULKAN
+        || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
+    )
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
         image_flip_vertical(cb->mem_vol, &texture->image);
@@ -107,7 +113,10 @@ Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) {
 
     // Setup basic texture
     Texture* texture = (Texture *) asset->self;
-    if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN)
+    if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL
+        || cb->gpu_api_type == GPU_API_TYPE_VULKAN
+        || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
+    )
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
         image_flip_vertical(cb->mem_vol, &texture->image);

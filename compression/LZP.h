@@ -173,8 +173,8 @@ uint32 lzp3_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
     size_t i = 0;
     while (i < length) {
         if (in[i] == 0xFF) {
-            int32 match_position = in[i + 1];
-            int32 match_length = in[i + 2];
+            const int32 match_position = in[i + 1];
+            const int32 match_length = in[i + 2];
 
             for (int32 j = 0; j < match_length; j++) {
                 out[out_size++] = window[MODULO_2(match_position + j, 4096)];

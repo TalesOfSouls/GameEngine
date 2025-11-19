@@ -334,7 +334,7 @@ uint32 qoa_encode(const Audio* audio, byte* data) {
         lms[i].weights[3] = (1 << 14);
 
         // Explicitly set the history samples to 0, as we might have some garbage in there.
-        memset(lms[i].history, 0, QOA_LMS_LEN * sizeof(int32));
+        memset_aligned(lms[i].history, 0, QOA_LMS_LEN * sizeof(int32));
     }
 
 	// Go through all frames

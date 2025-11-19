@@ -11,9 +11,9 @@
 #define COMS_MATH_MATRIX_QUATERNION_FLOAT32_H
 
 #include "../../utils/Assert.h"
-#include "MatrixFloat32.h"
+#include "Matrix.h"
 
-#if ARM
+#ifdef __aarch64__
     #include "../../stdlib/IntrinsicsArm.h"
 #else
     #include "../../stdlib/Intrinsics.h"

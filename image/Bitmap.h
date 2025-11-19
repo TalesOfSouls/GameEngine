@@ -227,11 +227,11 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) NO
                 bitmap->dib_header.bits_per_pixel = SWAP_ENDIAN_LITTLE(*((uint16 *) (dib_header_offset + 10)));
                 bitmap->dib_header.color_palette  = 1U << bitmap->dib_header.bits_per_pixel;
             } break;
-        case DIB_BITMAP_TYPE_BITMAPV5HEADER: [[fallthrough]];
-        case DIB_BITMAP_TYPE_BITMAPV4HEADER: [[fallthrough]];
-        case DIB_BITMAP_TYPE_BITMAPV3INFOHEADER: [[fallthrough]];
-        case DIB_BITMAP_TYPE_BITMAPV2INFOHEADER: [[fallthrough]];
-        case DIB_BITMAP_TYPE_OS22XBITMAPHEADER: [[fallthrough]];
+        case DIB_BITMAP_TYPE_BITMAPV5HEADER: FALLTHROUGH;
+        case DIB_BITMAP_TYPE_BITMAPV4HEADER: FALLTHROUGH;
+        case DIB_BITMAP_TYPE_BITMAPV3INFOHEADER: FALLTHROUGH;
+        case DIB_BITMAP_TYPE_BITMAPV2INFOHEADER: FALLTHROUGH;
+        case DIB_BITMAP_TYPE_OS22XBITMAPHEADER: FALLTHROUGH;
         case DIB_BITMAP_TYPE_BITMAPINFOHEADER: {
                 bitmap->dib_header.size               = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset)));
                 bitmap->dib_header.width              = SWAP_ENDIAN_LITTLE(*((int32 *) (dib_header_offset + 4)));
@@ -277,10 +277,10 @@ void image_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
     image->pixel_count = image->width * image->height;
 
     // rows are 4 bytes multiples in length
-    uint32 width = OMS_ALIGN_UP(src.dib_header.width, 4);
+    const uint32 width = OMS_ALIGN_UP(src.dib_header.width, 4);
 
-    uint32 pixel_bytes = compiler_div_pow2(src.dib_header.bits_per_pixel, 8);
-    byte alpha_offset = pixel_bytes > 3;
+    const uint32 pixel_bytes = compiler_div_pow2(src.dib_header.bits_per_pixel, 8);
+    const byte alpha_offset = pixel_bytes > 3;
 
     image->image_settings |= (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT) == 0
         ? pixel_bytes
@@ -296,12 +296,12 @@ void image_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
         return;
     }
 
-    uint32 pixel_rgb_bytes = pixel_bytes - alpha_offset;
-    uint32 width_pixel_bytes = width * pixel_bytes;
+    const uint32 pixel_rgb_bytes = pixel_bytes - alpha_offset;
+    const uint32 width_pixel_bytes = width * pixel_bytes;
 
     for (uint32 y = 0; y < src.dib_header.height; ++y) {
-        uint32 row_pos1 = y * width_pixel_bytes;
-        uint32 row_pos2 = image->image_settings & IMAGE_SETTING_BOTTOM_TO_TOP
+        const uint32 row_pos1 = y * width_pixel_bytes;
+        const uint32 row_pos2 = image->image_settings & IMAGE_SETTING_BOTTOM_TO_TOP
             ? y * width_pixel_bytes
             : (src.dib_header.height - y - 1) * width_pixel_bytes;
 

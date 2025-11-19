@@ -16,7 +16,7 @@
 
 struct int16_32 {
     union {
-        #if ARM
+        #ifdef __aarch64__
             svint16_t s;
         #else
             __m512i s;

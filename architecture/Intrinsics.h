@@ -9,7 +9,7 @@
 #ifndef COMS_ARCHITECTURE_INTRINSICS_H
 #define COMS_ARCHITECTURE_INTRINSICS_H
 
-#if ARM
+#ifdef __aarch64__
     #include "arm/Intrinsics.h"
 #else
     #include "x86/Intrinsics.h"

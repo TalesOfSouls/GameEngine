@@ -82,17 +82,17 @@ int32 vertex_line_create(
     f32 dy = end.y - start.y;
 
     // Normalize direction
-    f32 len = intrin_rsqrt_f32(dx * dx + dy * dy);
+    const f32 len = intrin_rsqrt_f32(dx * dx + dy * dy);
     dx *= len;
     dy *= len;
 
     // Perpendicular vector (normalized)
-    f32 px = -dy;
-    f32 py = dx;
+    const f32 px = -dy;
+    const f32 py = dx;
 
     // Scale by half-thickness
-    f32 hx = px * (thickness * 0.5f);
-    f32 hy = py * (thickness * 0.5f);
+    const f32 hx = px * (thickness * 0.5f);
+    const f32 hy = py * (thickness * 0.5f);
 
     // Four corners of the line quad
     v2_f32 v0 = { start.x - hx, start.y - hy };
@@ -133,8 +133,8 @@ int32 vertex_rect_create(
         tex2.y = BITCAST(rgba, f32);
     }
 
-    f32 y_height = dimension.y + dimension.height;
-    f32 x_width = dimension.x + dimension.width;
+    const f32 y_height = dimension.y + dimension.height;
+    const f32 x_width = dimension.x + dimension.width;
     int32 idx = 0;
 
     vertices[idx++] = {{dimension.x, dimension.y, zindex}, sampler, tex1};
@@ -170,27 +170,28 @@ int32 vertex_circle_create(
     }
 
     // Circle center + radii
-    f32 cx = dimension.x + dimension.width * 0.5f;
-    f32 cy = dimension.y + dimension.height * 0.5f;
-    f32 rx = dimension.width * 0.5f;
-    f32 ry = dimension.height * 0.5f;
+    const f32 cx = dimension.x + dimension.width * 0.5f;
+    const f32 cy = dimension.y + dimension.height * 0.5f;
+    const f32 rx = dimension.width * 0.5f;
+    const f32 ry = dimension.height * 0.5f;
 
     int32 idx = 0;
 
     // Generate a triangle fan: center + pairs of edge vertices
     f32 s;
     f32 c;
+    // @performance For sure this is vectorizable (SIMD)
     for (int32 i = 0; i < segments; ++i) {
-        f32 angle0 = (OMS_TWO_PI * i) / segments;
-        f32 angle1 = (OMS_TWO_PI * (i + 1)) / segments;
+        const f32 angle0 = (OMS_TWO_PI_F32 * i) / segments;
+        const f32 angle1 = (OMS_TWO_PI_F32 * (i + 1)) / segments;
 
         SINCOSF(angle0, s, c);
-        f32 x0 = cx + c * rx;
-        f32 y0 = cy + s * ry;
+        const f32 x0 = cx + c * rx;
+        const f32 y0 = cy + s * ry;
 
         SINCOSF(angle1, s, c);
-        f32 x1 = cx + c * rx;
-        f32 y1 = cy + s * ry;
+        const f32 x1 = cx + c * rx;
+        const f32 y1 = cy + s * ry;
 
         // center
         vertices[idx++] = {{cx, cy, zindex}, sampler, tex_center};
@@ -209,7 +210,7 @@ int32 vertex_arc_create(
     byte alignment,
     int32 segments,              // number of subdivisions (should be >= 3)
     f32 start_angle,             // radians — where the arc starts
-    f32 arc_angle,               // radians — how wide the arc is (e.g. OMS_PI for semicircle)
+    f32 arc_angle,               // radians — how wide the arc is (e.g. OMS_PI_F32 for semicircle)
     uint32 rgba = 0, v2_f32 tex_center = {}, v2_f32 tex_edge = {}
 ) NO_EXCEPT {
     if (alignment) {
@@ -225,26 +226,26 @@ int32 vertex_arc_create(
     }
 
     // Circle center + radii
-    f32 cx = dimension.x + dimension.width * 0.5f;
-    f32 cy = dimension.y + dimension.height * 0.5f;
-    f32 rx = dimension.width * 0.5f;
-    f32 ry = dimension.height * 0.5f;
+    const f32 cx = dimension.x + dimension.width * 0.5f;
+    const f32 cy = dimension.y + dimension.height * 0.5f;
+    const f32 rx = dimension.width * 0.5f;
+    const f32 ry = dimension.height * 0.5f;
 
     int32 idx = 0;
 
     // Generate a triangle fan over the arc
     f32 s, c;
     for (int32 i = 0; i < segments; ++i) {
-        f32 angle0 = start_angle + (arc_angle * (f32) i / segments);
-        f32 angle1 = start_angle + (arc_angle * (f32) (i + 1) / segments);
+        const f32 angle0 = start_angle + (arc_angle * (f32) i / segments);
+        const f32 angle1 = start_angle + (arc_angle * (f32) (i + 1) / segments);
 
         SINCOSF(angle0, s, c);
-        f32 x0 = cx + c * rx;
-        f32 y0 = cy + s * ry;
+        const f32 x0 = cx + c * rx;
+        const f32 y0 = cy + s * ry;
 
         SINCOSF(angle1, s, c);
-        f32 x1 = cx + c * rx;
-        f32 y1 = cy + s * ry;
+        const f32 x1 = cx + c * rx;
+        const f32 y1 = cy + s * ry;
 
         vertices[idx++] = {{cx, cy, zindex}, sampler, tex_center};
         vertices[idx++] = {{x0, y0, zindex}, sampler, tex_edge};
@@ -258,7 +259,7 @@ static
 f32 text_calculate_dimensions_height(
     const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
 ) NO_EXCEPT {
-    f32 line_height = font->line_height * scale;
+    const f32 line_height = font->line_height * scale;
     f32 y = line_height;
 
     // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
@@ -282,7 +283,7 @@ f32 text_calculate_dimensions_width(
     // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
 
     for (int32 i = 0; i < length; ++i) {
-        int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
+        const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 
         if (character == '\n') {
             x = OMS_MAX_BRANCHED(x, offset_x);
@@ -291,7 +292,7 @@ f32 text_calculate_dimensions_width(
             continue;
         }
 
-        Glyph* glyph = font_glyph_find(font, character);
+        const Glyph* glyph = font_glyph_find(font, character);
         if (!glyph) {
             continue;
         }
@@ -303,11 +304,10 @@ f32 text_calculate_dimensions_width(
 }
 
 static
-void text_calculate_dimensions(
-    f32* __restrict width, f32* __restrict height,
+v2_f32 text_calculate_dimensions(
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
 ) NO_EXCEPT {
-    f32 line_height = font->line_height * scale;
+    const f32 line_height = font->line_height * scale;
     f32 x = 0;
     f32 y = line_height;
 
@@ -316,7 +316,7 @@ void text_calculate_dimensions(
     // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
 
     for (int32 i = 0; i < length; ++i) {
-        int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
+        const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 
         if (character == '\n') {
             x = OMS_MAX_BRANCHED(x, offset_x);
@@ -327,7 +327,7 @@ void text_calculate_dimensions(
             continue;
         }
 
-        Glyph* glyph = font_glyph_find(font, character);
+        const Glyph* glyph = font_glyph_find(font, character);
         if (!glyph) {
             continue;
         }
@@ -335,8 +335,7 @@ void text_calculate_dimensions(
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
 
-    *width = OMS_MAX_BRANCHED(x, offset_x);
-    *height = y;
+    return { OMS_MAX_BRANCHED(x, offset_x), y };
 }
 
 // @todo implement shadow (offset + angle + diffuse) or should this be a shader only thing? if so this would be a problem for us since we are handling text in the same shader as simple shapes
@@ -355,8 +354,8 @@ v3_int32 vertex_text_create(
         return {};
     }
 
-    bool is_ascii = (int32) str_length(text) == length;
-    f32 scale = size / font->size;
+    const bool is_ascii = (int32) str_length(text) == length;
+    const f32 scale = size / font->size;
 
     (void) rgba; // @todo we don't have a way to change colors of text for now due to our reduce Vertex size
     // To fix this we would have to add an additional 4 bytes for every vertex which we maybe don't want to
@@ -366,7 +365,9 @@ v3_int32 vertex_text_create(
         if ((alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER))
             && (alignment & (UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER))
         ) {
-            text_calculate_dimensions(&dimension.width, &dimension.height, font, text, is_ascii, scale, length);
+            const v2_f32 dim = text_calculate_dimensions(font, text, is_ascii, scale, length);
+            dimension.width = dim.width;
+            dimension.height = dim.height;
         } else if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER)) {
             dimension.width = text_calculate_dimensions_width(font, text, is_ascii, scale, length);
         } else {
@@ -376,7 +377,7 @@ v3_int32 vertex_text_create(
         adjust_aligned_position(&dimension, alignment);
     }
 
-    f32 line_height_scaled = font->line_height * scale;
+    const f32 line_height_scaled = font->line_height * scale;
 
     f32 rendered_width = 0;
     f32 rendered_height = line_height_scaled;
@@ -396,7 +397,7 @@ v3_int32 vertex_text_create(
             continue;
         }
 
-        Glyph* glyph = font_glyph_find(font, character);
+        const Glyph* glyph = font_glyph_find(font, character);
         if (!glyph) {
             continue;
         }

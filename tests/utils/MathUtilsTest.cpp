@@ -22,9 +22,9 @@ static void test_tan_approx_f32() {
 }
 
 static void test_sqrt_approx_f32() {
-    TEST_EQUALS_WITH_DELTA(sqrt_approx(1.0f), sqrtf(1.0f), 0.001f);
-    TEST_EQUALS_WITH_DELTA(sqrt_approx(2.0f), sqrtf(2.0f), 0.001f);
-    TEST_EQUALS_WITH_DELTA(sqrt_approx(100.0f), sqrtf(100.0f), 0.001f);
+    TEST_EQUALS_WITH_DELTA(sqrt_approx(1.0f), intrin_sqrt_f32(1.0f), 0.001f);
+    TEST_EQUALS_WITH_DELTA(sqrt_approx(2.0f), intrin_sqrt_f32(2.0f), 0.001f);
+    TEST_EQUALS_WITH_DELTA(sqrt_approx(100.0f), intrin_sqrt_f32(100.0f), 0.001f);
 }
 
 static void test_asin_approx_f32() {
@@ -46,9 +46,9 @@ static void test_atan_approx_f32() {
 }
 
 static void test_rsqrt_approx_f32() {
-    TEST_EQUALS_WITH_DELTA(rsqrt_approx(1.0f), 1.0f / sqrtf(1.0f), 0.001f);
-    TEST_EQUALS_WITH_DELTA(rsqrt_approx(2.0f), 1.0f / sqrtf(2.0f), 0.001f);
-    TEST_EQUALS_WITH_DELTA(rsqrt_approx(100.0f), 1.0f / sqrtf(100.0f), 0.001f);
+    TEST_EQUALS_WITH_DELTA(rsqrt_approx(1.0f), 1.0f / intrin_sqrt_f32(1.0f), 0.001f);
+    TEST_EQUALS_WITH_DELTA(rsqrt_approx(2.0f), 1.0f / intrin_sqrt_f32(2.0f), 0.001f);
+    TEST_EQUALS_WITH_DELTA(rsqrt_approx(100.0f), 1.0f / intrin_sqrt_f32(100.0f), 0.001f);
 }
 
 static void test_exp_approx_f32() {
@@ -206,7 +206,7 @@ static void _sqrt_f32(volatile void* val) {
     f32* res = (f32*)val;
     srand((int32) *res);
 
-    *res += sqrtf((f32)rand() / RAND_MAX + 0.1f); // Avoid sqrt(0)
+    *res += intrin_sqrt_f32((f32)rand() / RAND_MAX + 0.1f); // Avoid sqrt(0)
 }
 
 static void test_sqrt_approx_performance_f32() {
@@ -282,7 +282,7 @@ static void _rsqrt_f32(volatile void* val) {
     f32* res = (f32*)val;
     srand((int32) *res);
 
-    *res += 1.0f / sqrtf((f32)rand() / RAND_MAX + 0.1f); // Avoid division by zero
+    *res += 1.0f / intrin_sqrt_f32((f32)rand() / RAND_MAX + 0.1f); // Avoid division by zero
 }
 
 static void test_rsqrt_approx_performance_f32() {

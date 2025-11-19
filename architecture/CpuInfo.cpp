@@ -11,7 +11,7 @@
 
 #include "CpuInfo.h"
 
-#if ARM
+#ifdef __aarch64__
     #include "arm/CpuInfo.cpp"
 #else
     #include "x86/CpuInfo.cpp"

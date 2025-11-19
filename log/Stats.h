@@ -50,7 +50,7 @@ void stats_snapshot() {
         return;
     }
 
-    int32 pos = atomic_increment_wrap_acquire_release(&_stats_counter->pos, MAX_STATS_COUNTER_HISTORY);
+    const int32 pos = atomic_increment_wrap_acquire_release(&_stats_counter->pos, MAX_STATS_COUNTER_HISTORY);
     memset(
         (void *) &_stats_counter->stats[pos * DEBUG_COUNTER_SIZE],
         0,
@@ -65,7 +65,7 @@ void log_increment(int32 id, int64 by = 1) NO_EXCEPT
         return;
     }
 
-    int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
+    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
     atomic_add_relaxed(&_stats_counter->stats[pos + id], by);
 }
 
@@ -76,7 +76,7 @@ void log_decrement(int32 id, int64 by = 1) NO_EXCEPT
         return;
     }
 
-    int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
+    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
     atomic_sub_relaxed(&_stats_counter->stats[pos + id], by);
 }
 
@@ -87,7 +87,7 @@ void log_counter(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
+    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
     atomic_set_relaxed(&_stats_counter->stats[pos + id], value);
 }
 

@@ -33,6 +33,7 @@
 
 struct AssetArchiveElement {
     // @question Why are we not using AssetType as data type?
+    // AssetType type;
     uint32 type;
 
     uint32 start;
@@ -73,6 +74,7 @@ struct AssetArchive {
 };
 
 // Calculates how large the header memory has to be to hold all its information
+static inline
 int32 asset_archive_header_size(AssetArchive* __restrict archive, const byte* __restrict data)
 {
     data += sizeof(archive->header.version);
@@ -90,7 +92,8 @@ int32 asset_archive_header_size(AssetArchive* __restrict archive, const byte* __
         + asset_dependency_count * sizeof(int32);
 }
 
-void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte* __restrict data, [[maybe_unused]] int32 steps = 8)
+static inline
+void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte* __restrict data, MAYBE_UNUSED int32 steps = 8)
 {
     header->version = SWAP_ENDIAN_LITTLE(*((int32 *) data));
     data += sizeof(header->version);
@@ -101,7 +104,7 @@ void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte
     header->asset_dependency_count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(header->asset_dependency_count);
 
-    memcpy(header->asset_element, data, header->asset_count * sizeof(AssetArchiveElement));
+    memcpy_aligned_factored(header->asset_element, data, header->asset_count * sizeof(AssetArchiveElement), sizeof(AssetArchiveElement));
     data += header->asset_count * sizeof(AssetArchiveElement);
 
     SWAP_ENDIAN_LITTLE_SIMD(
@@ -110,6 +113,7 @@ void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte
         header->asset_count * sizeof(AssetArchiveElement) / 4, // everything is 4 bytes -> easy to swap
         steps
     );
+    PSEUDO_USE(steps);
 
     if (header->asset_dependency_count) {
         header->asset_dependencies = (int32 *) ((byte *) header->asset_element + header->asset_count * sizeof(AssetArchiveElement));
@@ -124,13 +128,14 @@ void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte
     );
 }
 
-inline
-AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int32 id)
+FORCE_INLINE
+AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int32 id) NO_EXCEPT
 {
     return &archive->header.asset_element[id];
 }
 
-static uint32 asset_type_size(int32 type)
+static inline
+uint32 asset_type_size(int32 type) NO_EXCEPT
 {
     switch (type) {
         case ASSET_TYPE_GENERAL:
@@ -301,7 +306,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
                 asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
                 asset->ram_size = asset->vram_size + sizeof(Texture);
 
-                #if OPENGL || VULKAN
+                #if defined(OPENGL) || defined(VULKAN)
                     // If opengl, we always flip
                     if (!(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)) {
                         image_flip_vertical(ring, &texture->image);

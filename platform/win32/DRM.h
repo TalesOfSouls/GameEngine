@@ -199,8 +199,7 @@ bool drm_check_process_name(const char** process_names, int32 count) {
             continue;
         }
 
-        char process_name[MAX_PATH];
-        memcpy(process_name, "<unknown>", sizeof("<unknown>"));
+        char process_name[MAX_PATH] = "<unknown>";
 
         HMODULE mod_handle;
         DWORD cb_needed_mod;

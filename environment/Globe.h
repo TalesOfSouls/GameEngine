@@ -42,7 +42,7 @@ f32 daylight_get(f64 time, f32 day_length) {
 }
 
 void sun_position_get(v3_f32* sun_position, f32 time, f32 radius, f32 day_duration) {
-    f32 angle = (time / day_duration) * 2.0f * OMS_PI;
+    f32 angle = (time / day_duration) * 2.0f * OMS_PI_F32;
 
     sun_position->x = radius * cosf(angle);
     sun_position->y = radius * sinf(angle);

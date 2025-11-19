@@ -33,6 +33,10 @@ typedef void* (*CommandFunction)(void* data);
 struct Command {
     CommandType type;
     CommandFunction callback;
+
+    // @question Maybe make this a union for different commands e.g.
+    // union data { shader_load_data, audio_enqueue_data, .... }
+    // This way we would be more specific and the data size would be automatically calculated correctly at compile time
     byte data[256]; // @todo to be adjusted
 };
 

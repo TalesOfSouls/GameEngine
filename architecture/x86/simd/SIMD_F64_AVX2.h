@@ -16,7 +16,7 @@
 
 struct f64_4 {
     union {
-        #if ARM
+        #ifdef __aarch64__
             svfloat64_t s;
         #else
             __m256 s;

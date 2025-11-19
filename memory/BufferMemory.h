@@ -32,7 +32,7 @@ struct BufferMemory {
 };
 
 inline
-void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
+void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(size);
     PROFILE(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -64,7 +64,7 @@ void buffer_free(BufferMemory* buf)
 }
 
 inline
-void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 64)
+void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(size);
 
@@ -90,7 +90,7 @@ void buffer_reset(BufferMemory* buf) NO_EXCEPT
     buf->head = buf->memory;
 }
 
-inline
+inline HOT_CODE
 byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4) NO_EXCEPT
 {
     ASSERT_TRUE(size <= buf->size);

@@ -16,7 +16,7 @@
 
 struct int64_2 {
     union {
-        #if ARM
+        #ifdef __aarch64__
             svint64_t s;
         #else
             __m128i s;

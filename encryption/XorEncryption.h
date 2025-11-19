@@ -11,14 +11,14 @@
 
 #include "../stdlib/Types.h"
 
-constexpr inline
+CONSTEXPR inline
 void encrypt_xor(char* input, char key) {
     for (int32 i = 0; input[i] != '\0'; i++) {
         input[i] ^= key;
     }
 }
 
-constexpr inline
+CONSTEXPR inline
 void decrypt_xor(char* input, char key) {
     for (int32 i = 0; input[i] != '\0'; i++) {
         input[i] ^= key;

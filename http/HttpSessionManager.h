@@ -40,7 +40,7 @@ SessionManager* session_manager_alloc(
     SessionManager* manager,
     const char* storage_path,
     size_t initial_capacity,
-    int32 alignment = 64
+    int32 alignment = sizeof(size_t)
 ) {
     size_t internal_buffer_size = OMS_ALIGN_UP(sizeof(Session) * initial_capacity, 4096);
     byte* internal_buffer = (byte *) platform_alloc_aligned(internal_buffer_size, alignment);

@@ -13,6 +13,7 @@
 #include "tests/utils/MathUtilsTest.cpp"
 #include "tests/utils/UtilsTest.cpp"
 #include "tests/utils/TimeUtilsTest.cpp"
+#include "tests/entity/voxel/VoxelWorldMapTest.cpp"
 
 #ifdef UBER_TEST
     #ifdef main
@@ -22,6 +23,9 @@
 
 int main() {
     TEST_HEADER();
+
+    _rng_state_32 = (int32) time_index();
+    _rng_state_64 = time_index();
 
     //MathEvaluatorTest();
     MemoryChunkMemoryTest();
@@ -35,6 +39,7 @@ int main() {
     UtilsMathUtilsTest();
     UtilsUtilsTest();
     UtilsTimeUtilsTest();
+    VoxelWorldMapTest();
 
     TEST_FOOTER();
 

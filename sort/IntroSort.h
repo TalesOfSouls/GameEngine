@@ -2,11 +2,12 @@
 #define COMS_SORT_INTRO_SORT_H
 
 #include "../stdlib/Types.h"
+#include "SortDefine.h"
 #include "InsertionSort.h"
 #include "HeapSort.h"
 #include "QuickSort.h"
 
-void introsort(void* arr, size_t num, size_t size, int32 (*compare)(const void* __restrict, const void* __restrict), size_t depth_limit) NO_EXCEPT {
+void introsort(void* arr, size_t num, size_t size, SortCompareFunc compare, size_t depth_limit) NO_EXCEPT {
     byte* base = (byte*) arr;
 
     // Use InsertionSort for small subarrays
@@ -31,6 +32,34 @@ void introsort(void* arr, size_t num, size_t size, int32 (*compare)(const void* 
     if (pi + 1 < num) {
         // Sort the right subarray
         introsort(base + (pi + 1) * size, num - (pi + 1), size, compare, depth_limit - 1);
+    }
+}
+
+void introsort_small(void* arr, size_t num, size_t size, SortCompareFunc compare, size_t depth_limit) NO_EXCEPT {
+    byte* base = (byte*) arr;
+
+    // Use InsertionSort for small subarrays
+    if (num < 16) {
+        insertionsort_small(arr, num, size, compare);
+        return;
+    }
+
+    // If the depth limit is reached, switch to HeapSort
+    if (depth_limit == 0) {
+        heapsort_small(arr, num, size, compare);
+        return;
+    }
+
+    // Otherwise, perform QuickSort
+    size_t pi = quicksort_partition_small(arr, size, 0, num - 1, compare);
+    if (pi > 0) {
+        // Sort the left subarray
+        introsort_small(arr, pi, size, compare, depth_limit - 1);
+    }
+
+    if (pi + 1 < num) {
+        // Sort the right subarray
+        introsort_small(base + (pi + 1) * size, num - (pi + 1), size, compare, depth_limit - 1);
     }
 }
 

@@ -16,7 +16,7 @@
 
 struct int8_32 {
     union {
-        #if ARM
+        #ifdef __aarch64__
             svint8_t s;
         #else
             __m256i s;

@@ -60,7 +60,7 @@ void generate_default_wav_references(const byte* data, uint32 size, Wav* wav)
 
     // Check if we can copy memory directly
     // The struct layout and header size should match on x86, but we still check it
-    if constexpr (sizeof(WavHeader) == WAV_HEADER_SIZE) {
+    IF_CONSTEXPR(sizeof(WavHeader) == WAV_HEADER_SIZE) {
         memcpy(&wav->header, data, WAV_HEADER_SIZE);
 
         // swap endian if we are on big endian system

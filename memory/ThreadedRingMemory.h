@@ -36,21 +36,21 @@ struct ThreadedRingMemory {
 // @bug alignment should also include the end point, not just the start
 
 FORCE_INLINE
-void thrd_ring_alloc(ThreadedRingMemory* ring, uint64 size, int32 alignment = 64)
+void thrd_ring_alloc(ThreadedRingMemory* ring, uint64 size, int32 alignment = sizeof(size_t))
 {
     ring_alloc((RingMemory *) ring, size, alignment);
     mutex_init(&ring->lock, NULL);
 }
 
 FORCE_INLINE
-void thrd_ring_init(ThreadedRingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment = 64)
+void thrd_ring_init(ThreadedRingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment = sizeof(size_t))
 {
     ring_init((RingMemory *) ring, buf, size, alignment);
     mutex_init(&ring->lock, NULL);
 }
 
 FORCE_INLINE
-void thrd_ring_init(ThreadedRingMemory* ring, byte* buf, uint64 size, int32 alignment = 64)
+void thrd_ring_init(ThreadedRingMemory* ring, byte* buf, uint64 size, int32 alignment = sizeof(size_t))
 {
     ring_init((RingMemory *) ring, buf, size, alignment);
     mutex_init(&ring->lock, NULL);
@@ -95,6 +95,15 @@ byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned =
 {
     mutex_lock(&ring->lock);
     byte* result = ring_get_memory((RingMemory *) ring, size, aligned);
+    mutex_unlock(&ring->lock);
+
+    return result;
+}
+
+FORCE_INLINE
+byte* thrd_ring_grow_memory(ThreadedRingMemory* ring, const byte* old, uint64 size_old, uint64 size_new, uint64 aligned = 4) {
+    mutex_lock(&ring->lock);
+    byte* result = ring_grow_memory((RingMemory *) ring, old, size_old, size_new, aligned);
     mutex_unlock(&ring->lock);
 
     return result;

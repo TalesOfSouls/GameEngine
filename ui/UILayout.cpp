@@ -123,7 +123,7 @@ void layout_from_file_txt(
     pos += 8;
 
     // Use version for different handling
-    [[maybe_unused]] int32 version = (int32) str_to_int(pos, &pos); ++pos;
+    /*MAYBE_UNUSED int32 version = (int32) */str_to_int(pos, &pos); ++pos;
 
     // 1. Iteration: We have to find how many elements are defined in the layout file.
     // Therefore we have to do an initial iteration
@@ -892,6 +892,7 @@ uint32 ui_layout_render_dfs(
     uint32 vertex_count = 0;
 
     if (element->vertex_count_active && element->category == category) {
+        // @performance we might be able to use memcpy_aligned_factored
         memcpy(
             vertices,
             layout->vertices_active + element->vertices_active_offset,
@@ -948,6 +949,7 @@ uint32 ui_layout_update_render_dfs(
     if (element->category == category) {
         ui_layout_update(layout, element);
 
+        // @performance we might be able to use memcpy_aligned_factored
         memcpy(
             vertices,
             layout->vertices_active + element->vertices_active_offset,

@@ -18,7 +18,10 @@ Asset* cmd_internal_font_create(AppCmdBuffer* __restrict cb, Command* __restrict
     }
 
     Font* font = (Font *) asset->self;
-    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN) {
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
+        || cb->gpu_api_type == GPU_API_TYPE_VULKAN
+        || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
+    ) {
         font_invert_coordinates(font);
     }
 
@@ -79,7 +82,10 @@ Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id)
 
     // Setup font
     Font* font = (Font *) asset->self;
-    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN) {
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
+        || cb->gpu_api_type == GPU_API_TYPE_VULKAN
+        || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
+    ) {
         font_invert_coordinates(font);
     }
 
@@ -106,7 +112,10 @@ Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name)
 
     // Setup font
     Font* font = (Font *) asset->self;
-    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN) {
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
+        || cb->gpu_api_type == GPU_API_TYPE_VULKAN
+        || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
+    ) {
         font_invert_coordinates(font);
     }
 

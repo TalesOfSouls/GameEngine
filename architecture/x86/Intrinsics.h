@@ -20,6 +20,7 @@
 #endif
 
 #include "../../stdlib/Types.h"
+#include "../../stdlib/Simd.h"
 #include "../../compiler/CompilerUtils.h"
 
 #ifdef _MSC_VER
@@ -29,7 +30,7 @@
 #endif
 
 #ifdef _MSC_VER
-    #define intrin_sqrt_f64(a) _mm_cvtsd_f64(_mm_sqrt_sd(_mm_set_sd((a)), _mm_set_sd((a))))
+    #define intrin_sqrt_f64(a) _mm_cvtsd_f64(_mm_sqrt_sd(_mm_set_sd(0.0), _mm_set_sd((a))))
 #else
     #define intrin_sqrt_f64(a) ({ double res; asm volatile("sqrtsd %0, %1" : "=x" (res) : "x" (a)); res; })
 #endif
@@ -68,64 +69,157 @@ uint64 intrin_timestamp_counter() NO_EXCEPT {
     return __rdtsc();
 }
 
-#if __AVX2__
-    static __m128i _sink128;
-    static __m256i _sink256;
-
-    // Pre-loads 128 bit chunks of memory into cache as fast as possible
-    // size MUST be multiple of 128
-    inline
-    void intrin_prefetch_128(void* memory, size_t size)
-    {
-        void* const end = ((char *) memory) + size;
-        __m128i* p0 = (__m128i *) memory;
-        __m128i* p1 = (__m128i *) end;
-        for (const __m128i* p = p0; p < p1; ++p) {
-            _sink128 = *p;
-        }
-    }
-
-    // Pre-loads 256 bit chunks of memory into cache as fast as possible
-    // size MUST be multiple of 256
-    inline
-    void intrin_prefetch_256(void* memory, size_t size)
-    {
-        void* const end = ((char *) memory) + size;
-        __m256i* p0 = (__m256i *) memory;
-        __m256i* p1 = (__m256i *) end;
-        for (const __m256i* p = p0; p < p1; ++p) {
-            _sink256 = *p;
-        }
-    }
-#else
-    static volatile uint64_t _sink128;
-    static volatile uint64_t _sink256;
-
-    // Pre-loads 128 bit chunks of memory into cache as fast as possible
-    // size MUST be multiple of 128
-    inline
-    void intrin_prefetch_128(void* memory, size_t size)
-    {
-        void* const end = ((char *) memory) + size;
-        uint64_t* p0 = (uint64_t *) memory;
-        uint64_t* p1 = (uint64_t *) end;
-        for (const volatile uint64_t* p = p0; p < p1; ++p) {
-            _sink128 = *p;
-        }
-    }
-
-    // Pre-loads 256 bit chunks of memory into cache as fast as possible
-    // size MUST be multiple of 256
-    inline
-    void intrin_prefetch_256(void* memory, size_t size)
-    {
-        void* const end = ((char *) memory) + size;
-        uint64_t* p0 = (uint64_t *) memory;
-        uint64_t* p1 = (uint64_t *) end;
-        for (const volatile uint64_t* p = p0; p < p1; ++p) {
-            _sink256 = *p;
-        }
-    }
+#ifdef __AVX512F__
+    static __m512i _sink512;
 #endif
+#if defined(__AVX2__) || defined(__AVX512F__)
+    static __m256i _sink256;
+#endif
+#if defined(__SSE4_2__) || defined(__AVX2__) || defined(__AVX512F__)
+    static __m128i _sink128;
+#endif
+static volatile size_t _sink_scalar;
+
+// the size needs to be a multiple of the steps e.g. steps = 16 means 32 bytes multiple required
+inline
+void intrin_prefetch(void* memory, size_t size, int32_t steps = 16) NO_EXCEPT
+{
+    byte* start = (byte*)memory;
+    byte* end = start + size;
+    steps = intrin_validate_steps(start, steps);
+
+    #ifdef __AVX512F__
+        if (steps >= 16) {
+            __m512i* p0 = (__m512i*)start;
+            __m512i* p1 = (__m512i*)end;
+
+            for (const __m512i* p = p0; p < p1; ++p) {
+                _sink512 = *p;
+            }
+
+            return;
+        }
+    #endif
+
+    #ifdef __AVX2__
+        if (steps >= 8) {
+            __m256i* p0 = (__m256i*)start;
+            __m256i* p1 = (__m256i*)end;
+
+            for (const __m256i* p = p0; p < p1; ++p) {
+                _sink256 = *p;
+            }
+
+            return;
+        }
+    #endif
+
+    #ifdef __SSE4_2__
+        if (steps >= 4) {
+            __m128i* p0 = (__m128i*)start;
+            __m128i* p1 = (__m128i*)end;
+
+            for (const __m128i* p = p0; p < p1; ++p) {
+                _sink128 = *p;
+            }
+
+            return;
+        }
+    #endif
+
+    size_t* p0 = (size_t*)start;
+    size_t* p1 = (size_t*)end;
+    for (const volatile size_t* p = p0; p < p1; ++p) {
+        _sink_scalar = *p;
+    }
+}
+
+inline
+void intrin_swap_memory(void* __restrict a, void* __restrict b, size_t size, int32_t steps = 16) NO_EXCEPT
+{
+    byte* p = (byte*)a;
+    byte* q = (byte*)b;
+    steps = intrin_validate_steps((const byte *) a, steps);
+    steps = intrin_validate_steps((const byte *) b, steps);
+
+    #ifdef __AVX512F__
+        if (steps >= 16) {
+            while (size >= sizeof(__m512i)) {
+                __m512i tmp = *(__m512i*)p;
+                *(__m512i*)p = *(__m512i*)q;
+                *(__m512i*)q = tmp;
+
+                p += sizeof(__m512i);
+                q += sizeof(__m512i);
+                size -= sizeof(__m512i);
+            }
+
+            if (size == 0) {
+                return;
+            }
+        }
+    #endif
+
+    #ifdef __AVX2__
+        if (steps >= 8) {
+            while (size >= sizeof(__m256i)) {
+                __m256i tmp = *(__m256i*)p;
+                *(__m256i*)p = *(__m256i*)q;
+                *(__m256i*)q = tmp;
+
+                p += sizeof(__m256i);
+                q += sizeof(__m256i);
+                size -= sizeof(__m256i);
+            }
+
+            if (size == 0) {
+                return;
+            }
+        }
+    #endif
+
+    #ifdef __SSE4_2__
+        if (steps >= 4) {
+            while (size >= sizeof(__m128i)) {
+                __m128i tmp = *(__m128i*)p;
+                *(__m128i*)p = *(__m128i*)q;
+                *(__m128i*)q = tmp;
+
+                p += sizeof(__m128i);
+                q += sizeof(__m128i);
+                size -= sizeof(__m128i);
+            }
+
+            if (size == 0) {
+                return;
+            }
+        }
+    #endif
+
+    while (size >= sizeof(size_t)) {
+        size_t tmp = *(size_t*)p;
+        *(size_t*)p = *(size_t*)q;
+        *(size_t*)q = tmp;
+
+        p += sizeof(size_t);
+        q += sizeof(size_t);
+        size -= sizeof(size_t);
+    }
+
+    if (size == 0) {
+        return;
+    }
+
+    // Byte tail
+    while (size > 0) {
+        byte tmp = *p;
+        *p = *q;
+        *q = tmp;
+
+        ++p;
+        ++q;
+        --size;
+    }
+}
 
 #endif

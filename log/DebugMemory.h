@@ -39,7 +39,7 @@ struct DebugMemory {
 
     atomic_32 uint32 action_idx;
     atomic_32 uint32 reserve_action_idx;
-    DebugMemoryRange last_action[DEBUG_MEMORY_RANGE_MAX];
+    alignas(8) DebugMemoryRange last_action[DEBUG_MEMORY_RANGE_MAX];
     DebugMemoryRange reserve_action[DEBUG_MEMORY_RANGE_RES_MAX];
 };
 
@@ -85,7 +85,8 @@ void debug_memory_init(uintptr_t start, uint64 size) NO_EXCEPT
 
     if (_dmc->memory_size <= _dmc->memory_element_idx) {
         const uint32 new_size = _dmc->memory_size + 3;
-        DebugMemory* new_stats = (DebugMemory *) calloc(new_size, sizeof(DebugMemory));
+        // @performance Can we get rid of this calloc?
+        DebugMemory* new_stats = (DebugMemory *) calloc(new_size * sizeof(DebugMemory), 64);
         if (!new_stats) {
             return;
         }
@@ -146,7 +147,7 @@ void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* 
         return;
     }
 
-    uint32 idx = atomic_increment_wrap_relaxed(&mem->reserve_action_idx, ARRAY_COUNT(mem->reserve_action));
+    const uint32 idx = atomic_increment_wrap_relaxed(&mem->reserve_action_idx, ARRAY_COUNT(mem->reserve_action));
 
     DebugMemoryRange* dmr = &mem->reserve_action[idx];
     dmr->type = type;
@@ -189,12 +190,12 @@ void debug_memory_reset() NO_EXCEPT
     }
 
     // We remove debug information that are "older" than 1GHz
-    uint64 time = intrin_timestamp_counter() - 1 * GHZ;
+    const uint64 time = intrin_timestamp_counter() - 1 * GHZ;
 
     for (uint32 i = 0; i < _dmc->memory_element_idx; ++i) {
         for (int32 j = 0; j < DEBUG_MEMORY_RANGE_MAX; ++j) {
             if (_dmc->memory_stats[i].last_action[j].time < time) {
-                memset(&_dmc->memory_stats[i].last_action[j], 0, sizeof(DebugMemoryRange));
+                memset_aligned(&_dmc->memory_stats[i].last_action[j], 0, sizeof(DebugMemoryRange));
             }
         }
     }

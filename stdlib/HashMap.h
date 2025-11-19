@@ -215,7 +215,7 @@ void hashmap_free(HashMap* hm)
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring, int32 alignment = 32) NO_EXCEPT
+void hashmap_create(HashMap* __restrict hm, int32 count, int32 element_size, RingMemory* __restrict ring, int32 alignment = 32) NO_EXCEPT
 {
     ASSERT_TRUE(ring);
 
@@ -239,7 +239,7 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ri
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf, int32 alignment = 32) NO_EXCEPT
+void hashmap_create(HashMap* __restrict hm, int32 count, int32 element_size, BufferMemory* __restrict buf, int32 alignment = 32) NO_EXCEPT
 {
     ASSERT_TRUE(buf);
 
@@ -260,7 +260,7 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* 
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf, int32 alignment = 32) NO_EXCEPT
+void hashmap_create(HashMap* __restrict hm, int32 count, int32 element_size, byte* __restrict buf, int32 alignment = 32) NO_EXCEPT
 {
     LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
     hm->hash_function = hash_djb2;
@@ -1222,7 +1222,7 @@ void hashmap_remove(HashMap* hm, uint64 key) NO_EXCEPT {
 }
 
 // @question Shouldn't we also store the chunk size etc? Currently not done and expected to be correctly initialized.
-int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 value_size, [[maybe_unused]] int32 steps = 8)
+int64 hashmap_dump(const HashMap* hm, byte* data, MAYBE_UNUSED int32 value_size, MAYBE_UNUSED int32 steps = 8)
 {
     LOG_1("[INFO] Dump HashMap");
     byte* start = data;
@@ -1232,11 +1232,14 @@ int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 value_s
 
     // @todo change endian of hashmap next "pointer" and values?
 
+    PSEUDO_USE(steps);
+    PSEUDO_USE(value_size);
+
     return data - start;
 }
 
 // WARNING: Requires hashmap_create first
-int64 hashmap_load(HashMap* hm, const byte* data, [[maybe_unused]] int32 value_size, [[maybe_unused]] int32 steps = 8)
+int64 hashmap_load(HashMap* hm, const byte* data, MAYBE_UNUSED int32 value_size, MAYBE_UNUSED int32 steps = 8)
 {
     LOG_1("[INFO] Load HashMap");
     const byte* start = data;
@@ -1245,6 +1248,9 @@ int64 hashmap_load(HashMap* hm, const byte* data, [[maybe_unused]] int32 value_s
     data += chunk_load(&hm->buf, data);
 
     // @todo change endian of hashmap next "pointer" and values?
+
+    PSEUDO_USE(steps);
+    PSEUDO_USE(value_size);
 
     return data - start;
 }

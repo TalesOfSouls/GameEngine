@@ -883,7 +883,7 @@ VkFormat gpuapi_texture_format(byte settings)
 }
 
 // @performance Sometimes we want to upload multiple textures in one go (more performant). Allow that or don't use this function in that case.
-void load_texture_to_gpu(
+void gpuapi_texture_to_gpu(
     VkDevice device, VkPhysicalDevice physical_device,
     VkCommandPool command_pool, VkQueue queue,
     VkImage* texture_image, VkDeviceMemory* texture_image_memory, VkImageView* texture_image_view, VkSampler* texture_sampler,

@@ -43,7 +43,7 @@ uint64 rle_decode(const char* in, size_t length, char* out) NO_EXCEPT
     uint64 j = 0;
 
     for (int64 i = 0; i < length; ++i) {
-        char current_char = in[i];
+        const char current_char = in[i];
         ++i;
 
         int32 count = 0;

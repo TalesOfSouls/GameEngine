@@ -38,13 +38,14 @@
 struct ChunkMemory {
     byte* memory;
 
+    // @question Do I really want to use uint?
     uint64 size;
     int32 last_pos;
     uint32 count;
     uint32 chunk_size;
 
     // WARNING: The alignment may increase the original chunk size e.g.
-    // element_size = 14, alignment = 32 => chunk_size = 32
+    // element_size = 14, alignment = sizeof(size_t) => chunk_size = 32
     uint32 alignment;
 
     // length = count
@@ -53,13 +54,13 @@ struct ChunkMemory {
 };
 
 FORCE_INLINE
-uint32 chunk_size_element(uint32 element_size, int32 alignment = 32) NO_EXCEPT
+uint32 chunk_size_element(uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     return OMS_ALIGN_UP(element_size, alignment);
 }
 
 FORCE_INLINE
-uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = 32) NO_EXCEPT
+uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = chunk_size_element(element_size, alignment);
 
@@ -72,7 +73,7 @@ uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = 32)
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alignment = 32)
+void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
@@ -80,11 +81,13 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alig
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
-    uint64 size = chunk_size_total(count, element_size, alignment);
+    const uint64 size = chunk_size_total(count, element_size, alignment);
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)
         : (byte *) platform_alloc_aligned(size, alignment);
+
+    // @question Why don't I memset the memory to 0 here, but do it in chunk_init
 
     buf->count = count;
     buf->size = size;
@@ -95,18 +98,18 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alig
         (uint64) ((uintptr_t) (buf->memory + count * element_size)),
         (uint64) alignment
     );
-    memset(buf->free, 0, (count + 63) / 64);
+    compiler_memset_aligned(buf->free, 0, (count + 63) / 64);
 }
 
 inline
-void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 element_size, int32 alignment = 32)
+void chunk_init(ChunkMemory* __restrict buf, BufferMemory* __restrict data, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
 
     element_size = chunk_size_element(element_size, alignment);
 
-    uint64 size = chunk_size_total(count, element_size, alignment);
+    const uint64 size = chunk_size_total(count, element_size, alignment);
 
     buf->memory = buffer_get_memory(data, size, alignment);
     memset(buf->memory, 0, size);
@@ -117,20 +120,20 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 eleme
     buf->last_pos = -1;
     buf->alignment = alignment;
     buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * element_size), 64);
-    memset(buf->free, 0, (count + 63) / 64);
+    compiler_memset_aligned(buf->free, 0, (count + 63) / 64);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
-void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 element_size, int32 alignment = 32)
+void chunk_init(ChunkMemory* __restrict buf, byte* __restrict data, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
 
     element_size = chunk_size_element(element_size, alignment);
 
-    uint64 size = chunk_size_total(count, element_size, alignment);
+    const uint64 size = chunk_size_total(count, element_size, alignment);
 
     buf->memory = (byte *) OMS_ALIGN_UP((uintptr_t) data, alignment);
 
@@ -143,12 +146,12 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 element_size,
         (uintptr_t) (buf->memory + count * element_size),
         (uint64) alignment
     );
-    memset(buf->free, 0, (count + 63) / 64);
+    compiler_memset_aligned(buf->free, 0, (count + 63) / 64);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
-inline
+inline HOT_CODE
 void chunk_free(ChunkMemory* buf)
 {
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->size);
@@ -163,18 +166,18 @@ void chunk_free(ChunkMemory* buf)
     buf->memory = NULL;
 }
 
-FORCE_INLINE
+FORCE_INLINE HOT_CODE
 uint64* chunk_find_free_array(const ChunkMemory* buf) NO_EXCEPT
 {
     return (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + buf->count * buf->chunk_size), (uint64) buf->alignment);
 }
 
-FORCE_INLINE
+FORCE_INLINE HOT_CODE
 uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) NO_EXCEPT {
     return (uint32) ((uintptr_t) pos - (uintptr_t) buf->memory) / buf->chunk_size;
 }
 
-inline
+FORCE_INLINE HOT_CODE FORCE_FLATTEN
 byte* chunk_get_element(ChunkMemory* buf, uint32 element) NO_EXCEPT
 {
     // @question How is this even possible? Isn't an assert enough?
@@ -190,20 +193,21 @@ byte* chunk_get_element(ChunkMemory* buf, uint32 element) NO_EXCEPT
     return offset;
 }
 
-FORCE_INLINE
+FORCE_INLINE HOT_CODE
 bool chunk_is_free(const ChunkMemory* buf, uint32 element) NO_EXCEPT
 {
-    uint32 free_index = element / 64;
-    uint32 bit_index = MODULO_2(element, 64);
+    const uint32 free_index = element / 64;
+    const uint32 bit_index = MODULO_2(element, 64);
 
     return !IS_BIT_SET_64_R2L(buf->free[free_index], bit_index);
 }
 
 // This is effectively the same as reserve with elements = 1 which allows for some performance improvements
 // state_count = number of maximum elements in the state array.
+HOT_CODE FORCE_FLATTEN
 int32 chunk_reserve_one(uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
 {
-    if ((uint32) start_index >= state_count) { [[unlikely]]
+    if ((uint32) start_index >= state_count) { UNLIKELY
         start_index = -1;
     }
 
@@ -225,8 +229,8 @@ int32 chunk_reserve_one(uint64* state, uint32 state_count, int32 start_index = 0
             // The reason why we want the next best element is because it is faster to iterate (cache locality)
             bit_index = compiler_find_first_bit_r2l(~state[free_index]);
 
-            uint32 id = free_index * 64 + bit_index;
-            if (id >= state_count) { [[unlikely]]
+            const uint32 id = free_index * 64 + bit_index;
+            if (id >= state_count) { UNLIKELY
                 free_index = 0;
 
                 continue;
@@ -246,9 +250,10 @@ int32 chunk_reserve_one(uint64* state, uint32 state_count, int32 start_index = 0
     return -1;
 }
 
+HOT_CODE FORCE_FLATTEN
 int32 chunk_reserve_one(ChunkMemory* buf) NO_EXCEPT
 {
-    if ((uint32) (buf->last_pos + 1) >= buf->count) { [[unlikely]]
+    if ((uint32) (buf->last_pos + 1) >= buf->count) { UNLIKELY
         buf->last_pos = -1;
     }
 
@@ -263,14 +268,14 @@ int32 chunk_reserve_one(ChunkMemory* buf) NO_EXCEPT
         return buf->last_pos;
     }
 
-    uint32 total_words = (buf->count + 63) / 64;
+    const uint32 total_words = (buf->count + 63) / 64;
 
     for (uint32 w = 0; w < total_words; ++w) {
         if (buf->free[free_index] != 0xFFFFFFFFFFFFFFFFULL) {
             bit_index = compiler_find_first_bit_r2l(~buf->free[free_index]);
 
-            uint32 id = free_index * 64 + bit_index;
-            if (id < buf->count) { [[likely]]
+            const uint32 id = free_index * 64 + bit_index;
+            if (id < buf->count) { LIKELY
                 buf->free[free_index] |= (1ULL << bit_index);
                 buf->last_pos = id;
 
@@ -279,7 +284,7 @@ int32 chunk_reserve_one(ChunkMemory* buf) NO_EXCEPT
         }
 
         ++free_index;
-        if (free_index * 64 >= buf->count) { [[unlikely]]
+        if (free_index * 64 >= buf->count) { UNLIKELY
             free_index = 0;
         }
     }
@@ -288,9 +293,12 @@ int32 chunk_reserve_one(ChunkMemory* buf) NO_EXCEPT
 }
 
 // use chunk_reserve_one if possible
+HOT_CODE FORCE_FLATTEN
 int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
 {
-    if ((uint32) (buf->last_pos + 1) >= buf->count) { [[unlikely]]
+    ASSERT_TRUE(elements > 0);
+
+    if ((uint32) (buf->last_pos + 1) >= buf->count) { UNLIKELY
         buf->last_pos = -1;
     }
 
@@ -318,7 +326,7 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
             consecutive_free_bits = 0;
 
             continue;
-        } else if (free_index * 64 + bit_index + elements - consecutive_free_bits > buf->count) { [[unlikely]]
+        } else if (free_index * 64 + bit_index + elements - consecutive_free_bits > buf->count) { UNLIKELY
             // Go to beginning after overflow
             i += buf->count - (free_index * 64 + bit_index);
             consecutive_free_bits = 0;
@@ -353,8 +361,8 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
         // Do we have enough free bits?
         if (consecutive_free_bits == elements) {
             free_element = free_index * 64 + bit_index - elements;
-            uint32 possible_free_index = free_element / 64;
-            uint32 possible_bit_index = MODULO_2(free_element, 64);
+            const uint32 possible_free_index = free_element / 64;
+            const uint32 possible_bit_index = MODULO_2(free_element, 64);
 
             // Mark as used
             if (elements == 1) {
@@ -383,7 +391,7 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
         }
     }
 
-    if (free_element < 0) { [[unlikely]]
+    if (free_element < 0) { UNLIKELY
         LOG_3("No free chunk memory index found");
 
         // This shouldn't happen in an ideal world and we should adjust our code
@@ -399,21 +407,22 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
     return free_element;
 }
 
-FORCE_INLINE
+FORCE_INLINE HOT_CODE
 void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index) NO_EXCEPT
 {
     buf->free[free_index] &= ~(1ULL << bit_index);
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + (free_index * 64 + bit_index) * buf->chunk_size), buf->chunk_size);
 }
 
-FORCE_INLINE
+FORCE_INLINE HOT_CODE
 void chunk_free_element(ChunkMemory* buf, uint32 element) NO_EXCEPT
 {
-    uint64 free_index = element / 64;
-    uint32 bit_index = MODULO_2(element, 64);
+    const uint64 free_index = element / 64;
+    const uint32 bit_index = MODULO_2(element, 64);
     chunk_free_element(buf, free_index, bit_index);
 }
 
+HOT_CODE
 void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count = 1) NO_EXCEPT
 {
     uint64 free_index = element / 64;
@@ -426,10 +435,10 @@ void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count 
 
     while (element_count > 0) {
         // Calculate the number of bits we can clear in the current 64-bit block
-        uint32 bits_in_current_block = OMS_MIN(64 - bit_index, element_count);
+        const uint32 bits_in_current_block = OMS_MIN(64 - bit_index, element_count);
 
         // Create a mask to clear the bits
-        uint64 mask = ((1ULL << bits_in_current_block) - 1) << bit_index;
+        const uint64 mask = ((1ULL << bits_in_current_block) - 1) << bit_index;
         buf->free[free_index] &= ~mask;
 
         // Update the counters and indices
@@ -493,6 +502,14 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data)
     LOG_1("[INFO] Dumped ChunkMemory: %n B", {LOG_DATA_UINT64, (void *) &buf->size});
 
     return data - start;
+}
+
+inline HOT_CODE
+byte* chunk_get_memory(ChunkMemory* buf, uint32 elements) NO_EXCEPT
+{
+    int32 element = chunk_reserve(buf, elements);
+
+    return chunk_get_element(buf, element);
 }
 
 inline
@@ -563,31 +580,36 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
 
 // INTERNAL: Not intended for use by any programmer
 #define chunk_iterate_end_internal { \
-        ++bit_index;            \
-        if (bit_index > 63) {   \
-            bit_index = 0;      \
-            ++free_index;       \
-        }                       \
+        ++bit_index;                 \
+        if (bit_index > 63) {        \
+            bit_index = 0;           \
+            ++free_index;            \
+        }                            \
     }
 
-// Breaks out of the iteration
-#define chunk_iterate_break break
+// This is needed because if bit_index can be larger than 127 we need to skip multiple free_index
+// But even for less than 127 we still may have to change the bit_index to a value != 0
+// bit_index = 0 is only allowed for a 1 skip or 64 skip (as used in chunk_iterate_end_internal)
+// INTERNAL: Not intended for use by any programmer
+#define chunk_iterate_end_internal_n(n) {  \
+        if (bit_index > 63) {               \
+            bit_index %= 64;                \
+            free_index += ((n) / 64);         \
+        }                                   \
+    }
 
-// Skip this element
+// Breaks out of the iteration (uses break, like you would use in a normal loop)
+// #define chunk_iterate_break break
+
+// Skip this element (uses continue, like you would use in a normal loop)
 #define chunk_iterate_continue chunk_iterate_end_internal continue
 
-// Sometimes we need to skip more than just one chunk if an element basically uses multiple chunks
-// Careful, this implementation only allows up to 63 element usages
-// Why? well otherwise we would have to increment the free_index
-// Should only be called in an if statement for skipping elements
-#define chunk_iterate_small_skip(n) bit_index += (n) - 1; chunk_iterate_continue
-
-// This is the fix to the skip from above. Only use when actually needed
-// Should only be called in an if statement for skipping elements
-#define chunk_iterate_large_skip(n) { \
-        bit_index += (n) - 1; \
-        free_index += (n) > 63 ? (n) / 64 - 1 : 0; \
-    } chunk_iterate_continue
+// This is the fix to the skip from chunk_iterate_small_skip.
+// Use only when actually needed.
+// If the skip is guaranteed by the algorithm to be <= 63 elements use chunk_iterate_small_skip
+#define chunk_iterate_continue_n(n) { \
+        bit_index += (n); \
+    } chunk_iterate_end_internal_n((n)) continue
 
 // Ends the for loop from chunk_iterate_start
 #define chunk_iterate_end chunk_iterate_end_internal }}

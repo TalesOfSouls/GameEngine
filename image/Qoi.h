@@ -41,18 +41,15 @@ static const byte optable[128] = {
 
 int32 qoi_encode(const Image* image, byte* data) NO_EXCEPT
 {
-    byte* start = data;
-
-    v4_byte index[64];
-	memset(index, 0, sizeof(index));
+    const byte* start = data;
 
     v4_byte px_prev = {0, 0, 0, 255};
 	v4_byte px = px_prev;
 
 	const int32 channels = (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);
 
-	int32 px_len = image->width * image->height * channels;
-	int32 px_end = px_len - channels;
+	const int32 px_len = image->width * image->height * channels;
+	const int32 px_end = px_len - channels;
 
     int32 run = 0;
 	if (channels == 4) {
@@ -116,6 +113,8 @@ int32 qoi_encode(const Image* image, byte* data) NO_EXCEPT
                     *data++ = px.g;
                     *data++ = px.b;
                     break;
+				default:
+					UNREACHABLE();
             }
 
 			px_prev = px;
@@ -180,6 +179,8 @@ int32 qoi_encode(const Image* image, byte* data) NO_EXCEPT
                     *data++ = px.g;
                     *data++ = px.b;
                     break;
+				default:
+					UNREACHABLE();
             }
 
 			px_prev = px;
@@ -192,9 +193,8 @@ int32 qoi_encode(const Image* image, byte* data) NO_EXCEPT
 static
 int32 qoi_decode_4(const byte* data, Image* image) NO_EXCEPT
 {
-    uint32 px_len = image->width * image->height * 4;
+    const uint32 px_len = image->width * image->height * 4;
     v4_byte px = {0, 0, 0, 255};
-    v4_byte index[64] = {0};
     int32 run = 0;
 
     for (uint32 px_pos = 0; px_pos < px_len; px_pos += 4) {
@@ -243,7 +243,7 @@ int32 qoi_decode_4(const byte* data, Image* image) NO_EXCEPT
 static
 int32 qoi_decode_3(const byte* data, Image* image) NO_EXCEPT
 {
-	uint32 px_len = image->width * image->height * 3;
+	const uint32 px_len = image->width * image->height * 3;
     v3_byte px = {0, 0, 0};
     int32 run = 0;
 

@@ -9,7 +9,7 @@
 #ifndef COMS_PLATFORM_LINUX_THREADING_ATOMIC_H
 #define COMS_PLATFORM_LINUX_THREADING_ATOMIC_H
 
-#if __GNUC__
+#ifdef __GNUC__
     #include "../../../compiler/gcc/Atomic.h"
 #endif
 

@@ -16,8 +16,13 @@
 // We need the following helper types to "cast" between float and long.
 // We can't just perform a "normal" cast since that re-interprets the bits. We need to maintain the bits
 // @question Don't we also have to do this for signed vs unsigned?
-typedef union { f32 f; LONG l; } _atomic_32;
-typedef union { f64 f; LONG64 l; } _atomic_64;
+typedef union { LONG l; f32 f; } _atomic_32;
+typedef union { LONG64 l; f64 f; } _atomic_64;
+
+// We need this version as well because c++17 would make it annoying to define the value at initialization
+// temp = { value } is only allowed if value has the same value as the first value in the union in c++17
+typedef union { f32 f; LONG l; } _atomic_32f;
+typedef union { f64 f; LONG64 l; } _atomic_64f;
 
 // WARNING: Windows doesn't really have relaxed, release, acquire function on x86_64.
 // You can see that by checking out how they are defined
@@ -31,8 +36,8 @@ FORCE_INLINE void atomic_set_relaxed(volatile int8* value, int8 new_value) NO_EX
 FORCE_INLINE void atomic_set_relaxed(volatile int16* value, int16 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedExchangeNoFence16((volatile short *) value, new_value); }
 FORCE_INLINE void atomic_set_relaxed(volatile int32* value, int32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedExchangeNoFence((volatile long *) value, new_value); }
 FORCE_INLINE void atomic_set_relaxed(volatile int64* value, int64 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedExchangeNoFence64((volatile LONG64 *) value, (LONG64) new_value); }
-FORCE_INLINE void atomic_set_relaxed(volatile f32* value, f32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {.f = new_value}; InterlockedExchangeNoFence((volatile long *) value, (long) temp.l); }
-FORCE_INLINE void atomic_set_relaxed(volatile f64* value, f64 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {.f = new_value}; InterlockedExchangeNoFence64((volatile LONG64 *) value, (LONG64) temp.l); }
+FORCE_INLINE void atomic_set_relaxed(volatile f32* value, f32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32f temp = {new_value}; InterlockedExchangeNoFence((volatile long *) value, (long) temp.l); }
+FORCE_INLINE void atomic_set_relaxed(volatile f64* value, f64 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64f temp = {new_value}; InterlockedExchangeNoFence64((volatile LONG64 *) value, (LONG64) temp.l); }
 FORCE_INLINE int8 atomic_fetch_set_relaxed(volatile int8* value, int8 new_value) NO_EXCEPT { return (int8) InterlockedExchangeNoFence8((volatile char *) value, (char) new_value); }
 FORCE_INLINE int16 atomic_fetch_set_relaxed(volatile int16* value, int16 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return (int16) InterlockedExchangeNoFence16((volatile short *) value, (short) new_value); }
 FORCE_INLINE int32 atomic_fetch_set_relaxed(volatile int32* value, int32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeNoFence((volatile long *) value, new_value); }
@@ -41,8 +46,8 @@ FORCE_INLINE int8 atomic_get_relaxed(volatile int8* value) NO_EXCEPT { return (i
 FORCE_INLINE int16 atomic_get_relaxed(volatile int16* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return (int16) InterlockedCompareExchangeNoFence16((volatile short *) value, 0, 0); }
 FORCE_INLINE int32 atomic_get_relaxed(volatile int32* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedCompareExchangeNoFence((volatile long *) value, 0, 0); }
 FORCE_INLINE int64 atomic_get_relaxed(volatile int64* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedCompareExchangeNoFence64((volatile LONG64 *) value, 0, 0); }
-FORCE_INLINE f32 atomic_get_relaxed(volatile f32* value) NO_EXCEPT { _atomic_32 temp = {.l = InterlockedCompareExchangeNoFence((volatile long *) value, 0, 0)}; return temp.f; }
-FORCE_INLINE f64 atomic_get_relaxed(volatile f64* value) NO_EXCEPT { _atomic_64 temp = {.l = InterlockedCompareExchangeNoFence64((volatile LONG64 *) value, 0, 0)}; return temp.f; }
+FORCE_INLINE f32 atomic_get_relaxed(volatile f32* value) NO_EXCEPT { _atomic_32 temp = {InterlockedCompareExchangeNoFence((volatile long *) value, 0, 0)}; return temp.f; }
+FORCE_INLINE f64 atomic_get_relaxed(volatile f64* value) NO_EXCEPT { _atomic_64 temp = {InterlockedCompareExchangeNoFence64((volatile LONG64 *) value, 0, 0)}; return temp.f; }
 FORCE_INLINE int8 atomic_increment_relaxed(volatile int8* value) NO_EXCEPT { return InterlockedExchangeAdd8((volatile char *) value, 1); }
 FORCE_INLINE int8 atomic_decrement_relaxed(volatile int8* value) NO_EXCEPT { return InterlockedExchangeAdd8((volatile char *) value, -1); }
 FORCE_INLINE int16 atomic_increment_relaxed(volatile int16* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return InterlockedIncrementNoFence16((volatile short *) value); }
@@ -59,8 +64,8 @@ FORCE_INLINE void atomic_add_relaxed(volatile int32* value, int32 increment) NO_
 FORCE_INLINE void atomic_sub_relaxed(volatile int32* value, int32 decrement) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedAddNoFence((volatile long *) value, -decrement); }
 FORCE_INLINE void atomic_add_relaxed(volatile int64* value, int64 increment) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedAddNoFence64((volatile LONG64 *) value, (LONG64) increment); }
 FORCE_INLINE void atomic_sub_relaxed(volatile int64* value, int64 decrement) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedAddNoFence64((volatile LONG64 *) value, -((LONG64) decrement)); }
-FORCE_INLINE f32 atomic_compare_exchange_strong_relaxed(volatile f32* value, f32 expected, f32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {.l = InterlockedCompareExchangeNoFence((volatile long *) value, (long) desired, (long) expected) }; return temp.f; }
-FORCE_INLINE f64 atomic_compare_exchange_strong_relaxed(volatile f64* value, f64 expected, f64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {.l = InterlockedCompareExchangeNoFence64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected) }; return temp.f; }
+FORCE_INLINE f32 atomic_compare_exchange_strong_relaxed(volatile f32* value, f32 expected, f32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {InterlockedCompareExchangeNoFence((volatile long *) value, (long) desired, (long) expected) }; return temp.f; }
+FORCE_INLINE f64 atomic_compare_exchange_strong_relaxed(volatile f64* value, f64 expected, f64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {InterlockedCompareExchangeNoFence64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected) }; return temp.f; }
 FORCE_INLINE int32 atomic_compare_exchange_strong_relaxed(volatile int32* value, int32 expected, int32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedCompareExchangeNoFence((volatile long *) value, desired, expected); }
 FORCE_INLINE int64 atomic_compare_exchange_strong_relaxed(volatile int64* value, int64 expected, int64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedCompareExchangeNoFence64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected); }
 FORCE_INLINE int8 atomic_fetch_add_relaxed(volatile int8* value, int8 operand) NO_EXCEPT { return (int8) InterlockedExchangeAdd8((volatile char *) value, (char) operand); }
@@ -135,8 +140,8 @@ FORCE_INLINE int8 atomic_get_acquire(volatile int8* value) NO_EXCEPT { return (i
 FORCE_INLINE int16 atomic_get_acquire(volatile int16* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return (int16) InterlockedCompareExchangeAcquire16((volatile short *) value, 0, 0); }
 FORCE_INLINE int32 atomic_get_acquire(volatile int32* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedCompareExchangeAcquire((volatile long *) value, 0, 0); }
 FORCE_INLINE int64 atomic_get_acquire(volatile int64* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedCompareExchangeAcquire64((volatile LONG64 *) value, 0, 0); }
-FORCE_INLINE f32 atomic_get_acquire(volatile f32* value) NO_EXCEPT { _atomic_32 temp = {.l = InterlockedCompareExchangeAcquire((volatile long *) value, 0, 0)}; return temp.f; }
-FORCE_INLINE f64 atomic_get_acquire(volatile f64* value) NO_EXCEPT { _atomic_64 temp = {.l = InterlockedCompareExchangeAcquire64((volatile LONG64 *) value, 0, 0)}; return temp.f; }
+FORCE_INLINE f32 atomic_get_acquire(volatile f32* value) NO_EXCEPT { _atomic_32 temp = {InterlockedCompareExchangeAcquire((volatile long *) value, 0, 0)}; return temp.f; }
+FORCE_INLINE f64 atomic_get_acquire(volatile f64* value) NO_EXCEPT { _atomic_64 temp = {InterlockedCompareExchangeAcquire64((volatile LONG64 *) value, 0, 0)}; return temp.f; }
 FORCE_INLINE int8 atomic_increment_acquire(volatile int8* value) NO_EXCEPT { return InterlockedExchangeAdd8((volatile char *) value, 1); }
 FORCE_INLINE int8 atomic_decrement_acquire(volatile int8* value) NO_EXCEPT { return InterlockedExchangeAdd8((volatile char *) value, -1); }
 FORCE_INLINE int16 atomic_increment_acquire(volatile int16* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return InterlockedIncrementAcquire16((volatile short *) value); }
@@ -153,8 +158,8 @@ FORCE_INLINE void atomic_add_acquire(volatile int32* value, int32 increment) NO_
 FORCE_INLINE void atomic_sub_acquire(volatile int32* value, int32 decrement) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedAddAcquire((volatile long *) value, -decrement); }
 FORCE_INLINE void atomic_add_acquire(volatile int64* value, int64 increment) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedAddAcquire64((volatile LONG64 *) value, (LONG64) increment); }
 FORCE_INLINE void atomic_sub_acquire(volatile int64* value, int64 decrement) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedAddAcquire64((volatile LONG64 *) value, -((LONG64) decrement)); }
-FORCE_INLINE f32 atomic_compare_exchange_strong_acquire(volatile f32* value, f32 expected, f32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {.l = InterlockedCompareExchangeAcquire((volatile long *) value, (long) desired, (long) expected) }; return temp.f; }
-FORCE_INLINE f64 atomic_compare_exchange_strong_acquire(volatile f64* value, f64 expected, f64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {.l = InterlockedCompareExchangeAcquire64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected) }; return temp.f; }
+FORCE_INLINE f32 atomic_compare_exchange_strong_acquire(volatile f32* value, f32 expected, f32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {InterlockedCompareExchangeAcquire((volatile long *) value, (long) desired, (long) expected) }; return temp.f; }
+FORCE_INLINE f64 atomic_compare_exchange_strong_acquire(volatile f64* value, f64 expected, f64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {InterlockedCompareExchangeAcquire64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected) }; return temp.f; }
 FORCE_INLINE int32 atomic_compare_exchange_strong_acquire(volatile int32* value, int32 expected, int32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedCompareExchangeAcquire((volatile long *) value, desired, expected); }
 FORCE_INLINE int64 atomic_compare_exchange_strong_acquire(volatile int64* value, int64 expected, int64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedCompareExchangeAcquire64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected); }
 FORCE_INLINE int8 atomic_fetch_add_acquire(volatile int8* value, int8 operand) NO_EXCEPT { return (int8) InterlockedExchangeAdd8((volatile char *) value, (char) operand); }
@@ -226,8 +231,8 @@ FORCE_INLINE void atomic_set_release(volatile int8* value, int8 new_value) NO_EX
 FORCE_INLINE void atomic_set_release(volatile int16* value, int16 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedExchange16((volatile short *) value, new_value); }
 FORCE_INLINE void atomic_set_release(volatile int32* value, int32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedExchange((volatile long *) value, new_value); }
 FORCE_INLINE void atomic_set_release(volatile int64* value, int64 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedExchange64((volatile LONG64 *) value, (LONG64) new_value); }
-FORCE_INLINE void atomic_set_release(volatile f32* value, f32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {.f = new_value}; InterlockedExchange((volatile long *) value, (long) temp.l); }
-FORCE_INLINE void atomic_set_release(volatile f64* value, f64 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {.f = new_value}; InterlockedExchange64((volatile LONG64 *) value, (LONG64) temp.l); }
+FORCE_INLINE void atomic_set_release(volatile f32* value, f32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32f temp = {new_value}; InterlockedExchange((volatile long *) value, (long) temp.l); }
+FORCE_INLINE void atomic_set_release(volatile f64* value, f64 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64f temp = {new_value}; InterlockedExchange64((volatile LONG64 *) value, (LONG64) temp.l); }
 FORCE_INLINE int8 atomic_fetch_set_release(volatile int8* value, int8 new_value) NO_EXCEPT { return (int8) InterlockedExchange8((volatile char *) value, (char) new_value); }
 FORCE_INLINE int16 atomic_fetch_set_release(volatile int16* value, int16 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return (int16) InterlockedExchange16((volatile short *) value, (short) new_value); }
 FORCE_INLINE int32 atomic_fetch_set_release(volatile int32* value, int32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchange((volatile long *) value, new_value); }
@@ -236,8 +241,8 @@ FORCE_INLINE int8 atomic_get_release(volatile int8* value) NO_EXCEPT { return (i
 FORCE_INLINE int16 atomic_get_release(volatile int16* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return (int16) InterlockedCompareExchangeRelease16((volatile short *) value, 0, 0); }
 FORCE_INLINE int32 atomic_get_release(volatile int32* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedCompareExchangeRelease((volatile long *) value, 0, 0); }
 FORCE_INLINE int64 atomic_get_release(volatile int64* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedCompareExchangeRelease64((volatile LONG64 *) value, 0, 0); }
-FORCE_INLINE f32 atomic_get_release(volatile f32* value) NO_EXCEPT { _atomic_32 temp = {.l = InterlockedCompareExchangeRelease((volatile long *) value, 0, 0)}; return temp.f; }
-FORCE_INLINE f64 atomic_get_release(volatile f64* value) NO_EXCEPT { _atomic_64 temp = {.l = InterlockedCompareExchangeRelease64((volatile LONG64 *) value, 0, 0)}; return temp.f; }
+FORCE_INLINE f32 atomic_get_release(volatile f32* value) NO_EXCEPT { _atomic_32 temp = {InterlockedCompareExchangeRelease((volatile long *) value, 0, 0)}; return temp.f; }
+FORCE_INLINE f64 atomic_get_release(volatile f64* value) NO_EXCEPT { _atomic_64 temp = {InterlockedCompareExchangeRelease64((volatile LONG64 *) value, 0, 0)}; return temp.f; }
 FORCE_INLINE int8 atomic_increment_release(volatile int8* value) NO_EXCEPT { return InterlockedExchangeAdd8((volatile char *) value, 1); }
 FORCE_INLINE int8 atomic_decrement_release(volatile int8* value) NO_EXCEPT { return InterlockedExchangeAdd8((volatile char *) value, -1); }
 FORCE_INLINE int16 atomic_increment_release(volatile int16* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return InterlockedIncrementRelease16((volatile short *) value); }
@@ -254,8 +259,8 @@ FORCE_INLINE void atomic_add_release(volatile int32* value, int32 increment) NO_
 FORCE_INLINE void atomic_sub_release(volatile int32* value, int32 decrement) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedAddRelease((volatile long *) value, -decrement); }
 FORCE_INLINE void atomic_add_release(volatile int64* value, int64 increment) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedAddRelease64((volatile LONG64 *) value, (LONG64) increment); }
 FORCE_INLINE void atomic_sub_release(volatile int64* value, int64 decrement) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedAddRelease64((volatile LONG64 *) value, -((LONG64) decrement)); }
-FORCE_INLINE f32 atomic_compare_exchange_strong_release(volatile f32* value, f32 expected, f32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {.l = InterlockedCompareExchangeRelease((volatile long *) value, (long) desired, (long) expected) }; return temp.f; }
-FORCE_INLINE f64 atomic_compare_exchange_strong_release(volatile f64* value, f64 expected, f64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {.l = InterlockedCompareExchangeRelease64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected) }; return temp.f; }
+FORCE_INLINE f32 atomic_compare_exchange_strong_release(volatile f32* value, f32 expected, f32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {InterlockedCompareExchangeRelease((volatile long *) value, (long) desired, (long) expected) }; return temp.f; }
+FORCE_INLINE f64 atomic_compare_exchange_strong_release(volatile f64* value, f64 expected, f64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {InterlockedCompareExchangeRelease64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected) }; return temp.f; }
 FORCE_INLINE int32 atomic_compare_exchange_strong_release(volatile int32* value, int32 expected, int32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedCompareExchangeRelease((volatile long *) value, desired, expected); }
 FORCE_INLINE int64 atomic_compare_exchange_strong_release(volatile int64* value, int64 expected, int64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedCompareExchangeRelease64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected); }
 FORCE_INLINE int8 atomic_fetch_add_release(volatile int8* value, int8 operand) NO_EXCEPT { return (int8) InterlockedExchangeAdd8((volatile char *) value, (char) operand); }
@@ -331,8 +336,8 @@ FORCE_INLINE void atomic_set_acquire_release(volatile int8* value, int8 new_valu
 FORCE_INLINE void atomic_set_acquire_release(volatile int16* value, int16 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedExchange16((volatile short *) value, new_value); }
 FORCE_INLINE void atomic_set_acquire_release(volatile int32* value, int32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedExchange((volatile long *) value, new_value); }
 FORCE_INLINE void atomic_set_acquire_release(volatile int64* value, int64 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedExchange64((volatile LONG64 *) value, (LONG64) new_value); }
-FORCE_INLINE void atomic_set_acquire_release(volatile f32* value, f32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {.f = new_value}; InterlockedExchange((volatile long *) value, (long) temp.l); }
-FORCE_INLINE void atomic_set_acquire_release(volatile f64* value, f64 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {.f = new_value}; InterlockedExchange64((volatile LONG64 *) value, (LONG64) temp.l); }
+FORCE_INLINE void atomic_set_acquire_release(volatile f32* value, f32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32f temp = {new_value}; InterlockedExchange((volatile long *) value, (long) temp.l); }
+FORCE_INLINE void atomic_set_acquire_release(volatile f64* value, f64 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64f temp = {new_value}; InterlockedExchange64((volatile LONG64 *) value, (LONG64) temp.l); }
 FORCE_INLINE int8 atomic_fetch_set_acquire_release(volatile int8* value, int8 new_value) NO_EXCEPT { return (int8) InterlockedExchange8((volatile char *) value, (char) new_value); }
 FORCE_INLINE int16 atomic_fetch_set_acquire_release(volatile int16* value, int16 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return (int16) InterlockedExchange16((volatile short *) value, (short) new_value); }
 FORCE_INLINE int32 atomic_fetch_set_acquire_release(volatile int32* value, int32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchange((volatile long *) value, new_value); }
@@ -341,8 +346,8 @@ FORCE_INLINE int8 atomic_get_acquire_release(volatile int8* value) NO_EXCEPT { r
 FORCE_INLINE int16 atomic_get_acquire_release(volatile int16* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return (int16) InterlockedCompareExchange16((volatile short *) value, 0, 0); }
 FORCE_INLINE int32 atomic_get_acquire_release(volatile int32* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedCompareExchange((volatile long *) value, 0, 0); }
 FORCE_INLINE int64 atomic_get_acquire_release(volatile int64* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedCompareExchange64((volatile LONG64 *) value, 0, 0); }
-FORCE_INLINE f32 atomic_get_acquire_release(volatile f32* value) NO_EXCEPT { _atomic_32 temp = {.l = InterlockedCompareExchange((volatile long *) value, 0, 0)}; return temp.f; }
-FORCE_INLINE f64 atomic_get_acquire_release(volatile f64* value) NO_EXCEPT { _atomic_64 temp = {.l = InterlockedCompareExchange64((volatile LONG64 *) value, 0, 0)}; return temp.f; }
+FORCE_INLINE f32 atomic_get_acquire_release(volatile f32* value) NO_EXCEPT { _atomic_32 temp = {InterlockedCompareExchange((volatile long *) value, 0, 0)}; return temp.f; }
+FORCE_INLINE f64 atomic_get_acquire_release(volatile f64* value) NO_EXCEPT { _atomic_64 temp = {InterlockedCompareExchange64((volatile LONG64 *) value, 0, 0)}; return temp.f; }
 FORCE_INLINE int8 atomic_increment_acquire_release(volatile int8* value) NO_EXCEPT { return InterlockedExchangeAdd8((volatile char *) value, 1); }
 FORCE_INLINE int8 atomic_decrement_acquire_release(volatile int8* value) NO_EXCEPT { return InterlockedExchangeAdd8((volatile char *) value, -1); }
 FORCE_INLINE int16 atomic_increment_acquire_release(volatile int16* value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); return InterlockedIncrement16((volatile short *) value); }
@@ -359,8 +364,8 @@ FORCE_INLINE void atomic_add_acquire_release(volatile int32* value, int32 increm
 FORCE_INLINE void atomic_sub_acquire_release(volatile int32* value, int32 decrement) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedAdd((volatile long *) value, -decrement); }
 FORCE_INLINE void atomic_add_acquire_release(volatile int64* value, int64 increment) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedAdd64((volatile LONG64 *) value, (LONG64) increment); }
 FORCE_INLINE void atomic_sub_acquire_release(volatile int64* value, int64 decrement) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedAdd64((volatile LONG64 *) value, -((LONG64) decrement)); }
-FORCE_INLINE f32 atomic_compare_exchange_strong_acquire_release(volatile f32* value, f32 expected, f32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {.l = InterlockedCompareExchange((volatile long *) value, (long) desired, (long) expected) }; return temp.f; }
-FORCE_INLINE f64 atomic_compare_exchange_strong_acquire_release(volatile f64* value, f64 expected, f64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {.l = InterlockedCompareExchange64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected) }; return temp.f; }
+FORCE_INLINE f32 atomic_compare_exchange_strong_acquire_release(volatile f32* value, f32 expected, f32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); _atomic_32 temp = {InterlockedCompareExchange((volatile long *) value, (long) desired, (long) expected) }; return temp.f; }
+FORCE_INLINE f64 atomic_compare_exchange_strong_acquire_release(volatile f64* value, f64 expected, f64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); _atomic_64 temp = {InterlockedCompareExchange64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected) }; return temp.f; }
 FORCE_INLINE int32 atomic_compare_exchange_strong_acquire_release(volatile int32* value, int32 expected, int32 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedCompareExchange((volatile long *) value, desired, expected); }
 FORCE_INLINE int64 atomic_compare_exchange_strong_acquire_release(volatile int64* value, int64 expected, int64 desired) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedCompareExchange64((volatile LONG64 *) value, (LONG64) desired, (LONG64) expected); }
 FORCE_INLINE int8 atomic_fetch_add_acquire_release(volatile int8* value, int8 operand) NO_EXCEPT { return (int8) InterlockedExchangeAdd8((volatile char *) value, (char) operand); }

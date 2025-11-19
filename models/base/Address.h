@@ -45,7 +45,7 @@ struct Location {
 };
 
 // @question do we really want this to be part of the binary or should this be stored in a file/template?
-constexpr WebBinaryValue LocationSchemaStruct[] = {
+CONSTEXPR WebBinaryValue LocationSchemaStruct[] = {
     WEB_BINARY_FIELD(Location, id),
     WEB_BINARY_FIELD(Location, postal),
     WEB_BINARY_FIELD(Location, city),
@@ -56,7 +56,7 @@ constexpr WebBinaryValue LocationSchemaStruct[] = {
     //WEB_BINARY_FIELD(Location, type)
 };
 
-constexpr auto LocationSchema = web_binary_schema<
+CONSTEXPR auto LocationSchema = web_binary_schema<
     LocationSchemaStruct,
     ARRAY_COUNT(LocationSchemaStruct)
 >();

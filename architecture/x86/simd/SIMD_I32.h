@@ -14,7 +14,6 @@
 #include <emmintrin.h>
 
 #include "../../../stdlib/Types.h"
-#include "../../../utils/BitUtils.h"
 
 #ifdef __SSE4_2__
     #include "SIMD_I32_SSE.h"
@@ -872,60 +871,5 @@ void endian_swap(const int16* val, int16* result, int32 size, int32 steps = 16)
         ((int16 *) result)[i] = ((v << 8) | (v >> 8));
     }
 }
-
-void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps = 16)
-{
-    int32 i = 0;
-    steps = intrin_validate_steps((const byte*) val, steps);
-    steps = intrin_validate_steps((const byte*) result, steps);
-
-    #ifdef __AVX2__
-        if (steps >= 8) {
-            steps = 8;
-            const __m256i mask_256 = _mm256_setr_epi8(
-                1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14,
-                17, 16, 19, 18, 21, 20, 23, 22, 25, 24, 27, 26, 29, 28, 31, 30
-            );
-
-            for (i = 0; i <= size - steps; i += steps) {
-                __m256i vec = _mm256_load_si256((const __m256i *) (val + i));
-                vec = _mm256_shuffle_epi8(vec, mask_256);
-
-                _mm256_store_si256((__m256i *) (result + i), vec);
-            }
-
-            steps = 1;
-        }
-    #endif
-
-    #ifdef __SSE4_2__
-        if (steps >= 4) {
-            steps = 4;
-            const __m128i mask_128 = _mm_setr_epi8(
-                1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14
-            );
-
-            for (i = 0; i <= size - steps; i += steps) {
-                __m128i vec = _mm_load_si128((const __m128i *) (val + i));
-                vec = _mm_shuffle_epi8(vec, mask_128);
-
-                _mm_store_si128((__m128i *) (result + i), vec);
-            }
-        }
-    #endif
-
-    for (; i < size; ++i) {
-        uint16 v = ((uint16 *) val)[i];
-        ((uint16 *) result)[i] = ((v << 8) | (v >> 8));
-    }
-}
-
-#if _WIN32 || __LITTLE_ENDIAN__
-    #define SWAP_ENDIAN_LITTLE_SIMD(val, result, size, steps) ((void)0)
-    #define SWAP_ENDIAN_BIG_SIMD(val, result, size, steps) endian_swap((val), (result), (size), (steps))
-#else
-    #define SWAP_ENDIAN_LITTLE_SIMD(val, result, size, steps) endian_swap((val), (result), (size), (steps))
-    #define SWAP_ENDIAN_BIG_SIMD(val, result, size, steps) ((void)0)
-#endif
 
 #endif

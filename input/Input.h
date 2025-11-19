@@ -103,7 +103,7 @@ struct InputState {
     uint16 active_hotkeys[MAX_KEY_PRESSES];
 
     // Active keys
-    InputKey active_keys[MAX_KEY_PRESSES];
+    alignas(8) InputKey active_keys[MAX_KEY_PRESSES];
 
     // Usually used by controllers
     // E.g. index 0 = primary stick or mouse, index 1 = secondary stick, index 2 = thumb trackpad
@@ -175,18 +175,18 @@ void input_init(Input* input, uint8 size, void* callback_data, BufferMemory* buf
     input->input_mapping1.hotkeys = (Hotkey *) buffer_get_memory(
         buf,
         input->input_mapping1.hotkey_count * sizeof(Hotkey),
-        4
+        8
     );
-    memset(input->input_mapping1.hotkeys, 0, input->input_mapping1.hotkey_count * sizeof(Hotkey));
+    memset_aligned_factored(input->input_mapping1.hotkeys, 0, input->input_mapping1.hotkey_count * sizeof(Hotkey), sizeof(Hotkey));
 
     // Init mapping2
     input->input_mapping2.hotkey_count = size;
     input->input_mapping2.hotkeys = (Hotkey *) buffer_get_memory(
         buf,
         input->input_mapping2.hotkey_count * sizeof(Hotkey),
-        4
+        8
     );
-    memset(input->input_mapping2.hotkeys, 0, input->input_mapping2.hotkey_count * sizeof(Hotkey));
+    memset_aligned_factored(input->input_mapping2.hotkeys, 0, input->input_mapping2.hotkey_count * sizeof(Hotkey), sizeof(Hotkey));
 }
 
 inline
@@ -195,11 +195,11 @@ void input_clean_state(InputKey* active_keys, KeyPressType press_status = KEY_PR
     if (press_status) {
         for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
             if (active_keys[i].key_state == press_status) {
-                memset(&active_keys[i], 0, sizeof(InputKey));
+                memset_aligned(&active_keys[i], 0, sizeof(InputKey));
             }
         }
     } else {
-        memset(active_keys, 0, MAX_KEY_PRESSES * sizeof(InputKey));
+        memset_aligned_factored(active_keys, 0, MAX_KEY_PRESSES * sizeof(InputKey), sizeof(InputKey));
     }
 }
 

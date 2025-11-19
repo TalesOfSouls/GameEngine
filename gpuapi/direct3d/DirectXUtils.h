@@ -312,7 +312,7 @@ DXGI_FORMAT gpuapi_texture_format(byte settings)
 }
 
 // @performance Sometimes we want to upload multiple textures in one go (more performant). Allow that or don't use this function in that case.
-D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
+D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
     ID3D12Device* device,
     ID3D12GraphicsCommandList* command_buffer,
     ID3D12Resource** texture_upload_heap,
@@ -336,11 +336,11 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
     texture_info.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
     D3D12_HEAP_PROPERTIES texture_heap_property = {
-        .Type = D3D12_HEAP_TYPE_DEFAULT,
-        .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-        .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-        .CreationNodeMask = 1,
-        .VisibleNodeMask = 1
+        D3D12_HEAP_TYPE_DEFAULT, // .Type =
+        D3D12_CPU_PAGE_PROPERTY_UNKNOWN, // .CPUPageProperty =
+        D3D12_MEMORY_POOL_UNKNOWN, // .MemoryPoolPreference =
+        1, // .CreationNodeMask =
+        1 // .VisibleNodeMask =
     };
 
     HRESULT hr;
@@ -365,27 +365,27 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
     device_temp->GetCopyableFootprints(&destination_info, 0, 1, 0, NULL, NULL, NULL, &upload_buffer_size);
 
     D3D12_RESOURCE_DESC texture_upload_buffer = {
-        .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
-        .Alignment = 0,
-        .Width = upload_buffer_size,
-        .Height = 1,
-        .DepthOrArraySize = 1,
-        .MipLevels = 1,
-        .Format = DXGI_FORMAT_UNKNOWN,
-        .SampleDesc = {
-            .Count = 1,
-            .Quality = 0,
+        D3D12_RESOURCE_DIMENSION_BUFFER, // .Dimension =
+        0, // .Alignment =
+        upload_buffer_size, // .Width =
+        1, // .Height =
+        1, // .DepthOrArraySize =
+        1, // .MipLevels =
+        DXGI_FORMAT_UNKNOWN, // .Format =
+        { // .SampleDesc =
+            1, // .Count =
+            0, // .Quality =
         },
-        .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-        .Flags = D3D12_RESOURCE_FLAG_NONE
+        D3D12_TEXTURE_LAYOUT_ROW_MAJOR, // .Layout =
+        D3D12_RESOURCE_FLAG_NONE // .Flags =
     };
 
     D3D12_HEAP_PROPERTIES texture_upload_heap_property = {
-        .Type = D3D12_HEAP_TYPE_UPLOAD,
-        .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-        .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-        .CreationNodeMask = 1,
-        .VisibleNodeMask = 1
+        D3D12_HEAP_TYPE_UPLOAD, // .Type =
+        D3D12_CPU_PAGE_PROPERTY_UNKNOWN, // .CPUPageProperty =
+        D3D12_MEMORY_POOL_UNKNOWN, // .MemoryPoolPreference =
+        1, // .CreationNodeMask =
+        1 // .VisibleNodeMask =
     };
 
     texture_heap_property.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -410,9 +410,9 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
     int32 pixel_size = image_pixel_size_from_type(texture->image.image_settings);
     D3D12_SUBRESOURCE_DATA texture_data[] = {
         {
-            .pData = texture->image.pixels,
-            .RowPitch = texture->image.width * pixel_size,
-            .SlicePitch = (texture->image.width * pixel_size) * texture->image.height,
+            texture->image.pixels, // .pData =
+            texture->image.width * pixel_size, // .RowPitch =
+            (texture->image.width * pixel_size) * texture->image.height, // .SlicePitch =
         }
     };
 
@@ -477,15 +477,15 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
     } else {
         for (uint32 i = 0; i < number_of_resources; ++i) {
             D3D12_TEXTURE_COPY_LOCATION dst = {
-                .pResource = *texture_resource,
-                .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-                .SubresourceIndex = i + first_subresource,
+                *texture_resource, // .pResource =
+                D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX, // .Type =
+                i + first_subresource, // .SubresourceIndex =
             };
 
             D3D12_TEXTURE_COPY_LOCATION src = {
-                .pResource = *texture_upload_heap,
-                .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-                .PlacedFootprint = layouts[i],
+                *texture_upload_heap, // .pResource =
+                D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT, // .Type =
+                layouts[i], // .PlacedFootprint =
             };
 
             command_buffer->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
@@ -493,13 +493,13 @@ D3D12_CPU_DESCRIPTOR_HANDLE load_texture_to_gpu(
     }
 
     D3D12_RESOURCE_BARRIER barrier = {
-        .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-        .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
-        .Transition = {
-            .pResource = *texture_resource,
-            .Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-            .StateBefore = D3D12_RESOURCE_STATE_COPY_DEST,
-            .StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+        D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, // .Type =
+        D3D12_RESOURCE_BARRIER_FLAG_NONE, // .Flags =
+        { // .Transition =
+            *texture_resource, // .pResource =
+            D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, // .Subresource =
+            D3D12_RESOURCE_STATE_COPY_DEST, // .StateBefore =
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, // .StateAfter =
         }
     };
     command_buffer->ResourceBarrier(1, &barrier);
@@ -526,19 +526,19 @@ void gpuapi_vertex_buffer_create(
 )
 {
     D3D12_RESOURCE_DESC resource_info = {
-        .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
-        .Alignment = 0,
-        .Width = vertex_size * vertex_count,
-        .Height = 1,
-        .DepthOrArraySize = 1,
-        .MipLevels = 1,
-        .Format = DXGI_FORMAT_UNKNOWN,
-        .SampleDesc = {
-            .Count = 1,
-            .Quality = 0
+        D3D12_RESOURCE_DIMENSION_BUFFER, // .Dimension =
+        0, // .Alignment =
+        vertex_size * vertex_count, // .Width =
+        1, // .Height =
+        1, // .DepthOrArraySize =
+        1, // .MipLevels =
+        DXGI_FORMAT_UNKNOWN, // .Format =
+        { // .SampleDesc =
+            1, // .Count =
+            0 // .Quality =
         },
-        .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-        .Flags = D3D12_RESOURCE_FLAG_NONE
+        D3D12_TEXTURE_LAYOUT_ROW_MAJOR, // .Layout =
+        D3D12_RESOURCE_FLAG_NONE // .Flags =
     };
 
     // Note: using upload heaps to transfer static data like vert buffers is not
@@ -546,11 +546,11 @@ void gpuapi_vertex_buffer_create(
     // over. Please read up on Default Heap usage. An upload heap is used here for
     // code simplicity and because there are very few verts to actually transfer.
     D3D12_HEAP_PROPERTIES heap_property = {
-        .Type = D3D12_HEAP_TYPE_UPLOAD,
-        .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-        .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-        .CreationNodeMask = 1,
-        .VisibleNodeMask = 1
+        D3D12_HEAP_TYPE_UPLOAD, // .Type =
+        D3D12_CPU_PAGE_PROPERTY_UNKNOWN, // .CPUPageProperty =
+        D3D12_MEMORY_POOL_UNKNOWN, // .MemoryPoolPreference =
+        1, // .CreationNodeMask =
+        1 // .VisibleNodeMask =
     };
 
     HRESULT hr;
@@ -622,19 +622,19 @@ void gpuapi_uniform_buffers_create(
 )
 {
     D3D12_RESOURCE_DESC resource_info = {
-        .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
-        .Alignment = 0,
-        .Width = buffer_size,
-        .Height = 1,
-        .DepthOrArraySize = 1,
-        .MipLevels = 1,
-        .Format = DXGI_FORMAT_UNKNOWN,
-        .SampleDesc = {
-            .Count = 1,
-            .Quality = 0
+        D3D12_RESOURCE_DIMENSION_BUFFER, // .Dimension =
+        0, // .Alignment =
+        buffer_size, // .Width =
+        1, // .Height =
+        1, // .DepthOrArraySize =
+        1, // .MipLevels =
+        DXGI_FORMAT_UNKNOWN, // .Format =
+        { // .SampleDesc =
+            1, // .Count =
+            0 // .Quality =
         },
-        .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-        .Flags = D3D12_RESOURCE_FLAG_NONE
+        D3D12_TEXTURE_LAYOUT_ROW_MAJOR, // .Layout =
+        D3D12_RESOURCE_FLAG_NONE // .Flags =
     };
 
     // Note: using upload heaps to transfer static data like vert buffers is not
@@ -642,11 +642,11 @@ void gpuapi_uniform_buffers_create(
     // over. Please read up on Default Heap usage. An upload heap is used here for
     // code simplicity and because there are very few verts to actually transfer.
     D3D12_HEAP_PROPERTIES heap_property = {
-        .Type = D3D12_HEAP_TYPE_UPLOAD,
-        .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-        .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-        .CreationNodeMask = 1,
-        .VisibleNodeMask = 1
+        D3D12_HEAP_TYPE_UPLOAD, // .Type =
+        D3D12_CPU_PAGE_PROPERTY_UNKNOWN, // .CPUPageProperty =
+        D3D12_MEMORY_POOL_UNKNOWN, // .MemoryPoolPreference =
+        1, // .CreationNodeMask =
+        1 // .VisibleNodeMask =
     };
 
     device->CreateCommittedResource(

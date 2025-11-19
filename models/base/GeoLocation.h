@@ -17,12 +17,12 @@ struct GeoLocation {
     f64 lon;
 };
 
-constexpr WebBinaryValue GeoLocationSchemaStruct[] = {
+CONSTEXPR WebBinaryValue GeoLocationSchemaStruct[] = {
     WEB_BINARY_FIELD(GeoLocation, lat),
     WEB_BINARY_FIELD(GeoLocation, lon)
 };
 
-constexpr auto GeoLocationSchema = web_binary_schema<
+CONSTEXPR auto GeoLocationSchema = web_binary_schema<
     GeoLocationSchemaStruct,
     ARRAY_COUNT(GeoLocationSchemaStruct)
 >();

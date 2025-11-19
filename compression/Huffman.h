@@ -163,7 +163,7 @@ void huffman_load(Huffman* hf, const byte* in)
 {
     // load the char -> code relations and convert relative indices to pointers
     for (uint32 i = 0; i < ARRAY_COUNT(hf->code); ++i) {
-        int64 value = SWAP_ENDIAN_LITTLE(*((int64 *) in));
+        const int64 value = SWAP_ENDIAN_LITTLE(*((int64 *) in));
         in += sizeof(value);
 
         if (value > -1) {
@@ -208,11 +208,11 @@ int64 huffman_decode(Huffman* hf, const byte* in, byte* out, uint64 bit_length) 
 {
     HuffmanNode* current = hf->pq[1];
     int32 pos_bit = 0;
-    byte* start = out;
+    const byte* start = out;
 
     while (pos_bit < bit_length) {
         // Branchless version of checking if bit is set and then updating current
-        int32 bit = BITS_GET_8_L2R(*in, pos_bit, 1);
+        const int32 bit = BITS_GET_8_L2R(*in, pos_bit, 1);
         current = (HuffmanNode *) (((uintptr_t) current->left & ~bit) | ((uintptr_t) current->right & bit));
 
         if (current->character) {

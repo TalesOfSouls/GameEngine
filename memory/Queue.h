@@ -43,7 +43,7 @@ struct QueueEvent {
 };
 
 FORCE_INLINE
-void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, uint32 alignment = 64)
+void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
 {
     element_size = OMS_ALIGN_UP(element_size, alignment);
 
@@ -52,7 +52,7 @@ void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, uint32
 }
 
 FORCE_INLINE
-void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 element_size, uint32 alignment = 64)
+void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
 {
     element_size = OMS_ALIGN_UP(element_size, alignment);
 
@@ -61,7 +61,7 @@ void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 el
 }
 
 FORCE_INLINE
-void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_size, uint32 alignment = 64)
+void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
 {
     element_size = OMS_ALIGN_UP(element_size, alignment);
 

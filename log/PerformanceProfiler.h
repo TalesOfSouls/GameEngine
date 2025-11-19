@@ -71,7 +71,7 @@ enum PerformanceProfileFlag : uint32 {
 };
 
 // @question Should this store the thread_id?
-struct PerformanceProfileResult {
+struct alignas(8) PerformanceProfileResult {
     atomic_64 const char* name;
 
     // WARNING: rdtsc doesn't really return cycle count but we will just call it that
@@ -99,10 +99,11 @@ void profile_performance_snapshot() NO_EXCEPT {
     }
 
     int32 pos = atomic_increment_wrap_acquire_release(&_perf_stats->pos, ARRAY_COUNT(_perf_stats->perfs) / PROFILE_SIZE);
-    memset(
+    memset_aligned_factored(
         &_perf_stats->perfs[pos * PROFILE_SIZE],
         0,
-        PROFILE_SIZE * sizeof(PerformanceProfileResult)
+        PROFILE_SIZE * sizeof(PerformanceProfileResult),
+        sizeof(PerformanceProfileResult)
     );
 }
 
@@ -199,7 +200,7 @@ struct PerformanceThreadProfiler {
             return;
         }
 
-        uint64 end_cycle = intrin_timestamp_counter();
+        const uint64 end_cycle = intrin_timestamp_counter();
 
         for (int32 i = 0; i < _perf_thread_history_count; ++i) {
             if (_perf_thread_history[i].thread_id == this->_id) {
@@ -221,10 +222,10 @@ void performance_log_to_file() NO_EXCEPT
         return;
     }
 
-    int32 count = PROFILE_SIZE;
+    MAYBE_UNUSED int32 count = PROFILE_SIZE;
     LOG_1("[BEGIN] Performance log (count %d)", {LOG_DATA_INT32, &count});
 
-    int32 size = sizeof(*_perf_stats);
+    MAYBE_UNUSED int32 size = sizeof(*_perf_stats);
     LOG_1((const char *) _perf_stats, {LOG_DATA_RAW, &size});
 
     LOG_1("[END] Performance log");
@@ -379,7 +380,7 @@ void performance_profiler_end(int32 id) NO_EXCEPT
         return;
     }
 
-    int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
+    const int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
 
     PerformanceProfileResult* perf = &_perf_stats->perfs[pos + id];
     perf->self_cycle += intrin_timestamp_counter();

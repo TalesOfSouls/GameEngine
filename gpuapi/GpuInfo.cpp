@@ -11,12 +11,14 @@
 
 #include "CpuInfo.h"
 
-#if OPENGL
+#if defined(OPENGL)
     #include "opengl/GpuInfo.cpp"
-#elif DIRECTX
+#elif defined(DIRECTX)
     #include "direct3d/GpuInfo.cpp"
-#elif VULKAN
+#elif defined(VULKAN)
     #include "vulkan/GpuInfo.cpp"
+#elif defined(SOFTWARE)
+    #include "soft/GpuInfo.cpp"
 #endif
 
 #endif

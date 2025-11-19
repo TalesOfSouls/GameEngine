@@ -41,19 +41,19 @@ struct ThreadedDataPool {
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
 FORCE_INLINE
-void thrd_pool_alloc(ThreadedDataPool* buf, uint32 count, uint32 chunk_size, int32 alignment = 64)
+void thrd_pool_alloc(ThreadedDataPool* buf, uint32 count, uint32 chunk_size, int32 alignment = sizeof(size_t))
 {
     pool_alloc((DataPool *) buf, count, chunk_size, alignment);
 }
 
 FORCE_INLINE
-void thrd_pool_init(ThreadedDataPool* buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
+void thrd_pool_init(ThreadedDataPool* buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = sizeof(size_t))
 {
     pool_init((DataPool *) buf, data, count, chunk_size, alignment);
 }
 
 FORCE_INLINE
-void thrd_pool_init(ThreadedDataPool* buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = 64)
+void thrd_pool_init(ThreadedDataPool* buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = sizeof(size_t))
 {
     pool_init((DataPool *) buf, data, count, chunk_size, alignment);
 }

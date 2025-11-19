@@ -88,7 +88,7 @@ void thrd_cmd_insert(AppCmdBuffer* __restrict cb, Command* __restrict cmd_temp)
     }
 
     Command* cmd = (Command *) chunk_get_element(&cb->commands, index);
-    memcpy(cmd, cmd_temp, sizeof(Command));
+    memcpy_aligned(cmd, cmd_temp, sizeof(Command));
     mutex_unlock(&cb->mtx);
 }
 

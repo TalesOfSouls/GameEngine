@@ -10,6 +10,7 @@
 #define COMS_GPUAPI_OPENGL_H
 
 // Some apis require a different sign for various operations (left/right)
+// @todo Not sure if still used, check
 #define GPU_API_SIGN -1
 
 #if _WIN32

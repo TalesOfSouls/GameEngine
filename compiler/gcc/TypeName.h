@@ -13,34 +13,34 @@
 #include "../../utils/StringUtils.h"
 
 template<typename T>
-constexpr auto GetRawTypeName() {
-    constexpr const char* fn = __PRETTY_FUNCTION__;
-    constexpr const char* prefix = "T = ";
-    constexpr const char* suffix = "]";
+CONSTEXPR auto GetRawTypeName() {
+    CONSTEXPR const char* fn = __PRETTY_FUNCTION__;
+    CONSTEXPR const char* prefix = "T = ";
+    CONSTEXPR const char* suffix = "]";
 
-    constexpr const char* start = str_find_constexpr(fn, prefix);
-    constexpr const char* adjusted_start = start ? start + str_length(prefix) : fn;
+    CONSTEXPR const char* start = str_find_CONSTEXPR(fn, prefix);
+    CONSTEXPR const char* adjusted_start = start ? start + str_length(prefix) : fn;
 
-    constexpr const char* end = str_find_constexpr(adjusted_start, suffix);
-    constexpr const char* final_start = end ? adjusted_start : fn;
-    constexpr size_t length = end ? (end - adjusted_start) : str_length(adjusted_start);
+    CONSTEXPR const char* end = str_find_CONSTEXPR(adjusted_start, suffix);
+    CONSTEXPR const char* final_start = end ? adjusted_start : fn;
+    CONSTEXPR size_t length = end ? (end - adjusted_start) : str_length(adjusted_start);
 
-    // Create a struct that holds the string in a constexpr-friendly way
+    // Create a struct that holds the string in a CONSTEXPR-friendly way
     struct Result {
         char str[128] = {};
 
-        constexpr Result() {
+        CONSTEXPR Result() {
             for (size_t i = 0; i < length && i < 127; ++i) {
                 str[i] = final_start[i];
             }
             str[length < 127 ? length : 127] = '\0';
         }
 
-        constexpr const char* Get() const { return str; }
+        CONSTEXPR const char* Get() const { return str; }
     };
 
     // This will create a static storage duration object when used at runtime
-    static constexpr Result result;
+    static CONSTEXPR Result result;
     return result.Get();
 }
 

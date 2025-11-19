@@ -35,6 +35,46 @@ uint64 system_private_memory_usage()
     }
 }
 
+inline
+uint32 system_stack_usage()
+{
+    static thread_local char* stack_base = NULL;
+
+    if (!stack_base) {
+        char path[64];
+        pid_t tid = get_tid();
+        if (tid == getpid()) {
+            // main thread: use /proc/self/maps
+            str_copy(path, "/proc/self/maps", sizeof("/proc/self/maps"));
+        } else {
+            // other thread: use task-specific maps
+            sprintf_fast(path, sizeof(path), "/proc/self/task/%d/maps", (uint32) tid)
+        }
+
+        // @todo replace with own functions
+        FILE *f = fopen(path, "r");
+
+        char line[512];
+        while (fgets(line, sizeof(line), f)) {
+            if (strstr(line, "[stack]")) {
+                unsigned long start = 0;
+                if (sscanf(line, "%lx-", &start) == 2) {
+                    stack_base = (uintptr_t) start;
+                }
+
+                break;
+            }
+        }
+
+        fclose(f);
+    }
+
+    volatile char local_var = '0'; // current position on stack
+    uint32 used = (uint32) (stack_base - (char *) &local_var);
+
+    return used;
+}
+
 uint64 system_app_memory_usage()
 {
     uint64 total_size = 0;
@@ -88,36 +128,29 @@ void mainboard_info_get(MainboardInfo* info) {
 }
 
 int32 network_info_get(NetworkInfo* info) {
-    char path[64];
-    memset(path, 0, sizeof(path));
+    char path[64] = "/sys/class/net/eth";
 
     struct stat st;
     int32 i = 0;
 
     FileBody file = {};
-    memcpy(path, "/sys/class/net/eth", sizeof("/sys/class/net/eth"));
 
     for (i = 0; i < 4; ++i) {
-        int_to_str(i, path + sizeof("/sys/class/net/eth"));
+        int_to_str(i, path + sizeof("/sys/class/net/eth") - 1);
 
         if (stat(path, &st) != 0) {
             break;
         }
 
-        char path2[64];
-        memcpy(path2, path, sizeof("/sys/class/net/eth"));
-
         // Read MAC address
-        path2[sizeof("/sys/class/net/eth") + 1] = '\0';
-        str_concat_append(path2, "/address");
+        memcpy(path + sizeof("/sys/class/net/eth"), "/address", sizeof("/address"));
 
         file.content = info[i].mac;
         file.size = sizeof(info[i].mac) - 1;
-        file_read(path2, &file);
+        file_read(path, &file);
 
         // Read interface name
-        path2[sizeof("/sys/class/net/eth") + 1] = '\0';
-        str_concat_append(path2, "/ifindex");
+        memcpy(path + sizeof("/sys/class/net/eth"), "/ifindex", sizeof("/ifindex"));
 
         file.content = (byte *) info[i].slot;
         file.size = sizeof(info[i].slot) - 1;

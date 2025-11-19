@@ -22,7 +22,7 @@
 
 struct int32_4 {
     union {
-        #if ARM
+        #ifdef __aarch64__
             svint32_t s;
         #else
             __m128i s;

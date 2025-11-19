@@ -35,7 +35,7 @@ void image_from_file(Image* __restrict image, const char* __restrict path, RingM
 void image_flip_vertical(RingMemory* __restrict ring, Image* __restrict image) NO_EXCEPT
 {
     uint32 stride = image->width * sizeof(uint32);
-    byte* temp = ring_get_memory(ring, image->pixel_count * sizeof(uint32));
+    byte* temp = ring_get_memory(ring, image->pixel_count * sizeof(uint32), 8);
     memcpy(temp, image->pixels, image->pixel_count * sizeof(uint32));
 
     // Last row

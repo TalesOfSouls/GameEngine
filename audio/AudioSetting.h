@@ -10,7 +10,7 @@
 #define COMS_AUDIO_SETTING_H
 
 #include "../stdlib/Types.h"
-#include "../math/matrix/MatrixFloat32.h"
+#include "../math/matrix/Matrix.h"
 
 enum SoundApiType : byte {
     SOUND_API_TYPE_DIRECT_SOUND,

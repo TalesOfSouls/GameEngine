@@ -17,7 +17,7 @@
 
 struct f32_16 {
     union {
-        #if ARM
+        #ifdef __aarch64__
             svfloat32_t s;
         #else
             __m512 s;

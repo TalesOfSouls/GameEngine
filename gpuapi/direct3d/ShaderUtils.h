@@ -83,25 +83,25 @@ ID3D12PipelineState* gpuapi_pipeline_make(
     pipeline_state_info.InputLayout = { descriptor_set_layouts, layout_count };
     pipeline_state_info.pRootSignature = pipeline_layout;
     pipeline_state_info.VS = {
-        .pShaderBytecode = vertex_shader->GetBufferPointer(),
-        .BytecodeLength = vertex_shader->GetBufferSize()
+        vertex_shader->GetBufferPointer(), // .pShaderBytecode =
+        vertex_shader->GetBufferSize() // .BytecodeLength =
     };
     pipeline_state_info.PS = {
-        .pShaderBytecode = fragment_shader->GetBufferPointer(),
-        .BytecodeLength = fragment_shader->GetBufferSize()
+        fragment_shader->GetBufferPointer(), // .pShaderBytecode =
+        fragment_shader->GetBufferSize() // .BytecodeLength =
     };
     pipeline_state_info.RasterizerState = {
-        .FillMode = D3D12_FILL_MODE_SOLID,
-        .CullMode = D3D12_CULL_MODE_BACK,
-        .FrontCounterClockwise = false,
-        .DepthBias = D3D12_DEFAULT_DEPTH_BIAS,
-        .DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
-        .SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
-        .DepthClipEnable = true,
-        .MultisampleEnable = false,
-        .AntialiasedLineEnable = false,
-        .ForcedSampleCount = 0,
-        .ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF
+        D3D12_FILL_MODE_SOLID, // .FillMode =
+        D3D12_CULL_MODE_BACK, // .CullMode =
+        false, // .FrontCounterClockwise =
+        D3D12_DEFAULT_DEPTH_BIAS, // .DepthBias =
+        D3D12_DEFAULT_DEPTH_BIAS_CLAMP, // .DepthBiasClamp =
+        D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS, // .SlopeScaledDepthBias =
+        true, // .DepthClipEnable =
+        false, // .MultisampleEnable =
+        false, // .AntialiasedLineEnable =
+        0, // .ForcedSampleCount =
+        D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF // .ConservativeRaster =
     };
 
     const D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc = {
@@ -112,9 +112,9 @@ ID3D12PipelineState* gpuapi_pipeline_make(
         D3D12_COLOR_WRITE_ENABLE_ALL,
     };
     pipeline_state_info.BlendState = {
-        .AlphaToCoverageEnable = false,
-        .IndependentBlendEnable = false,
-        .RenderTarget = {
+        false, // .AlphaToCoverageEnable =
+        false, // .IndependentBlendEnable =
+        { // .RenderTarget =
             defaultRenderTargetBlendDesc, defaultRenderTargetBlendDesc, defaultRenderTargetBlendDesc, defaultRenderTargetBlendDesc,
             defaultRenderTargetBlendDesc, defaultRenderTargetBlendDesc, defaultRenderTargetBlendDesc, defaultRenderTargetBlendDesc
         }
@@ -146,134 +146,164 @@ void gpuapi_pipeline_use(ID3D12GraphicsCommandList* command_buffer, ID3D12Pipeli
 }
 
 // In DirectX Attribute info and descriptor set layout are combined into one
-constexpr
+CONSTEXPR
 void gpuapi_attribute_info_create(GpuAttributeType type, D3D12_INPUT_ELEMENT_DESC* attr)
 {
     switch (type) {
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D: {
             attr[0] = {
-                .SemanticIndex = 0,
-                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3D, position),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                0, // .SemanticIndex =
+                DXGI_FORMAT_R32G32B32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3D, position), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
 
             attr[1] = {
-                .SemanticIndex = 1,
-                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3D, normal),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                1, // .SemanticIndex =
+                DXGI_FORMAT_R32G32B32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3D, normal), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
 
             attr[2] = {
-                .SemanticIndex = 2,
-                .Format = DXGI_FORMAT_R32G32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3D, tex_coord),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                2, // .SemanticIndex =
+                DXGI_FORMAT_R32G32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3D, tex_coord), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
 
             attr[3] = {
-                .SemanticIndex = 3,
-                .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3D, color),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                3, // .SemanticIndex =
+                DXGI_FORMAT_R32G32B32A32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3D, color), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL: {
             attr[0] = {
-                .SemanticIndex = 0,
-                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3DNormal, position),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                0, // .SemanticIndex =
+                DXGI_FORMAT_R32G32B32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3DNormal, position), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
 
             attr[1] = {
-                .SemanticIndex = 1,
-                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3DNormal, normal),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                1, // .SemanticIndex =
+                DXGI_FORMAT_R32G32B32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3DNormal, normal), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR: {
             attr[0] = {
-                .SemanticIndex = 0,
-                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3DColor, position),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                0, // .SemanticIndex =
+                DXGI_FORMAT_R32G32B32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3DColor, position), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
 
             attr[1] = {
-                .SemanticIndex = 1,
-                .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3DColor, color),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                1, // .SemanticIndex =
+                DXGI_FORMAT_R32G32B32A32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3DColor, color), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR: {
             attr[0] = {
-                .SemanticIndex = 0,
-                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3DTextureColor, position),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                0, // .SemanticIndex =
+                DXGI_FORMAT_R32G32B32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3DTextureColor, position), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
 
             attr[1] = {
-                .SemanticIndex = 1,
-                .Format = DXGI_FORMAT_R32G32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3DTextureColor, texture_color),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                1, // .SemanticIndex =
+                DXGI_FORMAT_R32G32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3DTextureColor, texture_color), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR: {
             attr[0] = {
-                .SemanticIndex = 0,
-                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3DSamplerTextureColor, position),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                0, // .SemanticIndex =
+                DXGI_FORMAT_R32G32B32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3DSamplerTextureColor, position), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
 
             attr[1] = {
-                .SemanticIndex = 1,
-                .Format = DXGI_FORMAT_R32_SINT,
-                .AlignedByteOffset = offsetof(Vertex3DSamplerTextureColor, sampler),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                1, // .SemanticIndex =
+                DXGI_FORMAT_R32_SINT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3DSamplerTextureColor, sampler), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
 
             attr[2] = {
-                .SemanticIndex = 2,
-                .Format = DXGI_FORMAT_R32G32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex3DSamplerTextureColor, texture_color),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                2, // .SemanticIndex =
+                DXGI_FORMAT_R32G32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex3DSamplerTextureColor, texture_color), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE: {
             attr[0] = {
-                .SemanticIndex = 0,
-                .Format = DXGI_FORMAT_R32G32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex2DTexture, position),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                0, // .SemanticIndex =
+                DXGI_FORMAT_R32G32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex2DTexture, position), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
 
             attr[1] = {
-                .SemanticIndex = 1,
-                .Format = DXGI_FORMAT_R32G32_FLOAT,
-                .AlignedByteOffset = offsetof(Vertex2DTexture, tex_coord),
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0,
+                NULL, // .SemanticName =
+                1, // .SemanticIndex =
+                DXGI_FORMAT_R32G32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex2DTexture, tex_coord), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
             };
         } return;
         default:

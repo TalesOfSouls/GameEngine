@@ -11,10 +11,11 @@
 
 #include "../stdlib/Types.h"
 #include "../stdlib/GameMathTypes.h"
-#include "../math/matrix/MatrixFloat32.h"
+#include "../math/matrix/Matrix.h"
 #include "../compiler/CompilerUtils.h"
 #include "CameraMovement.h"
 #include "../gpuapi/GpuApiType.h"
+#include "../sort/Sort.h"
 
 #define CAMERA_MAX_INPUTS 4
 
@@ -75,11 +76,14 @@ struct Camera {
     f32 zfar;
     f32 aspect;
 
-    // @question Consider to replace with m4x4_f32 types
+    // @question Consider to replace with v16_f32 types
     // Careful, you cannot change the order of this
     // The reason is we copy all of the data to the gpu in one go in some cases
     // If we would change the order we would also change the order of the data on the gpu
     // This of course could brick the shaders
+    // However, if we use v16_f32 someone might assume that the internal data can use simd
+    // BUT that is never the case, the camera data is not using simd since we are rarely performing operations at the moment
+    // If this changes in the future and we use this for cpu calculations it could make sense to change to v16_f32 and store only when uploading to gpu
     alignas(64) f32 projection[16];
     alignas(64) f32 orth[16];
     alignas(64) f32 view[16];
@@ -93,42 +97,42 @@ void camera_frustum_update(Camera* camera) NO_EXCEPT {
     const v3_f32 right = camera->right;
 
     // Near and far plane centers
-    v3_f32 near_center = {
+    const v3_f32 near_center = {
         pos.x + front.x * camera->znear,
         pos.y + front.y * camera->znear,
         pos.z + front.z * camera->znear
     };
-    v3_f32 far_center = {
+    const v3_f32 far_center = {
         pos.x + front.x * camera->zfar,
         pos.y + front.y * camera->zfar,
         pos.z + front.z * camera->zfar
     };
 
     // Precompute near/far plane half extents
-    f32 tan_fov = tanf(camera->fov * 0.5f);
-    f32 fh = camera->zfar * tan_fov;
-    f32 fw = fh * camera->aspect;
+    const f32 tan_fov = tanf(camera->fov * 0.5f);
+    const f32 fh = camera->zfar * tan_fov;
+    const f32 fw = fh * camera->aspect;
 
     // Precompute scaled basis vectors to avoid multiple v3_scale calls
-    v3_f32 up_fh = { up.x * fh, up.y * fh, up.z * fh };
-    v3_f32 up_negfh = { -up_fh.x, -up_fh.y, -up_fh.z };
+    const v3_f32 up_fh = { up.x * fh, up.y * fh, up.z * fh };
+    const v3_f32 up_negfh = { -up_fh.x, -up_fh.y, -up_fh.z };
 
-    v3_f32 right_fw = { right.x * fw, right.y * fw, right.z * fw };
-    v3_f32 right_negfw = { -right_fw.x, -right_fw.y, -right_fw.z };
+    const v3_f32 right_fw = { right.x * fw, right.y * fw, right.z * fw };
+    const v3_f32 right_negfw = { -right_fw.x, -right_fw.y, -right_fw.z };
 
-    v3_f32 fc_up = vec3_add(far_center, up_fh);
-    v3_f32 fc_down = vec3_add(far_center, up_negfh);
+    const v3_f32 fc_up = vec3_add(far_center, up_fh);
+    const v3_f32 fc_down = vec3_add(far_center, up_negfh);
 
     // Compute far plane corners using the pre-shifted positions
-    v3_f32 ftl = vec3_add(fc_up, right_negfw);
-    v3_f32 ftr = vec3_add(fc_up, right_fw);
-    v3_f32 fbl = vec3_add(fc_down, right_negfw);
-    v3_f32 fbr = vec3_add(fc_down, right_fw);
+    const v3_f32 ftl = vec3_add(fc_up, right_negfw);
+    const v3_f32 ftr = vec3_add(fc_up, right_fw);
+    const v3_f32 fbl = vec3_add(fc_down, right_negfw);
+    const v3_f32 fbr = vec3_add(fc_down, right_fw);
 
-    v3_f32 ftl_r = vec3_sub(ftl, pos);
-    v3_f32 ftr_r = vec3_sub(ftr, pos);
-    v3_f32 fbl_r = vec3_sub(fbl, pos);
-    v3_f32 fbr_r = vec3_sub(fbr, pos);
+    const v3_f32 ftl_r = vec3_sub(ftl, pos);
+    const v3_f32 ftr_r = vec3_sub(ftr, pos);
+    const v3_f32 fbl_r = vec3_sub(fbl, pos);
+    const v3_f32 fbr_r = vec3_sub(fbr, pos);
 
     v3_f32 cross;
 
@@ -165,7 +169,7 @@ void camera_frustum_update(Camera* camera) NO_EXCEPT {
 // This allows us to simply make shifts to the original frustum positions
 inline
 void camera_frustum_pos_update(Camera* camera, v3_f32 old_pos) NO_EXCEPT {
-    v3_f32 delta = {
+    const v3_f32 delta = {
         camera->location.x - old_pos.x,
         camera->location.y - old_pos.y,
         camera->location.z - old_pos.z
@@ -209,10 +213,18 @@ void camera_init_lh(Camera* camera) NO_EXCEPT {
 static inline
 void camera_vectors_update(Camera* camera) NO_EXCEPT
 {
+    /*
     f32 cos_ori_x = cosf(OMS_DEG2RAD(camera->orientation.x));
     camera->front.x = cos_ori_x * cosf(OMS_DEG2RAD(camera->orientation.y));
     camera->front.y = sinf(OMS_DEG2RAD(camera->orientation.x));
     camera->front.z = cos_ori_x * sinf(OMS_DEG2RAD(camera->orientation.y));
+    */
+
+    f32 cos_ori_x;
+    SINCOSF(OMS_DEG2RAD(camera->orientation.x), camera->front.y, cos_ori_x);
+    SINCOSF(OMS_DEG2RAD(camera->orientation.y), camera->front.z, camera->front.x);
+    camera->front.x *= cos_ori_x;
+    camera->front.z *= cos_ori_x;
 
     camera->right = vec3_cross(camera->front, camera->world_up);
     camera->up = vec3_cross(camera->right, camera->front);
@@ -253,7 +265,7 @@ void camera_movement(
     bool relative_to_world = true
 ) NO_EXCEPT {
     camera->state_changes |= CAMERA_STATE_CHANGE_POSITION;
-    f32 velocity = camera->speed * dt;
+    const f32 velocity = camera->speed * dt;
 
     if (relative_to_world) {
         switch(movement) {
@@ -306,7 +318,7 @@ void camera_movement(
     } else {
         camera->state_changes |= CAMERA_STATE_CHANGE_ORIENTATION;
 
-        v3_f32 forward = camera->front;
+        const v3_f32 forward = camera->front;
 
         v3_f32 right = vec3_cross(camera->world_up, forward);
         v3_f32 up = vec3_cross(right, forward);
@@ -383,12 +395,12 @@ void camera_movement(
 inline
 void camera_movement(
     Camera* __restrict camera,
-    CameraMovement* __restrict movement,
+    const CameraMovement* __restrict movement,
     f32 dt,
     bool relative_to_world = true
 ) NO_EXCEPT {
     camera->state_changes |= CAMERA_STATE_CHANGE_POSITION;
-    f32 velocity = camera->speed * dt;
+    const f32 velocity = camera->speed * dt;
 
     if (relative_to_world) {
         for (int32 i = 0; i < CAMERA_MAX_INPUTS; i++) {
@@ -441,7 +453,7 @@ void camera_movement(
             }
         }
     } else {
-        v3_f32 forward = camera->front;
+        const v3_f32 forward = camera->front;
 
         v3_f32 right = vec3_cross(camera->world_up, forward);
         v3_f32 up = vec3_cross(right, forward);
@@ -622,12 +634,12 @@ void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* t
 void
 camera_view_matrix_lh(Camera* camera) NO_EXCEPT
 {
-    v3_f32 zaxis = camera->front;
+    const v3_f32 zaxis = camera->front;
 
     v3_f32 xaxis = vec3_cross(camera->world_up, zaxis);
     vec3_normalize(&xaxis);
 
-    v3_f32 yaxis = vec3_cross(zaxis, xaxis);
+    const v3_f32 yaxis = vec3_cross(zaxis, xaxis);
 
     // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
     // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
@@ -652,12 +664,12 @@ camera_view_matrix_lh(Camera* camera) NO_EXCEPT
 void
 camera_view_matrix_rh_opengl(Camera* camera) NO_EXCEPT
 {
-    v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
+    const v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
     v3_f32 xaxis = vec3_cross(zaxis, camera->world_up);
     vec3_normalize(&xaxis);
 
-    v3_f32 yaxis = vec3_cross(zaxis, xaxis);
+    const v3_f32 yaxis = vec3_cross(zaxis, xaxis);
 
    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
     // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
@@ -682,12 +694,12 @@ camera_view_matrix_rh_opengl(Camera* camera) NO_EXCEPT
 void
 camera_view_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
 {
-    v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
+    const v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
     v3_f32 xaxis = vec3_cross(zaxis, camera->world_up);
     vec3_normalize(&xaxis);
 
-    v3_f32 yaxis = vec3_cross(zaxis, xaxis);
+    const v3_f32 yaxis = vec3_cross(zaxis, xaxis);
 
    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
     // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
@@ -718,8 +730,8 @@ f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT {
     // @performance Maybe it makes sense in the future to just pick a small CONST epsilon value
     switch (type) {
         case GPU_API_TYPE_NONE:
-            return value + (nextafterf(value, -INFINITY) - value) * 1000;
         case GPU_API_TYPE_OPENGL:
+        case GPU_API_TYPE_SOFTWARE:
             return value + (nextafterf(value, -INFINITY) - value) * 1000;
         case GPU_API_TYPE_VULKAN:
             return value + (nextafterf(value, -INFINITY) - value) * 1000;
@@ -739,8 +751,8 @@ f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT {
     // @performance Maybe it makes sense in the future to just pick a small CONST epsilon value
     switch (type) {
         case GPU_API_TYPE_NONE:
-            return value + (nextafterf(value, INFINITY) - value) * 1000;
         case GPU_API_TYPE_OPENGL:
+        case GPU_API_TYPE_SOFTWARE:
             return value + (nextafterf(value, INFINITY) - value) * 1000;
         case GPU_API_TYPE_VULKAN:
             return value + (nextafterf(value, INFINITY) - value) * 1000;
@@ -758,6 +770,7 @@ void camera_init(Camera* camera) NO_EXCEPT {
 
     switch (camera->gpu_api_type) {
         case GPU_API_TYPE_NONE:
+        case GPU_API_TYPE_SOFTWARE:
         case GPU_API_TYPE_OPENGL: {
             camera_init_rh_opengl(camera);
             camera_projection_matrix_rh_opengl(camera);
@@ -781,62 +794,17 @@ void camera_init(Camera* camera) NO_EXCEPT {
     }
 }
 
-/*
-// Creates the frustum planes (the frustum consists of 6 planes)
-// Each plane is describes as: ax + by + cz + d = 0 (4 parameters)
-inline
-void mat4_frustum_planes(Frustum* frustum, f32 radius, const f32* matrix) NO_EXCEPT
-{
-    // @todo make this a setting
-    // @bug fix to row-major system
-    // @todo don't use 2d arrays
-    f32 znear = 0.125;
-    f32 zfar = radius * 32 + 64;
-
-    frustum->plane[0 * 4 + 0] = matrix[3] + matrix[0];
-    frustum->plane[0 * 4 + 1] = matrix[7] + matrix[4];
-    frustum->plane[0 * 4 + 2] = matrix[11] + matrix[8];
-    frustum->plane[0 * 4 + 3] = matrix[15] + matrix[12];
-
-    frustum->plane[1 * 4 + 0] = matrix[3] - matrix[0];
-    frustum->plane[1 * 4 + 1] = matrix[7] - matrix[4];
-    frustum->plane[1 * 4 + 2] = matrix[11] - matrix[8];
-    frustum->plane[1 * 4 + 3] = matrix[15] - matrix[12];
-
-    frustum->plane[2 * 4 + 0] = matrix[3] + matrix[1];
-    frustum->plane[2 * 4 + 1] = matrix[7] + matrix[5];
-    frustum->plane[2 * 4 + 2] = matrix[11] + matrix[9];
-    frustum->plane[2 * 4 + 3] = matrix[15] + matrix[13];
-
-    frustum->plane[3 * 4 + 0] = matrix[3] - matrix[1];
-    frustum->plane[3 * 4 + 1] = matrix[7] - matrix[5];
-    frustum->plane[3 * 4 + 2] = matrix[11] - matrix[9];
-    frustum->plane[3 * 4 + 3] = matrix[15] - matrix[13];
-
-    frustum->plane[4 * 4 + 0] = znear * matrix[3] + matrix[2];
-    frustum->plane[4 * 4 + 1] = znear * matrix[7] + matrix[6];
-    frustum->plane[4 * 4 + 2] = znear * matrix[11] + matrix[10];
-    frustum->plane[4 * 4 + 3] = znear * matrix[15] + matrix[14];
-
-    frustum->plane[5 * 4 + 0] = zfar * matrix[3] - matrix[2];
-    frustum->plane[5 * 4 + 1] = zfar * matrix[7] - matrix[6];
-    frustum->plane[5 * 4 + 2] = zfar * matrix[11] - matrix[10];
-    frustum->plane[5 * 4 + 3] = zfar * matrix[15] - matrix[14];
-}
-    */
-
 inline
 bool aabb_intersects_frustum(const AABB_f32* __restrict box, const Frustum* __restrict frustum){
-    // "fast AABB/frustum" using positive vertex test
-    for(int32 i = 0; i < 24; i += 6){
-        const f32* plane = &frustum->plane[i];
-        v3_f32 positive = {
-            plane[0] >= 0.0f ? box->max.x : box->min.x,
-            plane[1] >= 0.0f ? box->max.y : box->min.y,
-            plane[2] >= 0.0f ? box->max.z : box->min.z
+    for(int32 i = 0; i < 6; ++i) {
+        const v4_f32 eq = frustum->eq[i];
+        const v3_f32 positive = {
+            eq.x >= 0.0f ? box->max.x : box->min.x,
+            eq.y >= 0.0f ? box->max.y : box->min.y,
+            eq.z >= 0.0f ? box->max.z : box->min.z
         };
 
-        if(plane[0] * positive.x + plane[1] * positive.y + plane[2] * positive.z + plane[3] < 0) {
+        if(eq.x * positive.x + eq.y * positive.y + eq.z * positive.z + eq.w < 0) {
             return false;
         }
     }
@@ -844,21 +812,51 @@ bool aabb_intersects_frustum(const AABB_f32* __restrict box, const Frustum* __re
     return true;
 }
 
-#if OPENGL
+inline
+bool aabb_intersects_frustum(const AABB_int32* __restrict box, const Frustum* __restrict frustum){
+    for(int32 i = 0; i < 6; ++i) {
+        const v4_f32 eq = frustum->eq[i];
+        const v3_f32 positive = {
+            (f32) (eq.x >= 0.0f ? box->max.x : box->min.x),
+            (f32) (eq.y >= 0.0f ? box->max.y : box->min.y),
+            (f32) (eq.z >= 0.0f ? box->max.z : box->min.z)
+        };
+
+        if(eq.x * positive.x + eq.y * positive.y + eq.z * positive.z + eq.w < 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+#if defined(OPENGL)
     #define camera_projection_matrix(camera) camera_projection_matrix_rh_opengl((camera))
     #define camera_orth_matrix(camera) camera_orth_matrix_rh_opengl((camera))
     #define camera_view_matrix(camera) camera_view_matrix_rh_opengl((camera))
     #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
-#elif VULKAN
+#elif defined(VULKAN)
     #define camera_projection_matrix(camera) camera_projection_matrix_rh_vulkan((camera))
     #define camera_orth_matrix(camera) camera_orth_matrix_rh_vulkan((camera))
     #define camera_view_matrix(camera) camera_view_matrix_rh_vulkan((camera))
     #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
-#elif DIRECTX
+#elif defined(DIRECTX)
     #define camera_projection_matrix(camera) camera_projection_matrix_lh((camera))
     #define camera_orth_matrix(camera) camera_orth_matrix_lh((camera))
     #define camera_view_matrix(camera) camera_view_matrix_lh((camera))
     #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_lh((camera), (translation))
+#elif defined(SOFTWARE)
+    #if _WIN32
+        #define camera_projection_matrix(camera) camera_projection_matrix_rh_opengl((camera))
+        #define camera_orth_matrix(camera) camera_orth_matrix_rh_opengl((camera))
+        #define camera_view_matrix(camera) camera_view_matrix_rh_opengl((camera))
+        #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
+    #else
+        #define camera_projection_matrix(camera) camera_projection_matrix_rh_opengl((camera))
+        #define camera_orth_matrix(camera) camera_orth_matrix_rh_opengl((camera))
+        #define camera_view_matrix(camera) camera_view_matrix_rh_opengl((camera))
+        #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
+    #endif
 #endif
 
 #endif

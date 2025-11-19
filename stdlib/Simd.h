@@ -11,21 +11,19 @@
 
 #include "../utils/Assert.h"
 
-// Adjusts the step size based on the memory alignment
-inline
-int32 intrin_validate_steps(const byte* mem, int32 steps) {
-    if (steps >= 16 && ((uintptr_t) mem & 63) == 0) {
-        return 16;
-    } else if (steps >= 8 && ((uintptr_t) mem & 31) == 0) {
-        return 8;
-    } else if (steps >= 4 && ((uintptr_t) mem & 15) == 0) {
-        return 4;
-    } else {
-        return 1;
-    }
-}
+#if defined(__AVX512F__) || defined(__ARM_FEATURE_SVE)
+    #define SIMD_POTENTIAL_STEP 16
+#elif defined(__AVX2__)
+    #define SIMD_POTENTIAL_STEP 8
+#elif defined(__SSE4_2__) || defined(__ARM_NEON)
+    #define SIMD_POTENTIAL_STEP 4
+#else
+    #define SIMD_POTENTIAL_STEP 1
+#endif
 
-#if __aarch64__
+#define SIMD_MAX_STEP_SIZE(x) OMS_MIN((x), SIMD_POTENTIAL_STEP)
+
+#ifdef __aarch64__
     #include <arm_neon.h>
 #else
     #include "../architecture/x86/simd/SIMD_F32.h"

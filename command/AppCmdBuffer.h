@@ -49,12 +49,14 @@ struct AppCmdBuffer {
     GpuApiType gpu_api_type;
 };
 
-#if OPENGL
+#if defined(OPENGL)
     #include "../gpuapi/opengl/AppCmdBuffer.h"
-#elif VULKAN
+#elif defined(VULKAN)
     #include "../gpuapi/vulkan/AppCmdBuffer.h"
-#elif DIRECTX
+#elif defined(DIRECTX)
     #include "../gpuapi/direct3d/AppCmdBuffer.h"
+#elif defined(SOFTWARE)
+    #include "../gpuapi/software/AppCmdBuffer.h"
 #else
     inline void* cmd_shader_load(AppCmdBuffer*, Command*) { return NULL; }
     inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, const int32*, ...) { return NULL; }

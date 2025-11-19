@@ -215,7 +215,7 @@ uint8 png_filter_4(const uint8* x, const uint8* a_full, const uint8* b_full, con
     return x[channel] + (uint8) paeth;
 }
 
-void png_filter_reconstruct(uint32 width, uint32 height, uint32 color_type, const uint8* decompressed, uint8* finalized, [[maybe_unused]] int32 steps = 8)
+void png_filter_reconstruct(uint32 width, uint32 height, uint32 color_type, const uint8* decompressed, uint8* finalized)
 {
     uint64 zero = 0;
     uint8* prev_row = (uint8 *) &zero;
@@ -461,7 +461,7 @@ void generate_default_png_references(const FileBody* file, Png* png)
 // @performance Profile: BITS_GET_16_R2L(SWAP_ENDIAN_BIG((uint16) *stream.pos)) vs BITS_GET_16_R2L(BYTES_MERGE_2_R2L())
 // Below you will often see code like BITS_GET_16_R2L(BYTES_MERGE_2_R2L()) OR BITS_GET_16_R2L(SWAP_ENDIAN_BIG())
 // Both do th same, they retrieve bits WHILE considering the endianness
-bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring, int32 steps = 8)
+bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring)
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some asignment/copy overhead
@@ -785,7 +785,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
     image->pixel_count = image->width * image->height;
     image->image_settings |= src.ihdr.color_type == 6 ? 4 : 3;
 
-    png_filter_reconstruct(src.ihdr.width, src.ihdr.height, src.ihdr.color_type, decompressed, finalized, steps);
+    png_filter_reconstruct(src.ihdr.width, src.ihdr.height, src.ihdr.color_type, decompressed, finalized);
 
     return true;
 }

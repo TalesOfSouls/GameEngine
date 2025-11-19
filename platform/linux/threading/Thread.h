@@ -64,7 +64,7 @@ int32 coms_pthread_join(coms_pthread_t thread, void** retval) NO_EXCEPT
 }
 
 FORCE_INLINE
-int32 coms_pthread_detach([[maybe_unused]] coms_pthread_t thread) NO_EXCEPT
+int32 coms_pthread_detach(MAYBE_UNUSED coms_pthread_t thread) NO_EXCEPT
 {
     // In Linux, threads are automatically detached when they exit.
     return 0;

@@ -16,7 +16,7 @@
 
 struct int16_16 {
     union {
-        #if ARM
+        #ifdef __aarch64__
             svint16_t s;
         #else
             __m256i s;

@@ -5,6 +5,7 @@
 #include "../memory/BufferMemory.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/Utils.h"
+#include "../utils/BitUtils.h"
 #include "../stdlib/Simd.h"
 #include "../system/FileUtils.cpp"
 
@@ -47,10 +48,10 @@ void font_init(Font* font, byte* data, int count)
 
 // @performance replace with Eytzinger (obviously we would also have to change the order in the font font file itself)
 inline
-Glyph* font_glyph_find(const Font* font, uint32 codepoint) NO_EXCEPT
+const Glyph* font_glyph_find(const Font* font, uint32 codepoint) NO_EXCEPT
 {
-    uint32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
-    uint32 limit = OMS_MIN(perfect_glyph_pos, font->glyph_count - 1);
+    const uint32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
+    const uint32 limit = OMS_MIN(perfect_glyph_pos, font->glyph_count - 1);
 
     // We try to jump to the correct glyph based on the glyph codepoint
     if (font->glyphs[limit].codepoint == codepoint) {
@@ -62,7 +63,7 @@ Glyph* font_glyph_find(const Font* font, uint32 codepoint) NO_EXCEPT
     int32 low = 0;
     int32 high = limit;
     while (low <= high) {
-        int32 mid = low + (high - low) / 2;
+        const int32 mid = low + (high - low) / 2;
         if (font->glyphs[mid].codepoint == codepoint) {
             return &font->glyphs[mid];
         } else if (font->glyphs[mid].codepoint < codepoint) {
@@ -178,7 +179,7 @@ int32 font_data_size(const Font* font)
 int32 font_from_data(
     const byte* data,
     Font* font,
-    [[maybe_unused]] int32 steps = 8
+    MAYBE_UNUSED int32 steps = 8
 )
 {
     const byte* pos = data;
@@ -207,6 +208,7 @@ int32 font_from_data(
         font->glyph_count * sizeof(Glyph) / 4, // everything in here is 4 bytes -> easy to swap
         steps
     );
+    PSEUDO_USE(steps);
 
     return font_data_size(font);
 }
@@ -214,7 +216,7 @@ int32 font_from_data(
 int32 font_to_data(
     const Font* font,
     byte* data,
-    [[maybe_unused]] int32 steps = 8
+    MAYBE_UNUSED int32 steps = 8
 )
 {
     byte* pos = data;
@@ -247,6 +249,7 @@ int32 font_to_data(
         compiler_div_pow2(size, 4), // everything in here is 4 bytes -> easy to swap
         steps
     );
+    PSEUDO_USE(steps);
 
     return size;
 }
@@ -262,7 +265,7 @@ void font_invert_coordinates(Font* font)
 {
     // @todo Implement y-offset correction
     for (uint32 i = 0; i < font->glyph_count; ++i) {
-        float temp = font->glyphs[i].coords.start.y;
+        const f32 temp = font->glyphs[i].coords.start.y;
         font->glyphs[i].coords.start.y = 1.0f - font->glyphs[i].coords.end.y;
         font->glyphs[i].coords.end.y = 1.0f - temp;
     }

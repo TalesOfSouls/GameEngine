@@ -17,6 +17,7 @@
 #include "Atomic.h"
 #include "ThreadJob.h"
 #include "../log/DebugContainer.h"
+#include "../utils/RandomUtils.h"
 
 struct ThreadPool {
     // This is not a threaded queue since we want to handle the mutex in here, not in the queue for finer control
@@ -70,6 +71,9 @@ THREAD_RETURN thread_pool_worker(void* arg)
     // @bug Why doesn't this work? There must be some threading issue
     LOG_2("[INFO] Thread pool worker starting up");
     LOG_INCREMENT(DEBUG_COUNTER_THREAD);
+
+    // Setting up thread local rng state
+    rand_setup();
 
     PoolWorker* work;
 
@@ -143,7 +147,7 @@ void thread_pool_alloc(
     int32 element_size,
     int32 thread_count,
     int32 worker_count,
-    int32 alignment = 64
+    int32 alignment = sizeof(size_t)
 ) {
     PROFILE(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
@@ -167,8 +171,9 @@ void thread_pool_alloc(
 
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
-        [[maybe_unused]] int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        MAYBE_UNUSED int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
         THREAD_LOG_NAME(id, "pool");
+        PSEUDO_USE(id);
         coms_pthread_detach(thread);
     }
 
@@ -181,7 +186,7 @@ void thread_pool_create(
     int32 element_size,
     int32 thread_count,
     int32 worker_count,
-    int32 alignment = 64
+    int32 alignment = sizeof(size_t)
 ) {
     PROFILE(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
@@ -205,8 +210,9 @@ void thread_pool_create(
 
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
-        [[maybe_unused]] int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        MAYBE_UNUSED int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
         THREAD_LOG_NAME(id, "pool");
+        PSEUDO_USE(id);
         coms_pthread_detach(thread);
     }
 
@@ -287,6 +293,8 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
 
         return NULL;
     }
+
+    memset_aligned(temp_job, 0, sizeof(PoolWorker));
 
     // @performance Do we really want to do this under all circumstances?
     //  There are many situations where we don't need an id

@@ -100,7 +100,7 @@ size_t base64_decode(const char* encoded_data, char* data, size_t encoded_length
     return output_length;
 }
 
-#if __aarch64__
+#ifdef __aarch64__
     #include "Base64SimdArm.h"
 #else
     #include "Base64SimdX86.h"

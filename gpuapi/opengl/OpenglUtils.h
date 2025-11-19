@@ -222,12 +222,11 @@ uint32 get_texture_data_type(uint32 texture_data_type) NO_EXCEPT
 // 1. prepare_texture
 // 2. define wrap
 // 3. define filter
-// 4. load_texture_to_gpu
+// 4. gpuapi_texture_to_gpu
 // 5. texture_use
 
-// @todo this should have a gpuapi_ name
 FORCE_INLINE
-void prepare_texture(Texture* texture) NO_EXCEPT
+void gpuapi_prepare_texture(Texture* texture) NO_EXCEPT
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
 
@@ -238,7 +237,7 @@ void prepare_texture(Texture* texture) NO_EXCEPT
 
 // @todo this should have a gpuapi_ name
 inline
-void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0) NO_EXCEPT
+void gpuapi_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0) NO_EXCEPT
 {
     PROFILE_START(PROFILE_GPU);
     // @todo also handle different texture formats (R, RG, RGB, 1 byte vs 4 byte per pixel)
@@ -258,9 +257,8 @@ void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0) NO_EXCE
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings));
 }
 
-// @todo this should have a gpuapi_ name
 FORCE_INLINE
-void texture_use(const Texture* texture) NO_EXCEPT
+void gpuapi_texture_use(const Texture* texture) NO_EXCEPT
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
 
@@ -268,9 +266,8 @@ void texture_use(const Texture* texture) NO_EXCEPT
     glBindTexture(texture_data_type, (GLuint) texture->id);
 }
 
-// @todo this should have a gpuapi_ name
 FORCE_INLINE
-void texture_delete(Texture* texture) NO_EXCEPT {
+void gpuapi_texture_delete(Texture* texture) NO_EXCEPT {
     glDeleteTextures(1, &texture->id);
 }
 

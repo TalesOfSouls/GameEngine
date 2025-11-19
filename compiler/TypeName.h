@@ -20,7 +20,7 @@
 
 template<typename T>
 struct NormalizedTypeName {
-    static constexpr const char* Get() {
+    static CONSTEXPR const char* Get() {
         return GetRawTypeName<T>();
     }
 };
@@ -28,10 +28,10 @@ struct NormalizedTypeName {
 #define REGISTER_TYPENAME(Actual) \
     template<> \
     struct NormalizedTypeName<Actual> { \
-        static constexpr const char* Get() { return #Actual; } \
+        static CONSTEXPR const char* Get() { return #Actual; } \
     };
 
-constexpr const char* RemoveQualifiers(const char* typeName) {
+CONSTEXPR const char* RemoveQualifiers(const char* typeName) {
     const char* qualifiers[] = {"enum ", "struct ", "class ", "const ", "volatile ", "restrict "};
 
     for (const char* qual : qualifiers) {
@@ -61,7 +61,7 @@ REGISTER_TYPENAME(f32)
 REGISTER_TYPENAME(f64)
 
 template<typename T>
-constexpr const char* GetTypeName() {
+CONSTEXPR const char* GetTypeName() {
     const char* raw_name = NormalizedTypeName<T>::Get();
     return RemoveQualifiers(raw_name);
 }

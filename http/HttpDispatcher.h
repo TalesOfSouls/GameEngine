@@ -37,7 +37,7 @@ struct Dispatcher {
     int16 base_func_count;
 };
 
-void dispatcher_alloc(Dispatcher* dispatcher, void* app, int32 category_count, int32 func_count, BufferMemory* buf, int32 alignment = 64) {
+void dispatcher_alloc(Dispatcher* dispatcher, void* app, int32 category_count, int32 func_count, BufferMemory* buf, int32 alignment = sizeof(size_t)) {
     dispatcher->app = app;
     dispatcher->base_func_count = func_count;
     dispatcher->functions = (ControllerFunction **) buffer_get_memory(buf, sizeof(ControllerFunction *) * category_count, alignment, true);

@@ -51,9 +51,10 @@
     #define intrin_timestamp_counter() __builtin_readcyclecounter()
 #endif
 
-#if __ARM_NEON
+#ifdef __ARM_NEON
     static volatile uint8x16_t _sink128;
     static volatile uint8x16_t _sink256;
+    static volatile uint8x16_t _sink512;
 
     // Pre-loads 128 bit chunks of memory into cache as fast as possible
     // size MUST be multiple of 128
@@ -78,11 +79,25 @@
         uint8x16_t* p1 = (uint8x16_t *) end;
         for (const volatile uint8x16_t* p = p0; p < p1; ++p) {
             _sink256 = *p;
+        }
+    }
+
+    // Pre-loads 512 bit chunks of memory into cache as fast as possible
+    // size MUST be multiple of 512
+    inline
+    void intrin_prefetch_512(void* memory, size_t size)
+    {
+        void* const end = ((char *) memory) + size;
+        uint8x16_t* p0 = (uint8x16_t *) memory;
+        uint8x16_t* p1 = (uint8x16_t *) end;
+        for (const volatile uint8x16_t* p = p0; p < p1; ++p) {
+            _sink512 = *p;
         }
     }
 #else
-    static volatile uint64_t _sink128;
-    static volatile uint64_t _sink256;
+    static volatile size_t _sink128;
+    static volatile size_t _sink256;
+    static volatile size_t _sink512;
 
     // Pre-loads 128 bit chunks of memory into cache as fast as possible
     // size MUST be multiple of 128
@@ -90,9 +105,9 @@
     void intrin_prefetch_128(void* memory, size_t size)
     {
         void* const end = ((char *) memory) + size;
-        uint64_t* p0 = (uint64_t *) memory;
-        uint64_t* p1 = (uint64_t *) end;
-        for (const volatile uint64_t* p = p0; p < p1; ++p) {
+        size_t* p0 = (size_t *) memory;
+        size_t* p1 = (size_t *) end;
+        for (const volatile size_t* p = p0; p < p1; ++p) {
             _sink128 = *p;
         }
     }
@@ -103,10 +118,23 @@
     void intrin_prefetch_256(void* memory, size_t size)
     {
         void* const end = ((char *) memory) + size;
-        uint64_t* p0 = (uint64_t *) memory;
-        uint64_t* p1 = (uint64_t *) end;
-        for (const volatile uint64_t* p = p0; p < p1; ++p) {
+        size_t* p0 = (size_t *) memory;
+        size_t* p1 = (size_t *) end;
+        for (const volatile size_t* p = p0; p < p1; ++p) {
             _sink256 = *p;
+        }
+    }
+
+    // Pre-loads 512 bit chunks of memory into cache as fast as possible
+    // size MUST be multiple of 512
+    inline
+    void intrin_prefetch_512(void* memory, size_t size)
+    {
+        void* const end = ((char *) memory) + size;
+        size_t* p0 = (size_t *) memory;
+        size_t* p1 = (size_t *) end;
+        for (const volatile size_t* p = p0; p < p1; ++p) {
+            _sink512 = *p;
         }
     }
 #endif

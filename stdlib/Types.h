@@ -9,23 +9,18 @@
 #ifndef COMS_STDLIB_TYPES_H
 #define COMS_STDLIB_TYPES_H
 
+// @question Consider to rename to Stdlib.h
+
 #include <stddef.h>
 #include <stdint.h>
+#include "Defines.h"
 
 #if _WIN32
-    // @question Do I really need <windows.h> here or could I go lower?
-    #include <windows.h>
-    typedef SSIZE_T ssize_t;
+    #include <intrin.h>
 #elif __linux__
     #include <linux/limits.h>
-    #define MAX_PATH PATH_MAX
+    #include <x86intrin.h>
 #endif
-
-// Counts the elements in an array IFF its size is defined at compile time
-#define ARRAY_COUNT(a) ((a) == NULL ? 0 : (sizeof(a) / sizeof((a)[0])))
-
-// Gets the size of a struct member
-#define MEMBER_SIZEOF(type, member) (sizeof( ((type *)0)->member ))
 
 #ifdef DEBUG
     #define NO_EXCEPT
@@ -58,180 +53,14 @@ typedef intptr_t smm;
 #define atomic_32 alignas(4) volatile
 #define atomic_64 alignas(8) volatile
 
-// PI
-#define OMS_PI 3.14159265358979323846f
-#define OMS_PI_OVER_TWO (OMS_PI / 2.0f)
-#define OMS_PI_OVER_FOUR (OMS_PI / 4.0f)
-#define OMS_TWO_PI (2.0f * OMS_PI)
-#define OMS_TAU OMS_TWO_PI
-
-// Limits
-#define OMS_MAX_BRANCHED(a, b) ((a) > (b) ? (a) : (b))
-#define OMS_MIN_BRANCHED(a, b) ((a) > (b) ? (b) : (a))
-#define OMS_MAX_BRANCHLESS(a, b) ((a) ^ (((a) ^ (b)) & -((a) < (b))))
-#define OMS_MIN_BRANCHLESS(a, b) ((b) ^ (((a) ^ (b)) & -((a) < (b))))
-#define OMS_CLAMP_BRANCHED(val, low, high) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
-#define OMS_CLAMP_BRANCHLESS(val, low, high) \
-    ((val) ^ (((val) ^ (low)) & -(int32)((val) < (low))) ^ \
-    ((((val) ^ ((val) ^ (low)) & -(int32)((val) < (low)))) ^ (high)) & -(int32)((((val) ^ ((val) ^ (low)) & -(int32)((val) < (low)))) < (high)))
-
-// Abs
-#define OMS_ABS(a) ((a) > 0 ? (a) : -(a))
-#define OMS_ABS_INT8(a) (((a) ^ ((a) >> 7)) - ((a) >> 7))
-#define OMS_ABS_INT16(a) (((a) ^ ((a) >> 15)) - ((a) >> 15))
-#define OMS_ABS_INT32(a) (((a) ^ ((a) >> 31)) - ((a) >> 31))
-#define OMS_ABS_INT64(a) (((a) ^ ((a) >> 63)) - ((a) >> 63))
-
-// For floats the high bit is still defining the sign
-// But we need to reinterpret it as int to mask the sign
-inline
-f32 OMS_ABS_F32(f32 a) {
-    union { f32 f; uint32 i; } u;
-    u.f = a;
-    u.i &= 0x7FFFFFFF;
-    return u.f;
-}
-
-inline
-f64 OMS_ABS_F64(f64 a) {
-    union { f64 f; uint64 i; } u;
-    u.f = a;
-    u.i &= 0x7FFFFFFFFFFFFFFF;
-    return u.f;
-}
-
-// Rounding
-#define OMS_ROUND_POSITIVE_32(x) ((int32)((x) + 0.5f))
-#define OMS_ROUND_POSITIVE_64(x) ((int64)((x) + 0.5f))
-#define OMS_ROUND(x) (((x) >= 0) ? (f32)((int32)((x) + 0.5f)) : (f32)((int32)((x) - 0.5f)))
-
-#define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
-#define OMS_CEIL(x) ((x) == (int32)(x) ? (int32)(x) : ((x) > 0 ? (int32)(x) + 1 : (int32)(x)))
-
-#define FLOORF(x) ((float)((int)(x) - ((x) < 0.0f && (x) != (int)(x))))
-
-// Fast integer division and floor, IFF the divisor **is positive**
-// (= (int) floorf((float)a/(float)b))
-// This is required because -7 / 3 = -2 with normal int division, but we want -3
-// However, 7 / 3 = 2 is what we would expect
-#define IFLOORI_POS_DIV_32(a, b) (((a) - (((b) - 1) & ((a) >> 31))) / (b))
-#define IFLOORI_POS_DIV_64(a, b) (((a) - (((b) - 1) & ((a) >> 63))) / (b))
-
-// Trig
-#define OMS_DEG2RAD(angle) ((angle) * OMS_PI / 180.0f)
-#define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI)
-
-// -pi / pi
-#define OMS_NORMALIZE_RAD(angle) ((angle) - OMS_TAU * FLOORF(((angle) + OMS_PI) / OMS_TAU))
-// 0 / 360
-#define OMS_NORMALIZE_DEG(angle) ((angle) - 360.0f * FLOORF((angle) / 360.0f))
-
-// Zero and comparison
-#define OMS_EPSILON_F32 1.19209290e-07f
-#define OMS_EPSILON_F64 2.2204460492503131e-16
-
-#define OMS_IS_ZERO_F32(x) (OMS_ABS(x) < OMS_EPSILON_F32)
-#define OMS_IS_ZERO_F64(x) (OMS_ABS(x) < OMS_EPSILON_F64)
-#define OMS_FEQUAL_F32(a, b) (OMS_ABS((a) - (b)) < OMS_EPSILON_F32)
-#define OMS_FEQUAL_F64(a, b) (OMS_ABS((a) - (b)) < OMS_EPSILON_F64)
-
-#define OMS_HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
-#define OMS_HAS_CHAR(x, c) (OMS_HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
-
-// Math operations
-// Only useful if n is a variable BUT you as programmer know the form of the value
-#define OMS_POW2_I64(n) (1ULL << (n))
-#define OMS_POW2_I32(n) (1U << (n))
-#define OMS_DIV2_I64(n) ((n) >> 1ULL)   // n = multiple of 2
-#define OMS_DIV2_I32(n) ((n) >> 1U)     // n = multiple of 2
-#define OMS_MUL2_I64(n) ((n) << 1ULL)
-#define OMS_MUL2_I32(n) ((n) << 1U)
-
-// Bitwise utilities
-#define OMS_SIGN_32(x) (1 | ((x) >> 31 << 1))
-#define OMS_SIGN_64(x) (1LL | ((x) >> 63 << 1))
-#define OMS_IS_POW2(x) (((x) & ((x) - 1)) == 0)
-#define OMS_ALIGN_UP(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
-#define OMS_ALIGN_DOWN(x, align) ((x) & ~((align) - 1))
-#define OMS_IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
-
-#define OMS_FLAG_SET(flags, bit) ((flags) |= (bit))
-#define OMS_FLAG_CLEAR(flags, bit) ((flags) &= ~(bit))
-#define OMS_FLAG_REMOVE OMS_FLAG_CLEAR
-#define OMS_FLAG_DELETE OMS_FLAG_CLEAR
-#define OMS_FLAG_TOGGLE(flags, bit) ((flags) ^= (bit))
-#define OMS_FLAG_FLIP OMS_FLAG_TOGGLE
-#define OMS_FLAG_CHECK(flags, bit) ((flags) & (bit))
-#define OMS_FLAG_IS_SET OMS_FLAG_CHECK
-
-// This is the same as using % but for sufficiently large wrapping this is faster
-// WARNING: if wrap is a power of 2 don't use this but use the & operator
-//          I recommend to use this macro if wrap >= 1,000
-#define OMS_WRAPPED_INCREMENT(value, wrap) ++value; if (value >= wrap) [[unlikely]] value = 0
-#define OMS_WRAPPED_DECREMENT(value, wrap) --value; if (value < 0) [[unlikely]] value = wrap - 1
-
-#define OMS_SWAP(type, a, b) type _oms_tmp = (a); (a) = (b); (b) = _oms_tmp
-
-// Casting between e.g. f32 and int32 without changing bits
-#define BITCAST(x, new_type) bitcast_impl_##new_type(x)
-#define DEFINE_BITCAST_FUNCTION(from_type, to_type) \
-    static inline to_type bitcast_impl_##to_type(from_type src) { \
-        union { from_type src; to_type dst; } u; \
-        u.src = src; \
-        return u.dst; \
-    }
-
-DEFINE_BITCAST_FUNCTION(f32, uint32)
-DEFINE_BITCAST_FUNCTION(uint32, f32)
-DEFINE_BITCAST_FUNCTION(f64, uint64)
-DEFINE_BITCAST_FUNCTION(uint64, f64)
-DEFINE_BITCAST_FUNCTION(f32, int32)
-DEFINE_BITCAST_FUNCTION(int32, f32)
-DEFINE_BITCAST_FUNCTION(f64, int64)
-DEFINE_BITCAST_FUNCTION(int64, f64)
-
-#define FLOAT_CAST_EPS 0.001953125f
-
-// Modulo function when b is a power of 2
-#define MODULO_2(a, b) ((a) & (b - 1))
-
-#define SQRT_2 1.4142135623730950488016887242097f
-
-#define KILOBYTE 1024
-#define MEGABYTE 1048576
-#define GIGABYTE 1073741824
-
-#define MAX_BYTE 0xFF
-#define MAX_UINT16 0xFFFF
-#define MAX_UINT32 0xFFFFFFFF
-#define MAX_UINT64 0xFFFFFFFFFFFFFFFF
-
-#define MAX_CHAR 0x7F
-#define MAX_INT16 0x7FFF
-#define MAX_INT32 0x7FFFFFFF
-#define MAX_INT64 0x7FFFFFFFFFFFFFFF
-
-#define MIN_CHAR 0x80
-#define MIN_INT16 0x8000
-#define MIN_INT32 0x80000000
-#define MIN_INT64 0x8000000000000000
-
-#define MIN_MILLI 60000
-#define SEC_MILLI 1000
-#define MIN_MICRO 60000000
-#define SEC_MICRO 1000000
-#define MILLI_MICRO 1000
-
-#define MHZ 1000000
-#define GHZ 1000000000
-
 struct v2_int8 {
     union {
         struct { int8 x, y; };
         struct { int8 width, height; };
         struct { int8 min, max; };
 
-        union { int8 v[2]; int16 val; };
+        int8 vec[2];
+        int16 val;
     };
 };
 
@@ -240,7 +69,7 @@ struct v3_int8 {
         struct { int8 x, y, z; };
         struct { int8 r, g, b; };
 
-        int8 v[3];
+        int8 vec[3];
     };
 };
 
@@ -249,7 +78,8 @@ struct v4_int8 {
         struct { int8 x, y, z, w; };
         struct { int8 r, g, b, a; };
 
-        union { int8 v[4]; int32 val; };
+        int8 vec[4];
+        int32 val;
     };
 };
 
@@ -258,7 +88,7 @@ struct v3_byte {
         struct { byte x, y, z; };
         struct { byte r, g, b; };
 
-        byte v[3];
+        byte vec[3];
     };
 };
 
@@ -267,7 +97,8 @@ struct v4_byte {
         struct { byte x, y, z, w; };
         struct { byte r, g, b, a; };
 
-        union { byte v[4]; uint32 val; };
+        byte vec[4];
+        uint32 val;
     };
 };
 
@@ -277,7 +108,19 @@ struct v2_int16 {
         struct { int16 width, height; };
         struct { int16 min, max; };
 
-        union { int16 v[2]; int32 val; };
+        int16 vec[2];
+        int32 val;;
+    };
+};
+
+struct v2_uint16 {
+    union {
+        struct { uint16 x, y; };
+        struct { uint16 width, height; };
+        struct { uint16 min, max; };
+
+        uint16 vec[2];
+        uint32 val;;
     };
 };
 
@@ -290,7 +133,7 @@ struct v4_int16 {
             union { int16 w, height; };
         };
 
-        int16 v[4];
+        int16 vec[4];
     };
 };
 
@@ -300,7 +143,7 @@ struct v2_int32 {
         struct { int32 width, height; };
         struct { int32 min, max; };
 
-        int32 v[2];
+        int32 vec[2];
     };
 };
 
@@ -309,11 +152,11 @@ struct v3_int32 {
         struct { int32 x, y, z; };
         struct { int32 r, g, b; };
 
-        int32 v[3];
+        int32 vec[3];
     };
 };
 
-struct v4_int32 {
+struct alignas(16) v4_int32 {
     union {
         struct {
             int32 x, y;
@@ -322,7 +165,14 @@ struct v4_int32 {
             union { int32 w, height; };
         };
 
-        int32 v[4];
+        int32 vec[4];
+
+        // Reference to a vec[4]
+        const int32* ref;
+
+        #if defined(__SSE4_2__)
+            __m128i s_16;
+        #endif
     };
 };
 
@@ -330,7 +180,7 @@ struct v2_int64 {
     union {
         struct { int64 x, y; };
 
-        int64 v[2];
+        int64 vec[2];
     };
 };
 
@@ -339,7 +189,7 @@ struct v3_int64 {
         struct { int64 x, y, z; };
         struct { int64 r, g, b; };
 
-        int64 v[3];
+        int64 vec[3];
     };
 };
 
@@ -347,7 +197,14 @@ struct v4_int64 {
     union {
         struct { int64 x, y, z, w; };
 
-        int64 v[4];
+        int64 vec[4];
+
+        // Reference to a vec[4]
+        const int64* ref;
+
+        #if defined(__AVX2__)
+            __m256i s_16;
+        #endif
     };
 };
 
@@ -357,7 +214,7 @@ struct v2_f32 {
         struct { f32 width, height; };
         struct { f32 min, max; };
 
-        f32 v[2];
+        f32 vec[2];
     };
 };
 
@@ -372,7 +229,7 @@ struct v3_f32 {
     };
 };
 
-struct v4_f32 {
+struct alignas(16) v4_f32 {
     union {
         struct {
             f32 x, y;
@@ -385,6 +242,13 @@ struct v4_f32 {
         struct { f32 r, g, b, a; };
 
         f32 vec[4];
+
+        // Reference to a vec[4]
+        const f32* ref;
+
+        #if defined(__SSE4_2__)
+            __m128 s_16;
+        #endif
     };
 };
 
@@ -392,7 +256,7 @@ struct v2_f64 {
     union {
         struct { f64 x; f64 y; };
 
-        f64 v[2];
+        f64 vec[2];
     };
 };
 
@@ -401,7 +265,30 @@ struct v3_f64 {
         struct { f64 x, y, z; };
         struct { f64 r, g, b; };
 
-        f64 v[3];
+        f64 vec[3];
+    };
+};
+
+struct alignas(64) v16_f32 {
+    union {
+        v4_f32 rows[4];
+        f32 vec[16];
+        f32 mat[4][4];
+
+        // Reference to a vec[16]
+        const f32* ref;
+
+        #if defined(__SSE4_2__)
+            __m128 s_16[4];
+        #endif
+
+        #if defined(__AVX2__)
+            __m256 s_32[2];
+        #endif
+
+        #if defined(__AVX512F__)
+            __m512 s_64;
+        #endif
     };
 };
 
@@ -418,41 +305,11 @@ struct v4_f64 {
         struct { f64 r, g, b, a; };
 
         f64 vec[4];
+
+        #if defined(__AVX2__)
+            __m256d s_16;
+        #endif
     };
-};
-
-struct m3x3_f32 {
-    union {
-        f32 e[9];
-        f32 m[3][3];
-    };
-};
-
-struct m4x4_f32 {
-    union {
-        f32 e[16];
-        f32 m[4][4];
-    };
-};
-
-struct m_int32 {
-    int32* e;
-    size_t m, n;
-};
-
-struct m_int64 {
-    int64* e;
-    size_t m, n;
-};
-
-struct m_f32 {
-    f32* e;
-    size_t m, n;
-};
-
-struct m_f64 {
-    f64* e;
-    size_t m, n;
 };
 
 // @todo We cannot use FORCE_INLINE because CompilerUtils depends on this file -> circular dependency
@@ -464,78 +321,63 @@ inline v2_int32 to_v2_int32(v2_f32 vec) { return {(int32) vec.x, (int32) vec.y};
 inline v3_int32 to_v3_int32(v3_f32 vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z}; }
 inline v4_int32 to_v4_int32(v4_f32 vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z, (int32) vec.w}; }
 
-#define HALF_FLOAT_SIGN_MASK 0x8000
-#define HALF_FLOAT_EXP_MASK 0x7C00
-#define HALF_FLOAT_FRAC_MASK 0x03FF
+// Data type helpers
+enum DataType {
+    DATA_TYPE_BOOL,
 
-#define HALF_FLOAT_EXP_SHIFT 10
-#define HALF_FLOAT_EXP_BIAS 15
+    DATA_TYPE_INT8,
+    DATA_TYPE_INT16,
+    DATA_TYPE_INT32,
+    DATA_TYPE_INT64,
 
-#define FLOAT32_SIGN_MASK 0x80000000
-#define FLOAT32_EXP_MASK 0x7F800000
-#define FLOAT32_FRAC_MASK 0x007FFFFF
+    DATA_TYPE_UINT8,
+    DATA_TYPE_UINT16,
+    DATA_TYPE_UINT32,
+    DATA_TYPE_UINT64,
 
-#define FLOAT32_EXP_SHIFT 23
-#define FLOAT32_EXP_BIAS 127
+    DATA_TYPE_F32,
+    DATA_TYPE_F64,
 
-f16 float_to_f16(f32 f) NO_EXCEPT {
-    uint32 f_bits = *((uint32*)&f);
+    DATA_TYPE_BOOL_ARRAY,
 
-    // Extract sign, exponent, and fraction from float
-    uint16 sign = (f_bits & FLOAT32_SIGN_MASK) >> 16;
-    int32 exponent = (int32) ((f_bits & FLOAT32_EXP_MASK) >> FLOAT32_EXP_SHIFT) - FLOAT32_EXP_BIAS + HALF_FLOAT_EXP_BIAS;
-    uint32 fraction = (f_bits & FLOAT32_FRAC_MASK) >> (FLOAT32_EXP_SHIFT - HALF_FLOAT_EXP_SHIFT);
+    DATA_TYPE_INT8_ARRAY,
+    DATA_TYPE_INT16_ARRAY,
+    DATA_TYPE_INT32_ARRAY,
+    DATA_TYPE_INT64_ARRAY,
 
-    if (exponent <= 0) {
-        if (exponent < -10) {
-            fraction = 0;
-        } else {
-            fraction = (fraction | 0x0400) >> (1 - exponent);
-        }
-        exponent = 0;
-    } else if (exponent >= 0x1F) {
-        exponent = 0x1F;
-        fraction = 0;
-    }
+    DATA_TYPE_UINT8_ARRAY,
+    DATA_TYPE_UINT16_ARRAY,
+    DATA_TYPE_UINT32_ARRAY,
+    DATA_TYPE_UINT64_ARRAY,
 
-    return (f16) (sign | (exponent << HALF_FLOAT_EXP_SHIFT) | (fraction & HALF_FLOAT_FRAC_MASK));
-}
+    DATA_TYPE_F32_ARRAY,
+    DATA_TYPE_F64_ARRAY,
 
-f32 f16_to_float(f16 f) NO_EXCEPT {
-    uint32 sign = (f & HALF_FLOAT_SIGN_MASK) << 16;
-    int32 exponent = (f & HALF_FLOAT_EXP_MASK) >> HALF_FLOAT_EXP_SHIFT;
-    uint32 fraction = (f & HALF_FLOAT_FRAC_MASK) << (FLOAT32_EXP_SHIFT - HALF_FLOAT_EXP_SHIFT);
+    DATA_TYPE_CHAR,
+    DATA_TYPE_CHAR_STR,
 
-    if (exponent == 0) {
-        if (fraction != 0) {
-            exponent = 1;
-            while ((fraction & (1 << FLOAT32_EXP_SHIFT)) == 0) {
-                fraction <<= 1;
-                --exponent;
-            }
-            fraction &= ~FLOAT32_EXP_MASK;
-        }
-    } else if (exponent == 0x1F) {
-        exponent = 0xFF;
-    } else {
-        exponent += FLOAT32_EXP_BIAS - HALF_FLOAT_EXP_BIAS;
-    }
+    DATA_TYPE_V2_INT16,
+    DATA_TYPE_V2_UINT16,
 
-    uint32 f_bits = sign | (exponent << FLOAT32_EXP_SHIFT) | fraction;
+    DATA_TYPE_V2_INT32,
+    DATA_TYPE_V3_INT32,
+    DATA_TYPE_V4_INT32,
 
-    return BITCAST(f_bits, f32);
-}
+    DATA_TYPE_V2_F32,
+    DATA_TYPE_V3_F32,
+    DATA_TYPE_V4_F32,
 
-// Simple iterator implementation
-#define iterator_start(start, end, obj) {   \
-    uint32 _i = start;                      \
-    while (_i++ < end) {
+    DATA_TYPE_V2_INT32_ARRAY,
+    DATA_TYPE_V3_INT32_ARRAY,
+    DATA_TYPE_V4_INT32_ARRAY,
 
-#define iterator_end    \
-        obj += 1;       \
-    }}                  \
+    DATA_TYPE_V2_F32_ARRAY,
+    DATA_TYPE_V3_F32_ARRAY,
+    DATA_TYPE_V4_F32_ARRAY
+};
 
 #include "../compiler/CompilerUtils.h"
+#include "Helper.h"
 #include "../architecture/Intrinsics.h"
 #include "../platform/Platform.h"
 

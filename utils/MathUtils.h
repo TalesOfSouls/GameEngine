@@ -27,24 +27,24 @@ f64 factorial(int32 n) {
 inline
 f32 sin_approx(f32 x) {
     // Normalize x to the range [-π, π] for better accuracy
-    while (x > OMS_PI) {
-        x -= OMS_TWO_PI;
+    while (x > OMS_PI_F32) {
+        x -= OMS_TWO_PI_F32;
     }
 
-    while (x < -OMS_PI) {
-        x += OMS_TWO_PI;
+    while (x < -OMS_PI_F32) {
+        x += OMS_TWO_PI_F32;
     }
 
     f32 x2 = x * x;
     return x * (1.0f + x2 * (-1.0f / 6.0f + x2 * (1.0f / 120.0f + x2 * (-1.0f / 5040.0f + x2 * (1.0f / 362880.0f)))));
 }
 
-inline
+FORCE_INLINE
 f32 cos_approx(f32 x) {
-    return sin_approx(OMS_PI_OVER_TWO - x);
+    return sin_approx(OMS_PI_OVER_TWO_F32 - x);
 }
 
-inline
+FORCE_INLINE
 f32 tan_approx(f32 x) {
     return sin_approx(x) / cos_approx(x);
 }
@@ -64,20 +64,20 @@ f32 asin_approx(f32 x) {
     return result;
 }
 
-inline
+FORCE_INLINE
 f32 acos_approx(f32 x) {
     // π/2 - asin_approx(x)
-    return OMS_PI_OVER_TWO - asin_approx(x);
+    return OMS_PI_OVER_TWO_F32 - asin_approx(x);
 }
 
 inline
 f32 atan_approx(f32 x) {
     if (x > 1.0f) {
         // π/2 - atan_approx(1/x)
-        return OMS_PI_OVER_TWO - atan_approx(1.0f / x);
+        return OMS_PI_OVER_TWO_F32 - atan_approx(1.0f / x);
     } else if (x < -1.0f) {
         // -π/2 - atan_approx(1/x)
-        return -OMS_PI_OVER_TWO - atan_approx(1.0f / x);
+        return -OMS_PI_OVER_TWO_F32 - atan_approx(1.0f / x);
     }
 
     f32 result = x;
@@ -153,11 +153,10 @@ f32 log_approx(f32 x) {
     ASSERT_TRUE(x > 0);
 
     // Polynomial approximation
-    f32 y = (x - 1) / (x + 1);
-    f32 y2 = y * y;
-    f32 result = y * (1.0f + y2 * (1.0f / 3.0f + y2 * (1.0f / 5.0f + y2 * (1.0f / 7.0f))));
+    const f32 y = (x - 1) / (x + 1);
+    const f32 y2 = y * y;
 
-    return 2.0f * result;
+    return y * (1.0f + y2 * (1.0f / 3.0f + y2 * (1.0f / 5.0f + y2 * (1.0f / 7.0f)))) * 2.0f;
 }
 
 inline
@@ -174,24 +173,24 @@ f32 pow_approx(f32 a, f32 b) {
 inline
 f64 sin_approx(f64 x) {
     // Normalize x to the range [-π, π] for better accuracy
-    while (x > OMS_PI) {
-        x -= OMS_TWO_PI;
+    while (x > OMS_PI_F32) {
+        x -= OMS_TWO_PI_F32;
     }
 
-    while (x < -OMS_PI) {
-        x += OMS_TWO_PI;
+    while (x < -OMS_PI_F32) {
+        x += OMS_TWO_PI_F32;
     }
 
-    f64 x2 = x * x;
+    const f64 x2 = x * x;
     return x * (1.0 + x2 * (-1.0 / 6.0 + x2 * (1.0 / 120.0 + x2 * (-1.0 / 5040.0 + x2 * (1.0 / 362880.0)))));
 }
 
-inline
+FORCE_INLINE
 f64 cos_approx(f64 x) {
-    return sin_approx(OMS_PI_OVER_TWO - x);
+    return sin_approx(OMS_PI_OVER_TWO_F64 - x);
 }
 
-inline
+FORCE_INLINE
 f64 tan_approx(f64 x) {
     return sin_approx(x) / cos_approx(x);
 }
@@ -211,20 +210,20 @@ f64 asin_approx(f64 x) {
     return result;
 }
 
-inline
+FORCE_INLINE
 f64 acos_approx(f64 x) {
     // π/2 - asin_approx(x)
-    return OMS_PI_OVER_TWO - asin_approx(x);
+    return OMS_PI_OVER_TWO_F64 - asin_approx(x);
 }
 
 inline
 f64 atan_approx(f64 x) {
     if (x > 1.0) {
         // π/2 - atan_approx(1/x)
-        return OMS_PI_OVER_TWO - atan_approx(1.0 / x);
+        return OMS_PI_OVER_TWO_F64 - atan_approx(1.0 / x);
     } else if (x < -1.0) {
         // -π/2 - atan_approx(1/x)
-        return -OMS_PI_OVER_TWO - atan_approx(1.0 / x);
+        return -OMS_PI_OVER_TWO_F64 - atan_approx(1.0 / x);
     }
 
     f64 result = x;

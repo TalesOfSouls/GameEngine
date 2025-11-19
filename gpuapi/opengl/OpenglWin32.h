@@ -905,7 +905,7 @@ void opengl_init_gl()
     glDebugMessageCallback = (type_glDebugMessageCallback *) wglGetProcAddress("glDebugMessageCallback");
 
     // Bind optional functions/extensions
-    constexpr const char* optional_nvidia_ext[] = {
+    CONSTEXPR const char* optional_nvidia_ext[] = {
         "glMakeBufferResidentNV",
         "glMakeBufferNonResidentNV",
         "glGetBufferParameterui64vNV",

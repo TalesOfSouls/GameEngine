@@ -152,19 +152,19 @@ f32 vec2_dot(v2_int32 a, v2_int32 b) NO_EXCEPT
 FORCE_INLINE
 int32 vec3_length(f32 x, int32 y, int32 z) NO_EXCEPT
 {
-    return sqrtf(x * x + y * y + z * z);
+    return intrin_sqrt_f32(x * x + y * y + z * z);
 }
 
 FORCE_INLINE
 int32 vec3_length(v3_int32* vec) NO_EXCEPT
 {
-    return sqrtf(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
+    return intrin_sqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
 }
 
 FORCE_INLINE
 f32 vec3_length(v3_int32 vec) NO_EXCEPT
 {
-    return sqrtf(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
+    return intrin_sqrt_f32(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 }
 
 FORCE_INLINE
@@ -447,20 +447,34 @@ f32 vec4_dot(v4_int32 a, v4_int32 b) NO_EXCEPT
 FORCE_INLINE
 void vec4_cross(v4_int32* __restrict vec, const v4_int32* a, const v4_int32* b, const v4_int32* c) NO_EXCEPT
 {
-    vec->x = a->y * (b->z * c->w - b->w * c->z) - a->z * (b->y * c->w - b->w * c->y) + a->w * (b->y * c->z - b->z * c->y);
-    vec->y = -(a->x * (b->z * c->w - b->w * c->z) - a->z * (b->x * c->w - b->w * c->x) + a->w * (b->x * c->z - b->z * c->x));
-    vec->z = a->x * (b->y * c->w - b->w * c->y) - a->y * (b->x * c->w - b->w * c->x) + a->w * (b->x * c->y - b->y * c->x);
-    vec->w = -(a->x * (b->y * c->z - b->z * c->y) - a->y * (b->x * c->z - b->z * c->x) + a->z * (b->x * c->y - b->y * c->x));
+    const int32 d1 = b.z * c.w - b.w * c.z;
+    const int32 d2 = b.y * c.w - b.w * c.y;
+    const int32 d3 = b.y * c.z - b.z * c.y;
+    const int32 d4 = b.x * c.w - b.w * c.x;
+    const int32 d5 = b.x * c.z - b.z * c.x;
+    const int32 d6 = b.x * c.y - b.y * c.x;
+
+    vec->x = a->y * d1 - a->z * d2 + a->w * d3;
+    vec->y = -(a->x * d1 - a->z * d4 + a->w * d5);
+    vec->z = a->x * d2 - a->y * d4 + a->w * d6;
+    vec->w = -(a->x * d3 - a->y * d5 + a->z * d6);
 }
 
 FORCE_INLINE
 v4_int32 vec4_cross(v4_int32 a, v4_int32 b, v4_int32 c) NO_EXCEPT
 {
+    const int32 d1 = b.z * c.w - b.w * c.z;
+    const int32 d2 = b.y * c.w - b.w * c.y;
+    const int32 d3 = b.y * c.z - b.z * c.y;
+    const int32 d4 = b.x * c.w - b.w * c.x;
+    const int32 d5 = b.x * c.z - b.z * c.x;
+    const int32 d6 = b.x * c.y - b.y * c.x;
+
     return {
-        a.y * (b.z * c.w - b.w * c.z) - a.z * (b.y * c.w - b.w * c.y) + a.w * (b.y * c.z - b.z * c.y),
-        -(a.x * (b.z * c.w - b.w * c.z) - a.z * (b.x * c.w - b.w * c.x) + a.w * (b.x * c.z - b.z * c.x)),
-        a.x * (b.y * c.w - b.w * c.y) - a.y * (b.x * c.w - b.w * c.x) + a.w * (b.x * c.y - b.y * c.x),
-        -(a.x * (b.y * c.z - b.z * c.y) - a.y * (b.x * c.z - b.z * c.x) + a.z * (b.x * c.y - b.y * c.x))
+        a.y * d1 - a.z * d2 + a.w * d3,
+        -(a.x * d1 - a.z * d4 + a.w * d5),
+        a.x * d2 - a.y * d4 + a.w * d6,
+        -(a.x * d3 - a.y * d5 + a.z * d6)
     };
 }
 

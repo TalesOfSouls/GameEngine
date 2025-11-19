@@ -11,7 +11,7 @@
 
 #include "../stdlib/Types.h"
 
-constexpr inline
+CONSTEXPR inline
 void encrypt_ceasar(char* input, int32 shift) {
     for (int32 i = 0; input[i] != '\0'; i++) {
         if (input[i] >= 'A' && input[i] <= 'Z') {
@@ -22,7 +22,7 @@ void encrypt_ceasar(char* input, int32 shift) {
     }
 }
 
-constexpr inline
+CONSTEXPR inline
 void decrypt_ceasar(char* input, int32 shift) {
     for (int32 i = 0; input[i] != '\0'; i++) {
         if (input[i] >= 'A' && input[i] <= 'Z') {

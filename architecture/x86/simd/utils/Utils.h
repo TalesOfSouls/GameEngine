@@ -38,9 +38,9 @@ bool is_empty(const byte* region, uint64 size, int32 steps = 8)
                         region += 64;
                     }
                 };
-                [[fallthrough]];
+                FALLTHROUGH;
         #else
-            case 16: [[fallthrough]];
+            case 16: FALLTHROUGH;
         #endif
         #ifdef __AVX2__
             case 8: {
@@ -53,9 +53,9 @@ bool is_empty(const byte* region, uint64 size, int32 steps = 8)
                     region += 32;
                 }
             };
-            [[fallthrough]];
+            FALLTHROUGH;
         #else
-            case 8: [[fallthrough]];
+            case 8: FALLTHROUGH;
         #endif
         #ifdef __SSE4_2__
             case 4: {
@@ -68,9 +68,9 @@ bool is_empty(const byte* region, uint64 size, int32 steps = 8)
                     region += 16;
                 }
             }
-            [[fallthrough]];
+            FALLTHROUGH;
         #else
-            case 4: [[fallthrough]];
+            case 4: FALLTHROUGH;
         #endif
         case 1: {
             while (region + 4 <= end) {

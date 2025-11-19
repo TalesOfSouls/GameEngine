@@ -18,7 +18,7 @@ enum UIStyleType : byte {
     UI_STYLE_TYPE_SIZE,
 };
 
-constexpr
+CONSTEXPR
 int32 ui_style_type_to_id(const char* str)
 {
     if (*str == '\0') {

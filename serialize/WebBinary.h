@@ -20,7 +20,7 @@ struct WebBinaryValue {
     const char* nested_schema = NULL;
 };
 
-constexpr
+CONSTEXPR
 void web_binary_copy(char* dest, int32 src) {
     for (size_t i = 0; i < sizeof(int32); ++i) {
         dest[i] = static_cast<char>(src >> (8 * i));
@@ -28,7 +28,7 @@ void web_binary_copy(char* dest, int32 src) {
 }
 
 template<const WebBinaryValue* binary_struct, int32 count>
-constexpr int32 web_binary_schema_size() {
+CONSTEXPR int32 web_binary_schema_size() {
     int32 size = 0;
     for (int32 i = 0; i < count; ++i) {
         size += str_length(binary_struct[i].name) + 1;
@@ -48,13 +48,13 @@ constexpr int32 web_binary_schema_size() {
 template<size_t N>
 struct WebBinarySchema {
     char data[N];
-    constexpr WebBinarySchema() : data{} {}
-    constexpr const char* c_str() const { return data; }
+    CONSTEXPR WebBinarySchema() : data{} {}
+    CONSTEXPR const char* c_str() const { return data; }
 };
 
 template<const WebBinaryValue* binary_struct, int32 count>
-constexpr auto web_binary_schema() {
-    constexpr int32 size = web_binary_schema_size<binary_struct, count>();
+CONSTEXPR auto web_binary_schema() {
+    CONSTEXPR int32 size = web_binary_schema_size<binary_struct, count>();
     WebBinarySchema<size> schema;
 
     char* buffer = schema.data;

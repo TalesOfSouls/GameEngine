@@ -60,7 +60,7 @@ UIAttribute* ui_attribute_from_group(const UIAttributeGroup* group, UIAttributeT
     return attributes->attribute_id == type ? attributes : NULL;
 }
 
-constexpr
+CONSTEXPR
 int32 ui_attribute_type_to_id(const char* attribute_name)
 {
     if (str_compare(attribute_name, "x") == 0) {

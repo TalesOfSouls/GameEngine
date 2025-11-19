@@ -44,6 +44,7 @@
 #endif
 
 #ifndef MAX_LOG_LENGTH
+    // WARNING: Must be multiple of 8
     #define MAX_LOG_LENGTH 256
 #endif
 
@@ -99,7 +100,7 @@
         while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE) != 0) {
             struct timespec start, now;
             clock_gettime(CLOCK_MONOTONIC, &start);
-            uint64 target_ns = usec * 1000ULL;
+            const uint64 target_ns = usec * 1000ULL;
 
             do {
                 clock_gettime(CLOCK_MONOTONIC, &now);
@@ -151,9 +152,9 @@ enum LogDataType {
 struct LogMessage {
     const char* file;
     const char* function;
-    int32 line;
     uint64 time;
     char* message;
+    int32 line;
 
     // We use this element to force a new line when saving the log to the file
     // This is MUCH faster compared to iteratively export every log message with a new line
@@ -207,7 +208,7 @@ byte* log_get_memory() NO_EXCEPT
     }
 
     byte* offset = (byte *) (_log_memory->memory + _log_memory->pos);
-    memset((void *) offset, 0, MAX_LOG_LENGTH);
+    memset_aligned((void *) offset, 0, MAX_LOG_LENGTH);
 
     _log_memory->pos += MAX_LOG_LENGTH;
 
@@ -281,7 +282,7 @@ void log(const char* str, const char* file, const char* function, int32 line) NO
     int32 len = (int32) str_length(str);
 
     // Ensure that we have enough space in our log memory, otherwise log to file
-    int32 total_len = (len + (MAX_LOG_LENGTH - 1) / MAX_LOG_LENGTH) * sizeof(LogMessage) + len;
+    const int32 total_len = (len + (MAX_LOG_LENGTH - 1) / MAX_LOG_LENGTH) * sizeof(LogMessage) + len;
     if (_log_memory->size - (_log_memory->pos + total_len) < MAX_LOG_LENGTH) {
         log_to_file(_log_memory->memory, _log_memory->pos);
         _log_memory->pos = 0;
@@ -298,7 +299,7 @@ void log(const char* str, const char* file, const char* function, int32 line) NO
         msg->time = log_sys_time();
         msg->newline = '\n';
 
-        int32 message_length = (int32) OMS_MIN((int32) (MAX_LOG_LENGTH - sizeof(LogMessage) - 1), len);
+        const int32 message_length = (int32) OMS_MIN((int32) (MAX_LOG_LENGTH - sizeof(LogMessage) - 1), len);
 
         memcpy(msg->message, str, message_length);
         msg->message[message_length] = '\0';
@@ -334,7 +335,7 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
     // Is data raw output?
     if (data.data[0].type == LOG_DATA_RAW) {
         // If length is larger than buffer directly log to file
-        int32 total_len = *((int32 *) data.data[0].value);
+        const int32 total_len = *((int32 *) data.data[0].value);
         #if DEBUG || VERBOSE
             // In debug mode we always output the log message to the debug console
             log_to_terminal(log_sys_time(), format);

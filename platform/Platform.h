@@ -10,6 +10,7 @@
 #define COMS_PLATFORM
 
 #include "../stdlib/Types.h"
+#include "../stdlib/Helper.h"
 
 #if PLAYSTATION || XBOX
 #elif NINTENDO_SWITCH
@@ -19,6 +20,21 @@
     #define OMS_MAX(a, b) OMS_MAX_BRANCHLESS(a, b)
     #define OMS_MIN(a, b) OMS_MIN_BRANCHLESS(a, b)
     #define OMS_CLAMP(val, low, high) OMS_CLAMP_BRANCHLESS(val, low, high)
+
+    template <typename T>
+    inline T oms_max(T a, T b) {
+        return max_branchless(a, b);
+    }
+
+    template <typename T>
+    inline T oms_min(T a, T b) {
+        return min_branchless(a, b);
+    }
+
+    template <typename T>
+    inline T oms_clamp(T val, T low, T high) {
+        return clamp_branchless(val, low, high);
+    }
 #endif
 
 #endif

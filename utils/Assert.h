@@ -10,34 +10,39 @@
 #define COMS_UTILS_TEST_UTILS_H
 
 #include <stdint.h>
-#include <string.h>
 
 #if DEBUG
-    #define ASSERT_TRUE(a) if (!(a)) {    \
+    #define ASSERT_TRUE(a) if (!(a)) {      \
         /* cppcheck-suppress nullPointer */ \
         *(volatile int *)0 = 0;             \
     }
 
-    #define ASSERT_TRUE_CONST(a) if constexpr (!(a)) {    \
-        /* cppcheck-suppress nullPointer */                 \
-        *(volatile int *)0 = 0;                             \
+    #define ASSERT_TRUE_CONST(a) IF_CONSTEXPR(!(a)) {    \
+        /* cppcheck-suppress nullPointer */              \
+        *(volatile int *)0 = 0;                          \
     }
 
-    #define ASSERT_MEM_ZERO(ptr, size) do {                            \
-        static const uint64_t zero_pattern = 0;                    \
-        const char *p_ = (const char *)(ptr);                      \
-        size_t chunk_size = (size);                                \
-        while (chunk_size >= sizeof(uint64_t)) {                   \
-            if (memcmp(p_, &zero_pattern, sizeof(uint64_t)) != 0) {\
-                *(volatile int *)0 = 0;                            \
-                break;                                             \
-            }                                                      \
-            p_ += sizeof(uint64_t);                                \
-            chunk_size -= sizeof(uint64_t);                        \
-        }                                                          \
-        if (memcmp(p_, &zero_pattern, chunk_size) != 0) {          \
-            *(volatile int *)0 = 0;                                \
-        }                                                          \
+    #define ASSERT_MEM_ZERO(ptr, size) do {    \
+        const char *p_ = (const char *)(ptr);  \
+        size_t chunk_size = (size);            \
+                                               \
+        while (chunk_size >= sizeof(size_t)) { \
+            if (*(const size_t *)p_ != 0) {    \
+                *(volatile int *)0 = 0;        \
+                break;                         \
+            }                                  \
+            p_ += sizeof(size_t);              \
+            chunk_size -= sizeof(size_t);      \
+        }                                      \
+                                               \
+        while (chunk_size > 0) {               \
+            if (*p_ != 0) {                    \
+                *(volatile int *)0 = 0;        \
+                break;                         \
+            }                                  \
+            ++p_;                              \
+            --chunk_size;                      \
+        }                                      \
     } while (0)
 
 #else

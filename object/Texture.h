@@ -40,7 +40,7 @@ struct Texture {
     byte sample_id;
 
     // @question Should the texture hold the texture unit?
-    //  If yes remember to update prepare_texture()
+    //  If yes remember to update gpuapi_prepare_texture()
 
     byte texture_data_type;
     byte texture_minification;

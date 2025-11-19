@@ -23,7 +23,7 @@ f32 euclidean_2d(v2_f32 a, v2_f32 b) {
     f32 dx = fabs(a.x - b.x);
     f32 dy = fabs(a.y - b.y);
 
-    return sqrt(dx * dx + dy * dy);
+    return intrin_sqrt_f64(dx * dx + dy * dy);
 }
 
 f32 octile_2d(v2_f32 a, v2_f32 b) {
@@ -31,8 +31,8 @@ f32 octile_2d(v2_f32 a, v2_f32 b) {
     f32 dy = fabs(a.y - b.y);
 
     return dx < dy
-        ? (SQRT_2 - 1) * dx + dy
-        : (SQRT_2 - 1) * dy + dx;
+        ? (SQRT_2F - 1) * dx + dy
+        : (SQRT_2F - 1) * dy + dx;
 }
 
 f32 chebyshev_2d(v2_f32 a, v2_f32 b) {
@@ -61,7 +61,7 @@ f32 bray_curtis_2d(v2_f32 a, v2_f32 b) {
 
 f32 angular_separation_2d(v2_f32 a, v2_f32 b) {
     return (a.x * b.x + a.y * b.y)
-        / (sqrt(a.x * a.x + a.y * a.y) * sqrt(b.x * b.x + b.y * b.y));
+        / (intrin_sqrt_f32(a.x * a.x + a.y * a.y) * intrin_sqrt_f32(b.x * b.x + b.y * b.y));
 }
 
 #endif

@@ -49,6 +49,8 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
         + sizeof(uint64) * CEIL_DIV(count, 64) // completeness
         + alignment * 3; // overhead for alignment
 
+    size = OMS_ALIGN_UP(size, alignment);
+
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)
         : (byte *) platform_alloc_aligned(size, alignment);
@@ -63,7 +65,8 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
     buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
     buf->completeness = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
 
-    memset(buf->memory, 0, buf->size);
+    // @question Why is this even here?
+    compiler_memset_aligned(buf->memory, 0, buf->size);
     mutex_init(&buf->lock, NULL);
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {LOG_DATA_UINT64, &buf->size});

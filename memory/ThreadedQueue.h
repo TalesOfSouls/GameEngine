@@ -48,7 +48,7 @@ struct ThreadedQueue {
 };
 
 inline
-void thrd_queue_alloc(ThreadedQueue* queue, uint32 element_count, uint32 element_size, uint32 alignment = 64)
+void thrd_queue_alloc(ThreadedQueue* queue, uint32 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
 {
     element_size = OMS_ALIGN_UP(element_size, alignment);
 
@@ -64,7 +64,7 @@ void thrd_queue_alloc(ThreadedQueue* queue, uint32 element_count, uint32 element
 }
 
 inline
-void thrd_queue_init(ThreadedQueue* queue, BufferMemory* buf, uint32 element_count, uint32 element_size, uint32 alignment = 64)
+void thrd_queue_init(ThreadedQueue* queue, BufferMemory* buf, uint32 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
 {
     element_size = OMS_ALIGN_UP(element_size, alignment);
 
@@ -80,7 +80,7 @@ void thrd_queue_init(ThreadedQueue* queue, BufferMemory* buf, uint32 element_cou
 }
 
 inline
-void thrd_queue_init(ThreadedQueue* queue, byte* buf, uint32 element_count, uint32 element_size, uint32 alignment = 64)
+void thrd_queue_init(ThreadedQueue* queue, byte* buf, uint32 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
 {
     element_size = OMS_ALIGN_UP(element_size, alignment);
 

@@ -19,7 +19,7 @@
 #include "UICursor.h"
 #include "UICustom.h"
 
-constexpr
+CONSTEXPR
 int32 ui_element_type_size(UIElementType e)
 {
     switch (e) {
@@ -59,7 +59,7 @@ int32 ui_element_type_size(UIElementType e)
     }
 }
 
-constexpr
+CONSTEXPR
 int32 ui_element_state_size(UIElementType e)
 {
     switch (e) {
@@ -99,7 +99,7 @@ int32 ui_element_state_size(UIElementType e)
     }
 }
 
-constexpr
+CONSTEXPR
 int32 ui_element_type_to_id(const char* str)
 {
     if (str_compare("button", str) == 0) {

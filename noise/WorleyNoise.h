@@ -71,7 +71,7 @@ float worley_noise_2d(v2_f32* points, int feature_points, float x, float y, int 
         }
     }
 
-    return sqrt(min_dist_squared);
+    return intrin_sqrt_f32(min_dist_squared);
 }
 
 float worley_noise_3d(v3_f32* points, int feature_points, float x, float y, float z, int rows, int cols, int depth) {

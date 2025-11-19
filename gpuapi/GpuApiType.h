@@ -13,7 +13,8 @@ enum GpuApiType : byte {
     GPU_API_TYPE_NONE,
     GPU_API_TYPE_OPENGL,
     GPU_API_TYPE_VULKAN,
-    GPU_API_TYPE_DIRECTX
+    GPU_API_TYPE_DIRECTX,
+    GPU_API_TYPE_SOFTWARE,
 };
 
 #endif

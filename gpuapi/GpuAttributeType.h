@@ -21,7 +21,7 @@ enum GpuAttributeType : byte {
     GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE
 };
 
-inline constexpr
+inline CONSTEXPR
 int32 gpuapi_attribute_count(GpuAttributeType type)
 {
     switch (type) {

@@ -11,10 +11,10 @@
 
 #include "Types.h"
 
-#define OMS_LERP(a,b,t) ((a) + ((b) - (a)) * (t))
-#define OMS_INVERSE_LERP(a,b,x) (((x) - (a)) / ((b) - (a)))
+#define OMS_LERP(a, b, t) ((1 - (t)) * (a) + (t) * (b))
+#define OMS_INVERSE_LERP(a, b, x) (((x) - (a)) / ((b) - (a)))
 // Remap x from [inMin,inMax] to [outMin,outMax]
-#define OMS_REMAP(x,inMin,inMax,outMin,outMax) (OMS_LERP((outMin), (outMax), OMS_INVERSE_LERP((inMin),(inMax),(x))))
+#define OMS_REMAP(x, inMin, inMax, outMin, outMax) (OMS_LERP((outMin), (outMax), OMS_INVERSE_LERP((inMin), (inMax), (x))))
 
 struct AABB_f32 {
     v3_f32 min;
@@ -85,7 +85,7 @@ AABB_f32 aabb_loosen(AABB_f32 b, f32 s) NO_EXCEPT {
 }
 
 inline
-v3_int32 aabb_center(const AABB_int32 box) NO_EXCEPT {
+v3_int32 aabb_center(AABB_int32 box) NO_EXCEPT {
     v3_int32 c;
     c.x = (box.min.x + box.max.x) / 2;
     c.y = (box.min.y + box.max.y) / 2;
@@ -95,7 +95,7 @@ v3_int32 aabb_center(const AABB_int32 box) NO_EXCEPT {
 }
 
 inline
-v3_f32 aabb_center(const AABB_f32 box) NO_EXCEPT {
+v3_f32 aabb_center(AABB_f32 box) NO_EXCEPT {
     v3_f32 c;
     c.x = (box.min.x + box.max.x) * 0.5f;
     c.y = (box.min.y + box.max.y) * 0.5f;

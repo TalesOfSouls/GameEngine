@@ -58,6 +58,22 @@ uint64 system_private_memory_usage()
 }
 
 inline
+uint32 system_stack_usage()
+{
+    static thread_local char* stack_base = NULL;
+
+    if (!stack_base) {
+        NT_TIB* tib = (NT_TIB *) NtCurrentTeb();
+        stack_base  = (char *) tib->StackBase;
+    }
+
+    volatile char local_var = '0'; // current position on stack
+    uint32 used = (uint32) (stack_base - (char *) &local_var);
+
+    return used;
+}
+
+inline
 uint64 system_app_memory_usage()
 {
     MEMORY_BASIC_INFORMATION mbi;

@@ -36,17 +36,17 @@ f32 anim_ease_linear(f32 t) {
 
 inline
 f32 anim_ease_in_sine(f32 t) {
-    return 1.0f - cosf((t * OMS_PI) / 2.0f);
+    return 1.0f - cosf((t * OMS_PI_F32) / 2.0f);
 }
 
 inline
 f32 anim_ease_out_sine(f32 t) {
-    return sinf((t * OMS_PI) / 2.0f);
+    return sinf((t * OMS_PI_F32) / 2.0f);
 }
 
 inline
 f32 anim_ease_in_out_sine(f32 t) {
-    return -(cosf(OMS_PI * t) - 1) / 2.0f;
+    return -(cosf(OMS_PI_F32 * t) - 1) / 2.0f;
 }
 
 inline
@@ -149,19 +149,19 @@ f32 anim_ease_in_out_expo(f32 t) {
 
 inline
 f32 anim_ease_in_circ(f32 t) {
-    return 1.0f - sqrtf(1.0f - powf(t, 2));
+    return 1.0f - intrin_sqrt_f32(1.0f - powf(t, 2));
 }
 
 inline
 f32 anim_ease_out_circ(f32 t) {
-    return sqrtf(1.0f - powf(t - 1, 2));
+    return intrin_sqrt_f32(1.0f - powf(t - 1, 2));
 }
 
 inline
 f32 anim_ease_in_out_circ(f32 t) {
     return t < 0.5f
-        ? (1.0f - sqrtf(1.0f - powf(2 * t, 2))) / 2.0f
-        : (sqrtf(1.0f - powf(-2 * t + 2, 2)) + 1) / 2.0f;
+        ? (1.0f - intrin_sqrt_f32(1.0f - powf(2 * t, 2))) / 2.0f
+        : (intrin_sqrt_f32(1.0f - powf(-2 * t + 2, 2)) + 1) / 2.0f;
 }
 
 inline
@@ -192,7 +192,7 @@ f32 anim_ease_in_out_back(f32 t) {
 
 inline
 f32 anim_ease_in_elastic(f32 t) {
-    const f32 c4 = OMS_TWO_PI / 3;
+    const f32 c4 = OMS_TWO_PI_F32 / 3;
 
     if (t == 0.0f || t == 1.0f) {
         return t;
@@ -203,7 +203,7 @@ f32 anim_ease_in_elastic(f32 t) {
 
 inline
 f32 anim_ease_out_elastic(f32 t) {
-    const f32 c4 = OMS_TWO_PI / 3;
+    const f32 c4 = OMS_TWO_PI_F32 / 3;
 
     if (t == 0.0f || t == 1.0f) {
         return t;
@@ -214,7 +214,7 @@ f32 anim_ease_out_elastic(f32 t) {
 
 inline
 f32 anim_ease_in_out_elastic(f32 t) {
-    const f32 c5 = OMS_TWO_PI / 4.5f;
+    const f32 c5 = OMS_TWO_PI_F32 / 4.5f;
 
     if (t == 0.0f || t == 1.0f) {
         return t;

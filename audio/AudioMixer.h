@@ -14,7 +14,7 @@
 #include "AudioSetting.h"
 #include "../utils/Utils.h"
 #include "../memory/ChunkMemory.h"
-#include "../math/matrix/MatrixFloat32.h"
+#include "../math/matrix/Matrix.h"
 #include "../thread/Atomic.h"
 
 #if DIRECT_SOUND
@@ -49,9 +49,10 @@ enum AudioEffect {
 
 struct AudioInstance {
     int32 id;
-    AudioLocationSetting origin;
-
     uint32 audio_size;
+
+    alignas(8) AudioLocationSetting origin;
+
     byte* audio_data;
 
     uint64 effect;
@@ -138,7 +139,7 @@ void audio_mixer_play(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* 
     instance->channels = audio->channels;
 
     if (settings) {
-        memcpy(&instance->origin, &settings->origin, sizeof(AudioLocationSetting));
+        memcpy_aligned(&instance->origin, &settings->origin, sizeof(AudioLocationSetting));
         instance->effect = settings->effect;
     }
 }
@@ -151,7 +152,7 @@ void audio_mixer_play(AudioMixer* mixer, AudioInstance* settings)
     }
 
     AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, index);
-    memcpy(instance, settings, sizeof(AudioInstance));
+    memcpy_aligned(instance, settings, sizeof(AudioInstance));
 }
 
 void audio_mixer_play_unique(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL)
@@ -262,7 +263,7 @@ void apply_underwater(int16* buffer, uint32 buffer_size) {
 
 void apply_flanger(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
     f32 delay_samples = depth * sample_rate;
-    f32 temp = OMS_TWO_PI * rate / sample_rate;
+    f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
 
     for (uint32 i = 0; i < buffer_size; ++i) {
         uint32 delay = (uint32) (delay_samples * (0.5f + 0.5f * sinf(i * temp)));
@@ -273,7 +274,7 @@ void apply_flanger(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32
 }
 
 void apply_tremolo(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
-    f32 temp = OMS_TWO_PI * rate / sample_rate;
+    f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
     f32 temp2 = (1.0f - depth) + depth;
 
     for (uint32 i = 0; i < buffer_size; ++i) {
@@ -289,7 +290,7 @@ void apply_distortion(int16* buffer, uint32 buffer_size, f32 gain) {
 }
 
 void apply_chorus(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
-    f32 temp = OMS_TWO_PI * rate / sample_rate;
+    f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
 
     uint32 max_delay = (uint32) (depth * sample_rate);
     for (uint32 i = 0; i < buffer_size; ++i) {
@@ -318,7 +319,7 @@ void apply_granular_delay(int16* buffer, uint32 buffer_size, f32 delay, f32 gran
 }
 
 void apply_frequency_modulation(int16* buffer, uint32 buffer_size, f32 mod_freq, f32 mod_depth, int32 sample_rate) {
-    f32 temp = OMS_TWO_PI * mod_freq / sample_rate;
+    f32 temp = OMS_TWO_PI_F32 * mod_freq / sample_rate;
     for (uint32 i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) (buffer[i] * sinf(i * temp) * mod_depth);
     }
@@ -335,7 +336,7 @@ void apply_stereo_panning(int16* buffer, uint32 buffer_size, f32 pan) {
 }
 
 void apply_highpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_rate) {
-    f32 rc = 1.0f / (OMS_TWO_PI * cutoff);
+    f32 rc = 1.0f / (OMS_TWO_PI_F32 * cutoff);
     f32 dt = 1.0f / sample_rate;
     f32 alpha = rc / (rc + dt);
     f32 previous = buffer[0];
@@ -350,7 +351,7 @@ void apply_highpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_
 }
 
 void apply_lowpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_rate) {
-    f32 rc = 1.0f / (OMS_TWO_PI * cutoff);
+    f32 rc = 1.0f / (OMS_TWO_PI_F32 * cutoff);
     f32 dt = 1.0f / sample_rate;
     f32 alpha = dt / (rc + dt);
     f32 previous = buffer[0];
