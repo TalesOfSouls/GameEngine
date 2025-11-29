@@ -83,7 +83,8 @@ void scheduler_create(TaskScheduler* scheduler, int32 count, BufferMemory* buf) 
 }
 
 static
-int32 scheduler_get_unset(volatile uint64* state, uint32 state_count) NO_EXCEPT {
+int32 scheduler_get_unset(volatile uint64* state, uint32 state_count) NO_EXCEPT
+{
     uint32 free_index = 0;
     uint32 bit_index = 0;
 

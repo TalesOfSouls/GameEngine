@@ -22,7 +22,8 @@ FORCE_INLINE
 int32 vertex_degenerate_create(
     Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex,
     f32 x, f32 y
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     // Degenerate triangles
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
@@ -77,7 +78,8 @@ int32 vertex_line_create(
     Vertex3DSamplerTextureColor* vertices, f32 zindex,
     v2_f32 start, v2_f32 end, f32 thickness,
     uint32 rgba = 0
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     f32 dx = end.x - start.x;
     f32 dy = end.y - start.y;
 
@@ -95,10 +97,10 @@ int32 vertex_line_create(
     const f32 hy = py * (thickness * 0.5f);
 
     // Four corners of the line quad
-    v2_f32 v0 = { start.x - hx, start.y - hy };
-    v2_f32 v1 = { start.x + hx, start.y + hy };
-    v2_f32 v2 = { end.x   - hx, end.y   - hy };
-    v2_f32 v3 = { end.x   + hx, end.y   + hy };
+    const v2_f32 v0 = { start.x - hx, start.y - hy };
+    const v2_f32 v1 = { start.x + hx, start.y + hy };
+    const v2_f32 v2 = { end.x   - hx, end.y   - hy };
+    const v2_f32 v3 = { end.x   + hx, end.y   + hy };
 
     int32 idx = 0;
 
@@ -119,7 +121,8 @@ int32 vertex_rect_create(
     Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     uint32 rgba = 0, v2_f32 tex1 = {}, v2_f32 tex2 = {}
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     PROFILE(PROFILE_VERTEX_RECT_CREATE);
     if (alignment) {
         adjust_aligned_position(&dimension, alignment);
@@ -156,7 +159,8 @@ int32 vertex_circle_create(
     byte alignment,
     int32 segments, // defines the detail (should be a multiple of 4)
     uint32 rgba = 0, v2_f32 tex_center = {}, v2_f32 tex_edge = {}
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     if (alignment) {
         adjust_aligned_position(&dimension, alignment);
     }
@@ -212,7 +216,8 @@ int32 vertex_arc_create(
     f32 start_angle,             // radians — where the arc starts
     f32 arc_angle,               // radians — how wide the arc is (e.g. OMS_PI_F32 for semicircle)
     uint32 rgba = 0, v2_f32 tex_center = {}, v2_f32 tex_edge = {}
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     if (alignment) {
         adjust_aligned_position(&dimension, alignment);
     }
@@ -258,7 +263,8 @@ int32 vertex_arc_create(
 static
 f32 text_calculate_dimensions_height(
     const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     const f32 line_height = font->line_height * scale;
     f32 y = line_height;
 
@@ -276,7 +282,8 @@ f32 text_calculate_dimensions_height(
 static
 f32 text_calculate_dimensions_width(
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     f32 x = 0;
     f32 offset_x = 0;
 
@@ -306,7 +313,8 @@ f32 text_calculate_dimensions_width(
 static
 v2_f32 text_calculate_dimensions(
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     const f32 line_height = font->line_height * scale;
     f32 x = 0;
     f32 y = line_height;
@@ -347,7 +355,8 @@ v3_int32 vertex_text_create(
     v4_f32 dimension, byte alignment,
     const Font* __restrict font, const char* __restrict text,
     f32 size, uint32 rgba = 0
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     PROFILE(PROFILE_VERTEX_TEXT_CREATE);
     int32 length = utf8_str_length(text);
     if (length < 1) {

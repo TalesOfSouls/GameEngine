@@ -33,17 +33,17 @@
 #include "../compiler/CompilerUtils.h"
 
 inline
-void cmd_buffer_create(AppCmdBuffer* cb, BufferMemory* buf, int32 commands_count)
+void cmd_buffer_create(AppCmdBuffer* cb, BufferMemory* buf, int32 commands_count) NO_EXCEPT
 {
     chunk_init(&cb->commands, buf, commands_count, sizeof(Command), 64);
     mutex_init(&cb->mtx, NULL);
 
-    LOG_1("Created AppCmdBuffer: %n B", {LOG_DATA_UINT64, &cb->commands.size});
+    LOG_1("Created AppCmdBuffer: %n B", {DATA_TYPE_UINT64, &cb->commands.size});
 }
 
 // This doesn't load the file directly but tells (most likely) a worker thread to load a file
 static inline
-void cmd_file_load_enqueue(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
+void cmd_file_load_enqueue(AppCmdBuffer* __restrict cb, Command* __restrict cmd) NO_EXCEPT
 {
     // cmd->data structure:
     //      start with a pointer to a callback function
@@ -52,7 +52,7 @@ void cmd_file_load_enqueue(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 }
 
 static inline
-void cmd_file_load(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
+void cmd_file_load(AppCmdBuffer* __restrict cb, Command* __restrict cmd) NO_EXCEPT
 {
     FileBody file = {};
     file_read((const char *) cmd->data + sizeof(CommandFunction), &file, cb->thrd_mem_vol);
@@ -64,7 +64,7 @@ void cmd_file_load(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 }
 
 static inline
-void* cmd_func_run(AppCmdBuffer*, Command* cmd)
+void* cmd_func_run(AppCmdBuffer*, Command* cmd) NO_EXCEPT
 {
     CommandFunction func = *((CommandFunction *) cmd->data);
     return func(cmd);
@@ -72,7 +72,7 @@ void* cmd_func_run(AppCmdBuffer*, Command* cmd)
 
 // General purpose cmd command enqueue
 inline
-void thrd_cmd_insert(AppCmdBuffer* __restrict cb, Command* __restrict cmd_temp)
+void thrd_cmd_insert(AppCmdBuffer* __restrict cb, Command* __restrict cmd_temp) NO_EXCEPT
 {
     mutex_lock(&cb->mtx);
     int32 index = chunk_reserve_one(&cb->commands);
@@ -93,7 +93,7 @@ void thrd_cmd_insert(AppCmdBuffer* __restrict cb, Command* __restrict cmd_temp)
 }
 
 inline
-void thrd_cmd_insert(AppCmdBuffer* cb, CommandType type, int32 data)
+void thrd_cmd_insert(AppCmdBuffer* cb, CommandType type, int32 data) NO_EXCEPT
 {
     Command cmd;
     cmd.callback = NULL;
@@ -104,7 +104,7 @@ void thrd_cmd_insert(AppCmdBuffer* cb, CommandType type, int32 data)
 }
 
 inline
-void thrd_cmd_insert(AppCmdBuffer* cb, CommandType type, const char* data)
+void thrd_cmd_insert(AppCmdBuffer* cb, CommandType type, const char* data) NO_EXCEPT
 {
     Command cmd;
     cmd.callback = NULL;
@@ -115,7 +115,8 @@ void thrd_cmd_insert(AppCmdBuffer* cb, CommandType type, const char* data)
 }
 
 inline
-void thrd_cmd_insert(AppCmdBuffer* cb, CommandFunction* func) {
+void thrd_cmd_insert(AppCmdBuffer* cb, CommandFunction* func) NO_EXCEPT
+{
     Command cmd;
     cmd.callback = NULL;
     cmd.type = CMD_FUNC_RUN;
@@ -125,7 +126,8 @@ void thrd_cmd_insert(AppCmdBuffer* cb, CommandFunction* func) {
 }
 
 inline
-void* cmd_func_run(AppCmdBuffer*, CommandFunction func) {
+void* cmd_func_run(AppCmdBuffer*, CommandFunction func) NO_EXCEPT
+{
     return func(NULL);
 }
 
@@ -144,7 +146,7 @@ void* cmd_func_run(AppCmdBuffer*, CommandFunction func) {
 //      Do we really want to do that or do we instead want to load the asset right then and there
 //      If we do it right then and DON'T defer it, this would also solve the first question
 // @question Maybe allow to pass a thread pool which if present is used for handling in worker threads
-void cmd_iterate(AppCmdBuffer* cb)
+void cmd_iterate(AppCmdBuffer* cb) NO_EXCEPT
 {
     PROFILE(PROFILE_CMD_ITERATE);
     int32 last_element = 0;
@@ -222,7 +224,7 @@ void cmd_iterate(AppCmdBuffer* cb)
 //              This has the risk that if it takes a long time we may run out of free indices for insert
 //              This shouldn't happen since the command buffer shouldn't fill up in just 1-3 frames
 inline
-void thrd_cmd_iterate(AppCmdBuffer* cb)
+void thrd_cmd_iterate(AppCmdBuffer* cb) NO_EXCEPT
 {
     mutex_lock(&cb->mtx);
     cmd_iterate(cb);

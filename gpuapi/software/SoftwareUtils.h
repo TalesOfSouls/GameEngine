@@ -16,7 +16,7 @@
 
 // Since we don't upload textures in software rendering this is the same as texture_use
 FORCE_INLINE
-void gpuapi_prepare_texture(SoftwareRenderer* renderer, Texture* texture) NO_EXCEPT
+void gpuapi_prepare_texture(SoftwareRenderer* renderer, const Texture* texture) NO_EXCEPT
 {
     renderer->textures[texture->sample_id] = texture;
 }

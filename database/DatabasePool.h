@@ -34,7 +34,7 @@ struct DatabasePool {
 void db_pool_alloc(DatabasePool* pool, uint8 count) {
     ASSERT_TRUE(count);
     PROFILE(PROFILE_DB_POOL_ALLOC, NULL, false, true);
-    LOG_1("[INFO] Allocating DatabasePool for %d connections", {LOG_DATA_BYTE, &count});
+    LOG_1("[INFO] Allocating DatabasePool for %d connections", {DATA_TYPE_UINT8, &count});
 
     uint64 size = count * sizeof(DatabaseConnection)
         + sizeof(uint64) * CEIL_DIV(count, 64) // free
@@ -45,7 +45,8 @@ void db_pool_alloc(DatabasePool* pool, uint8 count) {
     pool->count = count;
 }
 
-void db_pool_add(DatabasePool* __restrict pool, DatabaseConnection* __restrict db) NO_EXCEPT {
+void db_pool_add(DatabasePool* __restrict pool, DatabaseConnection* __restrict db) NO_EXCEPT
+{
     db->id = ++pool->pos;
     memcpy(&pool->connections[pool->pos], db, sizeof(DatabaseConnection));
 }
@@ -65,7 +66,8 @@ void db_pool_free(DatabasePool* pool) {
 // Returns free database connection or null if none could be found
 // @todo implement db_pool_get_wait(pool, waittime)
 FORCE_INLINE
-const DatabaseConnection* db_pool_get(DatabasePool* pool) NO_EXCEPT {
+const DatabaseConnection* db_pool_get(DatabasePool* pool) NO_EXCEPT
+{
     // @question Why are we not using reserve?
     int32 id = thrd_chunk_reserve_one(pool->free, (pool->count - 1) / 64, 0);
 
@@ -74,7 +76,8 @@ const DatabaseConnection* db_pool_get(DatabasePool* pool) NO_EXCEPT {
 
 // releases the database connection for use
 FORCE_INLINE
-void db_pool_release(DatabasePool* pool, int32 id) NO_EXCEPT {
+void db_pool_release(DatabasePool* pool, int32 id) NO_EXCEPT
+{
     thrd_chunk_set_unset(id, pool->free);
 }
 

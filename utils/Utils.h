@@ -40,7 +40,8 @@ bool is_equal(const byte* __restrict region1, const byte* __restrict region2, ui
 }
 
 inline
-void str_output(const char* __restrict str, ...) {
+void str_output(const char* __restrict str, ...) NO_EXCEPT
+{
     char buffer[1024];
     if (str_find(str, '%')) {
         va_list args;
@@ -60,7 +61,8 @@ void str_output(const char* __restrict str, ...) {
 }
 
 inline
-void swap_memory(void* __restrict a, void* __restrict b, size_t size) NO_EXCEPT {
+void swap_memory(void* __restrict a, void* __restrict b, size_t size) NO_EXCEPT
+{
     byte* p = (byte*) a;
     byte* q = (byte*) b;
 

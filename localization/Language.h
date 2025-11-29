@@ -22,7 +22,8 @@ void language_from_file_txt(
     Language* language,
     const char* path,
     RingMemory* ring
-) {
+) NO_EXCEPT
+{
     FileBody file = {};
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
@@ -62,7 +63,8 @@ void language_from_file_txt(
     }
 }
 
-int32 language_data_size(const Language* language)
+FORCE_INLINE
+int32 language_data_size(const Language* language) NO_EXCEPT
 {
     return (int32) (language->size
         + sizeof(language->count)
@@ -77,7 +79,8 @@ int32 language_data_size(const Language* language)
 int32 language_from_data(
     const byte* data,
     Language* language
-) {
+) NO_EXCEPT
+{
     const byte* pos = data;
 
     // Count
@@ -110,7 +113,8 @@ int32 language_from_data(
 int32 language_to_data(
     const Language* language,
     byte* data
-) {
+) NO_EXCEPT
+{
     byte* pos = data;
 
     // Count

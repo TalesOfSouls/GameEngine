@@ -64,6 +64,7 @@ LONG WINAPI test_exception_handler(EXCEPTION_POINTERS *exception_info)
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+inline
 int64_t test_start_time()
 {
     LARGE_INTEGER start;
@@ -72,6 +73,7 @@ int64_t test_start_time()
     return start.QuadPart;
 }
 
+inline
 double test_duration_time(int64_t start)
 {
     LARGE_INTEGER frequency;
@@ -79,6 +81,7 @@ double test_duration_time(int64_t start)
     return (double)(test_start_time() - start) / frequency.QuadPart;
 }
 
+inline
 double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *para)
 {
     LARGE_INTEGER frequency, start, end;
@@ -114,6 +117,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
 #else
 #include "../platform/linux/ExceptionHandler.h"
 #include <time.h>
+inline
 void test_exception_handler(int signum)
 {
     printf("Received signal: %d\n", signum);
@@ -121,6 +125,7 @@ void test_exception_handler(int signum)
     exit(1);
 }
 
+inline
 int64_t test_start_time()
 {
     struct timespec start;
@@ -129,11 +134,13 @@ int64_t test_start_time()
     return start.tv_sec * 1e9 + start.tv_nsec;
 }
 
+inline
 double test_duration_time(int64_t start)
 {
     return (double)(test_start_time() - start);
 }
 
+inline
 double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *para)
 {
     struct timespec start, end;

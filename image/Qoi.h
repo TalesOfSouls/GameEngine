@@ -288,6 +288,7 @@ int32 qoi_decode_3(const byte* data, Image* image) NO_EXCEPT
     return px_len;
 }
 
+inline
 int32 qoi_decode(const byte* data, Image* image) NO_EXCEPT
 {
 	LOG_3("QOI decode image");

@@ -141,7 +141,8 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, WasapiSetting* __re
 }
 
 inline
-void audio_play(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) {
+void audio_play(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
+{
     ASSERT_TRUE(api_setting->audio_handle);
     /*if (!api_setting->audio_handle) {
         return;
@@ -151,7 +152,8 @@ void audio_play(AudioSetting* __restrict setting, WasapiSetting* __restrict api_
 }
 
 inline
-void audio_stop(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) {
+void audio_stop(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
+{
     ASSERT_TRUE(api_setting->audio_handle);
     /*if (!api_setting->audio_handle) {
         return;
@@ -161,7 +163,7 @@ void audio_stop(AudioSetting* __restrict setting, WasapiSetting* __restrict api_
 }
 
 inline
-void audio_free(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting)
+void audio_free(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     if (!api_setting->render_client) {
         api_setting->render_client->Release();
@@ -173,7 +175,7 @@ void audio_free(AudioSetting* __restrict setting, WasapiSetting* __restrict api_
 }
 
 inline
-uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const WasapiSetting* __restrict api_setting)
+uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
     if (!api_setting->audio_handle) {
@@ -190,7 +192,8 @@ uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const Wasap
 }
 
 inline
-void audio_play_buffer(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) {
+void audio_play_buffer(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
+{
     PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
     if (!api_setting->audio_handle || setting->sample_buffer_size == 0) {
         return;

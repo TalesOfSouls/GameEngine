@@ -16,7 +16,7 @@
 #include "../../log/PerformanceProfiler.h"
 
 inline
-void usleep(uint64 microseconds)
+void usleep(uint64 microseconds) NO_EXCEPT
 {
     PROFILE(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
 
@@ -32,7 +32,7 @@ void usleep(uint64 microseconds)
 }
 
 inline
-uint64 system_time()
+uint64 system_time() NO_EXCEPT
 {
     SYSTEMTIME systemTime;
     FILETIME fileTime;
@@ -49,7 +49,7 @@ uint64 system_time()
 }
 
 inline
-uint64 system_time_utc()
+uint64 system_time_utc() NO_EXCEPT
 {
     SYSTEMTIME systemTime;
     FILETIME fileTime;
@@ -67,8 +67,9 @@ uint64 system_time_utc()
 
 
 // Used as initializer for 64bit random number generators instead of time()
-inline
-uint64 time_index() {
+FORCE_INLINE
+uint64 time_index() NO_EXCEPT
+{
     LARGE_INTEGER counter;
     QueryPerformanceCounter(&counter);
 
@@ -78,7 +79,7 @@ uint64 time_index() {
 // doesn't return clock time, only to return time since program start
 // -> can be used for profiling
 inline
-uint64 time_mu()
+uint64 time_mu() NO_EXCEPT
 {
     LARGE_INTEGER counter;
     QueryPerformanceCounter(&counter);
@@ -93,7 +94,7 @@ uint64 time_mu()
 }
 
 inline
-uint64 unix_epoch_s()
+uint64 unix_epoch_s() NO_EXCEPT
 {
     FILETIME ft;
     GetSystemTimeAsFileTime(&ft);
@@ -106,7 +107,7 @@ uint64 unix_epoch_s()
 }
 
 inline
-DWORD timespec_to_ms(const timespec* abstime)
+DWORD timespec_to_ms(const timespec* abstime) NO_EXCEPT
 {
     if (abstime == NULL) {
         return INFINITE;

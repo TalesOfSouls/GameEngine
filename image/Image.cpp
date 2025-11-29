@@ -18,7 +18,8 @@
 #include "Bitmap.h"
 #include "Png.h"
 
-void image_from_file(Image* __restrict image, const char* __restrict path, RingMemory* __restrict ring)
+inline
+void image_from_file(Image* __restrict image, const char* __restrict path, RingMemory* __restrict ring) NO_EXCEPT
 {
     FileBody file = {};
     file_read(path, &file, ring);
@@ -32,6 +33,7 @@ void image_from_file(Image* __restrict image, const char* __restrict path, RingM
     }
 }
 
+inline
 void image_flip_vertical(RingMemory* __restrict ring, Image* __restrict image) NO_EXCEPT
 {
     uint32 stride = image->width * sizeof(uint32);
@@ -84,6 +86,7 @@ uint32 image_header_from_data(const byte* __restrict data, Image* __restrict ima
     return (int32) (data - start);
 }
 
+inline
 uint32 image_from_data(const byte* __restrict data, Image* __restrict image) NO_EXCEPT
 {
     LOG_3("Load image");
@@ -116,6 +119,7 @@ uint32 image_header_to_data(const Image* __restrict image, byte* __restrict data
     return (int32) (data - start);
 }
 
+inline
 uint32 image_to_data(const Image* __restrict image, byte* __restrict data) NO_EXCEPT
 {
     byte* pos = data;

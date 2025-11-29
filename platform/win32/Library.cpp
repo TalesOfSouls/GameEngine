@@ -19,7 +19,17 @@
 #include "../../system/FileUtils.cpp"
 
 inline
-bool library_load(Library* lib)
+void* library_get_symbol(Library* lib, const char* symbol) NO_EXCEPT
+{
+    if (!lib || !lib->handle || !symbol) {
+        return NULL;
+    }
+
+    return (void*)GetProcAddress((HMODULE) lib->handle, (LPCSTR) symbol);
+}
+
+inline
+bool library_load(Library* lib) NO_EXCEPT
 {
     char dst[MAX_PATH];
     str_concat_new(dst, lib->dir, lib->dst);
@@ -54,9 +64,16 @@ bool library_load(Library* lib)
         lib->is_valid = false;
         ASSERT_TRUE(false);
 
+        LOG_1("[ERROR] Couldn't load library %s", {DATA_TYPE_CHAR_STR, (void *) dst});
+
         return lib->is_valid;
     }
 
+    return true;
+}
+
+inline
+bool library_bind_functions(Library* lib) NO_EXCEPT {
     lib->is_valid = true;
     for (int32 c = 0; c < lib->function_count; ++c) {
         void* function = (void *) GetProcAddress(lib->handle, (LPCSTR) lib->function_names[c]);
@@ -65,6 +82,8 @@ bool library_load(Library* lib)
         } else {
             ASSERT_TRUE(false);
             lib->is_valid = false;
+
+            LOG_1("[ERROR] Couldn't load library function %s", {DATA_TYPE_CHAR_STR, (void *) lib->function_names[c]});
         }
     }
 
@@ -72,7 +91,17 @@ bool library_load(Library* lib)
 }
 
 inline
-void library_unload(Library* lib)
+void library_descriptor_load(Library* lib) {
+    LibraryModuleDescriptor* desc = (LibraryModuleDescriptor *) library_get_symbol(lib, LIBRARY_MODULE_DESCRIPTOR_SYMBOL);
+    lib->function_names = desc->function_names;
+    lib->function_count = desc->function_count;
+    lib->functions = (void **) desc->functions;
+
+    library_bind_functions(lib);
+}
+
+inline
+void library_unload(Library* lib) NO_EXCEPT
 {
     FreeLibrary(lib->handle);
     for (int32 c = 0; c < lib->function_count; ++c) {

@@ -22,7 +22,7 @@
 static int32 _page_size = 0;
 
 inline
-void* platform_alloc(size_t size)
+void* platform_alloc(size_t size) NO_EXCEPT
 {
     if (!_page_size) {
         // @todo Fix and get system page size
@@ -34,13 +34,13 @@ void* platform_alloc(size_t size)
     void* ptr = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     DEBUG_MEMORY_INIT((uintptr_t) ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
-    LOG_3("[INFO] Allocated %n B", {LOG_DATA_UINT64, &size});
+    LOG_3("[INFO] Allocated %n B", {DATA_TYPE_UINT64, &size});
 
     return ptr;
 }
 
 inline
-void* platform_alloc_aligned(size_t size, int32 alignment)
+void* platform_alloc_aligned(size_t size, int32 alignment) NO_EXCEPT
 {
     if (!_page_size) {
         _page_size = 1;
@@ -60,20 +60,22 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
 
     DEBUG_MEMORY_INIT((uintptr_t) aligned_ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
-    LOG_3("[INFO] Aligned allocated %n B", {LOG_DATA_UINT64, &size});
+    LOG_3("[INFO] Aligned allocated %n B", {DATA_TYPE_UINT64, &size});
 
     return aligned_ptr;
 }
 
 inline
-void platform_free(void** ptr) {
+void platform_free(void** ptr) NO_EXCEPT
+{
     DEBUG_MEMORY_FREE((uintptr_t) *ptr);
     VirtualFree(*ptr, 0, MEM_RELEASE);
     *ptr = NULL;
 }
 
 inline
-void platform_aligned_free(void** aligned_ptr) {
+void platform_aligned_free(void** aligned_ptr) NO_EXCEPT
+{
     void* ptr = ((void**) *aligned_ptr)[-1];
     DEBUG_MEMORY_FREE((uintptr_t) ptr);
 
@@ -82,7 +84,7 @@ void platform_aligned_free(void** aligned_ptr) {
 }
 
 inline
-void* platform_shared_alloc(HANDLE* __restrict fd, const char* __restrict name, size_t size)
+void* platform_shared_alloc(HANDLE* __restrict fd, const char* __restrict name, size_t size) NO_EXCEPT
 {
     if (!_page_size) {
         _page_size = 1;
@@ -98,26 +100,26 @@ void* platform_shared_alloc(HANDLE* __restrict fd, const char* __restrict name, 
 
     DEBUG_MEMORY_INIT((uintptr_t) shm_ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
-    LOG_3("[INFO] Shared allocated %n B", {LOG_DATA_UINT64, &size});
+    LOG_3("[INFO] Shared allocated %n B", {DATA_TYPE_UINT64, &size});
 
     return shm_ptr;
 }
 
 inline
-void* platform_shared_open(HANDLE* __restrict fd, const char* __restrict name, size_t size)
+void* platform_shared_open(HANDLE* __restrict fd, const char* __restrict name, size_t size) NO_EXCEPT
 {
     *fd = OpenFileMappingA(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, name);
     ASSERT_TRUE(*fd);
 
     void* shm_ptr = MapViewOfFile(*fd, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, (DWORD) size);
     ASSERT_TRUE(shm_ptr);
-    LOG_3("[INFO] Shared opened %n B", {LOG_DATA_UINT64, &size});
+    LOG_3("[INFO] Shared opened %n B", {DATA_TYPE_UINT64, &size});
 
     return shm_ptr;
 }
 
 inline
-void platform_shared_free(HANDLE __restrict fd, const char*, void** __restrict ptr)
+void platform_shared_free(HANDLE __restrict fd, const char*, void** __restrict ptr) NO_EXCEPT
 {
     DEBUG_MEMORY_FREE((uintptr_t) *ptr);
     UnmapViewOfFile(*ptr);
@@ -125,8 +127,8 @@ void platform_shared_free(HANDLE __restrict fd, const char*, void** __restrict p
     *ptr = NULL;
 }
 
-inline
-void platform_shared_close(HANDLE fd)
+FORCE_INLINE
+void platform_shared_close(HANDLE fd) NO_EXCEPT
 {
     CloseHandle(fd);
 }

@@ -64,7 +64,7 @@
                     break;
                 }
                 default:
-                    LOG_1("Opengl error: %d", {LOG_DATA_INT32, (int32 *) &err});
+                    LOG_1("Opengl error: %d", {DATA_TYPE_INT32, (int32 *) &err});
             }
 
             ASSERT_TRUE(err == GL_NO_ERROR);
@@ -105,7 +105,8 @@ GpuFence gpuapi_fence_create() NO_EXCEPT
 }
 
 FORCE_INLINE
-void gpuapi_fence_lock(GpuFence* fence) NO_EXCEPT {
+void gpuapi_fence_lock(GpuFence* fence) NO_EXCEPT
+{
     if (fence) {
         ASSERT_TRUE_CONST(false);
         glDeleteSync(*fence);
@@ -117,7 +118,8 @@ void gpuapi_fence_lock(GpuFence* fence) NO_EXCEPT {
 
 // Checks if a fence is unlocked
 inline
-bool gpuapi_fence_is_unlocked(GpuFence* fence) NO_EXCEPT {
+bool gpuapi_fence_is_unlocked(GpuFence* fence) NO_EXCEPT
+{
     if (!(*fence)) {
         return true;
     }
@@ -267,12 +269,14 @@ void gpuapi_texture_use(const Texture* texture) NO_EXCEPT
 }
 
 FORCE_INLINE
-void gpuapi_texture_delete(Texture* texture) NO_EXCEPT {
+void gpuapi_texture_delete(Texture* texture) NO_EXCEPT
+{
     glDeleteTextures(1, &texture->id);
 }
 
 inline
-void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
+void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+{
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -303,7 +307,8 @@ void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEP
 }
 
 inline
-void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
+void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+{
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -323,7 +328,8 @@ void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int32 cou
 }
 
 inline
-void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
+void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+{
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -348,7 +354,8 @@ void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int32 count
 }
 
 inline
-void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
+void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+{
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -370,7 +377,8 @@ void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEP
 }
 
 inline
-void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
+void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+{
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -390,7 +398,8 @@ void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int32 cou
 }
 
 inline
-void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT {
+void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+{
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -593,7 +602,7 @@ void gpuapi_vertex_array_delete(GLuint buffer) NO_EXCEPT
 }
 
 inline
-int32 get_gpu_free_memory()
+int32 get_gpu_free_memory() NO_EXCEPT
 {
     GLint available = 0;
     glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &available);

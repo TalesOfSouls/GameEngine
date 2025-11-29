@@ -44,45 +44,53 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 #define OMS_ABS_INT64(a) (((a) ^ ((a) >> 63)) - ((a) >> 63))
 
 template <typename T>
-inline T max_branched(T a, T b) {
+inline T max_branched(T a, T b) NO_EXCEPT
+{
     return (a > b) ? a : b;
 }
 
 template <typename T>
-inline T min_branched(T a, T b) {
+inline T min_branched(T a, T b) NO_EXCEPT
+{
     return (a > b) ? b : a;
 }
 
 template <typename T>
-inline T max_branchless(T a, T b) {
+inline T max_branchless(T a, T b) NO_EXCEPT
+{
     return (T)(a ^ (((a ^ b) & -(T)((a < b)))));
 }
 
 template <typename T>
-inline T min_branchless(T a, T b) {
+inline T min_branchless(T a, T b) NO_EXCEPT
+{
     return (T)(b ^ (((a ^ b) & -(T)((a < b)))));
 }
 
 template <typename T>
-inline T clamp_branched(T val, T low, T high) {
+inline T clamp_branched(T val, T low, T high) NO_EXCEPT
+{
     return (val < low) ? low : ((val > high) ? high : val);
 }
 
 template <typename T>
-inline T clamp_branchless(T val, T low, T high) {
+inline T clamp_branchless(T val, T low, T high) NO_EXCEPT
+{
     T t1 = (T)(val ^ ((val ^ low) & -(T)((val < low))));
     return (T)(t1 ^ ((t1 ^ high) & -(T)((t1 > high))));
 }
 
 template <typename T>
-inline T abs(T a) {
+inline T abs(T a) NO_EXCEPT
+{
     return (a > (T)0) ? a : (T)(-a);
 }
 
 // For floats the high bit is still defining the sign
 // But we need to reinterpret it as int to mask the sign
 inline
-f32 OMS_ABS_F32(f32 a) {
+f32 OMS_ABS_F32(f32 a) NO_EXCEPT
+{
     union { f32 f; uint32 i; } u;
     u.f = a;
     u.i &= 0x7FFFFFFF;
@@ -90,7 +98,8 @@ f32 OMS_ABS_F32(f32 a) {
 }
 
 inline
-f64 OMS_ABS_F64(f64 a) {
+f64 OMS_ABS_F64(f64 a) NO_EXCEPT
+{
     union { f64 f; uint64 i; } u;
     u.f = a;
     u.i &= 0x7FFFFFFFFFFFFFFF;
@@ -109,10 +118,12 @@ f64 OMS_ABS_F64(f64 a) {
 #define FLOORF(x) ((float)((int32)(x) - ((x) < 0.0f && (x) != (int32)(x))))
 
 template <typename T>
-inline T ceil_div(T a, T b) { return (a + b - 1) / b; }
+inline T ceil_div(T a, T b) NO_EXCEPT
+{ return (a + b - 1) / b; }
 
 template <typename T, typename F>
-inline T ceil(F x) {
+inline T ceil(F x) NO_EXCEPT
+{
     T xi = (T)x;
     if (x == (F)xi) {
         return xi;
@@ -122,7 +133,8 @@ inline T ceil(F x) {
 }
 
 template <typename F>
-inline F floorf(F x) {
+inline F floorf(F x) NO_EXCEPT
+{
     int32 xi = (int32)x;
     return (F)(xi - ((x < (F)0.0 && x != (F)xi) ? 1 : 0));
 }
@@ -236,7 +248,8 @@ DEFINE_BITCAST_FUNCTION(int64, f64)
 
 // Adjusts the step size based on the memory alignment
 inline
-int32 intrin_validate_steps(const byte* mem, int32 steps) {
+int32 intrin_validate_steps(const byte* mem, int32 steps) NO_EXCEPT
+{
     if (steps >= 16 && ((uintptr_t) mem & 63) == 0) {
         return 16;
     } else if (steps >= 8 && ((uintptr_t) mem & 31) == 0) {

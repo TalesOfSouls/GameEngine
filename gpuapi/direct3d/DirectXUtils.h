@@ -132,7 +132,7 @@ int32 wait_for_previous_frame(
 
     // Signal and increment the fence value.
     if(FAILED(hr = graphics_queue->Signal(frames_in_flight->fence, fence_value_temp))) {
-        LOG_1("DirectX12 Signal: %d", {LOG_DATA_INT32, &hr});
+        LOG_1("DirectX12 Signal: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
     }
 
@@ -141,7 +141,7 @@ int32 wait_for_previous_frame(
     // Wait until the previous frame is finished.
     if (frames_in_flight->fence->GetCompletedValue() < fence_value_temp) {
         if (FAILED(hr = frames_in_flight->fence->SetEventOnCompletion(fence_value_temp, frames_in_flight->fence_event))) {
-            LOG_1("DirectX12 SetEventOnCompletion: %d", {LOG_DATA_INT32, &hr});
+            LOG_1("DirectX12 SetEventOnCompletion: %d", {DATA_TYPE_INT32, &hr});
             ASSERT_TRUE(false);
         }
 
@@ -254,7 +254,7 @@ void gpuapi_create_logical_device(IDXGIAdapter1* physical_device, ID3D12Device**
 {
     HRESULT hr;
     if (FAILED(hr = D3D12CreateDevice(physical_device, D3D_FEATURE_LEVEL_11_0, IID_PPVOID(device)))) {
-        LOG_1("DirectX12 D3D12CreateDevice: %d", {LOG_DATA_INT32, &hr});
+        LOG_1("DirectX12 D3D12CreateDevice: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
     }
 }
@@ -273,7 +273,7 @@ void gpuapi_command_buffer_create(
         command_pool, pipeline,
         IID_PPVOID(command_buffer)))
     ) {
-        LOG_1("DirectX12 CreateCommandList: %d", {LOG_DATA_INT32, &hr});
+        LOG_1("DirectX12 CreateCommandList: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
     };
 }
@@ -352,7 +352,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
         NULL,
         IID_PPVOID(texture_resource)))
     ) {
-        LOG_1("DirectX12 CreateCommittedResource: %d", {LOG_DATA_INT32, &hr});
+        LOG_1("DirectX12 CreateCommittedResource: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
 
         return {0};
@@ -401,7 +401,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
             device_temp->Release();
         }
 
-        LOG_1("DirectX12 CreateCommittedResource: %d", {LOG_DATA_INT32, &hr});
+        LOG_1("DirectX12 CreateCommittedResource: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
 
         return {0};
@@ -446,7 +446,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
     byte* data;
     // @question is 0 correct here? Even for multiple function calls?
     if (FAILED(hr = (*texture_upload_heap)->Map(0, NULL, (void **) &data))) {
-        LOG_1("DirectX12 Map: %d", {LOG_DATA_INT32, &hr});
+        LOG_1("DirectX12 Map: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
 
         return {0};
@@ -562,7 +562,7 @@ void gpuapi_vertex_buffer_create(
         NULL,
         IID_PPVOID(vertex_buffer)))
     ) {
-        LOG_1("DirectX12 CreateCommittedResource: %d", {LOG_DATA_INT32, &hr});
+        LOG_1("DirectX12 CreateCommittedResource: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
 
         return;
@@ -573,7 +573,7 @@ void gpuapi_vertex_buffer_create(
     // We do not intend to read from this resource on the CPU
     D3D12_RANGE read_range = {};
     if (FAILED(hr = (*vertex_buffer)->Map(0, &read_range, (void **) &vertex_data_begin))) {
-        LOG_1("DirectX12 Map: %d", {LOG_DATA_INT32, &hr});
+        LOG_1("DirectX12 Map: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
     }
 
@@ -603,7 +603,7 @@ void gpuapi_vertex_buffer_update(
 
     HRESULT hr;
     if (FAILED(hr = vertex_buffer->Map(0, &read_range, (void**) &vertex_data_begin))) {
-        LOG_1("DirectX12 Map: %d", {LOG_DATA_INT32, &hr});
+        LOG_1("DirectX12 Map: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
         return;
     }

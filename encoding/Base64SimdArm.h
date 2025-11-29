@@ -22,7 +22,8 @@
     #include <arm_neon.h>
 #endif
 
-void base64_encode_simd(const byte* data, char* encoded_data, size_t data_length = 0, int32 steps = 16) {
+void base64_encode_simd(const byte* data, char* encoded_data, size_t data_length = 0, int32 steps = 16) NO_EXCEPT
+{
     if (!data_length) {
         // WARNING: This should only happen if the data is a char string
         // Binary data is not allowed since it often has '\0' characters
@@ -136,7 +137,8 @@ void base64_encode_simd(const byte* data, char* encoded_data, size_t data_length
     encoded_data[base64_encoded_length(data_length)] = '\0';
 }
 
-size_t base64_decode_simd(const char* encoded_data, byte* data, size_t encoded_length = 0, int32 steps = 16) {
+size_t base64_decode_simd(const char* encoded_data, byte* data, size_t encoded_length = 0, int32 steps = 16) NO_EXCEPT
+{
     if (!encoded_length) {
         encoded_length = str_length(encoded_data);
     }

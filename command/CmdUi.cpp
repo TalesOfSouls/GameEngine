@@ -13,15 +13,16 @@ inline
 UILayout* cmd_layout_load_sync(
     AppCmdBuffer* __restrict cb,
     UILayout* __restrict layout, const char* __restrict layout_path
-) {
+) NO_EXCEPT
+{
     PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load layout %s", {LOG_DATA_CHAR_STR, (void *) layout_path});
+    LOG_1("Load layout %s", {DATA_TYPE_CHAR_STR, (void *) layout_path});
 
     FileBody layout_file = {};
     file_read(layout_path, &layout_file, cb->mem_vol);
 
     if (!layout_file.content) {
-        LOG_1("Failed loading layout \"%s\"", {LOG_DATA_CHAR_STR, (void *) layout_path});
+        LOG_1("Failed loading layout \"%s\"", {DATA_TYPE_CHAR_STR, (void *) layout_path});
         return NULL;
     }
 
@@ -34,9 +35,10 @@ inline
 UIThemeStyle* cmd_theme_load_sync(
     AppCmdBuffer* __restrict cb,
     UIThemeStyle* __restrict theme, const char* __restrict theme_path
-) {
+) NO_EXCEPT
+{
     PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, theme_path, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load theme %s", {LOG_DATA_CHAR_STR, (void *) theme_path});
+    LOG_1("Load theme %s", {DATA_TYPE_CHAR_STR, (void *) theme_path});
 
     FileBody theme_file = {};
     file_read(theme_path, &theme_file, cb->mem_vol);
@@ -49,7 +51,8 @@ FORCE_INLINE
 void cmd_layout_populate_sync(
     AppCmdBuffer*,
     UILayout* layout, const UIThemeStyle* theme
-) {
+) NO_EXCEPT
+{
     layout_from_theme(layout, theme);
 }
 
@@ -60,9 +63,10 @@ UILayout* cmd_ui_load_sync(
     UIThemeStyle* __restrict general_theme,
     UIThemeStyle* __restrict theme, const char* __restrict theme_path,
     const Camera* __restrict camera
-) {
+) NO_EXCEPT
+{
     PROFILE(PROFILE_CMD_UI_LOAD_SYNC, layout_path, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load ui with layout %s and theme %s", {LOG_DATA_CHAR_STR, (void *) layout_path}, {LOG_DATA_CHAR_STR, (void *) theme_path});
+    LOG_1("Load ui with layout %s and theme %s", {DATA_TYPE_CHAR_STR, (void *) layout_path}, {DATA_TYPE_CHAR_STR, (void *) theme_path});
 
     if (!cmd_layout_load_sync(cb, layout, layout_path)) {
         // We have to make sure that at least the font is set
@@ -86,7 +90,7 @@ UILayout* cmd_ui_load_sync(
 }
 
 static inline
-UILayout* cmd_ui_load(AppCmdBuffer* __restrict cb, const Command* __restrict cmd)
+UILayout* cmd_ui_load(AppCmdBuffer* __restrict cb, const Command* __restrict cmd) NO_EXCEPT
 {
     const byte* pos = cmd->data;
 
@@ -122,7 +126,8 @@ void thrd_cmd_ui_load(
     const char* __restrict theme_path,
     const Camera* __restrict camera,
     CommandFunction callback
-) {
+) NO_EXCEPT
+{
     Command cmd;
     cmd.type = CMD_UI_LOAD;
     cmd.callback = callback;

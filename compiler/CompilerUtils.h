@@ -44,50 +44,123 @@
     #define CONSTEXPR constexpr
 #else
     #define FALLTHROUGH
-    #define IF_CONSTEXPR(cond) __pragma(warning(suppress:4127)) if (cond)
     #define CONSTEXPR constexpr
 #endif
 
-// dst and src need to be aligned
-// size needs to be multiple of 8
-#define memcpy_aligned(dst, src, size) {                            \
-    IF_CONSTEXPR((size) % 8 == 0) {                                \
-        compiler_memcpy_aligned((dst), (src), (size));             \
-    } else {                                                        \
-        memcpy((dst), (src), (size));                               \
-    }                                                               \
+/**
+ * Performs an optimized memcpy IFF the alignment and size are valid.
+ *
+ * This is useful for cases where you don't want to manually re-calculate the size.
+ * Sometimes you modify a struct but don't want to re-check the size of it, or
+ * even if you would check it, you then would have to maybe modify the source code everywhere.
+ * This way you can simply type `memcpy_aligned(dst, src, sizeof(MY_STRUCT));`
+ *
+ * WARNING: The alignment and size need to be known at compile time.
+ *          NEVER use this macro if alignment or size are only known at runtime
+ *
+ * @example memcpy_aligned(dst, src, sizeof(MY_STRUCT));
+ *
+ * @param char*         dst     8/4 byte aligned memory
+ * @param const char*   src     8/4 byte aligned memory
+ * @param size_t        size    Multiple of 8 if 8 byte aligned or multiple of 4 otherwise
+ *
+ * @return void
+ */
+#define memcpy_aligned(dst, src, size) {                 \
+    IF_CONSTEXPR((size) % 8 == 0) {                      \
+        compiler_memcpy_aligned_8((dst), (src), (size)); \
+    } else IF_CONSTEXPR((size) % 4 == 0) {               \
+        compiler_memcpy_aligned_4((dst), (src), (size)); \
+    } else {                                             \
+        memcpy((dst), (src), (size));                    \
+    }                                                    \
 }
 
-// Sometimes we know a factor at compile time that is part of size and we can check that
-// dst and src need to be aligned
-// factor needs to be multiple of 8
-#define memcpy_aligned_factored(dst, value, size, factor) {           \
-    IF_CONSTEXPR((factor) % 8 == 0) {                                \
-        compiler_memcpy_aligned((dst), (value), (size));             \
-    } else {                                                        \
-        memcpy((dst), (value), (size));                               \
-    }                                                               \
+/**
+ * Performs an optimized memcpy IFF the alignment and size are valid.
+ *
+ * In some cases the size is a multiple of a runtime value and a compile time value:
+ *      e.g. my_value * sizeof(uint64)
+ * This macro allows you to still use this optimized version since one of the factors is known at compile time
+ *
+ * WARNING: The alignment and factor need to be known at compile time.
+ *          NEVER use this macro if alignment or factor are only known at runtime
+ *
+ * @example memcpy_aligned(dst, src, my_value * sizeof(MY_STRUCT), sizeof(MY_STRUCT));
+ *
+ * @param char*         dst     8/4 byte aligned memory
+ * @param const char*   src     8/4 byte aligned memory
+ * @param size_t        size    Total size to copy
+ * @param size_t        factor  Factor of the size element (e.g. my_value * sizeof(uint64) where sizeof(uint64) is the compile time known factor)
+ *
+ * @return void
+ */
+#define memcpy_aligned_factored(dst, value, size, factor) {  \
+    IF_CONSTEXPR((factor) % 8 == 0) {                        \
+        compiler_memcpy_aligned_8((dst), (value), (size));   \
+    } else IF_CONSTEXPR((factor) % 4 == 0) {                 \
+        compiler_memcpy_aligned_4((dst), (value), (size));   \
+    } else {                                                 \
+        memcpy((dst), (value), (size));                      \
+    }                                                        \
 }
 
-// dst needs to be aligned
-// size needs to be multiple of 8
-#define memset_aligned(dst, value, size) {                            \
-    IF_CONSTEXPR((size) % 8 == 0) {                                \
-        compiler_memset_aligned((dst), (value), (size));             \
-    } else {                                                        \
-        memset((dst), (value), (size));                               \
-    }                                                               \
+/**
+ * Performs an optimized memset IFF the alignment and size are valid
+ *
+ * This is useful for cases where you don't want to manually re-calculate the size.
+ * Sometimes you modify a struct but don't want to re-check the size of it, or
+ * even if you would check it, you then would have to maybe modify the source code everywhere.
+ * This way you can simply type `memset_aligned(dst, 0, sizeof(MY_STRUCT));`
+ *
+ * WARNING: The alignment and size need to be known at compile time.
+ *          NEVER use this macro if alignment or size are only known at runtime
+ *
+ * @example memset_aligned(dst, 0, sizeof(MY_STRUCT));
+ *
+ * @param char*     dst     8/4 byte aligned memory
+ * @param uint8     value   Value to set
+ * @param size_t    size    Multiple of 8 if 8 byte aligned or multiple of 4 otherwise
+ *
+ * @return void
+ */
+#define memset_aligned(dst, value, size) {                   \
+    IF_CONSTEXPR((size) % 8 == 0) {                          \
+        compiler_memset_aligned_8((dst), (value), (size));   \
+    } else IF_CONSTEXPR((size) % 4 == 0) {                   \
+        compiler_memset_aligned_4((dst), (value), (size));   \
+    } else {                                                 \
+        memset((dst), (value), (size));                      \
+    }                                                        \
 }
 
-// Sometimes we know a factor at compile time that is part of size and we can check that
-// dst needs to be aligned
-// factor needs to be multiple of 8
-#define memset_aligned_factored(dst, value, size, factor) {           \
-    IF_CONSTEXPR((factor) % 8 == 0) {                                \
-        compiler_memset_aligned((dst), (value), (size));             \
-    } else {                                                        \
-        memset((dst), (value), (size));                               \
-    }                                                               \
+/**
+ * Performs an optimized memset IFF the alignment and size are valid.
+ *
+ * In some cases the size is a multiple of a runtime value and a compile time value:
+ *      e.g. my_value * sizeof(uint64)
+ * This macro allows you to still use this optimized version since one of the factors is known at compile time.
+ *
+ * WARNING: The alignment and factor need to be known at compile time.
+ *          NEVER use this macro if alignment or factor are only known at runtime
+ *
+ * @example memset_aligned_factored(dst, 0, my_value * sizeof(MY_STRUCT), sizeof(MY_STRUCT));
+ *
+ * @param char*     dst     8/4 byte aligned memory
+ * @param uint8     value   Value to set
+ * @param size_t    size    Total size to copy
+ * @param size_t    factor  Factor of the size element (e.g. my_value * sizeof(uint64) where sizeof(uint64) is the compile time known factor)
+ *
+ * @return void
+ */
+#define memset_aligned_factored(dst, value, size, factor) {  \
+    IF_CONSTEXPR((factor) % 8 == 0) {                        \
+        compiler_memset_aligned_8((dst), (value), (size));   \
+    } else IF_CONSTEXPR((factor) % 4 == 0) {                 \
+        compiler_memset_aligned_4((dst), (value), (size));   \
+    } else {                                                 \
+        memset((dst), (value), (size));                      \
+    }                                                        \
 }
 
 #endif

@@ -85,12 +85,17 @@ struct Camera {
     // BUT that is never the case, the camera data is not using simd since we are rarely performing operations at the moment
     // If this changes in the future and we use this for cpu calculations it could make sense to change to v16_f32 and store only when uploading to gpu
     alignas(64) f32 projection[16];
+
+    // @performance Couldn't we create an optimized orth matrix for hud elements
+    //      Remember for hud elements we don't need to consider the z component when calculating x/y and width/height
+    //      Of course we still need a normal orth matrix for non-hud elements
     alignas(64) f32 orth[16];
     alignas(64) f32 view[16];
     alignas(64) Frustum frustum;
 };
 
-void camera_frustum_update(Camera* camera) NO_EXCEPT {
+void camera_frustum_update(Camera* camera) NO_EXCEPT
+{
     const v3_f32 pos = camera->location;
     const v3_f32 front = camera->front;
     const v3_f32 up = camera->up;
@@ -168,7 +173,8 @@ void camera_frustum_update(Camera* camera) NO_EXCEPT {
 // In some cases we only need to update the frustum based on position updates
 // This allows us to simply make shifts to the original frustum positions
 inline
-void camera_frustum_pos_update(Camera* camera, v3_f32 old_pos) NO_EXCEPT {
+void camera_frustum_pos_update(Camera* camera, v3_f32 old_pos) NO_EXCEPT
+{
     const v3_f32 delta = {
         camera->location.x - old_pos.x,
         camera->location.y - old_pos.y,
@@ -184,7 +190,8 @@ void camera_frustum_pos_update(Camera* camera, v3_f32 old_pos) NO_EXCEPT {
 }
 
 static FORCE_INLINE
-void camera_init_rh_opengl(Camera* camera) NO_EXCEPT {
+void camera_init_rh_opengl(Camera* camera) NO_EXCEPT
+{
     camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, -1.0f};
     camera->right = {1.0f, 0.0f, 0.0f};
@@ -193,7 +200,8 @@ void camera_init_rh_opengl(Camera* camera) NO_EXCEPT {
 }
 
 static FORCE_INLINE
-void camera_init_rh_vulkan(Camera* camera) NO_EXCEPT {
+void camera_init_rh_vulkan(Camera* camera) NO_EXCEPT
+{
     camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, -1.0f};
     camera->right = {1.0f, 0.0f, 0.0f};
@@ -202,7 +210,8 @@ void camera_init_rh_vulkan(Camera* camera) NO_EXCEPT {
 }
 
 static FORCE_INLINE
-void camera_init_lh(Camera* camera) NO_EXCEPT {
+void camera_init_lh(Camera* camera) NO_EXCEPT
+{
     camera->orientation = {0.0f, 90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, 1.0f};
     camera->right = {1.0f, 0.0f, 0.0f};
@@ -210,7 +219,7 @@ void camera_init_lh(Camera* camera) NO_EXCEPT {
     camera->world_up = {0.0f, 1.0f, 0.0f};
 }
 
-static inline
+static inline HOT_CODE
 void camera_vectors_update(Camera* camera) NO_EXCEPT
 {
     /*
@@ -235,7 +244,7 @@ void camera_vectors_update(Camera* camera) NO_EXCEPT
     vec3_normalize(&camera->up);
 }
 
-inline
+inline HOT_CODE
 void camera_rotate(Camera* camera, int32 dx, int32 dy) NO_EXCEPT
 {
     camera->state_changes |= CAMERA_STATE_CHANGE_ORIENTATION;
@@ -263,7 +272,8 @@ void camera_movement(
     CameraMovement movement,
     f32 dt,
     bool relative_to_world = true
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     camera->state_changes |= CAMERA_STATE_CHANGE_POSITION;
     const f32 velocity = camera->speed * dt;
 
@@ -398,7 +408,8 @@ void camera_movement(
     const CameraMovement* __restrict movement,
     f32 dt,
     bool relative_to_world = true
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     camera->state_changes |= CAMERA_STATE_CHANGE_POSITION;
     const f32 velocity = camera->speed * dt;
 
@@ -528,11 +539,9 @@ void camera_movement(
     }
 }
 
-inline
+FORCE_INLINE HOT_CODE
 void camera_orth_matrix_lh(Camera* camera) NO_EXCEPT
 {
-    //mat4_identity(camera->orth);
-    camera->orth[15] = 1.0f;
     mat4_ortho_sparse_lh(
         camera->orth,
         0.0f, camera->viewport_width,
@@ -542,11 +551,21 @@ void camera_orth_matrix_lh(Camera* camera) NO_EXCEPT
     );
 }
 
-inline
+FORCE_INLINE HOT_CODE
+void camera_ui_matrix_lh(Camera* camera) NO_EXCEPT
+{
+    mat4_ortho_sparse_lh(
+        camera->orth,
+        0.0f, camera->viewport_width,
+        0.0f, camera->viewport_height,
+        camera->znear,
+        camera->zfar
+    );
+}
+
+FORCE_INLINE HOT_CODE
 void camera_orth_matrix_rh_opengl(Camera* camera) NO_EXCEPT
 {
-    //mat4_identity(camera->orth);
-    camera->orth[15] = 1.0f;
     mat4_ortho_sparse_rh_opengl(
         camera->orth,
         0.0f, camera->viewport_width,
@@ -556,11 +575,33 @@ void camera_orth_matrix_rh_opengl(Camera* camera) NO_EXCEPT
     );
 }
 
-inline
+FORCE_INLINE HOT_CODE
+void camera_orth_matrix_rh_software(Camera* camera) NO_EXCEPT
+{
+    mat4_ortho_sparse_rh_software(
+        camera->orth,
+        0.0f, camera->viewport_width,
+        0.0f, camera->viewport_height,
+        camera->znear,
+        camera->zfar
+    );
+}
+
+FORCE_INLINE HOT_CODE
+void camera_ui_matrix_rh_software(Camera* camera) NO_EXCEPT
+{
+    mat4_ortho_sparse_rh_software(
+        camera->orth,
+        0.0f, camera->viewport_width,
+        0.0f, camera->viewport_height,
+        camera->znear,
+        camera->zfar
+    );
+}
+
+FORCE_INLINE HOT_CODE
 void camera_orth_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
 {
-    //mat4_identity(camera->orth);
-    camera->orth[15] = 1.0f;
     mat4_ortho_sparse_rh_vulkan(
         camera->orth,
         0.0f, camera->viewport_width,
@@ -570,7 +611,19 @@ void camera_orth_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
     );
 }
 
-inline
+FORCE_INLINE HOT_CODE
+void camera_ui_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
+{
+    mat4_ortho_sparse_rh_vulkan(
+        camera->orth,
+        0.0f, camera->viewport_width,
+        0.0f, camera->viewport_height,
+        camera->znear,
+        camera->zfar
+    );
+}
+
+inline HOT_CODE
 void camera_projection_matrix_lh(Camera* camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
@@ -584,7 +637,7 @@ void camera_projection_matrix_lh(Camera* camera) NO_EXCEPT
     );
 }
 
-inline
+inline HOT_CODE
 void camera_projection_matrix_rh_opengl(Camera* camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
@@ -598,7 +651,7 @@ void camera_projection_matrix_rh_opengl(Camera* camera) NO_EXCEPT
     );
 }
 
-inline
+inline HOT_CODE
 void camera_projection_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
@@ -722,16 +775,16 @@ camera_view_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
 }
 
 inline
-f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT {
+f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT
+{
     // WARNING: The value depends on the near and far plane.
     // The reason for this is they will get smaller and smaller with increasing zfar values
     // until the difference effectively becomes 0 -> vertices occupy the same zindex -> zfighting
     // For safety reasons we calculate a rather generous offset.
     // @performance Maybe it makes sense in the future to just pick a small CONST epsilon value
     switch (type) {
-        case GPU_API_TYPE_NONE:
-        case GPU_API_TYPE_OPENGL:
         case GPU_API_TYPE_SOFTWARE:
+        case GPU_API_TYPE_OPENGL:
             return value + (nextafterf(value, -INFINITY) - value) * 1000;
         case GPU_API_TYPE_VULKAN:
             return value + (nextafterf(value, -INFINITY) - value) * 1000;
@@ -743,16 +796,16 @@ f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT {
 }
 
 inline
-f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT {
+f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT
+{
     // WARNING: The value depends on the near and far plane.
     // The reason for this is they will get smaller and smaller with increasing zfar values
     // until the difference effectively becomes 0 -> vertices occupy the same zindex -> zfighting
     // For safety reasons we calculate a rather generous offset.
     // @performance Maybe it makes sense in the future to just pick a small CONST epsilon value
     switch (type) {
-        case GPU_API_TYPE_NONE:
-        case GPU_API_TYPE_OPENGL:
         case GPU_API_TYPE_SOFTWARE:
+        case GPU_API_TYPE_OPENGL:
             return value + (nextafterf(value, INFINITY) - value) * 1000;
         case GPU_API_TYPE_VULKAN:
             return value + (nextafterf(value, INFINITY) - value) * 1000;
@@ -764,13 +817,18 @@ f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT {
 }
 
 inline
-void camera_init(Camera* camera) NO_EXCEPT {
+void camera_init(Camera* camera) NO_EXCEPT
+{
     camera->znear = 0.1f;
     camera->zfar = 10000.0f;
 
     switch (camera->gpu_api_type) {
-        case GPU_API_TYPE_NONE:
-        case GPU_API_TYPE_SOFTWARE:
+        case GPU_API_TYPE_SOFTWARE: {
+            camera_init_rh_opengl(camera);
+            camera_projection_matrix_rh_opengl(camera);
+            camera_orth_matrix_rh_software(camera);
+            camera_view_matrix_rh_opengl(camera);
+        } break;
         case GPU_API_TYPE_OPENGL: {
             camera_init_rh_opengl(camera);
             camera_projection_matrix_rh_opengl(camera);
@@ -795,7 +853,8 @@ void camera_init(Camera* camera) NO_EXCEPT {
 }
 
 inline
-bool aabb_intersects_frustum(const AABB_f32* __restrict box, const Frustum* __restrict frustum){
+bool aabb_intersects_frustum(const AABB_f32* __restrict box, const Frustum* __restrict frustum) NO_EXCEPT
+{
     for(int32 i = 0; i < 6; ++i) {
         const v4_f32 eq = frustum->eq[i];
         const v3_f32 positive = {
@@ -813,7 +872,8 @@ bool aabb_intersects_frustum(const AABB_f32* __restrict box, const Frustum* __re
 }
 
 inline
-bool aabb_intersects_frustum(const AABB_int32* __restrict box, const Frustum* __restrict frustum){
+bool aabb_intersects_frustum(const AABB_int32* __restrict box, const Frustum* __restrict frustum) NO_EXCEPT
+{
     for(int32 i = 0; i < 6; ++i) {
         const v4_f32 eq = frustum->eq[i];
         const v3_f32 positive = {
@@ -833,27 +893,32 @@ bool aabb_intersects_frustum(const AABB_int32* __restrict box, const Frustum* __
 #if defined(OPENGL)
     #define camera_projection_matrix(camera) camera_projection_matrix_rh_opengl((camera))
     #define camera_orth_matrix(camera) camera_orth_matrix_rh_opengl((camera))
+    #define camera_ui_matrix(camera) camera_ui_matrix_rh_opengl((camera))
     #define camera_view_matrix(camera) camera_view_matrix_rh_opengl((camera))
     #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
 #elif defined(VULKAN)
     #define camera_projection_matrix(camera) camera_projection_matrix_rh_vulkan((camera))
     #define camera_orth_matrix(camera) camera_orth_matrix_rh_vulkan((camera))
+    #define camera_ui_matrix(camera) camera_ui_matrix_rh_vulkan((camera))
     #define camera_view_matrix(camera) camera_view_matrix_rh_vulkan((camera))
     #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
 #elif defined(DIRECTX)
     #define camera_projection_matrix(camera) camera_projection_matrix_lh((camera))
     #define camera_orth_matrix(camera) camera_orth_matrix_lh((camera))
+    #define camera_ui_matrix(camera) camera_ui_matrix_lh((camera))
     #define camera_view_matrix(camera) camera_view_matrix_lh((camera))
     #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_lh((camera), (translation))
 #elif defined(SOFTWARE)
     #if _WIN32
         #define camera_projection_matrix(camera) camera_projection_matrix_rh_opengl((camera))
-        #define camera_orth_matrix(camera) camera_orth_matrix_rh_opengl((camera))
+        #define camera_orth_matrix(camera) camera_orth_matrix_rh_software((camera))
+        #define camera_ui_matrix(camera) camera_ui_matrix_rh_software((camera))
         #define camera_view_matrix(camera) camera_view_matrix_rh_opengl((camera))
         #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
     #else
         #define camera_projection_matrix(camera) camera_projection_matrix_rh_opengl((camera))
-        #define camera_orth_matrix(camera) camera_orth_matrix_rh_opengl((camera))
+        #define camera_orth_matrix(camera) camera_orth_matrix_rh_software((camera))
+        #define camera_ui_matrix(camera) camera_ui_matrix_rh_software((camera))
         #define camera_view_matrix(camera) camera_view_matrix_rh_opengl((camera))
         #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
     #endif

@@ -13,7 +13,8 @@
 #include "../utils/StringUtils.h"
 #include "Base64Definitions.h"
 
-void base64_encode(const char* data, char* encoded_data, size_t data_length = 0) {
+void base64_encode(const char* data, char* encoded_data, size_t data_length = 0) NO_EXCEPT
+{
     size_t output_length = 4 * ((data_length + 2) / 3);
 
     if (!data_length) {
@@ -50,7 +51,8 @@ void base64_encode(const char* data, char* encoded_data, size_t data_length = 0)
     encoded_data[output_length] = '\0';
 }
 
-size_t base64_decode(const char* encoded_data, char* data, size_t encoded_length = 0) {
+size_t base64_decode(const char* encoded_data, char* data, size_t encoded_length = 0) NO_EXCEPT
+{
     if (!encoded_length) {
         encoded_length = str_length(encoded_data);
     }

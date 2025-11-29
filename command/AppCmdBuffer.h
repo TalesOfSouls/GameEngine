@@ -58,8 +58,10 @@ struct AppCmdBuffer {
 #elif defined(SOFTWARE)
     #include "../gpuapi/software/AppCmdBuffer.h"
 #else
-    inline void* cmd_shader_load(AppCmdBuffer*, Command*) { return NULL; }
-    inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, const int32*, ...) { return NULL; }
+    inline void* cmd_shader_load(AppCmdBuffer*, Command*) NO_EXCEPT
+{ return NULL; }
+    inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, const int32*, ...) NO_EXCEPT
+{ return NULL; }
 #endif
 
 #endif

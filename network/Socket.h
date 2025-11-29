@@ -15,4 +15,11 @@
     #include "../platform/linux/network/Socket.h"
 #endif
 
+inline
+bool network_ipv6_is_usable() NO_EXCEPT {
+    return network_is_ipv6_enabled_in_os()
+        && network_has_ipv6_address()
+        && network_has_ipv6_default_route();
+}
+
 #endif

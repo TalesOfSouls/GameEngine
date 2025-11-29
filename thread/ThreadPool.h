@@ -47,8 +47,8 @@ struct ThreadPool {
 
 // @performance Can we optimize this? This is a critical function.
 // If we have a small worker the "spinup"/"re-activation" time is from utmost importance
-static
-THREAD_RETURN thread_pool_worker(void* arg)
+static inline
+THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 {
     THREAD_CURRENT_ID(_thread_local_id);
     THREAD_CPU_ID(_thread_cpu_id);
@@ -148,12 +148,13 @@ void thread_pool_alloc(
     int32 thread_count,
     int32 worker_count,
     int32 alignment = sizeof(size_t)
-) {
+) NO_EXCEPT
+{
     PROFILE(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
         "[INFO] Allocating thread pool with %d threads and %d queue length",
-        {LOG_DATA_INT32, &thread_count},
-        {LOG_DATA_INT32, &worker_count}
+        {DATA_TYPE_INT32, &thread_count},
+        {DATA_TYPE_INT32, &worker_count}
     );
 
     queue_alloc(&pool->work_queue, worker_count, element_size, alignment);
@@ -177,7 +178,7 @@ void thread_pool_alloc(
         coms_pthread_detach(thread);
     }
 
-    LOG_2("[INFO] %d threads running", {LOG_DATA_INT64, (void *) &_stats_counter->stats[atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD]});
+    LOG_2("[INFO] %d threads running", {DATA_TYPE_INT64, (void *) &_stats_counter->stats[atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD]});
 }
 
 void thread_pool_create(
@@ -187,12 +188,13 @@ void thread_pool_create(
     int32 thread_count,
     int32 worker_count,
     int32 alignment = sizeof(size_t)
-) {
+) NO_EXCEPT
+{
     PROFILE(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
         "Creating thread pool with %d threads and %d queue length",
-        {LOG_DATA_INT32, &thread_count},
-        {LOG_DATA_INT32, &worker_count}
+        {DATA_TYPE_INT32, &thread_count},
+        {DATA_TYPE_INT32, &worker_count}
     );
 
     queue_init(&pool->work_queue, buf, worker_count, element_size, alignment);
@@ -216,10 +218,11 @@ void thread_pool_create(
         coms_pthread_detach(thread);
     }
 
-    LOG_2("[INFO] %d threads running", {LOG_DATA_INT64, (void *) &_stats_counter->stats[atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD]});
+    LOG_2("[INFO] %d threads running", {DATA_TYPE_INT64, (void *) &_stats_counter->stats[atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD]});
 }
 
-void thread_pool_wait(ThreadPool* pool)
+inline
+void thread_pool_wait(ThreadPool* pool) NO_EXCEPT
 {
     mutex_lock(&pool->work_mutex);
     // @question We removed some state checks here, not sure if they were really necessary
@@ -230,7 +233,7 @@ void thread_pool_wait(ThreadPool* pool)
     mutex_unlock(&pool->work_mutex);
 }
 
-void thread_pool_destroy(ThreadPool* pool)
+void thread_pool_destroy(ThreadPool* pool) NO_EXCEPT
 {
     // This sets the queue to empty
     atomic_set_release((void **) &pool->work_queue.tail, pool->work_queue.head);
@@ -249,7 +252,7 @@ void thread_pool_destroy(ThreadPool* pool)
     atomic_set_release(&pool->state, 0);
 }
 
-PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
+PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job) NO_EXCEPT
 {
     mutex_lock(&pool->work_mutex);
     PoolWorker* temp_job = (PoolWorker *) ring_get_memory_nomove((RingMemory *) &pool->work_queue, pool->element_size, 8);
@@ -282,7 +285,8 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
 
 // This is basically the same as thread_pool_add_work but allows us to directly write into the memory in the caller
 // This makes it faster, since we can avoid a memcpy
-PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
+inline
+PoolWorker* thread_pool_add_work_start(ThreadPool* pool) NO_EXCEPT
 {
     mutex_lock(&pool->work_mutex);
 
@@ -307,12 +311,59 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
 }
 
 inline
-void thread_pool_add_work_end(ThreadPool* pool)
+void thread_pool_add_work_end(ThreadPool* pool) NO_EXCEPT
 {
     queue_enqueue_end(&pool->work_queue);
     coms_pthread_cond_broadcast(&pool->work_cond);
     mutex_unlock(&pool->work_mutex);
 }
 
+inline
+void thread_pool_join(PoolWorker* jobs, int32 count) NO_EXCEPT
+{
+    uint64 completed_mask = 0;
+    const uint64 all_done_mask = (count == 64 ? UINT64_MAX : ((1ULL << count) - 1));
+
+    // Loop until all jobs have been marked completed
+    // We use a bitmask to avoid re-checking already validated jobs
+    // If we wouldn't do that we may risk that a job got re-used for a new job giving a false negative.
+    while (completed_mask != all_done_mask) {
+        for (int32 i = 0; i < count; ++i) {
+            uint64 bit = 1ULL << i;
+
+            if (completed_mask & bit) {
+                continue;
+            }
+
+            if (jobs[i].state == POOL_WORKER_STATE_COMPLETED) {
+                completed_mask |= bit;
+            }
+        }
+    }
+}
+
+inline
+void thread_pool_join(PoolWorker** jobs, int32 count) NO_EXCEPT
+{
+    uint64 completed_mask = 0;
+    const uint64 all_done_mask = (count == 64 ? UINT64_MAX : ((1ULL << count) - 1));
+
+    // Loop until all jobs have been marked completed
+    // We use a bitmask to avoid re-checking already validated jobs
+    // If we wouldn't do that we may risk that a job got re-used for a new job giving a false negative.
+    while (completed_mask != all_done_mask) {
+        for (int32 i = 0; i < count; ++i) {
+            uint64 bit = 1ULL << i;
+
+            if (completed_mask & bit) {
+                continue;
+            }
+
+            if (jobs[i]->state == POOL_WORKER_STATE_COMPLETED) {
+                completed_mask |= bit;
+            }
+        }
+    }
+}
 
 #endif

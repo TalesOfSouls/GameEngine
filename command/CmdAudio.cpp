@@ -10,7 +10,7 @@
 #define COMS_APP_COMMAND_AUDIO_C
 
 static inline
-Asset* cmd_internal_audio_play_enqueue(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
+Asset* cmd_internal_audio_play_enqueue(AppCmdBuffer* __restrict cb, Command* __restrict cmd) NO_EXCEPT
 {
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
@@ -28,7 +28,7 @@ Asset* cmd_internal_audio_play_enqueue(AppCmdBuffer* __restrict cb, Command* __r
 }
 
 static inline
-Asset* cmd_audio_play_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
+Asset* cmd_audio_play_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd) NO_EXCEPT
 {
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
@@ -41,7 +41,8 @@ Asset* cmd_audio_play_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd
 }
 
 inline
-void thrd_cmd_audio_play(AppCmdBuffer* cb, int32 data) {
+void thrd_cmd_audio_play(AppCmdBuffer* cb, int32 data) NO_EXCEPT
+{
     Command cmd;
     cmd.callback = NULL;
     cmd.type = CMD_AUDIO_PLAY;
@@ -51,7 +52,8 @@ void thrd_cmd_audio_play(AppCmdBuffer* cb, int32 data) {
 }
 
 inline
-void thrd_cmd_audio_play(AppCmdBuffer* cb, const char* data) {
+void thrd_cmd_audio_play(AppCmdBuffer* cb, const char* data) NO_EXCEPT
+{
     Command cmd;
     cmd.callback = NULL;
     cmd.type = CMD_AUDIO_PLAY;
@@ -61,7 +63,7 @@ void thrd_cmd_audio_play(AppCmdBuffer* cb, const char* data) {
 }
 
 inline
-Asset* cmd_audio_play(AppCmdBuffer* cb, int32 asset_id)
+Asset* cmd_audio_play(AppCmdBuffer* cb, int32 asset_id) NO_EXCEPT
 {
     // Check if asset already loaded
     char id_str[9];
@@ -86,7 +88,8 @@ Asset* cmd_audio_play(AppCmdBuffer* cb, int32 asset_id)
 }
 
 inline
-Asset* cmd_audio_play(AppCmdBuffer* cb, const char* name) {
+Asset* cmd_audio_play(AppCmdBuffer* cb, const char* name) NO_EXCEPT
+{
     // Check if asset already loaded
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, name);
 

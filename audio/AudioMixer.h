@@ -97,7 +97,8 @@ struct AudioMixer {
     // Wait, why do we even need threading? Isn't the threading handled by the file loading
 };
 
-bool audio_mixer_is_active(AudioMixer* mixer) {
+bool audio_mixer_is_active(AudioMixer* mixer) NO_EXCEPT
+{
     if (mixer->state_old == AUDIO_MIXER_STATE_ACTIVE
         && atomic_get_relaxed(&mixer->state_new) == AUDIO_MIXER_STATE_ACTIVE
     ) {
@@ -125,7 +126,7 @@ bool audio_mixer_is_active(AudioMixer* mixer) {
     return (mixer->state_old = mixer_state) == AUDIO_MIXER_STATE_ACTIVE;
 }
 
-void audio_mixer_play(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL)
+void audio_mixer_play(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL) NO_EXCEPT
 {
     int32 index = chunk_reserve_one(&mixer->audio_instances);
     if (index < 0) {
@@ -144,7 +145,7 @@ void audio_mixer_play(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* 
     }
 }
 
-void audio_mixer_play(AudioMixer* mixer, AudioInstance* settings)
+void audio_mixer_play(AudioMixer* mixer, AudioInstance* settings) NO_EXCEPT
 {
     int32 index = chunk_reserve_one(&mixer->audio_instances);
     if (index < 0) {
@@ -155,7 +156,7 @@ void audio_mixer_play(AudioMixer* mixer, AudioInstance* settings)
     memcpy_aligned(instance, settings, sizeof(AudioInstance));
 }
 
-void audio_mixer_play_unique(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL)
+void audio_mixer_play_unique(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL) NO_EXCEPT
 {
     for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
         // @performance We are not really utilizing chunk memory.
@@ -170,7 +171,7 @@ void audio_mixer_play_unique(AudioMixer* mixer, int32 id, Audio* audio, AudioIns
     audio_mixer_play(mixer, id, audio, settings);
 }
 
-void audio_mixer_play_unique(AudioMixer* mixer, AudioInstance* settings)
+void audio_mixer_play_unique(AudioMixer* mixer, AudioInstance* settings) NO_EXCEPT
 {
     for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
         // @performance We are not really utilizing chunk memory.
@@ -185,7 +186,7 @@ void audio_mixer_play_unique(AudioMixer* mixer, AudioInstance* settings)
     audio_mixer_play(mixer, settings);
 }
 
-void audio_mixer_remove(AudioMixer* mixer, int32 id)
+void audio_mixer_remove(AudioMixer* mixer, int32 id) NO_EXCEPT
 {
     for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
         AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
@@ -198,7 +199,8 @@ void audio_mixer_remove(AudioMixer* mixer, int32 id)
     }
 }
 
-int32 apply_speed(int16* buffer, uint32 buffer_size, f32 speed) {
+int32 apply_speed(int16* buffer, uint32 buffer_size, f32 speed) NO_EXCEPT
+{
     if (speed == 1.0f) {
         return 0;
     }
@@ -233,7 +235,9 @@ int32 apply_speed(int16* buffer, uint32 buffer_size, f32 speed) {
 // Or, if the multiplier is an int we can even perform the multiplication on int32 through casting instead of 2 operations on int16
 // We might have to adjust some of the values to ensure correct multiplication if possible (e.g. feedback, intensity, ...)
 // @todo We probably want to handle left and right channel differently to add some depth
-void apply_echo(int16* buffer, uint32 buffer_size, f32 delay, f32 feedback, int32 sample_rate) {
+static inline
+void apply_echo(int16* buffer, uint32 buffer_size, f32 delay, f32 feedback, int32 sample_rate) NO_EXCEPT
+{
     int32 delay_samples = (int32) (delay * sample_rate);
     for (uint32 i = delay_samples; i < buffer_size; ++i) {
         buffer[i] += (int16) (buffer[i - delay_samples] * feedback);
@@ -241,27 +245,35 @@ void apply_echo(int16* buffer, uint32 buffer_size, f32 delay, f32 feedback, int3
 }
 
 // @todo We probably want to handle left and right channel differently to add some depth
-void apply_reverb(int16* buffer, uint32 buffer_size, f32 intensity) {
+static inline
+void apply_reverb(int16* buffer, uint32 buffer_size, f32 intensity) NO_EXCEPT
+{
     intensity *= 0.5f;
     for (uint32 i = 1; i < buffer_size; ++i) {
         buffer[i] += (int16) (buffer[i - 1] * intensity); // Simple reverb with decay
     }
 }
 
-void apply_cave(int16* buffer, uint32 buffer_size, int32 sample_rate) {
+static inline
+void apply_cave(int16* buffer, uint32 buffer_size, int32 sample_rate) NO_EXCEPT
+{
     f32 echo_delay = 0.1f; // Echo delay in seconds
     f32 feedback = 0.3f;  // Echo feedback level
     apply_echo(buffer, buffer_size, echo_delay, feedback, sample_rate);
     apply_reverb(buffer, buffer_size, 0.4f); // Add mild reverb
 }
 
-void apply_underwater(int16* buffer, uint32 buffer_size) {
+static inline
+void apply_underwater(int16* buffer, uint32 buffer_size) NO_EXCEPT
+{
     for (uint32 i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) sinf(buffer[i] * 0.5f); // Dampen + distortion
     }
 }
 
-void apply_flanger(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
+static inline
+void apply_flanger(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) NO_EXCEPT
+{
     f32 delay_samples = depth * sample_rate;
     f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
 
@@ -273,7 +285,9 @@ void apply_flanger(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32
     }
 }
 
-void apply_tremolo(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
+static inline
+void apply_tremolo(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) NO_EXCEPT
+{
     f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
     f32 temp2 = (1.0f - depth) + depth;
 
@@ -283,13 +297,17 @@ void apply_tremolo(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32
     }
 }
 
-void apply_distortion(int16* buffer, uint32 buffer_size, f32 gain) {
+static inline
+void apply_distortion(int16* buffer, uint32 buffer_size, f32 gain) NO_EXCEPT
+{
     for (uint32 i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) tanh(buffer[i] * gain);
     }
 }
 
-void apply_chorus(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
+static inline
+void apply_chorus(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) NO_EXCEPT
+{
     f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
 
     uint32 max_delay = (uint32) (depth * sample_rate);
@@ -301,13 +319,17 @@ void apply_chorus(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 
     }
 }
 
-void apply_pitch_shift(int16* buffer, uint32 buffer_size, f32 pitch_factor) {
+static inline
+void apply_pitch_shift(int16* buffer, uint32 buffer_size, f32 pitch_factor) NO_EXCEPT
+{
     for (uint32 i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) (buffer[i] * pitch_factor);
     }
 }
 
-void apply_granular_delay(int16* buffer, uint32 buffer_size, f32 delay, f32 granularity, int32 sample_rate) {
+static inline
+void apply_granular_delay(int16* buffer, uint32 buffer_size, f32 delay, f32 granularity, int32 sample_rate) NO_EXCEPT
+{
     uint32 delay_samples = (uint32) (delay * sample_rate);
     uint32 limit = (uint32) (granularity * sample_rate);
 
@@ -318,14 +340,18 @@ void apply_granular_delay(int16* buffer, uint32 buffer_size, f32 delay, f32 gran
     }
 }
 
-void apply_frequency_modulation(int16* buffer, uint32 buffer_size, f32 mod_freq, f32 mod_depth, int32 sample_rate) {
+static inline
+void apply_frequency_modulation(int16* buffer, uint32 buffer_size, f32 mod_freq, f32 mod_depth, int32 sample_rate) NO_EXCEPT
+{
     f32 temp = OMS_TWO_PI_F32 * mod_freq / sample_rate;
     for (uint32 i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) (buffer[i] * sinf(i * temp) * mod_depth);
     }
 }
 
-void apply_stereo_panning(int16* buffer, uint32 buffer_size, f32 pan) {
+static inline
+void apply_stereo_panning(int16* buffer, uint32 buffer_size, f32 pan) NO_EXCEPT
+{
     f32 left_gain = 1.0f - pan;
     f32 right_gain = pan;
 
@@ -335,7 +361,9 @@ void apply_stereo_panning(int16* buffer, uint32 buffer_size, f32 pan) {
     }
 }
 
-void apply_highpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_rate) {
+static inline
+void apply_highpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_rate) NO_EXCEPT
+{
     f32 rc = 1.0f / (OMS_TWO_PI_F32 * cutoff);
     f32 dt = 1.0f / sample_rate;
     f32 alpha = rc / (rc + dt);
@@ -350,7 +378,9 @@ void apply_highpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_
     }
 }
 
-void apply_lowpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_rate) {
+static inline
+void apply_lowpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_rate) NO_EXCEPT
+{
     f32 rc = 1.0f / (OMS_TWO_PI_F32 * cutoff);
     f32 dt = 1.0f / sample_rate;
     f32 alpha = dt / (rc + dt);
@@ -362,7 +392,8 @@ void apply_lowpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_r
     }
 }
 
-int32 mixer_effects_mono(AudioMixer* mixer, uint64 effect, int32 samples)
+static inline
+int32 mixer_effects_mono(AudioMixer* mixer, uint64 effect, int32 samples) NO_EXCEPT
 {
     int32 sound_sample_index = 0;
 
@@ -439,12 +470,14 @@ int32 mixer_effects_mono(AudioMixer* mixer, uint64 effect, int32 samples)
     return sound_sample_index;
 }
 
-int32 mixer_effects_stereo()
+static inline
+int32 mixer_effects_stereo() NO_EXCEPT
 {
     return 0;
 }
 
-void audio_mixer_mix(AudioMixer* mixer, uint32 size) {
+void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
+{
     PROFILE(PROFILE_AUDIO_MIXER_MIX);
     memset(mixer->settings.buffer, 0, size);
 

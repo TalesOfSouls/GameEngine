@@ -23,7 +23,8 @@
 #pragma comment(lib, "hid.lib")
 #pragma comment(lib, "setupapi.lib")
 
-void hid_init_controllers(Input* __restrict states, RingMemory* ring) {
+void hid_init_controllers(Input* __restrict states, RingMemory* ring) NO_EXCEPT
+{
 
     // Get the GUID for HID devices
     GUID hid_guid;
@@ -135,7 +136,9 @@ void hid_init_controllers(Input* __restrict states, RingMemory* ring) {
     SetupDiDestroyDeviceInfoList(device_info_set);
 }
 
-uint32 hid_device_poll(Input* state, uint64 time) {
+inline
+uint32 hid_device_poll(Input* state, uint64 time) NO_EXCEPT
+{
     UCHAR buffer[128];
     DWORD bytes_read;
 

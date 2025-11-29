@@ -53,7 +53,8 @@ UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
 }
 
 static FORCE_INLINE
-int compare_by_attribute_id(const void* __restrict a, const void* __restrict b) NO_EXCEPT {
+int compare_by_attribute_id(const void* __restrict a, const void* __restrict b) NO_EXCEPT
+{
     UIAttribute* attr_a = (UIAttribute *) a;
     UIAttribute* attr_b = (UIAttribute *) b;
 
@@ -174,7 +175,7 @@ void theme_from_file_txt(
             }
 
             if (str_length(block_name) + 1 > HASH_MAP_MAX_KEY_LENGTH) {
-                LOG_1("Identifier %s too long", {LOG_DATA_CHAR_STR, block_name});
+                LOG_1("Identifier %s too long", {DATA_TYPE_CHAR_STR, block_name});
             }
 
             continue;

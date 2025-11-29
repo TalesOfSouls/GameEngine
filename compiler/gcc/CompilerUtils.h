@@ -12,6 +12,10 @@
 #include "../../stdlib/Types.h"
 #include "../../utils/Assert.h"
 
+#if CPP_VERSION < 17
+    #define IF_CONSTEXPR(cond) if (cond)
+#endif
+
 #define PACKED_STRUCT  __attribute__((__packed__))
 #define UNPACKED_STRUCT ((void) 0)
 
@@ -42,7 +46,8 @@
 #define COLD_CODE __attribute__((cold))
 
 FORCE_INLINE
-int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
+int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT
+{
     ASSERT_STRICT(mask);
 
     #ifdef __LITTLE_ENDIAN__
@@ -53,7 +58,8 @@ int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
 }
 
 FORCE_INLINE
-int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
+int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT
+{
     ASSERT_STRICT(mask);
 
     #ifdef __LITTLE_ENDIAN__
@@ -64,7 +70,8 @@ int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
 }
 
 FORCE_INLINE
-int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
+int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT
+{
     ASSERT_STRICT(mask);
 
     #ifdef __LITTLE_ENDIAN__
@@ -75,7 +82,8 @@ int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
 }
 
 FORCE_INLINE
-int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
+int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT
+{
     ASSERT_STRICT(mask);
 
     #ifdef __LITTLE_ENDIAN__
@@ -99,7 +107,8 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id) {
 */
 
 inline
-void compiler_cpuid(uint32 cpu_info[4], int32 function_id) NO_EXCEPT {
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id) NO_EXCEPT
+{
     asm volatile(
         "cpuid"
         : "=a" (cpu_info[0]), "=b" (cpu_info[1]), "=c" (cpu_info[2]), "=d" (cpu_info[3])
@@ -108,7 +117,8 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id) NO_EXCEPT {
 }
 
 inline
-void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) NO_EXCEPT {
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) NO_EXCEPT
+{
     asm volatile(
         "cpuid"
         : "=a" (cpu_info[0]), "=b" (cpu_info[1]), "=c" (cpu_info[2]), "=d" (cpu_info[3])
@@ -116,27 +126,16 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) NO_EXCEP
     );
 }
 
-FORCE_INLINE
-void compiler_memcpy_unaligned(void* __restrict dst, const void* __restrict src, size_t size)
-{
-    __builtin_memcpy(dst, src, size);
-}
-
 // 8 byte alignment required
 FORCE_INLINE
-void compiler_memcpy_aligned(void* __restrict dst, const void* __restrict src, size_t size)
+void compiler_memcpy_aligned_8(void* __restrict dst, const void* __restrict src, size_t size)
 {
     __builtin_memcpy(dst, src, size);
-}
-
-FORCE_INLINE
-void compiler_memset_unaligned(void* dst, int value, size_t size) {
-    __builtin_memset(dst, value, size);
 }
 
 // 8 byte alignment required and size needs to be multiple of 8
 FORCE_INLINE
-void compiler_memset_aligned(void* dst, int value, size_t size) {
+void compiler_memset_aligned_8(void* dst, int value, size_t size) {
     __builtin_memset(dst, value, size);
 }
 

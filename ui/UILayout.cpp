@@ -193,7 +193,7 @@ void layout_from_file_txt(
         str_move_past(&pos, '\n');
 
         if (str_length(block_name) + 1 > HASH_MAP_MAX_KEY_LENGTH) {
-            LOG_1("Identifier %s too long", {LOG_DATA_CHAR_STR, block_name});
+            LOG_1("Identifier %s too long", {DATA_TYPE_CHAR_STR, block_name});
         }
 
         // Insert new element

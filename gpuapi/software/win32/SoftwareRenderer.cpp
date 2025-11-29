@@ -23,7 +23,8 @@ void soft_renderer_update(
     SoftwareRenderer* __restrict renderer,
     const Window* __restrict w,
     size_t vram
-) {
+) NO_EXCEPT
+{
     if ((renderer->dimension.width == w->width
         && renderer->dimension.height == w->height)
         || w->width == 0 || w->height == 0
@@ -36,9 +37,9 @@ void soft_renderer_update(
         renderer->platform.dib = NULL;
     }
 
-    if (renderer->platform.hdc) {
-        DeleteDC(renderer->platform.hdc);
-        renderer->platform.hdc = NULL;
+    if (renderer->platform.mem_hdc) {
+        DeleteDC(renderer->platform.mem_hdc);
+        renderer->platform.mem_hdc = NULL;
     }
 
     if (!renderer->buf.size) {
@@ -57,42 +58,51 @@ void soft_renderer_update(
     renderer->dimension.height = w->height;
 
     renderer->platform.hwnd = w->hwnd;
-    renderer->platform.window_hdc = w->hdc;
+
+    if (!renderer->platform.window_hdc) {
+        renderer->platform.window_hdc = GetDC(w->hwnd);
+    }
 
     renderer->platform.bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     renderer->platform.bmi.bmiHeader.biWidth = renderer->dimension.width;
-    renderer->platform.bmi.bmiHeader.biHeight = -renderer->dimension.height; // top-down
+    renderer->platform.bmi.bmiHeader.biHeight = renderer->dimension.height; // down-up
     renderer->platform.bmi.bmiHeader.biPlanes = 1;
     renderer->platform.bmi.bmiHeader.biBitCount = 32;
     renderer->platform.bmi.bmiHeader.biCompression = BI_RGB;
 
-    renderer->platform.dib = CreateDIBSection(w->hdc, &renderer->platform.bmi, DIB_RGB_COLORS, (void **) &renderer->pixels, NULL, 0);
+    // This also reserves memory for renderer->pixels
+    renderer->platform.dib = CreateDIBSection(
+        renderer->platform.window_hdc,
+        &renderer->platform.bmi,
+        DIB_RGB_COLORS,
+        (void **) &renderer->pixels,
+        NULL, 0
+    );
     ASSERT_TRUE(renderer->platform.dib && renderer->pixels);
 
-    renderer->platform.hdc = CreateCompatibleDC(w->hdc);
-    SelectObject(renderer->platform.hdc, renderer->platform.dib);
+    renderer->platform.mem_hdc = CreateCompatibleDC(renderer->platform.window_hdc);
+    SelectObject(renderer->platform.mem_hdc, renderer->platform.dib);
 
     if (renderer->max_dimension.height * renderer->max_dimension.width < renderer->dimension.width * renderer->dimension.height) {
         if (renderer->zbuffer) {
             platform_aligned_free((void **) &renderer->zbuffer);
         }
 
-        renderer->zbuffer = (f32 *) platform_alloc_aligned(renderer->dimension.width * renderer->dimension.height * sizeof(f32), sizeof(size_t));
+        renderer->zbuffer = (f32 *) platform_alloc_aligned(renderer->dimension.width * renderer->dimension.height * sizeof(f32), sizeof(size_t) * 4);
         renderer->max_dimension.width = renderer->dimension.width;
         renderer->max_dimension.height = renderer->dimension.height;
+        soft_clear(renderer);
     }
 }
 
 inline
 void soft_buffer_swap(SoftwareRenderer* __restrict renderer) NO_EXCEPT
 {
-    // @bug We probably have to replace window_hdc with GetDC(renderer->hwnd)
-    // Yes opengl doesn't need that but software rendering needs it
     // This is comparable with SwapBuffer()
     BitBlt(
         renderer->platform.window_hdc,
         0, 0, renderer->dimension.width, renderer->dimension.height,
-        renderer->platform.hdc,
+        renderer->platform.mem_hdc,
         0, 0, SRCCOPY
     );
 }

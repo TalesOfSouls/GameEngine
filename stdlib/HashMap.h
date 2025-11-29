@@ -196,18 +196,18 @@ struct HashMap {
 // @todo Change so the hashmap can grow or maybe even better create a static and dynamic version
 // count ideally should be a power of 2 for better data alignment
 FORCE_INLINE
-void hashmap_alloc(HashMap* hm, int32 count, int32 element_size, int32 alignment = 32)
+void hashmap_alloc(HashMap* hm, int32 count, int32 element_size, int32 alignment = 32) NO_EXCEPT
 {
     // This ensures 4 byte alignment
     count = OMS_ALIGN_UP(count, 2);
 
-    LOG_1("[INFO] Allocate HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
+    LOG_1("[INFO] Allocate HashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->hash_function = hash_djb2;
     chunk_alloc(&hm->buf, count, element_size, alignment);
 }
 
 FORCE_INLINE
-void hashmap_free(HashMap* hm)
+void hashmap_free(HashMap* hm) NO_EXCEPT
 {
     chunk_free(&hm->buf);
 }
@@ -222,7 +222,7 @@ void hashmap_create(HashMap* __restrict hm, int32 count, int32 element_size, Rin
     // This ensures 4 byte alignment
     count = OMS_ALIGN_UP(count, 2);
 
-    LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
+    LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     uint64 hm_size = chunk_size_total(count, element_size, alignment);
     byte* data = ring_get_memory(
         ring,
@@ -243,7 +243,7 @@ void hashmap_create(HashMap* __restrict hm, int32 count, int32 element_size, Buf
 {
     ASSERT_TRUE(buf);
 
-    LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
+    LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     uint64 hm_size = chunk_size_total(count, element_size, alignment);
     byte* data = buffer_get_memory(
         buf,
@@ -262,7 +262,7 @@ void hashmap_create(HashMap* __restrict hm, int32 count, int32 element_size, Buf
 inline
 void hashmap_create(HashMap* __restrict hm, int32 count, int32 element_size, byte* __restrict buf, int32 alignment = 32) NO_EXCEPT
 {
-    LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size});
+    LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->hash_function = hash_djb2;
     chunk_init(&hm->buf, buf, count, element_size, alignment);
 
@@ -289,7 +289,8 @@ int64 hashmap_size(const HashMap* hm) NO_EXCEPT
 /////////////////////////////
 // string key
 /////////////////////////////
-HashEntryInt32* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, int32 value) NO_EXCEPT {
+HashEntryInt32* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, int32 value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -325,7 +326,8 @@ HashEntryInt32* hashmap_insert(HashMap* __restrict hm, const char* __restrict ke
     return entry;
 }
 
-HashEntryInt64* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, int64 value) NO_EXCEPT {
+HashEntryInt64* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, int64 value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -359,7 +361,8 @@ HashEntryInt64* hashmap_insert(HashMap* __restrict hm, const char* __restrict ke
     return entry;
 }
 
-HashEntryInt32Int32* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, int32 value1, int32 value2) NO_EXCEPT {
+HashEntryInt32Int32* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, int32 value1, int32 value2) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -395,7 +398,8 @@ HashEntryInt32Int32* hashmap_insert(HashMap* __restrict hm, const char* __restri
     return entry;
 }
 
-HashEntryUIntPtr* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, uintptr_t value) NO_EXCEPT {
+HashEntryUIntPtr* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, uintptr_t value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -430,7 +434,8 @@ HashEntryUIntPtr* hashmap_insert(HashMap* __restrict hm, const char* __restrict 
     return entry;
 }
 
-HashEntryVoidP* hashmap_insert(HashMap* __restrict hm, const char* key, void* __restrict value) NO_EXCEPT {
+HashEntryVoidP* hashmap_insert(HashMap* __restrict hm, const char* key, void* __restrict value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -465,7 +470,8 @@ HashEntryVoidP* hashmap_insert(HashMap* __restrict hm, const char* key, void* __
     return entry;
 }
 
-HashEntryFloat* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, f32 value) NO_EXCEPT {
+HashEntryFloat* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, f32 value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -500,7 +506,8 @@ HashEntryFloat* hashmap_insert(HashMap* __restrict hm, const char* __restrict ke
     return entry;
 }
 
-HashEntryStr* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, const char* __restrict value) NO_EXCEPT {
+HashEntryStr* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, const char* __restrict value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -539,7 +546,8 @@ HashEntryStr* hashmap_insert(HashMap* __restrict hm, const char* __restrict key,
 
 // This function adds the actual data immediately after the hash map entry
 // This requires the chunks to have the correct size
-HashEntry* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, byte* __restrict value, size_t size = 0) NO_EXCEPT {
+HashEntry* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, byte* __restrict value, size_t size = 0) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -579,7 +587,8 @@ HashEntry* hashmap_insert(HashMap* __restrict hm, const char* __restrict key, by
 
 // This is perfect to directly fill the data instead of copying over
 // Usually only makes sense for large data
-HashEntry* hashmap_reserve(HashMap* __restrict hm, const char* __restrict key) NO_EXCEPT {
+HashEntry* hashmap_reserve(HashMap* __restrict hm, const char* __restrict key) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -656,7 +665,8 @@ HashEntry* hashmap_get_reserve(HashMap* __restrict hm, const char* __restrict ke
 }
 
 inline
-HashEntry* hashmap_get_entry(HashMap* __restrict hm, const char* __restrict key) NO_EXCEPT {
+HashEntry* hashmap_get_entry(HashMap* __restrict hm, const char* __restrict key) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     if (chunk_is_free(&hm->buf, index)) {
@@ -680,7 +690,8 @@ HashEntry* hashmap_get_entry(HashMap* __restrict hm, const char* __restrict key)
     return NULL;
 }
 
-void hashmap_remove(HashMap* __restrict hm, const char* __restrict key) NO_EXCEPT {
+void hashmap_remove(HashMap* __restrict hm, const char* __restrict key) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, index);
@@ -707,7 +718,8 @@ void hashmap_remove(HashMap* __restrict hm, const char* __restrict key) NO_EXCEP
 /////////////////////////////
 // uint32 key
 /////////////////////////////
-HashEntryInt32KeyInt32* hashmap_insert(HashMap* hm, uint32 key, int32 value) NO_EXCEPT {
+HashEntryInt32KeyInt32* hashmap_insert(HashMap* hm, uint32 key, int32 value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) &key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -736,7 +748,8 @@ HashEntryInt32KeyInt32* hashmap_insert(HashMap* hm, uint32 key, int32 value) NO_
     return entry;
 }
 
-HashEntryInt64KeyInt32* hashmap_insert(HashMap* hm, uint32 key, int64 value) NO_EXCEPT {
+HashEntryInt64KeyInt32* hashmap_insert(HashMap* hm, uint32 key, int64 value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) &key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -765,7 +778,8 @@ HashEntryInt64KeyInt32* hashmap_insert(HashMap* hm, uint32 key, int64 value) NO_
     return entry;
 }
 
-HashEntryUIntPtrKeyInt32* hashmap_insert(HashMap* hm, uint32 key, uintptr_t value) NO_EXCEPT {
+HashEntryUIntPtrKeyInt32* hashmap_insert(HashMap* hm, uint32 key, uintptr_t value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) &key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -794,7 +808,8 @@ HashEntryUIntPtrKeyInt32* hashmap_insert(HashMap* hm, uint32 key, uintptr_t valu
     return entry;
 }
 
-HashEntryVoidPKeyInt32* hashmap_insert(HashMap* __restrict hm, uint32 key, void* __restrict value) NO_EXCEPT {
+HashEntryVoidPKeyInt32* hashmap_insert(HashMap* __restrict hm, uint32 key, void* __restrict value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) &key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -823,7 +838,8 @@ HashEntryVoidPKeyInt32* hashmap_insert(HashMap* __restrict hm, uint32 key, void*
     return entry;
 }
 
-HashEntryFloatKeyInt32* hashmap_insert(HashMap* hm, uint32 key, f32 value) NO_EXCEPT {
+HashEntryFloatKeyInt32* hashmap_insert(HashMap* hm, uint32 key, f32 value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) &key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -852,7 +868,8 @@ HashEntryFloatKeyInt32* hashmap_insert(HashMap* hm, uint32 key, f32 value) NO_EX
     return entry;
 }
 
-HashEntryStrKeyInt32* hashmap_insert(HashMap* __restrict hm, uint32 key, const char* __restrict value) NO_EXCEPT {
+HashEntryStrKeyInt32* hashmap_insert(HashMap* __restrict hm, uint32 key, const char* __restrict value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) &key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -884,7 +901,8 @@ HashEntryStrKeyInt32* hashmap_insert(HashMap* __restrict hm, uint32 key, const c
     return entry;
 }
 
-HashEntryKeyInt32* hashmap_insert(HashMap* __restrict hm, uint32 key, const byte* __restrict value) NO_EXCEPT {
+HashEntryKeyInt32* hashmap_insert(HashMap* __restrict hm, uint32 key, const byte* __restrict value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) &key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -916,7 +934,8 @@ HashEntryKeyInt32* hashmap_insert(HashMap* __restrict hm, uint32 key, const byte
     return entry;
 }
 
-HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, uint32 key) NO_EXCEPT {
+HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, uint32 key) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) &key) % hm->buf.count;
 
     if (chunk_is_free(&hm->buf, index)) {
@@ -940,7 +959,8 @@ HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, uint32 key) NO_EXCEPT {
 // @performance If we had a doubly linked list we could delete keys much easier
 // However that would make insertion slower
 // Maybe we create a nother hashmap that is doubly linked
-void hashmap_remove(HashMap* hm, uint32 key) NO_EXCEPT {
+void hashmap_remove(HashMap* hm, uint32 key) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) &key) % hm->buf.count;
 
     HashEntryKeyInt32* entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, index);
@@ -954,7 +974,6 @@ void hashmap_remove(HashMap* hm, uint32 key) NO_EXCEPT {
 
             chunk_free_element(&hm->buf, index);
 
-
             return;
         }
 
@@ -966,7 +985,8 @@ void hashmap_remove(HashMap* hm, uint32 key) NO_EXCEPT {
 /////////////////////////////
 // uint64 key
 /////////////////////////////
-HashEntryInt32KeyInt64* hashmap_insert(HashMap* hm, uint64 key, int32 value) NO_EXCEPT {
+HashEntryInt32KeyInt64* hashmap_insert(HashMap* hm, uint64 key, int32 value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -995,7 +1015,8 @@ HashEntryInt32KeyInt64* hashmap_insert(HashMap* hm, uint64 key, int32 value) NO_
     return entry;
 }
 
-HashEntryInt64KeyInt64* hashmap_insert(HashMap* hm, uint64 key, int64 value) NO_EXCEPT {
+HashEntryInt64KeyInt64* hashmap_insert(HashMap* hm, uint64 key, int64 value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -1024,7 +1045,8 @@ HashEntryInt64KeyInt64* hashmap_insert(HashMap* hm, uint64 key, int64 value) NO_
     return entry;
 }
 
-HashEntryUIntPtrKeyInt64* hashmap_insert(HashMap* hm, uint64 key, uintptr_t value) NO_EXCEPT {
+HashEntryUIntPtrKeyInt64* hashmap_insert(HashMap* hm, uint64 key, uintptr_t value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -1053,7 +1075,8 @@ HashEntryUIntPtrKeyInt64* hashmap_insert(HashMap* hm, uint64 key, uintptr_t valu
     return entry;
 }
 
-HashEntryVoidPKeyInt64* hashmap_insert(HashMap* __restrict hm, uint64 key, void* __restrict value) NO_EXCEPT {
+HashEntryVoidPKeyInt64* hashmap_insert(HashMap* __restrict hm, uint64 key, void* __restrict value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -1082,7 +1105,8 @@ HashEntryVoidPKeyInt64* hashmap_insert(HashMap* __restrict hm, uint64 key, void*
     return entry;
 }
 
-HashEntryFloatKeyInt64* hashmap_insert(HashMap* hm, uint64 key, f32 value) NO_EXCEPT {
+HashEntryFloatKeyInt64* hashmap_insert(HashMap* hm, uint64 key, f32 value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -1111,7 +1135,8 @@ HashEntryFloatKeyInt64* hashmap_insert(HashMap* hm, uint64 key, f32 value) NO_EX
     return entry;
 }
 
-HashEntryStrKeyInt64* hashmap_insert(HashMap* __restrict hm, uint64 key, const char* __restrict value) NO_EXCEPT {
+HashEntryStrKeyInt64* hashmap_insert(HashMap* __restrict hm, uint64 key, const char* __restrict value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -1142,7 +1167,8 @@ HashEntryStrKeyInt64* hashmap_insert(HashMap* __restrict hm, uint64 key, const c
     return entry;
 }
 
-HashEntryKeyInt64* hashmap_insert(HashMap* __restrict hm, uint64 key, const byte* __restrict value) NO_EXCEPT {
+HashEntryKeyInt64* hashmap_insert(HashMap* __restrict hm, uint64 key, const byte* __restrict value) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     // This is either the place where we insert or the start of the chain we have to follow
@@ -1174,7 +1200,8 @@ HashEntryKeyInt64* hashmap_insert(HashMap* __restrict hm, uint64 key, const byte
     return entry;
 }
 
-HashEntryKeyInt64* hashmap_get_entry(HashMap* hm, uint64 key) NO_EXCEPT {
+HashEntryKeyInt64* hashmap_get_entry(HashMap* hm, uint64 key) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     if (chunk_is_free(&hm->buf, index)) {
@@ -1198,7 +1225,8 @@ HashEntryKeyInt64* hashmap_get_entry(HashMap* hm, uint64 key) NO_EXCEPT {
 // @performance If we had a doubly linked list we could delete keys much easier
 // However that would make insertion slower
 // Maybe we create a nother hashmap that is doubly linked
-void hashmap_remove(HashMap* hm, uint64 key) NO_EXCEPT {
+void hashmap_remove(HashMap* hm, uint64 key) NO_EXCEPT
+{
     int32 index = hm->hash_function((void *) key) % hm->buf.count;
 
     HashEntryKeyInt64* entry = (HashEntryKeyInt64 *) chunk_get_element(&hm->buf, index);
@@ -1212,7 +1240,6 @@ void hashmap_remove(HashMap* hm, uint64 key) NO_EXCEPT {
 
             chunk_free_element(&hm->buf, index);
 
-
             return;
         }
 
@@ -1222,7 +1249,7 @@ void hashmap_remove(HashMap* hm, uint64 key) NO_EXCEPT {
 }
 
 // @question Shouldn't we also store the chunk size etc? Currently not done and expected to be correctly initialized.
-int64 hashmap_dump(const HashMap* hm, byte* data, MAYBE_UNUSED int32 value_size, MAYBE_UNUSED int32 steps = 8)
+int64 hashmap_dump(const HashMap* hm, byte* data, MAYBE_UNUSED int32 value_size, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {
     LOG_1("[INFO] Dump HashMap");
     byte* start = data;
@@ -1239,7 +1266,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data, MAYBE_UNUSED int32 value_size,
 }
 
 // WARNING: Requires hashmap_create first
-int64 hashmap_load(HashMap* hm, const byte* data, MAYBE_UNUSED int32 value_size, MAYBE_UNUSED int32 steps = 8)
+int64 hashmap_load(HashMap* hm, const byte* data, MAYBE_UNUSED int32 value_size, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {
     LOG_1("[INFO] Load HashMap");
     const byte* start = data;

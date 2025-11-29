@@ -25,22 +25,38 @@ enum PoolWorkerState : int32 {
     POOL_WORKER_STATE_RUNNING = 2
 };
 
-// @performance Could we reduce the size of PoolWorker by reducing atomic_32 to atomic_16?
-//  I don't think so because ThreadPoolJobFunc should be 8 bytes
+/**
+ * Worker for the thread pool
+ */
 struct PoolWorker {
+    // @performance We could reduce the size of id and state down to u16
+    //              However, that wouldn't change the size of the struct due to alignment
+    //              Maybe this will become useful later if we add more members to the struct
     atomic_32 uint32 id;
     atomic_32 PoolWorkerState state;
+
     ThreadPoolJobFunc func;
+
+    // Callback for when the job completes
     ThreadPoolJobFunc callback;
 
     // If we have different arg data you must use a wrapper struct that can hold the other data
     // The queue allows to store fixed data larger than PoolWorker by providing the the element size
+    // This means you could use sizeof(PoolWorker) + 128, make arg point to job + 1
+    // thread_pool_add_work() automatically adds sizeof(PoolWorker) + 128 to the queue
     void* arg;
 
-    // Object for internal memory for use
-    byte mem[64];
+    // This can be used either to describe the actual size if arg is a string/byte array,
+    // or we can use it to describe the array length if arg is an array
+    int32 arg_size;
+
+    // Pointer to memory to be used by the thread worker
+    void* mem;
 };
 
+/**
+ * Worker for a normal thread
+ */
 struct Worker {
     atomic_32 int32 state;
     coms_pthread_t thread;

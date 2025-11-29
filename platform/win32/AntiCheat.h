@@ -21,7 +21,8 @@ bool anti_cheat_memory_scan(
     HANDLE hProcess,
     const AntiCheatSignature* __restrict patterns, size_t pattern_count,
     byte* __restrict helper_memory, size_t helper_memory_size
-) {
+) NO_EXCEPT
+{
     SYSTEM_INFO sys_info;
     GetSystemInfo(&sys_info);
 
@@ -64,7 +65,8 @@ void anti_cheat_process_scan(
     const AntiCheatSignature* __restrict patterns, int32 pattern_count,
     AntiCheatProcessInfo* __restrict list, int32 process_count,
     byte* __restrict helper_memory, size_t helper_memory_size
-) {
+) NO_EXCEPT
+{
     for (int32 i = 0; i < process_count; ++i) {
         if (list[i].scanned) {
             // @todo how to remove no longer active processes?

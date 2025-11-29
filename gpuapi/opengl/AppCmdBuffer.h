@@ -18,11 +18,13 @@
 #include "../../asset/Asset.h"
 #include "../../command/AppCmdBuffer.h"
 
-void* cmd_shader_load(AppCmdBuffer*, Command*) {
+void* cmd_shader_load(AppCmdBuffer*, Command*) NO_EXCEPT
+{
     return NULL;
 }
 
-void* cmd_shader_load_sync(AppCmdBuffer* __restrict cb, Shader* __restrict shader, const int32* __restrict shader_ids) {
+void* cmd_shader_load_sync(AppCmdBuffer* __restrict cb, Shader* __restrict shader, const int32* __restrict shader_ids) NO_EXCEPT
+{
     PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
     char asset_id[9];
 

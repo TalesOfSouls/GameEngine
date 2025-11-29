@@ -12,7 +12,8 @@
 #include "../stdlib/Types.h"
 
 CONSTEXPR inline
-void encrypt_ceasar(char* input, int32 shift) {
+void encrypt_ceasar(char* input, int32 shift) NO_EXCEPT
+{
     for (int32 i = 0; input[i] != '\0'; i++) {
         if (input[i] >= 'A' && input[i] <= 'Z') {
             input[i] = 'A' + (input[i] - 'A' + shift) % 26;
@@ -23,7 +24,8 @@ void encrypt_ceasar(char* input, int32 shift) {
 }
 
 CONSTEXPR inline
-void decrypt_ceasar(char* input, int32 shift) {
+void decrypt_ceasar(char* input, int32 shift) NO_EXCEPT
+{
     for (int32 i = 0; input[i] != '\0'; i++) {
         if (input[i] >= 'A' && input[i] <= 'Z') {
             input[i] = 'A' + (input[i] - 'A' - shift + 26) % 26;

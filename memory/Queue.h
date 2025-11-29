@@ -43,7 +43,7 @@ struct QueueEvent {
 };
 
 FORCE_INLINE
-void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
+void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = OMS_ALIGN_UP(element_size, alignment);
 
@@ -52,7 +52,7 @@ void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, uint32
 }
 
 FORCE_INLINE
-void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
+void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = OMS_ALIGN_UP(element_size, alignment);
 
@@ -61,7 +61,7 @@ void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 el
 }
 
 FORCE_INLINE
-void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
+void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = OMS_ALIGN_UP(element_size, alignment);
 
@@ -76,17 +76,20 @@ void queue_free(Queue* queue) NO_EXCEPT
 }
 
 FORCE_INLINE
-bool queue_is_empty(const Queue* queue) NO_EXCEPT {
+bool queue_is_empty(const Queue* queue) NO_EXCEPT
+{
     return queue->head == queue->tail;
 }
 
 FORCE_INLINE
-void queue_set_empty(Queue* queue) NO_EXCEPT {
+void queue_set_empty(Queue* queue) NO_EXCEPT
+{
     queue->head = queue->tail;
 }
 
 FORCE_INLINE
-bool queue_is_full(Queue* queue) NO_EXCEPT {
+bool queue_is_full(Queue* queue) NO_EXCEPT
+{
     return !ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 

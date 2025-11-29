@@ -75,7 +75,7 @@ struct AssetArchive {
 
 // Calculates how large the header memory has to be to hold all its information
 static inline
-int32 asset_archive_header_size(AssetArchive* __restrict archive, const byte* __restrict data)
+int32 asset_archive_header_size(AssetArchive* __restrict archive, const byte* __restrict data) NO_EXCEPT
 {
     data += sizeof(archive->header.version);
 
@@ -93,7 +93,7 @@ int32 asset_archive_header_size(AssetArchive* __restrict archive, const byte* __
 }
 
 static inline
-void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte* __restrict data, MAYBE_UNUSED int32 steps = 8)
+void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte* __restrict data, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {
     header->version = SWAP_ENDIAN_LITTLE(*((int32 *) data));
     data += sizeof(header->version);
@@ -163,13 +163,13 @@ void asset_archive_load(
     BufferMemory* buf,
     RingMemory* ring,
     int32 steps = 8
-)
+) NO_EXCEPT
 {
     PROFILE(PROFILE_ASSET_ARCHIVE_LOAD, path, PROFILE_FLAG_SHOULD_LOG);
 
     LOG_1(
         "Load AssetArchive %s",
-        {LOG_DATA_CHAR_STR, (void *) path}
+        {DATA_TYPE_CHAR_STR, (void *) path}
     );
 
     archive->fd = file_read_handle(path);
@@ -213,7 +213,7 @@ void asset_archive_load(
 
     LOG_1(
         "Loaded AssetArchive %s with %d assets",
-        {LOG_DATA_CHAR_STR, (void *) path}, {LOG_DATA_UINT32, (void *) &archive->header.asset_count}
+        {DATA_TYPE_CHAR_STR, (void *) path}, {DATA_TYPE_UINT32, (void *) &archive->header.asset_count}
     );
 }
 
@@ -222,7 +222,7 @@ void asset_archive_load(
 // Maybe we could just accept a int value which we set atomically as a flag that the asset is complete?
 // this way we can check much faster if we can work with this data from the caller?!
 // The only problem is that we need to pass the pointer to this int in the thrd_queue since we queue the files to load there
-Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManagementSystem* ams, RingMemory* ring)
+Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManagementSystem* ams, RingMemory* ring) NO_EXCEPT
 {
     // Create a string representation from the asset id
     // We can't just use the asset id, since an int can have a \0 between high byte and low byte
@@ -244,7 +244,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
 
     LOG_2(
         "Load asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
-        {LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}
+        {DATA_TYPE_UINT64, &id}, {DATA_TYPE_UINT32, &element->type}, {DATA_TYPE_UINT8, &component_id}, {DATA_TYPE_UINT32, &element->length}, {DATA_TYPE_UINT32, &element->uncompressed}
     );
 
     Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
@@ -356,7 +356,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
 
     LOG_2(
         "Loaded asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
-        {LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}
+        {DATA_TYPE_UINT64, &id}, {DATA_TYPE_UINT32, &element->type}, {DATA_TYPE_UINT8, &component_id}, {DATA_TYPE_UINT32, &element->length}, {DATA_TYPE_UINT32, &element->uncompressed}
     );
 
     // @performance maybe do in worker threads? This just feels very slow

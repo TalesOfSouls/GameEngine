@@ -73,11 +73,13 @@ uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = siz
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t))
+void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
+    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
@@ -98,14 +100,15 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alig
         (uint64) ((uintptr_t) (buf->memory + count * element_size)),
         (uint64) alignment
     );
-    compiler_memset_aligned(buf->free, 0, (count + 63) / 64);
+    compiler_memset_aligned_8(buf->free, 0, (count + 63) / 64);
 }
 
 inline
-void chunk_init(ChunkMemory* __restrict buf, BufferMemory* __restrict data, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t))
+void chunk_init(ChunkMemory* __restrict buf, BufferMemory* __restrict data, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     element_size = chunk_size_element(element_size, alignment);
 
@@ -120,16 +123,17 @@ void chunk_init(ChunkMemory* __restrict buf, BufferMemory* __restrict data, uint
     buf->last_pos = -1;
     buf->alignment = alignment;
     buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * element_size), 64);
-    compiler_memset_aligned(buf->free, 0, (count + 63) / 64);
+    compiler_memset_aligned_8(buf->free, 0, (count + 63) / 64);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
-void chunk_init(ChunkMemory* __restrict buf, byte* __restrict data, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t))
+void chunk_init(ChunkMemory* __restrict buf, byte* __restrict data, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     element_size = chunk_size_element(element_size, alignment);
 
@@ -146,13 +150,13 @@ void chunk_init(ChunkMemory* __restrict buf, byte* __restrict data, uint32 count
         (uintptr_t) (buf->memory + count * element_size),
         (uint64) alignment
     );
-    compiler_memset_aligned(buf->free, 0, (count + 63) / 64);
+    compiler_memset_aligned_8(buf->free, 0, (count + 63) / 64);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline HOT_CODE
-void chunk_free(ChunkMemory* buf)
+void chunk_free(ChunkMemory* buf) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->size);
 
@@ -173,7 +177,8 @@ uint64* chunk_find_free_array(const ChunkMemory* buf) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) NO_EXCEPT {
+uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) NO_EXCEPT
+{
     return (uint32) ((uintptr_t) pos - (uintptr_t) buf->memory) / buf->chunk_size;
 }
 
@@ -451,7 +456,7 @@ void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count 
 }
 
 inline
-int64 chunk_dump(const ChunkMemory* buf, byte* data)
+int64 chunk_dump(const ChunkMemory* buf, byte* data) NO_EXCEPT
 {
     LOG_1("[INFO] Dump ChunkMemory");
     byte* start = data;
@@ -499,7 +504,7 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data)
         }
     #endif
 
-    LOG_1("[INFO] Dumped ChunkMemory: %n B", {LOG_DATA_UINT64, (void *) &buf->size});
+    LOG_1("[INFO] Dumped ChunkMemory: %n B", {DATA_TYPE_UINT64, (void *) &buf->size});
 
     return data - start;
 }
@@ -513,7 +518,7 @@ byte* chunk_get_memory(ChunkMemory* buf, uint32 elements) NO_EXCEPT
 }
 
 inline
-int64 chunk_load(ChunkMemory* buf, const byte* data)
+int64 chunk_load(ChunkMemory* buf, const byte* data) NO_EXCEPT
 {
     LOG_1("[INFO] Loading ChunkMemory");
 
@@ -557,7 +562,7 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
         }
     #endif
 
-    LOG_1("[INFO] Loaded ChunkMemory: %n B", {LOG_DATA_UINT64, &buf->size});
+    LOG_1("[INFO] Loaded ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 
     return data - start;
 }

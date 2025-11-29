@@ -53,7 +53,7 @@ ID3DBlob* gpuapi_shader_make(const char* type, const char* source, int32 source_
     HRESULT hr;
 
     if (FAILED(hr = D3DCompile2(source, source_size, NULL, NULL, NULL, "main", type, compileFlags, 0, 0, NULL, 0, &blob, &errMsgs))) {
-        LOG_1("DirectX12 D3DCompile2: %d, %s", {LOG_DATA_INT32, &hr}, {LOG_DATA_CHAR_STR, errMsgs->GetBufferPointer()});
+        LOG_1("DirectX12 D3DCompile2: %d, %s", {DATA_TYPE_INT32, &hr}, {DATA_TYPE_CHAR_STR, errMsgs->GetBufferPointer()});
         ASSERT_TRUE(false);
     }
 
@@ -129,7 +129,7 @@ ID3D12PipelineState* gpuapi_pipeline_make(
 
     HRESULT hr;
     if (FAILED(hr = device->CreateGraphicsPipelineState(&pipeline_state_info, IID_PPV_ARGS(pipeline)))) {
-        LOG_1("DirectX12 CreateGraphicsPipelineState: %d", {LOG_DATA_INT32, &hr});
+        LOG_1("DirectX12 CreateGraphicsPipelineState: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
     }
 

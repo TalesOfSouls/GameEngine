@@ -176,6 +176,26 @@ struct alignas(16) v4_int32 {
     };
 };
 
+struct alignas(16) v4_uint32 {
+    union {
+        struct {
+            uint32 x, y;
+
+            union { uint32 z, width; };
+            union { uint32 w, height; };
+        };
+
+        uint32 vec[4];
+
+        // Reference to a vec[4]
+        const uint32* ref;
+
+        #if defined(__SSE4_2__)
+            __m128i s_16;
+        #endif
+    };
+};
+
 struct v2_int64 {
     union {
         struct { int64 x, y; };
@@ -322,7 +342,9 @@ inline v3_int32 to_v3_int32(v3_f32 vec) { return {(int32) vec.x, (int32) vec.y, 
 inline v4_int32 to_v4_int32(v4_f32 vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z, (int32) vec.w}; }
 
 // Data type helpers
-enum DataType {
+enum DataType : byte {
+    DATA_TYPE_VOID,
+
     DATA_TYPE_BOOL,
 
     DATA_TYPE_INT8,
@@ -355,6 +377,8 @@ enum DataType {
 
     DATA_TYPE_CHAR,
     DATA_TYPE_CHAR_STR,
+
+    DATA_TYPE_BYTE_ARRAY,
 
     DATA_TYPE_V2_INT16,
     DATA_TYPE_V2_UINT16,

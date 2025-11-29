@@ -56,7 +56,7 @@ struct AudioLocationSetting {
 };
 
 inline
-void update_audio_location_settings(AudioLocationSetting* settings)
+void update_audio_location_settings(AudioLocationSetting* settings) NO_EXCEPT
 {
     vec3_normalize(&settings->audio_lookat);
 }

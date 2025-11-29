@@ -684,7 +684,7 @@ typedef const char* WINAPI wgl_get_extensions_string_ext(void);
 static wgl_get_extensions_string_ext* wglGetExtensionsStringEXT;
 
 static inline
-void set_pixel_format(HDC hdc, int32 multisampling = 0)
+void set_pixel_format(HDC hdc, int32 multisampling = 0) NO_EXCEPT
 {
     int32 suggested_pixel_format_idx = 0;
     uint32 extended_pick = 0;
@@ -725,7 +725,7 @@ void set_pixel_format(HDC hdc, int32 multisampling = 0)
 }
 
 static inline
-bool gl_has_extension(const char* name)
+bool gl_has_extension(const char* name) NO_EXCEPT
 {
     int32 n;
     glGetIntegerv(GL_NUM_EXTENSIONS, &n);
@@ -741,7 +741,7 @@ bool gl_has_extension(const char* name)
 }
 
 static
-bool gl_extensions_load()
+bool gl_extensions_load() NO_EXCEPT
 {
     WNDCLASSA wc = {};
 
@@ -814,7 +814,7 @@ const int win32_opengl_attribs[] = {
 };
 
 static inline
-void opengl_init_wgl()
+void opengl_init_wgl() NO_EXCEPT
 {
     wglChoosePixelFormatARB = (wgl_choose_pixel_format_arb *) wglGetProcAddress("wglChoosePixelFormatARB");
     wglCreateContextAttribsARB = (wgl_create_context_attribs_arb *) wglGetProcAddress("wglCreateContextAttribsARB");
@@ -823,7 +823,7 @@ void opengl_init_wgl()
 }
 
 static inline
-void opengl_init_gl()
+void opengl_init_gl() NO_EXCEPT
 {
     glGetStringi = (type_glGetStringi *) wglGetProcAddress("glGetStringi");
     glTexImage2DMultisample = (type_glTexImage2DMultisample *) wglGetProcAddress("glTexImage2DMultisample");
@@ -928,14 +928,14 @@ void opengl_init_gl()
 }
 
 inline
-void opengl_destroy(Window* window)
+void opengl_destroy(Window* window) NO_EXCEPT
 {
     wglMakeCurrent(NULL, NULL);
     wglDeleteContext(window->openGLRC);
     ReleaseDC(window->hwnd, window->hdc);
 }
 
-void opengl_instance_create(Window* window, int32 multisample = 0)
+void opengl_instance_create(Window* window, int32 multisample = 0) NO_EXCEPT
 {
     LOG_1("Load opengl");
     gl_extensions_load();

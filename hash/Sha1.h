@@ -22,8 +22,9 @@
 #elif defined(__ARM_FEATURE_SVE) || defined(__ARM_NEON)
     #include "Sha1SimdArm.h"
 #else
-    static
-    void sha1_transform(SHA1_CTX *ctx, const byte data[64], [[mayb_unused]] int32 steps) {
+    static inline
+    void sha1_transform(SHA1_CTX *ctx, const byte data[64], [[mayb_unused]] int32 steps) NO_EXCEPT
+{
         uint32 a, b, c, d, e, temp;
         uint32 w[80];
 
@@ -94,7 +95,9 @@
     }
 #endif
 
-void sha1_init(SHA1_CTX* ctx) {
+inline
+void sha1_init(SHA1_CTX* ctx) NO_EXCEPT
+{
     ctx->state[0] = 0x67452301;
     ctx->state[1] = 0xEFCDAB89;
     ctx->state[2] = 0x98BADCFE;
@@ -103,8 +106,9 @@ void sha1_init(SHA1_CTX* ctx) {
     ctx->count = 0;
 }
 
-static
-void sha1_update(SHA1_CTX* ctx, const byte* data, size_t len, int32 steps) {
+static inline
+void sha1_update(SHA1_CTX* ctx, const byte* data, size_t len, int32 steps) NO_EXCEPT
+{
     size_t i, index, part_len;
 
     index = (size_t)((ctx->count >> 3) & 0x3F);
@@ -127,8 +131,9 @@ void sha1_update(SHA1_CTX* ctx, const byte* data, size_t len, int32 steps) {
     memcpy(&ctx->buffer[index], &data[i], len - i);
 }
 
-static
-void sha1_final(SHA1_CTX* ctx, byte digest[20], int32 steps) {
+static inline
+void sha1_final(SHA1_CTX* ctx, byte digest[20], int32 steps) NO_EXCEPT
+{
     byte bits[8];
     uint32 index, pad_len;
 

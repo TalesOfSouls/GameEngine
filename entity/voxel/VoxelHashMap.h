@@ -13,7 +13,8 @@
 #include "Voxel.h"
 
 static FORCE_INLINE
-uint64 voxel_chunk_coord_pack(int32 x, int32 y, int32 z) NO_EXCEPT {
+uint64 voxel_chunk_coord_pack(int32 x, int32 y, int32 z) NO_EXCEPT
+{
     // We check if only the lowest 21 bits are set
     ASSERT_STRICT((((uint32) (x)) & ~((1u << 21) - 1u)) == 0);
     ASSERT_STRICT((((uint32) (y)) & ~((1u << 21) - 1u)) == 0);
@@ -28,25 +29,29 @@ uint64 voxel_chunk_coord_pack(int32 x, int32 y, int32 z) NO_EXCEPT {
 }
 
 FORCE_INLINE
-HashEntryVoidPKeyInt64* hashmap_insert(HashMap* __restrict hm, int32 x, int32 y, int32 z, VoxelChunk* __restrict chunk) NO_EXCEPT {
+HashEntryVoidPKeyInt64* hashmap_insert(HashMap* __restrict hm, int32 x, int32 y, int32 z, VoxelChunk* __restrict chunk) NO_EXCEPT
+{
     uint64 key = voxel_chunk_coord_pack(x, y, z);
     return hashmap_insert(hm, key, (void *) chunk);
 }
 
 FORCE_INLINE
-void hashmap_remove(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT {
+void hashmap_remove(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT
+{
     uint64 key = voxel_chunk_coord_pack(x, y, z);
     hashmap_remove(hm, key);
 }
 
 FORCE_INLINE
-HashEntryVoidPKeyInt64* hashmap_get_entry(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT {
+HashEntryVoidPKeyInt64* hashmap_get_entry(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT
+{
     uint64 key = voxel_chunk_coord_pack(x, y, z);
     return (HashEntryVoidPKeyInt64 *) hashmap_get_entry(hm, key);
 }
 
 FORCE_INLINE
-VoxelChunk* hashmap_get_value(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT {
+VoxelChunk* hashmap_get_value(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT
+{
     HashEntryVoidPKeyInt64* entry = (HashEntryVoidPKeyInt64 *) hashmap_get_entry(hm, x, y, z);
 
     return entry ? (VoxelChunk *) entry->value : NULL;

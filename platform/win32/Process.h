@@ -8,7 +8,8 @@
 
 // Find all running process ids
 inline
-int32 process_id_enum(uint32* pids, int32 max_count) {
+int32 process_id_enum(uint32* pids, int32 max_count) NO_EXCEPT
+{
     DWORD bytes_needed = 0;
     DWORD max_bytes = static_cast<DWORD>(max_count * sizeof(DWORD));
 
@@ -26,12 +27,14 @@ int32 process_id_enum(uint32* pids, int32 max_count) {
 }
 
 FORCE_INLINE
-int64 process_id_get() {
+int64 process_id_get() NO_EXCEPT
+{
     return GetCurrentProcessId();
 }
 
 inline
-bool is_window_active(int64 process_id = 0) {
+bool is_window_active(int64 process_id = 0) NO_EXCEPT
+{
     HWND foreground = GetForegroundWindow();
 
     DWORD pid;

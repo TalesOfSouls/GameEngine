@@ -37,7 +37,8 @@ struct AABB_cube_int32 {
 };
 
 inline
-AABB_f32 aabb_cast(AABB_int32 a) NO_EXCEPT {
+AABB_f32 aabb_cast(AABB_int32 a) NO_EXCEPT
+{
     return {
         { (f32) a.min.x, (f32) a.min.y, (f32) a.min.z },
         { (f32) a.max.x, (f32) a.max.y, (f32) a.max.z }
@@ -45,7 +46,8 @@ AABB_f32 aabb_cast(AABB_int32 a) NO_EXCEPT {
 }
 
 inline
-AABB_int32 aabb_loosen(AABB_int32 b, f32 s) NO_EXCEPT {
+AABB_int32 aabb_loosen(AABB_int32 b, f32 s) NO_EXCEPT
+{
     v3_int32 c = {
         (int32) ((b.min.x + b.max.x) * 0.5f),
         (int32) ((b.min.y + b.max.y) * 0.5f),
@@ -65,7 +67,8 @@ AABB_int32 aabb_loosen(AABB_int32 b, f32 s) NO_EXCEPT {
 }
 
 inline
-AABB_f32 aabb_loosen(AABB_f32 b, f32 s) NO_EXCEPT {
+AABB_f32 aabb_loosen(AABB_f32 b, f32 s) NO_EXCEPT
+{
     v3_f32 c = {
         (b.min.x + b.max.x) * 0.5f,
         (b.min.y + b.max.y) * 0.5f,
@@ -85,7 +88,8 @@ AABB_f32 aabb_loosen(AABB_f32 b, f32 s) NO_EXCEPT {
 }
 
 inline
-v3_int32 aabb_center(AABB_int32 box) NO_EXCEPT {
+v3_int32 aabb_center(AABB_int32 box) NO_EXCEPT
+{
     v3_int32 c;
     c.x = (box.min.x + box.max.x) / 2;
     c.y = (box.min.y + box.max.y) / 2;
@@ -95,7 +99,8 @@ v3_int32 aabb_center(AABB_int32 box) NO_EXCEPT {
 }
 
 inline
-v3_f32 aabb_center(AABB_f32 box) NO_EXCEPT {
+v3_f32 aabb_center(AABB_f32 box) NO_EXCEPT
+{
     v3_f32 c;
     c.x = (box.min.x + box.max.x) * 0.5f;
     c.y = (box.min.y + box.max.y) * 0.5f;
@@ -105,7 +110,8 @@ v3_f32 aabb_center(AABB_f32 box) NO_EXCEPT {
 }
 
 FORCE_INLINE
-bool aabb_overlap(AABB_int32 a, AABB_int32 b) NO_EXCEPT {
+bool aabb_overlap(AABB_int32 a, AABB_int32 b) NO_EXCEPT
+{
     if (a.max.x < b.min.x || a.min.x > b.max.x
         || a.max.y < b.min.y || a.min.y > b.max.y
         || a.max.z < b.min.z || a.min.z > b.max.z

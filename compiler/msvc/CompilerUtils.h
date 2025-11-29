@@ -14,6 +14,10 @@
 #include <intrin.h>
 #include <string.h>
 
+#if CPP_VERSION < 17
+    #define IF_CONSTEXPR(cond) __pragma(warning(suppress:4127)) if (cond)
+#endif
+
 #define PACKED_STRUCT  __pragma(pack(push, 1))
 #define UNPACKED_STRUCT __pragma(pack(pop))
 
@@ -42,7 +46,8 @@
 #define COLD_CODE __declspec(code_seg(".text$cold"))
 
 FORCE_INLINE
-int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
+int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT
+{
     ASSERT_STRICT(mask);
 
     unsigned long index;
@@ -50,7 +55,8 @@ int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT {
 }
 
 FORCE_INLINE
-int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
+int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT
+{
     ASSERT_STRICT(mask);
 
     unsigned long index;
@@ -58,7 +64,8 @@ int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT {
 }
 
 FORCE_INLINE
-int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
+int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT
+{
     ASSERT_STRICT(mask);
 
     unsigned long index;
@@ -66,7 +73,8 @@ int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT {
 }
 
 FORCE_INLINE
-int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
+int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT
+{
     ASSERT_STRICT(mask);
 
     unsigned long index;
@@ -74,7 +82,8 @@ int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT {
 }
 
 FORCE_INLINE
-void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_EXCEPT {
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_EXCEPT
+{
     __cpuidex((int32 *) cpu_info, function_id, level);
 }
 
@@ -84,7 +93,7 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_E
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-uint32 compiler_div_pow2(uint32 a, uint32 b)
+uint32 compiler_div_pow2(uint32 a, uint32 b) NO_EXCEPT
 {
     unsigned long index;
     _BitScanForward(&index, b);
@@ -95,7 +104,7 @@ uint32 compiler_div_pow2(uint32 a, uint32 b)
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-size_t compiler_div_pow2(size_t a, size_t b)
+size_t compiler_div_pow2(size_t a, size_t b) NO_EXCEPT
 {
     unsigned long index;
     _BitScanForward64(&index, b);
@@ -106,7 +115,8 @@ size_t compiler_div_pow2(size_t a, size_t b)
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-uint16 compiler_div_pow2(uint16 a, uint16 b) {
+uint16 compiler_div_pow2(uint16 a, uint16 b) NO_EXCEPT
+{
     unsigned long index = 0;
     _BitScanForward(&index, (uint32) b);
 
@@ -116,7 +126,7 @@ uint16 compiler_div_pow2(uint16 a, uint16 b) {
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-size_t compiler_div_pow2(size_t a, uint32 b)
+size_t compiler_div_pow2(size_t a, uint32 b) NO_EXCEPT
 {
     unsigned long index;
     _BitScanForward(&index, b);
@@ -127,7 +137,8 @@ size_t compiler_div_pow2(size_t a, uint32 b)
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-uint16 compiler_div_pow2(uint16 a, uint32 b) {
+uint16 compiler_div_pow2(uint16 a, uint32 b) NO_EXCEPT
+{
     unsigned long index = 0;
     _BitScanForward(&index, b);
 
@@ -137,7 +148,7 @@ uint16 compiler_div_pow2(uint16 a, uint32 b) {
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-uint32 compiler_div_pow2(uint32 a, int32 b)
+uint32 compiler_div_pow2(uint32 a, int32 b) NO_EXCEPT
 {
     unsigned long index;
     _BitScanForward(&index, b);
@@ -148,7 +159,7 @@ uint32 compiler_div_pow2(uint32 a, int32 b)
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-int32 compiler_div_pow2(int32 a, int32 b)
+int32 compiler_div_pow2(int32 a, int32 b) NO_EXCEPT
 {
     unsigned long index;
     _BitScanForward(&index, b);
@@ -159,7 +170,8 @@ int32 compiler_div_pow2(int32 a, int32 b)
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-uint16 compiler_div_pow2(uint16 a, int16 b) {
+uint16 compiler_div_pow2(uint16 a, int16 b) NO_EXCEPT
+{
     unsigned long index = 0;
     _BitScanForward(&index, (uint32) b);
 
@@ -169,7 +181,7 @@ uint16 compiler_div_pow2(uint16 a, int16 b) {
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-size_t compiler_div_pow2(size_t a, int32 b)
+size_t compiler_div_pow2(size_t a, int32 b) NO_EXCEPT
 {
     unsigned long index;
     _BitScanForward(&index, b);
@@ -180,7 +192,8 @@ size_t compiler_div_pow2(size_t a, int32 b)
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-uint16 compiler_div_pow2(uint16 a, int32 b) {
+uint16 compiler_div_pow2(uint16 a, int32 b) NO_EXCEPT
+{
     unsigned long index = 0;
     _BitScanForward(&index, b);
 
@@ -190,7 +203,8 @@ uint16 compiler_div_pow2(uint16 a, int32 b) {
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-byte compiler_div_pow2(byte a, int32 b) {
+byte compiler_div_pow2(byte a, int32 b) NO_EXCEPT
+{
     unsigned long index = 0;
     _BitScanForward(&index, b);
 
@@ -200,34 +214,21 @@ byte compiler_div_pow2(byte a, int32 b) {
 // Optimized way to calculate the division where b is a power of 2
 // Only required for compile time if we can guarantee b = power of 2
 FORCE_INLINE
-byte compiler_div_pow2(byte a, uint32 b) {
+byte compiler_div_pow2(byte a, uint32 b) NO_EXCEPT
+{
     unsigned long index = 0;
     _BitScanForward(&index, b);
 
     return (byte) (a >> index);
 }
 
-FORCE_INLINE
-void compiler_memcpy_unaligned(void* __restrict dst, const void* __restrict src, size_t size)
-{
-    ASSERT_STRICT((size & 7) == 0);
-    ASSERT_STRICT(((uintptr_t) dst) % 8 == 0);
-    ASSERT_STRICT(((uintptr_t) src) % 8 == 0);
-
-    #ifdef __aarch64__
-        memcpy(dst, src, size);
-    #else
-        __movsb((unsigned char*) dst, (const unsigned char*) src, size);
-    #endif
-}
-
 // 8 byte alignment required and size needs to be multiple of 8
-FORCE_INLINE
-void compiler_memcpy_aligned(void* __restrict dst, const void* __restrict src, size_t size)
+FORCE_INLINE HOT_CODE
+void compiler_memcpy_aligned_8(void* __restrict dst, const void* __restrict src, size_t size) NO_EXCEPT
 {
     ASSERT_STRICT((size & 7) == 0);
-    ASSERT_STRICT(((uintptr_t) dst) % 8 == 0);
-    ASSERT_STRICT(((uintptr_t) src) % 8 == 0);
+    ASSERT_STRICT(((uintptr_t) dst) & 7 == 0);
+    ASSERT_STRICT(((uintptr_t) src) & 7 == 0);
 
     #ifdef __aarch64__
         memcpy(dst, src, size);
@@ -236,30 +237,44 @@ void compiler_memcpy_aligned(void* __restrict dst, const void* __restrict src, s
     #endif
 }
 
-FORCE_INLINE
-void compiler_memset_unaligned(void* dst, int value, size_t size) {
-    ASSERT_STRICT((size & 7) == 0);
-    ASSERT_STRICT(((uintptr_t) dst) % 8 == 0);
+FORCE_INLINE HOT_CODE
+void compiler_memcpy_aligned_4(void* __restrict dst, const void* __restrict src, size_t size) NO_EXCEPT
+{
+    ASSERT_STRICT((size & 3) == 0);
+    ASSERT_STRICT(((uintptr_t) dst) & 3 == 0);
+    ASSERT_STRICT(((uintptr_t) src) & 3 == 0);
 
     #ifdef __aarch64__
-        memset(dst, 0, size);
+        memcpy(dst, src, size);
     #else
-        __stosb((unsigned char*) dst, (unsigned char) value, size);
+        __movsd((unsigned long*) dst, (const unsigned long*) src, size >> 3);
     #endif
 }
 
-// @performance We should implement size specific version for 4, 8, 16, 32, 64 bytes
-// This way we could also implement ARM specific solutions
 // 8 byte alignment required and size needs to be multiple of 8
-FORCE_INLINE
-void compiler_memset_aligned(void* dst, int value, size_t size) {
+FORCE_INLINE HOT_CODE
+void compiler_memset_aligned_8(void* dst, int value, size_t size) NO_EXCEPT
+{
     ASSERT_STRICT((size & 7) == 0);
-    ASSERT_STRICT(((uintptr_t) dst) % 8 == 0);
+    ASSERT_STRICT(((uintptr_t) dst) & 7 == 0);
 
     #ifdef __aarch64__
         memset(dst, 0, size);
     #else
         __stosq((unsigned __int64*) dst, (unsigned __int64) value, size >> 3);
+    #endif
+}
+
+FORCE_INLINE HOT_CODE
+void compiler_memset_aligned_4(void* dst, int value, size_t size) NO_EXCEPT
+{
+    ASSERT_STRICT((size & 3) == 0);
+    ASSERT_STRICT(((uintptr_t) dst) & 3 == 0);
+
+    #ifdef __aarch64__
+        memset(dst, 0, size);
+    #else
+        __stosd((unsigned long*) dst, (unsigned long) value, size >> 2);
     #endif
 }
 

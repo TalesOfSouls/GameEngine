@@ -22,10 +22,22 @@
     #define DEBUG_MEMORY_RANGE_RES_MAX 100
 #endif
 
+enum MemoryDebugType : char {
+    MEMORY_DEBUG_TYPE_DELETE = -1,
+    MEMORY_DEBUG_TYPE_READ = 0,
+    MEMORY_DEBUG_TYPE_WRITE = 1,
+
+    // Memory got reserved
+    MEMORY_DEBUG_TYPE_RESERVE = 2,
+
+    // Subregion created (e.g. a smaller sub buffer got created)
+    MEMORY_DEBUG_TYPE_SUBREGION = 3,
+};
+
 struct DebugMemoryRange {
-    int32 type;
+    MemoryDebugType type;
     uintptr_t start;
-    uint64 size;
+    size_t size;
     uint64 time;
 
     const char* function_name;
@@ -33,14 +45,15 @@ struct DebugMemoryRange {
 
 // @todo We probably want a way to log usage per frame for a chart
 struct DebugMemory {
-    uint64 usage;
     uintptr_t start;
-    uint64 size;
+
+    size_t usage;
+    size_t size;
 
     atomic_32 uint32 action_idx;
     atomic_32 uint32 reserve_action_idx;
     alignas(8) DebugMemoryRange last_action[DEBUG_MEMORY_RANGE_MAX];
-    DebugMemoryRange reserve_action[DEBUG_MEMORY_RANGE_RES_MAX];
+    alignas(8) DebugMemoryRange reserve_action[DEBUG_MEMORY_RANGE_RES_MAX];
 };
 
 struct DebugMemoryContainer {
@@ -50,18 +63,17 @@ struct DebugMemoryContainer {
 };
 static DebugMemoryContainer* _dmc = NULL;
 
-enum MemoryDebugType {
-    MEMORY_DEBUG_TYPE_DELETE = -1,
-    MEMORY_DEBUG_TYPE_READ = 0,
-    MEMORY_DEBUG_TYPE_WRITE = 1,
-    MEMORY_DEBUG_TYPE_RESERVE = 2,
-    MEMORY_DEBUG_TYPE_SUBREGION = 3,
-};
-
+/**
+ * Tries to find a memory region for a pointer where we can add logging information.
+ *
+ * @param uintptr_t start Address of the pointer
+ *
+ * @return DebugMemory*
+ */
 static FORCE_INLINE
 DebugMemory* debug_memory_find(uintptr_t start) NO_EXCEPT
 {
-    for (uint64 i = 0; i < _dmc->memory_size; ++i) {
+    for (uint32 i = 0; i < _dmc->memory_size; ++i) {
         if (_dmc->memory_stats[i].start <= start
             && _dmc->memory_stats[i].start + _dmc->memory_stats[i].size >= start
         ) {
@@ -72,7 +84,15 @@ DebugMemory* debug_memory_find(uintptr_t start) NO_EXCEPT
     return NULL;
 }
 
-void debug_memory_init(uintptr_t start, uint64 size) NO_EXCEPT
+/**
+ * Initializes a new memory region for logging.
+ *
+ * @param uintptr_t start   Start of the memory region
+ * @param uint64    size    Size of the memory region
+ *
+ * @return void
+ */
+void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
 {
     if (!start || !_dmc || (_dmc->memory_size && !_dmc->memory_stats)) {
         return;
@@ -108,7 +128,18 @@ void debug_memory_init(uintptr_t start, uint64 size) NO_EXCEPT
     ++_dmc->memory_element_idx;
 }
 
-void debug_memory_log(uintptr_t start, uint64 size, int32 type, const char* function) NO_EXCEPT
+/**
+ * Log memory usage
+ *
+ * @param uintptr_t         start       Memory start
+ * @param uint64            size        Memory size
+ * @param MemoryDebugType   type        Log type
+ * @param const char*       function    Function where this memory log happened
+ *
+ * @return void
+ */
+HOT_CODE
+void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const char* function) NO_EXCEPT
 {
     if (!start || !_dmc) {
         return;
@@ -119,7 +150,7 @@ void debug_memory_log(uintptr_t start, uint64 size, int32 type, const char* func
         return;
     }
 
-    uint32 idx = atomic_increment_wrap_relaxed(&mem->action_idx, ARRAY_COUNT(mem->last_action));
+    const uint32 idx = atomic_increment_wrap_relaxed(&mem->action_idx, ARRAY_COUNT(mem->last_action));
 
     DebugMemoryRange* dmr = &mem->last_action[idx];
     dmr->type = type;
@@ -136,7 +167,17 @@ void debug_memory_log(uintptr_t start, uint64 size, int32 type, const char* func
     }
 }
 
-void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* function) NO_EXCEPT
+/**
+ * Log memory reserve/subregion create
+ *
+ * @param uintptr_t         start       Memory start
+ * @param size_t            size        Memory size
+ * @param MemoryDebugType   type        Log type
+ * @param const char*       function    Function where this memory log happened
+ *
+ * @return void
+ */
+void debug_memory_reserve(uintptr_t start, size_t size, MemoryDebugType type, const char* function) NO_EXCEPT
 {
     if (!start || !_dmc) {
         return;
@@ -147,7 +188,10 @@ void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* 
         return;
     }
 
-    const uint32 idx = atomic_increment_wrap_relaxed(&mem->reserve_action_idx, ARRAY_COUNT(mem->reserve_action));
+    const uint32 idx = atomic_increment_wrap_relaxed(
+        &mem->reserve_action_idx,
+        ARRAY_COUNT(mem->reserve_action)
+    );
 
     DebugMemoryRange* dmr = &mem->reserve_action[idx];
     dmr->type = type;
@@ -158,7 +202,13 @@ void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* 
     dmr->function_name = function;
 }
 
-// undo reserve
+/**
+ * Frees the logging for a memory region e.g. when the memory region gets freed
+ *
+ * @param uintptr_t start Address of the memory
+ *
+ * @return void
+ */
 void debug_memory_free(uintptr_t start) NO_EXCEPT
 {
     if (!start || !_dmc) {
@@ -181,7 +231,11 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
     // @todo move over memory ranges and
 }
 
-// @bug This probably requires thread safety
+/**
+ * Reset the memory logs "older" than 1 GHZ
+ *
+ * @return void
+ */
 inline
 void debug_memory_reset() NO_EXCEPT
 {
@@ -193,10 +247,37 @@ void debug_memory_reset() NO_EXCEPT
     const uint64 time = intrin_timestamp_counter() - 1 * GHZ;
 
     for (uint32 i = 0; i < _dmc->memory_element_idx; ++i) {
+        const int32 last = _dmc->memory_stats[i].action_idx;
+        int32 idx = last;
+
         for (int32 j = 0; j < DEBUG_MEMORY_RANGE_MAX; ++j) {
-            if (_dmc->memory_stats[i].last_action[j].time < time) {
-                memset_aligned(&_dmc->memory_stats[i].last_action[j], 0, sizeof(DebugMemoryRange));
+            // @bug This probably requires thread safety
+            // last could be updated while we loop
+            if (_dmc->memory_stats[i].last_action[idx].time < time) {
+                if (idx <= last) {
+                    memset_aligned_factored(
+                        &_dmc->memory_stats[i].last_action[0], 0,
+                        sizeof(DebugMemoryRange) * (idx + 1),
+                        sizeof(DebugMemoryRange)
+                    );
+
+                    memset_aligned_factored(
+                        &_dmc->memory_stats[i].last_action[last + 1], 0,
+                        sizeof(DebugMemoryRange) * (ARRAY_COUNT(_dmc->memory_stats[i].last_action) - (idx + 1)),
+                        sizeof(DebugMemoryRange)
+                    );
+                } else {
+                    memset_aligned_factored(
+                        &_dmc->memory_stats[i].last_action[last + 1], 0,
+                        sizeof(DebugMemoryRange) * (idx - last),
+                        sizeof(DebugMemoryRange)
+                    );
+                }
+
+                break;
             }
+
+            idx = OMS_WRAPPED_DECREMENT(idx, DEBUG_MEMORY_RANGE_MAX);
         }
     }
 }

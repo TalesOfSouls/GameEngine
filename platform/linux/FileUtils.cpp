@@ -160,7 +160,8 @@ FileHandle file_append_handle(const char* path) {
 }
 
 inline
-bool file_exists(const char* path) NO_EXCEPT {
+bool file_exists(const char* path) NO_EXCEPT
+{
     PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     struct stat buffer;

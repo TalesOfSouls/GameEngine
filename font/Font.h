@@ -40,7 +40,7 @@ struct Font {
 };
 
 inline
-void font_init(Font* font, byte* data, int count)
+void font_init(Font* font, byte* data, int count) NO_EXCEPT
 {
     font->glyphs = (Glyph *) data;
     font->glyph_count = count;
@@ -80,7 +80,7 @@ void font_from_file_txt(
     Font* font,
     const char* path,
     RingMemory* ring
-)
+) NO_EXCEPT
 {
     FileBody file = {};
     file_read(path, &file, ring);
@@ -137,6 +137,7 @@ void font_from_file_txt(
     }
 
     int32 glyph_index = 0;
+    ++pos;
 
     // Body
     while (*pos != '\0') {
@@ -165,8 +166,8 @@ void font_from_file_txt(
     }
 }
 
-inline
-int32 font_data_size(const Font* font)
+FORCE_INLINE
+int32 font_data_size(const Font* font) NO_EXCEPT
 {
     ASSERT_TRUE_CONST(sizeof(Glyph) == GLYPH_SIZE);
     return font->glyph_count * sizeof(Glyph)
@@ -180,7 +181,7 @@ int32 font_from_data(
     const byte* data,
     Font* font,
     MAYBE_UNUSED int32 steps = 8
-)
+) NO_EXCEPT
 {
     const byte* pos = data;
 
@@ -217,7 +218,7 @@ int32 font_to_data(
     const Font* font,
     byte* data,
     MAYBE_UNUSED int32 steps = 8
-)
+) NO_EXCEPT
 {
     byte* pos = data;
 
@@ -261,7 +262,7 @@ f32 font_line_height(Font* font, f32 size) NO_EXCEPT
 }
 
 FORCE_INLINE
-void font_invert_coordinates(Font* font)
+void font_invert_coordinates(Font* font) NO_EXCEPT
 {
     // @todo Implement y-offset correction
     for (uint32 i = 0; i < font->glyph_count; ++i) {

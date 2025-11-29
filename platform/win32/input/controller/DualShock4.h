@@ -16,7 +16,7 @@
 #include "../../../../utils/BitUtils.h"
 
 inline
-void input_map_dualshock4(ControllerInput* controller, InputConnectionType connection_type, byte* data)
+void input_map_dualshock4(ControllerInput* controller, InputConnectionType connection_type, byte* data) NO_EXCEPT
 {
     // 0 is not the origin -> need to shift
     ++data;

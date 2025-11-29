@@ -30,7 +30,7 @@ typedef NTSTATUS (WINAPI *pNtSetInformationThread)(
 );
 
 inline
-bool drm_prevent_debugger_attach()
+bool drm_prevent_debugger_attach() NO_EXCEPT
 {
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
     if (!ntdll) {
@@ -47,7 +47,7 @@ bool drm_prevent_debugger_attach()
     return NtSetInformationThread(GetCurrentThread(), ThreadHideFromDebugger, nullptr, 0) == 0;
 }
 
-bool drm_is_being_debugged()
+bool drm_is_being_debugged() NO_EXCEPT
 {
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
     if (!ntdll) {
@@ -85,7 +85,8 @@ bool drm_is_being_debugged()
 bool drm_verify_code_integrity(
     byte* __restrict exe_buffer, uint32 buffer_length,
     const byte* __restrict expected_hash, uint32 expected_hash_len
-) {
+) NO_EXCEPT
+{
     BCRYPT_ALG_HANDLE algorithm = NULL;
     BCRYPT_HASH_HANDLE hHash = NULL;
     BYTE* hash_object = NULL;
@@ -187,7 +188,8 @@ bool drm_verify_code_integrity(
 
 
 // Example: process_names = { "x64dbg.exe", "cheatengine-x86_64.exe", "ollydbg.exe" };
-bool drm_check_process_name(const char** process_names, int32 count) {
+bool drm_check_process_name(const char** process_names, int32 count) NO_EXCEPT
+{
     DWORD processes[1024], cb_needed;
     if (!EnumProcesses(processes, sizeof(processes), &cb_needed)) {
         return false;
@@ -245,7 +247,8 @@ static BOOL CALLBACK drm_enum_windows_callback(HWND hWnd, LPARAM lParam) {
 }
 
 inline
-bool drm_check_window_title(const char** window_titles, int32 count) {
+bool drm_check_window_title(const char** window_titles, int32 count) NO_EXCEPT
+{
     WindowTitleSearchContext ctx = { window_titles, count, false };
     EnumWindows(drm_enum_windows_callback, (LPARAM) &ctx);
 

@@ -24,7 +24,8 @@ Voxel voxel_world_map_get(
     HashMap* map,
     v3_int32 chunk_coord,
     int32 x, int32 y, int32 z
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     while(x < 0) { x += VOXEL_CHUNK_SIZE; --chunk_coord.x; }
     while(y < 0) { y += VOXEL_CHUNK_SIZE; --chunk_coord.y; }
     while(z < 0) { z += VOXEL_CHUNK_SIZE; --chunk_coord.z; }
@@ -323,7 +324,8 @@ void voxel_octnode_collect_visible(const VoxelOctNode* node, const Frustum* frus
 }
 
 static inline
-int32 sort_draw_array_compare(const void* a, const void* b) NO_EXCEPT {
+int32 sort_draw_array_compare(const void* a, const void* b) NO_EXCEPT
+{
     const VoxelDrawChunk* c1 = (VoxelDrawChunk *) a;
     const VoxelDrawChunk* c2 = (VoxelDrawChunk *) b;
 
@@ -331,7 +333,8 @@ int32 sort_draw_array_compare(const void* a, const void* b) NO_EXCEPT {
 }
 
 static FORCE_INLINE
-void draw_array_sort(VoxelChunkDrawArray* draw_array) NO_EXCEPT {
+void draw_array_sort(VoxelChunkDrawArray* draw_array) NO_EXCEPT
+{
     // @performance Compare to sort_quicksort
     sort_introsort_small(draw_array->elements, draw_array->count, sizeof(VoxelDrawChunk), sort_draw_array_compare);
 }

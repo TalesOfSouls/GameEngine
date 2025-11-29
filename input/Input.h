@@ -46,8 +46,8 @@
 enum InputType : byte {
     INPUT_TYPE_NONE = 0,
     INPUT_TYPE_MOUSE_KEYBOARD = 1 << 0,
-    INPUT_TYPE_CONTROLLER = 1 << 2,
-    INPUT_TYPE_OTHER = 1 << 3,
+    INPUT_TYPE_CONTROLLER = 1 << 1,
+    INPUT_TYPE_OTHER = 1 << 2,
 };
 
 #define INPUT_LONG_PRESS_DURATION 250
@@ -164,31 +164,42 @@ struct Input {
     InputMapping input_mapping2;
 };
 
+// count = count of possible hotkeys
 inline
-void input_init(Input* input, uint8 size, void* callback_data, BufferMemory* buf) NO_EXCEPT
+void input_init(Input* input, uint8 count, void* callback_data, BufferMemory* buf) NO_EXCEPT
 {
     // Init input
     input->callback_data = callback_data;
 
     // Init mapping1
-    input->input_mapping1.hotkey_count = size;
+    input->input_mapping1.hotkey_count = count;
     input->input_mapping1.hotkeys = (Hotkey *) buffer_get_memory(
         buf,
         input->input_mapping1.hotkey_count * sizeof(Hotkey),
-        8
+        sizeof(8)
     );
     memset_aligned_factored(input->input_mapping1.hotkeys, 0, input->input_mapping1.hotkey_count * sizeof(Hotkey), sizeof(Hotkey));
 
     // Init mapping2
-    input->input_mapping2.hotkey_count = size;
+    input->input_mapping2.hotkey_count = count;
     input->input_mapping2.hotkeys = (Hotkey *) buffer_get_memory(
         buf,
         input->input_mapping2.hotkey_count * sizeof(Hotkey),
-        8
+        sizeof(8)
     );
     memset_aligned_factored(input->input_mapping2.hotkeys, 0, input->input_mapping2.hotkey_count * sizeof(Hotkey), sizeof(Hotkey));
 }
 
+// Resets the mapping
+// Usually used for re-assigning hotkeys
+inline
+void input_mapping_reset(Input* input) NO_EXCEPT {
+    memset_aligned_factored(input->input_mapping1.hotkeys, 0, input->input_mapping1.hotkey_count * sizeof(Hotkey), sizeof(Hotkey));
+    memset_aligned_factored(input->input_mapping2.hotkeys, 0, input->input_mapping2.hotkey_count * sizeof(Hotkey), sizeof(Hotkey));
+    memset_aligned_factored(&input->state, 0, sizeof(input->state), sizeof(input->state));
+}
+
+// Resets keys by status
 inline
 void input_clean_state(InputKey* active_keys, KeyPressType press_status = KEY_PRESS_TYPE_RELEASED) NO_EXCEPT
 {
@@ -283,7 +294,8 @@ FORCE_INLINE
 bool inputs_are_down(
     const InputKey* active_keys,
     int16 key0, int16 key1 = 0, int16 key2 = 0, int16 key3 = 0, int16 key4 = 0
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     return (key0 != 0 && input_is_down(active_keys, key0))
         && (key1 == 0 || input_is_down(active_keys, key1))
         && (key2 == 0 || input_is_down(active_keys, key2))
@@ -608,7 +620,8 @@ void input_hotkey_state(Input* input) NO_EXCEPT
 
 // @todo We probably need a way to unset a specific key and hotkey after processing it
 inline
-bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32 dt = 0.0f) NO_EXCEPT {
+bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32 dt = 0.0f) NO_EXCEPT
+{
     for (int32 i = 0; i < ARRAY_COUNT(state->active_keys); ++i) {
         if (state->active_keys[i].scan_code == key) {
             return (f32) (time - state->active_keys[i].time) / 1000.0f >= (dt == 0.0f ? INPUT_LONG_PRESS_DURATION : dt);
@@ -619,7 +632,8 @@ bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32
 }
 
 // @todo I wrote this code at 9am after staying awake for the whole night and that is how that code looks like... fix it!
-bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f32 dt = 0.0f) NO_EXCEPT {
+bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f32 dt = 0.0f) NO_EXCEPT
+{
     bool is_longpress = false;
     for (int32 i = 0; i < ARRAY_COUNT(input->state.active_hotkeys); ++i) {
         if (input->state.active_hotkeys[i] != hotkey) {

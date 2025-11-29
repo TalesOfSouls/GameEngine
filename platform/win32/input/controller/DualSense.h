@@ -18,7 +18,7 @@
 // @bug bluetooth and USB have different formats?!
 // https://github.com/nondebug/dualsense
 inline
-void input_map_dualsense(ControllerInput* controller, InputConnectionType connection_type, byte* data)
+void input_map_dualsense(ControllerInput* controller, InputConnectionType connection_type, byte* data) NO_EXCEPT
 {
     // 0 is not the origin -> need to shift
     ++data;

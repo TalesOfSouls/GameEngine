@@ -253,7 +253,8 @@ bool thrd_queue_dequeue(ThreadedQueue* queue, byte* data) NO_EXCEPT
 }
 
 FORCE_INLINE
-bool thrd_queue_empty(ThreadedQueue* queue) NO_EXCEPT {
+bool thrd_queue_empty(ThreadedQueue* queue) NO_EXCEPT
+{
     mutex_lock(&queue->mtx);
     bool is_empty = queue->head == queue->tail;
     mutex_unlock(&queue->mtx);
@@ -262,7 +263,8 @@ bool thrd_queue_empty(ThreadedQueue* queue) NO_EXCEPT {
 }
 
 inline
-bool thrd_queue_full(ThreadedQueue* queue) NO_EXCEPT {
+bool thrd_queue_full(ThreadedQueue* queue) NO_EXCEPT
+{
     mutex_lock(&queue->mtx);
     bool is_full = !ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment);
     mutex_unlock(&queue->mtx);

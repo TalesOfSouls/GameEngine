@@ -30,7 +30,8 @@ FORCE_INLINE
 void gpuapi_descriptor_set_layout_create(
     SoftwareRenderer* __restrict renderer,
     const SoftwareDescriptorSetLayoutBinding* __restrict layout
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     for (int32 i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
         if (!renderer->descriptor_set_layout[i].binding) {
             renderer->descriptor_set_layout[i].name = layout->name;
@@ -49,7 +50,8 @@ FORCE_INLINE
 void gpuapi_descriptor_set_layout_set(
     SoftwareRenderer* __restrict renderer,
     const SoftwareDescriptorSetLayoutBinding* __restrict layout
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     for (int32 i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
         if (!renderer->descriptor_set_layout[i].binding) {
             renderer->descriptor_set_layout[i].name = layout->name;
@@ -69,7 +71,8 @@ void gpuapi_descriptor_set_layout_set(
     SoftwareRenderer* __restrict renderer,
     int32 binding,
     void* data
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     for (int32 i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
         if (renderer->descriptor_set_layout[i].binding == binding) {
             renderer->descriptor_set_layout[i].data = data;
@@ -87,7 +90,8 @@ void gpuapi_descriptor_set_layout_create(
     Shader* __restrict shader,
     const SoftwareDescriptorSetLayoutBinding* __restrict layouts,
     int32 layout_length
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     for (int32 i = 0; i < layout_length; ++i) {
         shader->descriptor_set_layout[i].name = layouts[i].name;
         shader->descriptor_set_layout[i].size = CEIL_DIV(layouts[i].size, renderer->buf.chunk_size);

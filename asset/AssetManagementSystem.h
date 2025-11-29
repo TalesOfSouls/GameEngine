@@ -53,26 +53,26 @@ struct AssetManagementSystem {
 };
 
 inline
-void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 asset_component_count, int32 count)
+void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 asset_component_count, int32 count) NO_EXCEPT
 {
-    LOG_1("Create AMS for %n assets", {LOG_DATA_INT32, &count});
+    LOG_1("Create AMS for %n assets", {DATA_TYPE_INT32, &count});
     hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
     ams->asset_component_count = asset_component_count;
     ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64);
 
     //memset(ams->asset_components, 0, asset_component_count * sizeof(AssetComponent));
-    compiler_memset_aligned(ams->asset_components, 0, OMS_ALIGN_UP(asset_component_count * sizeof(AssetComponent), 64));
+    compiler_memset_aligned_8(ams->asset_components, 0, OMS_ALIGN_UP(asset_component_count * sizeof(AssetComponent), 64));
 }
 
 // Different AMS components can have different chunk sizes
 // This is useful for components that only contain textures, audio, 3d object data, etc. to avoid massive unused data or very small memory chunks for all situations which makes chunk allocation slower
 inline
-void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_size, int32 count)
+void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_size, int32 count) NO_EXCEPT
 {
     ASSERT_TRUE(chunk_size);
     LOG_1(
         "Create AMS Component for %n assets and %n B",
-        {LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}
+        {DATA_TYPE_INT32, &count}, {DATA_TYPE_UINT32, &chunk_size}
     );
 
     chunk_init(&ac->asset_memory, buf, count, chunk_size, 64);
@@ -80,12 +80,12 @@ void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_siz
 }
 
 inline
-void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32 count)
+void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32 count) NO_EXCEPT
 {
     ASSERT_TRUE(chunk_size);
     LOG_1(
         "Create AMS Component for %n assets and %n B",
-        {LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}
+        {DATA_TYPE_INT32, &count}, {DATA_TYPE_UINT32, &chunk_size}
     );
 
     ac->asset_memory.count = count;
@@ -99,13 +99,13 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
 }
 
 FORCE_INLINE
-void ams_component_free(AssetComponent* ac)
+void ams_component_free(AssetComponent* ac) NO_EXCEPT
 {
     mutex_destroy(&ac->mtx);
 }
 
 FORCE_INLINE
-void ams_free(AssetManagementSystem* ams)
+void ams_free(AssetManagementSystem* ams) NO_EXCEPT
 {
     for (int32 i = 0; i < ams->asset_component_count; ++i) {
         ams_component_free(&ams->asset_components[i]);
@@ -113,32 +113,32 @@ void ams_free(AssetManagementSystem* ams)
 }
 
 FORCE_INLINE
-uint16 ams_calculate_chunks(const AssetComponent* ac, int32 byte_size, int32 overhead)
+uint16 ams_calculate_chunks(const AssetComponent* ac, int32 byte_size, int32 overhead) NO_EXCEPT
 {
     return (uint16) CEIL_DIV(byte_size + overhead, ac->asset_memory.chunk_size);
 }
 
 FORCE_INLINE
-void thrd_ams_set_loaded(Asset* asset)
+void thrd_ams_set_loaded(Asset* asset) NO_EXCEPT
 {
     atomic_set_release(&asset->is_loaded, 1);
 }
 
 FORCE_INLINE
-bool thrd_ams_is_loaded(Asset* asset)
+bool thrd_ams_is_loaded(Asset* asset) NO_EXCEPT
 {
     return asset && atomic_get_acquire(&asset->is_loaded) > 0;
 }
 
 FORCE_INLINE
-bool thrd_ams_is_in_vram(Asset* asset)
+bool thrd_ams_is_in_vram(Asset* asset) NO_EXCEPT
 {
     return asset && atomic_get_acquire(&asset->is_loaded)
         && (asset->state & ASSET_STATE_IN_VRAM);
 }
 
 inline
-Asset* ams_get_asset(AssetManagementSystem* ams, const char* key)
+Asset* ams_get_asset(AssetManagementSystem* ams, const char* key) NO_EXCEPT
 {
     HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
 
@@ -152,7 +152,8 @@ Asset* ams_get_asset(AssetManagementSystem* ams, const char* key)
 
 // @performance We could probably avoid locking by adding a atomic flag to indicate if the value is valid
 inline
-Asset* thrd_ams_get_asset(AssetManagementSystem* ams, const char* key) {
+Asset* thrd_ams_get_asset(AssetManagementSystem* ams, const char* key) NO_EXCEPT
+{
     HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
 
     if (!entry || atomic_get_acquire(&((Asset *) entry->value)->is_loaded) <= 0) {
@@ -167,7 +168,8 @@ Asset* thrd_ams_get_asset(AssetManagementSystem* ams, const char* key) {
     return (Asset *) entry->value;
 }
 
-Asset* thrd_ams_get_asset_wait(AssetManagementSystem* ams, const char* key) {
+Asset* thrd_ams_get_asset_wait(AssetManagementSystem* ams, const char* key) NO_EXCEPT
+{
     HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
 
     if (!entry) {
@@ -190,7 +192,7 @@ Asset* thrd_ams_get_asset_wait(AssetManagementSystem* ams, const char* key) {
     return (Asset *) entry->value;
 }
 
-Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0)
+Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0) NO_EXCEPT
 {
     // @bug Isn't hashmap_get_reserve unsafe for threading?
     HashEntry* entry = hashmap_get_reserve(&ams->hash_map, name);
@@ -225,7 +227,7 @@ Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* ams, byte type, co
 }
 
 inline
-void ams_remove_asset(AssetManagementSystem* ams, AssetComponent* ac, Asset* asset, const char* name)
+void ams_remove_asset(AssetManagementSystem* ams, AssetComponent* ac, Asset* asset, const char* name) NO_EXCEPT
 {
     // @todo remove from vram
 
@@ -243,7 +245,7 @@ void ams_remove_asset(AssetManagementSystem* ams, AssetComponent* ac, Asset* ass
 }
 
 inline
-void ams_remove_asset_ram(AssetComponent* ac, Asset* asset)
+void ams_remove_asset_ram(AssetComponent* ac, Asset* asset) NO_EXCEPT
 {
     ac->ram_size -= asset->ram_size;
     chunk_free_elements(
@@ -257,7 +259,7 @@ void ams_remove_asset_ram(AssetComponent* ac, Asset* asset)
 // The problem is there is no correlation between asset data (e.g. internal_id) and global hashmap (e.g. element_id)
 // This means we would have to iterate all hashmap entries and remove it this way, which is very slow
 inline
-void ams_remove_asset(AssetManagementSystem* ams, const char* name)
+void ams_remove_asset(AssetManagementSystem* ams, const char* name) NO_EXCEPT
 {
     // @todo remove from vram
 
@@ -278,7 +280,7 @@ void ams_remove_asset(AssetManagementSystem* ams, const char* name)
 }
 
 inline
-void ams_remove_asset(AssetManagementSystem* ams, Asset* asset, const char* name)
+void ams_remove_asset(AssetManagementSystem* ams, Asset* asset, const char* name) NO_EXCEPT
 {
     // @todo remove from vram
 
@@ -298,7 +300,7 @@ void ams_remove_asset(AssetManagementSystem* ams, Asset* asset, const char* name
 }
 
 inline
-void ams_remove_asset_ram(AssetManagementSystem* ams, Asset* asset)
+void ams_remove_asset_ram(AssetManagementSystem* ams, Asset* asset) NO_EXCEPT
 {
     AssetComponent* ac = &ams->asset_components[asset->component_id];
     ac->ram_size -= asset->ram_size;
@@ -311,7 +313,7 @@ void ams_remove_asset_ram(AssetManagementSystem* ams, Asset* asset)
 }
 
 inline
-void thrd_ams_remove_asset(AssetManagementSystem* ams, AssetComponent* ac, Asset* asset, const char* name)
+void thrd_ams_remove_asset(AssetManagementSystem* ams, AssetComponent* ac, Asset* asset, const char* name) NO_EXCEPT
 {
     // @todo remove from vram
 
@@ -329,7 +331,7 @@ void thrd_ams_remove_asset(AssetManagementSystem* ams, AssetComponent* ac, Asset
     );
 }
 
-void thrd_ams_remove_asset(AssetManagementSystem* ams, const char* name)
+void thrd_ams_remove_asset(AssetManagementSystem* ams, const char* name) NO_EXCEPT
 {
     HashEntry* entry = hashmap_get_entry(&ams->hash_map, name);
     Asset* asset = (Asset *) entry->value;
@@ -348,7 +350,7 @@ void thrd_ams_remove_asset(AssetManagementSystem* ams, const char* name)
     --ac->asset_count;
 }
 
-void thrd_ams_remove_asset(AssetManagementSystem* ams, const char* name, Asset* asset)
+void thrd_ams_remove_asset(AssetManagementSystem* ams, const char* name, Asset* asset) NO_EXCEPT
 {
     atomic_set_release(&asset->is_loaded, -1);
     hashmap_remove(&ams->hash_map, name);
@@ -367,7 +369,7 @@ void thrd_ams_remove_asset(AssetManagementSystem* ams, const char* name, Asset* 
 
 // @todo implement defragment command to optimize memory layout since the memory layout will become fragmented over time
 
-Asset* ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0)
+Asset* ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0) NO_EXCEPT
 {
     AssetComponent* ac = &ams->asset_components[type];
     uint16 elements = ams_calculate_chunks(ac, size, overhead);
@@ -396,7 +398,8 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name
 }
 
 inline
-Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0) {
+Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0) NO_EXCEPT
+{
     AssetComponent* ac = &ams->asset_components[type];
     uint16 elements = ams_calculate_chunks(ac, size, overhead);
 
@@ -434,7 +437,7 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char*
 // Perform general ams update (stats and garbage collection)
 // We perform multiple things in one iteration to reduce the iteration costs
 // @todo don't use uint64 for time, use uint32 and use relative time to start of program
-void thrd_ams_update(AssetManagementSystem* ams, uint64 time, uint64 dt)
+void thrd_ams_update(AssetManagementSystem* ams, uint64 time, uint64 dt) NO_EXCEPT
 {
     PROFILE(PROFILE_AMS_UPDATE);
     for (int32 i = 0; i < ams->asset_component_count; ++i) {
@@ -483,7 +486,7 @@ void thrd_ams_update(AssetManagementSystem* ams, uint64 time, uint64 dt)
     } chunk_iterate_end;
 }
 
-Asset* ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const char* name)
+Asset* ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const char* name) NO_EXCEPT
 {
     AssetComponent* ac = &ams->asset_components[asset_temp->component_id];
 
@@ -510,7 +513,7 @@ Asset* ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const cha
 }
 
 inline
-Asset* thrd_ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const char* name)
+Asset* thrd_ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const char* name) NO_EXCEPT
 {
     AssetComponent* ac = &ams->asset_components[asset_temp->component_id];
 

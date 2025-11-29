@@ -11,7 +11,7 @@
 
 #include "../stdlib/Types.h"
 
-inline
+FORCE_INLINE
 uint32 hash_downscale_64(uint64 key) NO_EXCEPT
 {
     key ^= key >> 33;

@@ -5,7 +5,8 @@
 #include "../utils/Utils.h"
 #include "SortDefine.h"
 
-void heapsort(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT {
+void heapsort(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT
+{
     char* base = (char*)arr;
 
     // Build a max heap
@@ -48,7 +49,8 @@ void heapsort(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EX
     }
 }
 
-void heapsort_small(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT {
+void heapsort_small(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT
+{
     char* base = (char*)arr;
 
     // Build a max heap

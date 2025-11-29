@@ -34,12 +34,14 @@ static const int8 BASE64_LOOKUP[256] = {
 };
 
 inline CONSTEXPR
-size_t base64_encoded_length(size_t data_length) {
+size_t base64_encoded_length(size_t data_length) NO_EXCEPT
+{
     return 4 * ((data_length + 2) / 3);
 }
 
 inline CONSTEXPR
-size_t base64_decoded_length(size_t encoded_length) {
+size_t base64_decoded_length(size_t encoded_length) NO_EXCEPT
+{
     return encoded_length / 4 * 3;
 }
 

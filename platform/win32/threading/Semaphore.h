@@ -16,36 +16,40 @@
 typedef HANDLE sem;
 
 FORCE_INLINE
-void coms_sem_init(sem* semaphore, int32 value)
+void coms_sem_init(sem* semaphore, int32 value) NO_EXCEPT
 {
     *semaphore = CreateSemaphore(NULL, value, MAX_UINT32, NULL);
 }
 
 FORCE_INLINE
-void coms_sem_destroy(sem* semaphore)
+void coms_sem_destroy(sem* semaphore) NO_EXCEPT
 {
     CloseHandle(*semaphore);
 }
 
 // decrement if != 0, if = 0 wait
 FORCE_INLINE
-void coms_sem_wait(sem* semaphore) {
+void coms_sem_wait(sem* semaphore) NO_EXCEPT
+{
     WaitForSingleObject(*semaphore, INFINITE);
 }
 
 FORCE_INLINE
-int32 semimedwait(sem* semaphore, uint64 ms) {
+int32 semimedwait(sem* semaphore, uint64 ms) NO_EXCEPT
+{
     return (int32) WaitForSingleObject(*semaphore, (DWORD) ms);
 }
 
 FORCE_INLINE
-int32 semrywait(sem* semaphore) {
+int32 semrywait(sem* semaphore) NO_EXCEPT
+{
     return (int32) WaitForSingleObject(*semaphore, 0);
 }
 
 // increment
 FORCE_INLINE
-void coms_sem_post(sem* semaphore) {
+void coms_sem_post(sem* semaphore) NO_EXCEPT
+{
     ReleaseSemaphore(*semaphore, 1, NULL);
 }
 

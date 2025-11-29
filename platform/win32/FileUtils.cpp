@@ -41,13 +41,13 @@ struct FileBodyAsync {
 };
 
 FORCE_INLINE
-MMFHandle file_mmf_handle(FileHandle fp)
+MMFHandle file_mmf_handle(FileHandle fp) NO_EXCEPT
 {
     return CreateFileMappingA(fp, NULL, PAGE_READONLY, 0, 0, NULL);
 }
 
 FORCE_INLINE
-void* mmf_region_init(MMFHandle fh, size_t offset, size_t length = 0)
+void* mmf_region_init(MMFHandle fh, size_t offset, size_t length = 0) NO_EXCEPT
 {
     DWORD high = (DWORD) ((offset >> 32) & 0xFFFFFFFF);
     DWORD low = (DWORD) (offset & 0xFFFFFFFF);
@@ -56,17 +56,19 @@ void* mmf_region_init(MMFHandle fh, size_t offset, size_t length = 0)
 }
 
 FORCE_INLINE
-void mmf_region_release(void* fh) {
+void mmf_region_release(void* fh) NO_EXCEPT
+{
     UnmapViewOfFile(fh);
 }
 
 FORCE_INLINE
-void file_mmf_close(MMFHandle fh) {
+void file_mmf_close(MMFHandle fh) NO_EXCEPT
+{
     CloseHandle(fh);
 }
 
 inline
-void relative_to_absolute(const char* __restrict rel, char* __restrict path)
+void relative_to_absolute(const char* __restrict rel, char* __restrict path) NO_EXCEPT
 {
     char self_path[MAX_PATH];
     int32 self_path_length = GetModuleFileNameA(NULL, self_path, MAX_PATH);
@@ -92,7 +94,7 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path)
 }
 
 FORCE_INLINE
-void file_seek(FileHandle fh, uint64 pos)
+void file_seek(FileHandle fh, uint64 pos) NO_EXCEPT
 {
     LARGE_INTEGER li;
     li.QuadPart = pos;
@@ -101,7 +103,7 @@ void file_seek(FileHandle fh, uint64 pos)
 }
 
 inline uint64
-file_size(const char* path)
+file_size(const char* path) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -145,7 +147,7 @@ file_size(const char* path)
 }
 
 inline
-bool file_exists(const char* path)
+bool file_exists(const char* path) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -164,7 +166,7 @@ bool file_exists(const char* path)
 }
 
 inline void
-file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __restrict ring = NULL)
+file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __restrict ring = NULL) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -237,7 +239,7 @@ void file_read(
     uint64 offset,
     uint64 length = MAX_UINT64,
     RingMemory* __restrict ring = NULL
-)
+) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -329,7 +331,7 @@ void file_read(
     uint64 offset = 0,
     uint64 length = MAX_UINT64,
     RingMemory* __restrict ring = NULL
-)
+) NO_EXCEPT
 {
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
@@ -382,7 +384,7 @@ void file_read(
     LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 }
 
-uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UINT64)
+uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UINT64) NO_EXCEPT
 {
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
@@ -435,7 +437,8 @@ bool file_read_line(
     FileHandle fp,
     char* __restrict line_buffer, size_t buffer_size,
     char internal_buffer[512], ssize_t* __restrict internal_buffer_size, char** internal_pos
-) {
+) NO_EXCEPT
+{
     if (!(*internal_pos)) {
         *internal_pos = internal_buffer;
     }
@@ -486,7 +489,7 @@ bool file_read_line(
 // void file_write_handle();
 
 inline bool
-file_write(const char* __restrict path, const FileBody* __restrict file)
+file_write(const char* __restrict path, const FileBody* __restrict file) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -533,7 +536,7 @@ file_write(const char* __restrict path, const FileBody* __restrict file)
 }
 
 inline void
-file_copy(const char* __restrict src, const char* __restrict dst)
+file_copy(const char* __restrict src, const char* __restrict dst) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
 
@@ -560,13 +563,13 @@ file_copy(const char* __restrict src, const char* __restrict dst)
 }
 
 FORCE_INLINE
-void file_close_handle(FileHandle fp)
+void file_close_handle(FileHandle fp) NO_EXCEPT
 {
     CloseHandle(fp);
 }
 
 inline
-HANDLE file_append_handle(const char* path)
+FileHandle file_append_handle(const char* path) NO_EXCEPT
 {
     FileHandle fp;
     if (*path == '.') {
@@ -606,7 +609,8 @@ bool file_read_async(
     uint64 offset = 0,
     uint64 length = MAX_UINT64,
     RingMemory* __restrict ring = NULL
-) {
+) NO_EXCEPT
+{
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
         file->content = NULL;
@@ -665,14 +669,14 @@ bool file_read_async(
 }
 
 inline
-void file_async_wait(FileHandle fp, file_overlapped* overlapped, bool wait)
+void file_async_wait(FileHandle fp, file_overlapped* overlapped, bool wait) NO_EXCEPT
 {
     DWORD bytesTransferred;
     GetOverlappedResult(fp, overlapped, &bytesTransferred, wait);
 }
 
 inline
-FileHandle file_read_handle(const char* path)
+FileHandle file_read_handle(const char* path) NO_EXCEPT
 {
     FileHandle fp;
     if (*path == '.') {
@@ -706,7 +710,7 @@ FileHandle file_read_handle(const char* path)
 }
 
 inline
-FileHandle file_read_async_handle(const char* path)
+FileHandle file_read_async_handle(const char* path) NO_EXCEPT
 {
     FileHandle fp;
     if (*path == '.') {
@@ -739,7 +743,7 @@ FileHandle file_read_async_handle(const char* path)
     return fp;
 }
 
-bool file_append(const char* __restrict path, const char* __restrict file)
+bool file_append(const char* __restrict path, const char* __restrict file) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -786,7 +790,7 @@ bool file_append(const char* __restrict path, const char* __restrict file)
 }
 
 inline bool
-file_append(FileHandle fp, const char* file)
+file_append(FileHandle fp, const char* file) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, file, PROFILE_FLAG_SHOULD_LOG);
 
@@ -808,7 +812,7 @@ file_append(FileHandle fp, const char* file)
 }
 
 inline bool
-file_append(FileHandle fp, const char* file, size_t length)
+file_append(FileHandle fp, const char* file, size_t length) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, file, PROFILE_FLAG_SHOULD_LOG);
 
@@ -829,7 +833,7 @@ file_append(FileHandle fp, const char* file, size_t length)
 }
 
 inline bool
-file_append(const char* __restrict path, const FileBody* __restrict file)
+file_append(const char* __restrict path, const FileBody* __restrict file) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -876,7 +880,7 @@ file_append(const char* __restrict path, const FileBody* __restrict file)
 }
 
 inline
-uint64 file_last_modified(const char* path)
+uint64 file_last_modified(const char* path) NO_EXCEPT
 {
     WIN32_FIND_DATA find_data;
 
@@ -904,12 +908,13 @@ uint64 file_last_modified(const char* path)
 }
 
 FORCE_INLINE
-void self_path(char* path)
+void self_path(char* path) NO_EXCEPT
 {
     GetModuleFileNameA(NULL, (LPSTR) path, MAX_PATH);
 }
 
-void iterate_directory(const char* base_path, const char* file_ending, void (*handler)(const char *, void *), ...) {
+void iterate_directory(const char* base_path, const char* file_ending, void (*handler)(const char *, void *), ...) NO_EXCEPT
+{
     va_list args;
     va_start(args, handler);
 

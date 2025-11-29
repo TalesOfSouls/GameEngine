@@ -539,7 +539,7 @@ bool is_dedicated_gpu_connected() {
                 if (gpuDevice.DeviceID
                     && (str_contains(gpuDevice.DeviceID, "PCI\\VEN_10DE") // Nvidia
                         || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1002") // AMD
-                        || str_contains(gpuDevice.DeviceID, "PCI\\VEN_8086") // Intel
+                        || (str_contains(gpuDevice.DeviceID, "PCI\\VEN_8086") && str_contains(gpuDevice.DeviceID, "DEV_56")) // Intel
                         || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1E4E") // Moore Threads
                         || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1DBA") // Innosilicon
                         || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1D17") // Zhaoxin

@@ -15,7 +15,8 @@
 // WARNING: Don't use any of these functions yet. They are too imprecise and too slow
 
 inline
-f64 factorial(int32 n) {
+f64 factorial(int32 n) NO_EXCEPT
+{
     f64 result = 1.0;
     for (int32 i = 1; i <= n; ++i) {
         result *= i;
@@ -25,7 +26,8 @@ f64 factorial(int32 n) {
 }
 
 inline
-f32 sin_approx(f32 x) {
+f32 sin_approx(f32 x) NO_EXCEPT
+{
     // Normalize x to the range [-π, π] for better accuracy
     while (x > OMS_PI_F32) {
         x -= OMS_TWO_PI_F32;
@@ -40,17 +42,20 @@ f32 sin_approx(f32 x) {
 }
 
 FORCE_INLINE
-f32 cos_approx(f32 x) {
+f32 cos_approx(f32 x) NO_EXCEPT
+{
     return sin_approx(OMS_PI_OVER_TWO_F32 - x);
 }
 
 FORCE_INLINE
-f32 tan_approx(f32 x) {
+f32 tan_approx(f32 x) NO_EXCEPT
+{
     return sin_approx(x) / cos_approx(x);
 }
 
 inline
-f32 asin_approx(f32 x) {
+f32 asin_approx(f32 x) NO_EXCEPT
+{
     // Undefined for |x| > 1
     ASSERT_TRUE(x >= -1.0f && x <= 1.0f);
 
@@ -65,13 +70,15 @@ f32 asin_approx(f32 x) {
 }
 
 FORCE_INLINE
-f32 acos_approx(f32 x) {
+f32 acos_approx(f32 x) NO_EXCEPT
+{
     // π/2 - asin_approx(x)
     return OMS_PI_OVER_TWO_F32 - asin_approx(x);
 }
 
 inline
-f32 atan_approx(f32 x) {
+f32 atan_approx(f32 x) NO_EXCEPT
+{
     if (x > 1.0f) {
         // π/2 - atan_approx(1/x)
         return OMS_PI_OVER_TWO_F32 - atan_approx(1.0f / x);
@@ -91,7 +98,8 @@ f32 atan_approx(f32 x) {
 }
 
 inline
-f32 sqrt_approx(f32 a) {
+f32 sqrt_approx(f32 a) NO_EXCEPT
+{
     ASSERT_TRUE(a >= 0);
 
     int32_t i = *(int32_t*)&a;
@@ -108,7 +116,8 @@ f32 sqrt_approx(f32 a) {
 }
 
 inline
-f32 rsqrt_approx(f32 a) {
+f32 rsqrt_approx(f32 a) NO_EXCEPT
+{
     ASSERT_TRUE(a >= 0);
 
     // Initial guess using magic number (Quake III hack)
@@ -126,7 +135,8 @@ f32 rsqrt_approx(f32 a) {
 }
 
 inline
-f32 exp_approx(f32 x) {
+f32 exp_approx(f32 x) NO_EXCEPT
+{
     // Range reduction: e^x = e^(x / n)^n
     const int32 n = 8;
     x /= n;
@@ -149,7 +159,8 @@ f32 exp_approx(f32 x) {
 }
 
 inline
-f32 log_approx(f32 x) {
+f32 log_approx(f32 x) NO_EXCEPT
+{
     ASSERT_TRUE(x > 0);
 
     // Polynomial approximation
@@ -160,7 +171,8 @@ f32 log_approx(f32 x) {
 }
 
 inline
-f32 pow_approx(f32 a, f32 b) {
+f32 pow_approx(f32 a, f32 b) NO_EXCEPT
+{
     if (a == 0.0f) {
         return 0.0f;
     }
@@ -171,7 +183,8 @@ f32 pow_approx(f32 a, f32 b) {
 ////////////////////////////////////////////////////////////////
 
 inline
-f64 sin_approx(f64 x) {
+f64 sin_approx(f64 x) NO_EXCEPT
+{
     // Normalize x to the range [-π, π] for better accuracy
     while (x > OMS_PI_F32) {
         x -= OMS_TWO_PI_F32;
@@ -186,17 +199,20 @@ f64 sin_approx(f64 x) {
 }
 
 FORCE_INLINE
-f64 cos_approx(f64 x) {
+f64 cos_approx(f64 x) NO_EXCEPT
+{
     return sin_approx(OMS_PI_OVER_TWO_F64 - x);
 }
 
 FORCE_INLINE
-f64 tan_approx(f64 x) {
+f64 tan_approx(f64 x) NO_EXCEPT
+{
     return sin_approx(x) / cos_approx(x);
 }
 
 inline
-f64 asin_approx(f64 x) {
+f64 asin_approx(f64 x) NO_EXCEPT
+{
     // Undefined for |x| > 1
     ASSERT_TRUE(x >= -1.0 && x <= 1.0);
 
@@ -211,13 +227,15 @@ f64 asin_approx(f64 x) {
 }
 
 FORCE_INLINE
-f64 acos_approx(f64 x) {
+f64 acos_approx(f64 x) NO_EXCEPT
+{
     // π/2 - asin_approx(x)
     return OMS_PI_OVER_TWO_F64 - asin_approx(x);
 }
 
 inline
-f64 atan_approx(f64 x) {
+f64 atan_approx(f64 x) NO_EXCEPT
+{
     if (x > 1.0) {
         // π/2 - atan_approx(1/x)
         return OMS_PI_OVER_TWO_F64 - atan_approx(1.0 / x);
@@ -237,7 +255,8 @@ f64 atan_approx(f64 x) {
 }
 
 inline
-f64 sqrt_approx(f64 a) {
+f64 sqrt_approx(f64 a) NO_EXCEPT
+{
     ASSERT_TRUE(a >= 0);
 
     int64_t i = *(int64_t*)&a;
@@ -254,7 +273,8 @@ f64 sqrt_approx(f64 a) {
 }
 
 inline
-f64 rsqrt_approx(f64 a) {
+f64 rsqrt_approx(f64 a) NO_EXCEPT
+{
     ASSERT_TRUE(a >= 0);
 
     // Initial guess using magic number (Quake III hack)
@@ -272,7 +292,8 @@ f64 rsqrt_approx(f64 a) {
 }
 
 inline
-f64 exp_approx(f64 x) {
+f64 exp_approx(f64 x) NO_EXCEPT
+{
     // Range reduction: e^x = e^(x / n)^n
     const int32 n = 8;
     x /= n;
@@ -295,7 +316,8 @@ f64 exp_approx(f64 x) {
 }
 
 inline
-f64 log_approx(f64 x) {
+f64 log_approx(f64 x) NO_EXCEPT
+{
     ASSERT_TRUE(x > 0);
 
     // Polynomial approximation
@@ -307,7 +329,8 @@ f64 log_approx(f64 x) {
 }
 
 inline
-f64 pow_approx(f64 a, f64 b) {
+f64 pow_approx(f64 a, f64 b) NO_EXCEPT
+{
     if (a == 0.0) {
         return 0.0;
     }

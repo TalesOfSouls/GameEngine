@@ -5,7 +5,8 @@
 #include "../utils/Utils.h"
 #include "SortDefine.h"
 
-size_t quicksort_partition(void* arr, size_t size, size_t low, size_t high, SortCompareFunc compare) NO_EXCEPT {
+size_t quicksort_partition(void* arr, size_t size, size_t low, size_t high, SortCompareFunc compare) NO_EXCEPT
+{
     char* base = (char*) arr;
     void* pivot = base + high * size;
     size_t i = low;
@@ -22,7 +23,8 @@ size_t quicksort_partition(void* arr, size_t size, size_t low, size_t high, Sort
     return i;
 }
 
-void quicksort(void* arr, size_t size, size_t low, size_t high, SortCompareFunc compare) NO_EXCEPT {
+void quicksort(void* arr, size_t size, size_t low, size_t high, SortCompareFunc compare) NO_EXCEPT
+{
     if (low < high) {
         size_t pi = quicksort_partition(arr, size, low, high, compare);
 
@@ -36,7 +38,8 @@ void quicksort(void* arr, size_t size, size_t low, size_t high, SortCompareFunc 
     }
 }
 
-size_t quicksort_partition_small(void* arr, size_t size, size_t low, size_t high, SortCompareFunc compare) NO_EXCEPT {
+size_t quicksort_partition_small(void* arr, size_t size, size_t low, size_t high, SortCompareFunc compare) NO_EXCEPT
+{
     char* base = (char*) arr;
     void* pivot = base + high * size;
     size_t i = low;
@@ -52,7 +55,8 @@ size_t quicksort_partition_small(void* arr, size_t size, size_t low, size_t high
     return i;
 }
 
-void quicksort_small(void* arr, size_t size, size_t low, size_t high, SortCompareFunc compare) NO_EXCEPT {
+void quicksort_small(void* arr, size_t size, size_t low, size_t high, SortCompareFunc compare) NO_EXCEPT
+{
     if (low < high) {
         size_t pi = quicksort_partition_small(arr, size, low, high, compare);
 

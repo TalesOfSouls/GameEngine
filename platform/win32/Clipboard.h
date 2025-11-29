@@ -16,7 +16,8 @@
 
 #define strtok_r strtok_s
 
-void clipboard_get(char* text, int32 max_length)
+inline
+void clipboard_get(char* text, int32 max_length) NO_EXCEPT
 {
     *text = '\0';
     if (OpenClipboard(NULL)) {

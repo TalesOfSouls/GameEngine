@@ -87,13 +87,19 @@ struct alignas(8) PerformanceProfileResult {
 struct PerformanceStatHistory {
     atomic_32 int32 pos;
     // This contains all stats usually per frame in a 1D array
-    PerformanceProfileResult perfs[MAX_PERFORMANCE_STATS_HISTORY * PROFILE_SIZE];
+    alignas(8) PerformanceProfileResult perfs[MAX_PERFORMANCE_STATS_HISTORY * PROFILE_SIZE];
 };
 static PerformanceStatHistory* _perf_stats = NULL;
 static volatile int32* _perf_active = NULL;
 
+/**
+ * Creates a snapshot of the current performance logs
+ *
+ * @return void
+ */
 FORCE_INLINE
-void profile_performance_snapshot() NO_EXCEPT {
+void profile_performance_snapshot() NO_EXCEPT
+{
     if (!_perf_stats || !*_perf_active) {
         return;
     }
@@ -114,16 +120,17 @@ struct PerformanceThreadHistory {
     const char* name;
 };
 
-// Used to show historic values per thread unlike PerformanceStatHistory which doesn't differentiate between threads
-// @todo we probably want to log thread performance per frame for a chart
+// Used to show historic values per thread unlike PerformanceStatHistory,
+// which doesn't differentiate between threads
 #define MAX_PERFORMANCE_THREAD_HISTORY 10000
 struct PerformanceProfileThread {
-    int32 thread_id;
+    atomic_32 int32 thread_id;
     int32 cpu_id;
     atomic_32 uint32 pos;
 
     // WARNING: This only shows tha last tick but when rendering the rendering thread may be way slower
     // As a result you will only output every n-th tick
+    // @todo we probably want to log thread performance per frame for a chart
     uint64 tick;
     const char* name;
     PerformanceThreadHistory history[MAX_PERFORMANCE_THREAD_HISTORY];
@@ -135,13 +142,22 @@ static PerformanceProfileThread* _perf_thread_history;
 /**
  * Used to create a new thread history
  * Every thread needs one if you want to store historic values
+ *
+ * @param int32         thread_id   Id of the thread
+ * @param const char*   name        Name of the thread
+ *
+ * @return void
  */
 inline
 void thread_profile_history_create(int32 thread_id, const char* name = NULL) NO_EXCEPT
 {
     for (int32 i = 1; i < _perf_thread_history_count; ++i) {
-        if (_perf_thread_history[i].thread_id == 0) {
-            // @bug this should probably be an atomic operation to ensure no other thread is doing this
+        if (atomic_compare_exchange_strong_relaxed(
+                &_perf_thread_history[i].thread_id,
+                0,
+                thread_id
+            ) == 0
+        ) {
             _perf_thread_history[i].thread_id = thread_id;
             _perf_thread_history[i].cpu_id = 0;
             _perf_thread_history[i].pos = 0;
@@ -152,7 +168,14 @@ void thread_profile_history_create(int32 thread_id, const char* name = NULL) NO_
     }
 }
 
-// Sets the user defined name of a thread by id
+/**
+ * Sets the user defined name of a thread by id
+ *
+ * @param int32         thread_id   Id of the thread
+ * @param const char*   name        Name of the thread
+ *
+ * @return void
+ */
 inline
 void thread_profile_name(int32 thread_id, const char* name = NULL) NO_EXCEPT
 {
@@ -164,13 +187,19 @@ void thread_profile_name(int32 thread_id, const char* name = NULL) NO_EXCEPT
     }
 }
 
+/**
+ * Marks a thread as no longer available for logging
+ *
+ * @param int32 thread_id Id of the thread
+ *
+ * @return void
+ */
 inline
-void thread_profile_history_delete(int32 thread_id)
+void thread_profile_history_delete(int32 thread_id) NO_EXCEPT
 {
     for (int32 i = 1; i < _perf_thread_history_count; ++i) {
         if (_perf_thread_history[i].thread_id == thread_id) {
-            // @bug this should probably be an atomic operation to ensure no other thread is doing this
-            _perf_thread_history[i].thread_id = 0;
+            atomic_set_relaxed(&_perf_thread_history[i].thread_id, 0);
             return;
         }
     }
@@ -181,9 +210,11 @@ struct PerformanceThreadProfiler {
     int32 _id;
     uint64 start_cycle;
 
+    HOT_CODE
     PerformanceThreadProfiler(
         int32 id
-    ) NO_EXCEPT {
+    ) NO_EXCEPT
+    {
         if (!_perf_active || !*_perf_active || !_perf_thread_history_count) {
             this->is_active = false;
 
@@ -195,7 +226,9 @@ struct PerformanceThreadProfiler {
         this->start_cycle = intrin_timestamp_counter();
     }
 
-    ~PerformanceThreadProfiler() NO_EXCEPT {
+    HOT_CODE
+    ~PerformanceThreadProfiler() NO_EXCEPT
+    {
         if (!this->is_active) {
             return;
         }
@@ -212,8 +245,12 @@ struct PerformanceThreadProfiler {
     }
 };
 
-// @performance This should only be called async to avoid blocking (e.g. render loop)
-// Careful, this is not thread safe by itself
+/**
+ * Logs the performance stats to the logger,
+ * which may output the data to a file if the buffer is filled
+ *
+ * @return void
+ */
 inline
 void performance_log_to_file() NO_EXCEPT
 {
@@ -223,10 +260,12 @@ void performance_log_to_file() NO_EXCEPT
     }
 
     MAYBE_UNUSED int32 count = PROFILE_SIZE;
-    LOG_1("[BEGIN] Performance log (count %d)", {LOG_DATA_INT32, &count});
+    LOG_1("[BEGIN] Performance log (count %d)", {DATA_TYPE_INT32, &count});
 
     MAYBE_UNUSED int32 size = sizeof(*_perf_stats);
-    LOG_1((const char *) _perf_stats, {LOG_DATA_RAW, &size});
+
+    // Technically this isn't logging to a file, only if the end of the log buffer is reached
+    LOG_1((const char *) _perf_stats, {DATA_TYPE_BYTE_ARRAY, &size});
 
     LOG_1("[END] Performance log");
 }
@@ -250,10 +289,12 @@ struct PerformanceProfiler {
 
     PerformanceProfiler* parent;
 
+    HOT_CODE
     PerformanceProfiler(
         int32 id, const char* scope_name, const char* info = NULL,
         uint32 flags = 0
-    ) NO_EXCEPT {
+    ) NO_EXCEPT
+    {
         if (!_perf_active || !*_perf_active) {
             this->is_active = false;
 
@@ -283,16 +324,18 @@ struct PerformanceProfiler {
         this->start_cycle = intrin_timestamp_counter();
     }
 
-    ~PerformanceProfiler() NO_EXCEPT {
+    HOT_CODE
+    ~PerformanceProfiler() NO_EXCEPT
+    {
         if (!this->is_active) {
             return;
         }
 
-        uint64 end_cycle = intrin_timestamp_counter();
+        const uint64 end_cycle = intrin_timestamp_counter();
         this->total_cycle = OMS_MAX(end_cycle - this->start_cycle, 0);
         this->self_cycle += total_cycle;
 
-        int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
+        const int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
         atomic_increment_relaxed(&_perf_stats->perfs[pos + this->_id].counter);
 
         // Store result
@@ -344,22 +387,30 @@ struct PerformanceProfiler {
             if (this->info_msg && this->info_msg[0]) {
                 LOG_2(
                     "[PERF] %s (%s): %n cycles",
-                    {LOG_DATA_CHAR_STR, (void *) perf->name},
-                    {LOG_DATA_CHAR_STR, (void *) this->info_msg},
-                    {LOG_DATA_INT64, (void *) &perf->total_cycle},
+                    {DATA_TYPE_CHAR_STR, (void *) perf->name},
+                    {DATA_TYPE_CHAR_STR, (void *) this->info_msg},
+                    {DATA_TYPE_INT64, (void *) &perf->total_cycle},
                 );
             } else {
                 LOG_2(
                     "[PERF] %s: %n cycles",
-                    {LOG_DATA_CHAR_STR, (void *) perf->name},
-                    {LOG_DATA_INT64, (void *) &perf->total_cycle},
+                    {DATA_TYPE_CHAR_STR, (void *) perf->name},
+                    {DATA_TYPE_INT64, (void *) &perf->total_cycle},
                 );
             }
         }
     }
 };
 
-inline
+/**
+ * Manually start a profilling section that doesn't end when leaving scope
+ *
+ * @param int32         id      Profiling id
+ * @param const char*   name    Profiling name
+ *
+ * return void
+ */
+inline HOT_CODE
 void performance_profiler_start(int32 id, const char* name = NULL) NO_EXCEPT
 {
     if (!_perf_active || !*_perf_active) {
@@ -373,7 +424,14 @@ void performance_profiler_start(int32 id, const char* name = NULL) NO_EXCEPT
     perf->self_cycle -= (int64) intrin_timestamp_counter();
 }
 
-inline
+/**
+ * Manually end a profilling section that previously got manually started
+ *
+ * @param int32 id Profiling id
+ *
+ * return void
+ */
+inline HOT_CODE
 void performance_profiler_end(int32 id) NO_EXCEPT
 {
     if (!_perf_active || !*_perf_active) {
@@ -386,9 +444,6 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     perf->self_cycle += intrin_timestamp_counter();
     perf->total_cycle = perf->self_cycle;
 }
-
-// @todo Implement a performance_to_file() function
-// This would allow us to compare performance profiles
 
 #if LOG_LEVEL > 1
     // Only these function can properly handle self-time calculation

@@ -61,7 +61,8 @@
 #define intrin_prefetch_l3(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T2)
 
 FORCE_INLINE
-uint64 intrin_timestamp_counter() NO_EXCEPT {
+uint64 intrin_timestamp_counter() NO_EXCEPT
+{
     #if DEBUG || INTERNAL
         _mm_lfence();
     #endif

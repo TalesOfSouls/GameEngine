@@ -13,8 +13,12 @@
 #include <windows.h>
 
 struct PlatformSoftwareRenderer {
+    // Cached window hdc
+    // WARNING: only allowed if we don't use WM_PAINT
     HDC window_hdc;
-    HDC hdc;
+
+    // Memory hdc
+    HDC mem_hdc;
 
     HWND hwnd;
     HBITMAP dib;

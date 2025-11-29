@@ -39,8 +39,10 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
-    LOG_1("[INFO] Allocating ChunkMemory");
+    LOG_1("[INFO] Allocating ThreadedChunkMemory");
 
     chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
@@ -66,10 +68,10 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
     buf->completeness = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
 
     // @question Why is this even here?
-    compiler_memset_aligned(buf->memory, 0, buf->size);
+    compiler_memset_aligned_8(buf->memory, 0, buf->size);
     mutex_init(&buf->lock, NULL);
 
-    LOG_1("[INFO] Allocated ChunkMemory: %n B", {LOG_DATA_UINT64, &buf->size});
+    LOG_1("[INFO] Allocated ThreadedChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
 
 inline
@@ -77,6 +79,7 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, BufferMemory* data, uint32 count,
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
@@ -109,6 +112,7 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, byte* data, uint32 count, uint32 
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
@@ -159,7 +163,8 @@ byte* thrd_chunk_get_element(ThreadedChunkMemory* buf, uint32 element) NO_EXCEPT
 }
 
 inline
-void thrd_chunk_set_unset(uint32 element, atomic_64 uint64* state) NO_EXCEPT {
+void thrd_chunk_set_unset(uint32 element, atomic_64 uint64* state) NO_EXCEPT
+{
     int32 free_index = element / 64;
     int32 bit_index = MODULO_2(element, 64);
 
@@ -167,7 +172,8 @@ void thrd_chunk_set_unset(uint32 element, atomic_64 uint64* state) NO_EXCEPT {
     atomic_fetch_and_release(&state[free_index], mask);
 }
 
-int32 thrd_chunk_reserve_one(atomic_64 uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT {
+int32 thrd_chunk_reserve_one(atomic_64 uint64* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
+{
     if ((uint32) start_index >= state_count) {
         start_index = 0;
     }

@@ -308,7 +308,8 @@ void bits_flush(BitWalk* stream) NO_EXCEPT
 // }
 
 inline
-int32 first_set_bit_r2l(int32 value) NO_EXCEPT {
+int32 first_set_bit_r2l(int32 value) NO_EXCEPT
+{
     if (value == 0) {
         return 0;
     }
@@ -327,7 +328,8 @@ int32 first_set_bit_r2l(int32 value) NO_EXCEPT {
 }
 
 inline
-int32 first_set_bit_r2l(int64 value) {
+int32 first_set_bit_r2l(int64 value) NO_EXCEPT
+{
     if (value == 0) {
         return 0;
     }
@@ -343,7 +345,8 @@ int32 first_set_bit_r2l(int64 value) {
 }
 
 inline
-int32 first_set_bit_l2r(int32 value) NO_EXCEPT {
+int32 first_set_bit_l2r(int32 value) NO_EXCEPT
+{
     if (value == 0) {
         return 0;
     }
@@ -360,7 +363,8 @@ int32 first_set_bit_l2r(int32 value) NO_EXCEPT {
 }
 
 inline
-int32 first_set_bit_l2r(int64 value) {
+int32 first_set_bit_l2r(int64 value) NO_EXCEPT
+{
     if (value == 0) {
         return 0;
     }
@@ -390,7 +394,8 @@ uint32 bits_reverse(uint32 data, int32 count) NO_EXCEPT
 }
 
 inline
-uint64 bits_reverse(uint64 data, int32 count) NO_EXCEPT {
+uint64 bits_reverse(uint64 data, int32 count) NO_EXCEPT
+{
     uint64 reversed = 0;
     for (int32 i = 0; i <= (count / 2); ++i) {
         int32 inv = count - i - 1;
@@ -421,7 +426,8 @@ static const byte BIT_COUNT_LOOKUP_TABLE[256] = {
 };
 
 FORCE_INLINE
-byte bits_count(uint64 data, bool use_abm = false) NO_EXCEPT {
+byte bits_count(uint64 data, bool use_abm = false) NO_EXCEPT
+{
     if (use_abm) { UNLIKELY
         return (byte) intrin_bits_count_64(data);
     } else { LIKELY
@@ -437,7 +443,8 @@ byte bits_count(uint64 data, bool use_abm = false) NO_EXCEPT {
 }
 
 FORCE_INLINE
-byte bits_count(uint32 data, bool use_abm = false) NO_EXCEPT {
+byte bits_count(uint32 data, bool use_abm = false) NO_EXCEPT
+{
     if (use_abm) { UNLIKELY
         return (byte) intrin_bits_count_32(data);
     } else { LIKELY
@@ -449,17 +456,19 @@ byte bits_count(uint32 data, bool use_abm = false) NO_EXCEPT {
 }
 
 FORCE_INLINE
-byte bits_count(uint16 data) NO_EXCEPT {
+byte bits_count(uint16 data) NO_EXCEPT
+{
     return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
         + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF];
 }
 
 FORCE_INLINE
-byte bits_count(uint8 data) NO_EXCEPT {
+byte bits_count(uint8 data) NO_EXCEPT
+{
     return BIT_COUNT_LOOKUP_TABLE[data];
 }
 
-void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps = 16)
+void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps = 16) NO_EXCEPT
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) val, steps);

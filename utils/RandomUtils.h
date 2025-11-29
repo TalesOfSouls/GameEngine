@@ -18,14 +18,16 @@ thread_local uint32 _rng_state_32;
 thread_local uint64 _rng_state_64;
 
 FORCE_INLINE
-void rand_setup() {
+void rand_setup() NO_EXCEPT
+{
     _rng_state_32 = (int32) time_index();
     _rng_state_64 = time_index();
 }
 
 // PERFORMANCE: Approx. 4x faster than rand()
 inline
-uint32 rand_fast(uint32* state) {
+uint32 rand_fast(uint32* state) NO_EXCEPT
+{
     static const uint32 z = 0x9E3779B9;
     uint32 x = *state;
 
@@ -41,7 +43,8 @@ uint32 rand_fast(uint32* state) {
 }
 
 inline
-uint32 rand_fast_32() {
+uint32 rand_fast_32() NO_EXCEPT
+{
     static const uint32 z = 0x9E3779B9;
     uint32 x = _rng_state_32;
 
@@ -57,12 +60,14 @@ uint32 rand_fast_32() {
 }
 
 FORCE_INLINE
-f32 rand_fast_percent() {
+f32 rand_fast_percent() NO_EXCEPT
+{
     return (f32) rand_fast_32() / (f32) MAX_UINT32;
 }
 
 inline
-uint64 rand_fast(uint64* state) {
+uint64 rand_fast(uint64* state) NO_EXCEPT
+{
     static const uint64 z = 0x9FB21C651E98DF25;
     uint64 x = *state;
 
@@ -78,7 +83,8 @@ uint64 rand_fast(uint64* state) {
 }
 
 inline
-uint64 rand_fast_64() {
+uint64 rand_fast_64() NO_EXCEPT
+{
     static const uint64 z = 0x9FB21C651E98DF25;
     uint64 x = _rng_state_64;
 
@@ -94,24 +100,28 @@ uint64 rand_fast_64() {
 }
 
 FORCE_INLINE
-uint32 rand_fast(uint32* state, int32 max) {
+uint32 rand_fast(uint32* state, int32 max) NO_EXCEPT
+{
     return (uint32) (((uint64) rand_fast(state) * max) >> 32);
 }
 
 FORCE_INLINE
-uint32 rand_fast(int32 max) {
+uint32 rand_fast(int32 max) NO_EXCEPT
+{
     return (uint32) (((uint64) rand_fast_32() * max) >> 32);
 }
 
 FORCE_INLINE
-uint32 rand_fast(int32 min, int32 max) {
+uint32 rand_fast(int32 min, int32 max) NO_EXCEPT
+{
     uint32 span = (uint32)(max - min);
     uint32 r = (uint32) (((uint64) rand_fast_32() * span) >> 32);
     return (uint32) (min + r);
 }
 
 FORCE_INLINE
-f64 rand_uniform01() {
+f64 rand_uniform01() NO_EXCEPT
+{
     /**
     * produce f64 in [0,1)
     * use upper 53 bits of randomness for IEEE f64
@@ -123,7 +133,8 @@ f64 rand_uniform01() {
  * Picks n random elements from end and stores them in begin.
  */
 inline
-void random_unique(int32* array, int32 size) {
+void random_unique(int32* array, int32 size) NO_EXCEPT
+{
     for (int32 i = size - 1; i > 0; --i) {
         const int32 j = rand() % (i + 1);
 
@@ -136,7 +147,7 @@ void random_unique(int32* array, int32 size) {
 /**
  * Gets random index based value probability
  */
-int32 random_weighted_index(const int32* arr, int32 array_count)
+int32 random_weighted_index(const int32* arr, int32 array_count) NO_EXCEPT
 {
     uint32 prob_sum = 0;
     for (int32 i = 0; i < array_count; ++i) {
@@ -160,7 +171,8 @@ int32 random_weighted_index(const int32* arr, int32 array_count)
 
 // WARNING: The allowed_chars string length needs to be of power 2 for performance reasons
 //      Supporting any allowed_chars length is trivial but usually we prefer the performance improvement
-void random_string(const char* allowed_chars, uint32 allowed_length, char* out, int32 out_length) {
+void random_string(const char* allowed_chars, uint32 allowed_length, char* out, int32 out_length) NO_EXCEPT
+{
     ASSERT_TRUE((allowed_length & 2) == 0);
 
     const uint32 mask = allowed_length - 1;

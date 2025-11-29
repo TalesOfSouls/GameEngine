@@ -102,7 +102,7 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, DirectSoundSetting*
 }
 
 inline
-void audio_play(AudioSetting*, DirectSoundSetting* __restrict api_setting)
+void audio_play(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->secondary_buffer);
     /*if (!api_setting->secondary_buffer) {
@@ -113,7 +113,8 @@ void audio_play(AudioSetting*, DirectSoundSetting* __restrict api_setting)
 }
 
 inline
-void audio_stop(AudioSetting*, DirectSoundSetting* __restrict api_setting) {
+void audio_stop(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
+{
     ASSERT_TRUE(api_setting->secondary_buffer);
     /*if (!api_setting->secondary_buffer) {
         return;
@@ -123,7 +124,7 @@ void audio_stop(AudioSetting*, DirectSoundSetting* __restrict api_setting) {
 }
 
 inline
-void audio_free(AudioSetting*, DirectSoundSetting* __restrict api_setting)
+void audio_free(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
     if (api_setting->audio_handle) {
         api_setting->audio_handle->Release();
@@ -142,7 +143,7 @@ void audio_free(AudioSetting*, DirectSoundSetting* __restrict api_setting)
  * Calculates the samples in bytes to generate for the buffer
  */
 inline
-uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const DirectSoundSetting* __restrict api_setting)
+uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
 
@@ -174,7 +175,7 @@ uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const Direc
 }
 
 inline
-void audio_play_buffer(AudioSetting* __restrict setting, DirectSoundSetting* __restrict api_setting)
+void audio_play_buffer(AudioSetting* __restrict setting, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
     if (setting->sample_buffer_size == 0) {

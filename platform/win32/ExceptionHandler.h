@@ -19,7 +19,8 @@
     #pragma comment(lib, "dbghelp.lib")
 #endif
 
-void create_minidump(EXCEPTION_POINTERS* exception_pointers) {
+void create_minidump(EXCEPTION_POINTERS* exception_pointers) NO_EXCEPT
+{
     HANDLE fp = CreateFileA("crash_dump.dmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (fp == INVALID_HANDLE_VALUE) {
@@ -47,7 +48,8 @@ void create_minidump(EXCEPTION_POINTERS* exception_pointers) {
     CloseHandle(fp);
 }
 
-void log_stack_trace(CONTEXT* context) {
+void log_stack_trace(CONTEXT* context) NO_EXCEPT
+{
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
 
@@ -88,9 +90,9 @@ void log_stack_trace(CONTEXT* context) {
         symbol->MaxNameLen = MAX_SYM_NAME;
 
         if (SymFromAddr(process, address, NULL, symbol)) {
-            LOG_1("Function: %s - Address: %l", {LOG_DATA_CHAR_STR, symbol->Name}, {LOG_DATA_INT64, &symbol->Address});
+            LOG_1("Function: %s - Address: %l", {DATA_TYPE_CHAR_STR, symbol->Name}, {DATA_TYPE_INT64, &symbol->Address});
         } else {
-            LOG_1("Function: (unknown) - Address: %l", {LOG_DATA_INT64, &address});
+            LOG_1("Function: (unknown) - Address: %l", {DATA_TYPE_INT64, &address});
         }
 
         // Resolve file and line number
@@ -99,7 +101,7 @@ void log_stack_trace(CONTEXT* context) {
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
         if (SymGetLineFromAddr64(process, address, &displacement, &line)) {
-            LOG_1("    File: %s, Line: %l", {LOG_DATA_CHAR_STR, line.FileName}, {LOG_DATA_INT64, &line.LineNumber});
+            LOG_1("    File: %s, Line: %l", {DATA_TYPE_CHAR_STR, line.FileName}, {DATA_TYPE_INT64, &line.LineNumber});
         } else {
             LOG_1("    File: (unknown), Line: (unknown)");
         }
@@ -108,7 +110,7 @@ void log_stack_trace(CONTEXT* context) {
         IMAGEHLP_MODULE64 module_info;
         module_info.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
         if (SymGetModuleInfo64(process, address, &module_info)) {
-            LOG_1("    Module: %s", {LOG_DATA_CHAR_STR, module_info.ModuleName});
+            LOG_1("    Module: %s", {DATA_TYPE_CHAR_STR, module_info.ModuleName});
         } else {
             LOG_1("    Module: (unknown)");
         }
@@ -118,7 +120,8 @@ void log_stack_trace(CONTEXT* context) {
     SymCleanup(process);
 }
 
-void print_stack_trace(CONTEXT* context) {
+void print_stack_trace(CONTEXT* context) NO_EXCEPT
+{
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
 

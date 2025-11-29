@@ -15,7 +15,8 @@
  */
 
 inline
-void sort_introsort(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT {
+void sort_introsort(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT
+{
     size_t depth_limit = 0;
     for (size_t n = num; n > 0; n >>= 1) {
         ++depth_limit;
@@ -27,7 +28,8 @@ void sort_introsort(void* arr, size_t num, size_t size, SortCompareFunc compare)
 }
 
 inline
-void sort_quicksort(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT {
+void sort_quicksort(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT
+{
     quicksort(arr, size, 0, num - 1, compare);
 }
 
@@ -35,7 +37,8 @@ void sort_quicksort(void* arr, size_t num, size_t size, SortCompareFunc compare)
 #define sort_insertionsort insertionsort
 
 inline
-void sort_introsort_small(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT {
+void sort_introsort_small(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT
+{
     size_t depth_limit = 0;
     for (size_t n = num; n > 0; n >>= 1) {
         ++depth_limit;
@@ -47,7 +50,8 @@ void sort_introsort_small(void* arr, size_t num, size_t size, SortCompareFunc co
 }
 
 inline
-void sort_quicksort_small(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT {
+void sort_quicksort_small(void* arr, size_t num, size_t size, SortCompareFunc compare) NO_EXCEPT
+{
     quicksort_small(arr, size, 0, num - 1, compare);
 }
 
@@ -55,7 +59,8 @@ void sort_quicksort_small(void* arr, size_t num, size_t size, SortCompareFunc co
 #define sort_insertionsort_small insertionsort_small
 
 
-int32 sort_compare_int32(const void* __restrict a, const void* __restrict b) NO_EXCEPT {
+int32 sort_compare_int32(const void* __restrict a, const void* __restrict b) NO_EXCEPT
+{
     return (*(int32 *) a) - (*(int32 *) b);
 }
 

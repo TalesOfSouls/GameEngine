@@ -16,8 +16,9 @@
 #ifdef __ARM_FEATURE_SVE
     #include <arm_sve.h>
 
-    static
-    void sha1_transform(SHA1_CTX* ctx, const byte data[64], int32 steps) {
+    static inline
+    void sha1_transform(SHA1_CTX* ctx, const byte data[64], int32 steps) NO_EXCEPT
+{
         uint32 a, b, c, d, e, temp;
         alignas(64) uint32 w[80];
 
@@ -91,8 +92,9 @@
 #elif defined (__ARM_NEON)
     #include <arm_neon.h>
 
-    static
-    void sha1_transform(SHA1_CTX* ctx, const byte data[64], int32 steps) {
+    static inline
+    void sha1_transform(SHA1_CTX* ctx, const byte data[64], int32 steps) NO_EXCEPT
+{
         uint32 a, b, c, d, e, temp;
         alignas(64) uint32 w[80];
 

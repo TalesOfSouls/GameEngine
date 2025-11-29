@@ -153,7 +153,7 @@ void opengl_check_compile_errors(uint32 id, char* log) NO_EXCEPT
 
 // Only useful when creating shader files, not for optimizing shaders at runtime
 // This only optimizes the file size of the shader on the hard drive
-int32 opengl_program_optimize(const char* __restrict input, char* __restrict output)
+int32 opengl_program_optimize(const char* __restrict input, char* __restrict output) NO_EXCEPT
 {
     const char* read_ptr = input;
     char* write_ptr = output;
@@ -275,7 +275,8 @@ GLuint gpuapi_pipeline_make(
     GLuint vertex_shader,
     GLuint fragment_shader,
     GLint geometry_shader
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     PROFILE(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Create pipeline");
     GLuint program = glCreateProgram();
@@ -484,7 +485,8 @@ void gpuapi_attribute_info_create(GpuAttributeType type, OpenglVertexInputAttrib
 }
 
 FORCE_INLINE
-void gpuapi_descriptor_set_layout_create(Shader* __restrict shader, const OpenglDescriptorSetLayoutBinding* __restrict bindings, int32 binding_length) NO_EXCEPT {
+void gpuapi_descriptor_set_layout_create(Shader* __restrict shader, const OpenglDescriptorSetLayoutBinding* __restrict bindings, int32 binding_length) NO_EXCEPT
+{
     for (int32 i = 0; i < binding_length; ++i) {
         shader->descriptor_set_layout[i].binding = glGetUniformLocation(shader->id, bindings[i].name);
         shader->descriptor_set_layout[i].name = bindings[i].name;

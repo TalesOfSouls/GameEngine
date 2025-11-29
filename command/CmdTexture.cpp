@@ -10,7 +10,7 @@
 #define COMS_APP_COMMAND_TEXTURE_C
 
 static inline
-Asset* cmd_internal_texture_create(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
+Asset* cmd_internal_texture_create(AppCmdBuffer* __restrict cb, Command* __restrict cmd) NO_EXCEPT
 {
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
@@ -31,7 +31,7 @@ Asset* cmd_internal_texture_create(AppCmdBuffer* __restrict cb, Command* __restr
 }
 
 static inline
-Asset* cmd_texture_load_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
+Asset* cmd_texture_load_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd) NO_EXCEPT
 {
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
@@ -44,7 +44,8 @@ Asset* cmd_texture_load_async(AppCmdBuffer* __restrict cb, Command* __restrict c
 }
 
 inline
-void thrd_cmd_texture_load(AppCmdBuffer* cb, int32 data) {
+void thrd_cmd_texture_load(AppCmdBuffer* cb, int32 data) NO_EXCEPT
+{
     Command cmd;
     cmd.callback = NULL;
     cmd.type = CMD_TEXTURE_LOAD;
@@ -54,7 +55,8 @@ void thrd_cmd_texture_load(AppCmdBuffer* cb, int32 data) {
 }
 
 inline
-void thrd_cmd_texture_load(AppCmdBuffer* cb, const char* data) {
+void thrd_cmd_texture_load(AppCmdBuffer* cb, const char* data) NO_EXCEPT
+{
     Command cmd;
     cmd.callback = NULL;
     cmd.type = CMD_TEXTURE_LOAD;
@@ -64,8 +66,9 @@ void thrd_cmd_texture_load(AppCmdBuffer* cb, const char* data) {
 }
 
 inline
-Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
-    LOG_1("Load texture %d", {LOG_DATA_INT32, &asset_id});
+Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) NO_EXCEPT
+{
+    LOG_1("Load texture %d", {DATA_TYPE_INT32, &asset_id});
 
     // Check if asset already loaded
     char id_str[9];
@@ -97,8 +100,9 @@ Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
 }
 
 inline
-Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) {
-    LOG_1("Load texture %d", {LOG_DATA_CHAR_STR, (void *) name});
+Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) NO_EXCEPT
+{
+    LOG_1("Load texture %d", {DATA_TYPE_CHAR_STR, (void *) name});
     PROFILE(PROFILE_CMD_ASSET_LOAD_SYNC, name, PROFILE_FLAG_SHOULD_LOG);
 
     // Check if asset already loaded

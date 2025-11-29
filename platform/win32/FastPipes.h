@@ -19,7 +19,8 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-static int ENABLE_FAST_PIPES()
+static
+int32 fast_pipes_enable() NO_EXCEPT
 {
     int32 result = 0;
 

@@ -16,7 +16,7 @@
 #include "../../log/PerformanceProfiler.h"
 
 inline
-void usleep(uint64 microseconds)
+void usleep(uint64 microseconds) NO_EXCEPT
 {
     PROFILE(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
 
@@ -36,7 +36,8 @@ void usleep(uint64 microseconds)
 }
 
 inline
-uint64 system_time() {
+uint64 system_time() NO_EXCEPT
+{
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
 
@@ -49,7 +50,8 @@ uint64 system_time() {
 }
 
 inline
-uint64 system_time_utc() {
+uint64 system_time_utc() NO_EXCEPT
+{
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
 
@@ -58,7 +60,8 @@ uint64 system_time_utc() {
 
 // Used as initializer for 64bit random number generators instead of time()
 inline
-uint64 time_index() {
+uint64 time_index() NO_EXCEPT
+{
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
 
@@ -66,7 +69,8 @@ uint64 time_index() {
 }
 
 inline
-uint64 time_mu() {
+uint64 time_mu() NO_EXCEPT
+{
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
 

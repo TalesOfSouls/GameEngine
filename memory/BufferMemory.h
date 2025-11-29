@@ -19,24 +19,24 @@
 #include "../log/DebugMemory.h"
 #include "../system/Allocator.h"
 
-// @question Consider to use element_alignment to automatically align/pad elements
-
 struct BufferMemory {
     byte* memory;
     byte* end;
     byte* head;
 
-    uint64 size;
+    size_t size;
     int32 alignment;
     int32 element_alignment;
 };
 
 inline
-void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = sizeof(size_t))
+void buffer_alloc(BufferMemory* buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    ASSERT_TRUE(size);
     PROFILE(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("[INFO] Allocating BufferMemory: %n B", {LOG_DATA_UINT64, &size});
+    ASSERT_TRUE(size);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    LOG_1("[INFO] Allocating BufferMemory: %n B", {DATA_TYPE_UINT64, &size});
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)
@@ -54,7 +54,7 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = sizeof(size_
 }
 
 inline
-void buffer_free(BufferMemory* buf)
+void buffer_free(BufferMemory* buf) NO_EXCEPT
 {
     if (buf->alignment < 2) {
         platform_free((void **) &buf->memory);
@@ -64,9 +64,10 @@ void buffer_free(BufferMemory* buf)
 }
 
 inline
-void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = sizeof(size_t))
+void buffer_init(BufferMemory* buf, byte* data, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(size);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     // @bug what if an alignment is defined?
     buf->memory = data;
@@ -91,12 +92,12 @@ void buffer_reset(BufferMemory* buf) NO_EXCEPT
 }
 
 inline HOT_CODE
-byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4) NO_EXCEPT
+byte* buffer_get_memory(BufferMemory* buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(size <= buf->size);
 
-    buf->head = (byte *) OMS_ALIGN_UP((uintptr_t) buf->head, aligned);
-    size = OMS_ALIGN_UP(size, aligned);
+    buf->head = (byte *) OMS_ALIGN_UP((uintptr_t) buf->head, alignment);
+    size = OMS_ALIGN_UP(size, alignment);
 
     ASSERT_TRUE(buf->head + size <= buf->end);
 
@@ -111,7 +112,7 @@ byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4) NO_EX
 }
 
 inline
-int64 buffer_dump(const BufferMemory* buf, byte* data)
+int64 buffer_dump(const BufferMemory* buf, byte* data) NO_EXCEPT
 {
     byte* start = data;
 
@@ -142,7 +143,7 @@ int64 buffer_dump(const BufferMemory* buf, byte* data)
 }
 
 inline
-int64 buffer_load(BufferMemory* buf, const byte* data)
+int64 buffer_load(BufferMemory* buf, const byte* data) NO_EXCEPT
 {
     const byte* start = data;
 

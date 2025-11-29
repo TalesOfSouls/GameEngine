@@ -84,7 +84,7 @@ ControllerInput* xinput_init_controllers()
 }
 
 inline
-void input_map_xinput(ControllerInput* controller, int32 controller_id)
+void input_map_xinput(ControllerInput* controller, int32 controller_id) NO_EXCEPT
 {
     XINPUT_STATE controller_state;
     if (XInputGetState(controller_id, &controller_state) != ERROR_SUCCESS) {

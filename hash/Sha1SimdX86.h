@@ -13,8 +13,9 @@
 #include "../stdlib/Types.h"
 #include "Sha1Definitions.h"
 
-static
-void sha1_transform(SHA1_CTX* ctx, const byte data[64], int32 steps) {
+static inline
+void sha1_transform(SHA1_CTX* ctx, const byte data[64], int32 steps) NO_EXCEPT
+{
     uint32 a, b, c, d, e, temp;
     alignas(64) uint32 w[80];
 

@@ -15,129 +15,152 @@
 
 #include "AnimationEaseType.h"
 
-inline
-f32 lerp(f32 a, f32 b, f32 t)
+FORCE_INLINE
+f32 lerp(f32 a, f32 b, f32 t) NO_EXCEPT
 {
     return a + t * (b - a);
 }
 
-f32 smoothstep(f32 t) {
+FORCE_INLINE
+f32 smoothstep(f32 t) NO_EXCEPT
+{
     return t * t * (3 - 2 * t);
 }
-inline
-f32 anim_discrete(f32 t) {
+FORCE_INLINE
+f32 anim_discrete(f32 t) NO_EXCEPT
+{
     return t >= 1.0f ? 1.0f : 0.0f;
 }
 
-inline
-f32 anim_ease_linear(f32 t) {
+FORCE_INLINE
+f32 anim_ease_linear(f32 t) NO_EXCEPT
+{
     return t;
 }
 
-inline
-f32 anim_ease_in_sine(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_sine(f32 t) NO_EXCEPT
+{
     return 1.0f - cosf((t * OMS_PI_F32) / 2.0f);
 }
 
-inline
-f32 anim_ease_out_sine(f32 t) {
+FORCE_INLINE
+f32 anim_ease_out_sine(f32 t) NO_EXCEPT
+{
     return sinf((t * OMS_PI_F32) / 2.0f);
 }
 
-inline
-f32 anim_ease_in_out_sine(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_out_sine(f32 t) NO_EXCEPT
+{
     return -(cosf(OMS_PI_F32 * t) - 1) / 2.0f;
 }
 
-inline
-f32 anim_ease_in_quad(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_quad(f32 t) NO_EXCEPT
+{
     return t * t;
 }
 
-inline
-f32 anim_ease_out_quad(f32 t) {
+FORCE_INLINE
+f32 anim_ease_out_quad(f32 t) NO_EXCEPT
+{
     return 1.0f - (1.0f - t) * (1.0f - t);
 }
 
-inline
-f32 anim_ease_in_out_quad(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_out_quad(f32 t) NO_EXCEPT
+{
     return t < 0.5f
         ? 2 * t * t
         : 1.0f - powf(-2 * t + 2, 2) / 2.0f;
 }
 
-inline
-f32 anim_ease_in_cubic(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_cubic(f32 t) NO_EXCEPT
+{
     return t * t * t;
 }
 
-inline
-f32 anim_ease_out_cubic(f32 t) {
+FORCE_INLINE
+f32 anim_ease_out_cubic(f32 t) NO_EXCEPT
+{
     return 1.0f - powf(1.0f - t, 3);
 }
 
-inline
-f32 anim_ease_in_out_cubic(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_out_cubic(f32 t) NO_EXCEPT
+{
     return t < 0.5f
         ? 4 * t * t * t
         : 1.0f - powf(-2 * t + 2, 3) / 2.0f;
 }
 
-inline
-f32 anim_ease_in_quart(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_quart(f32 t) NO_EXCEPT
+{
     return t * t * t * t;
 }
 
-inline
-f32 anim_ease_out_quart(f32 t) {
+FORCE_INLINE
+f32 anim_ease_out_quart(f32 t) NO_EXCEPT
+{
     return 1.0f - powf(1.0f - t, 4);
 }
 
-inline
-f32 anim_ease_in_perlin(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_perlin(f32 t) NO_EXCEPT
+{
     return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
-inline
-f32 anim_ease_in_out_quart(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_out_quart(f32 t) NO_EXCEPT
+{
     return t < 0.5f
         ? 8 * t * t * t * t
         : 1.0f - powf(-2 * t + 2, 4) / 2.0f;
 }
 
-inline
-f32 anim_ease_in_quint(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_quint(f32 t) NO_EXCEPT
+{
     return t * t * t * t * t;
 }
 
-inline
-f32 anim_ease_out_quint(f32 t) {
+FORCE_INLINE
+f32 anim_ease_out_quint(f32 t) NO_EXCEPT
+{
     return 1.0f - powf(1.0f - t, 5);
 }
 
-inline
-f32 anim_ease_in_out_quint(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_out_quint(f32 t) NO_EXCEPT
+{
     return t < 0.5f
         ? 16 * t * t * t * t * t
         : 1.0f - powf(-2 * t + 2, 5) / 2.0f;
 }
 
-inline
-f32 anim_ease_in_expo(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_expo(f32 t) NO_EXCEPT
+{
     return t == 0.0f
         ? 0.0f
         : powf(2, 10 * t - 10);
 }
 
-inline
-f32 anim_ease_out_expo(f32 t) {
+FORCE_INLINE
+f32 anim_ease_out_expo(f32 t) NO_EXCEPT
+{
     return t == 1.0f
         ? 1.0f
         : 1.0f - powf(2, -10 * t);
 }
 
-inline
-f32 anim_ease_in_out_expo(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_out_expo(f32 t) NO_EXCEPT
+{
     if (t == 0.0f || t == 1.0f) {
         return t;
     }
@@ -147,41 +170,47 @@ f32 anim_ease_in_out_expo(f32 t) {
         : (2 - powf(2, -20 * t + 10)) / 2.0f;
 }
 
-inline
-f32 anim_ease_in_circ(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_circ(f32 t) NO_EXCEPT
+{
     return 1.0f - intrin_sqrt_f32(1.0f - powf(t, 2));
 }
 
-inline
-f32 anim_ease_out_circ(f32 t) {
+FORCE_INLINE
+f32 anim_ease_out_circ(f32 t) NO_EXCEPT
+{
     return intrin_sqrt_f32(1.0f - powf(t - 1, 2));
 }
 
-inline
-f32 anim_ease_in_out_circ(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_out_circ(f32 t) NO_EXCEPT
+{
     return t < 0.5f
         ? (1.0f - intrin_sqrt_f32(1.0f - powf(2 * t, 2))) / 2.0f
         : (intrin_sqrt_f32(1.0f - powf(-2 * t + 2, 2)) + 1) / 2.0f;
 }
 
-inline
-f32 anim_ease_in_back(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_back(f32 t) NO_EXCEPT
+{
     const f32 c1 = 1.70158f;
     const f32 c3 = c1 + 1.0f;
 
     return c3 * t * t * t - c1 * t * t;
 }
 
-inline
-f32 anim_ease_out_back(f32 t) {
+FORCE_INLINE
+f32 anim_ease_out_back(f32 t) NO_EXCEPT
+{
     const f32 c1 = 1.70158f;
     const f32 c3 = c1 + 1.0f;
 
     return 1 + c3 * powf(t - 1, 3) + c1 * powf(t - 1, 2);
 }
 
-inline
-f32 anim_ease_in_out_back(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_out_back(f32 t) NO_EXCEPT
+{
     const f32 c1 = 1.70158f;
     const f32 c2 = c1 * 1.525f;
 
@@ -190,8 +219,9 @@ f32 anim_ease_in_out_back(f32 t) {
         : (powf(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2.0f;
 }
 
-inline
-f32 anim_ease_in_elastic(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_elastic(f32 t) NO_EXCEPT
+{
     const f32 c4 = OMS_TWO_PI_F32 / 3;
 
     if (t == 0.0f || t == 1.0f) {
@@ -201,8 +231,9 @@ f32 anim_ease_in_elastic(f32 t) {
     return -powf(2, 10 * t - 10) * sinf((t * 10 - 10.75f) * c4);
 }
 
-inline
-f32 anim_ease_out_elastic(f32 t) {
+FORCE_INLINE
+f32 anim_ease_out_elastic(f32 t) NO_EXCEPT
+{
     const f32 c4 = OMS_TWO_PI_F32 / 3;
 
     if (t == 0.0f || t == 1.0f) {
@@ -212,8 +243,9 @@ f32 anim_ease_out_elastic(f32 t) {
     return powf(2, -10 * t) * sinf((t * 10 - 0.75f) * c4) + 1;
 }
 
-inline
-f32 anim_ease_in_out_elastic(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_out_elastic(f32 t) NO_EXCEPT
+{
     const f32 c5 = OMS_TWO_PI_F32 / 4.5f;
 
     if (t == 0.0f || t == 1.0f) {
@@ -225,8 +257,9 @@ f32 anim_ease_in_out_elastic(f32 t) {
     return (powf(2, -20 * t + 10) * sinf((20 * t - 11.125f) * c5)) / 2.0f + 1.0f;
 }
 
-inline
-f32 anim_ease_out_bounce(f32 t) {
+FORCE_INLINE
+f32 anim_ease_out_bounce(f32 t) NO_EXCEPT
+{
     const f32 n1 = 7.5625f;
     const f32 d1 = 2.75f;
 
@@ -241,19 +274,22 @@ f32 anim_ease_out_bounce(f32 t) {
     return n1 * (t -= 2.625f / d1) * t + 0.984375f;
 }
 
-inline
-f32 anim_ease_in_bounce(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_bounce(f32 t) NO_EXCEPT
+{
     return 1.0f - anim_ease_out_bounce(1.0f - t);
 }
 
-inline
-f32 anim_ease_in_out_bounce(f32 t) {
+FORCE_INLINE
+f32 anim_ease_in_out_bounce(f32 t) NO_EXCEPT
+{
     return t < 0.5f
         ? (1.0f - anim_ease_out_bounce(1.0f - 2.0f * t)) / 2.0f
         : (1.0f + anim_ease_out_bounce(2.0f * t - 1.0f)) / 2.0f;
 }
 
-f32 anim_ease(f32 t, AnimationEaseType type) {
+f32 anim_ease(f32 t, AnimationEaseType type) NO_EXCEPT
+{
     switch(type) {
         case ANIMATION_EASE_DISCRETE: {
                 return anim_discrete(t);

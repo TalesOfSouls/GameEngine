@@ -69,7 +69,7 @@ void pool_alloc(DataPool* buf, uint32 count, uint32 chunk_size, int32 alignment 
 
     memset(buf->memory, 0, buf->size);
 
-    LOG_1("Allocated DataPool: %n B", {LOG_DATA_UINT64, &buf->size});
+    LOG_1("Allocated DataPool: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
 
 inline

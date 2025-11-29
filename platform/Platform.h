@@ -22,17 +22,20 @@
     #define OMS_CLAMP(val, low, high) OMS_CLAMP_BRANCHLESS(val, low, high)
 
     template <typename T>
-    inline T oms_max(T a, T b) {
+    inline T oms_max(T a, T b) NO_EXCEPT
+{
         return max_branchless(a, b);
     }
 
     template <typename T>
-    inline T oms_min(T a, T b) {
+    inline T oms_min(T a, T b) NO_EXCEPT
+{
         return min_branchless(a, b);
     }
 
     template <typename T>
-    inline T oms_clamp(T val, T low, T high) {
+    inline T oms_clamp(T val, T low, T high) NO_EXCEPT
+{
         return clamp_branchless(val, low, high);
     }
 #endif

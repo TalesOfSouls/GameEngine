@@ -17,7 +17,7 @@
 
 // @question Shouldn't this function and the next one accept a parameter of what to add/remove?
 FORCE_INLINE
-void window_remove_style(Window* w)
+void window_remove_style(Window* w) NO_EXCEPT
 {
     LONG_PTR style = GetWindowLongPtrA(w->hwnd, GWL_STYLE);
     style &= ~WS_OVERLAPPEDWINDOW;
@@ -25,7 +25,7 @@ void window_remove_style(Window* w)
 }
 
 FORCE_INLINE
-void window_add_style(Window* w)
+void window_add_style(Window* w) NO_EXCEPT
 {
     LONG_PTR style = GetWindowLongPtrA(w->hwnd, GWL_STYLE);
     style |= WS_OVERLAPPEDWINDOW;
@@ -33,21 +33,21 @@ void window_add_style(Window* w)
 }
 
 FORCE_INLINE
-void monitor_resolution(const Window* __restrict w, v2_int32* __restrict resolution)
+void monitor_resolution(const Window* __restrict w, v2_int32* __restrict resolution) NO_EXCEPT
 {
     resolution->width = GetDeviceCaps(w->hdc, HORZRES);
     resolution->height = GetDeviceCaps(w->hdc, VERTRES);
 }
 
 FORCE_INLINE
-void monitor_resolution(Window* w)
+void monitor_resolution(Window* w) NO_EXCEPT
 {
     w->width = (uint16) GetDeviceCaps(w->hdc, HORZRES);
     w->height = (uint16) GetDeviceCaps(w->hdc, VERTRES);
 }
 
 FORCE_INLINE
-void window_resolution(Window* w)
+void window_resolution(Window* w) NO_EXCEPT
 {
     RECT rect;
     GetClientRect(w->hwnd, &rect);
@@ -65,7 +65,7 @@ void window_resolution(Window* w)
 }
 
 inline
-void window_fullscreen(Window* w)
+void window_fullscreen(Window* w) NO_EXCEPT
 {
     monitor_resolution(w);
     w->x = 0;
@@ -76,7 +76,7 @@ void window_fullscreen(Window* w)
 }
 
 inline
-void window_restore(Window* w)
+void window_restore(Window* w) NO_EXCEPT
 {
     window_restore_state(w);
 
@@ -89,7 +89,7 @@ void window_restore(Window* w)
     );
 }
 
-void window_create(Window* __restrict window, void* __restrict proc)
+void window_create(Window* __restrict window, void* __restrict proc) NO_EXCEPT
 {
     ASSERT_TRUE(proc);
 
@@ -143,7 +143,7 @@ void window_create(Window* __restrict window, void* __restrict proc)
 }
 
 inline
-void window_open(Window* window)
+void window_open(Window* window) NO_EXCEPT
 {
     ShowWindow(window->hwnd, SW_SHOW);
     SetForegroundWindow(window->hwnd);
@@ -154,13 +154,14 @@ void window_open(Window* window)
 }
 
 inline
-void window_close(Window* window)
+void window_close(Window* window) NO_EXCEPT
 {
     CloseWindow(window->hwnd);
     DestroyWindow(window->hwnd);
 }
 
-HBITMAP CreateBitmapFromRGBA(HDC __restrict hdc, const byte* __restrict rgba, int32 width, int32 height) {
+HBITMAP CreateBitmapFromRGBA(HDC __restrict hdc, const byte* __restrict rgba, int32 width, int32 height) NO_EXCEPT
+{
     BITMAPINFO bmi = {};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bmi.bmiHeader.biWidth = width;

@@ -69,8 +69,8 @@ void template_cache_alloc(
     LOG_1(
         "Created template cache for %n templates with %n B in uncompressed file size",
         {
-            {LOG_DATA_INT32, &path_count},
-            {LOG_DATA_INT32, &total_file_size}
+            {DATA_TYPE_INT32, &path_count},
+            {DATA_TYPE_INT32, &total_file_size}
         }
     );
 }

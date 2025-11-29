@@ -111,7 +111,8 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, XAudio2Setting* __r
 }
 
 inline
-void audio_play(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) {
+void audio_play(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
+{
     ASSERT_TRUE(api_setting->source_voice);
     /*if (!api_setting->source_voice) {
         return;
@@ -121,7 +122,8 @@ void audio_play(AudioSetting* __restrict setting, XAudio2Setting* __restrict api
 }
 
 inline
-void audio_stop(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) {
+void audio_stop(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
+{
     ASSERT_TRUE(api_setting->source_voice);
     /*if (!api_setting->source_voice) {
         return;
@@ -131,7 +133,7 @@ void audio_stop(AudioSetting* __restrict setting, XAudio2Setting* __restrict api
 }
 
 inline
-void audio_free(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting)
+void audio_free(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
     if (api_setting->source_voice) {
         api_setting->source_voice->DestroyVoice();
@@ -161,7 +163,7 @@ void audio_free(AudioSetting* __restrict setting, XAudio2Setting* __restrict api
  * For other audio APIs we maybe have to do something else
  */
 inline
-uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const XAudio2Setting* __restrict api_setting)
+uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
     if (!api_setting->source_voice) {
@@ -178,7 +180,8 @@ uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const XAudi
 }
 
 inline
-void audio_play_buffer(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) {
+void audio_play_buffer(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
+{
     PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
 
     if (!api_setting->source_voice || setting->sample_buffer_size == 0) {

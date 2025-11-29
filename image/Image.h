@@ -22,6 +22,7 @@
 //      order_pixels defines how the pixels should be ordered
 //      order_rows defines how the rows should be ordered
 // @question Do we really ever need int32 for width/height?
+//          The problem is, even if we do that the struct size would be the same because of image_settings
 struct Image {
     uint32 width;
     uint32 height;

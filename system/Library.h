@@ -34,4 +34,17 @@ struct Library {
     void** functions;
 };
 
+struct LibraryModuleDescriptor {
+    const char* name;
+
+    const char* const* function_names;
+    int32 function_count;
+    void* functions;
+
+    // A callback to run after binding
+    void (*load)(DebugContainer);
+};
+
+#define LIBRARY_MODULE_DESCRIPTOR_SYMBOL "LIBRARY_MODULE_DESCRIPTOR"
+
 #endif

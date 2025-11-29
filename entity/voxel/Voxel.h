@@ -61,7 +61,8 @@ struct VoxelMaskCell {
 
 // @todo Move to Voxel type enum
 FORCE_INLINE
-bool voxel_is_solid(int32 type) NO_EXCEPT {
+bool voxel_is_solid(int32 type) NO_EXCEPT
+{
     return type != 0;
 }
 
@@ -124,7 +125,8 @@ struct VoxelChunk {
 };
 
 FORCE_INLINE
-VoxelChunk voxel_chunk_create(int32 x, int32 y, int32 z) NO_EXCEPT {
+VoxelChunk voxel_chunk_create(int32 x, int32 y, int32 z) NO_EXCEPT
+{
     VoxelChunk chunk = {};
     chunk.coord = {x, y, z};
     chunk.bounds.min = {x * VOXEL_CHUNK_SIZE, y * VOXEL_CHUNK_SIZE, z * VOXEL_CHUNK_SIZE};
@@ -138,7 +140,8 @@ VoxelChunk voxel_chunk_create(int32 x, int32 y, int32 z) NO_EXCEPT {
 // 2. Then check height coordinate (move an entire row)
 // 3. Lastly check width coordinate (move individual voxels)
 static FORCE_INLINE
-int32 voxel_index_get(int32 x, int32 y, int32 z) NO_EXCEPT {
+int32 voxel_index_get(int32 x, int32 y, int32 z) NO_EXCEPT
+{
     return x + VOXEL_CHUNK_SIZE * (y + VOXEL_CHUNK_SIZE * z);
 }
 
@@ -175,7 +178,8 @@ void voxel_chunk_vertex_push(
     v3_f32 coord,
     v3_byte normal,
     const VoxelFace* __restrict face
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     // We currently don't support growing chunks
     ASSERT_TRUE(chunk->mesh.num_vertices <= VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE * 3);
 
@@ -195,7 +199,8 @@ inline
 void voxel_chunk_quad_push(
     VoxelChunk* chunk,
     uint32 v0, uint32 v1, uint32 v2, uint32 v3
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     ASSERT_TRUE(chunk->mesh.num_indices <= chunk->mesh.cap_indices);
 
     chunk->mesh.indices[chunk->mesh.num_indices + 0] = v0;

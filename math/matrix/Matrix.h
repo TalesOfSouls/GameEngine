@@ -153,14 +153,16 @@ void vec2_mul(T* vec, const T* b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec2_fma(T* __restrict vec, const T* a, const T* b, f32 scalar) NO_EXCEPT {
+void vec2_fma(T* __restrict vec, const T* a, const T* b, f32 scalar) NO_EXCEPT
+{
     vec->x = a->x + b->x * scalar;
     vec->y = a->y + b->y * scalar;
 }
 
 template<typename T>
 FORCE_INLINE
-T vec2_fma(T a, T b, f32 scalar) NO_EXCEPT {
+T vec2_fma(T a, T b, f32 scalar) NO_EXCEPT
+{
     return {a.x + b.x * scalar, a.y + b.y * scalar};
 }
 
@@ -365,7 +367,8 @@ void vec3_mul(T* vec, const T* b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_fma(T* __restrict vec, const T* a, const T* b, f32 scalar) NO_EXCEPT {
+void vec3_fma(T* __restrict vec, const T* a, const T* b, f32 scalar) NO_EXCEPT
+{
     vec->x = a->x + b->x * scalar;
     vec->y = a->y + b->y * scalar;
     vec->z = a->z + b->z * scalar;
@@ -373,7 +376,8 @@ void vec3_fma(T* __restrict vec, const T* a, const T* b, f32 scalar) NO_EXCEPT {
 
 template<typename T>
 FORCE_INLINE
-T vec3_fma(T a, T b, f32 scalar) NO_EXCEPT {
+T vec3_fma(T a, T b, f32 scalar) NO_EXCEPT
+{
     return {a.x + b.x * scalar, a.x + b.x * scalar, a.x + b.x * scalar};
 }
 
@@ -797,13 +801,48 @@ void mat4vec4_mult(
                 _mm_cvtss_f32(_mm_dp_ps(row0, vec, 0xF1))  // row0 · vec
             );
 
-            _mm_storeu_ps(result, res);
+            _mm_store_ps(result, res);
         } else {
     #else
         result[0] = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2] + matrix[3] * vector[3];
         result[1] = matrix[4] * vector[0] + matrix[5] * vector[1] + matrix[6] * vector[2] + matrix[7] * vector[3];
         result[2] = matrix[8] * vector[0] + matrix[9] * vector[1] + matrix[10] * vector[2] + matrix[11] * vector[3];
         result[3] = matrix[12] * vector[0] + matrix[13] * vector[1] + matrix[14] * vector[2] + matrix[15] * vector[3];
+
+        PSEUDO_USE(steps);
+    #endif
+    #if defined(__SSE4_2__)
+        }
+    #endif
+}
+
+FORCE_INLINE
+void mat4vec4_mult(
+    const v16_f32* __restrict matrix,
+    const f32* __restrict vector,
+    f32* __restrict result,
+    MAYBE_UNUSED int32 steps = 4
+) NO_EXCEPT
+{
+    #if defined(__SSE4_2__)
+        if (steps >= 4) {
+            __m128 vec = _mm_load_ps(vector);
+
+            // Multiply and horizontal add (dot product)
+            __m128 res = _mm_set_ps(
+                _mm_cvtss_f32(_mm_dp_ps(matrix->s_16[3], vec, 0xF1)), // row3 · vec
+                _mm_cvtss_f32(_mm_dp_ps(matrix->s_16[2], vec, 0xF1)), // row2 · vec
+                _mm_cvtss_f32(_mm_dp_ps(matrix->s_16[1], vec, 0xF1)), // row1 · vec
+                _mm_cvtss_f32(_mm_dp_ps(matrix->s_16[0], vec, 0xF1))  // row0 · vec
+            );
+
+            _mm_store_ps(result, res);
+        } else {
+    #else
+        result[0] = matrix->vec[0] * vector[0] + matrix->vec[1] * vector[1] + matrix->vec[2] * vector[2] + matrix->vec[3] * vector[3];
+        result[1] = matrix->vec[4] * vector[0] + matrix->vec[5] * vector[1] + matrix->vec[6] * vector[2] + matrix->vec[7] * vector[3];
+        result[2] = matrix->vec[8] * vector[0] + matrix->vec[9] * vector[1] + matrix->vec[10] * vector[2] + matrix->vec[11] * vector[3];
+        result[3] = matrix->vec[12] * vector[0] + matrix->vec[13] * vector[1] + matrix->vec[14] * vector[2] + matrix->vec[15] * vector[3];
 
         PSEUDO_USE(steps);
     #endif
@@ -1024,7 +1063,7 @@ void mat4vec4_mult_sse(const f32* __restrict matrix, const f32* __restrict vecto
         _mm_cvtss_f32(_mm_dp_ps(row0, vec, 0xF1))  // row0 · vec
     );
 
-    _mm_storeu_ps(result, res);
+    _mm_store_ps(result, res);
 }
 
 // @question could simple mul add sse be faster?
@@ -1094,7 +1133,8 @@ void mat4_frustum_sparse_rh(
     f32 matrix[16],
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
- ) NO_EXCEPT {
+ ) NO_EXCEPT
+{
     f32 temp = 2.0f * znear;
     f32 rl_delta = right - left;
     f32 tb_delta = top - bottom;
@@ -1126,7 +1166,8 @@ void mat4_frustum_sparse_lh(
     f32 matrix[16],
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
- ) NO_EXCEPT {
+ ) NO_EXCEPT
+{
     f32 temp = 2.0f * znear;
     f32 rl_delta = right - left;
     f32 tb_delta = top - bottom;
@@ -1158,7 +1199,8 @@ FORCE_INLINE
 void mat4_perspective_sparse_lh(
     f32 matrix[16], f32 fov, f32 aspect,
     f32 znear, f32 zfar
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     ASSERT_TRUE(znear > 0.0f);
 
     f32 ymax, xmax;
@@ -1172,7 +1214,8 @@ FORCE_INLINE
 void mat4_perspective_sparse_rh(
     f32 matrix[16], f32 fov, f32 aspect,
     f32 znear, f32 zfar
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     ASSERT_TRUE(znear > 0.0f);
 
     f32 ymax, xmax;
@@ -1187,7 +1230,8 @@ void mat4_ortho_sparse_lh(
     f32 matrix[16],
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     f32 rl_delta = right - left;
     f32 tb_delta = top - bottom;
     f32 fn_delta = zfar - znear;
@@ -1218,7 +1262,8 @@ void mat4_ortho_sparse_rh_opengl(
     f32 matrix[16],
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     f32 rl_delta = right - left;
     f32 tb_delta = top - bottom;
     f32 fn_delta = zfar - znear;
@@ -1245,11 +1290,44 @@ void mat4_ortho_sparse_rh_opengl(
 }
 
 FORCE_INLINE
+void mat4_ortho_sparse_rh_software(
+    f32 matrix[16],
+    f32 left, f32 right, f32 bottom, f32 top,
+    f32 znear, f32 zfar
+) NO_EXCEPT
+{
+    f32 rl_delta = right - left;
+    f32 tb_delta = top - bottom;
+    f32 fn_delta = zfar - znear;
+
+    matrix[0] = 2.0f / rl_delta;
+    //matrix[1] = 0.0f;
+    //matrix[2] = 0.0f;
+    //matrix[3] = 0.0f;
+
+    //matrix[4] = 0.0f;
+    matrix[5] = 2.0f / tb_delta;
+    //matrix[6] = 0.0f;
+    //matrix[7] = 0.0f;
+
+    //matrix[8] = 0.0f;
+    //matrix[9] = 0.0f;
+    matrix[10] = -2.0f / fn_delta;
+    //matrix[11] = 0.0f;
+
+    matrix[12] = -(right + left) / rl_delta;
+    matrix[13] = -(top + bottom) / tb_delta;
+    matrix[14] = -(zfar + znear) / fn_delta;
+    matrix[15] = 1.0f;
+}
+
+FORCE_INLINE
 void mat4_ortho_sparse_rh_vulkan(
     f32 matrix[16],
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     f32 rl_delta = right - left;
     f32 tb_delta = top - bottom;
     f32 fn_delta = zfar - znear;
@@ -1413,7 +1491,8 @@ inline
 void vec3_normal(
     v3_f32* __restrict normal,
     const v3_f32* __restrict a, const v3_f32* __restrict b, const v3_f32* __restrict c
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     v3_f32 edge1;
     v3_f32 edge2;
 
@@ -1433,7 +1512,8 @@ void vec3_normal(
 inline
 v3_f32 vec3_normal(
     v3_f32 a, v3_f32 b, v3_f32 c
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     v3_f32 edge1;
     v3_f32 edge2;
 
@@ -1456,7 +1536,8 @@ FORCE_INLINE
 void vec3_barycenter(
     v3_f32* __restrict barycenter,
     const v3_f32* __restrict a, const v3_f32* __restrict b, const v3_f32* __restrict c
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     barycenter->x = (a->x + b->x + c->x) / 3.0f;
     barycenter->y = (a->y + b->y + c->y) / 3.0f;
     barycenter->z = (a->z + b->z + c->z) / 3.0f;
@@ -1465,7 +1546,8 @@ void vec3_barycenter(
 FORCE_INLINE
 v3_f32 vec3_barycenter(
     v3_f32 a, v3_f32 b, v3_f32 c
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     return {
         (a.x + b.x + c.x) / 3.0f,
         (a.y + b.y + c.y) / 3.0f,
@@ -1524,7 +1606,8 @@ v16_f32 mat4_load(const f32 a[16], MAYBE_UNUSED int32 steps = 4) {
             result.s_16[3] = _mm_load_ps(&a[12]);
         } else {
     #else
-        result.ref = a;
+        memcpy(result.vec, a, sizeof(f32) * 16);
+        //result.ref = a;
         PSEUDO_USE(steps);
     #endif
 
