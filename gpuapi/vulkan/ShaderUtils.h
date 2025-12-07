@@ -401,7 +401,7 @@ void vulkan_descriptor_sets_create(
     VkImageView texture_image_view, VkSampler& texture_sampler,
     VkBuffer* __restrict uniform_buffers,
     size_t uniform_buffer_object_size,
-    int32 frames_in_flight, RingMemory* ring
+    int32 frames_in_flight, RingMemory* const ring
 )
 {
     VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout *) ring_get_memory(ring, sizeof(VkDescriptorSetLayout) * frames_in_flight, 64);

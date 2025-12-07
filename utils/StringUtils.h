@@ -27,7 +27,7 @@ size_t str_length_CONSTEXPR(const char* str) NO_EXCEPT
 }
 
 inline
-size_t str_length(const char* str) NO_EXCEPT
+size_t str_length(const char* const str) NO_EXCEPT
 {
     const char* ptr = str;
 
@@ -39,7 +39,7 @@ size_t str_length(const char* str) NO_EXCEPT
         ++ptr;
     }
 
-    const size_t* longword_ptr = (const size_t *)ptr;
+    const size_t* longword_ptr = (const size_t *) ptr;
 
     while (true) {
         const size_t v = *longword_ptr;
@@ -59,7 +59,7 @@ size_t str_length(const char* str) NO_EXCEPT
 
 // WARNING: We need this function because the other function relies on none-CONSTEXPR performance features
 inline CONSTEXPR
-const char* str_find_CONSTEXPR(const char* __restrict str, const char* __restrict needle) NO_EXCEPT
+const char* str_find_CONSTEXPR(const char* const __restrict str, const char* const __restrict needle) NO_EXCEPT
 {
     const size_t needle_len = str_length_CONSTEXPR(needle);
     const size_t limit = str_length_CONSTEXPR(str) - needle_len + 1;
@@ -1934,6 +1934,17 @@ void str_move_to_pos(const char** str, int32 pos) NO_EXCEPT
         : OMS_MAX(((int32) str_length(*str) + pos), 0);
 }
 
+// Negative pos counts backwards
+FORCE_INLINE
+const char* str_move_to_pos(const char* str, int32 pos) NO_EXCEPT
+{
+    return str + (
+        pos >= 0
+            ? pos
+            : OMS_MAX(((int32) str_length(str) + pos), 0)
+        );
+}
+
 inline
 void str_move_past(const char* __restrict* __restrict str, char delim) NO_EXCEPT
 {
@@ -2296,7 +2307,7 @@ int32 sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) 
     va_list args;
     va_start(args, format);
 
-    const char* start = buffer;
+    const char* const start = buffer;
 
     while (*format) {
         if (*format == '\\' && format[1] == '%') {
@@ -2318,19 +2329,19 @@ int32 sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) 
                     *buffer++ = (char) va_arg(args, int32);
                 } break;
                 case 'n': {
-                    int64 val = va_arg(args, int64);
+                    const int64 val = va_arg(args, int64);
                     buffer += int_to_str(val, buffer, ',');
                 } break;
                 case 'd': {
-                    int32 val = va_arg(args, int32);
+                    const int32 val = va_arg(args, int32);
                     buffer += int_to_str(val, buffer);
                 } break;
                 case 'l': {
-                    int64 val = va_arg(args, int64);
+                    const int64 val = va_arg(args, int64);
                     buffer += int_to_str(val, buffer);
                 } break;
                 case 'f': {
-                    f64 val = va_arg(args, f64);
+                    const f64 val = va_arg(args, f64);
 
                     // Default precision
                     int32 precision = 5;
@@ -2350,7 +2361,7 @@ int32 sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) 
                     buffer += float_to_str(val, buffer, precision);
                 } break;
                 case 'T': {
-                    int64 time = va_arg(args, int64);
+                    const int64 time = va_arg(args, int64);
                     format_time_hh_mm_ss(buffer, time);
                     buffer += 8;
                 } break;
@@ -2402,7 +2413,7 @@ void sprintf_fast_s(char* __restrict buffer, size_t length, const char* __restri
                 } break;
                 case 'n': {
                     const int64 val = va_arg(args, int64);
-                    int32 len = int_length(val);
+                    const int32 len = int_length(val);
                     if (remainder < len + len / 3 + 1) {
                         break;
                     }
@@ -2678,11 +2689,11 @@ bool sscanf_fast(const char *input, const char *format, ...) NO_EXCEPT
             switch (*f) {
                 case 'd':
                 case 'l': {
-                    int64* dst = va_arg(ap, int64*);
+                    int64* const dst = va_arg(ap, int64*);
                     *dst = str_to_int(p, &p);
                 } break;
                 case 'f': {
-                    f32* dst = va_arg(ap, f32*);
+                    f32* const dst = va_arg(ap, f32*);
                     *dst = str_to_float(p, &p);
                 } break;
                 case 's': {
@@ -2694,7 +2705,7 @@ bool sscanf_fast(const char *input, const char *format, ...) NO_EXCEPT
                     // _ = supports whitespace -> this means we need to check what the end delim/char is
                     // alphanum with whitespace ending with: %sa_:
                     // WARNING: The output parameter needs to be followed by a size_t containing the buffer length for the output string
-                    char* buf = va_arg(ap, char *);
+                    char* const buf = va_arg(ap, char *);
                     const size_t sz = va_arg(ap, size_t);
 
                     size_t i = 0;
@@ -2749,7 +2760,7 @@ bool sscanf_fast(const char *input, const char *format, ...) NO_EXCEPT
                     }
                 } break;
                 case 'c': {
-                    char* dst = va_arg(ap, char*);
+                    char* const dst = va_arg(ap, char*);
                     *dst = *p;
                 } break;
                 case '%': {

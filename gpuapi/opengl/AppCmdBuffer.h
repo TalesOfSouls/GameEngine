@@ -23,7 +23,7 @@ void* cmd_shader_load(AppCmdBuffer*, Command*) NO_EXCEPT
     return NULL;
 }
 
-void* cmd_shader_load_sync(AppCmdBuffer* __restrict cb, Shader* __restrict shader, const int32* __restrict shader_ids) NO_EXCEPT
+void* cmd_shader_load_sync(AppCmdBuffer* const __restrict cb, Shader* const __restrict shader, const int32* __restrict shader_ids) NO_EXCEPT
 {
     PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
     char asset_id[9];

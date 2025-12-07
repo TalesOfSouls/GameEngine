@@ -20,14 +20,14 @@
 // Used for initialization and resize
 inline
 void soft_renderer_update(
-    SoftwareRenderer* __restrict renderer,
+    SoftwareRenderer* const __restrict renderer,
     const Window* __restrict w,
     size_t vram
 ) NO_EXCEPT
 {
-    if ((renderer->dimension.width == w->width
-        && renderer->dimension.height == w->height)
-        || w->width == 0 || w->height == 0
+    if ((renderer->dimension.width == w->physical_width
+        && renderer->dimension.height == w->physical_height)
+        || w->physical_width == 0 || w->physical_height == 0
     ) {
         return;
     }
@@ -54,8 +54,8 @@ void soft_renderer_update(
     }
     */
 
-    renderer->dimension.width = w->width;
-    renderer->dimension.height = w->height;
+    renderer->dimension.width = w->physical_width;
+    renderer->dimension.height = w->physical_height;
 
     renderer->platform.hwnd = w->hwnd;
 
@@ -96,7 +96,7 @@ void soft_renderer_update(
 }
 
 inline
-void soft_buffer_swap(SoftwareRenderer* __restrict renderer) NO_EXCEPT
+void soft_buffer_swap(SoftwareRenderer* const __restrict renderer) NO_EXCEPT
 {
     // This is comparable with SwapBuffer()
     BitBlt(

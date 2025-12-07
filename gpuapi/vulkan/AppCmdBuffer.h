@@ -22,7 +22,7 @@ void* cmd_shader_load(AppCmdBuffer*, Command*) {
 }
 
 void* cmd_shader_load_sync(
-    AppCmdBuffer* __restrict cb, Shader* __restrict shader, const int32* __restrict shader_ids,
+    AppCmdBuffer* const __restrict cb, Shader* const __restrict shader, const int32* __restrict shader_ids,
     VkDevice device, VkRenderPass render_pass, VkPipelineLayout* __restrict pipeline_layout, VkPipeline* __restrict pipeline,
     VkDescriptorSetLayout* __restrict descriptor_set_layouts
 ) {

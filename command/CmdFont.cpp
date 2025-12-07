@@ -10,9 +10,9 @@
 #define COMS_APP_COMMAND_FONT_C
 
 static inline
-Asset* cmd_internal_font_create(AppCmdBuffer* __restrict cb, Command* __restrict cmd) NO_EXCEPT
+Asset* cmd_internal_font_create(AppCmdBuffer* const __restrict cb, Command* const __restrict cmd) NO_EXCEPT
 {
-    Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
+    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
         return asset;
     }
@@ -29,9 +29,9 @@ Asset* cmd_internal_font_create(AppCmdBuffer* __restrict cb, Command* __restrict
 }
 
 static inline
-Asset* cmd_font_load_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd) NO_EXCEPT
+Asset* cmd_font_load_async(AppCmdBuffer* const __restrict cb, Command* const __restrict cmd) NO_EXCEPT
 {
-    Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
+    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
         cmd_asset_load_enqueue(cb, cmd);
     } else {
@@ -42,7 +42,7 @@ Asset* cmd_font_load_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 }
 
 inline
-void thrd_cmd_font_load(AppCmdBuffer* cb, int32 data) NO_EXCEPT
+void thrd_cmd_font_load(AppCmdBuffer* const cb, int32 data) NO_EXCEPT
 {
     Command cmd;
     cmd.callback = NULL;
@@ -53,7 +53,7 @@ void thrd_cmd_font_load(AppCmdBuffer* cb, int32 data) NO_EXCEPT
 }
 
 inline
-void thrd_cmd_font_load(AppCmdBuffer* cb, const char* data) NO_EXCEPT
+void thrd_cmd_font_load(AppCmdBuffer* const cb, const char* data) NO_EXCEPT
 {
     Command cmd;
     cmd.callback = NULL;
@@ -64,7 +64,7 @@ void thrd_cmd_font_load(AppCmdBuffer* cb, const char* data) NO_EXCEPT
 }
 
 inline
-Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id) NO_EXCEPT
+Asset* cmd_font_load_sync(AppCmdBuffer* const cb, int32 asset_id) NO_EXCEPT
 {
     LOG_1("Load font %d", {DATA_TYPE_INT32, &asset_id});
 
@@ -97,7 +97,7 @@ Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id) NO_EXCEPT
 }
 
 inline
-Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name) NO_EXCEPT
+Asset* cmd_font_load_sync(AppCmdBuffer* const cb, const char* name) NO_EXCEPT
 {
     LOG_1("Load font %s", {DATA_TYPE_CHAR_STR, (void *) name});
     PROFILE(PROFILE_CMD_FONT_LOAD_SYNC, name, PROFILE_FLAG_SHOULD_LOG);

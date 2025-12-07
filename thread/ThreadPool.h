@@ -70,7 +70,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 
     // @bug Why doesn't this work? There must be some threading issue
     LOG_2("[INFO] Thread pool worker starting up");
-    LOG_INCREMENT(DEBUG_COUNTER_THREAD);
+    STATS_INCREMENT(DEBUG_COUNTER_THREAD);
 
     // Setting up thread local rng state
     rand_setup();
@@ -79,23 +79,22 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 
     while (true) {
         THREAD_TICK(_thread_local_id);
-        mutex_lock(&pool->work_mutex);
+        {
+            MutexGuard _guard(&pool->work_mutex);
 
-        while (pool->state > 1 && queue_is_empty(&pool->work_queue)) {
-            coms_pthread_cond_wait(&pool->work_cond, &pool->work_mutex);
+            while (pool->state > 1 && queue_is_empty(&pool->work_queue)) {
+                coms_pthread_cond_wait(&pool->work_cond, &pool->work_mutex);
+            }
+
+            if (pool->state < 2) {
+                break;
+            }
+
+            // We define a queue element as free based on it's id
+            // So even if we "keep" it in the queue the pool will not overwrite it as long as the id > 0 (see pool_add)
+            // This is only a ThreadPool specific queue behavior to avoid additional memory copy
+            work = (PoolWorker *) queue_dequeue_keep(&pool->work_queue);
         }
-
-        if (pool->state < 2) {
-            mutex_unlock(&pool->work_mutex);
-
-            break;
-        }
-
-        // We define a queue element as free based on it's id
-        // So even if we "keep" it in the queue the pool will not overwrite it as long as the id > 0 (see pool_add)
-        // This is only a ThreadPool specific queue behavior to avoid additional memory copy
-        work = (PoolWorker *) queue_dequeue_keep(&pool->work_queue);
-        mutex_unlock(&pool->work_mutex);
 
         // When the worker functions of the thread pool get woken up it is possible that the work is already dequeued
         // by another thread -> we need to check if the work is actually valid
@@ -109,9 +108,9 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
         LOG_3("ThreadPool worker started");
         {
             PROFILE(PROFILE_THREADPOOL_WORK, NULL, PROFILE_FLAG_ADD_HISTORY);
-            LOG_INCREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
+            STATS_INCREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
             work->func(work);
-            LOG_DECREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
+            STATS_DECREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
         }
         LOG_3("ThreadPool worker ended");
 
@@ -137,7 +136,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     coms_pthread_cond_signal(&pool->working_cond);
 
     LOG_2("[INFO] Thread pool worker shutting down");
-    LOG_DECREMENT(DEBUG_COUNTER_THREAD);
+    STATS_DECREMENT(DEBUG_COUNTER_THREAD);
 
     return (THREAD_RETURN_BODY) NULL;
 }
@@ -183,7 +182,7 @@ void thread_pool_alloc(
 
 void thread_pool_create(
     ThreadPool* pool,
-    BufferMemory* buf,
+    BufferMemory* const buf,
     int32 element_size,
     int32 thread_count,
     int32 worker_count,
@@ -224,13 +223,12 @@ void thread_pool_create(
 inline
 void thread_pool_wait(ThreadPool* pool) NO_EXCEPT
 {
-    mutex_lock(&pool->work_mutex);
+    MutexGuard _guard(&pool->work_mutex);
     // @question We removed some state checks here, not sure if they were really necessary
     // remove this comment once we are sure everything works as expected
     while (pool->working_cnt != 0 || pool->thread_cnt != 0) {
         coms_pthread_cond_wait(&pool->working_cond, &pool->work_mutex);
     }
-    mutex_unlock(&pool->work_mutex);
 }
 
 void thread_pool_destroy(ThreadPool* pool) NO_EXCEPT
@@ -254,8 +252,8 @@ void thread_pool_destroy(ThreadPool* pool) NO_EXCEPT
 
 PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job) NO_EXCEPT
 {
-    mutex_lock(&pool->work_mutex);
-    PoolWorker* temp_job = (PoolWorker *) ring_get_memory_nomove((RingMemory *) &pool->work_queue, pool->element_size, 8);
+    MutexGuard _guard(&pool->work_mutex);
+    PoolWorker* const temp_job = (PoolWorker *) ring_get_memory_nomove((RingMemory *) &pool->work_queue, pool->element_size, 8);
 
     if (atomic_get_relaxed((volatile int32*) &temp_job->state) > POOL_WORKER_STATE_COMPLETED) {
         mutex_unlock(&pool->work_mutex);
@@ -276,7 +274,6 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job) NO_EXC
     temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1) + 1;
 
     coms_pthread_cond_broadcast(&pool->work_cond);
-    mutex_unlock(&pool->work_mutex);
 
     // @bug Do we really want to return the pointer? it might be overwritten at some point
     // How do we know it's the original job or a new/overwritten one?
@@ -290,7 +287,7 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool) NO_EXCEPT
 {
     mutex_lock(&pool->work_mutex);
 
-    PoolWorker* temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
+    PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
     if (atomic_get_relaxed((volatile int32*) &temp_job->state) > POOL_WORKER_STATE_COMPLETED) {
         mutex_unlock(&pool->work_mutex);
         ASSERT_TRUE(temp_job->state <= POOL_WORKER_STATE_COMPLETED);
@@ -298,7 +295,7 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool) NO_EXCEPT
         return NULL;
     }
 
-    memset_aligned(temp_job, 0, sizeof(PoolWorker));
+    memset(temp_job, 0, sizeof(PoolWorker));
 
     // @performance Do we really want to do this under all circumstances?
     //  There are many situations where we don't need an id
@@ -329,7 +326,7 @@ void thread_pool_join(PoolWorker* jobs, int32 count) NO_EXCEPT
     // If we wouldn't do that we may risk that a job got re-used for a new job giving a false negative.
     while (completed_mask != all_done_mask) {
         for (int32 i = 0; i < count; ++i) {
-            uint64 bit = 1ULL << i;
+            const uint64 bit = 1ULL << i;
 
             if (completed_mask & bit) {
                 continue;
@@ -343,7 +340,7 @@ void thread_pool_join(PoolWorker* jobs, int32 count) NO_EXCEPT
 }
 
 inline
-void thread_pool_join(PoolWorker** jobs, int32 count) NO_EXCEPT
+void thread_pool_join(const PoolWorker* const* const jobs, int32 count) NO_EXCEPT
 {
     uint64 completed_mask = 0;
     const uint64 all_done_mask = (count == 64 ? UINT64_MAX : ((1ULL << count) - 1));
@@ -353,7 +350,7 @@ void thread_pool_join(PoolWorker** jobs, int32 count) NO_EXCEPT
     // If we wouldn't do that we may risk that a job got re-used for a new job giving a false negative.
     while (completed_mask != all_done_mask) {
         for (int32 i = 0; i < count; ++i) {
-            uint64 bit = 1ULL << i;
+            const uint64 bit = 1ULL << i;
 
             if (completed_mask & bit) {
                 continue;

@@ -27,7 +27,7 @@ void eytzinger_rearrange(byte* arr, byte* temp, size_t start, size_t* index, siz
 
 // @performance Instead of expecting a sorted array maybe we can improve it by immediately create the eytzinger array and thus avoid one "sort"
 // arr MUST be sorted by a sorting algorithm of your choice
-void eytzinger_create(byte* arr, size_t num, size_t size, RingMemory* ring) {
+void eytzinger_create(byte* arr, size_t num, size_t size, RingMemory* const ring) {
     byte* temp = ring_get_memory(ring, size * num);
 
     size_t index = 0;

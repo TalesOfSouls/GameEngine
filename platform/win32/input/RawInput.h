@@ -24,7 +24,7 @@
 // Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions required
 // aligned memory. So far we only figured out that 4 bytes works, maybe this needs to be 8 in the future?!
 
-uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory* __restrict ring) NO_EXCEPT
+uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory* const __restrict ring) NO_EXCEPT
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
@@ -32,7 +32,7 @@ uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemo
         return 0;
     }
 
-    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_get_memory(ring, sizeof(RAWINPUTDEVICELIST) * device_count, 8);
+    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_get_memory(ring, sizeof(RAWINPUTDEVICELIST) * device_count, sizeof(size_t));
     device_count = GetRawInputDeviceList(pRawInputDeviceList, &device_count, sizeof(RAWINPUTDEVICELIST));
 
     // We always want at least one empty input device slot
@@ -100,7 +100,7 @@ uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemo
 }
 
 // WARNING: While this works we highly recommend to use hid_init_controllers
-uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* __restrict ring) NO_EXCEPT
+uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* const __restrict ring) NO_EXCEPT
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
@@ -108,7 +108,7 @@ uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory
         return 0;
     }
 
-    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_get_memory(ring, sizeof(RAWINPUTDEVICELIST) * device_count, 8);
+    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_get_memory(ring, sizeof(RAWINPUTDEVICELIST) * device_count, sizeof(size_t));
     device_count = GetRawInputDeviceList(pRawInputDeviceList, &device_count, sizeof(RAWINPUTDEVICELIST));
 
     // We always want at least one empty input device slot
@@ -382,14 +382,14 @@ int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
     return input_count;
 }
 
-void input_handle(LPARAM lParam, Input* __restrict states, int state_count, RingMemory* __restrict ring, uint64 time) NO_EXCEPT
+void input_handle(LPARAM lParam, Input* __restrict states, int state_count, RingMemory* const __restrict ring, uint64 time) NO_EXCEPT
 {
     uint32 db_size;
     GetRawInputData((HRAWINPUT) lParam, RID_INPUT, NULL, &db_size, sizeof(RAWINPUTHEADER));
 
     // @todo pull out, we only need to register this memory once
     //      Maybe even put it into the general memory pool
-    LPBYTE lpb = (BYTE *) ring_get_memory(ring, db_size * sizeof(BYTE), 4);
+    LPBYTE lpb = (BYTE *) ring_get_memory(ring, db_size * sizeof(BYTE), sizeof(size_t));
     uint32 size = GetRawInputData((HRAWINPUT) lParam, RID_INPUT, lpb, &db_size, sizeof(RAWINPUTHEADER));
 
     if (db_size != size) {
@@ -400,7 +400,7 @@ void input_handle(LPARAM lParam, Input* __restrict states, int state_count, Ring
 }
 
 // max_inputs = max input messages
-int16 input_handle_buffered(int32 max_inputs, Input* __restrict states, int32 state_count, RingMemory* __restrict ring, uint64 time) NO_EXCEPT
+int16 input_handle_buffered(int32 max_inputs, Input* __restrict states, int32 state_count, RingMemory* const __restrict ring, uint64 time) NO_EXCEPT
 {
     uint32 cb_size;
     GetRawInputBuffer(NULL, &cb_size, sizeof(RAWINPUTHEADER));
@@ -411,7 +411,7 @@ int16 input_handle_buffered(int32 max_inputs, Input* __restrict states, int32 st
     // Max input messages (e.g. 16)
     cb_size *= max_inputs;
 
-    PRAWINPUT raw_input = (PRAWINPUT) ring_get_memory(ring, cb_size, 4);
+    PRAWINPUT raw_input = (PRAWINPUT) ring_get_memory(ring, cb_size, sizeof(size_t));
 
     int16 input_count = 0;
     uint32 input;

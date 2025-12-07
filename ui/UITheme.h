@@ -76,7 +76,7 @@ int compare_by_attribute_id(const void* __restrict a, const void* __restrict b) 
 void theme_from_file_txt(
     UIThemeStyle* theme,
     const char* path,
-    RingMemory* ring
+    RingMemory* const ring
 ) {
     FileBody file = {};
     file_read(path, &file, ring);
@@ -204,7 +204,6 @@ void theme_from_file_txt(
             // Named block
             UIAttribute* attribute_reference = (UIAttribute *) (temp_group + 1);
             // @question Whe are we even doing this? couldn't we just pass this offset to the ui_attribute_parse_value() function?
-            // @performance we might be able to use memcpy_aligned_factored
             memcpy(
                 attribute_reference + temp_group->attribute_count,
                 &attribute,
@@ -252,7 +251,6 @@ void ui_theme_parse_group(HashEntryInt32* entry, byte* data, const byte** in)
             attribute_reference[j].value_float = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
             *in += sizeof(attribute_reference[j].value_float);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
-            // @performance we might be able to use memcpy_aligned_factored
             memcpy(attribute_reference[j].value_str, *in, sizeof(attribute_reference[j].value_str));
             *in += sizeof(attribute_reference[j].value_str);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_V4_F32) {
@@ -373,7 +371,6 @@ void ui_theme_serialize_group(const HashEntryInt32* entry, const byte* data, byt
             *((f32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_float);
             *out += sizeof(attribute_reference[j].value_float);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
-            // @performance we might be able to use memcpy_aligned_factored
             memcpy(*out, attribute_reference[j].value_str, sizeof(attribute_reference[j].value_str));
             *out += sizeof(attribute_reference[j].value_str);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_V4_F32) {

@@ -19,7 +19,7 @@
 #include "Png.h"
 
 inline
-void image_from_file(Image* __restrict image, const char* __restrict path, RingMemory* __restrict ring) NO_EXCEPT
+void image_from_file(Image* __restrict image, const char* __restrict path, RingMemory* const __restrict ring) NO_EXCEPT
 {
     FileBody file = {};
     file_read(path, &file, ring);
@@ -34,10 +34,10 @@ void image_from_file(Image* __restrict image, const char* __restrict path, RingM
 }
 
 inline
-void image_flip_vertical(RingMemory* __restrict ring, Image* __restrict image) NO_EXCEPT
+void image_flip_vertical(RingMemory* const __restrict ring, Image* __restrict image) NO_EXCEPT
 {
     uint32 stride = image->width * sizeof(uint32);
-    byte* temp = ring_get_memory(ring, image->pixel_count * sizeof(uint32), 8);
+    byte* temp = ring_get_memory(ring, image->pixel_count * sizeof(uint32), sizeof(size_t));
     memcpy(temp, image->pixels, image->pixel_count * sizeof(uint32));
 
     // Last row
@@ -68,9 +68,9 @@ int32 image_data_size(const Image* image) NO_EXCEPT
 }
 
 inline
-uint32 image_header_from_data(const byte* __restrict data, Image* __restrict image) NO_EXCEPT
+uint32 image_header_from_data(const byte* __restrict data, Image* const __restrict image) NO_EXCEPT
 {
-    const byte* start = data;
+    const byte* const start = data;
 
     image->width = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(image->width);
@@ -105,7 +105,7 @@ uint32 image_from_data(const byte* __restrict data, Image* __restrict image) NO_
 inline
 uint32 image_header_to_data(const Image* __restrict image, byte* __restrict data) NO_EXCEPT
 {
-    byte* start = data;
+    const byte* const start = data;
 
     *((uint32 *) data) = SWAP_ENDIAN_LITTLE(image->width);
     data += sizeof(image->width);

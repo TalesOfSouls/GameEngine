@@ -19,7 +19,7 @@ struct SettingsMatch {
 };
 
 void settings_save(
-    const void* __restrict settings_data,
+    const void* const __restrict settings_data,
     const char* in,
     char* out, size_t out_length,
     const SettingsMatch* match,
@@ -29,8 +29,8 @@ void settings_save(
     char line[2048];
     char setting[64];
 
-    const byte* settings = (byte *) settings_data;
-    const char* start = out;
+    const byte* const settings = (byte *) settings_data;
+    const char* const start = out;
 
     int32 offset;
     while (*in && out_length - (out - start) > 128) {
@@ -164,10 +164,10 @@ void settings_save(
 }
 
 void settings_load(
-    void* __restrict settings_data,
-    const char* data,
-    const SettingsMatch* match,
-    int32 mat_count
+    void* const __restrict settings_data,
+    const char* const data,
+    const SettingsMatch* const match,
+    int32 math_count
 )
 {
     const char* pos = data;
@@ -197,7 +197,7 @@ void settings_load(
             continue;
         }
 
-        for (int32 i = 0; i < mat_count; ++i) {
+        for (int32 i = 0; i < math_count; ++i) {
             if (str_compare(name, match[i].name, str_length(match[i].name)) == 0) {
                 void* member = (void *) (settings + match[i].offset);
 

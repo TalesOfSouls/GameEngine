@@ -10,6 +10,7 @@
     #define DEBUG_COUNTER 1
     enum DebugCounter {
         DEBUG_COUNTER_MEM_ALLOC,
+        DEBUG_COUNTER_STACK_ALLOC,
 
         DEBUG_COUNTER_DRIVE_READ,
         DEBUG_COUNTER_DRIVE_WRITE,
@@ -57,7 +58,7 @@ void stats_snapshot() NO_EXCEPT
     }
 
     const int32 pos = atomic_increment_wrap_acquire_release(&_stats_counter->pos, MAX_STATS_COUNTER_HISTORY);
-    memset_aligned(
+    memset(
         (void *) &_stats_counter->stats[pos * DEBUG_COUNTER_SIZE],
         0,
         DEBUG_COUNTER_SIZE * sizeof(int64)
@@ -111,7 +112,7 @@ void stats_decrement(int32 id, int64 by = 1) NO_EXCEPT
  * @return void
  */
 inline HOT_CODE
-void log_counter(int32 id, int64 value) NO_EXCEPT
+void stats_counter(int32 id, int64 value) NO_EXCEPT
 {
     if (!_stats_counter_active || !*_stats_counter_active) {
         return;
@@ -119,6 +120,44 @@ void log_counter(int32 id, int64 value) NO_EXCEPT
 
     const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
     atomic_set_relaxed(&_stats_counter->stats[pos + id], value);
+}
+
+/**
+ * Sets a counter variable
+ *
+ * @param int32 id      Stats id
+ * @param int64 value   New value
+ *
+ * @return void
+ */
+inline HOT_CODE
+void stats_max(int32 id, int64 value) NO_EXCEPT
+{
+    if (!_stats_counter_active || !*_stats_counter_active) {
+        return;
+    }
+
+    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
+    atomic_set_relaxed(&_stats_counter->stats[pos + id], OMS_MAX(_stats_counter->stats[pos + id], value));
+}
+
+/**
+ * Sets a counter variable
+ *
+ * @param int32 id      Stats id
+ * @param int64 value   New value
+ *
+ * @return void
+ */
+inline HOT_CODE
+void stats_min(int32 id, int64 value) NO_EXCEPT
+{
+    if (!_stats_counter_active || !*_stats_counter_active) {
+        return;
+    }
+
+    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
+    atomic_set_relaxed(&_stats_counter->stats[pos + id], OMS_MIN(_stats_counter->stats[pos + id], value));
 }
 
 /**
@@ -147,18 +186,22 @@ void stats_log_to_file() NO_EXCEPT
 }
 
 #if (!DEBUG && !INTERNAL) || RELEASE
-    #define LOG_INCREMENT(a) ((void) 0)
-    #define LOG_INCREMENT_BY(a, b) ((void) 0)
-    #define LOG_DECREMENT(a) ((void) 0)
-    #define LOG_COUNTER(a, b) ((void) 0)
+    #define STATS_INCREMENT(a) ((void) 0)
+    #define STATS_INCREMENT_BY(a, b) ((void) 0)
+    #define STATS_DECREMENT(a) ((void) 0)
+    #define STATS_COUNTER(a, b) ((void) 0)
+    #define STATS_MAX(a, b) ((void) 0)
+    #define STATS_MIN(a, b) ((void) 0)
 
     #define STATS_SNAPSHOT() ((void) 0)
     #define STATS_LOG_TO_FILE() ((void) 0)
 #else
-    #define LOG_INCREMENT(a) stats_increment((a), 1)
-    #define LOG_INCREMENT_BY(a, b) stats_increment((a), (b))
-    #define LOG_DECREMENT(a) stats_decrement((a), 1)
-    #define LOG_COUNTER(a, b) log_counter((a), (b))
+    #define STATS_INCREMENT(a) stats_increment((a), 1)
+    #define STATS_INCREMENT_BY(a, b) stats_increment((a), (b))
+    #define STATS_DECREMENT(a) stats_decrement((a), 1)
+    #define STATS_COUNTER(a, b) stats_counter((a), (b))
+    #define STATS_MAX(a, b) stats_max((a), (b))
+    #define STATS_MIN(a, b) stats_min((a), (b))
 
     #define STATS_SNAPSHOT() stats_snapshot()
     #define STATS_LOG_TO_FILE() stats_log_to_file()

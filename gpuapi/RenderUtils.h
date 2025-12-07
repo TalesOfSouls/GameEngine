@@ -281,7 +281,7 @@ f32 text_calculate_dimensions_height(
 
 static
 f32 text_calculate_dimensions_width(
-    const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
+    const Font* const __restrict font, const char* const __restrict text, bool is_ascii, f32 scale, int32 length
 ) NO_EXCEPT
 {
     f32 x = 0;
@@ -299,7 +299,7 @@ f32 text_calculate_dimensions_width(
             continue;
         }
 
-        const Glyph* glyph = font_glyph_find(font, character);
+        const Glyph* const glyph = font_glyph_find(font, character);
         if (!glyph) {
             continue;
         }
@@ -312,7 +312,7 @@ f32 text_calculate_dimensions_width(
 
 static
 v2_f32 text_calculate_dimensions(
-    const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
+    const Font* const __restrict font, const char* const __restrict text, bool is_ascii, f32 scale, int32 length
 ) NO_EXCEPT
 {
     const f32 line_height = font->line_height * scale;

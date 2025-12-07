@@ -140,7 +140,7 @@ void audio_mixer_play(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* 
     instance->channels = audio->channels;
 
     if (settings) {
-        memcpy_aligned(&instance->origin, &settings->origin, sizeof(AudioLocationSetting));
+        memcpy(&instance->origin, &settings->origin, sizeof(AudioLocationSetting));
         instance->effect = settings->effect;
     }
 }
@@ -153,7 +153,7 @@ void audio_mixer_play(AudioMixer* mixer, AudioInstance* settings) NO_EXCEPT
     }
 
     AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, index);
-    memcpy_aligned(instance, settings, sizeof(AudioInstance));
+    memcpy(instance, settings, sizeof(AudioInstance));
 }
 
 void audio_mixer_play_unique(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL) NO_EXCEPT

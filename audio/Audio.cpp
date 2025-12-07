@@ -17,7 +17,7 @@
 #include "AudioSetting.h"
 #include "Wav.h"
 
-void audio_from_file(Audio* __restrict audio, const char* __restrict path, RingMemory* __restrict ring) NO_EXCEPT
+void audio_from_file(Audio* __restrict audio, const char* __restrict path, RingMemory* const __restrict ring) NO_EXCEPT
 {
     FileBody file = {};
     file_read(path, &file, ring);
@@ -43,7 +43,7 @@ int32 audio_data_size(const Audio* audio) NO_EXCEPT
 inline
 uint32 audio_header_from_data(const byte* __restrict data, Audio* __restrict audio) NO_EXCEPT
 {
-    const byte* start = data;
+    const byte* const start = data;
 
     audio->sample_rate = SWAP_ENDIAN_LITTLE(*((uint16 *) data));
     data += sizeof(audio->sample_rate);
@@ -63,9 +63,9 @@ uint32 audio_header_from_data(const byte* __restrict data, Audio* __restrict aud
 }
 
 inline
-uint32 audio_header_to_data(const Audio* __restrict audio, byte* __restrict data) NO_EXCEPT
+uint32 audio_header_to_data(const Audio* const __restrict audio, byte* __restrict data) NO_EXCEPT
 {
-    byte* start = data;
+    const byte* const start = data;
 
     *((uint16 *) data) = SWAP_ENDIAN_LITTLE(audio->sample_rate);
     data += sizeof(audio->sample_rate);

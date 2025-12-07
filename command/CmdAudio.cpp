@@ -10,9 +10,9 @@
 #define COMS_APP_COMMAND_AUDIO_C
 
 static inline
-Asset* cmd_internal_audio_play_enqueue(AppCmdBuffer* __restrict cb, Command* __restrict cmd) NO_EXCEPT
+Asset* cmd_internal_audio_play_enqueue(AppCmdBuffer* const __restrict cb, const Command* const __restrict cmd) NO_EXCEPT
 {
-    Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
+    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
         return asset;
     }
@@ -28,9 +28,9 @@ Asset* cmd_internal_audio_play_enqueue(AppCmdBuffer* __restrict cb, Command* __r
 }
 
 static inline
-Asset* cmd_audio_play_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd) NO_EXCEPT
+Asset* cmd_audio_play_async(AppCmdBuffer* const __restrict cb, const Command* const __restrict cmd) NO_EXCEPT
 {
-    Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
+    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
         cmd_asset_load_enqueue(cb, cmd);
     } else {
@@ -41,7 +41,7 @@ Asset* cmd_audio_play_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd
 }
 
 inline
-void thrd_cmd_audio_play(AppCmdBuffer* cb, int32 data) NO_EXCEPT
+void thrd_cmd_audio_play(AppCmdBuffer* const cb, int32 data) NO_EXCEPT
 {
     Command cmd;
     cmd.callback = NULL;
@@ -52,7 +52,7 @@ void thrd_cmd_audio_play(AppCmdBuffer* cb, int32 data) NO_EXCEPT
 }
 
 inline
-void thrd_cmd_audio_play(AppCmdBuffer* cb, const char* data) NO_EXCEPT
+void thrd_cmd_audio_play(AppCmdBuffer* const cb, const char* data) NO_EXCEPT
 {
     Command cmd;
     cmd.callback = NULL;
@@ -63,7 +63,7 @@ void thrd_cmd_audio_play(AppCmdBuffer* cb, const char* data) NO_EXCEPT
 }
 
 inline
-Asset* cmd_audio_play(AppCmdBuffer* cb, int32 asset_id) NO_EXCEPT
+Asset* cmd_audio_play(AppCmdBuffer* const cb, int32 asset_id) NO_EXCEPT
 {
     // Check if asset already loaded
     char id_str[9];
@@ -88,7 +88,7 @@ Asset* cmd_audio_play(AppCmdBuffer* cb, int32 asset_id) NO_EXCEPT
 }
 
 inline
-Asset* cmd_audio_play(AppCmdBuffer* cb, const char* name) NO_EXCEPT
+Asset* cmd_audio_play(AppCmdBuffer* const cb, const char* const name) NO_EXCEPT
 {
     // Check if asset already loaded
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, name);

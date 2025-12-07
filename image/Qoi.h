@@ -39,9 +39,9 @@ static const byte optable[128] = {
     3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3
 };
 
-int32 qoi_encode(const Image* image, byte* data) NO_EXCEPT
+int32 qoi_encode(const Image* const image, byte* data) NO_EXCEPT
 {
-    const byte* start = data;
+    const byte* const start = data;
 
     v4_byte px_prev = {0, 0, 0, 255};
 	v4_byte px = px_prev;

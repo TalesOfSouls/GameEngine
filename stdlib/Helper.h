@@ -55,12 +55,28 @@ inline T min_branched(T a, T b) NO_EXCEPT
     return (a > b) ? b : a;
 }
 
+// WARNING: May overflow for ints
+template <typename T>
+inline T max_branchless_general(T a, T b) NO_EXCEPT
+{
+    return a + (b - a) * (b > a);
+}
+
+// Only allowed for int types
 template <typename T>
 inline T max_branchless(T a, T b) NO_EXCEPT
 {
     return (T)(a ^ (((a ^ b) & -(T)((a < b)))));
 }
 
+// WARNING: May overflow for ints
+template <typename T>
+inline T min_branchless_general(T a, T b) NO_EXCEPT
+{
+    return a + (b - a) * (b < a);
+}
+
+// Only allowed for int types
 template <typename T>
 inline T min_branchless(T a, T b) NO_EXCEPT
 {
@@ -73,6 +89,16 @@ inline T clamp_branched(T val, T low, T high) NO_EXCEPT
     return (val < low) ? low : ((val > high) ? high : val);
 }
 
+// WARNING: May overflow for ints
+template <typename T>
+inline T clamp_branchless_general(T v, T lo, T hi) NO_EXCEPT
+{
+    T t = v + (hi - v) * (v > hi);
+
+    return lo + (t - lo) * (t > lo);
+}
+
+// Only allowed for int types
 template <typename T>
 inline T clamp_branchless(T val, T low, T high) NO_EXCEPT
 {

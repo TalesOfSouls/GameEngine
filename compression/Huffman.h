@@ -208,7 +208,7 @@ int64 huffman_decode(Huffman* hf, const byte* in, byte* out, uint64 bit_length) 
 {
     HuffmanNode* current = hf->pq[1];
     int32 pos_bit = 0;
-    const byte* start = out;
+    const byte* const start = out;
 
     while (pos_bit < bit_length) {
         // Branchless version of checking if bit is set and then updating current

@@ -16,13 +16,13 @@
 #include "../../../compiler/CompilerUtils.h"
 
 FORCE_INLINE
-void spinlock_init(spinlock32* lock) NO_EXCEPT
+void spinlock_init(spinlock32* const lock) NO_EXCEPT
 {
-    lock = 0;
+    *lock = 0;
 }
 
 FORCE_INLINE
-void spinlock_start(spinlock32* lock, int32 delay = 10) NO_EXCEPT
+void spinlock_start(spinlock32* const lock, int32 delay = 10) NO_EXCEPT
 {
     while (InterlockedExchange(lock, 1) != 0) {
         usleep(delay);
@@ -30,7 +30,7 @@ void spinlock_start(spinlock32* lock, int32 delay = 10) NO_EXCEPT
 }
 
 FORCE_INLINE
-void spinlock_end(spinlock32* lock) NO_EXCEPT
+void spinlock_end(spinlock32* const lock) NO_EXCEPT
 {
     InterlockedExchange(lock, 0);
 }

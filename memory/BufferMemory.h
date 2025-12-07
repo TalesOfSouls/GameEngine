@@ -30,7 +30,7 @@ struct BufferMemory {
 };
 
 inline
-void buffer_alloc(BufferMemory* buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void buffer_alloc(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(size);
@@ -50,11 +50,11 @@ void buffer_alloc(BufferMemory* buf, size_t size, int32 alignment = sizeof(size_
 
     memset(buf->memory, 0, buf->size);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
 }
 
 inline
-void buffer_free(BufferMemory* buf) NO_EXCEPT
+void buffer_free(BufferMemory* const buf) NO_EXCEPT
 {
     if (buf->alignment < 2) {
         platform_free((void **) &buf->memory);
@@ -64,7 +64,7 @@ void buffer_free(BufferMemory* buf) NO_EXCEPT
 }
 
 inline
-void buffer_init(BufferMemory* buf, byte* data, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void buffer_init(BufferMemory* const buf, byte* data, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -84,7 +84,7 @@ void buffer_init(BufferMemory* buf, byte* data, size_t size, int32 alignment = s
 }
 
 FORCE_INLINE
-void buffer_reset(BufferMemory* buf) NO_EXCEPT
+void buffer_reset(BufferMemory* const buf) NO_EXCEPT
 {
     // @bug aren't we wasting element 0 (see get_memory, we are not using 0 only next element)
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->head - buf->memory);
@@ -92,7 +92,7 @@ void buffer_reset(BufferMemory* buf) NO_EXCEPT
 }
 
 inline HOT_CODE
-byte* buffer_get_memory(BufferMemory* buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+byte* buffer_get_memory(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(size <= buf->size);
 
@@ -112,9 +112,9 @@ byte* buffer_get_memory(BufferMemory* buf, size_t size, int32 alignment = sizeof
 }
 
 inline
-int64 buffer_dump(const BufferMemory* buf, byte* data) NO_EXCEPT
+int64 buffer_dump(const BufferMemory* const buf, byte* data) NO_EXCEPT
 {
-    byte* start = data;
+    const byte* const start = data;
 
     // Size
     *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->size);
@@ -143,9 +143,9 @@ int64 buffer_dump(const BufferMemory* buf, byte* data) NO_EXCEPT
 }
 
 inline
-int64 buffer_load(BufferMemory* buf, const byte* data) NO_EXCEPT
+int64 buffer_load(BufferMemory* const buf, const byte* data) NO_EXCEPT
 {
-    const byte* start = data;
+    const byte* const start = data;
 
     // Size
     buf->size = SWAP_ENDIAN_LITTLE(*((uint64 *) data));

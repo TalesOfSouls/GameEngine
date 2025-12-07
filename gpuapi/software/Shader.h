@@ -20,7 +20,7 @@
 struct SoftwareRenderer;
 
 typedef void (*SoftShaderFunc)(
-    const SoftwareRenderer* __restrict renderer,
+    const SoftwareRenderer* const __restrict renderer,
     int32 data_index,
     int32 instance_index,
     void* __restrict data,

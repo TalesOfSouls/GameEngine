@@ -33,6 +33,14 @@ void window_add_style(Window* w) NO_EXCEPT
 }
 
 FORCE_INLINE
+void physical_resolution(Window* w) {
+    w->dpi = (byte) GetDpiForWindow(w->hwnd);
+
+    w->physical_width = (uint16) (((uint32) w->logical_width * (uint32) w->dpi) / 96);
+    w->physical_height = (uint16) (((uint32) w->logical_height * (uint32) w->dpi) / 96);
+}
+
+FORCE_INLINE
 void monitor_resolution(const Window* __restrict w, v2_int32* __restrict resolution) NO_EXCEPT
 {
     resolution->width = GetDeviceCaps(w->hdc, HORZRES);
@@ -42,8 +50,10 @@ void monitor_resolution(const Window* __restrict w, v2_int32* __restrict resolut
 FORCE_INLINE
 void monitor_resolution(Window* w) NO_EXCEPT
 {
-    w->width = (uint16) GetDeviceCaps(w->hdc, HORZRES);
-    w->height = (uint16) GetDeviceCaps(w->hdc, VERTRES);
+    w->logical_width = (uint16) GetDeviceCaps(w->hdc, HORZRES);
+    w->logical_height = (uint16) GetDeviceCaps(w->hdc, VERTRES);
+
+    physical_resolution(w);
 }
 
 FORCE_INLINE
@@ -54,10 +64,12 @@ void window_resolution(Window* w) NO_EXCEPT
 
     w->x = (uint16) rect.left;
     w->y = (uint16) rect.top;
-    w->width = (uint16) (rect.right - rect.left);
-    w->height = (uint16) (rect.bottom - rect.top);
+    w->logical_width = (uint16) (rect.right - rect.left);
+    w->logical_height = (uint16) (rect.bottom - rect.top);
 
-    if (!w->width || !w->height) {
+    physical_resolution(w);
+
+    if (!w->physical_width || !w->physical_height) {
         w->state_flag |= WINDOW_STATE_FLAG_DIMENSIONLESS;
     } else {
         w->state_flag &= ~WINDOW_STATE_FLAG_DIMENSIONLESS;
@@ -72,7 +84,7 @@ void window_fullscreen(Window* w) NO_EXCEPT
     w->y = 0;
 
     window_remove_style(w);
-    SetWindowPos(w->hwnd, HWND_TOP, 0, 0, w->width, w->height, SWP_NOACTIVATE | SWP_NOZORDER);
+    SetWindowPos(w->hwnd, HWND_TOP, 0, 0, w->logical_width, w->logical_height, SWP_NOACTIVATE | SWP_NOZORDER);
 }
 
 inline
@@ -84,7 +96,7 @@ void window_restore(Window* w) NO_EXCEPT
     SetWindowPos(
         w->hwnd, HWND_TOP,
         w->state_old.x, w->state_old.y,
-        w->state_old.width, w->state_old.height,
+        w->state_old.logical_width, w->state_old.logical_height,
         SWP_NOACTIVATE | SWP_NOZORDER
     );
 }
@@ -112,15 +124,15 @@ void window_create(Window* __restrict window, void* __restrict proc) NO_EXCEPT
     }
 
     if (window->state_flag & WINDOW_STATE_FLAG_FULLSCREEN) {
-        window->width  = (uint16) GetSystemMetrics(SM_CXSCREEN);
-	    window->height = (uint16) GetSystemMetrics(SM_CYSCREEN);
+        window->logical_width  = (uint16) GetSystemMetrics(SM_CXSCREEN);
+	    window->logical_height = (uint16) GetSystemMetrics(SM_CYSCREEN);
 
         DEVMODE screen_settings;
 
         memset(&screen_settings, 0, sizeof(screen_settings));
 		screen_settings.dmSize       = sizeof(screen_settings);
-		screen_settings.dmPelsWidth  = (unsigned long) window->width;
-		screen_settings.dmPelsHeight = (unsigned long) window->height;
+		screen_settings.dmPelsWidth  = (unsigned long) window->logical_width;
+		screen_settings.dmPelsHeight = (unsigned long) window->logical_height;
 		screen_settings.dmBitsPerPel = 32;
 		screen_settings.dmFields     = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
@@ -134,10 +146,12 @@ void window_create(Window* __restrict window, void* __restrict proc) NO_EXCEPT
         wc.lpszClassName, NULL,
         WS_OVERLAPPEDWINDOW,
         window->x, window->y,
-        window->width,
-        window->height,
+        window->logical_width,
+        window->logical_height,
         NULL, NULL, window->hInstance, window
     );
+
+    window_resolution(window);
 
     ASSERT_TRUE(window->hwnd);
 }

@@ -166,7 +166,7 @@ bool file_exists(const char* path) NO_EXCEPT
 }
 
 inline void
-file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __restrict ring = NULL) NO_EXCEPT
+file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* const __restrict ring = NULL) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -228,7 +228,7 @@ file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 }
 
 // @question Do we really need length? we have file.size we could use as we do in a function above
@@ -238,7 +238,7 @@ void file_read(
     FileBody* __restrict file,
     uint64 offset,
     uint64 length = MAX_UINT64,
-    RingMemory* __restrict ring = NULL
+    RingMemory* const __restrict ring = NULL
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
@@ -321,7 +321,7 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 }
 
 inline
@@ -330,7 +330,7 @@ void file_read(
     FileBody* __restrict file,
     uint64 offset = 0,
     uint64 length = MAX_UINT64,
-    RingMemory* __restrict ring = NULL
+    RingMemory* const __restrict ring = NULL
 ) NO_EXCEPT
 {
     LARGE_INTEGER size;
@@ -381,7 +381,7 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 }
 
 uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UINT64) NO_EXCEPT
@@ -530,7 +530,7 @@ file_write(const char* __restrict path, const FileBody* __restrict file) NO_EXCE
 
     CloseHandle(fp);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, length);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, length);
 
     return true;
 }
@@ -608,7 +608,7 @@ bool file_read_async(
     FileBodyAsync* __restrict file,
     uint64 offset = 0,
     uint64 length = MAX_UINT64,
-    RingMemory* __restrict ring = NULL
+    RingMemory* const __restrict ring = NULL
 ) NO_EXCEPT
 {
     LARGE_INTEGER size;
@@ -663,7 +663,7 @@ bool file_read_async(
 
     file->size = read_length;
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, read_length);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, read_length);
 
     return true;
 }
@@ -784,7 +784,7 @@ bool file_append(const char* __restrict path, const char* __restrict file) NO_EX
 
     CloseHandle(fp);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
 
     return true;
 }
@@ -806,7 +806,7 @@ file_append(FileHandle fp, const char* file) NO_EXCEPT
         return false;
     }
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
 
     return true;
 }
@@ -827,7 +827,7 @@ file_append(FileHandle fp, const char* file, size_t length) NO_EXCEPT
         return false;
     }
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
 
     return true;
 }
@@ -874,7 +874,7 @@ file_append(const char* __restrict path, const FileBody* __restrict file) NO_EXC
 
     CloseHandle(fp);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, bytes);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, bytes);
 
     return true;
 }

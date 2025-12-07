@@ -49,7 +49,7 @@ struct HttpRouter {
     uint32 route_detail_capacity;
 };
 
-void http_router_init(HttpRouter* router, uint32 route_count, BufferMemory* buf, int32 alignment = sizeof(size_t)) {
+void http_router_init(HttpRouter* router, uint32 route_count, BufferMemory* const buf, int32 alignment = sizeof(size_t)) {
     // We expect 3 path components per route
     // If more are required, we will increase the memory later
     router->nodes = (HttpRouteNode *) buffer_get_memory(buf, route_count * 3 * sizeof(HttpRouteNode), alignment, true);

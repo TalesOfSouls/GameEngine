@@ -36,7 +36,7 @@ size_t poisson_disk_bridson_cap(f64 width, f64 height, f64 r)
 size_t poisson_disk_bridson(
     f64 width, f64 height, f64 r, int32 k,
     int32 points_size, v2_f64* __restrict out_points,
-    RingMemory* __restrict ring
+    RingMemory* const __restrict ring
 ) {
     const f64 cell_size = r * OMS_INV_SQRT_2_F64;
     const int32 grid_w = (int32) OMS_CEIL_32(width / cell_size);
@@ -207,7 +207,7 @@ size_t poisson_disk_bridson(
 size_t poisson_disk_bridson_importance(
     f64 width, f64 height, f64 r, int32 k,
     int32 points_size, v2_f64* __restrict out_points,
-    RingMemory* __restrict ring,
+    RingMemory* const __restrict ring,
     ImportanceFn importance, void *userdata,
     f64 max_importance
 ) {

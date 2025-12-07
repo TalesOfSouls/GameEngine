@@ -512,12 +512,12 @@ void voxel_world_alloc(VoxelWorld* vw, v3_int32 pos, int32 max_depth) {
 
     // We expect at most chunk_count elements in our draw_array.
     // @performance Maybe chunk_count is too large, this is the max number which probably never is reached?
-    vw->draw_array.elements = (VoxelDrawChunk  *) buffer_get_memory(&vw->mem, chunk_count * sizeof(VoxelDrawChunk), 8);
+    vw->draw_array.elements = (VoxelDrawChunk  *) buffer_get_memory(&vw->mem, chunk_count * sizeof(VoxelDrawChunk), sizeof(size_t));
     vw->draw_array.size = chunk_count;
 
     // Reserve max amount of node memory space
     vw->oct_old.max_depth = max_depth;
-    vw->oct_old.root = (VoxelOctNode *) buffer_get_memory(&vw->mem, sizeof(VoxelOctNode) * chunk_count, 8);
+    vw->oct_old.root = (VoxelOctNode *) buffer_get_memory(&vw->mem, sizeof(VoxelOctNode) * chunk_count, sizeof(size_t));
     vw->oct_old.root->has_data = true;
     vw->oct_old.last = vw->oct_old.root;
 
@@ -525,7 +525,7 @@ void voxel_world_alloc(VoxelWorld* vw, v3_int32 pos, int32 max_depth) {
     // @bug This is a problem for when we change the max_depth
     //  We then need to grow this buffer, which is currently not possible
     //  Sure we could allocate a new one but then we would basically waste the old one one as unused memory
-    vw->oct_new.root = (VoxelOctNode *) buffer_get_memory(&vw->mem, sizeof(VoxelOctNode) * chunk_count, 8);
+    vw->oct_new.root = (VoxelOctNode *) buffer_get_memory(&vw->mem, sizeof(VoxelOctNode) * chunk_count, sizeof(size_t));
     vw->oct_new.root->has_data = true;
     vw->oct_new.last = vw->oct_new.root;
 

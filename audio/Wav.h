@@ -125,12 +125,12 @@ void generate_default_wav_references(const byte* data, uint32 size, Wav* wav)
     memcpy(wav->sample_data, data + WAV_HEADER_SIZE, wav->header.data_size);
 }
 
-void wav_from_data(const byte* data, uint32 size, Audio* audio, RingMemory* ring)
+void wav_from_data(const byte* data, uint32 size, Audio* audio, RingMemory* const ring)
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some assignment/copy overhead
     Wav src = {};
-    src.data = ring_get_memory(ring, size, 4);
+    src.data = ring_get_memory(ring, size, sizeof(size_t));
     generate_default_wav_references(data, size, &src);
 
     if (!src.size) {

@@ -39,7 +39,7 @@ struct EntityComponentSystem {
 };
 
 inline
-void ecs_create(EntityComponentSystem* ecs, BufferMemory* buf, int32 entity_count, int32 component_count)
+void ecs_create(EntityComponentSystem* ecs, BufferMemory* const buf, int32 entity_count, int32 component_count)
 {
     ecs->entity_type_count = entity_count;
     ecs->entities = (ChunkMemory *) buffer_get_memory(buf, sizeof(ChunkMemory) * entity_count, 64);
@@ -49,7 +49,7 @@ void ecs_create(EntityComponentSystem* ecs, BufferMemory* buf, int32 entity_coun
 }
 
 inline
-void ecs_entity_type_create(ChunkMemory* ec, BufferMemory* buf, int32 chunk_size, int32 count)
+void ecs_entity_type_create(ChunkMemory* ec, BufferMemory* const buf, int32 chunk_size, int32 count)
 {
     ASSERT_TRUE(chunk_size);
 
@@ -58,7 +58,7 @@ void ecs_entity_type_create(ChunkMemory* ec, BufferMemory* buf, int32 chunk_size
 }
 
 inline
-void ecs_component_type_create(ChunkMemory* ec, BufferMemory* buf, int32 chunk_size, int32 count)
+void ecs_component_type_create(ChunkMemory* ec, BufferMemory* const buf, int32 chunk_size, int32 count)
 {
     ASSERT_TRUE(chunk_size);
 

@@ -52,7 +52,7 @@ void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, uint32
 }
 
 FORCE_INLINE
-void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t)) NO_EXCEPT
+void queue_init(Queue* queue, BufferMemory* const buf, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = OMS_ALIGN_UP(element_size, alignment);
 

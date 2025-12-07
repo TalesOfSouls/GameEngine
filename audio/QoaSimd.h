@@ -381,7 +381,7 @@ uint32 qoa_encode(const Audio* audio, byte* data)
 
 uint32 qoa_decode_frame(const byte* bytes, int32 channels, QoaLms* lms, byte* sample_data)
 {
-    const byte* start = bytes;
+    const byte* const start = bytes;
 
 	// Read and verify the frame header
     uint32 frame_samples = SWAP_ENDIAN_LITTLE(*((uint32 *) bytes));

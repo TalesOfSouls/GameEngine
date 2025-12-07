@@ -263,7 +263,7 @@ v2_f32 soft_edge_coeff(v2_f32 a, v2_f32 b) NO_EXCEPT {
 
 static inline
 void soft_rasterize(
-    const SoftwareRenderer* __restrict renderer,
+    const SoftwareRenderer* const __restrict renderer,
     Vertex4DSamplerTextureColor v0,
     Vertex4DSamplerTextureColor v1,
     Vertex4DSamplerTextureColor v2,
@@ -614,7 +614,7 @@ void soft_rasterize(
 // We would need a sample buffer for full msaa implementation
 static
 void soft_rasterize_msaa(
-    const SoftwareRenderer* __restrict renderer,
+    const SoftwareRenderer* const __restrict renderer,
     Vertex4DSamplerTextureColor v0,
     Vertex4DSamplerTextureColor v1,
     Vertex4DSamplerTextureColor v2,
@@ -727,7 +727,7 @@ void soft_rasterize_msaa(
 }
 
 void soft_shader_default3d(
-    const SoftwareRenderer* __restrict renderer,
+    const SoftwareRenderer* const __restrict renderer,
     int32 data_index,
     int32 instance_index,
     void* __restrict data,
@@ -796,7 +796,7 @@ void soft_shader_default3d(
 }
 
 void soft_shader_ui(
-    const SoftwareRenderer* __restrict renderer,
+    const SoftwareRenderer* const __restrict renderer,
     int32 data_index,
     int32 instance_index,
     void* __restrict data,
@@ -909,7 +909,7 @@ void thrd_soft_shader(void* arg)
 // WARNING: data_size is not the individual vertex size, but vertex size * vertex count that creates one triangle
 inline
 void soft_render(
-    const SoftwareRenderer* __restrict renderer,
+    const SoftwareRenderer* const __restrict renderer,
     void* __restrict data = NULL,
     int32 data_count = 0,
     int32 data_size = 0, // @question Consider to split into size and stride
@@ -984,7 +984,7 @@ void soft_render(
 
 inline
 void soft_render_instanced(
-    const SoftwareRenderer* __restrict renderer,
+    const SoftwareRenderer* const __restrict renderer,
     void* __restrict data = NULL,
     int32 data_count = 0,
     void* __restrict instance_data = NULL,

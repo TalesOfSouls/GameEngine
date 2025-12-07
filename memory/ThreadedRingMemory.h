@@ -36,135 +36,113 @@ struct ThreadedRingMemory {
 // @bug alignment should also include the end point, not just the start
 
 FORCE_INLINE
-void thrd_ring_alloc(ThreadedRingMemory* ring, uint64 size, int32 alignment = sizeof(size_t))
+void thrd_ring_alloc(ThreadedRingMemory* const ring, uint64 size, int32 alignment = sizeof(size_t))
 {
     ring_alloc((RingMemory *) ring, size, alignment);
     mutex_init(&ring->lock, NULL);
 }
 
 FORCE_INLINE
-void thrd_ring_init(ThreadedRingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment = sizeof(size_t))
+void thrd_ring_init(ThreadedRingMemory* const ring, BufferMemory* const buf, uint64 size, int32 alignment = sizeof(size_t))
 {
     ring_init((RingMemory *) ring, buf, size, alignment);
     mutex_init(&ring->lock, NULL);
 }
 
 FORCE_INLINE
-void thrd_ring_init(ThreadedRingMemory* ring, byte* buf, uint64 size, int32 alignment = sizeof(size_t))
+void thrd_ring_init(ThreadedRingMemory* const ring, byte* buf, uint64 size, int32 alignment = sizeof(size_t))
 {
     ring_init((RingMemory *) ring, buf, size, alignment);
     mutex_init(&ring->lock, NULL);
 }
 
 FORCE_INLINE
-void thrd_ring_free(ThreadedRingMemory* ring)
+void thrd_ring_free(ThreadedRingMemory* const ring)
 {
     ring_free((RingMemory *) ring);
     mutex_destroy(&ring->lock);
 }
 
 FORCE_INLINE
-byte* thrd_ring_calculate_position(ThreadedRingMemory* ring, uint64 size, byte aligned = 4) NO_EXCEPT
+byte* thrd_ring_calculate_position(ThreadedRingMemory* const ring, uint64 size, byte aligned = 4) NO_EXCEPT
 {
-    mutex_lock(&ring->lock);
-    byte* result = ring_calculate_position((RingMemory *) ring, size, aligned);
-    mutex_unlock(&ring->lock);
+    MutexGuard _guard(&ring->lock);
 
-    return result;
+    return ring_calculate_position((RingMemory *) ring, size, aligned);
 }
 
 FORCE_INLINE
-void thrd_ring_reset(ThreadedRingMemory* ring) NO_EXCEPT
+void thrd_ring_reset(ThreadedRingMemory* const ring) NO_EXCEPT
 {
-    mutex_lock(&ring->lock);
+    MutexGuard _guard(&ring->lock);
     ring_reset((RingMemory *) ring);
-    mutex_unlock(&ring->lock);
 }
 
 // Moves a pointer based on the size you want to consume (new position = after consuming size)
 FORCE_INLINE
-void thrd_ring_move_pointer(ThreadedRingMemory* ring, byte** pos, uint64 size, byte aligned = 4) NO_EXCEPT
+void thrd_ring_move_pointer(ThreadedRingMemory* const ring, byte** pos, uint64 size, byte aligned = 4) NO_EXCEPT
 {
-    mutex_lock(&ring->lock);
+    MutexGuard _guard(&ring->lock);
     ring_move_pointer((RingMemory *) ring, pos, size, aligned);
-    mutex_unlock(&ring->lock);
 }
 
 FORCE_INLINE
-byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned = 4) NO_EXCEPT
+byte* thrd_ring_get_memory(ThreadedRingMemory* const ring, uint64 size, byte aligned = 4) NO_EXCEPT
 {
-    mutex_lock(&ring->lock);
-    byte* result = ring_get_memory((RingMemory *) ring, size, aligned);
-    mutex_unlock(&ring->lock);
-
-    return result;
+    MutexGuard _guard(&ring->lock);
+    return ring_get_memory((RingMemory *) ring, size, aligned);
 }
 
 FORCE_INLINE
-byte* thrd_ring_grow_memory(ThreadedRingMemory* ring, const byte* old, uint64 size_old, uint64 size_new, uint64 aligned = 4) {
-    mutex_lock(&ring->lock);
-    byte* result = ring_grow_memory((RingMemory *) ring, old, size_old, size_new, aligned);
-    mutex_unlock(&ring->lock);
-
-    return result;
+byte* thrd_ring_grow_memory(ThreadedRingMemory* const ring, const byte* old, uint64 size_old, uint64 size_new, uint64 aligned = 4) {
+    MutexGuard _guard(&ring->lock);
+    return ring_grow_memory((RingMemory *) ring, old, size_old, size_new, aligned);
 }
 
 // Same as ring_get_memory but DOESN'T move the head
 FORCE_INLINE
-byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte aligned = 4) NO_EXCEPT
+byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* const ring, uint64 size, byte aligned = 4) NO_EXCEPT
 {
-    mutex_lock(&ring->lock);
-    byte* result = ring_get_memory_nomove((RingMemory *) ring, size, aligned);
-    mutex_unlock(&ring->lock);
-
-    return result;
+    MutexGuard _guard(&ring->lock);
+    return ring_get_memory_nomove((RingMemory *) ring, size, aligned);
 }
 
 // Used if the ring only contains elements of a certain size
 // This way you can get a certain element
 FORCE_INLINE
-byte* thrd_ring_get_element(ThreadedRingMemory* ring, uint64 element, uint64 size) NO_EXCEPT
+byte* thrd_ring_get_element(ThreadedRingMemory* const ring, uint64 element, uint64 size) NO_EXCEPT
 {
-    mutex_lock(&ring->lock);
-    byte* result = ring_get_element((RingMemory *) ring, element, size);
-    mutex_unlock(&ring->lock);
-
-    return result;
+    MutexGuard _guard(&ring->lock);
+    return ring_get_element((RingMemory *) ring, element, size);
 }
 
 /**
  * Checks if one additional element can be inserted without overwriting the tail index
  */
 FORCE_INLINE
-bool thrd_ring_commit_safe(ThreadedRingMemory* ring, uint64 size, byte aligned = 4) NO_EXCEPT
+bool thrd_ring_commit_safe(ThreadedRingMemory* const ring, uint64 size, byte aligned = 4) NO_EXCEPT
 {
-    mutex_lock(&ring->lock);
-    bool result = ring_commit_safe((RingMemory *) ring, size, aligned);
-    mutex_unlock(&ring->lock);
-
-    return result;
+    MutexGuard _guard(&ring->lock);
+    return ring_commit_safe((RingMemory *) ring, size, aligned);
 }
 
 FORCE_INLINE
-void thrd_ring_force_head_update(const ThreadedRingMemory* ring) NO_EXCEPT
+void thrd_ring_force_head_update(const ThreadedRingMemory* const ring) NO_EXCEPT
 {
     _mm_clflush(ring->head);
 }
 
 FORCE_INLINE
-void thrd_ring_force_tail_update(const ThreadedRingMemory* ring) NO_EXCEPT
+void thrd_ring_force_tail_update(const ThreadedRingMemory* const ring) NO_EXCEPT
 {
     _mm_clflush(ring->tail);
 }
 
 FORCE_INLINE
-int64 thrd_ring_dump(ThreadedRingMemory* ring, byte* data) NO_EXCEPT
+int64 thrd_ring_dump(ThreadedRingMemory* const ring, byte* data) NO_EXCEPT
 {
-    mutex_lock(&ring->lock);
-    int64 result = ring_dump((RingMemory *) ring, data);
-    mutex_unlock(&ring->lock);
-
-    return result;
+    MutexGuard _guard(&ring->lock);
+    return ring_dump((RingMemory *) ring, data);
 }
 
 #endif

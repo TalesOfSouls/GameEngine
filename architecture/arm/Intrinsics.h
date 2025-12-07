@@ -59,7 +59,7 @@
     // Pre-loads 128 bit chunks of memory into cache as fast as possible
     // size MUST be multiple of 128
     inline
-    void intrin_prefetch_128(void* memory, size_t size)
+    void intrin_prefetch_128(void* const memory, size_t size)
     {
         void* const end = ((char *) memory) + size;
         uint8x16_t* p0 = (uint8x16_t *) memory;
@@ -72,7 +72,7 @@
     // Pre-loads 256 bit chunks of memory into cache as fast as possible
     // size MUST be multiple of 256
     inline
-    void intrin_prefetch_256(void* memory, size_t size)
+    void intrin_prefetch_256(void* const memory, size_t size)
     {
         void* const end = ((char *) memory) + size;
         uint8x16_t* p0 = (uint8x16_t *) memory;
@@ -85,7 +85,7 @@
     // Pre-loads 512 bit chunks of memory into cache as fast as possible
     // size MUST be multiple of 512
     inline
-    void intrin_prefetch_512(void* memory, size_t size)
+    void intrin_prefetch_512(void* const memory, size_t size)
     {
         void* const end = ((char *) memory) + size;
         uint8x16_t* p0 = (uint8x16_t *) memory;
@@ -102,7 +102,7 @@
     // Pre-loads 128 bit chunks of memory into cache as fast as possible
     // size MUST be multiple of 128
     inline
-    void intrin_prefetch_128(void* memory, size_t size)
+    void intrin_prefetch_128(void* const memory, size_t size)
     {
         void* const end = ((char *) memory) + size;
         size_t* p0 = (size_t *) memory;
@@ -115,7 +115,7 @@
     // Pre-loads 256 bit chunks of memory into cache as fast as possible
     // size MUST be multiple of 256
     inline
-    void intrin_prefetch_256(void* memory, size_t size)
+    void intrin_prefetch_256(void* const memory, size_t size)
     {
         void* const end = ((char *) memory) + size;
         size_t* p0 = (size_t *) memory;
@@ -128,7 +128,7 @@
     // Pre-loads 512 bit chunks of memory into cache as fast as possible
     // size MUST be multiple of 512
     inline
-    void intrin_prefetch_512(void* memory, size_t size)
+    void intrin_prefetch_512(void* const memory, size_t size)
     {
         void* const end = ((char *) memory) + size;
         size_t* p0 = (size_t *) memory;

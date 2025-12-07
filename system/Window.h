@@ -11,9 +11,13 @@
 
 #include "../stdlib/Types.h"
 
+// @question Why do I have this struct and don't use it in the window struct?
 struct WindowState {
-    uint16 width;
-    uint16 height;
+    uint16 logical_width;
+    uint16 logical_height;
+
+    uint16 physical_width;
+    uint16 physical_height;
 
     uint16 x;
     uint16 y;

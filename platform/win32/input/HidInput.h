@@ -23,7 +23,7 @@
 #pragma comment(lib, "hid.lib")
 #pragma comment(lib, "setupapi.lib")
 
-void hid_init_controllers(Input* __restrict states, RingMemory* ring) NO_EXCEPT
+void hid_init_controllers(Input* __restrict states, RingMemory* const ring) NO_EXCEPT
 {
 
     // Get the GUID for HID devices
@@ -48,7 +48,7 @@ void hid_init_controllers(Input* __restrict states, RingMemory* ring) NO_EXCEPT
 
         // First call to get required buffer size for device detail data
         SetupDiGetDeviceInterfaceDetail(device_info_set, &device_interface_data, NULL, 0, &required_size, NULL);
-        PSP_DEVICE_INTERFACE_DETAIL_DATA device_detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA) ring_get_memory(ring, required_size, 8);
+        PSP_DEVICE_INTERFACE_DETAIL_DATA device_detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA) ring_get_memory(ring, required_size, sizeof(size_t));
         device_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
         // Get device interface detail

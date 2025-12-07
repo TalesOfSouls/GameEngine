@@ -70,7 +70,7 @@ struct Mesh {
 void mesh_from_file_txt(
     Mesh* mesh,
     const char* path,
-    RingMemory* ring
+    RingMemory* const ring
 ) {
     FileBody file = {};
     file_read(path, &file, ring);

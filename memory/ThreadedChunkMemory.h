@@ -35,7 +35,7 @@ struct ThreadedChunkMemory {
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignment = 32)
+void thrd_chunk_alloc(ThreadedChunkMemory* const buf, uint32 count, uint32 chunk_size, int32 alignment = 32)
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -68,14 +68,14 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
     buf->completeness = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
 
     // @question Why is this even here?
-    compiler_memset_aligned_8(buf->memory, 0, buf->size);
+    memset(buf->memory, 0, buf->size);
     mutex_init(&buf->lock, NULL);
 
     LOG_1("[INFO] Allocated ThreadedChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
 
 inline
-void thrd_chunk_init(ThreadedChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = 32)
+void thrd_chunk_init(ThreadedChunkMemory* const buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = 32)
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -108,7 +108,7 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, BufferMemory* data, uint32 count,
 }
 
 inline
-void thrd_chunk_init(ThreadedChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = 32)
+void thrd_chunk_init(ThreadedChunkMemory* const buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = 32)
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -144,20 +144,20 @@ void thrd_chunk_init(ThreadedChunkMemory* buf, byte* data, uint32 count, uint32 
 // @bug what if we used _init, we still need to destroy the mutex
 // We have the same bug in other places as well
 FORCE_INLINE
-void thrd_chunk_free(ThreadedChunkMemory* buf) NO_EXCEPT
+void thrd_chunk_free(ThreadedChunkMemory* const buf) NO_EXCEPT
 {
     chunk_free((ChunkMemory *) buf);
     mutex_destroy(&buf->lock);
 }
 
 FORCE_INLINE
-uint32 thrd_chunk_id_from_memory(const ThreadedChunkMemory* buf, const byte* pos) NO_EXCEPT
+uint32 thrd_chunk_id_from_memory(const ThreadedChunkMemory* const buf, const byte* pos) NO_EXCEPT
 {
     return chunk_id_from_memory((ChunkMemory *) buf, pos);
 }
 
 FORCE_INLINE
-byte* thrd_chunk_get_element(ThreadedChunkMemory* buf, uint32 element) NO_EXCEPT
+byte* thrd_chunk_get_element(ThreadedChunkMemory* const buf, uint32 element) NO_EXCEPT
 {
     return chunk_get_element((ChunkMemory *) buf, element);
 }
@@ -225,17 +225,16 @@ int32 thrd_chunk_reserve_one(atomic_64 uint64* state, uint32 state_count, int32 
 }
 
 FORCE_INLINE
-int32 thrd_chunk_reserve(ThreadedChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
+int32 thrd_chunk_reserve(ThreadedChunkMemory* const buf, uint32 elements = 1) NO_EXCEPT
 {
-    mutex_lock(&buf->lock);
+    MutexGuard _guard(&buf->lock);
     int32 free_element = chunk_reserve((ChunkMemory *) buf, elements);
-    mutex_unlock(&buf->lock);
 
     return free_element;
 }
 
 inline
-void thrd_chunk_free_element(ThreadedChunkMemory* buf, uint64 free_index, int32 bit_index) NO_EXCEPT
+void thrd_chunk_free_element(ThreadedChunkMemory* const buf, uint64 free_index, int32 bit_index) NO_EXCEPT
 {
     atomic_64 uint64* target = &buf->free[free_index];
     uint64 old_value, new_value;
@@ -254,7 +253,7 @@ void thrd_chunk_free_element(ThreadedChunkMemory* buf, uint64 free_index, int32 
 }
 
 inline
-void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 element_count = 1) NO_EXCEPT
+void thrd_chunk_free_elements(ThreadedChunkMemory* const buf, uint64 element, uint32 element_count = 1) NO_EXCEPT
 {
     uint64 free_index = element / 64;
     uint32 bit_index = MODULO_2(element, 64);
@@ -295,7 +294,7 @@ void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 e
 
 // @performance We can optimize it by checking if we can just append additional chunks if they are free
 inline
-int32 thrd_chunk_resize(ThreadedChunkMemory* buf, int32 element_id, uint32 elements_old, uint32 elements_new) NO_EXCEPT
+int32 thrd_chunk_resize(ThreadedChunkMemory* const buf, int32 element_id, uint32 elements_old, uint32 elements_new) NO_EXCEPT
 {
     const byte* data = thrd_chunk_get_element(buf, element_id);
 

@@ -256,7 +256,7 @@ void gpuapi_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0) NO_EX
     }
     PROFILE_END(PROFILE_GPU);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings));
 }
 
 FORCE_INLINE
@@ -435,7 +435,7 @@ uint32 gpuapi_buffer_generate(int32 type, int32 size, const void* data) NO_EXCEP
     glBindBuffer(type, bo);
     glBufferData(type, size, data, GL_STATIC_DRAW);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 
     return bo;
 }
@@ -449,7 +449,7 @@ uint32 gpuapi_buffer_generate_dynamic(int32 type, int32 size, const void* data) 
     glBindBuffer(type, bo);
     glBufferData(type, size, data, GL_DYNAMIC_DRAW);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 
     return bo;
 }
@@ -479,7 +479,7 @@ void gpuapi_buffer_persistent_generate(int32 type, PersistentGpuBuffer* buffer) 
     ASSERT_GPU_API();
     ASSERT_TRUE(buffer->data);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, buffer->size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, buffer->size);
 }
 
 FORCE_INLINE
@@ -542,7 +542,7 @@ void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data) NO_E
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
     PROFILE_END(PROFILE_GPU);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 }
 
 // @todo change name. vulkan and directx have different functions for vertex buffer updates
@@ -569,7 +569,7 @@ void gpuapi_vertex_buffer_update(
     PROFILE_END(PROFILE_GPU);
     ASSERT_GPU_API();
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, vertex_size * vertex_count - offset);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, vertex_size * vertex_count - offset);
 }
 
 FORCE_INLINE

@@ -11,8 +11,8 @@
 
 inline
 UILayout* cmd_layout_load_sync(
-    AppCmdBuffer* __restrict cb,
-    UILayout* __restrict layout, const char* __restrict layout_path
+    AppCmdBuffer* const __restrict cb,
+    UILayout* const __restrict layout, const char* __restrict layout_path
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path, PROFILE_FLAG_SHOULD_LOG);
@@ -33,7 +33,7 @@ UILayout* cmd_layout_load_sync(
 
 inline
 UIThemeStyle* cmd_theme_load_sync(
-    AppCmdBuffer* __restrict cb,
+    AppCmdBuffer* const __restrict cb,
     UIThemeStyle* __restrict theme, const char* __restrict theme_path
 ) NO_EXCEPT
 {
@@ -58,11 +58,11 @@ void cmd_layout_populate_sync(
 
 inline
 UILayout* cmd_ui_load_sync(
-    AppCmdBuffer* __restrict cb,
-    UILayout* __restrict layout, const char* __restrict layout_path,
+    AppCmdBuffer* const __restrict cb,
+    UILayout* const __restrict layout, const char* __restrict layout_path,
     UIThemeStyle* __restrict general_theme,
     UIThemeStyle* __restrict theme, const char* __restrict theme_path,
-    const Camera* __restrict camera
+    const Camera* const __restrict camera
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_CMD_UI_LOAD_SYNC, layout_path, PROFILE_FLAG_SHOULD_LOG);
@@ -90,7 +90,7 @@ UILayout* cmd_ui_load_sync(
 }
 
 static inline
-UILayout* cmd_ui_load(AppCmdBuffer* __restrict cb, const Command* __restrict cmd) NO_EXCEPT
+UILayout* cmd_ui_load(AppCmdBuffer* const __restrict cb, const Command* const __restrict cmd) NO_EXCEPT
 {
     const byte* pos = cmd->data;
 
@@ -119,12 +119,12 @@ UILayout* cmd_ui_load(AppCmdBuffer* __restrict cb, const Command* __restrict cmd
 
 inline
 void thrd_cmd_ui_load(
-    AppCmdBuffer* __restrict cb,
+    AppCmdBuffer* const __restrict cb,
     SceneInfo* __restrict scene_info,
     const char* __restrict layout_path,
     UIThemeStyle* __restrict general_theme,
     const char* __restrict theme_path,
-    const Camera* __restrict camera,
+    const Camera* const __restrict camera,
     CommandFunction callback
 ) NO_EXCEPT
 {

@@ -22,7 +22,7 @@ bool is_empty(const byte* region, uint64 size, int32 steps = 8)
         return false;
     }
 
-    const byte* end = region + size;
+    const byte* const end = region + size;
     steps = intrin_validate_steps(region, steps);
 
     switch (steps) {

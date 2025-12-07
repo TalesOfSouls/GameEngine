@@ -17,7 +17,7 @@
 
 // @question When do we want to use neon and when do we want to use sve?
 // Only allowed for data >= 64 bits
-bool is_empty(const uint8* region, uint64 size, int32 steps = 8) {
+bool is_empty(const uint8* const region, uint64 size, int32 steps = 8) {
     if (*((uint64 *) region) != 0) {
         return false;
     }

@@ -80,7 +80,7 @@ struct PerfectHashMap {
     byte* hash_entries;
 };
 
-PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, int32 key_count, int32 seed_tries, RingMemory* ring)
+PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, int32 key_count, int32 seed_tries, RingMemory* const ring)
 {
     int32* indices = (int32 *) ring_get_memory(ring, hm->map_count * sizeof(int32), 4);
     bool is_unique = false;
@@ -122,9 +122,9 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, i
 }
 
 // Same code as above with the difference that we are using a fixed length key array instead of an array of pointers
-PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* __restrict keys, int32 key_count, int32 key_length, int32 seed_tries, RingMemory* ring)
+PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* __restrict keys, int32 key_count, int32 key_length, int32 seed_tries, RingMemory* const ring)
 {
-    int32* indices = (int32 *) ring_get_memory(ring, hm->map_count * sizeof(int32), 4);
+    int32* const indices = (int32 *) ring_get_memory(ring, hm->map_count * sizeof(int32), sizeof(size_t));
     bool is_unique = false;
 
     for (uint32 i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
@@ -181,7 +181,7 @@ void perfect_hashmap_free(PerfectHashMap* hm) {
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
-void perfect_hashmap_create(PerfectHashMap* __restrict hm, int32 count, int32 element_size, BufferMemory* __restrict buf)
+void perfect_hashmap_create(PerfectHashMap* __restrict hm, int32 count, int32 element_size, BufferMemory* const __restrict buf)
 {
     LOG_1("[INFO] Create PerfectHashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->map_count = count;
@@ -195,7 +195,7 @@ void perfect_hashmap_create(PerfectHashMap* __restrict hm, int32 count, int32 el
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void perfect_hashmap_create(PerfectHashMap* __restrict hm, int32 count, int32 element_size, byte* __restrict buf)
+void perfect_hashmap_create(PerfectHashMap* __restrict hm, int32 count, int32 element_size, byte* const __restrict buf)
 {
     LOG_1("[INFO] Create PerfectHashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->map_count = count;
@@ -397,7 +397,7 @@ void perfect_hashmap_delete_entry(PerfectHashMap* __restrict hm, const char* __r
 
 int64 perfect_hashmap_dump(const PerfectHashMap* hm, byte* data)
 {
-    byte* start = data;
+    const byte* const start = data;
 
     *((int32 *) data) = SWAP_ENDIAN_LITTLE(hm->map_count);
     data += sizeof(hm->map_count);
@@ -426,7 +426,7 @@ int64 perfect_hashmap_dump(const PerfectHashMap* hm, byte* data)
 // WARNING: Requires perfect_hashmap_create first
 int64 perfect_hashmap_load(PerfectHashMap* hm, const byte* data)
 {
-    const byte* start = data;
+    const byte* const start = data;
 
     hm->map_count = SWAP_ENDIAN_LITTLE(*((int32 *) data));
     data += sizeof(hm->map_count);
@@ -447,9 +447,9 @@ int64 perfect_hashmap_load(PerfectHashMap* hm, const byte* data)
 }
 
 // WARNiNG: Requires the phm to be initialized already incl. element count and element size etc.
-bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 seed_tries, RingMemory* ring)
+bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 seed_tries, RingMemory* const ring)
 {
-    char** keys = (char **) ring_get_memory(ring, sizeof(char *) * hm->buf.count, 8);
+    char** keys = (char **) ring_get_memory(ring, sizeof(char *) * hm->buf.count, sizeof(size_t));
 
     // Find all keys
     int32 key_index = 0;
@@ -460,7 +460,7 @@ bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 
     } chunk_iterate_end;
 
     // Check if we can turn it into a perfect hash map
-    const PerfectHashMap* is_perfect = perfect_hashmap_prepare(phm, (const char**) keys, key_index, seed_tries, ring);
+    const PerfectHashMap* const is_perfect = perfect_hashmap_prepare(phm, (const char**) keys, key_index, seed_tries, ring);
     if (!is_perfect) {
         return false;
     }

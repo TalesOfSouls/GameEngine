@@ -22,7 +22,7 @@
 
 template<typename T>
 FORCE_INLINE
-auto vec2_sum(T* vec) NO_EXCEPT -> decltype(vec->x)
+auto vec2_sum(T* const vec) NO_EXCEPT -> decltype(vec->x)
 {
     return vec->x + vec->y;
 }
@@ -36,7 +36,7 @@ auto vec2_sum(T vec) NO_EXCEPT -> decltype(vec.x)
 
 template<typename T>
 FORCE_INLINE
-void vec2_add(T* __restrict vec, const T* a, const T* b) NO_EXCEPT
+void vec2_add(T* const __restrict vec, const T* const a, const T* const b) NO_EXCEPT
 {
     vec->x = a->x + b->x;
     vec->y = a->y + b->y;
@@ -57,7 +57,7 @@ T vec2_add(T a, T b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec2_add(T* __restrict vec, const T* __restrict b) NO_EXCEPT
+void vec2_add(T* const __restrict vec, const T* const __restrict b) NO_EXCEPT
 {
     vec->x += b->x;
     vec->y += b->y;
@@ -65,7 +65,7 @@ void vec2_add(T* __restrict vec, const T* __restrict b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec2_sub(T* __restrict vec, const T* __restrict a, const T* __restrict b) NO_EXCEPT
+void vec2_sub(T* const __restrict vec, const T* const __restrict a, const T* const __restrict b) NO_EXCEPT
 {
     vec->x = a->x - b->x;
     vec->y = a->y - b->y;
@@ -86,7 +86,7 @@ v2_f32 operator-(v2_f32 a, v2_f32 b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec2_sub(T* __restrict vec, const T* __restrict b) NO_EXCEPT
+void vec2_sub(T* const __restrict vec, const T* const __restrict b) NO_EXCEPT
 {
     vec->x -= b->x;
     vec->y -= b->y;
@@ -94,7 +94,7 @@ void vec2_sub(T* __restrict vec, const T* __restrict b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec2_mul(T* __restrict vec, const T* __restrict a, f32 s) NO_EXCEPT
+void vec2_mul(T* const __restrict vec, const T* const __restrict a, f32 s) NO_EXCEPT
 {
     vec->x = a->x * s;
     vec->y = a->y * s;
@@ -115,7 +115,7 @@ v2_f32 operator*(v2_f32 a, f32 s) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec2_mul(T* vec, f32 s) NO_EXCEPT
+void vec2_mul(T* const vec, f32 s) NO_EXCEPT
 {
     vec->x *= s;
     vec->y *= s;
@@ -123,14 +123,14 @@ void vec2_mul(T* vec, f32 s) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-auto vec2_mul(const T* a, const T* b) NO_EXCEPT -> decltype(a->x)
+auto vec2_mul(const T* const a, const T* const b) NO_EXCEPT -> decltype(a->x)
 {
     return a->x * b->x + a->y * b->y;
 }
 
 template<typename T>
 FORCE_INLINE
-void vec2_mul(T* __restrict vec, const T* a, const T* b) NO_EXCEPT
+void vec2_mul(T* const __restrict vec, const T* const a, const T* const b) NO_EXCEPT
 {
     vec->x = a->x * b->x;
     vec->y = a->y * b->y;
@@ -145,7 +145,7 @@ T vec2_mul(T a, T b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec2_mul(T* vec, const T* b) NO_EXCEPT
+void vec2_mul(T* const vec, const T* const b) NO_EXCEPT
 {
     vec->x *= b->x;
     vec->y *= b->y;
@@ -153,7 +153,7 @@ void vec2_mul(T* vec, const T* b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec2_fma(T* __restrict vec, const T* a, const T* b, f32 scalar) NO_EXCEPT
+void vec2_fma(T* const __restrict vec, const T* const a, const T* const b, f32 scalar) NO_EXCEPT
 {
     vec->x = a->x + b->x * scalar;
     vec->y = a->y + b->y * scalar;
@@ -168,7 +168,7 @@ T vec2_fma(T a, T b, f32 scalar) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-auto vec2_cross(const T* a, const T* b) NO_EXCEPT -> decltype(a->x)
+auto vec2_cross(const T* const a, const T* const b) NO_EXCEPT -> decltype(a->x)
 {
     return a->x * b->y - a->y * b->x;
 }
@@ -182,7 +182,7 @@ auto vec2_cross(T a, T b) NO_EXCEPT -> decltype(a.x)
 
 template<typename T>
 FORCE_INLINE
-auto vec2_dot(const T* a, const T* b) NO_EXCEPT -> decltype(a->x)
+auto vec2_dot(const T* const a, const T* const b) NO_EXCEPT -> decltype(a->x)
 {
     return a->x * b->x + a->y * b->y;
 }
@@ -203,7 +203,7 @@ T vec3_length(T x, T y, T z) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-f32 vec3_length(T* vec) NO_EXCEPT
+f32 vec3_length(T* const vec) NO_EXCEPT
 {
     return intrin_sqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
 }
@@ -217,7 +217,7 @@ f32 vec3_length(T vec) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_normalize(T* vec) NO_EXCEPT
+void vec3_normalize(T* const vec) NO_EXCEPT
 {
     f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
 
@@ -228,7 +228,7 @@ void vec3_normalize(T* vec) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-auto vec3_sum(T* vec) NO_EXCEPT -> decltype(vec->x)
+auto vec3_sum(T* const vec) NO_EXCEPT -> decltype(vec->x)
 {
     return vec->x + vec->y + vec->z;
 }
@@ -242,7 +242,7 @@ auto vec3_sum(T vec) NO_EXCEPT -> decltype(vec.x)
 
 template<typename T>
 FORCE_INLINE
-void vec3_add(T* __restrict vec, const T* a, const T* b) NO_EXCEPT
+void vec3_add(T* const __restrict vec, const T* const a, const T* const b) NO_EXCEPT
 {
     vec->x = a->x + b->x;
     vec->y = a->y + b->y;
@@ -264,7 +264,7 @@ v3_f32 operator+(v3_f32 a, v3_f32 b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_add(T* __restrict vec, const T* __restrict b) NO_EXCEPT
+void vec3_add(T* const __restrict vec, const T* const __restrict b) NO_EXCEPT
 {
     vec->x += b->x;
     vec->y += b->y;
@@ -273,7 +273,7 @@ void vec3_add(T* __restrict vec, const T* __restrict b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_sub(T* __restrict vec, const T* __restrict a, const T* __restrict b) NO_EXCEPT
+void vec3_sub(T* const __restrict vec, const T* const __restrict a, const T* const __restrict b) NO_EXCEPT
 {
     vec->x = a->x - b->x;
     vec->y = a->y - b->y;
@@ -295,7 +295,7 @@ v3_f32 operator-(v3_f32 a, v3_f32 b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_sub(T* __restrict vec, const T* __restrict b) NO_EXCEPT
+void vec3_sub(T* const __restrict vec, const T* const __restrict b) NO_EXCEPT
 {
     vec->x -= b->x;
     vec->y -= b->y;
@@ -304,7 +304,7 @@ void vec3_sub(T* __restrict vec, const T* __restrict b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_mul(T* __restrict vec, const T* __restrict a, f32 s) NO_EXCEPT
+void vec3_mul(T* const __restrict vec, const T* const __restrict a, f32 s) NO_EXCEPT
 {
     vec->x = a->x * s;
     vec->y = a->y * s;
@@ -320,7 +320,7 @@ T vec3_mul(T a, T b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_mul(T* vec, f32 s) NO_EXCEPT
+void vec3_mul(T* const vec, f32 s) NO_EXCEPT
 {
     vec->x *= s;
     vec->y *= s;
@@ -342,14 +342,14 @@ v3_f32 operator*(v3_f32 vec, f32 s) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-auto vec3_mul(const T* a, const T* b) NO_EXCEPT -> decltype(a->x)
+auto vec3_mul(const T* const a, const T* const b) NO_EXCEPT -> decltype(a->x)
 {
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
 template<typename T>
 FORCE_INLINE
-void vec3_mul(T* __restrict vec, const T* a, const T* b) NO_EXCEPT
+void vec3_mul(T* const __restrict vec, const T* const a, const T* const b) NO_EXCEPT
 {
     vec->x = a->x * b->x;
     vec->y = a->y * b->y;
@@ -358,7 +358,7 @@ void vec3_mul(T* __restrict vec, const T* a, const T* b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_mul(T* vec, const T* b) NO_EXCEPT
+void vec3_mul(T* const vec, const T* const b) NO_EXCEPT
 {
     vec->x *= b->x;
     vec->y *= b->y;
@@ -367,7 +367,7 @@ void vec3_mul(T* vec, const T* b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_fma(T* __restrict vec, const T* a, const T* b, f32 scalar) NO_EXCEPT
+void vec3_fma(T* const __restrict vec, const T* const a, const T* const b, f32 scalar) NO_EXCEPT
 {
     vec->x = a->x + b->x * scalar;
     vec->y = a->y + b->y * scalar;
@@ -383,7 +383,7 @@ T vec3_fma(T a, T b, f32 scalar) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_cross(T* __restrict vec, const T* a, const T* b) NO_EXCEPT
+void vec3_cross(T* const __restrict vec, const T* const a, const T* const b) NO_EXCEPT
 {
     vec->x = a->y * b->z - a->z * b->y;
     vec->y = a->z * b->x - a->x * b->z;
@@ -399,7 +399,7 @@ T vec3_cross(T a, T b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-auto vec3_dot(const T* a, const T* b) NO_EXCEPT -> decltype(a->x)
+auto vec3_dot(const T* const a, const T* const b) NO_EXCEPT -> decltype(a->x)
 {
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
@@ -420,7 +420,7 @@ T vec4_length(T x, T y, T z, T w) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-f32 vec4_length(T* vec) NO_EXCEPT
+f32 vec4_length(T* const vec) NO_EXCEPT
 {
     return intrin_sqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z + vec->w * vec->w);
 }
@@ -434,7 +434,7 @@ f32 vec4_length(T vec) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec4_normalize(T* vec) NO_EXCEPT
+void vec4_normalize(T* const vec) NO_EXCEPT
 {
     f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z + vec->w * vec->w);
 
@@ -446,7 +446,7 @@ void vec4_normalize(T* vec) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-auto vec4_sum(T* vec) NO_EXCEPT -> decltype(vec->x)
+auto vec4_sum(T* const vec) NO_EXCEPT -> decltype(vec->x)
 {
     return vec->x + vec->y + vec->z + + vec.w;
 }
@@ -461,7 +461,7 @@ auto vec4_sum(T vec) NO_EXCEPT -> decltype(vec.x)
 // @todo Implement simd versions
 template<typename T>
 FORCE_INLINE
-void vec4_add(T* __restrict vec, const T* a, const T* b) NO_EXCEPT
+void vec4_add(T* const __restrict vec, const T* const a, const T* const b) NO_EXCEPT
 {
     vec->x = a->x + b->x;
     vec->y = a->y + b->y;
@@ -484,7 +484,7 @@ v4_f32 operator+(v4_f32 a, v4_f32 b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec4_add(T* __restrict vec, const T* b) NO_EXCEPT
+void vec4_add(T* const __restrict vec, const T* const b) NO_EXCEPT
 {
     vec->x += b->x;
     vec->y += b->y;
@@ -494,7 +494,7 @@ void vec4_add(T* __restrict vec, const T* b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec4_sub(T* __restrict vec, const T* __restrict a, const T* __restrict b) NO_EXCEPT
+void vec4_sub(T* const __restrict vec, const T* const __restrict a, const T* const __restrict b) NO_EXCEPT
 {
     vec->x = a->x - b->x;
     vec->y = a->y - b->y;
@@ -517,7 +517,7 @@ v4_f32 operator-(v4_f32 a, v4_f32 b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec4_sub(T* __restrict vec, const T* __restrict b) NO_EXCEPT
+void vec4_sub(T* const __restrict vec, const T* const __restrict b) NO_EXCEPT
 {
     vec->x -= b->x;
     vec->y -= b->y;
@@ -527,7 +527,7 @@ void vec4_sub(T* __restrict vec, const T* __restrict b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec4_mul(T* __restrict vec, const T* __restrict a, f32 s) NO_EXCEPT
+void vec4_mul(T* const __restrict vec, const T* const __restrict a, f32 s) NO_EXCEPT
 {
     vec->x = a->x * s;
     vec->y = a->y * s;
@@ -537,7 +537,7 @@ void vec4_mul(T* __restrict vec, const T* __restrict a, f32 s) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec4_mul(T* vec, f32 s) NO_EXCEPT
+void vec4_mul(T* const vec, f32 s) NO_EXCEPT
 {
     vec->x *= s;
     vec->y *= s;
@@ -560,14 +560,14 @@ v4_f32 operator*(v4_f32 vec, f32 s) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-auto vec4_mul(const T* a, const T* b) NO_EXCEPT -> decltype(a->x)
+auto vec4_mul(const T* const a, const T* const b) NO_EXCEPT -> decltype(a->x)
 {
     return a->x * b->x + a->y * b->y + a->z * b->z + a->w * b->w;
 }
 
 template<typename T>
 FORCE_INLINE
-void vec4_mul(T* __restrict vec, const T* a, const T* b) NO_EXCEPT
+void vec4_mul(T* const __restrict vec, const T* const a, const T* const b) NO_EXCEPT
 {
     vec->x = a->x * b->x;
     vec->y = a->y * b->y;
@@ -585,7 +585,7 @@ T vec4_mul(T a, T b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec4_mul(T* vec, const T* b) NO_EXCEPT
+void vec4_mul(T* const vec, const T* const b) NO_EXCEPT
 {
     vec->x *= b->x;
     vec->y *= b->y;
@@ -595,7 +595,7 @@ void vec4_mul(T* vec, const T* b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-auto vec4_dot(const T* a, const T* b) NO_EXCEPT -> decltype(a->x)
+auto vec4_dot(const T* const a, const T* const b) NO_EXCEPT -> decltype(a->x)
 {
     return a->x * b->x + a->y * b->y + a->z * b->z + a->w * b->w;
 }
@@ -609,7 +609,7 @@ auto vec4_dot(T a, T b) NO_EXCEPT -> decltype(a.x)
 
 template<typename T>
 FORCE_INLINE
-void vec4_cross(T* __restrict vec, const T* a, const T* b, const T* c) NO_EXCEPT
+void vec4_cross(T* const __restrict vec, const T* const a, const T* const b, const T* const c) NO_EXCEPT
 {
     const auto d1 = b->z * c->w - b->w * c->z;
     const auto d2 = b->y * c->w - b->w * c->y;

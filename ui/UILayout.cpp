@@ -61,7 +61,7 @@ void ui_layout_count_direct_children(UIElement* __restrict element, const char* 
 
 static
 void ui_layout_assign_children(
-    UILayout* __restrict layout,
+    UILayout* const __restrict layout,
     UIElement* __restrict element,
     const char* __restrict pos,
     int32 parent_level
@@ -109,9 +109,9 @@ void ui_layout_assign_children(
 
 // WARNING: theme needs to have memory already reserved and assigned to data
 void layout_from_file_txt(
-    UILayout* __restrict layout,
+    UILayout* const __restrict layout,
     const char* __restrict path,
-    RingMemory* ring
+    RingMemory* const ring
 ) {
     FileBody file = {};
     file_read(path, &file, ring);
@@ -428,7 +428,7 @@ void ui_layout_serialize_element(
 }
 
 int32 layout_to_data(
-    const UILayout* __restrict layout,
+    const UILayout* const __restrict layout,
     byte* __restrict data
 ) {
     LOG_1("Save layout");
@@ -589,8 +589,8 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
 // The size of layout->data should be the file size + a bunch of additional data for additional theme dependent "UIElements->style_types".
 // Yes, this means we have a little too much data but not by a lot
 int32 layout_from_data(
-    const byte* __restrict data,
-    UILayout* __restrict layout
+    const byte* const __restrict data,
+    UILayout* const __restrict layout
 ) {
     PROFILE(PROFILE_LAYOUT_FROM_DATA, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Load layout");
@@ -634,7 +634,7 @@ int32 layout_from_data(
 // This way we can re-load specific elements on change and we could also greatly reduce the setup time by ignoring ui elements that are rarely visible
 
 void layout_from_theme(
-    UILayout* __restrict layout,
+    UILayout* const __restrict layout,
     const UIThemeStyle* __restrict theme
 ) {
     PROFILE(PROFILE_LAYOUT_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -892,7 +892,6 @@ uint32 ui_layout_render_dfs(
     uint32 vertex_count = 0;
 
     if (element->vertex_count_active && element->category == category) {
-        // @performance we might be able to use memcpy_aligned_factored
         memcpy(
             vertices,
             layout->vertices_active + element->vertices_active_offset,
@@ -949,7 +948,6 @@ uint32 ui_layout_update_render_dfs(
     if (element->category == category) {
         ui_layout_update(layout, element);
 
-        // @performance we might be able to use memcpy_aligned_factored
         memcpy(
             vertices,
             layout->vertices_active + element->vertices_active_offset,
@@ -998,7 +996,7 @@ uint32 layout_element_from_location(const UILayout* layout, uint16 x, uint16 y) 
 }
 
 FORCE_INLINE
-UIElement* layout_get_element(const UILayout* __restrict layout, const char* __restrict element) NO_EXCEPT
+UIElement* layout_get_element(const UILayout* const __restrict layout, const char* __restrict element) NO_EXCEPT
 {
     HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry((HashMap *) &layout->hash_map, element);
     if (!entry) {

@@ -118,14 +118,14 @@ the weights and calculating the prediction.
 */
 // @performance Depending on context most likely SIMDable
 static inline
-int32 qoa_lms_predict(QoaLms* lms)
+int32 qoa_lms_predict(const QoaLms* lms)
 {
-	int32 prediction = 0;
+	int64 prediction = 0;
 	for (int32 i = 0; i < QOA_LMS_LEN; ++i) {
-		prediction += lms->weights[i] * lms->history[i];
+		prediction += (int64) lms->weights[i] * (int64) lms->history[i];
 	}
 
-	return prediction >> 13;
+	return (int32) (prediction >> 13);
 }
 
 // @performance Depending on context most likely SIMDable
@@ -151,8 +151,8 @@ argument, so it can do the division with a cheaper integer multiplication.
 */
 static inline
 int32 qoa_div(int32 v, int32 scalefactor) {
-	int32 reciprocal = qoa_reciprocal_tab[scalefactor];
-	int32 n = (v * reciprocal + (1 << 15)) >> 16;
+	const int64 reciprocal = qoa_reciprocal_tab[scalefactor];
+	int32 n = (int32) (((int64) v * reciprocal + (1 << 15)) >> 16);
 
     /* round away from 0 */
 	n = n + ((v > 0) - (v < 0)) - ((n > 0) - (n < 0));
@@ -182,6 +182,7 @@ int32 qoa_clamp_s16(int32 v) {
 	return v;
 }
 
+static inline
 uint32 qoa_encode_frame(const int16* sample_data, uint32 channels, uint32 frame_samples, QoaLms* lms, byte* bytes)
 {
     byte* start = bytes;
@@ -334,7 +335,7 @@ uint32 qoa_encode(const Audio* audio, byte* data) {
         lms[i].weights[3] = (1 << 14);
 
         // Explicitly set the history samples to 0, as we might have some garbage in there.
-        memset_aligned(lms[i].history, 0, QOA_LMS_LEN * sizeof(int32));
+        memset(lms[i].history, 0, QOA_LMS_LEN * sizeof(int32));
     }
 
 	// Go through all frames
@@ -351,9 +352,10 @@ uint32 qoa_encode(const Audio* audio, byte* data) {
 	return (uint32) (data - start);
 }
 
+static inline
 uint32 qoa_decode_frame(const byte* bytes, uint32 channels, QoaLms* lms, int16* sample_data)
 {
-    const byte* start = bytes;
+    const byte* const start = bytes;
 
 	// Read and verify the frame header
     uint32 frame_samples = SWAP_ENDIAN_LITTLE(*((uint32 *) bytes));
@@ -415,21 +417,32 @@ uint32 qoa_decode(const byte* data, Audio* audio)
 {
 	LOG_3("QOA decode audio");
     uint32 p = 0;
-	uint32 frame_size;
     byte* sample_ptr = audio->data;
 
     QoaLms lms[QOA_MAX_CHANNELS];
 
     uint32 limit = 4 + QOA_LMS_LEN * 4 * audio->channels;
 
-	do {
-		frame_size = qoa_decode_frame(data + p, audio->channels, lms, (int16 *) sample_ptr);
-        sample_ptr += frame_size;
-		p += frame_size;
-	} while (frame_size && p < audio->size && audio->size - p >= limit);
-    // @question do we really need the audio->size - p >= limit check?
+	while (p < audio->size && audio->size - p >= limit) {
+		ASSERT_TRUE(p % 4 == 0);
 
-	return audio->size;
+		uint32 frame_samples;
+		// @performance We can probably replace this with a type case assignment if p % 4 == 0
+		memcpy(&frame_samples, data + p, sizeof(frame_samples));
+		frame_samples = SWAP_ENDIAN_LITTLE(frame_samples);
+
+		const uint32 out_bytes = frame_samples * audio->channels * sizeof(int16);
+		const uint32 consumed = qoa_decode_frame(data + p, audio->channels, lms, (int16*)sample_ptr);
+
+		if (consumed == 0) {
+			break;
+		}
+
+        p += consumed;
+        sample_ptr += out_bytes;
+	}
+
+	return (uint32)(sample_ptr - audio->data);
 }
 
 #endif

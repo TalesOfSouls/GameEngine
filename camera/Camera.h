@@ -94,7 +94,7 @@ struct Camera {
     alignas(64) Frustum frustum;
 };
 
-void camera_frustum_update(Camera* camera) NO_EXCEPT
+void camera_frustum_update(Camera* const camera) NO_EXCEPT
 {
     const v3_f32 pos = camera->location;
     const v3_f32 front = camera->front;
@@ -173,7 +173,7 @@ void camera_frustum_update(Camera* camera) NO_EXCEPT
 // In some cases we only need to update the frustum based on position updates
 // This allows us to simply make shifts to the original frustum positions
 inline
-void camera_frustum_pos_update(Camera* camera, v3_f32 old_pos) NO_EXCEPT
+void camera_frustum_pos_update(Camera* const camera, v3_f32 old_pos) NO_EXCEPT
 {
     const v3_f32 delta = {
         camera->location.x - old_pos.x,
@@ -190,7 +190,7 @@ void camera_frustum_pos_update(Camera* camera, v3_f32 old_pos) NO_EXCEPT
 }
 
 static FORCE_INLINE
-void camera_init_rh_opengl(Camera* camera) NO_EXCEPT
+void camera_init_rh_opengl(Camera* const camera) NO_EXCEPT
 {
     camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, -1.0f};
@@ -200,7 +200,7 @@ void camera_init_rh_opengl(Camera* camera) NO_EXCEPT
 }
 
 static FORCE_INLINE
-void camera_init_rh_vulkan(Camera* camera) NO_EXCEPT
+void camera_init_rh_vulkan(Camera* const camera) NO_EXCEPT
 {
     camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, -1.0f};
@@ -210,7 +210,7 @@ void camera_init_rh_vulkan(Camera* camera) NO_EXCEPT
 }
 
 static FORCE_INLINE
-void camera_init_lh(Camera* camera) NO_EXCEPT
+void camera_init_lh(Camera* const camera) NO_EXCEPT
 {
     camera->orientation = {0.0f, 90.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, 1.0f};
@@ -220,7 +220,7 @@ void camera_init_lh(Camera* camera) NO_EXCEPT
 }
 
 static inline HOT_CODE
-void camera_vectors_update(Camera* camera) NO_EXCEPT
+void camera_vectors_update(Camera* const camera) NO_EXCEPT
 {
     /*
     f32 cos_ori_x = cosf(OMS_DEG2RAD(camera->orientation.x));
@@ -245,7 +245,7 @@ void camera_vectors_update(Camera* camera) NO_EXCEPT
 }
 
 inline HOT_CODE
-void camera_rotate(Camera* camera, int32 dx, int32 dy) NO_EXCEPT
+void camera_rotate(Camera* const camera, int32 dx, int32 dy) NO_EXCEPT
 {
     camera->state_changes |= CAMERA_STATE_CHANGE_ORIENTATION;
     camera->orientation.x += dy * camera->sensitivity;
@@ -268,7 +268,7 @@ void camera_rotate(Camera* camera, int32 dx, int32 dy) NO_EXCEPT
 
 inline
 void camera_movement(
-    Camera* __restrict camera,
+    Camera* const __restrict camera,
     CameraMovement movement,
     f32 dt,
     bool relative_to_world = true
@@ -404,8 +404,8 @@ void camera_movement(
 // you can have up to 4 camera movement inputs at the same time
 inline
 void camera_movement(
-    Camera* __restrict camera,
-    const CameraMovement* __restrict movement,
+    Camera* const __restrict camera,
+    const CameraMovement* const __restrict movement,
     f32 dt,
     bool relative_to_world = true
 ) NO_EXCEPT
@@ -540,7 +540,7 @@ void camera_movement(
 }
 
 FORCE_INLINE HOT_CODE
-void camera_orth_matrix_lh(Camera* camera) NO_EXCEPT
+void camera_orth_matrix_lh(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_lh(
         camera->orth,
@@ -552,7 +552,7 @@ void camera_orth_matrix_lh(Camera* camera) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-void camera_ui_matrix_lh(Camera* camera) NO_EXCEPT
+void camera_ui_matrix_lh(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_lh(
         camera->orth,
@@ -564,7 +564,7 @@ void camera_ui_matrix_lh(Camera* camera) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-void camera_orth_matrix_rh_opengl(Camera* camera) NO_EXCEPT
+void camera_orth_matrix_rh_opengl(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_opengl(
         camera->orth,
@@ -576,7 +576,7 @@ void camera_orth_matrix_rh_opengl(Camera* camera) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-void camera_orth_matrix_rh_software(Camera* camera) NO_EXCEPT
+void camera_orth_matrix_rh_software(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_software(
         camera->orth,
@@ -588,7 +588,7 @@ void camera_orth_matrix_rh_software(Camera* camera) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-void camera_ui_matrix_rh_software(Camera* camera) NO_EXCEPT
+void camera_ui_matrix_rh_software(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_software(
         camera->orth,
@@ -600,7 +600,7 @@ void camera_ui_matrix_rh_software(Camera* camera) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-void camera_orth_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
+void camera_orth_matrix_rh_vulkan(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_vulkan(
         camera->orth,
@@ -612,7 +612,7 @@ void camera_orth_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-void camera_ui_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
+void camera_ui_matrix_rh_vulkan(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_vulkan(
         camera->orth,
@@ -624,7 +624,7 @@ void camera_ui_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
 }
 
 inline HOT_CODE
-void camera_projection_matrix_lh(Camera* camera) NO_EXCEPT
+void camera_projection_matrix_lh(Camera* const camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -638,7 +638,7 @@ void camera_projection_matrix_lh(Camera* camera) NO_EXCEPT
 }
 
 inline HOT_CODE
-void camera_projection_matrix_rh_opengl(Camera* camera) NO_EXCEPT
+void camera_projection_matrix_rh_opengl(Camera* const camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -652,7 +652,7 @@ void camera_projection_matrix_rh_opengl(Camera* camera) NO_EXCEPT
 }
 
 inline HOT_CODE
-void camera_projection_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
+void camera_projection_matrix_rh_vulkan(Camera* const camera) NO_EXCEPT
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -669,7 +669,7 @@ void camera_projection_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
 // This is usually not used, since it is included in the view matrix
 // expects the identity matrix
 FORCE_INLINE
-void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* translation) NO_EXCEPT
+void camera_translation_matrix_sparse_rh(const Camera* const __restrict camera, f32* translation) NO_EXCEPT
 {
     translation[12] = camera->location.x;
     translation[13] = camera->location.y;
@@ -677,7 +677,7 @@ void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* t
 }
 
 FORCE_INLINE
-void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* translation) NO_EXCEPT
+void camera_translation_matrix_sparse_lh(const Camera* const __restrict camera, f32* translation) NO_EXCEPT
 {
     translation[3] = camera->location.x;
     translation[7] = camera->location.y;
@@ -685,7 +685,7 @@ void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* t
 }
 
 void
-camera_view_matrix_lh(Camera* camera) NO_EXCEPT
+camera_view_matrix_lh(Camera* const camera) NO_EXCEPT
 {
     const v3_f32 zaxis = camera->front;
 
@@ -715,7 +715,7 @@ camera_view_matrix_lh(Camera* camera) NO_EXCEPT
 }
 
 void
-camera_view_matrix_rh_opengl(Camera* camera) NO_EXCEPT
+camera_view_matrix_rh_opengl(Camera* const camera) NO_EXCEPT
 {
     const v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
@@ -745,7 +745,7 @@ camera_view_matrix_rh_opengl(Camera* camera) NO_EXCEPT
 }
 
 void
-camera_view_matrix_rh_vulkan(Camera* camera) NO_EXCEPT
+camera_view_matrix_rh_vulkan(Camera* const camera) NO_EXCEPT
 {
     const v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
@@ -817,7 +817,7 @@ f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT
 }
 
 inline
-void camera_init(Camera* camera) NO_EXCEPT
+void camera_init(Camera* const camera) NO_EXCEPT
 {
     camera->znear = 0.1f;
     camera->zfar = 10000.0f;
@@ -853,7 +853,7 @@ void camera_init(Camera* camera) NO_EXCEPT
 }
 
 inline
-bool aabb_intersects_frustum(const AABB_f32* __restrict box, const Frustum* __restrict frustum) NO_EXCEPT
+bool aabb_intersects_frustum(const AABB_f32* const __restrict box, const Frustum* const __restrict frustum) NO_EXCEPT
 {
     for(int32 i = 0; i < 6; ++i) {
         const v4_f32 eq = frustum->eq[i];
@@ -872,7 +872,7 @@ bool aabb_intersects_frustum(const AABB_f32* __restrict box, const Frustum* __re
 }
 
 inline
-bool aabb_intersects_frustum(const AABB_int32* __restrict box, const Frustum* __restrict frustum) NO_EXCEPT
+bool aabb_intersects_frustum(const AABB_int32* const __restrict box, const Frustum* const __restrict frustum) NO_EXCEPT
 {
     for(int32 i = 0; i < 6; ++i) {
         const v4_f32 eq = frustum->eq[i];

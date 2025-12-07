@@ -17,10 +17,15 @@
 typedef HINSTANCE WindowInstance;
 
 struct Window {
-    // @question Should we implement a virtual width/height
-    //  e.g. I think apple has that where physical resolution < virtual resolution?!
-    uint16 width;
-    uint16 height;
+    // @question Why am I not using WindowState here as well e.g. state_current
+    //          I only use it in state_old
+    // Logical dimension
+    uint16 logical_width;
+    uint16 logical_height;
+
+    // Physical dimension (a monitor may have more pixels than used in software e.g. retina)
+    uint16 physical_width;
+    uint16 physical_height;
 
     uint16 x;
     uint16 y;
@@ -30,6 +35,8 @@ struct Window {
 
     // WindowsStateFlag
     byte state_flag;
+
+    byte dpi;
 
     HWND hwnd;
 
@@ -53,8 +60,10 @@ FORCE_INLINE
 void window_backup_state(Window* w) NO_EXCEPT
 {
     w->state_old.style = GetWindowLongPtr(w->hwnd, GWL_STYLE);
-    w->state_old.width = w->width;
-    w->state_old.height = w->height;
+    w->state_old.logical_width = w->logical_width;
+    w->state_old.logical_height = w->logical_height;
+    w->state_old.physical_width = w->physical_width;
+    w->state_old.physical_height = w->physical_height;
     w->state_old.x = w->x;
     w->state_old.y = w->y;
 }
@@ -62,8 +71,10 @@ void window_backup_state(Window* w) NO_EXCEPT
 FORCE_INLINE
 void window_restore_state(Window* w) NO_EXCEPT
 {
-    w->width = w->state_old.width;
-    w->height = w->state_old.height;
+    w->logical_width = w->state_old.logical_width;
+    w->logical_height = w->state_old.logical_height;
+    w->physical_width = w->state_old.physical_width;
+    w->physical_height = w->state_old.physical_height;
     w->x = w->state_old.x;
     w->y = w->state_old.y;
 }

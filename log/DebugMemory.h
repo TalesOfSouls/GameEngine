@@ -255,22 +255,19 @@ void debug_memory_reset() NO_EXCEPT
             // last could be updated while we loop
             if (_dmc->memory_stats[i].last_action[idx].time < time) {
                 if (idx <= last) {
-                    memset_aligned_factored(
+                    memset(
                         &_dmc->memory_stats[i].last_action[0], 0,
-                        sizeof(DebugMemoryRange) * (idx + 1),
-                        sizeof(DebugMemoryRange)
+                        sizeof(DebugMemoryRange) * (idx + 1)
                     );
 
-                    memset_aligned_factored(
+                    memset(
                         &_dmc->memory_stats[i].last_action[last + 1], 0,
-                        sizeof(DebugMemoryRange) * (ARRAY_COUNT(_dmc->memory_stats[i].last_action) - (idx + 1)),
-                        sizeof(DebugMemoryRange)
+                        sizeof(DebugMemoryRange) * (ARRAY_COUNT(_dmc->memory_stats[i].last_action) - (idx + 1))
                     );
                 } else {
-                    memset_aligned_factored(
+                    memset(
                         &_dmc->memory_stats[i].last_action[last + 1], 0,
-                        sizeof(DebugMemoryRange) * (idx - last),
-                        sizeof(DebugMemoryRange)
+                        sizeof(DebugMemoryRange) * (idx - last)
                     );
                 }
 

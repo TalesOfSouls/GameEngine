@@ -136,7 +136,7 @@ void intrin_prefetch(void* memory, size_t size, int32_t steps = 16) NO_EXCEPT
 }
 
 inline
-void intrin_swap_memory(void* __restrict a, void* __restrict b, size_t size, int32_t steps = 16) NO_EXCEPT
+void intrin_swap_memory(void* const __restrict a, void* const __restrict b, size_t size, int32_t steps = 16) NO_EXCEPT
 {
     byte* p = (byte*)a;
     byte* q = (byte*)b;

@@ -241,7 +241,6 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
         // This requires the cursor position is already updated wherever we handle the input update (on_enter, on_leave)
         idx += ui_cursor_element_update(layout, cursor_element);
 
-        // @performance we might be able to use memcpy_aligned_factored
         memcpy(
             layout->vertices_active + element->vertices_active_offset + idx,
             layout->vertices_active + cursor_element->vertices_active_offset,

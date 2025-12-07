@@ -75,7 +75,7 @@ struct AssetArchive {
 
 // Calculates how large the header memory has to be to hold all its information
 static inline
-int32 asset_archive_header_size(AssetArchive* __restrict archive, const byte* __restrict data) NO_EXCEPT
+int32 asset_archive_header_size(AssetArchive* const __restrict archive, const byte* __restrict data) NO_EXCEPT
 {
     data += sizeof(archive->header.version);
 
@@ -93,7 +93,7 @@ int32 asset_archive_header_size(AssetArchive* __restrict archive, const byte* __
 }
 
 static inline
-void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte* __restrict data, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
+void asset_archive_header_load(AssetArchiveHeader* const __restrict header, const byte* __restrict data, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {
     header->version = SWAP_ENDIAN_LITTLE(*((int32 *) data));
     data += sizeof(header->version);
@@ -104,7 +104,7 @@ void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte
     header->asset_dependency_count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(header->asset_dependency_count);
 
-    memcpy_aligned_factored(header->asset_element, data, header->asset_count * sizeof(AssetArchiveElement), sizeof(AssetArchiveElement));
+    memcpy(header->asset_element, data, header->asset_count * sizeof(AssetArchiveElement));
     data += header->asset_count * sizeof(AssetArchiveElement);
 
     SWAP_ENDIAN_LITTLE_SIMD(
@@ -160,8 +160,8 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
 void asset_archive_load(
     AssetArchive* archive,
     const char* path,
-    BufferMemory* buf,
-    RingMemory* ring,
+    BufferMemory* const buf,
+    RingMemory* const ring,
     int32 steps = 8
 ) NO_EXCEPT
 {
@@ -187,7 +187,7 @@ void asset_archive_load(
     file.size = sizeof(AssetArchiveHeader); // We only want to read the header at first
 
     // Find header size
-    file.content = ring_get_memory(ring, file.size, 8);
+    file.content = ring_get_memory(ring, file.size, sizeof(size_t));
     file_read(archive->fd, &file, 0, file.size);
     file.size = asset_archive_header_size(archive, file.content);
 
@@ -207,7 +207,7 @@ void asset_archive_load(
     file_seek(archive->fd, 0);
 
     // Read entire header
-    file.content = ring_get_memory(ring, file.size, 8);
+    file.content = ring_get_memory(ring, file.size, sizeof(size_t));
     file_read(archive->fd, &file, 0, file.size);
     asset_archive_header_load(&archive->header, file.content, steps);
 
@@ -222,7 +222,7 @@ void asset_archive_load(
 // Maybe we could just accept a int value which we set atomically as a flag that the asset is complete?
 // this way we can check much faster if we can work with this data from the caller?!
 // The only problem is that we need to pass the pointer to this int in the thrd_queue since we queue the files to load there
-Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManagementSystem* ams, RingMemory* ring) NO_EXCEPT
+Asset* const asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManagementSystem* const ams, RingMemory* const ring) NO_EXCEPT
 {
     // Create a string representation from the asset id
     // We can't just use the asset id, since an int can have a \0 between high byte and low byte
@@ -236,7 +236,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     // @todo add calculation from element->type to ams index. Probably requires an app specific conversion function
 
     // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
-    AssetArchiveElement* element = &archive->header.asset_element[id & 0x00FFFFFF];
+    const AssetArchiveElement* const element = &archive->header.asset_element[id & 0x00FFFFFF];
     ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
 
     byte component_id = archive->asset_type_map[element->type];

@@ -44,6 +44,9 @@
 #pragma comment(lib, "cfgmgr32.lib")
 #pragma comment(lib, "comsuppw.lib")
 
+// Used by NtCurrentTeb in system_stack_usage
+// #pragma comment(lib, "ntdll.lib")
+
 FORCE_INLINE
 uint64 system_private_memory_usage()
 {
@@ -63,7 +66,11 @@ uint32 system_stack_usage()
     static thread_local char* stack_base = NULL;
 
     if (!stack_base) {
-        NT_TIB* tib = (NT_TIB *) NtCurrentTeb();
+        //NT_TIB* tib = (NT_TIB *) NtCurrentTeb();
+
+        // This might be faster
+        NT_TIB* tib = (NT_TIB *) __readgsqword(0x30);
+
         stack_base  = (char *) tib->StackBase;
     }
 

@@ -320,7 +320,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
     int32 descriptor_offset,
     ID3D12DescriptorHeap* srv_heap,
     const Texture* texture,
-    RingMemory* ring
+    RingMemory* const ring
 ) {
     DXGI_FORMAT texture_format = gpuapi_texture_format(texture->image.image_settings);
 

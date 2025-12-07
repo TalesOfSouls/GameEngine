@@ -73,7 +73,7 @@ uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = siz
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void chunk_alloc(ChunkMemory* const buf, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
@@ -100,11 +100,17 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 element_size, int32 alig
         (uint64) ((uintptr_t) (buf->memory + count * element_size)),
         (uint64) alignment
     );
-    compiler_memset_aligned_8(buf->free, 0, (count + 63) / 64);
+    memset(buf->free, 0, (count + 63) / 64);
 }
 
 inline
-void chunk_init(ChunkMemory* __restrict buf, BufferMemory* __restrict data, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void chunk_init(
+    ChunkMemory* const __restrict buf,
+    BufferMemory* __restrict data,
+    uint32 count,
+    uint32 element_size,
+    int32 alignment = sizeof(size_t)
+) NO_EXCEPT
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
@@ -123,13 +129,19 @@ void chunk_init(ChunkMemory* __restrict buf, BufferMemory* __restrict data, uint
     buf->last_pos = -1;
     buf->alignment = alignment;
     buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * element_size), 64);
-    compiler_memset_aligned_8(buf->free, 0, (count + 63) / 64);
+    memset(buf->free, 0, (count + 63) / 64);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
-void chunk_init(ChunkMemory* __restrict buf, byte* __restrict data, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void chunk_init(
+    ChunkMemory* const __restrict buf,
+    byte* __restrict data,
+    uint32 count,
+    uint32 element_size,
+    int32 alignment = sizeof(size_t)
+) NO_EXCEPT
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
@@ -150,13 +162,13 @@ void chunk_init(ChunkMemory* __restrict buf, byte* __restrict data, uint32 count
         (uintptr_t) (buf->memory + count * element_size),
         (uint64) alignment
     );
-    compiler_memset_aligned_8(buf->free, 0, (count + 63) / 64);
+    memset(buf->free, 0, (count + 63) / 64);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline HOT_CODE
-void chunk_free(ChunkMemory* buf) NO_EXCEPT
+void chunk_free(ChunkMemory* const buf) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->size);
 
@@ -171,26 +183,26 @@ void chunk_free(ChunkMemory* buf) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-uint64* chunk_find_free_array(const ChunkMemory* buf) NO_EXCEPT
+uint64* chunk_find_free_array(const ChunkMemory* const buf) NO_EXCEPT
 {
     return (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + buf->count * buf->chunk_size), (uint64) buf->alignment);
 }
 
 FORCE_INLINE HOT_CODE
-uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) NO_EXCEPT
+uint32 chunk_id_from_memory(const ChunkMemory* const buf, const byte* pos) NO_EXCEPT
 {
     return (uint32) ((uintptr_t) pos - (uintptr_t) buf->memory) / buf->chunk_size;
 }
 
 FORCE_INLINE HOT_CODE FORCE_FLATTEN
-byte* chunk_get_element(ChunkMemory* buf, uint32 element) NO_EXCEPT
+byte* chunk_get_element(ChunkMemory* const buf, uint32 element) NO_EXCEPT
 {
     // @question How is this even possible? Isn't an assert enough?
     if (element >= buf->count || element < 0) {
         return NULL;
     }
 
-    byte* offset = buf->memory + element * buf->chunk_size;
+    byte* const offset = buf->memory + element * buf->chunk_size;
     ASSERT_TRUE(offset);
 
     DEBUG_MEMORY_READ((uintptr_t) offset, buf->chunk_size);
@@ -199,7 +211,7 @@ byte* chunk_get_element(ChunkMemory* buf, uint32 element) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-bool chunk_is_free(const ChunkMemory* buf, uint32 element) NO_EXCEPT
+bool chunk_is_free(const ChunkMemory* const buf, uint32 element) NO_EXCEPT
 {
     const uint32 free_index = element / 64;
     const uint32 bit_index = MODULO_2(element, 64);
@@ -256,7 +268,7 @@ int32 chunk_reserve_one(uint64* state, uint32 state_count, int32 start_index = 0
 }
 
 HOT_CODE FORCE_FLATTEN
-int32 chunk_reserve_one(ChunkMemory* buf) NO_EXCEPT
+int32 chunk_reserve_one(ChunkMemory* const buf) NO_EXCEPT
 {
     if ((uint32) (buf->last_pos + 1) >= buf->count) { UNLIKELY
         buf->last_pos = -1;
@@ -299,7 +311,7 @@ int32 chunk_reserve_one(ChunkMemory* buf) NO_EXCEPT
 
 // use chunk_reserve_one if possible
 HOT_CODE FORCE_FLATTEN
-int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
+int32 chunk_reserve(ChunkMemory* const buf, uint32 elements = 1) NO_EXCEPT
 {
     ASSERT_TRUE(elements > 0);
 
@@ -413,14 +425,14 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index) NO_EXCEPT
+void chunk_free_element(ChunkMemory* const buf, uint64 free_index, int32 bit_index) NO_EXCEPT
 {
     buf->free[free_index] &= ~(1ULL << bit_index);
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + (free_index * 64 + bit_index) * buf->chunk_size), buf->chunk_size);
 }
 
 FORCE_INLINE HOT_CODE
-void chunk_free_element(ChunkMemory* buf, uint32 element) NO_EXCEPT
+void chunk_free_element(ChunkMemory* const buf, uint32 element) NO_EXCEPT
 {
     const uint64 free_index = element / 64;
     const uint32 bit_index = MODULO_2(element, 64);
@@ -428,7 +440,7 @@ void chunk_free_element(ChunkMemory* buf, uint32 element) NO_EXCEPT
 }
 
 HOT_CODE
-void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count = 1) NO_EXCEPT
+void chunk_free_elements(ChunkMemory* const buf, uint64 element, uint32 element_count = 1) NO_EXCEPT
 {
     uint64 free_index = element / 64;
     uint32 bit_index = MODULO_2(element, 64);
@@ -456,10 +468,10 @@ void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count 
 }
 
 inline
-int64 chunk_dump(const ChunkMemory* buf, byte* data) NO_EXCEPT
+int64 chunk_dump(const ChunkMemory* const buf, byte* data) NO_EXCEPT
 {
     LOG_1("[INFO] Dump ChunkMemory");
-    byte* start = data;
+    const byte* const start = data;
 
     // Count
     *((uint32 *) data) = SWAP_ENDIAN_LITTLE(buf->count);
@@ -510,19 +522,19 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data) NO_EXCEPT
 }
 
 inline HOT_CODE
-byte* chunk_get_memory(ChunkMemory* buf, uint32 elements) NO_EXCEPT
+byte* chunk_get_memory(ChunkMemory* const buf, uint32 elements) NO_EXCEPT
 {
-    int32 element = chunk_reserve(buf, elements);
+    const int32 element = chunk_reserve(buf, elements);
 
     return chunk_get_element(buf, element);
 }
 
 inline
-int64 chunk_load(ChunkMemory* buf, const byte* data) NO_EXCEPT
+int64 chunk_load(ChunkMemory* const buf, const byte* data) NO_EXCEPT
 {
     LOG_1("[INFO] Loading ChunkMemory");
 
-    const byte* start = data;
+    const byte* const start = data;
 
     // Count
     buf->count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));

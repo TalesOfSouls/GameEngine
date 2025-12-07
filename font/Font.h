@@ -9,6 +9,11 @@
 #include "../stdlib/Simd.h"
 #include "../system/FileUtils.cpp"
 
+/**
+ * @todo The font atlas should have a pixel perfect representation at the smallest possible font size. Currently it's not pixel perfect nor the smallest possible size
+ * @todo The font atlas letters could be minimized by using one channel each. This allows us to reduce the font atlas size by a factor of 3
+ */
+
 struct GlyphMetrics {
     f32 width;     // Width of the glyph
     f32 height;    // Height of the glyph
@@ -79,7 +84,7 @@ const Glyph* font_glyph_find(const Font* font, uint32 codepoint) NO_EXCEPT
 void font_from_file_txt(
     Font* font,
     const char* path,
-    RingMemory* ring
+    RingMemory* const ring
 ) NO_EXCEPT
 {
     FileBody file = {};
@@ -167,7 +172,7 @@ void font_from_file_txt(
 }
 
 FORCE_INLINE
-int32 font_data_size(const Font* font) NO_EXCEPT
+int32 font_data_size(const Font* const font) NO_EXCEPT
 {
     ASSERT_TRUE_CONST(sizeof(Glyph) == GLYPH_SIZE);
     return font->glyph_count * sizeof(Glyph)
@@ -178,7 +183,7 @@ int32 font_data_size(const Font* font) NO_EXCEPT
 }
 
 int32 font_from_data(
-    const byte* data,
+    const byte* const data,
     Font* font,
     MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
@@ -215,8 +220,8 @@ int32 font_from_data(
 }
 
 int32 font_to_data(
-    const Font* font,
-    byte* data,
+    const Font* const font,
+    byte* const data,
     MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
 {

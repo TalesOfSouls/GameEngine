@@ -224,8 +224,8 @@ bool file_copy(const char* __restrict src, const char* __restrict dst) {
     close(src_fd);
     close(dst_fd);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, bytes_written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, bytes_written);
 
     return success;
 }
@@ -234,7 +234,7 @@ inline
 void file_read(
     const char* __restrict path,
     FileBody* __restrict file,
-    RingMemory* __restrict ring = NULL
+    RingMemory* const __restrict ring = NULL
 ) {
     PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
@@ -291,7 +291,7 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 
     close(fp);
 }
@@ -378,7 +378,7 @@ bool file_write(const char* __restrict path, const FileBody* __restrict file) {
         return false;
     }
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
 
     return true;
 }

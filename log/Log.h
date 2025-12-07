@@ -60,6 +60,28 @@
     #include <windows.h>
     #include <time.h>
 
+    /**
+     * Get the system time
+     *
+     * @return uint64
+     */
+    static inline HOT_CODE
+    uint64 log_sys_time() NO_EXCEPT
+    {
+        SYSTEMTIME sys_time;
+        FILETIME file_time;
+        ULARGE_INTEGER large_int;
+
+        GetLocalTime(&sys_time);
+        SystemTimeToFileTime(&sys_time, &file_time);
+
+        // Convert FILETIME to a 64-bit integer
+        large_int.LowPart = file_time.dwLowDateTime;
+        large_int.HighPart = file_time.dwHighDateTime;
+
+        return ((uint64) (large_int.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+    }
+
     static HANDLE _log_fp;
     typedef volatile long log_spinlock32;
 
@@ -71,9 +93,9 @@
      * @return void
      */
     FORCE_INLINE
-    void log_spinlock_init(log_spinlock32* lock) NO_EXCEPT
+    void log_spinlock_init(log_spinlock32* const lock) NO_EXCEPT
     {
-        lock = 0;
+        *lock = 0;
     }
 
     /**
@@ -85,7 +107,7 @@
      * @return void
      */
     static FORCE_INLINE HOT_CODE
-    void log_spinlock_start(log_spinlock32* lock, int32 delay = 10) NO_EXCEPT
+    void log_spinlock_start(log_spinlock32* const lock, int32 delay = 10) NO_EXCEPT
     {
         while (InterlockedExchange(lock, 1) != 0) {
             LARGE_INTEGER frequency, start, end;
@@ -108,7 +130,7 @@
      * @return void
      */
     static FORCE_INLINE HOT_CODE
-    void log_spinlock_end(log_spinlock32* lock) NO_EXCEPT
+    void log_spinlock_end(log_spinlock32* const lock) NO_EXCEPT
     {
         InterlockedExchange(lock, 0);
     }
@@ -116,6 +138,20 @@
     #include <time.h>
     #include <sys/time.h>
     #include <unistd.h>
+
+    /**
+     * Get the system time
+     *
+     * @return uint64
+     */
+    static inline HOT_CODE
+    uint64 log_sys_time() NO_EXCEPT
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+
+        return (uint64) ts.tv_sec * 1000000ULL + (uint64) ts.tv_nsec / 1000ULL;
+    }
 
     static int32 _log_fp;
     typedef volatile int32 log_spinlock32;
@@ -128,9 +164,9 @@
      * @return void
      */
     FORCE_INLINE
-    void log_spinlock_init(log_spinlock32* lock) NO_EXCEPT
+    void log_spinlock_init(log_spinlock32* const lock) NO_EXCEPT
     {
-        lock = 0;
+        *lock = 0;
     }
 
     /**
@@ -142,8 +178,8 @@
      * @return void
      */
     static FORCE_INLINE HOT_CODE
-    void log_spinlock_start(log_spinlock32* lock, int32 delay = 10) NO_EXCEPT
-{
+    void log_spinlock_start(log_spinlock32* const lock, int32 delay = 10) NO_EXCEPT
+    {
         while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE) != 0) {
             struct timespec start, now;
             clock_gettime(CLOCK_MONOTONIC, &start);
@@ -169,11 +205,37 @@
      * @return void
      */
     static FORCE_INLINE HOT_CODE
-    void log_spinlock_end(log_spinlock32* lock) NO_EXCEPT
+    void log_spinlock_end(log_spinlock32* const lock) NO_EXCEPT
 {
         __atomic_store_n(lock, 0, __ATOMIC_RELEASE);
     }
 #endif
+
+// By using this constructor/destructor pattern you can avoid deadlocks in case of exceptions
+// Why? Well because if we go out of scope the destructor is automatically called and the lock is unlocked
+struct LogSpinlockGuard {
+    log_spinlock32* _lock = NULL;
+
+    inline HOT_CODE
+    LogSpinlockGuard(log_spinlock32* const lock, int32 delay = 10) {
+        this->_lock = lock;
+
+        log_spinlock_start(this->_lock, delay);
+    }
+
+    inline HOT_CODE
+    void unlock() {
+        if (this->_lock) {
+            log_spinlock_end(this->_lock);
+            this->_lock = NULL;
+        }
+    }
+
+    inline HOT_CODE
+    ~LogSpinlockGuard() {
+        this->unlock();
+    }
+};
 
 struct LogMemory {
     byte* memory;
@@ -200,51 +262,13 @@ struct LogMessage {
 
 struct LogData {
     DataType type;
-    void* value;
+    const void* value;
 };
 
 #define LOG_DATA_ARRAY 5
 struct LogDataArray{
     LogData data[LOG_DATA_ARRAY];
 };
-
-#if _WIN32
-    /**
-     * Get the system time
-     *
-     * @return uint64
-     */
-    static inline HOT_CODE
-    uint64 log_sys_time() NO_EXCEPT
-    {
-        SYSTEMTIME sys_time;
-        FILETIME file_time;
-        ULARGE_INTEGER large_int;
-
-        GetLocalTime(&sys_time);
-        SystemTimeToFileTime(&sys_time, &file_time);
-
-        // Convert FILETIME to a 64-bit integer
-        large_int.LowPart = file_time.dwLowDateTime;
-        large_int.HighPart = file_time.dwHighDateTime;
-
-        return ((uint64) (large_int.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
-    }
-#else
-    /**
-     * Get the system time
-     *
-     * @return uint64
-     */
-    static inline HOT_CODE
-    uint64 log_sys_time() NO_EXCEPT
-    {
-        struct timespec ts;
-        clock_gettime(CLOCK_REALTIME, &ts);
-
-        return (uint64) ts.tv_sec * 1000000ULL + (uint64) ts.tv_nsec / 1000ULL;
-    }
-#endif
 
 /**
  * Find memory buffer to write log to
@@ -258,8 +282,8 @@ byte* log_get_memory() NO_EXCEPT
         _log_memory->pos = 0;
     }
 
-    byte* offset = (byte *) (_log_memory->memory + _log_memory->pos);
-    memset_aligned((void *) offset, 0, MAX_LOG_LENGTH);
+    byte* const offset = (byte *) (_log_memory->memory + _log_memory->pos);
+    memset((void *) offset, 0, MAX_LOG_LENGTH);
 
     _log_memory->pos += MAX_LOG_LENGTH;
 
@@ -319,10 +343,9 @@ void log_flush() NO_EXCEPT
         return;
     }
 
-    log_spinlock_start(&_log_memory->lock, 0);
+    LogSpinlockGuard _guard(&_log_memory->lock, 0);
     log_to_file(_log_memory->memory, _log_memory->pos);
     _log_memory->pos = 0;
-    log_spinlock_end(&_log_memory->lock);
 }
 
 /**
@@ -334,7 +357,7 @@ void log_flush() NO_EXCEPT
  * @return void
  */
 static inline HOT_CODE
-void log_to_terminal(uint64 time, const char* msg) NO_EXCEPT
+void log_to_terminal(uint64 time, const char* const msg) NO_EXCEPT
 {
     char time_str[13];
     format_time_hh_mm_ss_ms(time_str, time / 1000ULL);
@@ -355,13 +378,13 @@ void log_to_terminal(uint64 time, const char* msg) NO_EXCEPT
  * @return void
  */
 HOT_CODE
-void log(const char* str, const char* file, const char* function, int32 line) NO_EXCEPT
+void log(const char* str, const char* const file, const char* function, int32 line) NO_EXCEPT
 {
     if (!_log_memory) {
         return;
     }
 
-    log_spinlock_start(&_log_memory->lock, 0);
+    LogSpinlockGuard _guard(&_log_memory->lock, 0);
 
     int32 len = (int32) str_length(str);
 
@@ -373,7 +396,7 @@ void log(const char* str, const char* file, const char* function, int32 line) NO
     }
 
     while (len > 0) {
-        LogMessage* msg = (LogMessage *) log_get_memory();
+        LogMessage* const msg = (LogMessage *) log_get_memory();
 
         // Dump to file
         msg->file = file;
@@ -397,8 +420,6 @@ void log(const char* str, const char* file, const char* function, int32 line) NO
 
         DEBUG_MEMORY_WRITE((uintptr_t) msg, sizeof(*msg) + message_length);
     }
-
-    log_spinlock_end(&_log_memory->lock);
 }
 
 /**
@@ -413,7 +434,7 @@ void log(const char* str, const char* file, const char* function, int32 line) NO
  * @return void
  */
 HOT_CODE
-void log(const char* format, LogDataArray data, const char* file, const char* function, int32 line) NO_EXCEPT
+void log(const char* const format, LogDataArray data, const char* const file, const char* const function, int32 line) NO_EXCEPT
 {
     if (!_log_memory) {
         return;
@@ -426,7 +447,7 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
 
     ASSERT_TRUE(str_length(format) + str_length(file) + str_length(function) + 50 < MAX_LOG_LENGTH);
 
-    log_spinlock_start(&_log_memory->lock, 0);
+    LogSpinlockGuard _guard(&_log_memory->lock, 0);
 
     // Is data raw output?
     if (data.data[0].type == DATA_TYPE_BYTE_ARRAY) {
@@ -443,12 +464,10 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
 
         log_to_file(format, total_len);
 
-        log_spinlock_end(&_log_memory->lock);
-
         return;
     }
 
-    LogMessage* msg = (LogMessage *) log_get_memory();
+    LogMessage* const msg = (LogMessage *) log_get_memory();
     msg->file = file;
     msg->function = function;
     msg->line = line;
@@ -519,8 +538,6 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
         log_to_file(_log_memory->memory, _log_memory->pos);
         _log_memory->pos = 0;
     }
-
-    log_spinlock_end(&_log_memory->lock);
 }
 
 #define LOG_TO_FILE() log_to_file(_log_memory->memory, _log_memory->pos)
@@ -536,12 +553,12 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
  * @return LogData
  */
 inline HOT_CODE
-LogData makeLogData(DataType type, void* value) NO_EXCEPT
+LogData makeLogData(DataType type, const void* value) NO_EXCEPT
 {
     LogData d = {type, value};
     return d;
 }
-#define LOG_ENTRY(type, value) makeLogData(type, (void*)(value))
+#define LOG_ENTRY(type, value) makeLogData(type, (const void*)(value))
 
 // WARNING: Unfortunately this helper function is required since post c++20 nested-brace initialize no longer support array initialization
 #include <initializer_list>
@@ -562,6 +579,15 @@ LogDataArray makeLogDataArray(std::initializer_list<LogData> list) NO_EXCEPT
 
     return arr;
 }
+
+/**
+ * LOG_1 = Release build (optimized)
+ * LOG_2 = Internal build (optimized)
+ * LOG_3 = Debug Build (unoptimized = slow)
+ * LOG_4 = Strict/Intensive logging (very slow)
+ *
+ * This results in ZERO costs for LOG_4 messages when in release builds
+ */
 
 #if LOG_LEVEL == 4
     #define LOG_1(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)

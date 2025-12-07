@@ -16,7 +16,7 @@
     #include "../platform/linux/SystemInfo.cpp"
 #endif
 
-void system_info_render(char* buf, const SystemInfo* info) NO_EXCEPT
+void system_info_render(char* buf, const SystemInfo* const info) NO_EXCEPT
 {
     snprintf(
         buf,
@@ -94,7 +94,7 @@ void system_info_render(char* buf, const SystemInfo* info) NO_EXCEPT
     );
 }
 
-void system_info_get(SystemInfo* info) NO_EXCEPT
+void system_info_get(SystemInfo* const info) NO_EXCEPT
 {
     os_info_get(&info->os);
     mainboard_info_get(&info->mainboard);

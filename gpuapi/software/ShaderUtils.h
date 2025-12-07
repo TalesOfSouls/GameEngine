@@ -28,7 +28,7 @@ void gpuapi_pipeline_use(SoftwareRenderer* renderer, Shader* shader) NO_EXCEPT
 // This can be used from every shader
 FORCE_INLINE
 void gpuapi_descriptor_set_layout_create(
-    SoftwareRenderer* __restrict renderer,
+    SoftwareRenderer* const __restrict renderer,
     const SoftwareDescriptorSetLayoutBinding* __restrict layout
 ) NO_EXCEPT
 {
@@ -48,7 +48,7 @@ void gpuapi_descriptor_set_layout_create(
 
 FORCE_INLINE
 void gpuapi_descriptor_set_layout_set(
-    SoftwareRenderer* __restrict renderer,
+    SoftwareRenderer* const __restrict renderer,
     const SoftwareDescriptorSetLayoutBinding* __restrict layout
 ) NO_EXCEPT
 {
@@ -68,7 +68,7 @@ void gpuapi_descriptor_set_layout_set(
 
 FORCE_INLINE
 void gpuapi_descriptor_set_layout_set(
-    SoftwareRenderer* __restrict renderer,
+    SoftwareRenderer* const __restrict renderer,
     int32 binding,
     void* data
 ) NO_EXCEPT
@@ -86,8 +86,8 @@ void gpuapi_descriptor_set_layout_set(
 // Only the respective shader can use these descriptors
 FORCE_INLINE
 void gpuapi_descriptor_set_layout_create(
-    SoftwareRenderer* __restrict renderer,
-    Shader* __restrict shader,
+    SoftwareRenderer* const __restrict renderer,
+    Shader* const __restrict shader,
     const SoftwareDescriptorSetLayoutBinding* __restrict layouts,
     int32 layout_length
 ) NO_EXCEPT
@@ -106,56 +106,56 @@ FORCE_INLINE
 void gpuapi_buffer_update(void* location, bool value) NO_EXCEPT
 {
     *((bool *) location) = value;
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, int32 value) NO_EXCEPT
 {
     *((int32 *) location) = value;
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, f32 value) NO_EXCEPT
 {
     *((f32 *) location) = value;
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, const void* value, size_t size) NO_EXCEPT
 {
     memcpy(location, value, size);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, size);
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, v3_f32 value) NO_EXCEPT
 {
     memcpy(location, value.vec, sizeof(f32) * 3);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(f32) * 3);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(f32) * 3);
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, v4_f32 value) NO_EXCEPT
 {
     memcpy(location, value.vec, sizeof(f32) * 4);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(f32) * 4);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(f32) * 4);
 }
 
 FORCE_INLINE
 void gpuapi_ref_update(void* location, void* value) NO_EXCEPT
 {
     location = value;
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(void*));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(void*));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update_m4(void* location, const f32* value) NO_EXCEPT
 {
     memcpy(location, value, sizeof(f32) * 16);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 16);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 16);
 }
 
 #endif

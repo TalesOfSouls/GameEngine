@@ -33,7 +33,7 @@ void* platform_alloc(size_t size) NO_EXCEPT
 
     void* ptr = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     DEBUG_MEMORY_INIT((uintptr_t) ptr, size);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
     LOG_3("[INFO] Allocated %n B", {DATA_TYPE_UINT64, &size});
 
     return ptr;
@@ -59,7 +59,7 @@ void* platform_alloc_aligned(size_t size, int32 alignment) NO_EXCEPT
     ((void**) aligned_ptr)[-1] = ptr;
 
     DEBUG_MEMORY_INIT((uintptr_t) aligned_ptr, size);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
     LOG_3("[INFO] Aligned allocated %n B", {DATA_TYPE_UINT64, &size});
 
     return aligned_ptr;
@@ -99,7 +99,7 @@ void* platform_shared_alloc(HANDLE* __restrict fd, const char* __restrict name, 
     ASSERT_TRUE(shm_ptr);
 
     DEBUG_MEMORY_INIT((uintptr_t) shm_ptr, size);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
     LOG_3("[INFO] Shared allocated %n B", {DATA_TYPE_UINT64, &size});
 
     return shm_ptr;

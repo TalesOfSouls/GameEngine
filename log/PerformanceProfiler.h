@@ -53,7 +53,7 @@
         PROFILE_MAIN, // Used to profile the main loop
         PROFILE_GPU, // Used to profile the total gpu time
 
-        PROFILE_SIZE,
+        PROFILE_SIZE
     };
 #endif
 
@@ -105,11 +105,10 @@ void profile_performance_snapshot() NO_EXCEPT
     }
 
     int32 pos = atomic_increment_wrap_acquire_release(&_perf_stats->pos, ARRAY_COUNT(_perf_stats->perfs) / PROFILE_SIZE);
-    memset_aligned_factored(
+    memset(
         &_perf_stats->perfs[pos * PROFILE_SIZE],
         0,
-        PROFILE_SIZE * sizeof(PerformanceProfileResult),
-        sizeof(PerformanceProfileResult)
+        PROFILE_SIZE * sizeof(PerformanceProfileResult)
     );
 }
 
@@ -264,8 +263,44 @@ void performance_log_to_file() NO_EXCEPT
 
     MAYBE_UNUSED int32 size = sizeof(*_perf_stats);
 
-    // Technically this isn't logging to a file, only if the end of the log buffer is reached
-    LOG_1((const char *) _perf_stats, {DATA_TYPE_BYTE_ARRAY, &size});
+    LOG_1((const char *) _perf_stats, {DATA_TYPE_BYTE_ARRAY, (void *) &size});
+
+    LOG_1("[END] Performance log");
+}
+
+/**
+ * Logs the performance stats to the logger,
+ * which may output the data to a file if the buffer is filled
+ * The output format is CSV compatible
+ *
+ * @return void
+ */
+inline
+void performance_log_to_file_formatted() NO_EXCEPT
+{
+    // we don't log an empty log pool
+    if (!_perf_stats) {
+        return;
+    }
+
+    MAYBE_UNUSED int32 count = PROFILE_SIZE;
+    LOG_1("[BEGIN] Performance log (count %d)", {DATA_TYPE_INT32, &count});
+
+    const int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
+
+    char line[512];
+    for (int32 i = 0; i < PROFILE_SIZE; ++i) {
+        const PerformanceProfileResult* const perf = &_perf_stats->perfs[pos + i];
+        if (perf->name) {
+            const int32 length = sprintf_fast(
+                line, sizeof(line) - 1, "%s;%l\n",
+                perf->name,
+                perf->total_cycle
+            );
+
+            LOG_1((const char *) line, {DATA_TYPE_BYTE_ARRAY, (void *) &length});
+        }
+    }
 
     LOG_1("[END] Performance log");
 }
@@ -340,7 +375,7 @@ struct PerformanceProfiler {
 
         // Store result
         PerformanceProfileResult temp_perf = {};
-        PerformanceProfileResult* perf = (this->_flags & PROFILE_FLAG_STATELESS)
+        PerformanceProfileResult* const perf = (this->_flags & PROFILE_FLAG_STATELESS)
             ? &temp_perf
             : &_perf_stats->perfs[pos + this->_id];
 
@@ -417,9 +452,9 @@ void performance_profiler_start(int32 id, const char* name = NULL) NO_EXCEPT
         return;
     }
 
-    int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
+    const int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
 
-    PerformanceProfileResult* perf = &_perf_stats->perfs[pos + id];
+    PerformanceProfileResult* const perf = &_perf_stats->perfs[pos + id];
     perf->name = name;
     perf->self_cycle -= (int64) intrin_timestamp_counter();
 }
@@ -440,7 +475,7 @@ void performance_profiler_end(int32 id) NO_EXCEPT
 
     const int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
 
-    PerformanceProfileResult* perf = &_perf_stats->perfs[pos + id];
+    PerformanceProfileResult* const perf = &_perf_stats->perfs[pos + id];
     perf->self_cycle += intrin_timestamp_counter();
     perf->total_cycle = perf->self_cycle;
 }
@@ -454,6 +489,7 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
     #define PROFILE_SNAPSHOT() profile_performance_snapshot()
     #define PROFILE_LOG_TO_FILE() performance_log_to_file()
+    #define PROFILE_LOG_FORMATTED() performance_log_to_file_formatted()
 
     #define THREAD_LOG_CREATE(id, ...) thread_profile_history_create((id), ##__VA_ARGS__)
     #define THREAD_LOG_NAME(id, name) thread_profile_name((id), (name))
@@ -466,6 +502,7 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     #define PROFILE_SCOPE(id, name) ((void) 0)
     #define PROFILE_SNAPSHOT() ((void) 0)
     #define PROFILE_LOG_TO_FILE() ((void) 0)
+    #define PROFILE_LOG_FORMATTED() ((void) 0)
 
     #define THREAD_LOG_CREATE(id, ...) ((void) 0)
     #define THREAD_LOG_NAME(id, name) ((void) 0)

@@ -105,7 +105,7 @@ void* db_execute_prepared(
     const char* name,
     const DbParam* params,
     int32 param_count,
-    RingMemory* ring
+    RingMemory* const ring
 ) {
     char** values = (char **) ring_get_memory(ring, sizeof(char *) * param_count);
     int32* formats = (int32 *) ring_get_memory(ring, sizeof(int32) * param_count);

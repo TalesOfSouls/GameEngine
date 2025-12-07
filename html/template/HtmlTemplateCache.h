@@ -118,7 +118,7 @@ void html_template_cache_load(PerfectHashMapRef* cache, const char* key, const c
 }
 
 void html_template_build_iter(const char* path, va_list args) {
-    RingMemory* ring = va_arg(args, RingMemory*);
+    RingMemory* const ring = va_arg(args, RingMemory*);
 
     char full_path[MAX_PATH];
     relative_to_absolute(path, full_path);
@@ -138,7 +138,7 @@ void html_template_build_iter(const char* path, va_list args) {
 
 void html_template_cache_iter(const char* path, va_list args) {
     PerfectHashMapRef* cache = va_arg(args, PerfectHashMapRef*);
-    RingMemory* ring = va_arg(args, RingMemory*);
+    RingMemory* const ring = va_arg(args, RingMemory*);
 
     char full_path[MAX_PATH];
     relative_to_absolute(path, full_path);
@@ -150,7 +150,7 @@ void html_template_cache_iter(const char* path, va_list args) {
 
 void raw_file_cache_iter(const char* path, va_list args) {
     PerfectHashMapRef* cache = va_arg(args, PerfectHashMapRef*);
-    RingMemory* ring = va_arg(args, RingMemory*);
+    RingMemory* const ring = va_arg(args, RingMemory*);
 
     char full_path[MAX_PATH];
     relative_to_absolute(path, full_path);

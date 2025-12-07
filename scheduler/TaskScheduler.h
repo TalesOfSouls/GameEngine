@@ -64,7 +64,7 @@ void scheduler_alloc(TaskScheduler* scheduler, int32 count) NO_EXCEPT
 }
 
 inline
-void scheduler_create(TaskScheduler* scheduler, int32 count, BufferMemory* buf) NO_EXCEPT
+void scheduler_create(TaskScheduler* scheduler, int32 count, BufferMemory* const buf) NO_EXCEPT
 {
     byte* data = buffer_get_memory(
         buf,
@@ -119,10 +119,9 @@ int32 scheduler_get_unset(volatile uint64* state, uint32 state_count) NO_EXCEPT
 static inline
 void scheduler_add(TaskScheduler* scheduler, TaskSchedule* task) NO_EXCEPT
 {
-    mutex_lock(&scheduler->lock);
+    MutexGuard _guard(&scheduler->lock);
     int32 idx = scheduler_get_unset(scheduler->free, scheduler->task_count);
     if (idx < 0) {
-        mutex_unlock(&scheduler->lock);
         return;
     }
 
@@ -147,8 +146,6 @@ void scheduler_add(TaskScheduler* scheduler, TaskSchedule* task) NO_EXCEPT
             break;
         }
     }
-
-    mutex_unlock(&scheduler->lock);
 }
 
 FORCE_INLINE
@@ -157,14 +154,12 @@ void scheduler_remove(TaskScheduler* scheduler, uint32 element) NO_EXCEPT
     uint64 free_index = element / 64;
     uint32 bit_index = MODULO_2(element, 64);
 
-    mutex_lock(&scheduler->lock);
+    MutexGuard _guard(&scheduler->lock);
     scheduler->free[free_index] &= ~(1ULL << bit_index);
 
     for (int32 i = 0; i < scheduler->task_count; ++i) {
         scheduler->tasks[element].start = 0;
     }
-
-    mutex_unlock(&scheduler->lock);
 }
 
 FORCE_INLINE

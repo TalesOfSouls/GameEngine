@@ -20,4 +20,30 @@ int32 thread_local _thread_cpu_id = 0;
     #include "../platform/linux/threading/ThreadDefines.h"
 #endif
 
+// By using this constructor/destructor pattern you can avoid deadlocks in case of exceptions
+// Why? Well because if we go out of scope the destructor is automatically called and the lock is unlocked
+struct MutexGuard {
+    mutex* _mutex = NULL;
+
+    inline HOT_CODE
+    MutexGuard(mutex* const mut) {
+        this->_mutex = mut;
+
+        mutex_lock(this->_mutex);
+    }
+
+    inline HOT_CODE
+    void unlock() {
+        if (this->_mutex) {
+            mutex_unlock(this->_mutex);
+            this->_mutex = NULL;
+        }
+    }
+
+    inline HOT_CODE
+    ~MutexGuard() {
+        this->unlock();
+    }
+};
+
 #endif

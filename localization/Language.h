@@ -21,7 +21,7 @@ struct Language {
 void language_from_file_txt(
     Language* language,
     const char* path,
-    RingMemory* ring
+    RingMemory* const ring
 ) NO_EXCEPT
 {
     FileBody file = {};
@@ -93,7 +93,7 @@ int32 language_from_data(
     language->lang = (char **) language->data;
     char** pos_lang = language->lang;
 
-    byte* start = language->data;
+    const byte* const start = language->data;
 
     // Load pointers/offsets
     for (int32 i = 0; i < language->count; ++i) {
@@ -125,7 +125,7 @@ int32 language_to_data(
     *((int32 *) pos) = SWAP_ENDIAN_LITTLE((int32) language->size);
     pos += sizeof(language->size);
 
-    byte* start = pos;
+    const byte* const start = pos;
 
     // Save pointers
     for (int32 i = 0; i < language->count; ++i) {

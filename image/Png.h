@@ -461,7 +461,7 @@ void generate_default_png_references(const FileBody* file, Png* png)
 // @performance Profile: BITS_GET_16_R2L(SWAP_ENDIAN_BIG((uint16) *stream.pos)) vs BITS_GET_16_R2L(BYTES_MERGE_2_R2L())
 // Below you will often see code like BITS_GET_16_R2L(BYTES_MERGE_2_R2L()) OR BITS_GET_16_R2L(SWAP_ENDIAN_BIG())
 // Both do th same, they retrieve bits WHILE considering the endianness
-bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring)
+bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* const ring)
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some asignment/copy overhead

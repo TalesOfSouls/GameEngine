@@ -28,7 +28,7 @@ FORCE_INLINE
 int32 thread_create(Worker* worker, ThreadJobFunc routine, void* arg) NO_EXCEPT
 {
     LOG_1("[INFO] Thread starting");
-    LOG_INCREMENT(DEBUG_COUNTER_THREAD);
+    STATS_INCREMENT(DEBUG_COUNTER_THREAD);
 
     return coms_pthread_create(&worker->thread, NULL, routine, arg);
 }
@@ -40,7 +40,7 @@ void thread_stop(Worker* worker) NO_EXCEPT
     coms_pthread_join(worker->thread, NULL);
 
     LOG_1("[INFO] Thread ended");
-    LOG_DECREMENT(DEBUG_COUNTER_THREAD);
+    STATS_DECREMENT(DEBUG_COUNTER_THREAD);
 }
 
 #if DEBUG || INTERNAL

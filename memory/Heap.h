@@ -48,7 +48,7 @@ void heap_free(Heap* heap)
     platform_free((void **) &heap->elements);
 }
 
-void heap_init(Heap* heap, BufferMemory* buf, uint32 element_size, uint64 capacity, int32 (*compare)(const void*, const void*)) {
+void heap_init(Heap* heap, BufferMemory* const buf, uint32 element_size, uint64 capacity, int32 (*compare)(const void*, const void*)) {
     ASSERT_TRUE(element_size * capacity);
 
     heap->elements = buffer_get_memory(buf, element_size * capacity, 8, true);
