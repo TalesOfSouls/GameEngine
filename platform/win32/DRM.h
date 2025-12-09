@@ -32,7 +32,7 @@ typedef NTSTATUS (WINAPI *pNtSetInformationThread)(
 inline
 bool drm_prevent_debugger_attach() NO_EXCEPT
 {
-    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
     if (!ntdll) {
         return false;
     }
@@ -49,7 +49,7 @@ bool drm_prevent_debugger_attach() NO_EXCEPT
 
 bool drm_is_being_debugged() NO_EXCEPT
 {
-    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
     if (!ntdll) {
         return false;
     }
@@ -97,15 +97,15 @@ bool drm_verify_code_integrity(
     NTSTATUS status;
 
     // We are not loading the exe, we are loading the exe as it is currently in memory
-    char module_path[MAX_PATH];
-    GetModuleFileNameA(NULL, module_path, MAX_PATH);
+    wchar_t module_path[MAX_PATH];
+    GetModuleFileNameW(NULL, module_path, MAX_PATH);
 
-    HANDLE in_memory_handle = CreateFileA(module_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    HANDLE in_memory_handle = CreateFileW(module_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     if (in_memory_handle == INVALID_HANDLE_VALUE) {
         return false;
     }
 
-    DWORD file_size = GetFileSize(in_memory_handle, NULL);
+    const DWORD file_size = GetFileSize(in_memory_handle, NULL);
     if (buffer_length < file_size) {
         LOG_1("Buffer can't hold size");
 
@@ -188,7 +188,7 @@ bool drm_verify_code_integrity(
 
 
 // Example: process_names = { "x64dbg.exe", "cheatengine-x86_64.exe", "ollydbg.exe" };
-bool drm_check_process_name(const char** process_names, int32 count) NO_EXCEPT
+bool drm_check_process_name(const utf16** process_names, int32 count) NO_EXCEPT
 {
     DWORD processes[1024], cb_needed;
     if (!EnumProcesses(processes, sizeof(processes), &cb_needed)) {
@@ -201,13 +201,13 @@ bool drm_check_process_name(const char** process_names, int32 count) NO_EXCEPT
             continue;
         }
 
-        char process_name[MAX_PATH] = "<unknown>";
+        utf16 process_name[MAX_PATH] = L"<unknown>";
 
         HMODULE mod_handle;
         DWORD cb_needed_mod;
 
         if (EnumProcessModules(process_handle, &mod_handle, sizeof(mod_handle), &cb_needed_mod)) {
-            GetModuleBaseNameA(process_handle, mod_handle, process_name, sizeof(process_name) / sizeof(char));
+            GetModuleBaseNameW(process_handle, mod_handle, process_name, sizeof(process_name) / sizeof(char));
             for (int32 j = 0; j < count; ++j) {
                 if (str_contains(process_name, process_names[j]) == 0) {
                     CloseHandle(process_handle);
@@ -224,17 +224,18 @@ bool drm_check_process_name(const char** process_names, int32 count) NO_EXCEPT
 }
 
 struct WindowTitleSearchContext {
-    const char** titles;
+    const wchar_t** titles;
     int32 count;
     bool found;
 };
 
-static BOOL CALLBACK drm_enum_windows_callback(HWND hWnd, LPARAM lParam) {
+static
+BOOL CALLBACK drm_enum_windows_callback(HWND hWnd, LPARAM lParam) {
     WindowTitleSearchContext* ctx = (WindowTitleSearchContext *) lParam;
 
-    char window_title[256];
-    GetWindowTextA(hWnd, window_title, sizeof(window_title) - 1);
-    window_title[255] = '\0';
+    wchar_t window_title[256];
+    GetWindowTextW(hWnd, window_title, ARRAY_COUNT(window_title) - 1);
+    window_title[255] = L'\0';
 
     for (int32 i = 0; i < ctx->count; ++i) {
         if (str_contains(window_title, ctx->titles[i])) {
@@ -247,7 +248,7 @@ static BOOL CALLBACK drm_enum_windows_callback(HWND hWnd, LPARAM lParam) {
 }
 
 inline
-bool drm_check_window_title(const char** window_titles, int32 count) NO_EXCEPT
+bool drm_check_window_title(const wchar_t** window_titles, int32 count) NO_EXCEPT
 {
     WindowTitleSearchContext ctx = { window_titles, count, false };
     EnumWindows(drm_enum_windows_callback, (LPARAM) &ctx);

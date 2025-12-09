@@ -268,7 +268,7 @@ static void delete_session_from_disk(SessionManager *manager, const char *sessio
 }
 
 static void ensure_storage_directory_exists(const char *path) {
-    struct stat st = {0};
+    struct stat st = {};
     if (stat(path, &st) == -1) {
         mkdir(path, 0700);
     }

@@ -37,11 +37,11 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, XAudio2Setting* __r
     LOG_1("Load audio API XAudio2");
 
     CoInitialize(NULL);
-    HMODULE lib = LoadLibraryExA((LPCSTR) "xaudio2_9.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    HMODULE lib = LoadLibraryExW((LPCWSTR) L"xaudio2_9.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!lib) {
         LOG_1("Xaudio2: Couldn't load xaudio2_9.dll");
 
-        lib = LoadLibraryExA((LPCSTR) "xaudio2_8.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        lib = LoadLibraryExW((LPCWSTR) L"xaudio2_8.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     }
 
     if (!lib) {

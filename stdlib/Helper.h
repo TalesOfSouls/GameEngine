@@ -193,6 +193,15 @@ inline F floorf(F x) NO_EXCEPT
 #define OMS_HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
 #define OMS_HAS_CHAR(x, c) (OMS_HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
 
+#if WCHAR_MAX <= 0xFFFF
+    // 2-byte wchar_t
+    #define OMS_HAS_ZERO_WCHAR(x) ((((x) - 0x0001000100010001ULL) & ~(x) & 0x8000800080008000ULL) != 0)
+#else
+    // 4-byte wchar_t
+    #define OMS_HAS_ZERO_WCHAR(x) ((((x) - 0x0000000100000001ULL) & ~(x) & 0x8000000080000000ULL) != 0)
+#endif
+
+
 // Math operations
 // Only useful if n is a variable BUT you as programmer know the form of the value
 #define OMS_POW2_I64(n) (1ULL << (n))

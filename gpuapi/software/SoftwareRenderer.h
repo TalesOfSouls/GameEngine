@@ -168,7 +168,7 @@ static inline v4_uint32 soft_sample_texture_nearest_sse(
     alignas(16) int32 offs[4];
     _mm_store_si128((__m128i *) offs, byte_offset);
 
-    v4_uint32 px = {0};
+    v4_uint32 px = {};
     for (int32 lane = 0; lane < 4; ++lane) {
         if (!(final_mask & (1 << lane))) {
             continue;
@@ -333,9 +333,9 @@ void soft_rasterize(
     // Check if the triangle uses texture or solid color
     const bool textured = (v0.texture_color.x >= 0.0f || v1.texture_color.x >= 0.0f || v2.texture_color.x >= 0.0f);
 
-    v4_byte color1 = {0};
-    v4_byte color2 = {0};
-    v4_byte color3 = {0};
+    v4_byte color1 = {};
+    v4_byte color2 = {};
+    v4_byte color3 = {};
 
     #ifdef __SSE4_2__
         __m128 u0_v = {0}, u1_v = {0}, u2_v = {0}, v0_v = {0}, v1_v = {0}, v2_v = {0};

@@ -22,8 +22,8 @@ struct Library {
 
     bool is_valid;
 
-    char dir[MAX_PATH];
-    char dst[64];
+    wchar_t dir[MAX_PATH];
+    wchar_t dst[64];
 
     #if DEBUG || INTERNAL
         uint64 last_load;

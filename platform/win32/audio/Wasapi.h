@@ -43,7 +43,7 @@ typedef HRESULT WINAPI IAudioClient_GetService_t(IAudioClient*, REFIID, void**);
 void audio_load(HWND hwnd, AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) {
     LOG_1("Load audio API WASAPI");
 
-    HMODULE ole32 = LoadLibraryExA((LPCSTR) "ole32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    HMODULE ole32 = LoadLibraryExW((LPCWSTR) L"ole32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!ole32) {
         LOG_1("Wasapi: Couldn't load ole32.dll");
 
@@ -59,7 +59,7 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, WasapiSetting* __re
         return;
     }
 
-    HMODULE mmdevapi = LoadLibraryExA((LPCSTR) "mmdevapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    HMODULE mmdevapi = LoadLibraryExW((LPCWSTR) L"mmdevapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!mmdevapi) {
         LOG_1("Wasapi: Couldn't load mmdevapi.dll");
 
@@ -75,7 +75,7 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, WasapiSetting* __re
         return;
     }
 
-    HMODULE audioclient = LoadLibraryExA((LPCSTR) "audioclient.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    HMODULE audioclient = LoadLibraryExW((LPCWSTR) L"audioclient.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!audioclient) {
         LOG_1("Wasapi: Couldn't load audioclient.dll");
 

@@ -21,7 +21,7 @@
 
 void create_minidump(EXCEPTION_POINTERS* exception_pointers) NO_EXCEPT
 {
-    HANDLE fp = CreateFileA("crash_dump.dmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE fp = CreateFileW(L"crash_dump.dmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (fp == INVALID_HANDLE_VALUE) {
         return;

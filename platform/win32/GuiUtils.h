@@ -13,13 +13,14 @@
 #include "Window.h"
 #include "../../stdlib/Types.h"
 #include "../../utils/Assert.h"
+#include "../../utils/StringUtils.h"
 #include "../../compiler/CompilerUtils.h"
 
 // @question Shouldn't this function and the next one accept a parameter of what to add/remove?
 FORCE_INLINE
 void window_remove_style(Window* w) NO_EXCEPT
 {
-    LONG_PTR style = GetWindowLongPtrA(w->hwnd, GWL_STYLE);
+    LONG_PTR style = GetWindowLongPtrW(w->hwnd, GWL_STYLE);
     style &= ~WS_OVERLAPPEDWINDOW;
     SetWindowLongPtr(w->hwnd, GWL_STYLE, style);
 }
@@ -27,7 +28,7 @@ void window_remove_style(Window* w) NO_EXCEPT
 FORCE_INLINE
 void window_add_style(Window* w) NO_EXCEPT
 {
-    LONG_PTR style = GetWindowLongPtrA(w->hwnd, GWL_STYLE);
+    LONG_PTR style = GetWindowLongPtrW(w->hwnd, GWL_STYLE);
     style |= WS_OVERLAPPEDWINDOW;
     SetWindowLongPtr(w->hwnd, GWL_STYLE, style);
 }
@@ -106,20 +107,23 @@ void window_create(Window* __restrict window, void* __restrict proc) NO_EXCEPT
     ASSERT_TRUE(proc);
 
     WNDPROC wndproc = (WNDPROC) proc;
-    WNDCLASSEXA wc = {};
+    WNDCLASSEXW wc = {};
 
     if (!window->hInstance) {
         window->hInstance = GetModuleHandle(0);
     }
 
-    wc.cbSize = sizeof(WNDCLASSEXA);
+    wchar_t title[64];
+    char_to_wchar(title, window->name, ARRAY_COUNT(title) - 1);
+
+    wc.cbSize = sizeof(WNDCLASSEXW);
     wc.style = CS_OWNDC;
     wc.lpfnWndProc = wndproc;
     wc.hInstance = window->hInstance;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.lpszClassName = (LPCSTR) window->name;
+    wc.lpszClassName = (LPCWSTR) title;
 
-    if (!RegisterClassExA(&wc)) {
+    if (!RegisterClassExW(&wc)) {
         return;
     }
 
@@ -142,7 +146,7 @@ void window_create(Window* __restrict window, void* __restrict proc) NO_EXCEPT
         window->y = 0;
     }
 
-    window->hwnd = CreateWindowExA((DWORD) NULL,
+    window->hwnd = CreateWindowExW((DWORD) NULL,
         wc.lpszClassName, NULL,
         WS_OVERLAPPEDWINDOW,
         window->x, window->y,

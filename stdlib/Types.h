@@ -53,6 +53,9 @@ typedef intptr_t smm;
 #define atomic_32 alignas(4) volatile
 #define atomic_64 alignas(8) volatile
 
+typedef wchar_t utf16;
+typedef uint32 utf8;
+
 struct v2_int8 {
     union {
         struct { int8 x, y; };

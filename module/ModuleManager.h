@@ -30,8 +30,10 @@ void module_file_parse(const char* path, Module* module, RingMemory* const ring)
     const char* space;
 
     while (line != NULL) {
-        space = str_find(line, ' ');
-        if (space != NULL) {
+        const int64 ispace = str_find(line, ' ');
+        if (ispace >= 0) {
+            space = line + ispace;
+
             size_t name_length = space - line;
             strncpy_s(name, MAX_LENGTH, line, name_length);
             name[name_length] = '\0';

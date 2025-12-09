@@ -18,10 +18,12 @@ CONSTEXPR auto GetRawTypeName() {
     CONSTEXPR const char* prefix = "T = ";
     CONSTEXPR const char* suffix = "]";
 
-    CONSTEXPR const char* start = str_find_CONSTEXPR(fn, prefix);
+    CONSTEXPR int64 istart = str_find_CONSTEXPR(fn, prefix);
+    CONSTEXPR const char* start = istart >= 0 ? fn + istart : NULL;
     CONSTEXPR const char* adjusted_start = start ? start + str_length(prefix) : fn;
 
-    CONSTEXPR const char* end = str_find_CONSTEXPR(adjusted_start, suffix);
+    CONSTEXPR int64 iend = str_find_CONSTEXPR(adjusted_start, suffix);
+    CONSTEXPR const char* end = iend >= 0 ? adjusted_start + iend : NULL;
     CONSTEXPR const char* final_start = end ? adjusted_start : fn;
     CONSTEXPR size_t length = end ? (end - adjusted_start) : str_length(adjusted_start);
 

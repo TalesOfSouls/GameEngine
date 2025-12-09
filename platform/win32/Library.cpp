@@ -31,35 +31,35 @@ void* library_get_symbol(Library* lib, const char* symbol) NO_EXCEPT
 inline
 bool library_load(Library* lib) NO_EXCEPT
 {
-    char dst[MAX_PATH];
+    wchar_t dst[MAX_PATH];
     str_concat_new(dst, lib->dir, lib->dst);
 
     // In debug mode, we create a copy at runtime, so we can recompile & reload it
     #if DEBUG || INTERNAL
-        char src[MAX_PATH];
-        size_t dst_len = str_length(dst);
+        wchar_t src[MAX_PATH];
+        const size_t dst_len = str_length(dst);
 
-        memcpy(src, dst, dst_len + 1);
-        str_insert(dst, dst_len - (sizeof(".dll") - 1), "_temp");
+        memcpy(src, dst, (dst_len + 1) * sizeof(wchar_t));
+        str_insert(dst, dst_len - (sizeof(".dll") - 1), L"_temp");
 
         lib->last_load = file_last_modified(src);
         file_copy(src, dst);
     #endif
 
     // Make sure the dll is actually unloaded (Windows caches this)
-    if (GetModuleHandleA((LPCSTR) dst)) {
-        while (GetModuleHandleA((LPCSTR) dst) && lib->handle) {
+    if (GetModuleHandleW((LPCWSTR) dst)) {
+        while (GetModuleHandleW((LPCWSTR) dst) && lib->handle) {
             FreeLibrary(lib->handle);
             Sleep(100);
         }
 
         int32 i = 0;
-        while (GetModuleHandleA((LPCSTR) dst) && i++ < 10) {
+        while (GetModuleHandleW((LPCWSTR) dst) && i++ < 10) {
             Sleep(100);
         }
     }
 
-    lib->handle = LoadLibraryA((LPCSTR) dst);
+    lib->handle = LoadLibraryW((LPCWSTR) dst);
     if (!lib->handle) {
         lib->is_valid = false;
         ASSERT_TRUE(false);
@@ -92,7 +92,7 @@ bool library_bind_functions(Library* lib) NO_EXCEPT {
 
 inline
 void library_descriptor_load(Library* lib) {
-    LibraryModuleDescriptor* desc = (LibraryModuleDescriptor *) library_get_symbol(lib, LIBRARY_MODULE_DESCRIPTOR_SYMBOL);
+    const LibraryModuleDescriptor* desc = (LibraryModuleDescriptor *) library_get_symbol(lib, LIBRARY_MODULE_DESCRIPTOR_SYMBOL);
     lib->function_names = desc->function_names;
     lib->function_count = desc->function_count;
     lib->functions = (void **) desc->functions;

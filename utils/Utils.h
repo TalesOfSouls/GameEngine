@@ -43,7 +43,7 @@ inline
 void str_output(const char* __restrict str, ...) NO_EXCEPT
 {
     char buffer[1024];
-    if (str_find(str, '%')) {
+    if (str_find(str, '%') >= 0) {
         va_list args;
         va_start(args, str);
         sprintf_fast(buffer, 1024, str, args);

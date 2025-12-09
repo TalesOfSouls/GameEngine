@@ -35,7 +35,7 @@ HRESULT WINAPI DirectSoundCreate8Stub(LPCGUID, LPDIRECTSOUND8*, LPUNKNOWN) {
 void audio_load(HWND hwnd, AudioSetting* __restrict setting, DirectSoundSetting* __restrict api_setting) {
     LOG_1("Load audio API DirectSound");
 
-    HMODULE lib = LoadLibraryExA((LPCSTR) "dsound.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    HMODULE lib = LoadLibraryExW((LPCWSTR) L"dsound.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!lib) {
         LOG_1("DirectSound: Couldn't load dsound.dll");
 

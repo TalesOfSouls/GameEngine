@@ -14,7 +14,7 @@ Asset* cmd_internal_texture_create(AppCmdBuffer* const __restrict cb, Command* c
 {
     Asset* const asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
-        return asset;
+        return NULL;
     }
 
     Texture* texture = (Texture *) asset->self;

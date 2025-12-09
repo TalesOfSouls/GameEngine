@@ -38,15 +38,15 @@ bool network_is_ipv6_enabled_in_os() NO_EXCEPT {
     DWORD size = sizeof(value);
 
     HKEY key;
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE,
-        "SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters",
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+        L"SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters",
         0, KEY_READ, &key) != ERROR_SUCCESS
     ) {
         // If key missing, IPv6 is enabled by default
         return true;
     }
 
-    if (RegQueryValueExA(key, "DisabledComponents", NULL, NULL,
+    if (RegQueryValueExW(key, L"DisabledComponents", NULL, NULL,
         (LPBYTE) &value, &size) == ERROR_SUCCESS
     ) {
         RegCloseKey(key);

@@ -23,7 +23,7 @@
 int32 ping_ipv6(const char* ipv6_address, int32 payload_size, int32 timeout = 2000)
 {
     // Convert IPv6 address string to socket structure
-    SOCKADDR_IN6 destAddr = {0};
+    SOCKADDR_IN6 destAddr = {};
     destAddr.sin6_family = AF_INET6;
 
     if (inet_pton(AF_INET6, ipv6_address, &destAddr.sin6_addr) != 1) {

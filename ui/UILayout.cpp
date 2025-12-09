@@ -660,7 +660,7 @@ void layout_from_theme(
         HashEntryInt32* style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         // We don't handle special styles here, only the default one
-        if (str_find(style_entry->key, ':')) {
+        if (str_find(style_entry->key, ':') >= 0) {
             continue;
         }
 
@@ -718,11 +718,13 @@ void layout_from_theme(
         HashEntryInt32* style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         // We only handle special styles here, not the default one
-        const char* special = str_find(style_entry->key, ':');
-        if (!special) {
+        int64 special_pos = str_find(style_entry->key, ':');
+        if (special_pos < 0) {
             // The default element was already handled outside this loop
             continue;
         }
+
+        const char* special = style_entry->key + special_pos;
 
         char pure_name[HASH_MAP_MAX_KEY_LENGTH];
         // +1 to skip '#' or '.'

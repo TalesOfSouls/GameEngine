@@ -351,14 +351,14 @@ void cpu_info_get(CpuInfo* info) {
 
     DWORD bufSize = sizeof(DWORD);
     HKEY hKey;
-    long lError = RegOpenKeyExA(
+    long lError = RegOpenKeyExW(
         HKEY_LOCAL_MACHINE,
-        "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
+        L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
         0, KEY_READ, &hKey
     );
 
     if (lError == ERROR_SUCCESS) {
-        RegQueryValueExA(hKey, "~MHz", NULL, NULL, (LPBYTE) &(info->mhz), &bufSize);
+        RegQueryValueExW(hKey, L"~MHz", NULL, NULL, (LPBYTE) &(info->mhz), &bufSize);
     }
 
     RegCloseKey(hKey);
@@ -511,17 +511,18 @@ int32 gpu_info_get(GpuInfo* info, int32 limit = 3) {
 
 inline
 int32 display_info_get(DisplayInfo* info, int32 limit = 4) {
-    DISPLAY_DEVICEA device;
-    DEVMODEA mode;
+    DISPLAY_DEVICEW device;
+    DEVMODEW mode;
 
-    device.cb = sizeof(DISPLAY_DEVICEA);
+    device.cb = sizeof(DISPLAY_DEVICEW);
 
     int32 i = 0;
-    while (EnumDisplayDevicesA(NULL, i, &device, 0) && i < limit) {
+    while (EnumDisplayDevicesW(NULL, i, &device, 0) && i < limit) {
         mode.dmSize = sizeof(mode);
 
-        if (EnumDisplaySettingsA(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
-            str_copy(info[i].name, device.DeviceName);
+        if (EnumDisplaySettingsW(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
+            wchar_to_char(info[i].name, device.DeviceName);
+
             info[i].width = mode.dmPelsWidth;
             info[i].height = mode.dmPelsHeight;
             info[i].hz = mode.dmDisplayFrequency;
@@ -536,20 +537,20 @@ int32 display_info_get(DisplayInfo* info, int32 limit = 4) {
 
 inline
 bool is_dedicated_gpu_connected() {
-    DISPLAY_DEVICEA displayDevice;
-    displayDevice.cb = sizeof(DISPLAY_DEVICEA);
-    for (int32 i = 0; EnumDisplayDevicesA(NULL, i, &displayDevice, 0); ++i) {
+    DISPLAY_DEVICEW displayDevice;
+    displayDevice.cb = sizeof(DISPLAY_DEVICEW);
+    for (int32 i = 0; EnumDisplayDevicesW(NULL, i, &displayDevice, 0); ++i) {
         if (displayDevice.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) {
-            DISPLAY_DEVICEA gpuDevice;
-            gpuDevice.cb = sizeof(DISPLAY_DEVICEA);
-            if (EnumDisplayDevicesA(displayDevice.DeviceName, 0, &gpuDevice, 0)) {
+            DISPLAY_DEVICEW gpuDevice;
+            gpuDevice.cb = sizeof(DISPLAY_DEVICEW);
+            if (EnumDisplayDevicesW(displayDevice.DeviceName, 0, &gpuDevice, 0)) {
                 if (gpuDevice.DeviceID
-                    && (str_contains(gpuDevice.DeviceID, "PCI\\VEN_10DE") // Nvidia
-                        || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1002") // AMD
-                        || (str_contains(gpuDevice.DeviceID, "PCI\\VEN_8086") && str_contains(gpuDevice.DeviceID, "DEV_56")) // Intel
-                        || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1E4E") // Moore Threads
-                        || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1DBA") // Innosilicon
-                        || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1D17") // Zhaoxin
+                    && (str_contains(gpuDevice.DeviceID, L"PCI\\VEN_10DE") // Nvidia
+                        || str_contains(gpuDevice.DeviceID, L"PCI\\VEN_1002") // AMD
+                        || (str_contains(gpuDevice.DeviceID, L"PCI\\VEN_8086") && str_contains(gpuDevice.DeviceID, L"DEV_56")) // Intel
+                        || str_contains(gpuDevice.DeviceID, L"PCI\\VEN_1E4E") // Moore Threads
+                        || str_contains(gpuDevice.DeviceID, L"PCI\\VEN_1DBA") // Innosilicon
+                        || str_contains(gpuDevice.DeviceID, L"PCI\\VEN_1D17") // Zhaoxin
                         // @todo what about Biren?
                     )
                 ) {

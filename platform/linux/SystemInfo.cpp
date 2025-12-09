@@ -293,7 +293,7 @@ uint32 display_info_get(DisplayInfo* info) {
     uint32 count = 0;
 
     while (fgets(line, sizeof(line), fp)) {
-        if (str_find(line, "connected")) {
+        if (str_find(line, "connected") >= 0) {
             // Example: "HDMI-1 connected 1920x1080+0+0 60.00*+"
             char name[64];
             uint32 width, height, hz;
@@ -302,7 +302,7 @@ uint32 display_info_get(DisplayInfo* info) {
                 info[count].width = width;
                 info[count].height = height;
                 info[count].hz = hz;
-                info[count].is_primary = str_find(line, "primary");
+                info[count].is_primary = str_find(line, "primary") >= 0;
                 ++count;
             }
         }

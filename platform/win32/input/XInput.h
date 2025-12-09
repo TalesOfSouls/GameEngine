@@ -33,10 +33,10 @@ static x_input_set_state* XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
 void xinput_load() {
-    HMODULE lib = LoadLibraryExA((LPCSTR) "xinput1_4.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    HMODULE lib = LoadLibraryExW((LPCWSTR) L"xinput1_4.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if(!lib) {
         // @todo Log
-        lib = LoadLibraryExA((LPCSTR) "xinput1_3.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        lib = LoadLibraryExW((LPCWSTR) L"xinput1_3.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     }
 
     if (!lib) {

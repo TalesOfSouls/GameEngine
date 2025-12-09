@@ -416,12 +416,18 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* const ams, byte type, const
 
     byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
 
-    Asset asset = {};
-
-    asset.component_id = type;
-    asset.self = asset_data;
-    asset.size = elements; // Crucial for freeing
-    asset.ram_size = ac->asset_memory.chunk_size * elements;
+    Asset asset = {
+        0, // .official_id =
+        ac->asset_memory.chunk_size * elements, // .ram_size =
+        0, // .vram_size =
+        0, // .last_access =
+        elements, // .size =
+        0, // .is_loaded =
+        type, // .componentid =
+        0, // .state =
+        0, // .reference_count =
+        asset_data // .self =
+    };
 
     ac->vram_size += asset.vram_size;
     ac->ram_size += asset.ram_size;

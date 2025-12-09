@@ -50,7 +50,7 @@ uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemo
     for (i = 0; i < device_count; ++i) {
         cb_size = sizeof(RID_DEVICE_INFO);
         RID_DEVICE_INFO rdi;
-        GetRawInputDeviceInfoA(pRawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cb_size);
+        GetRawInputDeviceInfoW(pRawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cb_size);
 
         RAWINPUTDEVICE rid[1];
 
@@ -124,7 +124,7 @@ uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory
     for (i = 0; i < device_count; ++i) {
         cb_size = sizeof(RID_DEVICE_INFO);
         RID_DEVICE_INFO rdi;
-        GetRawInputDeviceInfoA(pRawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cb_size);
+        GetRawInputDeviceInfoW(pRawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cb_size);
 
         RAWINPUTDEVICE rid[1];
 

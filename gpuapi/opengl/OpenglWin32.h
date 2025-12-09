@@ -743,20 +743,20 @@ bool gl_has_extension(const char* name) NO_EXCEPT
 static
 bool gl_extensions_load() NO_EXCEPT
 {
-    WNDCLASSA wc = {};
+    WNDCLASSW wc = {};
 
-    wc.lpfnWndProc = DefWindowProcA;
+    wc.lpfnWndProc = DefWindowProcW;
     wc.hInstance = GetModuleHandle(0);
-    wc.lpszClassName = "WGLLoader";
+    wc.lpszClassName = L"WGLLoader";
 
-    if (!RegisterClassA(&wc)) {
+    if (!RegisterClassW(&wc)) {
         return false;
     }
 
-    HWND window = CreateWindowExA(
+    HWND window = CreateWindowExW(
         0,
         wc.lpszClassName,
-        "ExtensionLoader",
+        L"ExtensionLoader",
         0,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
