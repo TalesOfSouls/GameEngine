@@ -246,7 +246,7 @@ GLuint gpuapi_shader_make(GLenum type, const char* source) NO_EXCEPT
             glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
 
             GLchar info[4096];
-            length = OMS_MIN(length, ARRAY_COUNT(info) - 1);
+            length = OMS_MIN(length, (GLint) (ARRAY_COUNT(info) - 1));
             info[length] = '\0';
             glGetShaderInfoLog(shader, length, NULL, info);
             LOG_1(info);
@@ -299,7 +299,7 @@ GLuint gpuapi_pipeline_make(
             glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
 
             GLchar info[4096];
-            length = OMS_MIN(length, ARRAY_COUNT(info) - 1);
+            length = OMS_MIN(length, (GLint) (ARRAY_COUNT(info) - 1));
             info[length] = '\0';
             glGetProgramInfoLog(program, length, NULL, info);
             LOG_1(info);

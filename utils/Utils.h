@@ -79,9 +79,7 @@ void swap_memory(void* __restrict a, void* __restrict b, size_t size) NO_EXCEPT
 
     // Swap remaining bytes
     while (size > 0) {
-        byte tmp = *p;
-        *p = *q;
-        *q = tmp;
+        OMS_SWAP(byte, *p, *q);
 
         ++p;
         ++q;

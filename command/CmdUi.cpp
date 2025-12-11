@@ -12,17 +12,17 @@
 inline
 UILayout* cmd_layout_load_sync(
     AppCmdBuffer* const __restrict cb,
-    UILayout* const __restrict layout, const char* __restrict layout_path
+    UILayout* const __restrict layout, const wchar_t* __restrict layout_path
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load layout %s", {DATA_TYPE_CHAR_STR, (void *) layout_path});
+    //PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path, PROFILE_FLAG_SHOULD_LOG);
+    //LOG_1("Load layout %s", {DATA_TYPE_CHAR_STR, (void *) layout_path});
 
     FileBody layout_file = {};
     file_read(layout_path, &layout_file, cb->mem_vol);
 
     if (!layout_file.content) {
-        LOG_1("Failed loading layout \"%s\"", {DATA_TYPE_CHAR_STR, (void *) layout_path});
+        LOG_1("Failed loading layout");
         return NULL;
     }
 
@@ -34,11 +34,11 @@ UILayout* cmd_layout_load_sync(
 inline
 UIThemeStyle* cmd_theme_load_sync(
     AppCmdBuffer* const __restrict cb,
-    UIThemeStyle* __restrict theme, const char* __restrict theme_path
+    UIThemeStyle* __restrict theme, const wchar_t* __restrict theme_path
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, theme_path, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load theme %s", {DATA_TYPE_CHAR_STR, (void *) theme_path});
+    //PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, theme_path, PROFILE_FLAG_SHOULD_LOG);
+    LOG_1("Load theme");
 
     FileBody theme_file = {};
     file_read(theme_path, &theme_file, cb->mem_vol);
@@ -59,14 +59,14 @@ void cmd_layout_populate_sync(
 inline
 UILayout* cmd_ui_load_sync(
     AppCmdBuffer* const __restrict cb,
-    UILayout* const __restrict layout, const char* __restrict layout_path,
-    UIThemeStyle* __restrict general_theme,
-    UIThemeStyle* __restrict theme, const char* __restrict theme_path,
+    UILayout* const __restrict layout, const wchar_t* __restrict const layout_path,
+    UIThemeStyle* __restrict const general_theme,
+    UIThemeStyle* __restrict const theme, const wchar_t* __restrict const theme_path,
     const Camera* const __restrict camera
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_CMD_UI_LOAD_SYNC, layout_path, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load ui with layout %s and theme %s", {DATA_TYPE_CHAR_STR, (void *) layout_path}, {DATA_TYPE_CHAR_STR, (void *) theme_path});
+    PROFILE(PROFILE_CMD_UI_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    LOG_1("Load ui");
 
     if (!cmd_layout_load_sync(cb, layout, layout_path)) {
         // We have to make sure that at least the font is set
@@ -80,7 +80,7 @@ UILayout* cmd_ui_load_sync(
     cmd_layout_populate_sync(cb, layout, theme);
 
     UIElement* root = layout_get_element(layout, "root");
-    UIWindow* default_style = (UIWindow *) layout_get_element_style(layout, root, UI_STYLE_TYPE_DEFAULT);
+    UIWindow* const default_style = (UIWindow *) layout_get_element_style(layout, root, UI_STYLE_TYPE_DEFAULT);
     if (default_style) {
         default_style->dimension.dimension.width = camera->viewport_width;
         default_style->dimension.dimension.height = camera->viewport_height;
@@ -94,17 +94,19 @@ UILayout* cmd_ui_load(AppCmdBuffer* const __restrict cb, const Command* const __
 {
     const byte* pos = cmd->data;
 
-    SceneInfo* scene = (SceneInfo *) *((uintptr_t *) pos);
+    SceneInfo* const scene = (SceneInfo *) *((uintptr_t *) pos);
     pos += sizeof(uintptr_t);
 
-    char* layout_path = (char *) pos;
-    str_move_to((const char **) &pos, '\0'); ++pos;
+    const wchar_t* const layout_path = (wchar_t *) pos;
+    str_move_to((const wchar_t **) &pos, L'\0');
+    pos += sizeof(L'\0');
 
-    UIThemeStyle* general_theme = (UIThemeStyle *) *((uintptr_t *) pos);
+    UIThemeStyle* const general_theme = (UIThemeStyle *) *((uintptr_t *) pos);
     pos += sizeof(uintptr_t);
 
-    char* theme_path = (char *) pos;
-    str_move_to((const char **) &pos, '\0'); ++pos;
+    const wchar_t* const theme_path = (wchar_t *) pos;
+    str_move_to((const wchar_t **) &pos, L'\0');
+    pos += sizeof(L'\0');
 
     const Camera* camera = (Camera *) *((uintptr_t *) pos);
 
@@ -121,9 +123,9 @@ inline
 void thrd_cmd_ui_load(
     AppCmdBuffer* const __restrict cb,
     SceneInfo* __restrict scene_info,
-    const char* __restrict layout_path,
+    const wchar_t* __restrict layout_path,
     UIThemeStyle* __restrict general_theme,
-    const char* __restrict theme_path,
+    const wchar_t* __restrict theme_path,
     const Camera* const __restrict camera,
     CommandFunction callback
 ) NO_EXCEPT
@@ -138,16 +140,18 @@ void thrd_cmd_ui_load(
     pos += sizeof(uintptr_t);
 
     // Layout path
-    pos += str_copy_until((char *) pos, layout_path, '\0');
-    *pos = '\0'; ++pos;
+    pos += str_copy_until((wchar_t *) pos, layout_path, L'\0') * sizeof(wchar_t);
+    *pos = L'\0';
+    pos += sizeof(L'\0');
 
     // General theme pointer
     *((uintptr_t *) pos) = (uintptr_t) general_theme;
     pos += sizeof(uintptr_t);
 
     // Theme path
-    pos += str_copy_until((char *) pos, theme_path, '\0');
-    *pos = '\0'; ++pos;
+    pos += str_copy_until((wchar_t *) pos, theme_path, L'\0') * sizeof(wchar_t);
+    *pos = L'\0';
+    pos += sizeof(L'\0');
 
     // Camera pointer
     *((uintptr_t *) pos) = (uintptr_t) camera;

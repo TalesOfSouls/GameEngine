@@ -195,8 +195,8 @@ v4_byte soft_sample_texture_bilinear(const Texture* texture, f32 u, f32 v) NO_EX
     const f32 fx = u * (tw - 1.0f);
     const f32 fy = v * (th - 1.0f);
 
-    int32 x0 = (int32) FLOORF(fx);
-    int32 y0 = (int32) FLOORF(fy);
+    int32 x0 = (int32) oms_floor(fx);
+    int32 y0 = (int32) oms_floor(fy);
     const int32 x1 = oms_min(x0 + 1, tw - 1);
     const int32 y1 = oms_min(y0 + 1, th - 1);
 

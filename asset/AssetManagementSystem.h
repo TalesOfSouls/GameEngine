@@ -115,7 +115,7 @@ void ams_free(AssetManagementSystem* const ams) NO_EXCEPT
 FORCE_INLINE
 uint16 ams_calculate_chunks(const AssetComponent* ac, int32 byte_size, int32 overhead) NO_EXCEPT
 {
-    return (uint16) CEIL_DIV(byte_size + overhead, ac->asset_memory.chunk_size);
+    return (uint16) ceil_div(byte_size + overhead, ac->asset_memory.chunk_size);
 }
 
 FORCE_INLINE

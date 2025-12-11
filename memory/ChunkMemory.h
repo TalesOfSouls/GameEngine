@@ -42,7 +42,7 @@ struct ChunkMemory {
     uint64 size;
     int32 last_pos;
     uint32 count;
-    uint32 chunk_size;
+    int32 chunk_size;
 
     // WARNING: The alignment may increase the original chunk size e.g.
     // element_size = 14, alignment = sizeof(size_t) => chunk_size = 32
@@ -54,26 +54,26 @@ struct ChunkMemory {
 };
 
 FORCE_INLINE
-uint32 chunk_size_element(uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+int32 chunk_size_element(int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     return OMS_ALIGN_UP(element_size, alignment);
 }
 
 FORCE_INLINE
-uint64 chunk_size_total(uint32 count, uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+uint64 chunk_size_total(uint32 count, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = chunk_size_element(element_size, alignment);
 
     // @performance Can we remove the alignment * 2? This is just a shotgun method to ensure full alignment
 
     return count * element_size
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
+        + sizeof(uint64) * ceil_div(count, 64U) // free
         + alignment * 2; // overhead for alignment
 }
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void chunk_alloc(ChunkMemory* const buf, uint32 count, uint32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void chunk_alloc(ChunkMemory* const buf, uint32 count, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
@@ -108,7 +108,7 @@ void chunk_init(
     ChunkMemory* const __restrict buf,
     BufferMemory* __restrict data,
     uint32 count,
-    uint32 element_size,
+    int32 element_size,
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
@@ -139,7 +139,7 @@ void chunk_init(
     ChunkMemory* const __restrict buf,
     byte* __restrict data,
     uint32 count,
-    uint32 element_size,
+    int32 element_size,
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {

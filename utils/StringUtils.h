@@ -898,13 +898,12 @@ int32 int_length(int64 number) NO_EXCEPT
     return len;
 }
 
-inline
-int32 int_to_str(int64 number, char str[15], char thousands) NO_EXCEPT
+template <typename T>
+inline int32 int_to_str(int64 number, T str[15], T thousands) NO_EXCEPT
 {
     if (number == 0) {
-        *str++ = '0';
-        *str = '\0';
-
+        *str++ = T('0');
+        *str = T('\0');
         return 1;
     }
 
@@ -921,71 +920,30 @@ int32 int_to_str(int64 number, char str[15], char thousands) NO_EXCEPT
             str[i++] = thousands;
         }
 
-        str[i++] = number % 10 + '0';
+        str[i++] = T(number % 10 + '0');
         number /= 10;
         ++digit_count;
     }
 
     if (sign < 0) {
-        str[i++] = '-';
+        str[i++] = T('-');
     }
 
+    // reverse the buffer
     for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
-        const char temp = str[j];
+        const T temp = str[j];
         str[j] = str[k];
         str[k] = temp;
     }
 
-    str[i] = '\0';
+    str[i] = T('\0');
 
     return i;
 }
 
-inline
-int32 int_to_str(int64 number, wchar_t str[15], wchar_t thousands) NO_EXCEPT
-{
-    if (number == 0) {
-        *str++ = L'0';
-        *str = L'\0';
-
-        return 1;
-    }
-
-    int32 i = 0;
-    int32 digit_count = 0;
-    const int64 sign = number;
-
-    if (number < 0) {
-        number = -number;
-    }
-
-    while (number > 0) {
-        if (digit_count && digit_count % 3 == 0) {
-            str[i++] = thousands;
-        }
-
-        str[i++] = number % 10 + L'0';
-        number /= 10;
-        ++digit_count;
-    }
-
-    if (sign < 0) {
-        str[i++] = L'-';
-    }
-
-    for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
-        const wchar_t temp = str[j];
-        str[j] = str[k];
-        str[k] = temp;
-    }
-
-    str[i] = L'\0';
-
-    return i;
-}
-
+template <typename T>
 inline CONSTEXPR
-int32 int_to_str(int64 number, char str[12]) NO_EXCEPT
+int32 int_to_str(int64 number, T str[12]) NO_EXCEPT
 {
     int32 i = -1;
     const int64 sign = number;
@@ -995,99 +953,50 @@ int32 int_to_str(int64 number, char str[12]) NO_EXCEPT
     }
 
     do {
-        str[++i] = number % 10 + '0';
+        str[++i] = number % 10 + T('0');
         number /= 10;
     } while (number > 0);
 
     if (sign < 0) {
-        str[++i] = '-';
+        str[++i] = T('-');
     }
 
     for (int32 j = 0, k = i; j < k; ++j, --k) {
-        const char temp = str[j];
+        const T temp = str[j];
         str[j] = str[k];
         str[k] = temp;
     }
 
-    str[++i] = '\0';
+    str[++i] = T('\0');
 
     return i;
 }
 
+template <typename T>
 inline CONSTEXPR
-int32 int_to_str(int64 number, wchar_t str[12]) NO_EXCEPT
-{
-    int32 i = -1;
-    const int64 sign = number;
-
-    if (number < 0) {
-        number = -number;
-    }
-
-    do {
-        str[++i] = number % 10 + L'0';
-        number /= 10;
-    } while (number > 0);
-
-    if (sign < 0) {
-        str[++i] = L'-';
-    }
-
-    for (int32 j = 0, k = i; j < k; ++j, --k) {
-        const wchar_t temp = str[j];
-        str[j] = str[k];
-        str[k] = temp;
-    }
-
-    str[++i] = L'\0';
-
-    return i;
-}
-
-inline CONSTEXPR
-int32 int_to_str(uint64 number, char str[12]) NO_EXCEPT
+int32 int_to_str(uint64 number, T str[12]) NO_EXCEPT
 {
     int32 i = -1;
 
     do {
-        str[++i] = number % 10 + '0';
+        str[++i] = number % 10 + T('0');
         number /= 10;
     } while (number > 0);
 
     for (int32 j = 0, k = i; j < k; ++j, --k) {
-        const char temp = str[j];
+        const T temp = str[j];
         str[j] = str[k];
         str[k] = temp;
     }
 
-    str[++i] = '\0';
+    str[++i] = T('\0');
 
     return i;
 }
 
+template <typename T>
 inline CONSTEXPR
-int32 int_to_str(uint64 number, wchar_t str[12]) NO_EXCEPT
-{
-    int32 i = -1;
-
-    do {
-        str[++i] = number % 10 + L'0';
-        number /= 10;
-    } while (number > 0);
-
-    for (int32 j = 0, k = i; j < k; ++j, --k) {
-        const wchar_t temp = str[j];
-        str[j] = str[k];
-        str[k] = temp;
-    }
-
-    str[++i] = L'\0';
-
-    return i;
-}
-
-inline CONSTEXPR
-int32 int_to_str(int32 number, char str[12]) NO_EXCEPT
+int32 int_to_str(int32 number, T str[12]) NO_EXCEPT
 {
     int32 i = -1;
     const int32 sign = number;
@@ -1097,93 +1006,43 @@ int32 int_to_str(int32 number, char str[12]) NO_EXCEPT
     }
 
     do {
-        str[++i] = number % 10 + '0';
+        str[++i] = number % 10 + T('0');
         number /= 10;
     } while (number > 0);
 
     if (sign < 0) {
-        str[++i] = '-';
+        str[++i] = T('-');
     }
 
     for (int32 j = 0, k = i; j < k; ++j, --k) {
-        const char temp = str[j];
+        const T temp = str[j];
         str[j] = str[k];
         str[k] = temp;
     }
 
-    str[++i] = '\0';
+    str[++i] = T('\0');
 
     return i;
 }
 
+template <typename T>
 inline CONSTEXPR
-int32 int_to_str(int32 number, wchar_t str[12]) NO_EXCEPT
-{
-    int32 i = -1;
-    const int32 sign = number;
-
-    if (number < 0) {
-        number = -number;
-    }
-
-    do {
-        str[++i] = number % 10 + L'0';
-        number /= 10;
-    } while (number > 0);
-
-    if (sign < 0) {
-        str[++i] = L'-';
-    }
-
-    for (int32 j = 0, k = i; j < k; ++j, --k) {
-        const wchar_t temp = str[j];
-        str[j] = str[k];
-        str[k] = temp;
-    }
-
-    str[++i] = L'\0';
-
-    return i;
-}
-
-inline CONSTEXPR
-int32 int_to_str(uint32 number, char str[12]) NO_EXCEPT
+int32 int_to_str(uint32 number, T str[12]) NO_EXCEPT
 {
     int32 i = -1;
 
     do {
-        str[++i] = number % 10 + '0';
+        str[++i] = number % 10 + T('0');
         number /= 10;
     } while (number > 0);
 
     for (int32 j = 0, k = i; j < k; ++j, --k) {
-        const char temp = str[j];
+        const T temp = str[j];
         str[j] = str[k];
         str[k] = temp;
     }
 
-    str[++i] = '\0';
-
-    return i;
-}
-
-inline CONSTEXPR
-int32 int_to_str(uint32 number, wchar_t str[12]) NO_EXCEPT
-{
-    int32 i = -1;
-
-    do {
-        str[++i] = (wchar_t)(number % 10 + L'0');
-        number /= 10;
-    } while (number > 0);
-
-    for (int32 j = 0, k = i; j < k; ++j, --k) {
-        const wchar_t temp = str[j];
-        str[j] = str[k];
-        str[k] = temp;
-    }
-
-    str[++i] = L'\0';
+    str[++i] = T('\0');
 
     return i;
 }
@@ -1410,14 +1269,65 @@ int32 str_copy_until(char* __restrict dest, const char* __restrict src, char del
 }
 
 inline
-void str_copy_until(char* __restrict dest, const char* __restrict src, const char* __restrict delim) NO_EXCEPT
+int32 str_copy_until(wchar_t* __restrict dest, const wchar_t* __restrict src, wchar_t delim) NO_EXCEPT
+{
+    const wchar_t* s = src;
+    wchar_t* d = dest;
+
+    if (*s == L'\0' || *s == delim) {
+        *d = L'\0';
+
+        return 0;
+    }
+
+    // Align pointer for size_t access
+    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != L'\0' && *s != delim) {
+        *d++ = *s++;
+    }
+
+    const size_t wchar_t_bits = sizeof(wchar_t) * 8;
+    size_t delim_mask = 0;
+    for (size_t i = 0; i < sizeof(size_t) / sizeof(wchar_t); ++i) {
+        delim_mask |= (size_t)delim << (i * wchar_t_bits);
+    }
+
+    const size_t* wptr = (const size_t *) s;
+
+    while (true) {
+        const size_t v = *wptr;
+
+        // Detect either null or delimiter
+        if (OMS_HAS_ZERO_WCHAR(v) || OMS_HAS_ZERO_WCHAR(v ^ delim_mask)) {
+            const wchar_t* cp = (const wchar_t *) wptr;
+            for (size_t i = 0; i < sizeof(size_t) / sizeof(wchar_t); ++i) {
+                if (cp[i] == L'\0' || cp[i] == delim) {
+                    size_t len = cp + i - src;
+                    for (size_t j = 0; j < len; ++j) {
+                        dest[j] = src[j];
+                    }
+
+                    dest[len] = L'\0';
+
+                    return (int32) len;
+                }
+            }
+        }
+
+        ++wptr;
+    }
+}
+
+template <typename T>
+inline void str_copy_until(T* __restrict dest, const T* __restrict src, const T* __restrict delim) NO_EXCEPT
 {
     const size_t len = str_length(delim);
 
-    while (*src != '\0') {
+    const T end = (T) 0;
+
+    while (*src != end) {
         for (size_t i = 0; i < len; ++i) {
             if (*src == delim[i]) {
-                *dest = '\0';
+                *dest = end;
                 return;
             }
         }
@@ -1425,7 +1335,7 @@ void str_copy_until(char* __restrict dest, const char* __restrict src, const cha
         *dest++ = *src++;
     }
 
-    *dest = '\0';
+    *dest = end;
 }
 
 inline CONSTEXPR
@@ -1763,37 +1673,26 @@ char* strsep(const char** sp, const char* sep) NO_EXCEPT
     return s;
 }
 
+template <typename T>
 inline void
-str_concat_append(char* __restrict dst, const char* __restrict src) NO_EXCEPT
+str_concat_append(T* __restrict dst, const T* __restrict src) NO_EXCEPT
 {
     dst += str_length(dst);
     str_copy(dst, src);
 }
 
+template <typename T>
 inline void
 str_concat_new(
-    char* __restrict dst,
-    const char* __restrict src1,
-    const char* __restrict src2
+    T* __restrict dst,
+    const T* __restrict src1,
+    const T* __restrict src2
 ) NO_EXCEPT
 {
     while (*src1) { *dst++ = *src1++; }
     while (*src2) { *dst++ = *src2++; }
 
-    *dst = '\0';
-}
-
-inline void
-str_concat_new(
-    wchar_t* __restrict dst,
-    const wchar_t* __restrict src1,
-    const wchar_t* __restrict src2
-) noexcept
-{
-    while (*src1) { *dst++ = *src1++; }
-    while (*src2) { *dst++ = *src2++; }
-
-    *dst = L'\0';
+    *dst = T('\0');
 }
 
 inline void
@@ -2462,6 +2361,42 @@ void str_move_to(const char** str, char delim) NO_EXCEPT
     *str = s;
 }
 
+inline
+void str_move_to(const wchar_t** str, wchar_t delim) NO_EXCEPT
+{
+    const wchar_t* s = *str;
+
+    // Handle unaligned prefix
+    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != L'\0' && *s != delim) {
+        ++s;
+    }
+
+    const size_t wchar_t_bits = sizeof(wchar_t) * 8;
+    size_t delim_mask = 0;
+    for (size_t i = 0; i < sizeof(size_t) / sizeof(wchar_t); ++i) {
+        delim_mask |= (size_t)delim << (i * wchar_t_bits);
+    }
+
+    const size_t* wptr = (const size_t *) s;
+
+    while (true) {
+        const size_t v = *wptr;
+        if (OMS_HAS_ZERO_WCHAR(v) || OMS_HAS_ZERO_WCHAR(v ^ delim_mask)) {
+            break;
+        }
+
+        ++wptr;
+    }
+
+    // Fallback to byte scan
+    s = (const wchar_t *) wptr;
+    while (*s != L'\0' && *s != delim) {
+        ++s;
+    }
+
+    *str = s;
+}
+
 // Negative pos counts backwards
 FORCE_INLINE
 void str_move_to_pos(const char** str, int32 pos) NO_EXCEPT
@@ -2715,15 +2650,16 @@ f32 str_to_float(const char* str, const char** pos = NULL) NO_EXCEPT
     return sign * result;
 }
 
+template <typename T>
 inline
-int32 float_to_str(f64 value, char* buffer, int32 precision = 5) NO_EXCEPT
+int32 float_to_str(f64 value, T* buffer, int32 precision = 5) NO_EXCEPT
 {
     ASSERT_TRUE(precision < 6);
 
-    const char* start = buffer;
+    const T* start = buffer;
 
     if (value < 0) {
-        *buffer++ = '-';
+        *buffer++ = T('-');
         value = -value;
     }
 
@@ -2732,17 +2668,17 @@ int32 float_to_str(f64 value, char* buffer, int32 precision = 5) NO_EXCEPT
     };
 
     const f64 scale = powers_of_ten[precision];
-    value = OMS_ROUND_POSITIVE_64(value * scale) / scale;
+    value = oms_round_positive(value * scale) / scale;
 
     // Handle integer part
     int32 int_part = (int32) value;
     f64 frac_part = value - int_part;
 
-    char temp[20];
+    T temp[20];
     int32 index = 0;
 
     do {
-        temp[index++] = (int_part % 10) + '0';
+        temp[index++] = T((int_part % 10) + '0');
         int_part /= 10;
     } while (int_part > 0);
 
@@ -2756,87 +2692,38 @@ int32 float_to_str(f64 value, char* buffer, int32 precision = 5) NO_EXCEPT
         for (int32 i = 0; i < precision; ++i) {
             frac_part *= 10;
             int32 digit = (int32) frac_part;
-            *buffer++ = (char) (digit + '0');
+            *buffer++ = T(digit + '0');
             frac_part -= digit;
         }
     }
 
-    *buffer = '\0';
+    *buffer = T('\0');
 
     return (int32) (buffer - start);
 }
 
+template <typename T>
 inline
-int32 float_to_str(f64 value, wchar_t* buffer, int32 precision = 5) NO_EXCEPT
+void format_time_hh_mm_ss_ms(T time_str[13], int32 hours, int32 minutes, int32 secs, int32 ms) NO_EXCEPT
 {
-    ASSERT_TRUE(precision < 6);
-
-    const wchar_t* start = buffer;
-
-    if (value < 0) {
-        *buffer++ = L'-';
-        value = -value;
-    }
-
-    static const f64 powers_of_ten[] = {
-        1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0
-    };
-
-    const f64 scale = powers_of_ten[precision];
-    value = OMS_ROUND_POSITIVE_64(value * scale) / scale;
-
-    // Handle integer part
-    int32 int_part = (int32) value;
-    f64 frac_part = value - int_part;
-
-    wchar_t temp[20];
-    int32 index = 0;
-
-    do {
-        temp[index++] = (wchar_t)((int_part % 10) + L'0');
-        int_part /= 10;
-    } while (int_part > 0);
-
-    while (index > 0) {
-        *buffer++ = temp[--index];
-    }
-
-    // Handle fractional part
-    if (precision > 0) {
-        *buffer++ = L'.';
-        for (int32 i = 0; i < precision; ++i) {
-            frac_part *= 10;
-            int32 digit = (int32) frac_part;
-            *buffer++ = (wchar_t)(digit + L'0');
-            frac_part -= digit;
-        }
-    }
-
-    *buffer = L'\0';
-
-    return (int32)(buffer - start);
+    time_str[0] = T('0' + (hours / 10));
+    time_str[1] = T('0' + (hours % 10));
+    time_str[2] = T(':');
+    time_str[3] = T('0' + (minutes / 10));
+    time_str[4] = T('0' + (minutes % 10));
+    time_str[5] = T(':');
+    time_str[6] = T('0' + (secs / 10));
+    time_str[7] = T('0' + (secs % 10));
+    time_str[8] = T('.');
+    time_str[9] = T('0' + (ms / 100));
+    time_str[10] = T('0' + ((ms / 10) % 10));
+    time_str[11] = T('0' + (ms % 10));
+    time_str[12] = T('\0');
 }
 
+template <typename T>
 inline
-void format_time_hh_mm_ss_ms(char time_str[13], int32 hours, int32 minutes, int32 secs, int32 ms) NO_EXCEPT
-{
-    time_str[0] = (char) ('0' + (hours / 10));
-    time_str[1] = (char) ('0' + (hours % 10));
-    time_str[2] = ':';
-    time_str[3] = (char) ('0' + (minutes / 10));
-    time_str[4] = (char) ('0' + (minutes % 10));
-    time_str[5] = ':';
-    time_str[6] = (char) ('0' + (secs / 10));
-    time_str[7] = (char) ('0' + (secs % 10));
-    time_str[8] = '.';
-    time_str[9] = (char) ('0' + (ms / 100));
-    time_str[10] = (char) ('0' + ((ms / 10) % 10));
-    time_str[11] = (char) ('0' + (ms % 10));
-    time_str[12] = '\0';
-}
-
-inline
-void format_time_hh_mm_ss_ms(char time_str[13], uint64 ms) NO_EXCEPT
+void format_time_hh_mm_ss_ms(T time_str[13], uint64 ms) NO_EXCEPT
 {
     const uint64 seconds = ms / 1000;
     const int32 hours = (seconds / 3600) % 24;
@@ -2846,51 +2733,23 @@ void format_time_hh_mm_ss_ms(char time_str[13], uint64 ms) NO_EXCEPT
     format_time_hh_mm_ss_ms(time_str, hours, minutes, secs, ms % 1000);
 }
 
-inline
-void format_time_hh_mm_ss(char time_str[9], int32 hours, int32 minutes, int32 secs) NO_EXCEPT
+template <typename T>
+void format_time_hh_mm_ss(T time_str[9], int32 hours, int32 minutes, int32 secs) NO_EXCEPT
 {
-    time_str[0] = (char) ('0' + (hours / 10));
-    time_str[1] = (char) ('0' + (hours % 10));
-    time_str[2] = ':';
-    time_str[3] = (char) ('0' + (minutes / 10));
-    time_str[4] = (char) ('0' + (minutes % 10));
-    time_str[5] = ':';
-    time_str[6] = (char) ('0' + (secs / 10));
-    time_str[7] = (char) ('0' + (secs % 10));
-    time_str[8] = '\0';
+    time_str[0] = T('0' + (hours / 10));
+    time_str[1] = T('0' + (hours % 10));
+    time_str[2] = T(':');
+    time_str[3] = T('0' + (minutes / 10));
+    time_str[4] = T('0' + (minutes % 10));
+    time_str[5] = T(':');
+    time_str[6] = T('0' + (secs / 10));
+    time_str[7] = T('0' + (secs % 10));
+    time_str[8] = T('\0');
 }
 
+template <typename T>
 inline
-void format_time_hh_mm_ss(char time_str[9], uint64 seconds) NO_EXCEPT
-{
-    const int32 hours = (seconds / 3600) % 24;
-    const int32 minutes = (seconds / 60) % 60;
-    const int32 secs = seconds % 60;
-
-    format_time_hh_mm_ss(time_str, hours, minutes, secs);
-}
-
-inline
-void format_time_hh_mm_ss(
-    wchar_t time_str[9],
-    int32 hours,
-    int32 minutes,
-    int32 secs
-) NO_EXCEPT
-{
-    time_str[0] = (wchar_t)(L'0' + (hours / 10));
-    time_str[1] = (wchar_t)(L'0' + (hours % 10));
-    time_str[2] = L':';
-    time_str[3] = (wchar_t)(L'0' + (minutes / 10));
-    time_str[4] = (wchar_t)(L'0' + (minutes % 10));
-    time_str[5] = L':';
-    time_str[6] = (wchar_t)(L'0' + (secs / 10));
-    time_str[7] = (wchar_t)(L'0' + (secs % 10));
-    time_str[8] = L'\0';
-}
-
-inline
-void format_time_hh_mm_ss(wchar_t time_str[9], uint64 seconds) NO_EXCEPT
+void format_time_hh_mm_ss(T time_str[9], uint64 seconds) NO_EXCEPT
 {
     const int32 hours = (seconds / 3600) % 24;
     const int32 minutes = (seconds / 60) % 60;
@@ -2899,39 +2758,21 @@ void format_time_hh_mm_ss(wchar_t time_str[9], uint64 seconds) NO_EXCEPT
     format_time_hh_mm_ss(time_str, hours, minutes, secs);
 }
 
+template <typename T>
 inline
-void format_time_hh_mm(char time_str[6], int32 hours, int32 minutes) NO_EXCEPT
+void format_time_hh_mm(T time_str[6], int32 hours, int32 minutes) NO_EXCEPT
 {
-    time_str[0] = (char) ('0' + (hours / 10));
-    time_str[1] = (char) ('0' + (hours % 10));
-    time_str[2] = ':';
-    time_str[3] = (char) ('0' + (minutes / 10));
-    time_str[4] = (char) ('0' + (minutes % 10));
-    time_str[5] = '\0';
+    time_str[0] = T('0' + (hours / 10));
+    time_str[1] = T('0' + (hours % 10));
+    time_str[2] = T(':');
+    time_str[3] = T('0' + (minutes / 10));
+    time_str[4] = T('0' + (minutes % 10));
+    time_str[5] = T('\0');
 }
 
+template <typename T>
 inline
-void format_time_hh_mm(char time_str[6], uint64 seconds) NO_EXCEPT
-{
-    const int32 hours = (seconds / 3600) % 24;
-    const int32 minutes = (seconds / 60) % 60;
-
-    format_time_hh_mm(time_str, hours, minutes);
-}
-
-inline
-void format_time_hh_mm(wchar_t time_str[6], int32 hours, int32 minutes) NO_EXCEPT
-{
-    time_str[0] = (char) (L'0' + (hours / 10));
-    time_str[1] = (char) (L'0' + (hours % 10));
-    time_str[2] = L':';
-    time_str[3] = (char) (L'0' + (minutes / 10));
-    time_str[4] = (char) (L'0' + (minutes % 10));
-    time_str[5] = L'\0';
-}
-
-inline
-void format_time_hh_mm(wchar_t time_str[6], uint64 seconds) NO_EXCEPT
+void format_time_hh_mm(T time_str[6], uint64 seconds) NO_EXCEPT
 {
     const int32 hours = (seconds / 3600) % 24;
     const int32 minutes = (seconds / 60) % 60;
@@ -2939,56 +2780,57 @@ void format_time_hh_mm(wchar_t time_str[6], uint64 seconds) NO_EXCEPT
     format_time_hh_mm(time_str, hours, minutes);
 }
 
-int32 sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) NO_EXCEPT
+template <typename T>
+int32 sprintf_fast(T* __restrict buffer, const T* __restrict format, ...) NO_EXCEPT
 {
     va_list args;
     va_start(args, format);
 
-    const char* const start = buffer;
+    const T* const start = buffer;
 
     while (*format) {
-        if (*format == '\\' && format[1] == '%') {
+        if (*format == T('\\') && format[1] == T('%')) {
             ++format;
             *buffer++ = *format;
-        } else if (*format != '%') {
+        } else if (*format != T('%')) {
             *buffer++ = *format;
         } else {
             ++format;
 
             switch (*format) {
-                case 's': {
-                    const char* str = va_arg(args, const char *);
+                case T('s'): {
+                    const T* str = va_arg(args, const T *);
                     while (*str) {
                         *buffer++ = *str++;
                     }
                 } break;
-                case 'c': {
-                    *buffer++ = (char) va_arg(args, int32);
+                case T('c'): {
+                    *buffer++ = (T) va_arg(args, int32);
                 } break;
-                case 'n': {
+                case T('n'): {
                     const int64 val = va_arg(args, int64);
-                    buffer += int_to_str(val, buffer, ',');
+                    buffer += int_to_str(val, buffer, T(','));
                 } break;
-                case 'd': {
+                case T('d'): {
                     const int32 val = va_arg(args, int32);
                     buffer += int_to_str(val, buffer);
                 } break;
-                case 'l': {
+                case T('l'): {
                     const int64 val = va_arg(args, int64);
                     buffer += int_to_str(val, buffer);
                 } break;
-                case 'f': {
+                case T('f'): {
                     const f64 val = va_arg(args, f64);
 
                     // Default precision
                     int32 precision = 5;
 
                     // Check for optional precision specifier
-                    const char* prec_ptr = format + 1;
-                    if (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                    const T* prec_ptr = format + 1;
+                    if (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
                         precision = 0;
-                        while (*prec_ptr >= '0' && *prec_ptr <= '9') {
-                            precision = precision * 10 + (*prec_ptr - '0');
+                        while (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
+                            precision = precision * 10 + (*prec_ptr - T('0'));
                             prec_ptr++;
                         }
 
@@ -2997,14 +2839,14 @@ int32 sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) 
 
                     buffer += float_to_str(val, buffer, precision);
                 } break;
-                case 'T': {
+                case T('T'): {
                     const int64 time = va_arg(args, int64);
                     format_time_hh_mm_ss(buffer, time);
                     buffer += 8;
                 } break;
                 default: {
                     // Handle unknown format specifiers
-                    *buffer++ = '%';
+                    *buffer++ = T('%');
                 } break;
             }
         }
@@ -3012,150 +2854,67 @@ int32 sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) 
         ++format;
     }
 
-    *buffer = '\0';
+    *buffer = T('\0');
     va_end(args);
 
     return (int32) (buffer - start);
 }
 
-inline
-int32 sprintf_fast(
-    wchar_t* __restrict buffer,
-    const wchar_t* __restrict format,
-    ...
-) NO_EXCEPT
+template <typename T>
+int32 sprintf_fast(T* __restrict buffer, int32 buffer_length, const T* __restrict format, ...) NO_EXCEPT
 {
     va_list args;
     va_start(args, format);
 
-    wchar_t* const start = buffer;
-
-    while (*format) {
-        if (*format == L'\\' && format[1] == L'%') {
-            ++format;
-            *buffer++ = *format;
-        } else if (*format != L'%') {
-            *buffer++ = *format;
-        } else {
-            ++format;
-
-            switch (*format) {
-                case L's': {
-                    const wchar_t* str = va_arg(args, const wchar_t*);
-                    while (*str) {
-                        *buffer++ = *str++;
-                    }
-                } break;
-                case L'c': {
-                    *buffer++ = (wchar_t) va_arg(args, int32);
-                } break;
-                case L'n': {
-                    const int64 val = va_arg(args, int64);
-                    buffer += int_to_str(val, buffer, L',');
-                } break;
-                case L'd': {
-                    const int32 val = va_arg(args, int32);
-                    buffer += int_to_str(val, buffer);
-                } break;
-                case L'l': {
-                    const int64 val = va_arg(args, int64);
-                    buffer += int_to_str(val, buffer);
-                } break;
-                case L'f': {
-                    const f64 val = va_arg(args, f64);
-
-                    // Default precision
-                    int32 precision = 5;
-
-                    // Check for optional precision specifier
-                    const wchar_t* prec_ptr = format + 1;
-                    if (*prec_ptr >= L'0' && *prec_ptr <= L'9') {
-                        precision = 0;
-                        while (*prec_ptr >= L'0' && *prec_ptr <= L'9') {
-                            precision = precision * 10 + (*prec_ptr - L'0');
-                            prec_ptr++;
-                        }
-
-                        format = prec_ptr - 1;
-                    }
-
-                    buffer += float_to_str(val, buffer, precision);
-                } break;
-                case L'T': {
-                    const int64 time = va_arg(args, int64);
-                    format_time_hh_mm_ss(buffer, time);
-                    buffer += 8;
-                } break;
-                default: {
-                    // Unknown format specifier
-                    *buffer++ = L'%';
-                } break;
-            }
-        }
-
-        ++format;
-    }
-
-    *buffer = L'\0';
-    va_end(args);
-
-    return (int32)(buffer - start);
-}
-
-int32 sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __restrict format, ...) NO_EXCEPT
-{
-    va_list args;
-    va_start(args, format);
-
-    // We start at 1 since we need 1 char for '\0'
+    // We start at 1 since we need 1 T for '\0'
     int32 length = 1;
 
     while (*format && length < buffer_length) {
         int32 offset = 1;
-        if (*format == '\\' && format[1] == '%') {
+        if (*format == T('\\') && format[1] == T('%')) {
             ++format;
             *buffer++ = *format;
-        } else if (*format != '%') {
+        } else if (*format != T('%')) {
             *buffer++ = *format;
         } else {
             ++format;
 
             switch (*format) {
-                case 's': {
-                    const char* str = va_arg(args, const char *);
+                case T('s'): {
+                    const T* str = va_arg(args, const T *);
                     --offset;
                     while (*str) {
                         *buffer++ = *str++;
                         ++offset;
                     }
                 } break;
-                case 'c': {
-                    *buffer++ = (char) va_arg(args, int32);
+                case T('c'): {
+                    *buffer++ = (T) va_arg(args, int32);
                 } break;
-                case 'n': {
+                case T('n'): {
                     const int64 val = va_arg(args, int64);
-                    buffer += offset = int_to_str(val, buffer, ',');
+                    buffer += offset = int_to_str(val, buffer, T(','));
                 } break;
-                case 'd': {
+                case T('d'): {
                     const int32 val = va_arg(args, int32);
                     buffer += offset = int_to_str(val, buffer);
                 } break;
-                case 'l': {
+                case T('l'): {
                     const int64 val = va_arg(args, int64);
                     buffer += offset = int_to_str(val, buffer);
                 } break;
-                case 'f': {
+                case T('f'): {
                     const f64 val = va_arg(args, f64);
 
                     // Default precision
                     int32 precision = 5;
 
                     // Check for optional precision specifier
-                    const char* prec_ptr = format + 1;
-                    if (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                    const T* prec_ptr = format + 1;
+                    if (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
                         precision = 0;
-                        while (*prec_ptr >= '0' && *prec_ptr <= '9') {
-                            precision = precision * 10 + (*prec_ptr - '0');
+                        while (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
+                            precision = precision * 10 + (*prec_ptr - T('0'));
                             prec_ptr++;
                         }
 
@@ -3164,14 +2923,14 @@ int32 sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __r
 
                     buffer += offset = float_to_str(val, buffer, precision);
                 } break;
-                case 'T': {
+                case T('T'): {
                     const int64 time = va_arg(args, int64);
                     format_time_hh_mm_ss(buffer, time);
                     buffer += 8;
                 } break;
                 default: {
                     // Handle unknown format specifiers
-                    *buffer++ = '%';
+                    *buffer++ = T('%');
                 } break;
             }
         }
@@ -3180,107 +2939,7 @@ int32 sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __r
         ++format;
     }
 
-    *buffer = '\0';
-    va_end(args);
-
-    return length - 1;
-}
-
-inline
-int32 sprintf_fast(
-    wchar_t* __restrict buffer,
-    int32 buffer_length,
-    const wchar_t* __restrict format,
-    ...
-) NO_EXCEPT
-{
-    va_list args;
-    va_start(args, format);
-
-    // Start at 1 because we need room for L'\0'
-    int32 length = 1;
-
-    while (*format && length < buffer_length) {
-        int32 offset = 1;
-
-        if (*format == L'\\' && format[1] == L'%') {
-            ++format;
-            *buffer++ = *format;
-        } else if (*format != L'%') {
-            *buffer++ = *format;
-        } else {
-            ++format;
-
-            switch (*format) {
-                case L's': {
-                    const wchar_t* str = va_arg(args, const wchar_t*);
-                    --offset;
-                    while (*str && length + offset < buffer_length) {
-                        *buffer++ = *str++;
-                        ++offset;
-                    }
-                } break;
-                case L'c': {
-                    if (length < buffer_length)
-                        *buffer++ = (wchar_t) va_arg(args, int32);
-                } break;
-                case L'n': {
-                    const int64 val = va_arg(args, int64);
-                    offset = int_to_str(val, buffer, L',');
-                    buffer += offset;
-                } break;
-                case L'd': {
-                    const int32 val = va_arg(args, int32);
-                    offset = int_to_str(val, buffer);
-                    buffer += offset;
-                } break;
-                case L'l': {
-                    const int64 val = va_arg(args, int64);
-                    offset = int_to_str(val, buffer);
-                    buffer += offset;
-                } break;
-                case L'f': {
-                    const f64 val = va_arg(args, f64);
-
-                    // Default precision
-                    int32 precision = 5;
-
-                    // Check for optional precision specifier
-                    const wchar_t* prec_ptr = format + 1;
-                    if (*prec_ptr >= L'0' && *prec_ptr <= L'9') {
-                        precision = 0;
-                        while (*prec_ptr >= L'0' && *prec_ptr <= L'9') {
-                            precision = precision * 10 + (*prec_ptr - L'0');
-                            ++prec_ptr;
-                        }
-                        format = prec_ptr - 1;
-                    }
-
-                    offset = float_to_str(val, buffer, precision);
-                    buffer += offset;
-                } break;
-                case L'T': {
-                    const int64 time = va_arg(args, int64);
-                    format_time_hh_mm_ss(buffer, time);
-                    buffer += 8;
-                } break;
-                default: {
-                    if (length < buffer_length)
-                        *buffer++ = L'%';
-                } break;
-            }
-        }
-
-        length += offset;
-        ++format;
-    }
-
-    // Ensure null termination
-    if (length <= buffer_length)
-        *buffer = L'\0';
-    else
-        buffer[buffer_length - 1] = L'\0';
-
+    *buffer = T('\0');
     va_end(args);
 
     return length - 1;

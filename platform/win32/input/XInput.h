@@ -113,13 +113,13 @@ void input_map_xinput(ControllerInput* controller, int32 controller_id) NO_EXCEP
     controller->button[CONTROLLER_BUTTON_X] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_A ? 1: 0;
     controller->button[CONTROLLER_BUTTON_S] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_X ? 1: 0;
 
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbLX, 127);
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbLY, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbLX, (short) 127);
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbLY, (short) 127);
     controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = true;
     controller->button[CONTROLLER_BUTTON_STICK_LEFT_BUTTON] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB;
 
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbRX, 127);
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbRY, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbRX, (short) 127);
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbRY, (short) 127);
     controller->is_analog[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = true;
     controller->button[CONTROLLER_BUTTON_STICK_RIGHT_BUTTON] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
 }

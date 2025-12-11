@@ -19,7 +19,7 @@ struct ThreadedChunkMemory {
     uint64 size;
     uint32 last_pos;
     uint32 count;
-    uint32 chunk_size;
+    int32 chunk_size;
     int32 alignment;
 
     // length = count
@@ -35,7 +35,7 @@ struct ThreadedChunkMemory {
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void thrd_chunk_alloc(ThreadedChunkMemory* const buf, uint32 count, uint32 chunk_size, int32 alignment = 32)
+void thrd_chunk_alloc(ThreadedChunkMemory* const buf, uint32 count, int32 chunk_size, int32 alignment = 32)
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -47,8 +47,8 @@ void thrd_chunk_alloc(ThreadedChunkMemory* const buf, uint32 count, uint32 chunk
     chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
-        + sizeof(uint64) * CEIL_DIV(count, 64) // completeness
+        + sizeof(uint64) * ceil_div(count, 64) // free
+        + sizeof(uint64) * ceil_div(count, 64) // completeness
         + alignment * 3; // overhead for alignment
 
     size = OMS_ALIGN_UP(size, alignment);
@@ -75,7 +75,7 @@ void thrd_chunk_alloc(ThreadedChunkMemory* const buf, uint32 count, uint32 chunk
 }
 
 inline
-void thrd_chunk_init(ThreadedChunkMemory* const buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = 32)
+void thrd_chunk_init(ThreadedChunkMemory* const buf, BufferMemory* data, uint32 count, int32 chunk_size, int32 alignment = 32)
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -84,8 +84,8 @@ void thrd_chunk_init(ThreadedChunkMemory* const buf, BufferMemory* data, uint32 
     chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
-        + sizeof(uint64) * CEIL_DIV(count, 64) // completeness
+        + sizeof(uint64) * ceil_div(count, 64) // free
+        + sizeof(uint64) * ceil_div(count, 64) // completeness
         + alignment * 3; // overhead for alignment
 
     buf->memory = buffer_get_memory(data, size);
@@ -108,7 +108,7 @@ void thrd_chunk_init(ThreadedChunkMemory* const buf, BufferMemory* data, uint32 
 }
 
 inline
-void thrd_chunk_init(ThreadedChunkMemory* const buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = 32)
+void thrd_chunk_init(ThreadedChunkMemory* const buf, byte* data, uint32 count, int32 chunk_size, int32 alignment = 32)
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -117,8 +117,8 @@ void thrd_chunk_init(ThreadedChunkMemory* const buf, byte* data, uint32 count, u
     chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
-        + sizeof(uint64) * CEIL_DIV(count, 64) // completeness
+        + sizeof(uint64) * ceil_div(count, 64) // free
+        + sizeof(uint64) * ceil_div(count, 64) // completeness
         + alignment * 3; // overhead for alignment
 
     // @bug what if an alignment is defined?

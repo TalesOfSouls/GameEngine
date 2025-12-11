@@ -159,17 +159,16 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
 
 void asset_archive_load(
     AssetArchive* archive,
-    const char* path,
+    const wchar_t* path,
     BufferMemory* const buf,
     RingMemory* const ring,
     int32 steps = 8
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_ASSET_ARCHIVE_LOAD, path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE(PROFILE_ASSET_ARCHIVE_LOAD, NULL, PROFILE_FLAG_SHOULD_LOG);
 
     LOG_1(
-        "Load AssetArchive %s",
-        {DATA_TYPE_CHAR_STR, (void *) path}
+        "Load AssetArchive"
     );
 
     archive->fd = file_read_handle(path);

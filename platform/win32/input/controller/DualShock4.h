@@ -27,19 +27,19 @@ void input_map_dualshock4(ControllerInput* controller, InputConnectionType conne
     }
 
     controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = (int8) OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] - 128, 127);
     controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = true;
 
     controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = (int8) OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] - 128, 127);
     controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = true;
 
     controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = (int8) OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] - 128, 127);
     controller->is_analog[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = true;
 
     controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = (int8) OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] - 128, 127);
     controller->is_analog[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = true;
 
     controller->button[CONTROLLER_BUTTON_T] = BITS_GET_8_L2R(*data, 0, 1);

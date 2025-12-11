@@ -123,7 +123,7 @@ void cpu_info_cache(byte level, CpuCacheInfo* cache) {
 
     cache->ways = (byte) ((ebx >> 22) & 0x3FF) + 1;
     cache->partitions = (byte) ((ebx >> 12) & 0x3FF) + 1;
-    cache->line_size = OMS_MAX((uint16) (ebx & 0xFFF) + 1, 64);
+    cache->line_size = (uint16) OMS_MAX((uint16) (ebx & 0xFFF) + 1, 64);
     cache->sets = ecx + 1;
     cache->size = cache->ways * cache->partitions * cache->line_size * cache->sets;
 }

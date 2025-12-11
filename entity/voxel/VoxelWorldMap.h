@@ -485,9 +485,9 @@ VoxelChunk* voxel_world_chunk_get_or_create(VoxelWorld* vw, int32 cx, int32 cy, 
 static inline
 void voxel_world_voxel_set(VoxelWorld* vw, int32 world_x, int32 world_y, int32 world_z, Voxel v) NO_EXCEPT
 {
-    int32 cx = IFLOORI_POS_DIV_32(world_x, VOXEL_CHUNK_SIZE);
-    int32 cy = IFLOORI_POS_DIV_32(world_y, VOXEL_CHUNK_SIZE);
-    int32 cz = IFLOORI_POS_DIV_32(world_z, VOXEL_CHUNK_SIZE);
+    int32 cx = floor_div(world_x, VOXEL_CHUNK_SIZE);
+    int32 cy = floor_div(world_y, VOXEL_CHUNK_SIZE);
+    int32 cz = floor_div(world_z, VOXEL_CHUNK_SIZE);
 
     // Transform global coordinates to local/chunk coordinates
     int32 lx = world_x - cx * VOXEL_CHUNK_SIZE;

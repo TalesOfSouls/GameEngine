@@ -25,7 +25,7 @@ struct DataPool {
     uint64 size;
     int32 last_pos;
     uint32 count;
-    uint32 chunk_size;
+    int32 chunk_size;
     uint32 alignment;
 
     // length = count
@@ -39,7 +39,7 @@ struct DataPool {
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void pool_alloc(DataPool* buf, uint32 count, uint32 chunk_size, int32 alignment = sizeof(size_t))
+void pool_alloc(DataPool* buf, uint32 count, int32 chunk_size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -49,8 +49,8 @@ void pool_alloc(DataPool* buf, uint32 count, uint32 chunk_size, int32 alignment 
     chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
-        + sizeof(uint64) * CEIL_DIV(count, 64) // used
+        + sizeof(uint64) * ceil_div(count, 64) // free
+        + sizeof(uint64) * ceil_div(count, 64) // used
         + alignment * 3; // overhead for alignment
 
     buf->memory = alignment < 2
@@ -73,7 +73,7 @@ void pool_alloc(DataPool* buf, uint32 count, uint32 chunk_size, int32 alignment 
 }
 
 inline
-void pool_init(DataPool* buf, BufferMemory* data, uint32 count, uint32 chunk_size, int32 alignment = sizeof(size_t))
+void pool_init(DataPool* buf, BufferMemory* data, uint32 count, int32 chunk_size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -81,8 +81,8 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 count, uint32 chunk_siz
     chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
-        + sizeof(uint64) * CEIL_DIV(count, 64) // used
+        + sizeof(uint64) * ceil_div(count, 64) // free
+        + sizeof(uint64) * ceil_div(count, 64) // used
         + alignment * 3; // overhead for alignment
 
     buf->memory = buffer_get_memory(data, size);
@@ -103,7 +103,7 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 count, uint32 chunk_siz
 }
 
 inline
-void pool_init(DataPool* buf, byte* data, uint32 count, uint32 chunk_size, int32 alignment = sizeof(size_t))
+void pool_init(DataPool* buf, byte* data, uint32 count, int32 chunk_size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
@@ -111,8 +111,8 @@ void pool_init(DataPool* buf, byte* data, uint32 count, uint32 chunk_size, int32
     chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
-        + sizeof(uint64) * CEIL_DIV(count, 64) // used
+        + sizeof(uint64) * ceil_div(count, 64) // free
+        + sizeof(uint64) * ceil_div(count, 64) // used
         + alignment * 3; // overhead for alignment
 
     // @bug what if an alignment is defined?

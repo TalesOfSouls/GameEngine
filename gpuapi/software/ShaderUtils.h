@@ -35,7 +35,7 @@ void gpuapi_descriptor_set_layout_create(
     for (int32 i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
         if (!renderer->descriptor_set_layout[i].binding) {
             renderer->descriptor_set_layout[i].name = layout->name;
-            renderer->descriptor_set_layout[i].size = CEIL_DIV(layout->size, renderer->buf.chunk_size);
+            renderer->descriptor_set_layout[i].size = ceil_div(layout->size, renderer->buf.chunk_size);
             renderer->descriptor_set_layout[i].binding = chunk_reserve(&renderer->buf, renderer->descriptor_set_layout[i].size) + 1;
             renderer->descriptor_set_layout[i].data = chunk_get_element(&renderer->buf, renderer->descriptor_set_layout[i].binding - 1);
 
@@ -55,7 +55,7 @@ void gpuapi_descriptor_set_layout_set(
     for (int32 i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
         if (!renderer->descriptor_set_layout[i].binding) {
             renderer->descriptor_set_layout[i].name = layout->name;
-            renderer->descriptor_set_layout[i].size = CEIL_DIV(layout->size, renderer->buf.chunk_size);
+            renderer->descriptor_set_layout[i].size = ceil_div(layout->size, renderer->buf.chunk_size);
             renderer->descriptor_set_layout[i].binding = layout->binding;
             renderer->descriptor_set_layout[i].data = layout->data;
 
@@ -94,7 +94,7 @@ void gpuapi_descriptor_set_layout_create(
 {
     for (int32 i = 0; i < layout_length; ++i) {
         shader->descriptor_set_layout[i].name = layouts[i].name;
-        shader->descriptor_set_layout[i].size = CEIL_DIV(layouts[i].size, renderer->buf.chunk_size);
+        shader->descriptor_set_layout[i].size = ceil_div(layouts[i].size, renderer->buf.chunk_size);
         shader->descriptor_set_layout[i].binding = chunk_reserve(&renderer->buf, shader->descriptor_set_layout[i].size) + 1;
         shader->descriptor_set_layout[i].data = chunk_get_element(&renderer->buf, shader->descriptor_set_layout[i].binding - 1);
 

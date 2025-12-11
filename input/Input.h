@@ -326,18 +326,18 @@ input_add_hotkey(
     // Define required keys for hotkey
     // Note: -1 since the hotkeys always MUST start at 1 (0 is a special value for empty)
     mapping->hotkeys[(hotkey - 1)].scan_codes[count++] = key0;
-    key0 = OMS_ABS_INT16(key0);
+    key0 = oms_abs(key0);
 
     if (key1) {
         // Note: -1 since the hotkeys MUST start at 1 (0 is a special value for empty)
         mapping->hotkeys[(hotkey - 1)].scan_codes[count++] = key1;
-        key1 = OMS_ABS_INT16(key1);
+        key1 = oms_abs(key1);
     }
 
     if (key2) {
         // Note: -1 since the hotkeys MUST start at 1 (0 is a special value for empty)
         mapping->hotkeys[(hotkey - 1)].scan_codes[count++] = key2;
-        key2 = OMS_ABS_INT16(key2);
+        key2 = oms_abs(key2);
     }
 }
 
@@ -370,17 +370,17 @@ bool hotkey_keys_are_active(const InputKey* const active_keys, const InputMappin
     // Therefore, if a key has a state -> treat it as if active
 
     // The code below also allows optional keys which have a negative sign (at least one of the optional keys must be valid)
-    bool is_active = input_action_exists(active_keys, OMS_ABS_INT16(key0), mapping->hotkeys[(hotkey - 1)].key_state);
+    bool is_active = input_action_exists(active_keys, oms_abs(key0), mapping->hotkeys[(hotkey - 1)].key_state);
     if ((!is_active && (key0 > 0 || key1 >= 0)) || (is_active && key0 < 0) || (key1 == 0 && key2 == 0)) {
         return is_active;
     }
 
-    is_active = input_action_exists(active_keys, OMS_ABS_INT16(key1), mapping->hotkeys[(hotkey - 1)].key_state);
+    is_active = input_action_exists(active_keys, oms_abs(key1), mapping->hotkeys[(hotkey - 1)].key_state);
     if ((!is_active && (key1 > 0 || key2 >= 0)) || (is_active && key1 < 0) || (key2 == 0)) {
         return is_active;
     }
 
-    return input_action_exists(active_keys, OMS_ABS_INT16(key2), mapping->hotkeys[(hotkey - 1)].key_state);
+    return input_action_exists(active_keys, oms_abs(key2), mapping->hotkeys[(hotkey - 1)].key_state);
 }
 
 inline HOT_CODE
@@ -427,7 +427,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
         ) {
             uint32 scan_code = input->state.active_keys[i].scan_code & ~INPUT_CONTROLLER_PREFIX;
 
-            if ((controller->is_analog[scan_code] && OMS_ABS_INT8(controller->button[scan_code]) < input->deadzone)
+            if ((controller->is_analog[scan_code] && oms_abs(controller->button[scan_code]) < input->deadzone)
                 || (!controller->is_analog[scan_code] && controller->button[scan_code] == 0)
             ) {
                 input->state.active_keys[i].key_state = KEY_PRESS_TYPE_RELEASED;
@@ -438,28 +438,28 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     // Special keys
     // @todo this code means we cannot change this behavior (e.g. swap mouse view to dpad, swap sticks, ...)
     // @todo This is also not very general, maybe we can fix it like we did with analog vs digital key (instead of bool flag maybe bit flag)
-    if (OMS_ABS_INT8(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL]) > input->deadzone) {
+    if (oms_abs(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL]) > input->deadzone) {
         input->state.dx[0] += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] / 8;
         input->general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
     } else {
         input->state.dx[0] = 0;
     }
 
-    if (OMS_ABS_INT8(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL]) > input->deadzone) {
+    if (oms_abs(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL]) > input->deadzone) {
         input->state.dy[0] += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] / 8;
         input->general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
     } else {
         input->state.dy[0] = 0;
     }
 
-    if (OMS_ABS_INT8(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
+    if (oms_abs(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
         input->state.dx[1] += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
         // @todo needs state change flag like mouse?!
     } else {
         input->state.dx[1] = 0;
     }
 
-    if (OMS_ABS_INT8(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
+    if (oms_abs(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
         input->state.dy[1] += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
         // @todo needs state change flag like mouse?!
     } else {
@@ -473,7 +473,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     InputKey keys[5];
 
     for (uint16 i = 0; i < 32; ++i) {
-        if ((controller->is_analog[i] && OMS_ABS_INT8(controller->button[i]) > input->deadzone)
+        if ((controller->is_analog[i] && oms_abs(controller->button[i]) > input->deadzone)
             || (!controller->is_analog[i] && controller->button[i] != 0)
         ) {
             keys[count].scan_code = i | INPUT_CONTROLLER_PREFIX;

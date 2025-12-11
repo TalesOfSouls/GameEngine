@@ -11,6 +11,13 @@
 
 #include "../compiler/CompilerUtils.h"
 
+/**
+ * @question Consider to make the helper functions below compiler dependent
+ *          A lot of the code gets optimized in different ways by different compilers
+ *          This is why very often standard functions like abs, ceil are very performant compared to userland functions.
+ *          The compiler replaces them with the correct ASM instructions which unfortunately is not possible with all compilers (e.g. MSVC)
+ */
+
 // Counts the elements in an array IFF its size is defined at compile time
 #define ARRAY_COUNT(a) ((a) == NULL ? 0 : (sizeof(a) / sizeof((a)[0])))
 
@@ -27,32 +34,43 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 //#define ARRAY_COUNT_MEMBER(type, member) (sizeof(((type *) 0)->member) / sizeof(((type *) 0)->member[0]))
 
 // Limits
-#define OMS_MAX_BRANCHED(a, b) ((a) > (b) ? (a) : (b))
-#define OMS_MIN_BRANCHED(a, b) ((a) > (b) ? (b) : (a))
-#define OMS_MAX_BRANCHLESS(a, b) ((a) ^ (((a) ^ (b)) & -((a) < (b))))
-#define OMS_MIN_BRANCHLESS(a, b) ((b) ^ (((a) ^ (b)) & -((a) < (b))))
-#define OMS_CLAMP_BRANCHED(val, low, high) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
-#define OMS_CLAMP_BRANCHLESS(val, low, high) \
-    ((val) ^ (((val) ^ (low)) & -(int32)((val) < (low))) ^ \
-    ((((val) ^ ((val) ^ (low)) & -(int32)((val) < (low)))) ^ (high)) & -(int32)((((val) ^ ((val) ^ (low)) & -(int32)((val) < (low)))) < (high)))
-
-// Abs
-#define OMS_ABS(a) ((a) > 0 ? (a) : -(a))
-#define OMS_ABS_INT8(a) (((a) ^ ((a) >> 7)) - ((a) >> 7))
-#define OMS_ABS_INT16(a) (((a) ^ ((a) >> 15)) - ((a) >> 15))
-#define OMS_ABS_INT32(a) (((a) ^ ((a) >> 31)) - ((a) >> 31))
-#define OMS_ABS_INT64(a) (((a) ^ ((a) >> 63)) - ((a) >> 63))
-
-template <typename T>
-inline T max_branched(T a, T b) NO_EXCEPT
-{
+template <typename T> FORCE_INLINE
+CONSTEXPR T max_branched(T a, T b) {
     return (a > b) ? a : b;
 }
 
-template <typename T>
-inline T min_branched(T a, T b) NO_EXCEPT
-{
+template <typename T> FORCE_INLINE
+CONSTEXPR T min_branched(T a, T b) {
     return (a > b) ? b : a;
+}
+
+template <typename T> FORCE_INLINE
+CONSTEXPR T clamp_branched(T val, T low, T high) {
+    return (val < low) ? low : ((val > high) ? high : val);
+}
+
+// The branchless versions only work for int types
+template <typename T> FORCE_INLINE
+CONSTEXPR T max_branchless(T a, T b) {
+    T mask = T(0) - T(a < b);
+    return a ^ ((a ^ b) & mask);
+}
+
+template <typename T> FORCE_INLINE
+CONSTEXPR T min_branchless(T a, T b) {
+    T mask = T(0) - T(a < b);
+    return b ^ ((a ^ b) & mask);
+}
+
+template <typename T> FORCE_INLINE
+CONSTEXPR T clamp_branchless(T val, T low, T high) {
+    T maskLow  = T(0) - T(val < low);
+    T temp = val ^ ((val ^ low) & maskLow);
+
+    T maskHigh = T(0) - T(temp < high);
+    T result = high ^ ((temp ^ high) & maskHigh);
+
+    return result;
 }
 
 // WARNING: May overflow for ints
@@ -62,31 +80,11 @@ inline T max_branchless_general(T a, T b) NO_EXCEPT
     return a + (b - a) * (b > a);
 }
 
-// Only allowed for int types
-template <typename T>
-inline T max_branchless(T a, T b) NO_EXCEPT
-{
-    return (T)(a ^ (((a ^ b) & -(T)((a < b)))));
-}
-
 // WARNING: May overflow for ints
 template <typename T>
 inline T min_branchless_general(T a, T b) NO_EXCEPT
 {
     return a + (b - a) * (b < a);
-}
-
-// Only allowed for int types
-template <typename T>
-inline T min_branchless(T a, T b) NO_EXCEPT
-{
-    return (T)(b ^ (((a ^ b) & -(T)((a < b)))));
-}
-
-template <typename T>
-inline T clamp_branched(T val, T low, T high) NO_EXCEPT
-{
-    return (val < low) ? low : ((val > high) ? high : val);
 }
 
 // WARNING: May overflow for ints
@@ -98,24 +96,28 @@ inline T clamp_branchless_general(T v, T lo, T hi) NO_EXCEPT
     return lo + (t - lo) * (t > lo);
 }
 
-// Only allowed for int types
-template <typename T>
-inline T clamp_branchless(T val, T low, T high) NO_EXCEPT
-{
-    T t1 = (T)(val ^ ((val ^ low) & -(T)((val < low))));
-    return (T)(t1 ^ ((t1 ^ high) & -(T)((t1 > high))));
-}
+// Abs
+FORCE_INLINE
+int8 oms_abs(int8 a) NO_EXCEPT
+{ return (a ^ (a >> 7)) - (a >> 7); }
 
-template <typename T>
-inline T abs(T a) NO_EXCEPT
-{
-    return (a > (T)0) ? a : (T)(-a);
-}
+FORCE_INLINE
+int16 oms_abs(int16 a) NO_EXCEPT
+{ return (a ^ (a >> 15)) - (a >> 15); }
+
+FORCE_INLINE
+int32 oms_abs(int32 a) NO_EXCEPT
+{ return (a ^ (a >> 31)) - (a >> 31); }
+
+FORCE_INLINE
+int64 oms_abs(int64 a) NO_EXCEPT
+{ return (a ^ (a >> 63)) - (a >> 63); }
 
 // For floats the high bit is still defining the sign
 // But we need to reinterpret it as int to mask the sign
-inline
-f32 OMS_ABS_F32(f32 a) NO_EXCEPT
+// WARNING: This is only faster on msvc
+FORCE_INLINE
+f32 oms_abs(f32 a) NO_EXCEPT
 {
     union { f32 f; uint32 i; } u;
     u.f = a;
@@ -123,8 +125,8 @@ f32 OMS_ABS_F32(f32 a) NO_EXCEPT
     return u.f;
 }
 
-inline
-f64 OMS_ABS_F64(f64 a) NO_EXCEPT
+FORCE_INLINE
+f64 oms_abs(f64 a) NO_EXCEPT
 {
     union { f64 f; uint64 i; } u;
     u.f = a;
@@ -132,23 +134,38 @@ f64 OMS_ABS_F64(f64 a) NO_EXCEPT
     return u.f;
 }
 
-// Rounding
-#define OMS_ROUND_POSITIVE_32(x) ((int32)((x) + 0.5f))
-#define OMS_ROUND_POSITIVE_64(x) ((int64)((x) + 0.5f))
-#define OMS_ROUND(x) (((x) >= 0) ? (f32)((int32)((x) + 0.5f)) : (f32)((int32)((x) - 0.5f)))
+// GCC seems to heavily optimize this making the above functions redundant but MSVC doesn't
+/*
+FORCE_INLINE template <typename T>
+T oms_abs(T a) NO_EXCEPT {
+    return (a > (T)0) ? a : (T)(-a);
+}
+*/
 
-#define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
-#define OMS_CEIL_32(x) ((x) == (int32)(x) ? (int32)(x) : ((x) > 0 ? (int32)(x) + 1 : (int32)(x)))
-#define OMS_CEIL_16(x) ((x) == (int16)(x) ? (int16)(x) : ((x) > 0 ? (int16)(x) + 1 : (int16)(x)))
-#define OMS_CEIL_8(x) ((x) == (int8)(x) ? (int8)(x) : ((x) > 0 ? (int8)(x) + 1 : (int8)(x)))
-#define FLOORF(x) ((float)((int32)(x) - ((x) < 0.0f && (x) != (int32)(x))))
+// Rounding
+FORCE_INLINE CONSTEXPR
+int32 oms_round_positive(f32 x) NO_EXCEPT {
+    return (int32) (x + 0.5f);
+}
+
+FORCE_INLINE CONSTEXPR
+int64 oms_round_positive(f64 x) NO_EXCEPT {
+    return (int64) (x + 0.5);
+}
+
+FORCE_INLINE CONSTEXPR
+f32 oms_round(f32 x) NO_EXCEPT {
+    return (x >= 0.0f)
+        ? (f32)((int32)(x + 0.5f))
+        : (f32)((int32)(x - 0.5f));
+}
 
 template <typename T>
-inline T ceil_div(T a, T b) NO_EXCEPT
+FORCE_INLINE T ceil_div(T a, T b) NO_EXCEPT
 { return (a + b - 1) / b; }
 
 template <typename T, typename F>
-inline T ceil(F x) NO_EXCEPT
+FORCE_INLINE T ceil(F x) NO_EXCEPT
 {
     T xi = (T)x;
     if (x == (F)xi) {
@@ -159,8 +176,15 @@ inline T ceil(F x) NO_EXCEPT
 }
 
 template <typename F>
-inline F floorf(F x) NO_EXCEPT
-{
+FORCE_INLINE CONSTEXPR
+F oms_floor(F x) NO_EXCEPT {
+    /*
+    int32 xi = (int32) x;
+    bool adjust = (x < 0.0f) && (x != (f32)(xi));
+
+    return (f32)(xi - (int32)(adjust));
+    */
+
     int32 xi = (int32)x;
     return (F)(xi - ((x < (F)0.0 && x != (F)xi) ? 1 : 0));
 }
@@ -169,36 +193,68 @@ inline F floorf(F x) NO_EXCEPT
 // (= (int) floorf((float)a/(float)b))
 // This is required because -7 / 3 = -2 with normal int division, but we want -3
 // However, 7 / 3 = 2 is what we would expect
-#define IFLOORI_POS_DIV_32(a, b) (((a) - (((b) - 1) & ((a) >> 31))) / (b))
-#define IFLOORI_POS_DIV_64(a, b) (((a) - (((b) - 1) & ((a) >> 63))) / (b))
+FORCE_INLINE
+int32 floor_div(int32 a, int32 b) NO_EXCEPT
+{ return (a - ((b - 1) & (a >> 31))) / b; }
+
+FORCE_INLINE
+int64 floor_div(int64 a, int64 b) NO_EXCEPT
+{ return (a - ((b - 1) & (a >> 63))) / b; }
 
 // Trig
-#define OMS_DEG2RAD(angle) ((angle) * OMS_PI_F32 / 180.0f)
-#define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI_F32)
+FORCE_INLINE
+f32 deg2rad(f32 angle) NO_EXCEPT
+{ return angle * OMS_PI_F32 / 180.0f; }
+
+FORCE_INLINE
+f32 rad2deg(f32 angle) NO_EXCEPT
+{ return angle * 180.0f / OMS_PI_F32; }
 
 // -pi / pi
-#define OMS_NORMALIZE_RAD(angle) ((angle) - OMS_TAU_F32 * FLOORF(((angle) + OMS_PI_F32) / OMS_TAU_F32))
+FORCE_INLINE
+f32 normalize_rad(f32 angle) NO_EXCEPT {
+    return angle - OMS_TAU_F32 * oms_floor((angle + OMS_PI_F32) / OMS_TAU_F32);
+}
+
 // 0 / 360
-#define OMS_NORMALIZE_DEG(angle) ((angle) - 360.0f * FLOORF((angle) / 360.0f))
+FORCE_INLINE
+f32 normalize_deg(f32 angle) NO_EXCEPT {
+    return angle - 360.0f * oms_floor(angle / 360.0f);
+}
 
 // Zero and comparison
 #define OMS_EPSILON_F32 1.19209290e-07f
 #define OMS_EPSILON_F64 2.2204460492503131e-16
 
-#define OMS_IS_ZERO_F32(x) (OMS_ABS(x) < OMS_EPSILON_F32)
-#define OMS_IS_ZERO_F64(x) (OMS_ABS(x) < OMS_EPSILON_F64)
-#define OMS_FEQUAL_F32(a, b) (OMS_ABS((a) - (b)) < OMS_EPSILON_F32)
-#define OMS_FEQUAL_F64(a, b) (OMS_ABS((a) - (b)) < OMS_EPSILON_F64)
+#define OMS_IS_ZERO_F32(x) (oms_abs(x) < OMS_EPSILON_F32)
+#define OMS_IS_ZERO_F64(x) (oms_abs(x) < OMS_EPSILON_F64)
+#define OMS_FEQUAL_F32(a, b) (oms_abs((a) - (b)) < OMS_EPSILON_F32)
+#define OMS_FEQUAL_F64(a, b) (oms_abs((a) - (b)) < OMS_EPSILON_F64)
 
 #define OMS_HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
 #define OMS_HAS_CHAR(x, c) (OMS_HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
 
+FORCE_INLINE
+bool has_zero(char c) NO_EXCEPT {
+    return (c - ((size_t)-1 / 0xFF)) & ~c & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1));
+}
+
 #if WCHAR_MAX <= 0xFFFF
     // 2-byte wchar_t
     #define OMS_HAS_ZERO_WCHAR(x) ((((x) - 0x0001000100010001ULL) & ~(x) & 0x8000800080008000ULL) != 0)
+
+    FORCE_INLINE
+    bool has_zero(wchar_t c) NO_EXCEPT {
+        return ((c - 0x0001000100010001ULL) & ~c & 0x8000800080008000ULL) != 0;
+    }
 #else
     // 4-byte wchar_t
     #define OMS_HAS_ZERO_WCHAR(x) ((((x) - 0x0000000100000001ULL) & ~(x) & 0x8000000080000000ULL) != 0)
+
+    FORCE_INLINE
+    bool has_zero(wchar_t c) NO_EXCEPT {
+        return ((c - 0x0000000100000001ULL) & ~c & 0x8000000080000000ULL) != 0;
+    }
 #endif
 
 

@@ -186,9 +186,9 @@ void voxel_octree_create(VoxelOctree* tree, v3_int32 pos)
     // then add another halve chunk size to go to the center
     //      if negative we need to subtract because int32 rounding rounds up if negative
     v3_int32 ctr = {
-        IFLOORI_POS_DIV_32(pos.x, VOXEL_CHUNK_SIZE) * VOXEL_CHUNK_SIZE + OMS_DIV2_I32(VOXEL_CHUNK_SIZE),
-        IFLOORI_POS_DIV_32(pos.y, VOXEL_CHUNK_SIZE) * VOXEL_CHUNK_SIZE + OMS_DIV2_I32(VOXEL_CHUNK_SIZE),
-        IFLOORI_POS_DIV_32(pos.z, VOXEL_CHUNK_SIZE) * VOXEL_CHUNK_SIZE + OMS_DIV2_I32(VOXEL_CHUNK_SIZE)
+        floor_div(pos.x, VOXEL_CHUNK_SIZE) * VOXEL_CHUNK_SIZE + OMS_DIV2_I32(VOXEL_CHUNK_SIZE),
+        floor_div(pos.y, VOXEL_CHUNK_SIZE) * VOXEL_CHUNK_SIZE + OMS_DIV2_I32(VOXEL_CHUNK_SIZE),
+        floor_div(pos.z, VOXEL_CHUNK_SIZE) * VOXEL_CHUNK_SIZE + OMS_DIV2_I32(VOXEL_CHUNK_SIZE)
     };
 
     const int32 half_size = OMS_DIV2_I32(VOXEL_CHUNK_SIZE) * chunk_count;

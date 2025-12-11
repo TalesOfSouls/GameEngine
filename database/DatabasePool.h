@@ -37,7 +37,7 @@ void db_pool_alloc(DatabasePool* pool, uint8 count) {
     LOG_1("[INFO] Allocating DatabasePool for %d connections", {DATA_TYPE_UINT8, &count});
 
     uint64 size = count * sizeof(DatabaseConnection)
-        + sizeof(uint64) * CEIL_DIV(count, 64) // free
+        + sizeof(uint64) * ceil_div(count, 64) // free
         + 64 * 2; // overhead for alignment
 
     pool->connections = (DatabaseConnection *) platform_alloc_aligned(size, 64);

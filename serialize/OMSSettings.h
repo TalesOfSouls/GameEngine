@@ -59,7 +59,7 @@ void settings_save(
                 // There must be a whitespace after the settings name
                 *out++ = ' ';
 
-                const byte* member = settings + match[i].offset;
+                const byte* const member = settings + match[i].offset;
 
                 switch (match[i].type) {
                     case DATA_TYPE_BOOL: {
@@ -142,6 +142,12 @@ void settings_save(
                     case DATA_TYPE_CHAR_STR: {
                         str_copy_to_eol((const char *) member, out);
                     } break;
+                    case DATA_TYPE_WCHAR_STR: {
+                        char temp[256];
+                        wchar_to_char(out, (const wchar_t *) member);
+
+                        str_copy_to_eol((const char *) temp, out);
+                    } break;
                     default:
                         UNREACHABLE();
                 }
@@ -172,7 +178,7 @@ void settings_load(
 {
     const char* pos = data;
     const char* name;
-    const byte* settings = (byte *) settings_data;
+    const byte* const settings = (byte *) settings_data;
 
     while (*pos != '\0') {
         // Skip all whitespaces and new lines
@@ -199,7 +205,7 @@ void settings_load(
 
         for (int32 i = 0; i < math_count; ++i) {
             if (str_compare(name, match[i].name, str_length(match[i].name)) == 0) {
-                void* member = (void *) (settings + match[i].offset);
+                void* const member = (void *) (settings + match[i].offset);
 
                 switch (match[i].type) {
                     case DATA_TYPE_BOOL: {
@@ -514,7 +520,12 @@ void settings_load(
                         *((char *) member) = *pos;
                     } break;
                     case DATA_TYPE_CHAR_STR: {
-                        str_copy_to_eol(pos, (char *) member);
+                        str_copy_to_eol(pos, (char *) member, match[i].count);
+                    } break;
+                    case DATA_TYPE_WCHAR_STR: {
+                        char temp[256];
+                        str_copy_to_eol(pos, (char *) temp);
+                        char_to_wchar((wchar_t *) member, temp, match[i].count);
                     } break;
                     default:
                         UNREACHABLE();

@@ -506,11 +506,11 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
 
             f32 distance = vec3_length(to_sound);
             if (distance) {
-                f32 distance_attenuation = OMS_MAX_BRANCHED(0.0f, 1.0f - (distance / 50.0f));
+                f32 distance_attenuation = max_branched(0.0f, 1.0f - (distance / 50.0f));
 
                 vec3_normalize(&to_sound);
                 f32 alignment = vec3_dot(mixer->camera.audio_lookat, to_sound);
-                f32 directional_attenuation = OMS_MAX_BRANCHED(0.0f, alignment);
+                f32 directional_attenuation = max_branched(0.0f, alignment);
 
                 total_attenuation = distance_attenuation * directional_attenuation;
             }

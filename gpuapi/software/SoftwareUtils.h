@@ -31,7 +31,7 @@ void gpuapi_texture_use(SoftwareRenderer* renderer, const Texture* texture) NO_E
 FORCE_INLINE
 void gpuapi_buffer_persistent_generate(SoftwareRenderer* renderer, const char* name, PersistentGpuBuffer* buffer) NO_EXCEPT
 {
-    buffer->bo = chunk_reserve(&renderer->buf, CEIL_DIV(buffer->size, renderer->buf.chunk_size)) + 1;
+    buffer->bo = chunk_reserve(&renderer->buf, ceil_div(buffer->size, renderer->buf.chunk_size)) + 1;
     buffer->data = chunk_get_element(&renderer->buf, buffer->bo - 1);
 
     for (int32 i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
@@ -41,7 +41,7 @@ void gpuapi_buffer_persistent_generate(SoftwareRenderer* renderer, const char* n
 
         renderer->descriptor_set_layout[i].binding = buffer->bo;
         renderer->descriptor_set_layout[i].name = name;
-        renderer->descriptor_set_layout[i].size = CEIL_DIV(buffer->size, renderer->buf.chunk_size);
+        renderer->descriptor_set_layout[i].size = ceil_div(buffer->size, renderer->buf.chunk_size);
         renderer->descriptor_set_layout[i].data = buffer->data;
 
         break;
@@ -52,9 +52,9 @@ void gpuapi_buffer_persistent_generate(SoftwareRenderer* renderer, const char* n
 }
 
 inline
-int32 gpuapi_buffer_generate(SoftwareRenderer* renderer, void* data, uint32 size) NO_EXCEPT
+int32 gpuapi_buffer_generate(SoftwareRenderer* renderer, void* data, int32 size) NO_EXCEPT
 {
-    int32 id = chunk_reserve(&renderer->buf, CEIL_DIV(size, renderer->buf.chunk_size)) + 1;
+    int32 id = chunk_reserve(&renderer->buf, ceil_div(size, renderer->buf.chunk_size)) + 1;
     byte* mem = chunk_get_element(&renderer->buf, id - 1);
 
     if (data) {

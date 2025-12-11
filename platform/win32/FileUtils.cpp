@@ -176,6 +176,50 @@ file_size(const char* path) NO_EXCEPT
     return size.QuadPart;
 }
 
+inline uint64
+file_size(const wchar_t* path) NO_EXCEPT
+{
+    PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
+
+    // @performance Profile against fseek strategy
+    FileHandle fp;
+    if (*path == '.') {
+        wchar_t full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileW((LPCWSTR) full_path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileW((LPCWSTR) path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
+
+    if (fp == INVALID_HANDLE_VALUE) {
+        return 0;
+    }
+
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(fp, &size)) {
+        CloseHandle(fp);
+    }
+
+    CloseHandle(fp);
+
+    return size.QuadPart;
+}
+
 inline
 bool file_exists(const char* path) NO_EXCEPT
 {
@@ -283,7 +327,7 @@ file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* co
 inline void
 file_read(const wchar_t* __restrict path, FileBody* __restrict file, RingMemory* const __restrict ring = NULL) NO_EXCEPT
 {
-    // PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == L'.') {
@@ -1025,6 +1069,40 @@ FileHandle file_read_handle(const char* path) NO_EXCEPT
 }
 
 inline
+FileHandle file_read_handle(const wchar_t* path) NO_EXCEPT
+{
+    FileHandle fp;
+    if (*path == '.') {
+        wchar_t full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileW((LPCWSTR) full_path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileW((LPCWSTR) path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
+
+    if (fp == INVALID_HANDLE_VALUE) {
+        return NULL;
+    }
+
+    return fp;
+}
+
+inline
 FileHandle file_read_async_handle(const char* path) NO_EXCEPT
 {
     FileHandle fp;
@@ -1042,6 +1120,40 @@ FileHandle file_read_async_handle(const char* path) NO_EXCEPT
         );
     } else {
         fp = CreateFileA((LPCSTR) path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_FLAG_OVERLAPPED,
+            NULL
+        );
+    }
+
+    if (fp == INVALID_HANDLE_VALUE) {
+        return NULL;
+    }
+
+    return fp;
+}
+
+inline
+FileHandle file_read_async_handle(const wchar_t* path) NO_EXCEPT
+{
+    FileHandle fp;
+    if (*path == '.') {
+        wchar_t full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileW((LPCWSTR) full_path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_FLAG_OVERLAPPED,
+            NULL
+        );
+    } else {
+        fp = CreateFileW((LPCWSTR) path,
             GENERIC_READ,
             FILE_SHARE_READ,
             NULL,

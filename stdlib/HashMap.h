@@ -269,7 +269,7 @@ void hashmap_create(HashMap* __restrict hm, int32 count, int32 element_size, byt
     ASSERT_MEM_ZERO(
         buf,
         count * element_size
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        + ceil_div(count, 64) * sizeof(hm->buf.free)
     );
 }
 

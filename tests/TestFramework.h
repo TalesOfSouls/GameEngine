@@ -271,7 +271,7 @@ double test_measure_func_time_ns(void (*func)(volatile void *), volatile void *p
     {                                                           \
         ++_test_assert_count;                                   \
         ++_test_global_assert_count;                            \
-        if (OMS_ABS((a) - (b)) > (delta))                       \
+        if (oms_abs((a) - (b)) > (delta))                       \
         {                                                       \
             ++_test_global_assert_error_count;                  \
             snprintf(                                           \

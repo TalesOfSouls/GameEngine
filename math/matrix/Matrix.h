@@ -686,7 +686,7 @@ void mat4_identity(__m128 matrix[4]) NO_EXCEPT
 inline
 void mat4_rotation(f32 matrix[16], f32 x, f32 y, f32 z, f32 angle) NO_EXCEPT
 {
-    ASSERT_TRUE(OMS_ABS_F32(x * x + y * y + z * z - 1.0f) < 0.01f);
+    ASSERT_TRUE(oms_abs(x * x + y * y + z * z - 1.0f) < 0.01f);
 
     // @todo replace with quaternions
     f32 s;

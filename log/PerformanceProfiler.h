@@ -236,7 +236,7 @@ struct PerformanceThreadProfiler {
 
         for (int32 i = 0; i < _perf_thread_history_count; ++i) {
             if (_perf_thread_history[i].thread_id == this->_id) {
-                _perf_thread_history[i].tick = OMS_MAX(end_cycle - this->start_cycle, 0);
+                _perf_thread_history[i].tick = (uint64) OMS_MAX(end_cycle - this->start_cycle, 0ULL);
 
                 return;
             }
@@ -367,7 +367,7 @@ struct PerformanceProfiler {
         }
 
         const uint64 end_cycle = intrin_timestamp_counter();
-        this->total_cycle = OMS_MAX(end_cycle - this->start_cycle, 0);
+        this->total_cycle = (int64) OMS_MAX(end_cycle - this->start_cycle, 0ULL);
         this->self_cycle += total_cycle;
 
         const int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;

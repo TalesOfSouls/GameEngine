@@ -18,7 +18,7 @@ struct SoftwareDescriptorSetLayoutBinding {
     int32 binding;
     const char* name;
 
-    uint32 size;
+    int32 size;
     void* data;
 };
 

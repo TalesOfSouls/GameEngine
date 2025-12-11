@@ -293,7 +293,7 @@ f32 text_calculate_dimensions_width(
         const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 
         if (character == '\n') {
-            x = OMS_MAX_BRANCHED(x, offset_x);
+            x = max_branched(x, offset_x);
             offset_x = 0;
 
             continue;
@@ -307,7 +307,7 @@ f32 text_calculate_dimensions_width(
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
 
-    return OMS_MAX_BRANCHED(x, offset_x);
+    return max_branched(x, offset_x);
 }
 
 static
@@ -327,7 +327,7 @@ v2_f32 text_calculate_dimensions(
         const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 
         if (character == '\n') {
-            x = OMS_MAX_BRANCHED(x, offset_x);
+            x = max_branched(x, offset_x);
             y += line_height;
 
             offset_x = 0;
@@ -343,7 +343,7 @@ v2_f32 text_calculate_dimensions(
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
 
-    return { OMS_MAX_BRANCHED(x, offset_x), y };
+    return { max_branched(x, offset_x), y };
 }
 
 // @todo implement shadow (offset + angle + diffuse) or should this be a shader only thing? if so this would be a problem for us since we are handling text in the same shader as simple shapes
@@ -398,7 +398,7 @@ v3_int32 vertex_text_create(
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {
             rendered_height += line_height_scaled;
-            rendered_width = OMS_MAX_BRANCHED(rendered_width, offset_x - dimension.x);
+            rendered_width = max_branched(rendered_width, offset_x - dimension.x);
 
             dimension.y -= line_height_scaled;
             offset_x = dimension.x;

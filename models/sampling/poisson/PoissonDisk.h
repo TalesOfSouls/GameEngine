@@ -39,8 +39,8 @@ size_t poisson_disk_bridson(
     RingMemory* const __restrict ring
 ) {
     const f64 cell_size = r * OMS_INV_SQRT_2_F64;
-    const int32 grid_w = (int32) OMS_CEIL_32(width / cell_size);
-    const int32 grid_h = (int32) OMS_CEIL_32(height / cell_size);
+    const int32 grid_w = (int32) ceil(width / cell_size);
+    const int32 grid_h = (int32) ceil(height / cell_size);
     const size_t grid_size = (size_t) grid_w * (size_t) grid_h;
 
     int32* grid = (int32*) ring_get_memory(ring, grid_size * sizeof(int32), sizeof(size_t));
@@ -118,10 +118,10 @@ size_t poisson_disk_bridson(
             }
 
             /* Check nearby cells for conflicts; uses macro that jumps to REJECTED label on violation */
-            int32 min_gx = (int32) FLOORF(((nx) - r) / cell_size);
-            int32 max_gx = (int32) FLOORF(((nx) + r) / cell_size);
-            int32 min_gy = (int32) FLOORF(((ny) - r) / cell_size);
-            int32 max_gy = (int32) FLOORF(((ny) + r) / cell_size);
+            int32 min_gx = (int32) oms_floor(((nx) - r) / cell_size);
+            int32 max_gx = (int32) oms_floor(((nx) + r) / cell_size);
+            int32 min_gy = (int32) oms_floor(((ny) - r) / cell_size);
+            int32 max_gy = (int32) oms_floor(((ny) + r) / cell_size);
 
             if (min_gx < 0) {
                 min_gx = 0;
@@ -217,8 +217,8 @@ size_t poisson_disk_bridson_importance(
     /* cell size uses the *smallest* local radius = r / intrin_sqrt_f64(max_importance) */
     const f64 min_local_r = r / intrin_sqrt_f64(max_importance);
     const f64 cell_size = min_local_r * OMS_INV_SQRT_2_F64;
-    const int32 grid_w = (int32) OMS_CEIL_32(width / cell_size);
-    const int32 grid_h = (int32) OMS_CEIL_32(height / cell_size);
+    const int32 grid_w = (int32) ceil(width / cell_size);
+    const int32 grid_h = (int32) ceil(height / cell_size);
     const size_t grid_size = (size_t) grid_w * (size_t) grid_h;
 
     int32* grid = (int32*) ring_get_memory(ring, grid_size * sizeof(int32), sizeof(size_t));
@@ -301,7 +301,7 @@ size_t poisson_disk_bridson_importance(
                but also ensure at least one-cell radius to catch neighbors that might have
                larger local radii. Because grid cell_size is derived from the smallest
                local radius (densest region) this remains safe and reasonably small. */
-            int32 cell_radius = (int32) OMS_CEIL_32(local_r_cand / cell_size);
+            int32 cell_radius = (int32) ceil(local_r_cand / cell_size);
             if (cell_radius < 1) cell_radius = 1;
             /* also clamp to a small max to avoid huge sweeps; in practice importance maps should be bounded */
             const int32 MAX_CELL_RADIUS = 8;

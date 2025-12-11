@@ -25,8 +25,8 @@ struct Asset {
 
     // Describes how much ram/vram the asset uses
     // E.g. vram_size = 0 but ram_size > 0 means that it never uses any gpu memory
-    uint32 ram_size;
-    uint32 vram_size;
+    int32 ram_size;
+    int32 vram_size;
 
     uint32 last_access;
 

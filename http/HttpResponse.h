@@ -230,7 +230,7 @@ void http_header_value_set(
 
 HttpResponse* http_response_create(ThreadedChunkMemory* mem)
 {
-    int32 response_buffer_count = CEIL_DIV(sizeof(HttpResponse) + MIN_HTTP_RESPONSE_CONTENT, mem->chunk_size);
+    int32 response_buffer_count = ceil_div(sizeof(HttpResponse) + MIN_HTTP_RESPONSE_CONTENT, mem->chunk_size);
     int32 response_buffer_id = thrd_chunk_reserve(mem, response_buffer_count);
     HttpResponse* response = (HttpResponse *) thrd_chunk_get_element(mem, response_buffer_id);
 
@@ -358,7 +358,7 @@ void http_response_body_add(HttpResponse** response, const char* __restrict body
 
     // Resize if needed
     if (resp->body_used_size + length > resp->size * mem->chunk_size - sizeof(HttpResponse)) {
-        int32 response_buffer_count = CEIL_DIV(sizeof(HttpResponse) + resp->body_used_size + length, mem->chunk_size);
+        int32 response_buffer_count = ceil_div(sizeof(HttpResponse) + resp->body_used_size + length, mem->chunk_size);
         http_response_grow(&resp, response_buffer_count, mem);
 
         *response = resp;

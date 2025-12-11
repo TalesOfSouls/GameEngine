@@ -17,9 +17,9 @@
 #else
     // Depending on the platform we may want to use different versions
     // On some platforms the other version may be faster
-    #define OMS_MAX(a, b) OMS_MAX_BRANCHLESS(a, b)
-    #define OMS_MIN(a, b) OMS_MIN_BRANCHLESS(a, b)
-    #define OMS_CLAMP(val, low, high) OMS_CLAMP_BRANCHLESS(val, low, high)
+    #define OMS_MAX(a, b) max_branchless(a, b)
+    #define OMS_MIN(a, b) min_branchless(a, b)
+    #define OMS_CLAMP(val, low, high) clamp_branchless(val, low, high)
 
     inline
     f32 oms_max(f32 a, f32 b) NO_EXCEPT

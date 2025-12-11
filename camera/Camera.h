@@ -223,15 +223,15 @@ static inline HOT_CODE
 void camera_vectors_update(Camera* const camera) NO_EXCEPT
 {
     /*
-    f32 cos_ori_x = cosf(OMS_DEG2RAD(camera->orientation.x));
-    camera->front.x = cos_ori_x * cosf(OMS_DEG2RAD(camera->orientation.y));
-    camera->front.y = sinf(OMS_DEG2RAD(camera->orientation.x));
-    camera->front.z = cos_ori_x * sinf(OMS_DEG2RAD(camera->orientation.y));
+    f32 cos_ori_x = cosf(deg2rad(camera->orientation.x));
+    camera->front.x = cos_ori_x * cosf(deg2rad(camera->orientation.y));
+    camera->front.y = sinf(deg2rad(camera->orientation.x));
+    camera->front.z = cos_ori_x * sinf(deg2rad(camera->orientation.y));
     */
 
     f32 cos_ori_x;
-    SINCOSF(OMS_DEG2RAD(camera->orientation.x), camera->front.y, cos_ori_x);
-    SINCOSF(OMS_DEG2RAD(camera->orientation.y), camera->front.z, camera->front.x);
+    SINCOSF(deg2rad(camera->orientation.x), camera->front.y, cos_ori_x);
+    SINCOSF(deg2rad(camera->orientation.y), camera->front.z, camera->front.x);
     camera->front.x *= cos_ori_x;
     camera->front.z *= cos_ori_x;
 

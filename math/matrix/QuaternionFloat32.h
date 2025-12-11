@@ -35,15 +35,15 @@ void quaternion_unit(v4_f32* quat)
 inline
 void quaternion_from_euler(v4_f32* quat, f32 pitch, f32 yaw, f32 roll)
 {
-    f32 y = OMS_DEG2RAD(yaw);
+    f32 y = deg2rad(yaw);
     f32 cy = cosf(y / 2);
     f32 sy = sinf(y / 2);
 
-    f32 p = OMS_DEG2RAD(pitch);
+    f32 p = deg2rad(pitch);
     f32 cp = cosf(p / 2);
     f32 sp = sinf(p / 2);
 
-    f32 r = OMS_DEG2RAD(roll);
+    f32 r = deg2rad(roll);
     f32 cr = cosf(r / 2);
     f32 sr = sinf(r / 2);
 
@@ -58,15 +58,15 @@ void quaternion_from_euler(v4_f32* quat, f32 pitch, f32 yaw, f32 roll)
 inline
 void quaternion_from_euler(v4_f32* __restrict quat, const v3_f32* __restrict v)
 {
-    f32 y = OMS_RAD2DEG(v->v / 2);
+    f32 y = rad2deg(v->v / 2);
     f32 cy = cosf(y);
     f32 sy = sinf(y);
 
-    f32 p = OMS_RAD2DEG(v->u * 0.5f);
+    f32 p = rad2deg(v->u * 0.5f);
     f32 cp = cosf(p);
     f32 sp = sinf(p);
 
-    f32 r = OMS_RAD2DEG(v->w * 0.5f);
+    f32 r = rad2deg(v->w * 0.5f);
     f32 cr = cosf(r);
     f32 sr = sinf(r);
 
@@ -96,7 +96,7 @@ void quaternion_to_euler(const v4_f32* __restrict quat, v3_f32* __restrict v) {
     v->pitch = atan2f(sinp, cosp);
 
     // Check for gimbal lock
-    if (OMS_ABS_F32(sinp) >= 0.9999f) {
+    if (oms_abs(sinp) >= 0.9999f) {
         v->yaw = atan2f(quat->x * quat->z - quat->w * quat->y, quat->w * quat->x + quat->y * quat->z);
         v->roll = 0.0f;
     } else {
@@ -224,7 +224,7 @@ void quaternion_rotate_vector(v3_f32* __restrict vec, const v4_f32* __restrict q
 inline
 void quaternion_rotate_active(v4_f32* __restrict p, const v4_f32* __restrict quat, const v4_f32* __restrict quat_inv)
 {
-    //ASSERT_TRUE(OMS_ABS_F32(x * x + y * y + z * z + w * z - 1.0f) < 0.01);
+    //ASSERT_TRUE(oms_abs(x * x + y * y + z * z + w * z - 1.0f) < 0.01);
 
     v4_f32 p_tmp;
     quaternion_multiply(&p_tmp, quat_inv, p);
@@ -235,7 +235,7 @@ void quaternion_rotate_active(v4_f32* __restrict p, const v4_f32* __restrict qua
 inline
 void quaternion_rotate_passive(v4_f32* __restrict p, const v4_f32* __restrict quat, const v4_f32* __restrict quat_inv)
 {
-    //ASSERT_TRUE(OMS_ABS_F32(x * x + y * y + z * z + w * w - 1.0f) < 0.01);
+    //ASSERT_TRUE(oms_abs(x * x + y * y + z * z + w * w - 1.0f) < 0.01);
 
     v4_f32 p_tmp;
     quaternion_multiply(&p_tmp, quat, p);

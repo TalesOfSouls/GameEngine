@@ -380,6 +380,7 @@ enum DataType : byte {
 
     DATA_TYPE_CHAR,
     DATA_TYPE_CHAR_STR,
+    DATA_TYPE_WCHAR_STR,
 
     DATA_TYPE_BYTE_ARRAY,
 

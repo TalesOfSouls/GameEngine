@@ -51,7 +51,7 @@ void scheduler_alloc(TaskScheduler* scheduler, int32 count) NO_EXCEPT
     byte* data = (byte *) platform_alloc_aligned(
         count * sizeof(TaskSchedule)
         + count * sizeof(int32)
-        + CEIL_DIV(count, 64) * sizeof(*scheduler->free)
+        + ceil_div(count, 64) * sizeof(*scheduler->free)
         + 128,
         64
     );
@@ -70,7 +70,7 @@ void scheduler_create(TaskScheduler* scheduler, int32 count, BufferMemory* const
         buf,
         count * sizeof(TaskSchedule)
         + count * sizeof(int32)
-        + CEIL_DIV(count, 64) * sizeof(*scheduler->free)
+        + ceil_div(count, 64) * sizeof(*scheduler->free)
         + 128,
         64
     );
