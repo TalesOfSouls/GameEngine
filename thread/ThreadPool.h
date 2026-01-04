@@ -9,7 +9,7 @@
 #ifndef COMS_THREADS_THREAD_POOL_H
 #define COMS_THREADS_THREAD_POOL_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../memory/Queue.h"
 #include "../memory/BufferMemory.h"
 #include "../log/DebugMemory.h"
@@ -52,7 +52,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 {
     THREAD_CURRENT_ID(_thread_local_id);
     THREAD_CPU_ID(_thread_cpu_id);
-    ThreadPool* pool = (ThreadPool *) arg;
+    ThreadPool* const pool = (ThreadPool *) arg;
 
     if (pool->debug_container) {
         _log_fp = pool->debug_container->log_fp;
@@ -96,15 +96,22 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
             work = (PoolWorker *) queue_dequeue_keep(&pool->work_queue);
         }
 
+        // @Note Why are we using atomic operations for some of the stuff below?
+        //      This only makes sense if the work/job pointer is shared across multiple threads
+        //      If it is only stored in the thread itself and the calling thread we don't need atomics
+        //      As a result we are now avoiding the use of atomics in some cases (see commented code)
+
         // When the worker functions of the thread pool get woken up it is possible that the work is already dequeued
         // by another thread -> we need to check if the work is actually valid
         if (work->state <= POOL_WORKER_STATE_COMPLETED) {
-            atomic_set_release((volatile int32*) &work->state, POOL_WORKER_STATE_COMPLETED);
+            //atomic_set_release((volatile int32 *) &work->state, POOL_WORKER_STATE_COMPLETED);
+            work->state = POOL_WORKER_STATE_COMPLETED
             continue;
         }
 
         atomic_increment_release(&pool->working_cnt);
-        atomic_set_release((volatile int32*) &work->state, POOL_WORKER_STATE_RUNNING);
+        //atomic_set_release((volatile int32 *) &work->state, POOL_WORKER_STATE_RUNNING);
+        work->state = POOL_WORKER_STATE_RUNNING;
         LOG_3("ThreadPool worker started");
         {
             PROFILE(PROFILE_THREADPOOL_WORK, NULL, PROFILE_FLAG_ADD_HISTORY);
@@ -116,7 +123,8 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 
         // @question Do I really need state and id both? seems like setting one should be sufficient
         // Obviously we would also have to change thread_pool_add_work to check for state instead of id
-        atomic_set_release((volatile int32*) &work->state, POOL_WORKER_STATE_COMPLETED);
+        //atomic_set_release((volatile int32 *) &work->state, POOL_WORKER_STATE_COMPLETED);
+        work->state = POOL_WORKER_STATE_COMPLETED;
 
         if (work->callback) {
             work->callback(work);
@@ -142,7 +150,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 }
 
 void thread_pool_alloc(
-    ThreadPool* pool,
+    ThreadPool* const pool,
     int32 element_size,
     int32 thread_count,
     int32 worker_count,
@@ -171,7 +179,7 @@ void thread_pool_alloc(
 
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
-        MAYBE_UNUSED int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        MAYBE_UNUSED const int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
         THREAD_LOG_NAME(id, "pool");
         PSEUDO_USE(id);
         coms_pthread_detach(thread);
@@ -181,7 +189,7 @@ void thread_pool_alloc(
 }
 
 void thread_pool_create(
-    ThreadPool* pool,
+    ThreadPool* const pool,
     BufferMemory* const buf,
     int32 element_size,
     int32 thread_count,
@@ -207,21 +215,29 @@ void thread_pool_create(
     coms_pthread_cond_init(&pool->work_cond, NULL);
     coms_pthread_cond_init(&pool->working_cond, NULL);
 
+    // No atomic operation required here
     pool->state = 2;
 
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
-        MAYBE_UNUSED int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        MAYBE_UNUSED const int32 id = coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
         THREAD_LOG_NAME(id, "pool");
         PSEUDO_USE(id);
         coms_pthread_detach(thread);
     }
 
-    LOG_2("[INFO] %d threads running", {DATA_TYPE_INT64, (void *) &_stats_counter->stats[atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD]});
+    LOG_2(
+        "[INFO] %d threads running",
+        {DATA_TYPE_INT64,
+            (void *) &_stats_counter->stats[
+                atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD
+            ]
+        }
+    );
 }
 
 inline
-void thread_pool_wait(ThreadPool* pool) NO_EXCEPT
+void thread_pool_wait(ThreadPool* const pool) NO_EXCEPT
 {
     MutexGuard _guard(&pool->work_mutex);
     // @question We removed some state checks here, not sure if they were really necessary
@@ -231,7 +247,7 @@ void thread_pool_wait(ThreadPool* pool) NO_EXCEPT
     }
 }
 
-void thread_pool_destroy(ThreadPool* pool) NO_EXCEPT
+void thread_pool_destroy(ThreadPool* const pool) NO_EXCEPT
 {
     // This sets the queue to empty
     atomic_set_release((void **) &pool->work_queue.tail, pool->work_queue.head);
@@ -250,11 +266,12 @@ void thread_pool_destroy(ThreadPool* pool) NO_EXCEPT
     atomic_set_release(&pool->state, 0);
 }
 
-PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job) NO_EXCEPT
+PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) NO_EXCEPT
 {
     MutexGuard _guard(&pool->work_mutex);
     PoolWorker* const temp_job = (PoolWorker *) ring_get_memory_nomove((RingMemory *) &pool->work_queue, pool->element_size, 8);
 
+    // @question Not sure if i need atomic operations here?
     if (atomic_get_relaxed((volatile int32*) &temp_job->state) > POOL_WORKER_STATE_COMPLETED) {
         mutex_unlock(&pool->work_mutex);
         ASSERT_TRUE(temp_job->state <= POOL_WORKER_STATE_COMPLETED);
@@ -283,11 +300,13 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job) NO_EXC
 // This is basically the same as thread_pool_add_work but allows us to directly write into the memory in the caller
 // This makes it faster, since we can avoid a memcpy
 inline
-PoolWorker* thread_pool_add_work_start(ThreadPool* pool) NO_EXCEPT
+PoolWorker* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
 {
     mutex_lock(&pool->work_mutex);
 
     PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
+
+    // @question Not sure if I need atomic operations here?
     if (atomic_get_relaxed((volatile int32*) &temp_job->state) > POOL_WORKER_STATE_COMPLETED) {
         mutex_unlock(&pool->work_mutex);
         ASSERT_TRUE(temp_job->state <= POOL_WORKER_STATE_COMPLETED);
@@ -308,23 +327,26 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool) NO_EXCEPT
 }
 
 inline
-void thread_pool_add_work_end(ThreadPool* pool) NO_EXCEPT
+void thread_pool_add_work_end(ThreadPool* const pool) NO_EXCEPT
 {
     queue_enqueue_end(&pool->work_queue);
     coms_pthread_cond_broadcast(&pool->work_cond);
     mutex_unlock(&pool->work_mutex);
 }
 
+// We are not marking jobs const since it may change during the joining process (e.g. the state)
 inline
-void thread_pool_join(PoolWorker* jobs, int32 count) NO_EXCEPT
+bool thread_pool_join(PoolWorker* jobs, int32 count, uint64 sleep_time = 0, uint64 max_sleep = 0) NO_EXCEPT
 {
     uint64 completed_mask = 0;
     const uint64 all_done_mask = (count == 64 ? UINT64_MAX : ((1ULL << count) - 1));
 
+    uint64 current_sleep = 0;
+
     // Loop until all jobs have been marked completed
     // We use a bitmask to avoid re-checking already validated jobs
     // If we wouldn't do that we may risk that a job got re-used for a new job giving a false negative.
-    while (completed_mask != all_done_mask) {
+    while (completed_mask != all_done_mask && max_sleep > current_sleep) {
         for (int32 i = 0; i < count; ++i) {
             const uint64 bit = 1ULL << i;
 
@@ -332,23 +354,33 @@ void thread_pool_join(PoolWorker* jobs, int32 count) NO_EXCEPT
                 continue;
             }
 
-            if (jobs[i].state == POOL_WORKER_STATE_COMPLETED) {
+            // @question I might need atomic operations here to get the state value
+            if (!jobs[i].id || jobs[i].state == POOL_WORKER_STATE_COMPLETED) {
                 completed_mask |= bit;
             }
         }
+
+        if (sleep_time && completed_mask != all_done_mask) {
+            usleep(sleep_time);
+            current_sleep += sleep_time;
+        }
     }
+
+    return completed_mask == all_done_mask;
 }
 
 inline
-void thread_pool_join(const PoolWorker* const* const jobs, int32 count) NO_EXCEPT
+bool thread_pool_join(const PoolWorker* const* const jobs, int32 count, uint64 sleep_time = 0, uint64 max_sleep = 0) NO_EXCEPT
 {
     uint64 completed_mask = 0;
     const uint64 all_done_mask = (count == 64 ? UINT64_MAX : ((1ULL << count) - 1));
 
+    uint64 current_sleep = 0;
+
     // Loop until all jobs have been marked completed
     // We use a bitmask to avoid re-checking already validated jobs
     // If we wouldn't do that we may risk that a job got re-used for a new job giving a false negative.
-    while (completed_mask != all_done_mask) {
+    while (completed_mask != all_done_mask && max_sleep > current_sleep) {
         for (int32 i = 0; i < count; ++i) {
             const uint64 bit = 1ULL << i;
 
@@ -356,11 +388,19 @@ void thread_pool_join(const PoolWorker* const* const jobs, int32 count) NO_EXCEP
                 continue;
             }
 
-            if (jobs[i]->state == POOL_WORKER_STATE_COMPLETED) {
+            // @question I might need atomic operations here to get the state value
+            if (!jobs[i] || !jobs[i]->id || jobs[i]->state == POOL_WORKER_STATE_COMPLETED) {
                 completed_mask |= bit;
             }
         }
+
+        if (sleep_time && completed_mask != all_done_mask) {
+            usleep(sleep_time);
+            current_sleep += sleep_time;
+        }
     }
+
+    return completed_mask == all_done_mask;
 }
 
 #endif

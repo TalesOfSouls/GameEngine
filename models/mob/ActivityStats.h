@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_MOB_ACTIVITY_STATS_H
 #define COMS_MODELS_MOB_ACTIVITY_STATS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 /**
  * @todo optimize order of struct members to ensure optimal struct size

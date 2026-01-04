@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 // Manhattan distance for 3D
 f32 manhattan_3d(v3_f32 a, v3_f32 b) {

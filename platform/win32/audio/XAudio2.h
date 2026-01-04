@@ -13,13 +13,13 @@
 #include <objbase.h>
 #include <xaudio2.h>
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../audio/AudioSetting.h"
 #include "../../../log/Log.h"
 #include "../../../audio/Audio.cpp"
 
 struct XAudio2Setting {
-    IXAudio2* audio_handle;
+    IXAudio2* xaudio2_handle;
     IXAudio2SourceVoice* source_voice;
     IXAudio2MasteringVoice* mastering_voice;
 
@@ -33,24 +33,23 @@ HRESULT WINAPI XAudio2CreateStub(IXAudio2**, UINT32, XAUDIO2_PROCESSOR) {
 }
 // END: Dynamically load XAudio2
 
-void audio_load(HWND hwnd, AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) {
+void xaudio2_load(HWND hwnd, AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) {
     LOG_1("Load audio API XAudio2");
 
     CoInitialize(NULL);
-    HMODULE lib = LoadLibraryExW((LPCWSTR) L"xaudio2_9.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    const HMODULE lib = LoadLibraryExW((LPCWSTR) L"xaudio2_9.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!lib) {
         LOG_1("Xaudio2: Couldn't load xaudio2_9.dll");
 
         lib = LoadLibraryExW((LPCWSTR) L"xaudio2_8.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        if (!lib) {
+            LOG_1("Xaudio2: Couldn't load xaudio2_8.dll");
+
+            return;
+        }
     }
 
-    if (!lib) {
-        LOG_1("Xaudio2: Couldn't load xaudio2_8.dll");
-
-        return;
-    }
-
-    XAudio2Create_t* XAudio2Create = (XAudio2Create_t *) GetProcAddress(lib, "XAudio2Create");
+    const XAudio2Create_t* const XAudio2Create = (XAudio2Create_t *) GetProcAddress(lib, "XAudio2Create");
     if (!XAudio2Create || !SUCCEEDED(XAudio2Create(&api_setting->audio_handle, 0, XAUDIO2_DEFAULT_PROCESSOR))) {
         LOG_1("Xaudio2: XAudio2Create failed");
 
@@ -74,7 +73,7 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, XAudio2Setting* __r
     wf.wFormatTag = WAVE_FORMAT_PCM;
     wf.nChannels = 2;
     wf.wBitsPerSample = (uint16) ((setting->sample_size * 8) / wf.nChannels); // = sample_size per channel
-    wf.nBlockAlign = compiler_div_pow2(wf.nChannels * wf.wBitsPerSample, 8); // = sample_szie
+    wf.nBlockAlign = setting->sample_size; //(wf.nChannels * wf.wBitsPerSample) / 8; // = sample_szie
     wf.nSamplesPerSec = setting->sample_rate;
     wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign; // = buffer_size
     wf.cbSize = 0;
@@ -111,7 +110,7 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, XAudio2Setting* __r
 }
 
 inline
-void audio_play(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
+void xaudio2_play(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->source_voice);
     /*if (!api_setting->source_voice) {
@@ -122,7 +121,7 @@ void audio_play(AudioSetting* __restrict setting, XAudio2Setting* __restrict api
 }
 
 inline
-void audio_stop(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
+void xaudio2_stop(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->source_voice);
     /*if (!api_setting->source_voice) {
@@ -133,7 +132,7 @@ void audio_stop(AudioSetting* __restrict setting, XAudio2Setting* __restrict api
 }
 
 inline
-void audio_free(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
+void xaudio2_free(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
     if (api_setting->source_voice) {
         api_setting->source_voice->DestroyVoice();
@@ -163,7 +162,7 @@ void audio_free(AudioSetting* __restrict setting, XAudio2Setting* __restrict api
  * For other audio APIs we maybe have to do something else
  */
 inline
-uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const XAudio2Setting* __restrict api_setting) NO_EXCEPT
+uint32 xaudio2_buffer_fillable(const AudioSetting* __restrict setting, const XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
     if (!api_setting->source_voice) {
@@ -180,7 +179,7 @@ uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const XAudi
 }
 
 inline
-void audio_play_buffer(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
+void xaudio2_play_buffer(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
 
@@ -188,7 +187,7 @@ void audio_play_buffer(AudioSetting* __restrict setting, XAudio2Setting* __restr
         return;
     }
 
-    uint32 idx = setting->sample_output % 2;
+    const uint32 idx = setting->sample_output % 2;
 
     memcpy(
         (void *) api_setting->internal_buffer[idx].pAudioData,

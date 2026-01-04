@@ -10,7 +10,7 @@
 #define COMS_COMPILER_COMPILER_UTILS_H
 
 #include "../utils/Assert.h"
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 #if _MSC_VER
     #include "msvc/TypeName.h"

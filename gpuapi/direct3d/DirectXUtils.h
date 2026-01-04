@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_DIRECTX_UTILS_H
 #define COMS_GPUAPI_DIRECTX_UTILS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include <windows.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>

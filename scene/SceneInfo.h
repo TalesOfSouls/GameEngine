@@ -1,7 +1,7 @@
 #ifndef COMS_SCENE_INFO_H
 #define COMS_SCENE_INFO_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../ui/UILayout.h"
 #include "../ui/UITheme.h"
 

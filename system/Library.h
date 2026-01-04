@@ -9,7 +9,7 @@
 #ifndef COMS_SYSTEM_LIBRARY_H
 #define COMS_SYSTEM_LIBRARY_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 #if _WIN32
     #include "../platform/win32/Library.h"

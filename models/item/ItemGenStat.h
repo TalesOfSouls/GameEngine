@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_ITEM_GEN_STAT_H
 #define COMS_MODELS_ITEM_GEN_STAT_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 // Stats for generating random item
 struct EquipmentGenStat {

@@ -9,7 +9,7 @@
 #ifndef COMS_COMMAND_H
 #define COMS_COMMAND_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 // @question Consider to rename internal enum values to contain the word INTERNAL
 enum CommandType {

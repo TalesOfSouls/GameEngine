@@ -64,11 +64,11 @@ void thrd_ring_free(ThreadedRingMemory* const ring)
 }
 
 FORCE_INLINE
-byte* thrd_ring_calculate_position(ThreadedRingMemory* const ring, uint64 size, byte aligned = 4) NO_EXCEPT
+byte* thrd_ring_calculate_position(ThreadedRingMemory* const ring, uint64 size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     MutexGuard _guard(&ring->lock);
 
-    return ring_calculate_position((RingMemory *) ring, size, aligned);
+    return ring_calculate_position((RingMemory *) ring, size, alignment);
 }
 
 FORCE_INLINE
@@ -80,31 +80,31 @@ void thrd_ring_reset(ThreadedRingMemory* const ring) NO_EXCEPT
 
 // Moves a pointer based on the size you want to consume (new position = after consuming size)
 FORCE_INLINE
-void thrd_ring_move_pointer(ThreadedRingMemory* const ring, byte** pos, uint64 size, byte aligned = 4) NO_EXCEPT
+void thrd_ring_move_pointer(ThreadedRingMemory* const ring, byte** pos, uint64 size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     MutexGuard _guard(&ring->lock);
-    ring_move_pointer((RingMemory *) ring, pos, size, aligned);
+    ring_move_pointer((RingMemory *) ring, pos, size, alignment);
 }
 
 FORCE_INLINE
-byte* thrd_ring_get_memory(ThreadedRingMemory* const ring, uint64 size, byte aligned = 4) NO_EXCEPT
+byte* thrd_ring_get_memory(ThreadedRingMemory* const ring, uint64 size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     MutexGuard _guard(&ring->lock);
-    return ring_get_memory((RingMemory *) ring, size, aligned);
+    return ring_get_memory((RingMemory *) ring, size, alignment);
 }
 
 FORCE_INLINE
-byte* thrd_ring_grow_memory(ThreadedRingMemory* const ring, const byte* old, uint64 size_old, uint64 size_new, uint64 aligned = 4) {
+byte* thrd_ring_grow_memory(ThreadedRingMemory* const ring, const byte* old, uint64 size_old, uint64 size_new, int32 alignment = sizeof(size_t)) {
     MutexGuard _guard(&ring->lock);
-    return ring_grow_memory((RingMemory *) ring, old, size_old, size_new, aligned);
+    return ring_grow_memory((RingMemory *) ring, old, size_old, size_new, alignment);
 }
 
 // Same as ring_get_memory but DOESN'T move the head
 FORCE_INLINE
-byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* const ring, uint64 size, byte aligned = 4) NO_EXCEPT
+byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* const ring, uint64 size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     MutexGuard _guard(&ring->lock);
-    return ring_get_memory_nomove((RingMemory *) ring, size, aligned);
+    return ring_get_memory_nomove((RingMemory *) ring, size, alignment);
 }
 
 // Used if the ring only contains elements of a certain size
@@ -120,10 +120,10 @@ byte* thrd_ring_get_element(ThreadedRingMemory* const ring, uint64 element, uint
  * Checks if one additional element can be inserted without overwriting the tail index
  */
 FORCE_INLINE
-bool thrd_ring_commit_safe(ThreadedRingMemory* const ring, uint64 size, byte aligned = 4) NO_EXCEPT
+bool thrd_ring_commit_safe(ThreadedRingMemory* const ring, uint64 size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     MutexGuard _guard(&ring->lock);
-    return ring_commit_safe((RingMemory *) ring, size, aligned);
+    return ring_commit_safe((RingMemory *) ring, size, alignment);
 }
 
 FORCE_INLINE

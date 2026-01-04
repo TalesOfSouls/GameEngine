@@ -9,7 +9,7 @@
 #ifndef COMS_HTML_TEMPLATE_CONTEXT_H
 #define COMS_HTML_TEMPLATE_CONTEXT_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/Assert.h"
 
 struct HtmlTemplateContext {

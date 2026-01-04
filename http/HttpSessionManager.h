@@ -1,4 +1,4 @@
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../memory/BufferMemory.h"
 #include "../system/Allocator.h"
 #include "../stdlib/HashMap.h"
@@ -42,7 +42,7 @@ SessionManager* session_manager_alloc(
     size_t initial_capacity,
     int32 alignment = sizeof(size_t)
 ) {
-    size_t internal_buffer_size = OMS_ALIGN_UP(sizeof(Session) * initial_capacity, 4096);
+    size_t internal_buffer_size = align_up(sizeof(Session) * initial_capacity, 4096);
     byte* internal_buffer = (byte *) platform_alloc_aligned(internal_buffer_size, alignment);
 
     // distribute internal_buffer to:

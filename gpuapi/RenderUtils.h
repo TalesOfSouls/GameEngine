@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
 #include "../font/Font.h"
 #include "../object/Vertex.h"
@@ -182,12 +182,13 @@ int32 vertex_circle_create(
     int32 idx = 0;
 
     // Generate a triangle fan: center + pairs of edge vertices
-    f32 s;
-    f32 c;
+
     // @performance For sure this is vectorizable (SIMD)
     for (int32 i = 0; i < segments; ++i) {
         const f32 angle0 = (OMS_TWO_PI_F32 * i) / segments;
         const f32 angle1 = (OMS_TWO_PI_F32 * (i + 1)) / segments;
+
+        f32 s, c;
 
         SINCOSF(angle0, s, c);
         const f32 x0 = cx + c * rx;
@@ -239,10 +240,11 @@ int32 vertex_arc_create(
     int32 idx = 0;
 
     // Generate a triangle fan over the arc
-    f32 s, c;
     for (int32 i = 0; i < segments; ++i) {
         const f32 angle0 = start_angle + (arc_angle * (f32) i / segments);
         const f32 angle1 = start_angle + (arc_angle * (f32) (i + 1) / segments);
+
+        f32 s, c;
 
         SINCOSF(angle0, s, c);
         const f32 x0 = cx + c * rx;
@@ -395,7 +397,7 @@ v3_int32 vertex_text_create(
 
     f32 offset_x = dimension.x;
     for (int32 i = 0; i < length; ++i) {
-        int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
+        const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {
             rendered_height += line_height_scaled;
             rendered_width = max_branched(rendered_width, offset_x - dimension.x);
@@ -411,7 +413,7 @@ v3_int32 vertex_text_create(
             continue;
         }
 
-        f32 offset_y = dimension.y + glyph->metrics.offset_y * scale;
+        const f32 offset_y = dimension.y + glyph->metrics.offset_y * scale;
         offset_x += glyph->metrics.offset_x * scale;
 
         if (character != ' ' && character != '\t') {

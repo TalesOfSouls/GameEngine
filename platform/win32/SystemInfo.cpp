@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../../system/SystemInfo.h"
 #include "../../architecture/CpuInfo.cpp"
@@ -63,18 +63,18 @@ uint64 system_private_memory_usage()
 inline
 uint32 system_stack_usage()
 {
-    static thread_local char* stack_base = NULL;
+    static thread_local const char* stack_base = NULL;
 
     if (!stack_base) {
         //NT_TIB* tib = (NT_TIB *) NtCurrentTeb();
 
         // This might be faster
-        NT_TIB* tib = (NT_TIB *) __readgsqword(0x30);
+        const NT_TIB* const tib = (NT_TIB *) __readgsqword(0x30);
 
         stack_base  = (char *) tib->StackBase;
     }
 
-    volatile char local_var = '0'; // current position on stack
+    volatile const char local_var = '0'; // current position on stack
     uint32 used = (uint32) (stack_base - (char *) &local_var);
 
     return used;
@@ -103,7 +103,7 @@ uint64 system_app_memory_usage()
 FORCE_INLINE
 uint16 system_language_code()
 {
-    LANGID lang_id = GetUserDefaultUILanguage();
+    const LANGID lang_id = GetUserDefaultUILanguage();
     wchar_t local_name[LOCALE_NAME_MAX_LENGTH];
 
     if (!LCIDToLocaleName(lang_id, local_name, LOCALE_NAME_MAX_LENGTH, 0)) {
@@ -116,7 +116,7 @@ uint16 system_language_code()
 FORCE_INLINE
 uint16 system_country_code()
 {
-    LANGID lang_id = GetUserDefaultUILanguage();
+    const LANGID lang_id = GetUserDefaultUILanguage();
     wchar_t local_name[LOCALE_NAME_MAX_LENGTH];
 
     if (!LCIDToLocaleName(lang_id, local_name, LOCALE_NAME_MAX_LENGTH, 0)) {
@@ -130,15 +130,13 @@ void mainboard_info_get(MainboardInfo* info) {
     info->name[sizeof(info->name) - 1] = '\0';
     info->serial_number[sizeof(info->serial_number) - 1] = '\0';
 
-    HRESULT hres;
-
-    // Step 1: Initialize COM library
-    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+    // Initialize COM library
+    HRESULT hres = CoInitializeEx(0, COINIT_MULTITHREADED);
     if (FAILED(hres)) {
         return;
     }
 
-    // Step 2: Set general COM security levels
+    // Set general COM security levels
     hres = CoInitializeSecurity(
         NULL,
         -1,
@@ -156,8 +154,8 @@ void mainboard_info_get(MainboardInfo* info) {
         return;
     }
 
-    // Step 3: Obtain initial locator to WMI
-    IWbemLocator *pLoc = NULL;
+    // Obtain initial locator to WMI
+    IWbemLocator* pLoc = NULL;
     hres = CoCreateInstance(
         CLSID_WbemLocator,
         0,
@@ -171,8 +169,8 @@ void mainboard_info_get(MainboardInfo* info) {
         return;
     }
 
-    // Step 4: Connect to WMI through IWbemLocator::ConnectServer
-    IWbemServices *pSvc = NULL;
+    // Connect to WMI through IWbemLocator::ConnectServer
+    IWbemServices* pSvc = NULL;
     hres = pLoc->ConnectServer(
         _bstr_t(L"ROOT\\CIMV2"),
         NULL,
@@ -190,7 +188,7 @@ void mainboard_info_get(MainboardInfo* info) {
         return;
     }
 
-    // Step 5: Set security levels on the proxy
+    // Set security levels on the proxy
     hres = CoSetProxyBlanket(
         pSvc,
         RPC_C_AUTHN_WINNT,
@@ -209,14 +207,14 @@ void mainboard_info_get(MainboardInfo* info) {
         return;
     }
 
-    // Step 6: Use the IWbemServices pointer to make a WMI query
-    IEnumWbemClassObject* pEnumerator = NULL;
+    // Use the IWbemServices pointer to make a WMI query
+    IEnumWbemClassObject* enumerator = NULL;
     hres = pSvc->ExecQuery(
         bstr_t("WQL"),
         bstr_t("SELECT * FROM Win32_BaseBoard"),
         WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
         NULL,
-        &pEnumerator
+        &enumerator
     );
 
     if (FAILED(hres)) {
@@ -226,17 +224,17 @@ void mainboard_info_get(MainboardInfo* info) {
         return;
     }
 
-    // Step 7: Retrieve the data
-    IWbemClassObject *pclsObj = NULL;
-    ULONG ret = 0;
-    while (pEnumerator) {
-        HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &ret);
+    // Retrieve the data
+    while (enumerator) {
+        IWbemClassObject* pclsObj = NULL;
+        ULONG ret = 0;
+        enumerator->Next(WBEM_INFINITE, 1, &pclsObj, &ret);
         if (ret == 0) {
             break;
         }
 
         VARIANT vtProp;
-        hr = pclsObj->Get(L"Product", 0, &vtProp, 0, 0);
+        HRESULT hr = pclsObj->Get(L"Product", 0, &vtProp, 0, 0);
         if (SUCCEEDED(hr)) {
             wchar_to_char(info->name, (wchar_t *) vtProp.bstrVal, sizeof(info->name) - 1);
             VariantClear(&vtProp);
@@ -254,7 +252,7 @@ void mainboard_info_get(MainboardInfo* info) {
     // Clean up
     pSvc->Release();
     pLoc->Release();
-    pEnumerator->Release();
+    enumerator->Release();
     CoUninitialize();
 
     info->name[sizeof(info->name) - 1] = '\0';
@@ -268,14 +266,14 @@ int32 network_info_get(NetworkInfo* info, int32 limit = 4) {
     }
 
     DWORD dwSize = 0;
-    PIP_ADAPTER_ADDRESSES pAdapterAddresses = NULL;
-    PIP_ADAPTER_ADDRESSES pAdapter = NULL;
+    PIP_ADAPTER_ADDRESSES adapter_address = NULL;
+    PIP_ADAPTER_ADDRESSES adapter = NULL;
 
     // Get the size of the adapter addresses buffer
     if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, NULL, &dwSize) == ERROR_BUFFER_OVERFLOW) {
         // @todo Remove malloc
-        pAdapterAddresses = (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
-        if (pAdapterAddresses == NULL) {
+        adapter_address = (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
+        if (adapter_address == NULL) {
             WSACleanup();
             return 0;
         }
@@ -285,8 +283,8 @@ int32 network_info_get(NetworkInfo* info, int32 limit = 4) {
     }
 
     // Get the adapter addresses
-    if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, pAdapterAddresses, &dwSize) != NO_ERROR) {
-        free(pAdapterAddresses);
+    if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, adapter_address, &dwSize) != NO_ERROR) {
+        free(adapter_address);
         WSACleanup();
         return 0;
     }
@@ -294,22 +292,22 @@ int32 network_info_get(NetworkInfo* info, int32 limit = 4) {
     int32 i = 0;
 
     // Iterate over the adapters and print their MAC addresses
-    pAdapter = pAdapterAddresses;
-    while (pAdapter && i < limit) {
-        if (pAdapter->PhysicalAddressLength != 0) {
+    adapter = adapter_address;
+    while (adapter && i < limit) {
+        if (adapter->PhysicalAddressLength != 0) {
             info[i].slot[63] = '\0';
             info[i].mac[23] = '\0';
 
-            memcpy(info[i].mac, pAdapter->PhysicalAddress, 8);
-            wcstombs(info[i].slot, pAdapter->FriendlyName, 63);
+            memcpy(info[i].mac, adapter->PhysicalAddress, 8);
+            wcstombs(info[i].slot, adapter->FriendlyName, 63);
 
             ++i;
         }
 
-        pAdapter = pAdapter->Next;
+        adapter = adapter->Next;
     }
 
-    free(pAdapterAddresses);
+    free(adapter_address);
     WSACleanup();
 
     return i;
@@ -351,7 +349,7 @@ void cpu_info_get(CpuInfo* info) {
 
     DWORD bufSize = sizeof(DWORD);
     HKEY hKey;
-    long lError = RegOpenKeyExW(
+    const long lError = RegOpenKeyExW(
         HKEY_LOCAL_MACHINE,
         L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
         0, KEY_READ, &hKey
@@ -371,8 +369,10 @@ void os_info_get(OSInfo* info) {
 
     OSVERSIONINFOEXW version_info;
     memset(&version_info, 0, sizeof(OSVERSIONINFOEXW));
+
     version_info.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEXW);
     NTSTATUS(WINAPI *RtlGetVersion)(OSVERSIONINFOEXW*) = (NTSTATUS(WINAPI *)(OSVERSIONINFOEXW*))GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion");
+
     if (RtlGetVersion != nullptr) {
         RtlGetVersion(&version_info);
     }
@@ -392,8 +392,7 @@ void ram_info_get(RamInfo* info) {
 }
 
 RamChannelType ram_channel_info() {
-    HRESULT hres;
-    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+    HRESULT hres = CoInitializeEx(0, COINIT_MULTITHREADED);
     if (FAILED(hres)) {
         return RAM_CHANNEL_TYPE_FAILED;
     }
@@ -405,7 +404,7 @@ RamChannelType ram_channel_info() {
         return RAM_CHANNEL_TYPE_FAILED;
     }
 
-    IWbemLocator *pLoc = NULL;
+    IWbemLocator* pLoc = NULL;
     hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID *)&pLoc);
     if (FAILED(hres)) {
         CoUninitialize();
@@ -413,7 +412,7 @@ RamChannelType ram_channel_info() {
         return RAM_CHANNEL_TYPE_FAILED;
     }
 
-    IWbemServices *pSvc = NULL;
+    IWbemServices* pSvc = NULL;
     hres = pLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pSvc);
     if (FAILED(hres)) {
         pLoc->Release();
@@ -431,8 +430,8 @@ RamChannelType ram_channel_info() {
         return RAM_CHANNEL_TYPE_FAILED;
     }
 
-    IEnumWbemClassObject* pEnumerator = NULL;
-    hres = pSvc->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_PhysicalMemory"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
+    IEnumWbemClassObject* enumerator = NULL;
+    hres = pSvc->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_PhysicalMemory"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
@@ -441,13 +440,13 @@ RamChannelType ram_channel_info() {
         return RAM_CHANNEL_TYPE_FAILED;
     }
 
-    IWbemClassObject *pclsObj = NULL;
+    IWbemClassObject* pclsObj = NULL;
     ULONG ret = 0;
     int32 ram_module_count = 0;
     int32 dual_channel_capable = 0;
 
-    while (pEnumerator) {
-        hres = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &ret);
+    while (enumerator) {
+        enumerator->Next(WBEM_INFINITE, 1, &pclsObj, &ret);
         if (ret == 0) break;
 
         VARIANT vtProp;
@@ -480,31 +479,31 @@ RamChannelType ram_channel_info() {
 
 inline
 int32 gpu_info_get(GpuInfo* info, int32 limit = 3) {
-    IDXGIFactory *pFactory = NULL;
-    IDXGIAdapter *pAdapter = NULL;
-    DXGI_ADAPTER_DESC adapterDesc;
+    IDXGIFactory* factory = NULL;
+    IDXGIAdapter* adapter = NULL;
+    DXGI_ADAPTER_DESC adapter_description;
 
-    HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void **) &pFactory);
+    HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void **) &factory);
     if (FAILED(hr)) {
         return 0;
     }
 
     int32 i = 0;
-    while (pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND && i < limit) {
-        hr = pAdapter->GetDesc(&adapterDesc);
+    while (factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND && i < limit) {
+        hr = adapter->GetDesc(&adapter_description);
         if (FAILED(hr)) {
-            pAdapter->Release();
+            adapter->Release();
             break;
         }
 
-        wchar_to_char(info[i].name, adapterDesc.Description, 63);
-        info[i].vram = (uint32) (adapterDesc.DedicatedVideoMemory / (1024 * 1024));
+        wchar_to_char(info[i].name, adapter_description.Description, 63);
+        info[i].vram = (uint32) (adapter_description.DedicatedVideoMemory / (1024 * 1024));
 
-        pAdapter->Release();
+        adapter->Release();
         ++i;
     }
 
-    pFactory->Release();
+    factory->Release();
 
     return i;
 }
@@ -527,9 +526,8 @@ int32 display_info_get(DisplayInfo* info, int32 limit = 4) {
             info[i].height = mode.dmPelsHeight;
             info[i].hz = mode.dmDisplayFrequency;
             info[i].is_primary = (bool) (device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE);
+            ++i;
         }
-
-        ++i;
     }
 
     return i;
@@ -537,13 +535,13 @@ int32 display_info_get(DisplayInfo* info, int32 limit = 4) {
 
 inline
 bool is_dedicated_gpu_connected() {
-    DISPLAY_DEVICEW displayDevice;
-    displayDevice.cb = sizeof(DISPLAY_DEVICEW);
-    for (int32 i = 0; EnumDisplayDevicesW(NULL, i, &displayDevice, 0); ++i) {
-        if (displayDevice.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) {
+    DISPLAY_DEVICEW display_device;
+    display_device.cb = sizeof(DISPLAY_DEVICEW);
+    for (int32 i = 0; EnumDisplayDevicesW(NULL, i, &display_device, 0); ++i) {
+        if (display_device.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) {
             DISPLAY_DEVICEW gpuDevice;
             gpuDevice.cb = sizeof(DISPLAY_DEVICEW);
-            if (EnumDisplayDevicesW(displayDevice.DeviceName, 0, &gpuDevice, 0)) {
+            if (EnumDisplayDevicesW(display_device.DeviceName, 0, &gpuDevice, 0)) {
                 if (gpuDevice.DeviceID
                     && (str_contains(gpuDevice.DeviceID, L"PCI\\VEN_10DE") // Nvidia
                         || str_contains(gpuDevice.DeviceID, L"PCI\\VEN_1002") // AMD

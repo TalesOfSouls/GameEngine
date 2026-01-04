@@ -16,13 +16,13 @@
 #include <commdlg.h>
 #include <stdio.h>
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../audio/AudioSetting.h"
 #include "../../../log/Log.h"
 #include "../../../audio/Audio.cpp"
 
 struct WasapiSetting {
-    IAudioClient* audio_handle;
+    IAudioClient* wasapi_handle;
     IAudioRenderClient* render_client;
 };
 
@@ -40,7 +40,7 @@ typedef HRESULT WINAPI IAudioClient_Stop_t(IAudioClient*);
 typedef HRESULT WINAPI IAudioClient_GetService_t(IAudioClient*, REFIID, void**);
 // END: Dynamically load DirectSound
 
-void audio_load(HWND hwnd, AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) {
+void wasapi_load(HWND hwnd, AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) {
     LOG_1("Load audio API WASAPI");
 
     HMODULE ole32 = LoadLibraryExW((LPCWSTR) L"ole32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -141,7 +141,7 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, WasapiSetting* __re
 }
 
 inline
-void audio_play(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
+void wasapi_play(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->audio_handle);
     /*if (!api_setting->audio_handle) {
@@ -152,7 +152,7 @@ void audio_play(AudioSetting* __restrict setting, WasapiSetting* __restrict api_
 }
 
 inline
-void audio_stop(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
+void wasapi_stop(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->audio_handle);
     /*if (!api_setting->audio_handle) {
@@ -163,7 +163,7 @@ void audio_stop(AudioSetting* __restrict setting, WasapiSetting* __restrict api_
 }
 
 inline
-void audio_free(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
+void wasapi_free(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     if (!api_setting->render_client) {
         api_setting->render_client->Release();
@@ -175,7 +175,7 @@ void audio_free(AudioSetting* __restrict setting, WasapiSetting* __restrict api_
 }
 
 inline
-uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const WasapiSetting* __restrict api_setting) NO_EXCEPT
+uint32 wasapi_buffer_fillable(const AudioSetting* __restrict setting, const WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
     if (!api_setting->audio_handle) {
@@ -192,7 +192,7 @@ uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const Wasap
 }
 
 inline
-void audio_play_buffer(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
+void wasapi_play_buffer(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
     if (!api_setting->audio_handle || setting->sample_buffer_size == 0) {

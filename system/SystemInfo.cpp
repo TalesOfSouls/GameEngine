@@ -98,12 +98,13 @@ void system_info_get(SystemInfo* const info) NO_EXCEPT
 {
     os_info_get(&info->os);
     mainboard_info_get(&info->mainboard);
-    info->network_count = network_info_get(info->network, ARRAY_COUNT(info->network));
+    info->network_count = (uint8) network_info_get(info->network, ARRAY_COUNT(info->network));
     cpu_info_get(&info->cpu);
     ram_info_get(&info->ram);
-    info->gpu_count = gpu_info_get(info->gpu, ARRAY_COUNT(info->gpu));
-    info->display_count = display_info_get(info->display, ARRAY_COUNT(info->display));
+    info->gpu_count = (uint8) gpu_info_get(info->gpu, ARRAY_COUNT(info->gpu));
+    info->display_count = (uint8) display_info_get(info->display, ARRAY_COUNT(info->display));
     info->language = system_language_code();
+    info->country = system_country_code();
 }
 
 #endif

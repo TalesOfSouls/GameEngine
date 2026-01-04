@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_BASE_GEO_LOCATION_H
 #define COMS_MODELS_BASE_GEO_LOCATION_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../serialize/WebBinary.h"
 
 struct GeoLocation {

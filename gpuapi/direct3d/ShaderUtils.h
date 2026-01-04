@@ -14,7 +14,7 @@
 #include <dxgi1_6.h>
 #include <d3dcompiler.h>
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../memory/RingMemory.h"
 #include "../../log/Log.h"
 #include "../../log/Stats.h"

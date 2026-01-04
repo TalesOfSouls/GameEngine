@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_VULKAN_SHADER_H
 #define COMS_GPUAPI_VULKAN_SHADER_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include <vulkan/vulkan.h>
 
 struct Shader {

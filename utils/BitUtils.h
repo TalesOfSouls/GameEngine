@@ -10,7 +10,7 @@
 #define COMS_UTILS_BIT_H
 
 //#include <intrin.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../architecture/Intrinsics.h"
 
 // Usually these specific implementation R2L or L2R are only used if you are handling a specific format
@@ -20,16 +20,21 @@
 
 // Left to right (big endian)
 // "bits" refers to the bits of the data type (e.g. 8, 16, 32, 64)
-#define IS_BIT_SET_L2R(num, pos, bits) ((bool) ((num) & (1 << ((bits - 1) - (pos)))))
+#define IS_BIT_SET_L2R(num, pos, bits) ((bool) ((num) & (OMS_UINT_ONE << ((bits - 1) - (pos)))))
+#define BIT_SET_L2R(num, pos, bits) ((num) | (OMS_UINT_ONE << ((bits - 1) - (pos))))
+
 #define IS_BIT_SET_64_L2R(num, pos, bits) ((bool) ((num) & (1ULL << ((bits - 1) - (pos)))))
-#define BIT_SET_L2R(num, pos, bits) ((num) | (1U << ((bits - 1) - (pos))))
 #define BIT_SET_64_L2R(num, pos, bits) ((num) | (1ULL << ((bits - 1) - (pos))))
-#define BIT_UNSET_L2R(num, pos, bits) ((num) & ~(1U << ((bits - 1) - (pos))))
 #define BIT_UNSET_64_L2R(num, pos, bits) ((num) & ~(1ULL << ((bits - 1) - (pos))))
-#define BIT_FLIP_L2R(num, pos, bits) ((num) ^ (1U << ((bits - 1) - (pos))))
 #define BIT_FLIP_64_L2R(num, pos, bits) ((num) ^ (1ULL << ((bits - 1) - (pos))))
-#define BIT_SET_TO_L2R(num, pos, x, bits) (((num) & ~(1U << ((bits) - 1 - (pos)))) | (((uint32_t)(x) & 1U) << ((bits) - 1 - (pos))))
 #define BIT_SET_TO_64_L2R(num, pos, x, bits) (((num) & ~(1ULL << ((bits) - 1 - (pos)))) | (((uint64_t)(x) & 1ULL) << ((bits) - 1 - (pos))))
+
+#define IS_BIT_SET_32_L2R(num, pos, bits) ((bool) ((num) & (1 << ((bits - 1) - (pos)))))
+#define BIT_SET_32_L2R(num, pos, bits) ((num) | (1U << ((bits - 1) - (pos))))
+#define BIT_UNSET_L2R(num, pos, bits) ((num) & ~(1U << ((bits - 1) - (pos))))
+#define BIT_FLIP_L2R(num, pos, bits) ((num) ^ (1U << ((bits - 1) - (pos))))
+#define BIT_SET_TO_L2R(num, pos, x, bits) (((num) & ~(1U << ((bits) - 1 - (pos)))) | (((uint32_t)(x) & 1U) << ((bits) - 1 - (pos))))
+
 #define BITS_GET_8_L2R(num, pos, to_read) (((num) >> (8 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
 #define BITS_GET_16_L2R(num, pos, to_read) (((num) >> (16 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
 #define BITS_GET_32_L2R(num, pos, to_read) (((num) >> (32 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
@@ -49,16 +54,21 @@
 
 // The R2L version is basically the same as: OMS_FLAG_ and OMS_BIT_ defined in Types
 // Right to left (little endian)
-#define IS_BIT_SET_R2L(num, pos) ((bool) ((num) & (1 << (pos))))
+#define IS_BIT_SET_R2L(num, pos) ((bool) ((num) & (OMS_UINT_ONE << (pos))))
+#define BIT_SET_R2L(num, pos) ((num) | (OMS_UINT_ONE << (pos)))
+
 #define IS_BIT_SET_64_R2L(num, pos) ((bool) ((num) & (1ULL << (pos))))
-#define BIT_SET_R2L(num, pos) ((num) | (1U << (pos)))
 #define BIT_SET_64_R2L(num, pos) ((num) | (1ULL << (pos)))
-#define BIT_UNSET_R2L(num, pos) ((num) & ~(1U << (pos)))
 #define BIT_UNSET_64_R2L(num, pos) ((num) & ~(1ULL << (pos)))
-#define BIT_FLIP_R2L(num, pos) ((num) ^ (1U << (pos)))
 #define BIT_FLIP_64_R2L(num, pos) ((num) ^ (1ULL << (pos)))
-#define BIT_SET_TO_R2L(num, pos, x) (((num) & ~(1U << (pos))) | ((uint32_t)(x) << (pos)))
 #define BIT_SET_TO_64_R2L(num, pos, x) (((num) & ~(1ULL << (pos))) | ((uint64_t)(x) << (pos)))
+
+#define IS_BIT_SET_32_R2L(num, pos) ((bool) ((num) & (1 << (pos))))
+#define BIT_SET_32_R2L(num, pos) ((num) | (1U << (pos)))
+#define BIT_UNSET_R2L(num, pos) ((num) & ~(1U << (pos)))
+#define BIT_FLIP_R2L(num, pos) ((num) ^ (1U << (pos)))
+#define BIT_SET_TO_R2L(num, pos, x) (((num) & ~(1U << (pos))) | ((uint32_t)(x) << (pos)))
+
 #define BITS_GET_8_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
 #define BITS_GET_16_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
 #define BITS_GET_32_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
@@ -85,7 +95,7 @@ inline
 void bits_walk(BitWalk* stream, uint32 bits_to_walk) NO_EXCEPT
 {
     stream->bit_pos += bits_to_walk;
-    stream->pos += compiler_div_pow2(stream->bit_pos, 8);
+    stream->pos += stream->bit_pos / 8;
     stream->bit_pos %= 8;
 }
 
@@ -351,14 +361,18 @@ int32 first_set_bit_l2r(int32 value) NO_EXCEPT
         return 0;
     }
 
+    // This still maintains the correct bits
+    uint32 u = (uint32) value;
+
     int32 index = 1;
-    for (int32 i = 31; i >= 0; --i) {
-        if (value & (1 << i)) {
+    for (uint32 mask = 0x80000000u; mask != 0; mask >>= 1) {
+        if (u & mask) {
             return index;
         }
 
         ++index;
     }
+
     return 0;
 }
 
@@ -369,14 +383,20 @@ int32 first_set_bit_l2r(int64 value) NO_EXCEPT
         return 0;
     }
 
+    uint64 u = (uint64)value;
     int32 index = 1;
-    for (int32 i = 63; i >= 0; --i) {
-        if (value & (1ULL << i)) {
+
+    uint64 mask = 0x8000000000000000ULL;
+
+    while (mask != 0) {
+        if (u & mask) {
             return index;
         }
 
         ++index;
+        mask >>= 1;
     }
+
     return 0;
 }
 

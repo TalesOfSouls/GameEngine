@@ -17,7 +17,7 @@ Asset* cmd_internal_texture_create(AppCmdBuffer* const __restrict cb, Command* c
         return NULL;
     }
 
-    Texture* texture = (Texture *) asset->self;
+    Texture* const texture = (Texture *) asset->self;
     if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL
         || cb->gpu_api_type == GPU_API_TYPE_VULKAN
         || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
@@ -84,7 +84,7 @@ Asset* cmd_texture_load_sync(AppCmdBuffer* const cb, int32 asset_id) NO_EXCEPT
     }
 
     // Setup basic texture
-    Texture* texture = (Texture *) asset->self;
+    Texture* const texture = (Texture *) asset->self;
     if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL
         || cb->gpu_api_type == GPU_API_TYPE_VULKAN
         || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE

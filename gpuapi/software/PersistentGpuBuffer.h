@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_SOFTWARE_PERSISTENT_BUFFER_H
 #define COMS_GPUAPI_SOFTWARE_PERSISTENT_BUFFER_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 struct PersistentGpuBuffer {
     // The index of the frame (framecounter % 3 because of triple buffering)

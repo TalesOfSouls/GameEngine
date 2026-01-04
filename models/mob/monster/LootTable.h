@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_MOB_LOOT_TABLE_H
 #define COMS_MODELS_MOB_LOOT_TABLE_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../utils/Utils.h"
 #include "../../../utils/RandomUtils.h"
 #include "Drop.h"

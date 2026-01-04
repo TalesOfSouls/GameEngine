@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_MOB_PLAYER_H
 #define COMS_MODELS_MOB_PLAYER_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 #include "../../item/Equipment.h"
 #include "../Mob.h"

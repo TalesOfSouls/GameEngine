@@ -1,7 +1,7 @@
 #ifndef COMS_IMAGE_QOI_H
 #define COMS_IMAGE_QOI_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include <string.h>
 
 #define QOI_OP_LUMA555_H 0b00000000

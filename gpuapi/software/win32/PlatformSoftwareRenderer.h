@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_SOFTWARE_WIN32_SOFTWARE_RENDERER_H
 #define COMS_GPUAPI_SOFTWARE_WIN32_SOFTWARE_RENDERER_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include <windows.h>
 
 struct PlatformSoftwareRenderer {

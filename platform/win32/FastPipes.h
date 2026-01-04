@@ -9,7 +9,7 @@
 #ifndef COMS_PLATFORM_WIN32_FAST_PIPES_H
 #define COMS_PLATFORM_WIN32_FAST_PIPES_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 #pragma comment(lib, "kernel32.lib")
 #pragma comment(lib, "user32.lib")

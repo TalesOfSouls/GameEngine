@@ -9,7 +9,7 @@
 #ifndef COMS_STDLIB_GAME_MATH_TYPES_H
 #define COMS_STDLIB_GAME_MATH_TYPES_H
 
-#include "Types.h"
+#include "Stdlib.h"
 
 #define OMS_LERP(a, b, t) ((1 - (t)) * (a) + (t) * (b))
 #define OMS_INVERSE_LERP(a, b, x) (((x) - (a)) / ((b) - (a)))

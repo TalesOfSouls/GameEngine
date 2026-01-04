@@ -1,9 +1,11 @@
 #define UBER_TEST 1
 #define PERFORMANCE_TEST 1
 
+#include "stdlib/Stdlib.h"
 //#include "math/EvaluatorTest.cpp"
 #include "tests/memory/ChunkMemoryTest.cpp"
 #include "tests/memory/RingMemoryTest.cpp"
+#include "tests/memory/BufferMemoryTest.cpp"
 #include "tests/stdlib/HashMapTest.cpp"
 #include "tests/ui/UILayoutTest.cpp"
 #include "tests/ui/UIThemeTest.cpp"
@@ -13,7 +15,9 @@
 #include "tests/utils/MathUtilsTest.cpp"
 #include "tests/utils/UtilsTest.cpp"
 #include "tests/utils/TimeUtilsTest.cpp"
+#include "tests/asset/AssetArchiveTest.cpp"
 #include "tests/entity/voxel/VoxelWorldMapTest.cpp"
+#include "tests/system/DRMTest.cpp"
 
 #ifdef UBER_TEST
     #ifdef main
@@ -24,12 +28,12 @@
 int main() {
     TEST_HEADER();
 
-    _rng_state_32 = (int32) time_index();
-    _rng_state_64 = time_index();
+    rand_setup();
 
     //MathEvaluatorTest();
     MemoryChunkMemoryTest();
     MemoryRingMemoryTest();
+    MemoryBufferMemoryTest();
     StdlibHashMapTest();
     UIUILayoutTest();
     UIUIThemeTest();
@@ -39,7 +43,9 @@ int main() {
     UtilsMathUtilsTest();
     UtilsUtilsTest();
     UtilsTimeUtilsTest();
+    AssetArchiveTest();
     VoxelWorldMapTest();
+    DRMTest();
 
     TEST_FOOTER();
 

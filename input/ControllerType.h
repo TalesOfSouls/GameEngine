@@ -9,7 +9,7 @@
 #ifndef COMS_PLATFORM_WIN32_INPUT_CONTROLLER_TYPE_H
 #define COMS_PLATFORM_WIN32_INPUT_CONTROLLER_TYPE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 enum ControllerType {
     CONTROLLER_TYPE_NONE,

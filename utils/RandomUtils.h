@@ -10,7 +10,7 @@
 #define COMS_UTILS_RANDOM_H
 
 #include <stdlib.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../utils/Assert.h"
 #include "../utils/TimeUtils.h"
 

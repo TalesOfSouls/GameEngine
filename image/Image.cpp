@@ -72,11 +72,8 @@ uint32 image_header_from_data(const byte* __restrict data, Image* const __restri
 {
     const byte* const start = data;
 
-    image->width = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
-    data += sizeof(image->width);
-
-    image->height = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
-    data += sizeof(image->height);
+    data = read_le(data, &image->width);
+    data = read_le(data, &image->height);
 
     image->pixel_count = image->width * image->height;
 
@@ -107,11 +104,8 @@ uint32 image_header_to_data(const Image* __restrict image, byte* __restrict data
 {
     const byte* const start = data;
 
-    *((uint32 *) data) = SWAP_ENDIAN_LITTLE(image->width);
-    data += sizeof(image->width);
-
-    *((uint32 *) data) = SWAP_ENDIAN_LITTLE(image->height);
-    data += sizeof(image->height);
+    data = write_le(data, image->width);
+    data = write_le(data, image->height);
 
     *data = image->image_settings;
     data += sizeof(image->image_settings);

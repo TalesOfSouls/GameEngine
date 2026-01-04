@@ -9,7 +9,7 @@
 #ifndef COMS_ENCODING_BASE64_DEFINITIONS_H
 #define COMS_ENCODING_BASE64_DEFINITIONS_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 static const char BASE64_CHARS[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_MOB_PLAYER_STATS_H
 #define COMS_MODELS_MOB_PLAYER_STATS_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 // @question Do we even want this?
 struct PlayerStats {

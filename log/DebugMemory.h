@@ -9,7 +9,7 @@
 #ifndef COMS_LOG_DEBUG_MEMORY_H
 #define COMS_LOG_DEBUG_MEMORY_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
 
 #ifndef DEBUG_MEMORY_RANGE_MAX
@@ -98,7 +98,7 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
         return;
     }
 
-    const DebugMemory* mem = debug_memory_find(start);
+    const DebugMemory* const mem = debug_memory_find(start);
     if (mem) {
         return;
     }
@@ -106,7 +106,7 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
     if (_dmc->memory_size <= _dmc->memory_element_idx) {
         const uint32 new_size = _dmc->memory_size + 3;
         // @performance Can we get rid of this calloc?
-        DebugMemory* new_stats = (DebugMemory *) calloc(new_size * sizeof(DebugMemory), 64);
+        DebugMemory* const new_stats = (DebugMemory *) calloc(new_size * sizeof(DebugMemory), 64);
         if (!new_stats) {
             return;
         }
@@ -120,7 +120,7 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
         _dmc->memory_size = new_size;
     }
 
-    DebugMemory* debug_mem = &_dmc->memory_stats[_dmc->memory_element_idx];
+    DebugMemory* const debug_mem = &_dmc->memory_stats[_dmc->memory_element_idx];
     debug_mem->start = start;
     debug_mem->size = size;
     debug_mem->usage = 0;
@@ -145,14 +145,14 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
         return;
     }
 
-    DebugMemory* mem = debug_memory_find(start);
+    DebugMemory* const mem = debug_memory_find(start);
     if (!mem) {
         return;
     }
 
     const uint32 idx = atomic_increment_wrap_relaxed(&mem->action_idx, ARRAY_COUNT(mem->last_action));
 
-    DebugMemoryRange* dmr = &mem->last_action[idx];
+    DebugMemoryRange* const dmr = &mem->last_action[idx];
     dmr->type = type;
     dmr->start = start - mem->start;
     dmr->size = size;
@@ -183,7 +183,7 @@ void debug_memory_reserve(uintptr_t start, size_t size, MemoryDebugType type, co
         return;
     }
 
-    DebugMemory* mem = debug_memory_find(start);
+    DebugMemory* const mem = debug_memory_find(start);
     if (!mem) {
         return;
     }
@@ -193,7 +193,7 @@ void debug_memory_reserve(uintptr_t start, size_t size, MemoryDebugType type, co
         ARRAY_COUNT(mem->reserve_action)
     );
 
-    DebugMemoryRange* dmr = &mem->reserve_action[idx];
+    DebugMemoryRange* const dmr = &mem->reserve_action[idx];
     dmr->type = type;
     dmr->start = start - mem->start;
     dmr->size = size;
@@ -215,13 +215,13 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
         return;
     }
 
-    DebugMemory* mem = debug_memory_find(start);
+    DebugMemory* const mem = debug_memory_find(start);
     if (!mem) {
         return;
     }
 
     for (uint32 i = 0; i < ARRAY_COUNT(mem->reserve_action); ++i) {
-        DebugMemoryRange* dmr = &mem->reserve_action[i];
+        DebugMemoryRange* const dmr = &mem->reserve_action[i];
         if (dmr->start == start - mem->start) {
             dmr->size = 0;
             return;

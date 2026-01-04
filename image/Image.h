@@ -9,7 +9,7 @@
 #ifndef COMS_IMAGE_H
 #define COMS_IMAGE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 #define IMAGE_SETTING_PIXEL_BGR       0b10000000 // 0 = rgba, 1 = bgra
 #define IMAGE_SETTING_BOTTOM_TO_TOP   0b01000000 // 0 = ttb, 1 = btt

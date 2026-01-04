@@ -13,7 +13,7 @@
 #include <windows.h>
 
 #include "../../../input/ControllerInput.h"
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 // @todo consider to remove some static and defines since we are never calling it somewhere else
 
@@ -66,7 +66,7 @@ ControllerInput* xinput_init_controllers()
 
     // We always want at least one empty controller slot
     // @todo Change so that we store the actual number of devices
-    ControllerInput *controllers = (ControllerInput *) calloc((c + 1), sizeof(ControllerInput));
+    ControllerInput* const controllers = (ControllerInput *) calloc((c + 1), sizeof(ControllerInput));
 
     if (c == 0) {
         return controllers;
@@ -99,8 +99,8 @@ void input_map_xinput(ControllerInput* controller, int32 controller_id) NO_EXCEP
     controller->button[CONTROLLER_BUTTON_OTHER_0] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_START;
     controller->button[CONTROLLER_BUTTON_OTHER_1] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK;
 
-    controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_BUTTON] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER ? 1: 0;
-    controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_BUTTON] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER ? 1: 0;
+    controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_BUTTON] = (controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) ? 1 : 0;
+    controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_BUTTON] = (controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) ? 1 : 0;
 
     controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = controller_state.Gamepad.bRightTrigger;
     controller->is_analog[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = true;
@@ -108,10 +108,10 @@ void input_map_xinput(ControllerInput* controller, int32 controller_id) NO_EXCEP
     controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = controller_state.Gamepad.bLeftTrigger;
     controller->is_analog[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = true;
 
-    controller->button[CONTROLLER_BUTTON_T] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_Y ? 1: 0;
-    controller->button[CONTROLLER_BUTTON_C] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_B ? 1: 0;
-    controller->button[CONTROLLER_BUTTON_X] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_A ? 1: 0;
-    controller->button[CONTROLLER_BUTTON_S] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_X ? 1: 0;
+    controller->button[CONTROLLER_BUTTON_T] = (controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_Y) ? 1 : 0;
+    controller->button[CONTROLLER_BUTTON_C] = (controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_B) ? 1 : 0;
+    controller->button[CONTROLLER_BUTTON_X] = (controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_A) ? 1 : 0;
+    controller->button[CONTROLLER_BUTTON_S] = (controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_X) ? 1 : 0;
 
     controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbLX, (short) 127);
     controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbLY, (short) 127);

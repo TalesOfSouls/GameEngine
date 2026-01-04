@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_MOB_MONSTER_H
 #define COMS_MODELS_MOB_MONSTER_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 #include "../Mob.h"
 #include "LootTable.h"

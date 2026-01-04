@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_GAME_SYSTEMS_PRIMARY_H
 #define COMS_MODELS_GAME_SYSTEMS_PRIMARY_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 enum PrimaryGameSystem {
     PRIMARY_GAME_SYSTEM_OPEN_WORLD,

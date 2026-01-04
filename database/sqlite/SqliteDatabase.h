@@ -9,7 +9,7 @@
 #ifndef COMS_DATABASE_SQLITE_H
 #define COMS_DATABASE_SQLITE_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 #if _WIN32
     #include "../../dependencies/sqlite/src/sqlite3.h"

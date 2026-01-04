@@ -9,7 +9,7 @@
 #ifndef COMS_ASSET_H
 #define COMS_ASSET_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "AssetType.h"
 
 enum AssetState : byte {

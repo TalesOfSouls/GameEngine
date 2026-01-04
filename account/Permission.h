@@ -9,7 +9,7 @@
 #ifndef COMS_ACCOUNT_PERMISSION_H
 #define COMS_ACCOUNT_PERMISSION_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 struct Permission {
     uint32 id;

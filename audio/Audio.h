@@ -9,7 +9,7 @@
 #ifndef COMS_AUDIO_H
 #define COMS_AUDIO_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 // This represents the audio file
 struct Audio {

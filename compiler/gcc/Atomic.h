@@ -9,7 +9,7 @@
 #ifndef COMS_COMPILER_GCC_ATOMIC_H
 #define COMS_COMPILER_GCC_ATOMIC_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "CompilerUtils.h"
 
 typedef union { f32 f; int32 l; } _atomic_32;

@@ -9,7 +9,7 @@
 #ifndef COMS_PLATFORM_LINUX_GUI_UTILS_H
 #define COMS_PLATFORM_LINUX_GUI_UTILS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

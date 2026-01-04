@@ -1,7 +1,7 @@
 #ifndef COMS_UI_ATTRIBUTE_SHADOW_H
 #define COMS_UI_ATTRIBUTE_SHADOW_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 struct UIAttributeShadow {
     f32 angle;

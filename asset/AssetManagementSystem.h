@@ -10,7 +10,7 @@
 #define COMS_ASSET_MANAGEMENT_SYSTEM_H
 
 #include <string.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "Asset.h"
 #include "../memory/ChunkMemory.h"
 #include "../utils/Assert.h"
@@ -61,7 +61,7 @@ void ams_create(AssetManagementSystem* const ams, BufferMemory* const buf, int32
     ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64);
 
     //memset(ams->asset_components, 0, asset_component_count * sizeof(AssetComponent));
-    memset(ams->asset_components, 0, OMS_ALIGN_UP(asset_component_count * sizeof(AssetComponent), 64));
+    memset(ams->asset_components, 0, align_up(asset_component_count * sizeof(AssetComponent), 64));
 }
 
 // Different AMS components can have different chunk sizes
@@ -76,6 +76,19 @@ void ams_component_create(AssetComponent* ac, BufferMemory* const buf, int32 chu
     );
 
     chunk_init(&ac->asset_memory, buf, count, chunk_size, 64);
+    mutex_init(&ac->mtx, NULL);
+}
+
+inline
+void ams_component_alloc(AssetComponent* ac, int32 chunk_size, int32 count) NO_EXCEPT
+{
+    ASSERT_TRUE(chunk_size);
+    LOG_1(
+        "Create AMS Component for %n assets and %n B",
+        {DATA_TYPE_INT32, &count}, {DATA_TYPE_UINT32, &chunk_size}
+    );
+
+    chunk_alloc(&ac->asset_memory, count, chunk_size, 64);
     mutex_init(&ac->mtx, NULL);
 }
 
@@ -101,6 +114,7 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
 FORCE_INLINE
 void ams_component_free(AssetComponent* ac) NO_EXCEPT
 {
+    chunk_free(&ac->asset_memory);
     mutex_destroy(&ac->mtx);
 }
 
@@ -140,7 +154,7 @@ bool thrd_ams_is_in_vram(Asset* const asset) NO_EXCEPT
 inline
 Asset* ams_get_asset(AssetManagementSystem* const ams, const char* key) NO_EXCEPT
 {
-    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
+    HashEntry* const entry = hashmap_get_entry(&ams->hash_map, key);
 
     DEBUG_MEMORY_READ(
         (uint64) (entry ? ((Asset *) entry->value)->self : 0),
@@ -154,7 +168,7 @@ Asset* ams_get_asset(AssetManagementSystem* const ams, const char* key) NO_EXCEP
 inline
 Asset* thrd_ams_get_asset(AssetManagementSystem* const ams, const char* key) NO_EXCEPT
 {
-    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
+    HashEntry* const entry = hashmap_get_entry(&ams->hash_map, key);
 
     if (!entry || atomic_get_acquire(&((Asset *) entry->value)->is_loaded) <= 0) {
         return NULL;
@@ -170,7 +184,7 @@ Asset* thrd_ams_get_asset(AssetManagementSystem* const ams, const char* key) NO_
 
 Asset* thrd_ams_get_asset_wait(AssetManagementSystem* const ams, const char* key) NO_EXCEPT
 {
-    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
+    HashEntry* const entry = hashmap_get_entry(&ams->hash_map, key);
     if (!entry) {
         return NULL;
     }
@@ -194,7 +208,7 @@ Asset* thrd_ams_get_asset_wait(AssetManagementSystem* const ams, const char* key
 Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* const ams, byte type, const char* name, uint32 size, uint32 overhead = 0) NO_EXCEPT
 {
     // @bug Isn't hashmap_get_reserve unsafe for threading?
-    HashEntry* entry = hashmap_get_reserve(&ams->hash_map, name);
+    HashEntry* const entry = hashmap_get_reserve(&ams->hash_map, name);
     Asset* const asset = (Asset *) entry->value;
 
     if (asset->self) {
@@ -205,11 +219,11 @@ Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* const ams, byte ty
         }
     }
 
-    AssetComponent* ac = &ams->asset_components[type];
-    uint16 elements = ams_calculate_chunks(ac, size, overhead);
-    int32 free_data = chunk_reserve(&ac->asset_memory, elements);
+    AssetComponent* const ac = &ams->asset_components[type];
+    const uint16 elements = ams_calculate_chunks(ac, size, overhead);
+    const int32 free_data = chunk_reserve(&ac->asset_memory, elements);
 
-    byte* data = chunk_get_element(&ac->asset_memory, free_data);
+    byte* const data = chunk_get_element(&ac->asset_memory, free_data);
 
     asset->component_id = type;
     asset->self = data;
@@ -244,7 +258,7 @@ void ams_remove_asset(AssetManagementSystem* const ams, AssetComponent* ac, Asse
 }
 
 inline
-void ams_remove_asset_ram(AssetComponent* ac, Asset* const asset) NO_EXCEPT
+void ams_remove_asset_ram(AssetComponent* const ac, const Asset* const asset) NO_EXCEPT
 {
     ac->ram_size -= asset->ram_size;
     chunk_free_elements(
@@ -263,7 +277,7 @@ void ams_remove_asset(AssetManagementSystem* const ams, const char* name) NO_EXC
     // @todo remove from vram
 
     Asset* const asset = ams_get_asset(ams, name);
-    AssetComponent* ac = &ams->asset_components[asset->component_id];
+    AssetComponent* const ac = &ams->asset_components[asset->component_id];
 
     asset->is_loaded = 0;
     ac->vram_size -= asset->vram_size;
@@ -283,7 +297,7 @@ void ams_remove_asset(AssetManagementSystem* const ams, Asset* const asset, cons
 {
     // @todo remove from vram
 
-    AssetComponent* ac = &ams->asset_components[asset->component_id];
+    AssetComponent* const ac = &ams->asset_components[asset->component_id];
 
     asset->is_loaded = 0;
     ac->vram_size -= asset->vram_size;
@@ -299,7 +313,7 @@ void ams_remove_asset(AssetManagementSystem* const ams, Asset* const asset, cons
 }
 
 inline
-void ams_remove_asset_ram(AssetManagementSystem* const ams, Asset* const asset) NO_EXCEPT
+void ams_remove_asset_ram(AssetManagementSystem* const ams, const Asset* const asset) NO_EXCEPT
 {
     AssetComponent* const ac = &ams->asset_components[asset->component_id];
     ac->ram_size -= asset->ram_size;
@@ -332,12 +346,12 @@ void thrd_ams_remove_asset(AssetManagementSystem* const ams, AssetComponent* ac,
 
 void thrd_ams_remove_asset(AssetManagementSystem* const ams, const char* name) NO_EXCEPT
 {
-    HashEntry* entry = hashmap_get_entry(&ams->hash_map, name);
+    HashEntry* const entry = hashmap_get_entry(&ams->hash_map, name);
     Asset* const asset = (Asset *) entry->value;
     atomic_set_release(&asset->is_loaded, -1);
     hashmap_remove(&ams->hash_map, name);
 
-    AssetComponent* ac = &ams->asset_components[asset->component_id];
+    AssetComponent* const ac = &ams->asset_components[asset->component_id];
     chunk_free_elements(
         &ac->asset_memory,
         chunk_id_from_memory(&ac->asset_memory, asset->self),
@@ -354,7 +368,7 @@ void thrd_ams_remove_asset(AssetManagementSystem* const ams, const char* name, A
     atomic_set_release(&asset->is_loaded, -1);
     hashmap_remove(&ams->hash_map, name);
 
-    AssetComponent* ac = &ams->asset_components[asset->component_id];
+    AssetComponent* const ac = &ams->asset_components[asset->component_id];
     chunk_free_elements(
         &ac->asset_memory,
         chunk_id_from_memory(&ac->asset_memory, asset->self),
@@ -370,8 +384,8 @@ void thrd_ams_remove_asset(AssetManagementSystem* const ams, const char* name, A
 
 Asset* ams_reserve_asset(AssetManagementSystem* const ams, byte type, const char* name, uint32 size, uint32 overhead = 0) NO_EXCEPT
 {
-    AssetComponent* ac = &ams->asset_components[type];
-    uint16 elements = ams_calculate_chunks(ac, size, overhead);
+    AssetComponent* const ac = &ams->asset_components[type];
+    const uint16 elements = ams_calculate_chunks(ac, size, overhead);
 
     const int32 free_data = chunk_reserve(&ac->asset_memory, elements);
     if (free_data < 0) {
@@ -379,7 +393,7 @@ Asset* ams_reserve_asset(AssetManagementSystem* const ams, byte type, const char
         return NULL;
     }
 
-    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
+    byte* const asset_data = chunk_get_element(&ac->asset_memory, free_data);
     Asset* const asset = (Asset *) hashmap_reserve(&ams->hash_map, name)->value;
 
     asset->component_id = type;
@@ -399,8 +413,8 @@ Asset* ams_reserve_asset(AssetManagementSystem* const ams, byte type, const char
 inline
 Asset* thrd_ams_reserve_asset(AssetManagementSystem* const ams, byte type, const char* name, uint32 size, uint32 overhead = 0) NO_EXCEPT
 {
-    AssetComponent* ac = &ams->asset_components[type];
-    uint16 elements = ams_calculate_chunks(ac, size, overhead);
+    AssetComponent* const ac = &ams->asset_components[type];
+    const uint16 elements = ams_calculate_chunks(ac, size, overhead);
 
     // Required for guard
     // alternatively we could manually call _guard.unlock();
@@ -414,7 +428,7 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* const ams, byte type, const
     }
     _guard.unlock();
 
-    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
+    byte* const asset_data = chunk_get_element(&ac->asset_memory, free_data);
 
     Asset asset = {
         0, // .official_id =
@@ -456,7 +470,7 @@ void thrd_ams_update(AssetManagementSystem* const ams, uint64 time, uint64 dt) N
     // Iterate the hash map to find all assets
     uint32 chunk_id = 0;
     chunk_iterate_start(&ams->hash_map.buf, chunk_id) {
-        HashEntry* entry = (HashEntry *) chunk_get_element(&ams->hash_map.buf, chunk_id);
+        HashEntry* const entry = (HashEntry *) chunk_get_element(&ams->hash_map.buf, chunk_id);
         Asset* const asset = (Asset *) entry->value;
 
         if (!thrd_ams_is_loaded(asset)) {
@@ -495,7 +509,7 @@ void thrd_ams_update(AssetManagementSystem* const ams, uint64 time, uint64 dt) N
 
 Asset* ams_insert_asset(AssetManagementSystem* const ams, Asset* const asset_temp, const char* name) NO_EXCEPT
 {
-    AssetComponent* ac = &ams->asset_components[asset_temp->component_id];
+    AssetComponent* const ac = &ams->asset_components[asset_temp->component_id];
 
     const int32 free_data = chunk_reserve(&ac->asset_memory, asset_temp->size);
     if (free_data < 0) {
@@ -503,10 +517,9 @@ Asset* ams_insert_asset(AssetManagementSystem* const ams, Asset* const asset_tem
         return NULL;
     }
 
-    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
+    byte* const asset_data = chunk_get_element(&ac->asset_memory, free_data);
 
     asset_temp->self = asset_data;
-    asset_temp->size = asset_temp->size; // Crucial for freeing
     asset_temp->ram_size = ac->asset_memory.chunk_size * asset_temp->size;
 
     ac->vram_size += asset_temp->vram_size;
@@ -522,7 +535,7 @@ Asset* ams_insert_asset(AssetManagementSystem* const ams, Asset* const asset_tem
 inline
 Asset* thrd_ams_insert_asset(AssetManagementSystem* const ams, Asset* const asset_temp, const char* name) NO_EXCEPT
 {
-    AssetComponent* ac = &ams->asset_components[asset_temp->component_id];
+    AssetComponent* const ac = &ams->asset_components[asset_temp->component_id];
 
     MutexGuard _guard(&ams->asset_components[asset_temp->component_id].mtx);
     const int32 free_data = chunk_reserve(&ac->asset_memory, asset_temp->size);
@@ -534,7 +547,7 @@ Asset* thrd_ams_insert_asset(AssetManagementSystem* const ams, Asset* const asse
     }
     _guard.unlock();
 
-    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
+    byte* const asset_data = chunk_get_element(&ac->asset_memory, free_data);
     memcpy(asset_data, asset_temp->self, sizeof(Asset));
 
     asset_temp->self = asset_data;

@@ -1,7 +1,7 @@
 #ifndef COMS_MODELS_JOB_RANK_H
 #define COMS_MODELS_JOB_RANK_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 enum JobDifficultyLevel : uint8 {
     JOB_RANK_NOVICE,

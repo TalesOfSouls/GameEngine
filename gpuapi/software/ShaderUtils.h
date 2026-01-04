@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_SOFTWARE_SHADER_UTILS_H
 #define COMS_GPUAPI_SOFTWARE_SHADER_UTILS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../memory/RingMemory.h"
 #include "../../memory/BufferMemory.h"
 #include "Shader.h"

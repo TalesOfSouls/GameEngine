@@ -9,7 +9,7 @@
 #ifndef COMS_COLOR_VISION_DEFICIENCY_H
 #define COMS_COLOR_VISION_DEFICIENCY_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 f32 protanopia_matrix[9] = {
     0.567f, 0.433f, 0.000f,

@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_GPU_INFO_H
 #define COMS_GPUAPI_GPU_INFO_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 // @todo We don't care about a lot of features, consider to remove them if we can get either below 32bit
 // or if we eventually overflow 64 bit

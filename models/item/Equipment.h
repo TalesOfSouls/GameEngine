@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_EQUIPMENT_H
 #define COMS_MODELS_EQUIPMENT_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 #include "../mob/MobStats.h"
 #include "../mob/skill/StatsTarget.h"

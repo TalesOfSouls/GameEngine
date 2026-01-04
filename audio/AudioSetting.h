@@ -9,7 +9,7 @@
 #ifndef COMS_AUDIO_SETTING_H
 #define COMS_AUDIO_SETTING_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../math/matrix/Matrix.h"
 
 enum SoundApiType : byte {
@@ -18,6 +18,7 @@ enum SoundApiType : byte {
     SOUND_API_TYPE_WASAPI,
 };
 
+// @performance the element order is probably not ideal in terms of useless padding
 struct AudioSetting {
     f32 master_volume;
 

@@ -1,7 +1,7 @@
 #ifndef COMS_UI_ATTRIBUTE_TYPE_H
 #define COMS_UI_ATTRIBUTE_TYPE_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 enum UIAttributeType : uint16 {
     UI_ATTRIBUTE_TYPE_NONE,

@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_ATTRIBUTE_TYPE_H
 #define COMS_GPUAPI_ATTRIBUTE_TYPE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../compiler/CompilerUtils.h"
 
 enum GpuAttributeType : byte {

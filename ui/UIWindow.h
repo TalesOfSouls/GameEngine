@@ -1,7 +1,7 @@
 #ifndef COMS_UI_WINDOW_H
 #define COMS_UI_WINDOW_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "attribute/UIAttributeBorder.h"
 #include "attribute/UIAttributeShadow.h"
 #include "attribute/UIAttributeFont.h"
@@ -68,7 +68,7 @@ void ui_window_element_populate(
 ) {
     v4_f32 parent_dimension = {};
     if (element->parent) {
-        UIElement* parent = element->parent ? (UIElement *) (layout->data + element->parent) : NULL;
+        UIElement* parent = (UIElement *) (layout->data + element->parent);
         // @bug How to ensure that the parent is initialized before the child element
         // Currently the order of the initialization depends on the theme file, NOT the layout file
         // We could fix it by loading the style based on the layout order but this would result in many misses when looking up styles

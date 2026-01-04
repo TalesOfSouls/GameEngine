@@ -10,7 +10,7 @@
 #ifndef COMS_PLATFORM_WIN32_INPUT_CONTROLLER_DUALSENSE_H
 #define COMS_PLATFORM_WIN32_INPUT_CONTROLLER_DUALSENSE_H
 
-#include "../../../../stdlib/Types.h"
+#include "../../../../stdlib/Stdlib.h"
 #include "../../../../input/ControllerInput.h"
 #include "../../../../input/InputConnectionType.h"
 #include "../../../../utils/BitUtils.h"
@@ -18,7 +18,11 @@
 // @bug bluetooth and USB have different formats?!
 // https://github.com/nondebug/dualsense
 inline
-void input_map_dualsense(ControllerInput* controller, InputConnectionType connection_type, byte* data) NO_EXCEPT
+void input_map_dualsense(
+    ControllerInput* controller,
+    InputConnectionType connection_type,
+    const byte* data
+) NO_EXCEPT
 {
     // 0 is not the origin -> need to shift
     ++data;

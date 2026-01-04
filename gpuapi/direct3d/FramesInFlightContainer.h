@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_DIRECT3D_FRAMES_IN_FLIGHT_CONTAINER_H
 #define COMS_GPUAPI_DIRECT3D_FRAMES_IN_FLIGHT_CONTAINER_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include <d3d12.h>
 
 struct FramesInFlightContainer {

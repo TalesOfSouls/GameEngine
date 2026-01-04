@@ -9,21 +9,14 @@
 #ifndef COMS_AUDIO_MIXER_H
 #define COMS_AUDIO_MIXER_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "Audio.h"
 #include "AudioSetting.h"
+#include "AudioWrapper.h"
 #include "../utils/Utils.h"
 #include "../memory/ChunkMemory.h"
 #include "../math/matrix/Matrix.h"
 #include "../thread/Atomic.h"
-
-#if DIRECT_SOUND
-    #include "../platform/win32/audio/DirectSound.h"
-#elif XAUDIO2
-    #include "../platform/win32/audio/XAudio2.h"
-#elif WASAPI
-    #include "../platform/win32/audio/Wasapi.h"
-#endif
 
 enum AudioEffect {
     AUDIO_EFFECT_NONE,
@@ -79,16 +72,12 @@ struct AudioMixer {
     AudioSetting settings;
     AudioLocationSetting camera;
 
-    #if DIRECT_SOUND
-        DirectSoundSetting api_setting;
-    #elif XAUDIO2
-        XAudio2Setting api_setting;
-    #elif WASAPI
-        WasapiSetting api_setting;
-    #endif
+    ApiAudioSetting api_setting;
 
-    // @todo Replace HWND with our own typedef for linux
-    HWND window;
+    #if _WIN32
+        // @todo Replace HWND with our own typedef for linux
+        HWND window;
+    #endif
 
     int16* buffer_temp;
 
@@ -126,7 +115,7 @@ bool audio_mixer_is_active(AudioMixer* mixer) NO_EXCEPT
     return (mixer->state_old = mixer_state) == AUDIO_MIXER_STATE_ACTIVE;
 }
 
-void audio_mixer_play(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL) NO_EXCEPT
+void audio_mixer_play(AudioMixer* const mixer, int32 id, Audio* const audio, const AudioInstance* const settings = NULL) NO_EXCEPT
 {
     int32 index = chunk_reserve_one(&mixer->audio_instances);
     if (index < 0) {
@@ -145,7 +134,7 @@ void audio_mixer_play(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* 
     }
 }
 
-void audio_mixer_play(AudioMixer* mixer, AudioInstance* settings) NO_EXCEPT
+void audio_mixer_play(AudioMixer* const mixer, const AudioInstance* const settings) NO_EXCEPT
 {
     int32 index = chunk_reserve_one(&mixer->audio_instances);
     if (index < 0) {
@@ -156,13 +145,13 @@ void audio_mixer_play(AudioMixer* mixer, AudioInstance* settings) NO_EXCEPT
     memcpy(instance, settings, sizeof(AudioInstance));
 }
 
-void audio_mixer_play_unique(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL) NO_EXCEPT
+void audio_mixer_play_unique(AudioMixer* mixer, int32 id, Audio* audio, const AudioInstance* settings = NULL) NO_EXCEPT
 {
     for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
         // @performance We are not really utilizing chunk memory.
         // Maybe a simple array would be better
         // Or we need to use more chunk functions / maybe even create a chunk_iterate() function?
-        AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
+        const AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
         if (instance->id == id) {
             return;
         }
@@ -171,13 +160,13 @@ void audio_mixer_play_unique(AudioMixer* mixer, int32 id, Audio* audio, AudioIns
     audio_mixer_play(mixer, id, audio, settings);
 }
 
-void audio_mixer_play_unique(AudioMixer* mixer, AudioInstance* settings) NO_EXCEPT
+void audio_mixer_play_unique(AudioMixer* mixer, const AudioInstance* settings) NO_EXCEPT
 {
     for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
         // @performance We are not really utilizing chunk memory.
         // Maybe a simple array would be better
         // Or we need to use more chunk functions / maybe even create a chunk_iterate() function?
-        AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
+        const AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
         if (instance->id == settings->id) {
             return;
         }
@@ -206,7 +195,7 @@ int32 apply_speed(int16* buffer, uint32 buffer_size, f32 speed) NO_EXCEPT
     }
 
     // Has to be multiple of 2 to ensure stereo is implemented correctly
-    uint32 new_size = OMS_ALIGN_UP((uint32) (buffer_size / speed), 2);
+    uint32 new_size = align_up((uint32) (buffer_size / speed), 2);
 
     // Speed up
     if (speed > 1.0f) {
@@ -518,7 +507,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
 
         uint32 sound_sample_count = sound->audio_size / mixer->settings.sample_size;
         uint32 sound_sample_index = sound->sample_index;
-        int16* audio_data = (int16 *) sound->audio_data;
+        const int16* audio_data = (int16 *) sound->audio_data;
 
         // Temporary buffer for effects processing
         // @performance If there are situations where only one file exists in the mixer that should be played we could directly write to

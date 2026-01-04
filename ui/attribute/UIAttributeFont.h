@@ -1,7 +1,7 @@
 #ifndef COMS_UI_ATTRIBUTE_FONT_H
 #define COMS_UI_ATTRIBUTE_FONT_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "UIAttributeShadow.h"
 
 enum UIFontDecoration : byte {

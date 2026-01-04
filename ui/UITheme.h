@@ -1,9 +1,8 @@
 #ifndef COMS_UI_THEME_H
 #define COMS_UI_THEME_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../memory/RingMemory.h"
-#include "../utils/EndianUtils.h"
 #include "../utils/StringUtils.h"
 #include "../stdlib/HashMap.h"
 #include "../font/Font.h"
@@ -29,7 +28,11 @@ struct UIThemeStyle {
     HashMap hash_map;
 
     // Total size of the theme incl. hash_map
+    // Most likely the theme has some additional free data available
+    // This is because we might want to dynamically grow the theme
     uint32 data_size;
+
+    // This is how much we actually use in the theme
     uint32 used_data_size;
 
     // This buffer is used also by the hash_map
@@ -113,7 +116,7 @@ void theme_from_file_txt(
         temp_group_count,
         sizeof(HashEntryInt32),
         theme->data,
-        OMS_ALIGN_UP(sizeof(HashEntryInt32), 32)
+        align_up((int32) sizeof(HashEntryInt32), 32)
     );
     int32 data_offset = (int32) hashmap_size(&theme->hash_map);
 
@@ -293,11 +296,9 @@ int32 theme_from_data(
 
     const byte* in = data;
 
-    int32 version = SWAP_ENDIAN_LITTLE(*((int32 *) in));
-    in += sizeof(version);
-
-    theme->used_data_size = SWAP_ENDIAN_LITTLE(*((uint32 *) in));
-    in += sizeof(theme->used_data_size);
+    int32 version;
+    in = read_le(in, &version);
+    in = read_le(in, &theme->used_data_size);
 
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
@@ -308,7 +309,7 @@ int32 theme_from_data(
         (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)),
         sizeof(HashEntryInt32),
         theme->data,
-        OMS_ALIGN_UP(sizeof(HashEntryInt32), 32)
+        align_up((int32) sizeof(HashEntryInt32), 32)
     );
 
     in += hashmap_load(&theme->hash_map, in, MEMBER_SIZEOF(HashEntryInt32, value));
@@ -411,11 +412,8 @@ int32 theme_to_data(
     byte* out = data;
 
     // version
-    *((int32 *) out) = SWAP_ENDIAN_LITTLE(UI_THEME_VERSION);
-    out += sizeof(int32);
-
-    *((uint32 *) out) = SWAP_ENDIAN_LITTLE(theme->used_data_size);
-    out += sizeof(theme->used_data_size);
+    out = write_le(out, UI_THEME_VERSION);
+    out = write_le(out, theme->used_data_size);
 
     // hashmap
     out += hashmap_dump(&theme->hash_map, out, MEMBER_SIZEOF(HashEntryInt32, value));

@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_BRACKET_SEEDING_H
 #define COMS_MODELS_BRACKET_SEEDING_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "BracketTeam.h"
 
 struct BracketSeeding {

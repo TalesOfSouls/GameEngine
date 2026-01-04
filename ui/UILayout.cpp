@@ -2,7 +2,7 @@
 #define COMS_UI_LAYOUT_C
 
 #include <string.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../stdlib/HashMap.h"
 #include "../asset/Asset.h"
 #include "../camera/Camera.h"
@@ -96,11 +96,11 @@ void ui_layout_assign_children(
         uint32* children = (uint32 *) (element + 1);
 
         // Set child offset
-        HashEntryInt32* child_entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name);
+        const HashEntryInt32* const child_entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name);
         children[current_child_pos] = (uint32) child_entry->value;
 
         // Create a reference to the parent element for the child element
-        UIElement* child_element = (UIElement *) (layout->data + child_entry->value);
+        UIElement* const child_element = (UIElement *) (layout->data + child_entry->value);
         child_element->parent = (uint32) ((uintptr_t) element - (uintptr_t) layout->data);
 
         ++current_child_pos;
@@ -150,9 +150,9 @@ void layout_from_file_txt(
         temp_element_count,
         sizeof(HashEntryInt32),
         layout->data,
-        OMS_ALIGN_UP(sizeof(HashEntryInt32), 32)
+        align_up((int32) sizeof(HashEntryInt32), 32)
     );
-    int64 hm_size = hashmap_size(&layout->hash_map);
+    const int64 hm_size = hashmap_size(&layout->hash_map);
 
     pos = (char *) file.content;
 
@@ -197,7 +197,7 @@ void layout_from_file_txt(
         }
 
         // Insert new element
-        UIElement* element = (UIElement *) element_data;
+        UIElement* const element = (UIElement *) element_data;
         hashmap_insert(&layout->hash_map, block_name, (int32) ((uintptr_t) element_data - (uintptr_t) layout->data));
 
         element->type = (UIElementType) ui_element_type_to_id(block_type);
@@ -248,7 +248,7 @@ void layout_from_file_txt(
         str_copy_move_until(block_name, &pos, ":");
         str_move_past(&pos, '\n');
 
-        HashEntryInt32 * entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name);
+        const HashEntryInt32* const entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name);
         UIElement* element = (UIElement *) (layout->data + entry->value);
         ui_layout_assign_children(layout, element, pos, level);
 
@@ -310,13 +310,13 @@ void ui_layout_serialize_element_detail(UIElementType type, const void* __restri
 
 static
 void ui_layout_serialize_element(
-    HashEntryInt32* entry,
+    const HashEntryInt32* const entry,
     byte* data,
     byte** out
 ) {
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of layout->data
-    UIElement* element = (UIElement *) (data + entry->value);
+    const UIElement* const element = (UIElement *) (data + entry->value);
 
     **out = element->state_flag;
     *out += sizeof(element->state_flag);
@@ -379,7 +379,7 @@ void ui_layout_serialize_element(
     //////////////////////////////////////
 
     // Children array
-    uint32* children = (uint32 *) (element + 1);
+    const uint32* children = (uint32 *) (element + 1);
     for (int32 i = 0; i < element->children_count; ++i) {
         *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(children[i]);
         *out += sizeof(*children);
@@ -400,8 +400,8 @@ void ui_layout_serialize_element(
         ui_layout_serialize_element_detail(element->type, data + element->style_types[i], out);
     }
 
-    UIAnimation* animations = (UIAnimation *) (data + element->animations);
-    int32 element_style_type_size = ui_element_type_size(element->type);
+    const UIAnimation* const animations = (UIAnimation *) (data + element->animations);
+    const int32 element_style_type_size = ui_element_type_size(element->type);
 
     for (int32 i = 0; i < element->animation_count; ++i) {
         **out = animations[i].style_old;
@@ -420,7 +420,7 @@ void ui_layout_serialize_element(
         *out += sizeof(animations[i].keyframe_count);
 
         // The keyframes are the element detail information (e.g. UIInput) and they are located after the respective Animation definition
-        byte* keyframes = (byte *) (&animations[i] + 1);
+        const byte* const keyframes = (byte *) (&animations[i] + 1);
         for (int32 j = 0; j < animations[i].keyframe_count; ++j) {
             ui_layout_serialize_element_detail(element->type, keyframes + j * element_style_type_size, out);
         }
@@ -434,13 +434,8 @@ int32 layout_to_data(
     LOG_1("Save layout");
     byte* out = data;
 
-    // version
-    *((int32 *) out) = SWAP_ENDIAN_LITTLE(UI_LAYOUT_VERSION);
-    out += sizeof(int32);
-
-    // layout_size
-    *((uint32 *) out) = SWAP_ENDIAN_LITTLE(layout->layout_size);
-    out += sizeof(layout->layout_size);
+    out = write_le(out, UI_LAYOUT_VERSION);
+    out = write_le(out, layout->layout_size);
 
     // We don't save the used_data_size because that depends on the respective theme
 
@@ -450,7 +445,7 @@ int32 layout_to_data(
     // UIElement data
     uint32 chunk_id = 0;
     chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
-        HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
+        const HashEntryInt32* const entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
         ui_layout_serialize_element(entry, layout->data, &out);
     } chunk_iterate_end;
 
@@ -482,7 +477,7 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
 {
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of layout->data
-    UIElement* element = (UIElement *) (data + entry->value);
+    UIElement* const element = (UIElement *) (data + entry->value);
 
     element->state_flag = **in;
     *in += sizeof(element->state_flag);
@@ -560,7 +555,7 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
     }
 
     UIAnimation* animations = (UIAnimation *) (data + element->animations);
-    int32 element_style_type_size = ui_element_type_size(element->type);
+    const int32 element_style_type_size = ui_element_type_size(element->type);
 
     for (int32 i = 0; i < element->animation_count; ++i) {
         animations[i].style_old = (UIStyleType) **in;
@@ -597,11 +592,9 @@ int32 layout_from_data(
 
     const byte* in = data;
 
-    int32 version = SWAP_ENDIAN_LITTLE(*((int32 *) in));
-    in += sizeof(version);
-
-    layout->layout_size = SWAP_ENDIAN_LITTLE(*((uint32 *) in));
-    in += sizeof(layout->layout_size);
+    int32 version;
+    in = read_le(in, &version);
+    in = read_le(in, &layout->layout_size);
 
     layout->used_data_size = layout->layout_size;
 
@@ -612,7 +605,7 @@ int32 layout_from_data(
         (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)),
         sizeof(HashEntryInt32),
         layout->data,
-        OMS_ALIGN_UP(sizeof(HashEntryInt32), 32)
+        align_up((int32) sizeof(HashEntryInt32), 32)
     );
 
     in += hashmap_load(&layout->hash_map, in, MEMBER_SIZEOF(HashEntryInt32, value));
@@ -621,7 +614,7 @@ int32 layout_from_data(
     // @performance We are iterating the hashmap twice (hashmap_load and here)
     uint32 chunk_id = 0;
     chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
-        HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
+        HashEntryInt32* const entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
         ui_layout_parse_element(entry, layout->data, &in);
     } chunk_iterate_end;
 
@@ -648,7 +641,7 @@ void layout_from_theme(
 
     // Current position where we can add the different sub elements (e.g. :hover, :active, ...)
     // We make sure that the offset is a multiple of 8 bytes for better alignment
-    uint32 dynamic_pos = OMS_ALIGN_UP(layout->layout_size, 8);
+    uint32 dynamic_pos = align_up(layout->layout_size, 8);
 
     // @bug Don't we have to overwrite the layout->data after layout_size to 0, to avoid bugs?
     // This could be especially true when loading another theme
@@ -665,15 +658,15 @@ void layout_from_theme(
         }
 
         // +1 to skip '#' or '.'
-        HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, style_entry->key + 1);
+        const HashEntryInt32* const entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, style_entry->key + 1);
         if (!entry) {
             // Couldn't find the base element
             continue;
         }
 
         // Populate default element
-        UIElement* element = (UIElement *) (layout->data + entry->value);
-        UIAttributeGroup* group = (UIAttributeGroup *) (theme->data + style_entry->value);
+        UIElement* const element = (UIElement *) (layout->data + entry->value);
+        UIAttributeGroup* const group = (UIAttributeGroup *) (theme->data + style_entry->value);
 
         // @todo Continue implementation
         switch (element->type) {
@@ -715,10 +708,10 @@ void layout_from_theme(
     // We could use a helper array to keep track of initialized chunk_id but we also don't have access to malloc/ring memory here
     chunk_id = 0;
     chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
-        HashEntryInt32* style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
+        HashEntryInt32* const style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         // We only handle special styles here, not the default one
-        int64 special_pos = str_find(style_entry->key, ':');
+        const int64 special_pos = str_find(style_entry->key, ':');
         if (special_pos < 0) {
             // The default element was already handled outside this loop
             continue;
@@ -730,14 +723,14 @@ void layout_from_theme(
         // +1 to skip '#' or '.'
         str_copy_until(style_entry->key + 1, pure_name, ':');
 
-        HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, pure_name);
+        const HashEntryInt32* const entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, pure_name);
         if (!entry) {
             // Couldn't find the base element
             continue;
         }
 
-        UIElement* element = (UIElement *) (layout->data + entry->value);
-        UIStyleType style_type = (UIStyleType) ui_style_type_to_id(special);
+        UIElement* const element = (UIElement *) (layout->data + entry->value);
+        const UIStyleType style_type = (UIStyleType) ui_style_type_to_id(special);
 
         // Doesn't exist (usually the first load, but exists when we resize our window)
         if (!element->style_types[style_type]) {
@@ -753,7 +746,7 @@ void layout_from_theme(
         );
 
         // Populate element style_types
-        UIAttributeGroup* group = (UIAttributeGroup *) (theme->data + style_entry->value);
+        UIAttributeGroup* const group = (UIAttributeGroup *) (theme->data + style_entry->value);
 
         // @todo Continue implementation
         switch (element->type) {
@@ -908,7 +901,7 @@ uint32 ui_layout_render_dfs(
         for (int32 i = 0; i < element->children_count - 1; ++i) {
             intrin_prefetch_l2(layout->data + children[i + 1]);
 
-            uint32 child_vertex_count = ui_layout_render_dfs(
+            const uint32 child_vertex_count = ui_layout_render_dfs(
                 layout,
                 (UIElement *) (layout->data + children[i]),
                 vertices,
@@ -919,7 +912,7 @@ uint32 ui_layout_render_dfs(
             vertex_count += child_vertex_count;
         }
 
-        uint32 child_vertex_count = ui_layout_render_dfs(
+        const uint32 child_vertex_count = ui_layout_render_dfs(
             layout,
             (UIElement *) (layout->data + children[element->children_count - 1]),
             vertices,
@@ -965,7 +958,7 @@ uint32 ui_layout_update_render_dfs(
         for (int32 i = 0; i < element->children_count - 1; ++i) {
             intrin_prefetch_l2(layout->data + children[i + 1]);
 
-            uint32 child_vertex_count = ui_layout_update_render_dfs(
+            const uint32 child_vertex_count = ui_layout_update_render_dfs(
                 layout,
                 (UIElement *) (layout->data + children[i]),
                 vertices,
@@ -976,7 +969,7 @@ uint32 ui_layout_update_render_dfs(
             vertex_count += child_vertex_count;
         }
 
-        uint32 child_vertex_count = ui_layout_update_render_dfs(
+        const uint32 child_vertex_count = ui_layout_update_render_dfs(
             layout,
             (UIElement *) (layout->data + children[element->children_count - 1]),
             vertices,

@@ -22,7 +22,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/Utils.h"
 #include "../../utils/Assert.h"
 #include "../../utils/StringUtils.h"
@@ -110,7 +110,7 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path)
 
 // @todo implement relative path support, similar to UtilsWin32
 inline
-uint64 file_size(const char* filename) {
+size_t file_size(const char* filename) {
     struct stat buffer;
 
     if (*filename == '.') {

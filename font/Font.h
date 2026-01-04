@@ -1,9 +1,8 @@
 #ifndef COMS_FONT_H
 #define COMS_FONT_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../memory/BufferMemory.h"
-#include "../utils/EndianUtils.h"
 #include "../utils/Utils.h"
 #include "../utils/BitUtils.h"
 #include "../stdlib/Simd.h"
@@ -45,7 +44,7 @@ struct Font {
 };
 
 inline
-void font_init(Font* font, byte* data, int count) NO_EXCEPT
+void font_init(Font* const font, byte* data, int count) NO_EXCEPT
 {
     font->glyphs = (Glyph *) data;
     font->glyph_count = count;
@@ -53,7 +52,7 @@ void font_init(Font* font, byte* data, int count) NO_EXCEPT
 
 // @performance replace with Eytzinger (obviously we would also have to change the order in the font font file itself)
 inline
-const Glyph* font_glyph_find(const Font* font, uint32 codepoint) NO_EXCEPT
+const Glyph* font_glyph_find(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     const uint32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
     const uint32 limit = OMS_MIN(perfect_glyph_pos, font->glyph_count - 1);
@@ -82,7 +81,7 @@ const Glyph* font_glyph_find(const Font* font, uint32 codepoint) NO_EXCEPT
 }
 
 void font_from_file_txt(
-    Font* font,
+    Font* const font,
     const char* path,
     RingMemory* const ring
 ) NO_EXCEPT
@@ -182,9 +181,10 @@ int32 font_data_size(const Font* const font) NO_EXCEPT
         + sizeof(font->line_height);
 }
 
+inline
 int32 font_from_data(
     const byte* const data,
-    Font* font,
+    Font* const font,
     MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
 {
@@ -199,12 +199,10 @@ int32 font_from_data(
     pos += ARRAY_COUNT(font->texture_name) * sizeof(char);
 
     // Read font size
-    font->size = SWAP_ENDIAN_LITTLE(*((f32 *) pos));
-    pos += sizeof(font->size);
+    pos = read_le(pos, &font->size);
 
     // Read line height
-    font->line_height = SWAP_ENDIAN_LITTLE(*((f32 *) pos));
-    pos += sizeof(font->line_height);
+    pos = read_le(pos, &font->line_height);
 
     memcpy(font->glyphs, pos, font->glyph_count * sizeof(Glyph));
 
@@ -236,11 +234,11 @@ int32 font_to_data(
     pos += ARRAY_COUNT(font->texture_name) * sizeof(char);
 
     // Font size
-    *((f32 *) pos) = font->size;
+    memcpy(pos, &font->size, sizeof(font->size));
     pos += sizeof(font->size);
 
     // Line height
-    *((f32 *) pos) = font->line_height;
+    memcpy(pos, &font->line_height, sizeof(font->line_height));
     pos += sizeof(font->line_height);
 
     // The glyphs are naturally tightly packed -> we can just store the memory
@@ -250,9 +248,9 @@ int32 font_to_data(
     int32 size = font_data_size(font);
 
     SWAP_ENDIAN_LITTLE_SIMD(
-        (int32 *) file.content,
-        (int32 *) file.content,
-        compiler_div_pow2(size, 4), // everything in here is 4 bytes -> easy to swap
+        (int32 *) data,
+        (int32 *) data,
+        size / 4, // everything in here is 4 bytes -> easy to swap
         steps
     );
     PSEUDO_USE(steps);
@@ -261,13 +259,13 @@ int32 font_to_data(
 }
 
 FORCE_INLINE
-f32 font_line_height(Font* font, f32 size) NO_EXCEPT
+f32 font_line_height(const Font* const font, f32 size) NO_EXCEPT
 {
     return font->line_height * size / font->size;
 }
 
 FORCE_INLINE
-void font_invert_coordinates(Font* font) NO_EXCEPT
+void font_invert_coordinates(Font* const font) NO_EXCEPT
 {
     // @todo Implement y-offset correction
     for (uint32 i = 0; i < font->glyph_count; ++i) {

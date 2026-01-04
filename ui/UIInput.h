@@ -1,7 +1,7 @@
 #ifndef COMS_UI_INPUT_H
 #define COMS_UI_INPUT_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../camera/Camera.h"
 #include "attribute/UIAttribute.h"
 #include "attribute/UIAttributeBorder.h"
@@ -219,7 +219,7 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
         dimension.height -= input->border.thickness;
 
         // @bug change to camera_step_closer()
-        zindex = nextafterf(zindex, INFINITY);
+        zindex = nextafterf(zindex, 999.9f);
     }
 
     // Background
@@ -231,7 +231,7 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
         );
 
         // @bug change to camera_step_closer()
-        zindex = nextafterf(zindex, INFINITY);
+        zindex = nextafterf(zindex, 999.9f);
     }
 
     // Cursor

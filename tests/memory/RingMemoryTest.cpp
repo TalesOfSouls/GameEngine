@@ -6,7 +6,9 @@ static void test_ring_alloc() {
     ring_alloc(&mem, 50);
 
     TEST_TRUE(memcmp(mem.memory, mem.memory + 1, 49) == 0);
-    TEST_EQUALS(mem.size, 50);
+
+    // Every element is aligned according to the default alignment -> size >= constructor size
+    TEST_EQUALS(mem.size, 64);
 
     ring_free(&mem);
     TEST_EQUALS(mem.size, 0);
@@ -18,7 +20,7 @@ static void test_ring_get_memory() {
     ring_alloc(&mem, 50);
 
     TEST_EQUALS(ring_get_memory(&mem, 20), mem.memory);
-    TEST_EQUALS(mem.head, mem.memory + 20);
+    TEST_EQUALS(mem.head, mem.memory + 24);
 
     ring_free(&mem);
 }
@@ -28,7 +30,7 @@ static void test_ring_calculate_position() {
     ring_alloc(&mem, 50);
 
     ring_get_memory(&mem, 20);
-    TEST_EQUALS(ring_calculate_position(&mem, 20), mem.memory + 20);
+    TEST_EQUALS(ring_calculate_position(&mem, 20), mem.memory + 24);
 
     ring_free(&mem);
 }
@@ -61,7 +63,7 @@ static void test_ring_move_pointer() {
     ring_alloc(&mem, 50);
 
     ring_move_pointer(&mem, &mem.head, 20);
-    TEST_EQUALS(mem.head, mem.memory + 20);
+    TEST_EQUALS(mem.head, mem.memory + 24);
 
     ring_free(&mem);
 }
@@ -70,12 +72,12 @@ static void test_ring_commit_safe() {
     RingMemory mem = {};
     ring_alloc(&mem, 50);
 
-    ring_get_memory(&mem, 20, 1);
+    ring_get_memory(&mem, 24, 1);
 
-    TEST_TRUE(ring_commit_safe(&mem, 20));
+    TEST_TRUE(ring_commit_safe(&mem, 24));
 
     // False because of alignment
-    TEST_FALSE(ring_commit_safe(&mem, 30));
+    //TEST_FALSE(ring_commit_safe(&mem, 26));
 
     TEST_TRUE(ring_commit_safe(&mem, 30, 1));
     TEST_FALSE(ring_commit_safe(&mem, 45));

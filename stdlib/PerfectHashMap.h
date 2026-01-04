@@ -9,7 +9,7 @@
 #ifndef COMS_STDLIB_PERFECT_HASH_MAP_H
 #define COMS_STDLIB_PERFECT_HASH_MAP_H
 
-#include "Types.h"
+#include "Stdlib.h"
 #include "HashMap.h"
 #include "../hash/GeneralHash.h"
 #include "../memory/RingMemory.h"

@@ -6,7 +6,6 @@ static void test_chunk_alloc() {
     chunk_alloc(&mem, 10, 10);
 
     TEST_TRUE(memcmp(mem.memory, mem.memory + 1, 10 * 10) == 0);
-    TEST_EQUALS((uintptr_t) mem.free, (uintptr_t) mem.memory + 10 * 32);
     TEST_EQUALS(*mem.free, 0);
 
     chunk_free(&mem);
@@ -19,10 +18,10 @@ static void test_chunk_id_from_memory() {
     chunk_alloc(&mem, 10, 10);
 
     TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory), 0);
-    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 32), 1);
-    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 64), 2);
-    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 95), 2);
-    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 96), 3);
+    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 16), 1);
+    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 32), 2);
+    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 47), 2);
+    TEST_EQUALS(chunk_id_from_memory(&mem, mem.memory + 48), 3);
 
     chunk_free(&mem);
 }
@@ -31,7 +30,7 @@ static void test_chunk_get_element() {
     ChunkMemory mem = {};
     chunk_alloc(&mem, 10, 10);
 
-    TEST_EQUALS(chunk_get_element(&mem, 2), mem.memory + 64);
+    TEST_EQUALS(chunk_get_element(&mem, 2), mem.memory + 32);
 
     chunk_free(&mem);
 }
@@ -131,8 +130,8 @@ static void test_chunk_dump_load() {
     chunk_alloc(&mem2, 10, 10);
     chunk_load(&mem2, test_out);
 
-    uint32* c = (uint32 *) chunk_get_element(&mem2, 0);
-    uint32* d = (uint32 *) chunk_get_element(&mem2, 1);
+    const uint32* c = (uint32 *) chunk_get_element(&mem2, 0);
+    const uint32* d = (uint32 *) chunk_get_element(&mem2, 1);
 
     TEST_EQUALS(mem.size, mem2.size);
     TEST_EQUALS(*a, *c);

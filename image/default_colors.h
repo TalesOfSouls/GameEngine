@@ -9,7 +9,7 @@
 #ifndef COMS_IMAGE_DEFAULT_COLORS_H
 #define COMS_IMAGE_DEFAULT_COLORS_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 // @todo some of the colors are bad
 // @todo basically all the dark colors could be made darker -> space out some of the very bright colors a little bit more (see 3rd - 5th column)

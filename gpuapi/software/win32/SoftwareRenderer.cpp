@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_SOFTWARE_WIN32_SOFTWARE_RENDERER_C
 #define COMS_GPUAPI_SOFTWARE_WIN32_SOFTWARE_RENDERER_C
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../memory/BufferMemory.h"
 #include "../../../math/matrix/Matrix.h"
 #include "../../../camera/Camera.h"

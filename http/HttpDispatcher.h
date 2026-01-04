@@ -9,7 +9,7 @@
 #ifndef COMS_HTML_DISPATCHER_H
 #define COMS_HTML_DISPATCHER_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../memory/BufferMemory.h"
 #include "HttpRequest.h"
 #include "HttpResponse.h"

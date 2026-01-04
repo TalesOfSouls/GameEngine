@@ -61,17 +61,17 @@ static void test_bits_get_64_l2r() {
 }
 
 static void test_bytes_merge_2_l2r() {
-    uint8_t arr[] = {0x12, 0x34};
+    const uint8_t arr[] = {0x12, 0x34};
     TEST_TRUE(BYTES_MERGE_2_L2R(arr) == 0x1234);
 }
 
 static void test_bytes_merge_4_l2r() {
-    uint8_t arr[] = {0x12, 0x34, 0x56, 0x78};
+    const uint8_t arr[] = {0x12, 0x34, 0x56, 0x78};
     TEST_TRUE(BYTES_MERGE_4_L2R(arr) == 0x12345678);
 }
 
 static void test_bytes_merge_8_l2r() {
-    uint8_t arr[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
+    const uint8_t arr[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
     TEST_TRUE(BYTES_MERGE_8_L2R(arr) == 0x123456789ABCDEF0);
 }
 
@@ -141,17 +141,17 @@ static void test_bits_get_64_r2l() {
 }
 
 static void test_bytes_merge_2_r2l() {
-    uint8_t arr[] = {0x12, 0x34};
+    const uint8_t arr[] = {0x12, 0x34};
     TEST_TRUE(BYTES_MERGE_2_R2L(arr) == 0x3412);
 }
 
 static void test_bytes_merge_4_r2l() {
-    uint8_t arr[] = {0x12, 0x34, 0x56, 0x78};
+    const uint8_t arr[] = {0x12, 0x34, 0x56, 0x78};
     TEST_TRUE(BYTES_MERGE_4_R2L(arr) == 0x78563412);
 }
 
 static void test_bytes_merge_8_r2l() {
-    uint8_t arr[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
+    const uint8_t arr[] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0};
     TEST_TRUE(BYTES_MERGE_8_R2L(arr) == 0xF0DEBC9A78563412);
 }
 

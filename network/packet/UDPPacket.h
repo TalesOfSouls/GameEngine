@@ -3,9 +3,8 @@
 
 #include <stdio.h>
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../compression/LZP.h"
-#include "../../utils/EndianUtils.h"
 
 #include "PacketHeader.h"
 

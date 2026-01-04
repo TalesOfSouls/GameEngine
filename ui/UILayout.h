@@ -2,7 +2,7 @@
 #define COMS_UI_LAYOUT_H
 
 #include <string.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../stdlib/HashMap.h"
 #include "../asset/Asset.h"
 #include "../font/Font.h"
@@ -66,7 +66,11 @@ struct UILayout {
     uint32 layout_size;
 
     // Total used size (hard limited to 4 GB)
+    // Most likely the theme has some additional free data available
+    // This is because we might want to dynamically grow the theme
     uint32 data_size;
+
+    // This is how much we actually use in the theme
     uint32 used_data_size;
 
     // Holds the ui elements

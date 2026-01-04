@@ -1,7 +1,7 @@
 #ifndef COMS_UI_CURSOR_H
 #define COMS_UI_CURSOR_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "attribute/UIAttributeDimension.h"
 #include "UILayout.h"
 #include "UIElement.h"

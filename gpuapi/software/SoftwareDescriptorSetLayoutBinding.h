@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_SOFTWARE_DESCRIPTOR_SET_LAYOUT_BINDING_H
 #define COMS_GPUAPI_SOFTWARE_DESCRIPTOR_SET_LAYOUT_BINDING_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 struct SoftwareDescriptorSetLayoutBinding {
     // These pointers are never the owner of the data

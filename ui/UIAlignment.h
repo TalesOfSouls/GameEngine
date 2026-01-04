@@ -1,7 +1,7 @@
 #ifndef COMS_UI_ALIGNMENT_H
 #define COMS_UI_ALIGNMENT_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 enum UIAlign : byte {
     UI_ALIGN_H_LEFT = 1 << 0,

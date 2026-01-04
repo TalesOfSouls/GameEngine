@@ -9,7 +9,7 @@
 #ifndef COMS_JINGGA_HTTP_URI_H
 #define COMS_JINGGA_HTTP_URI_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 // WARNING: Be careful when changing order, members and types
 // The current configuration is carefully chosen (see below)

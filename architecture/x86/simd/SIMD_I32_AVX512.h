@@ -13,7 +13,7 @@
 #include <xmmintrin.h>
 #include <emmintrin.h>
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "SIMD_SVML_AVX512.h"
 
 // @todo a lot of sse functions require high level (e.g. sse4.1) this needs to be changed to be more general

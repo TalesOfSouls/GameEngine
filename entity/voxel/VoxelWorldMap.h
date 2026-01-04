@@ -9,7 +9,7 @@
 #ifndef COMS_ENTITY_VOXEL_WORLD_MAP_H
 #define COMS_ENTITY_VOXEL_WORLD_MAP_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../stdlib/GameMathTypes.h"
 #include "../../stdlib/HashMap.h"
 #include "../../memory/DataPool.h"
@@ -33,7 +33,7 @@ Voxel voxel_world_map_get(
     while(y >= VOXEL_CHUNK_SIZE) { y -= VOXEL_CHUNK_SIZE; ++chunk_coord.y; }
     while(z >= VOXEL_CHUNK_SIZE) { z -= VOXEL_CHUNK_SIZE; ++chunk_coord.z; }
 
-    HashEntryVoidPKeyInt64* entry = hashmap_get_entry(map, chunk_coord.x, chunk_coord.y, chunk_coord.z);
+    HashEntryVoidPKeyInt64* entry = voxel_hashmap_get_entry(map, chunk_coord.x, chunk_coord.y, chunk_coord.z);
     if (!entry) {
         // Is air
         return {0, 0};
@@ -46,7 +46,7 @@ Voxel voxel_world_map_get(
 
 // Builds the greedy mash of a chunk
 // Requires the neighboring chunks
-void voxel_chunk_mesh_build(HashMap* map, VoxelChunk* chunk) NO_EXCEPT
+void voxel_chunk_mesh_build(HashMap* const map, VoxelChunk* const chunk) NO_EXCEPT
 {
     chunk->mesh.num_vertices = 0;
     chunk->mesh.num_indices = 0;
@@ -73,8 +73,8 @@ void voxel_chunk_mesh_build(HashMap* map, VoxelChunk* chunk) NO_EXCEPT
             // Fill mask with faces between slices d and d + 1 along the axis
             for (int32 j = 0; j < VOXEL_CHUNK_SIZE; ++j) {
                 for (int32 i = 0; i < VOXEL_CHUNK_SIZE; ++i) {
-                    v3_int32 coordA = {0,0,0};
-                    v3_int32 coordB = {0,0,0};
+                    v3_int32 coordA = {0};
+                    v3_int32 coordB = {0};
 
                     // set u and v components
                     coordA.vec[u] = i;
@@ -153,11 +153,11 @@ void voxel_chunk_mesh_build(HashMap* map, VoxelChunk* chunk) NO_EXCEPT
                     // Build a quad covering [i..i+width-1] x [j..j+height-1] at boundary d
                     // Determine face normal: axis direction * (+1 or -1).
                     // If B (d) is solid -> normal points +axis. If A (d-1) is solid -> normal points -axis.
-                    v3_byte normal_int = {0,0,0};
+                    v3_byte normal_int = {0};
 
                     bool front = false;
                     if (d >= 0) {
-                        v3_int32 coordB = {0, 0, 0};
+                        v3_int32 coordB = {0};
                         coordB.vec[u] = i;
                         coordB.vec[v] = j;
                         coordB.vec[axis] = d;
@@ -170,7 +170,8 @@ void voxel_chunk_mesh_build(HashMap* map, VoxelChunk* chunk) NO_EXCEPT
                     normal_int.vec[axis] = normal_sign;
 
                     // world base (chunk origin in world coordinates)
-                    v3_f32 base = {
+                    // @question why do I even need this variable? it is only used once
+                    const v3_f32 base = {
                         (f32) chunk->coord.x * (f32)VOXEL_CHUNK_SIZE,
                         (f32) chunk->coord.y * (f32)VOXEL_CHUNK_SIZE,
                         (f32) chunk->coord.z * (f32)VOXEL_CHUNK_SIZE
@@ -259,7 +260,7 @@ void voxel_chunk_mesh_build(HashMap* map, VoxelChunk* chunk) NO_EXCEPT
 }
 
 struct VoxelDrawChunk {
-    const VoxelChunk* chunk;
+    const void* data;
 
     // Distance squared to the camera
     // Used for sorting
@@ -285,6 +286,7 @@ struct VoxelWorld {
     //  -> this needs to be implemented here because the HashMap also needs to update it's reference
     //  -> For that we need to iterate every element in the hashmap and try to find a better position and update the value
     //  -> However, this might not be needed at all depending on how much overhead memory we allow for DataPool
+    // @question Consider to use the ReserveMemory instead of DataPool?
     DataPool chunks;
 
     // This contains the pointer to the VoxelChunk stored in the chunk memory (HashEntryVoidPKeyInt64)
@@ -311,20 +313,20 @@ void voxel_octnode_collect_visible(const VoxelOctNode* node, const Frustum* frus
     }
 
     if (node->is_leaf) {
-        if (node->chunk) {
-            draw_array->elements[draw_array->count++].chunk = node->chunk;
+        if (node->data) {
+            draw_array->elements[draw_array->count++].data = node->data;
         }
 
         return;
     }
 
-    for (int32 i = 0; i < 8; ++i) {
+    for (int32 i = 0; i < ARRAY_COUNT(node->child); ++i) {
         voxel_octnode_collect_visible(node->child[i], frustum, draw_array);
     }
 }
 
 static inline
-int32 sort_draw_array_compare(const void* a, const void* b) NO_EXCEPT
+int32 voxel_sort_draw_array_compare(const void* a, const void* b) NO_EXCEPT
 {
     const VoxelDrawChunk* c1 = (VoxelDrawChunk *) a;
     const VoxelDrawChunk* c2 = (VoxelDrawChunk *) b;
@@ -332,20 +334,16 @@ int32 sort_draw_array_compare(const void* a, const void* b) NO_EXCEPT
     return (c1->dist2 < c2->dist2) ? -1 : (int32) (c1->dist2 > c2->dist2);
 }
 
-static FORCE_INLINE
-void draw_array_sort(VoxelChunkDrawArray* draw_array) NO_EXCEPT
-{
-    // @performance Compare to sort_quicksort
-    sort_introsort_small(draw_array->elements, draw_array->count, sizeof(VoxelDrawChunk), sort_draw_array_compare);
-}
-
 inline
-void voxel_draw_array_build(VoxelWorld* vw, const Camera* camera) {
+void voxel_draw_array_build(VoxelWorld* const vw, const Camera* const camera) NO_EXCEPT
+{
     vw->draw_array.count = 0;
 
     voxel_octnode_collect_visible(vw->oct_old.root, &camera->frustum, &vw->draw_array);
 
-    draw_array_sort(&vw->draw_array);
+    // Sort the draw array
+    // @performance Compare to sort_quicksort
+    sort_introsort_small(vw->draw_array.elements, vw->draw_array.count, sizeof(VoxelDrawChunk), voxel_sort_draw_array_compare);
 }
 
 // Updates the voxel world after a position update
@@ -353,7 +351,8 @@ void voxel_draw_array_build(VoxelWorld* vw, const Camera* camera) {
 // @todo implement logic somewhere that loads the new chunks (e.g. from database, file etc)
 //      this may happen in here or outside
 static inline
-void voxel_world_update_pos(VoxelWorld* vw, v3_int32 pos) {
+void voxel_world_update_pos(VoxelWorld* const vw, v3_int32 pos) NO_EXCEPT
+{
     // After a position update we have to reset the octree
     voxel_octree_create(&vw->oct_new, pos);
 
@@ -378,7 +377,7 @@ void voxel_world_update_pos(VoxelWorld* vw, v3_int32 pos) {
         }
 
         // We don't have to check if the chunk is new because upon player position update
-        // we MUST recreate the octree. This is different to voxel_world_update_state
+        // we MUST recreate the octree. This is different to voxel_world_chunk_update
         // --------------------------------------------------------------------------------
 
         // Make sure the chunk doesn't get removed
@@ -388,47 +387,12 @@ void voxel_world_update_pos(VoxelWorld* vw, v3_int32 pos) {
 }
 
 // Updates the voxel world after voxel changes
-static inline
-void voxel_world_update_state(VoxelWorld* vw) {
-    // Iterate all elements in the hash map (only the active ones of course)
-    uint32 chunk_id = 0;
-    chunk_iterate_start(&vw->map.buf, chunk_id) {
-        HashEntry* entry = (HashEntry *) chunk_get_element(&vw->map.buf, chunk_id);
-        VoxelChunk* chunk = (VoxelChunk *) entry->value;
-
-        if (chunk->flag & VOXEL_CHUNK_FLAG_SHOULD_REMOVE) {
-            // Remove chunk from octree
-            voxel_octnode_remove(&vw->oct_new, chunk);
-
-            // Remove chunk from hash map
-            // @bug This is not how you remove an element from the hash map
-            chunk_free_elements(&vw->map.buf, chunk_id, chunk->element_count);
-
-            // This continues the iteration and skips the code below
-            chunk_iterate_continue_n(chunk->element_count);
-        }
-
-        if (chunk->flag & VOXEL_CHUNK_FLAG_IS_CHANGED) {
-            // Rebuild mesh
-            voxel_chunk_mesh_build(&vw->map, chunk);
-            chunk->flag &= ~VOXEL_CHUNK_FLAG_IS_CHANGED;
-        }
-
-        if (chunk->flag & VOXEL_CHUNK_FLAG_IS_NEW) {
-            // Add new chunk to octree
-            voxel_octnode_insert(&vw->oct_new, chunk);
-            chunk->flag &= ~VOXEL_CHUNK_FLAG_IS_NEW;
-        }
-
-        chunk_iterate_continue_n(chunk->element_count);
-    } chunk_iterate_end;
-}
-
 // This function cleans up the chunks
 inline
-void voxel_world_chunk_update(VoxelWorld* vw) {
+void voxel_world_chunk_update(VoxelWorld* vw) NO_EXCEPT
+{
     // Consider to handle all the chunk removal and adds to the octree here instead of
-    //      voxel_world_update_state
+    //      voxel_world_chunk_update
     //      and voxel_world_update_pos
 
     // Iterate all elements in the hash map (only the active ones of course)
@@ -466,23 +430,32 @@ void voxel_world_chunk_update(VoxelWorld* vw) {
     } chunk_iterate_end;
 }
 
+inline
+VoxelChunk* voxel_world_chunk_get(HashMap* map, int32 cx, int32 cy, int32 cz) NO_EXCEPT
+{
+    HashEntryVoidPKeyInt64* entry = voxel_hashmap_get_entry(map, cx, cy, cz);
+    return entry ? (VoxelChunk *) entry->value : NULL;
+}
+
+// @question do we need separate get and create functions?
 static inline
 VoxelChunk* voxel_world_chunk_get_or_create(VoxelWorld* vw, int32 cx, int32 cy, int32 cz) NO_EXCEPT
 {
-    HashEntryVoidPKeyInt64* entry = hashmap_get_entry(&vw->map, cx, cy, cz);
+    HashEntryVoidPKeyInt64* entry = voxel_hashmap_get_entry(&vw->map, cx, cy, cz);
     if(entry) {
         return (VoxelChunk *) entry->value;
     }
 
-    // @performance Maybe use hashmap_reserve and directly fill it instead of copying it over
-    VoxelChunk chunk = voxel_chunk_create(cx, cy, cz);
+    // @performance Maybe use voxel_hashmap_reserve and directly fill it instead of copying it over
+    VoxelChunk* chunk = (VoxelChunk *) pool_get_memory_one(&vw->chunks);
+    voxel_chunk_init(chunk, cx, cy, cz);
 
-    entry = hashmap_insert(&vw->map, cx, cy, cz, &chunk);
+    entry = voxel_hashmap_insert(&vw->map, cx, cy, cz, chunk);
 
     return (VoxelChunk *) entry->value;
 }
 
-static inline
+inline
 void voxel_world_voxel_set(VoxelWorld* vw, int32 world_x, int32 world_y, int32 world_z, Voxel v) NO_EXCEPT
 {
     int32 cx = floor_div(world_x, VOXEL_CHUNK_SIZE);
@@ -498,8 +471,19 @@ void voxel_world_voxel_set(VoxelWorld* vw, int32 world_x, int32 world_y, int32 w
     voxel_chunk_set(chunk, lx, ly, lz, v);
 }
 
+// voxel_coord inside the chunk
 inline
-void voxel_world_alloc(VoxelWorld* vw, v3_int32 pos, int32 max_depth) {
+void voxel_world_voxel_set(VoxelWorld* vw, v3_int32 chunk_coord, v3_int32 voxel_coord, Voxel v) NO_EXCEPT
+{
+    VoxelChunk* chunk = voxel_world_chunk_get_or_create(vw, chunk_coord.x, chunk_coord.y, chunk_coord.z);
+    voxel_chunk_set(chunk, voxel_coord.x, voxel_coord.y, voxel_coord.z, v);
+}
+
+// max_depth represents the distance in chunks
+// @bug using depth for this is bad because of how it is calculated 8^n. I think defining the max amount of visible chunks as input is much better
+inline
+void voxel_world_alloc(VoxelWorld* const vw, v3_int32 pos, int32 max_depth) NO_EXCEPT
+{
     // 8^n == 2^(3*n)
     int32 chunk_count = OMS_POW2_I32(3 * (max_depth - 1));
 
@@ -508,7 +492,8 @@ void voxel_world_alloc(VoxelWorld* vw, v3_int32 pos, int32 max_depth) {
     pool_init(&vw->chunks, &vw->mem, chunk_count, sizeof(VoxelChunk), 64);
 
     // We want a hashmap with 2* the amount of chunks for reduced hash collisions
-    hashmap_create(&vw->map, chunk_count * 2, sizeof(HashEntry) + sizeof(VoxelChunk), &vw->mem, 32);
+    hashmap_create(&vw->map, chunk_count * 2, sizeof(HashEntryVoidP), &vw->mem, 32);
+    vw->map.hash_function = hash_int64;
 
     // We expect at most chunk_count elements in our draw_array.
     // @performance Maybe chunk_count is too large, this is the max number which probably never is reached?
@@ -517,6 +502,8 @@ void voxel_world_alloc(VoxelWorld* vw, v3_int32 pos, int32 max_depth) {
 
     // Reserve max amount of node memory space
     vw->oct_old.max_depth = max_depth;
+
+    // @performance Depending on the optimization maybe we want a different data structure compared to an array?
     vw->oct_old.root = (VoxelOctNode *) buffer_get_memory(&vw->mem, sizeof(VoxelOctNode) * chunk_count, sizeof(size_t));
     vw->oct_old.root->has_data = true;
     vw->oct_old.last = vw->oct_old.root;
@@ -546,7 +533,7 @@ void voxel_world_alloc(VoxelWorld* vw, v3_int32 pos, int32 max_depth) {
     //      1. voxel_world_init with player spawn position
     //      2. load all voxel close to player position
     //      2. load all chunks via voxel_world_chunk_add(vw, chunk)
-    //      3. voxel_world_update_state()
+    //      3. voxel_world_chunk_update()
 
     // Per frame:
     //      Player moves and IFF crossed chunk?
@@ -554,7 +541,7 @@ void voxel_world_alloc(VoxelWorld* vw, v3_int32 pos, int32 max_depth) {
     //          voxel_world_chunk_remesh(), remesh newly added chunks manually
     //          voxel_world_update_pos()
     //      IFF voxel changed?
-    //          voxel_world_update_state()
+    //          voxel_world_chunk_update() WARNING update_pos might have alread updated, sometimes useless
     //      IFF movement or rotation, can be maybe optimized further if the view rotation or movement follows some constraints (e.g. looking down, moving along the same vector and no chunk crossing)
     //          voxel_draw_array_build()
 
@@ -568,6 +555,12 @@ void voxel_world_alloc(VoxelWorld* vw, v3_int32 pos, int32 max_depth) {
     //      This way we don't have to rebuild the tree every time and wait for it but continuously do it in another thread
     //      Even if the thread is not done yet, we still have a buffer of at least N chunks
     //      We could even decide to only rebuild after N/2 chunk crossings
+}
+
+FORCE_INLINE
+void voxel_world_free(VoxelWorld* const vw)
+{
+    buffer_free(&vw->mem);
 }
 
 #endif

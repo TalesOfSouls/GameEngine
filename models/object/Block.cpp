@@ -54,8 +54,8 @@ void make_cube_faces(
     float a = 0 + 1 / 2048.0;
     float b = s - 1 / 2048.0;
 
-    int faces[6] = {left, right, top, bottom, front, back};
-    int tiles[6] = {wleft, wright, wtop, wbottom, wfront, wback};
+    const int32 faces[6] = {left, right, top, bottom, front, back};
+    const int32 tiles[6] = {wleft, wright, wtop, wbottom, wfront, wback};
 
     for (int i = 0; i < 6; i++) {
         if (faces[i] == 0) {

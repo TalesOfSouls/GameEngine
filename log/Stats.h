@@ -2,7 +2,7 @@
 #ifndef COMS_LOG_STATS_H
 #define COMS_LOG_STATS_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
 
 #ifndef DEBUG_COUNTER

@@ -73,7 +73,7 @@ Asset* cmd_audio_play(AppCmdBuffer* const cb, int32 asset_id) NO_EXCEPT
 
     // Load asset if not loaded
     if (!asset) {
-        int32 archive_id = (asset_id >> 24) & 0xFF;
+        const int32 archive_id = (asset_id >> 24) & 0xFF;
         asset = asset_archive_asset_load(&cb->asset_archives[archive_id], asset_id, cb->ams, cb->mem_vol);
     }
 
@@ -95,8 +95,8 @@ Asset* cmd_audio_play(AppCmdBuffer* const cb, const char* const name) NO_EXCEPT
 
     // Load asset if not loaded
     if (!asset) {
-        int32 asset_id = (int32) hex_to_int(name);
-        int32 archive_id = (asset_id >> 24) & 0xFF;
+        const int32 asset_id = (int32) hex_to_int(name);
+        const int32 archive_id = (asset_id >> 24) & 0xFF;
         asset = asset_archive_asset_load(&cb->asset_archives[archive_id], asset_id, cb->ams, cb->mem_vol);
     }
 

@@ -10,7 +10,7 @@
 #ifndef COMS_MATH_RANDOM_BLUE_NOISE
 #define COMS_MATH_RANDOM_BLUE_NOISE
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 // @todo Implement poisson disc sampling for 2d and sphere
 // https://observablehq.com/@jrus/bridson-fork/2

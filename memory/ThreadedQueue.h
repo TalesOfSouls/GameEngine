@@ -14,7 +14,7 @@
  * WARNING: This implementation is a single-producer, single-consumer (SPSC) implementation
  */
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../utils/Utils.h"
 #include "RingMemory.h"
 #include "../thread/Thread.h"
@@ -50,7 +50,7 @@ struct ThreadedQueue {
 inline
 void thrd_queue_alloc(ThreadedQueue* queue, uint32 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
 {
-    element_size = OMS_ALIGN_UP(element_size, alignment);
+    element_size = align_up(element_size, alignment);
 
     ring_alloc((RingMemory *) queue, element_count * element_size, alignment);
 
@@ -66,7 +66,7 @@ void thrd_queue_alloc(ThreadedQueue* queue, uint32 element_count, uint32 element
 inline
 void thrd_queue_init(ThreadedQueue* queue, BufferMemory* const buf, uint32 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
 {
-    element_size = OMS_ALIGN_UP(element_size, alignment);
+    element_size = align_up(element_size, alignment);
 
     ring_init((RingMemory *) queue, buf, element_count * element_size, alignment);
 
@@ -82,7 +82,7 @@ void thrd_queue_init(ThreadedQueue* queue, BufferMemory* const buf, uint32 eleme
 inline
 void thrd_queue_init(ThreadedQueue* queue, byte* buf, uint32 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
 {
-    element_size = OMS_ALIGN_UP(element_size, alignment);
+    element_size = align_up(element_size, alignment);
 
     ring_init((RingMemory *) queue, buf, element_count * element_size, alignment);
 
@@ -246,9 +246,9 @@ FORCE_INLINE
 bool thrd_queue_empty(ThreadedQueue* queue) NO_EXCEPT
 {
     MutexGuard _guard(&queue->mtx);
-    bool is_empty = queue->head == queue->tail;
+    bool empty = queue->head == queue->tail;
 
-    return is_empty;
+    return empty;
 }
 
 inline

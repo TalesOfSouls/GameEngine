@@ -9,9 +9,8 @@
 #ifndef COMS_ASSET_ARCHIVE_H
 #define COMS_ASSET_ARCHIVE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
-#include "../utils/EndianUtils.h"
 #include "../utils/Utils.h"
 #include "../memory/RingMemory.h"
 #include "../memory/BufferMemory.h"
@@ -32,7 +31,12 @@
 #define ASSET_ARCHIVE_VERSION 1
 
 struct AssetArchiveElement {
-    // @question Why are we not using AssetType as data type?
+    // NOTE: Why are we not using AssetType as data type?
+    //      The problem is we rely on this for the archive_builder.cpp
+    //      The program uses sizeof(AssetArchiveElement) for iteration
+    //      Sure we could change it to a byte type but due to padding sizeof(...) would remain at the same size
+    //      This would result in sizeof(...) != written data size to the file
+
     // AssetType type;
     uint32 type;
 
@@ -40,7 +44,9 @@ struct AssetArchiveElement {
     uint32 length;
     uint32 uncompressed;
 
-    uint32 dependency_start; // actual index for asset_dependencies
+    // actual index for asset_dependencies
+    // @question sometimes dependencies are in different files, this might be better as an id?
+    uint32 dependency_start;
     uint32 dependency_count;
 };
 
@@ -70,20 +76,23 @@ struct AssetArchive {
 
     // This is used to tell the asset archive in which AssetManagementSystem (AMS) which asset type is located.
     // Remember, many AMS only contain one asset type (e.g. image, audio, ...)
+    // The reason for that is that different asset types need different chunk sizes
     byte asset_type_map[ASSET_TYPE_SIZE];
 };
 
 // Calculates how large the header memory has to be to hold all its information
 static inline
-int32 asset_archive_header_size(AssetArchive* const __restrict archive, const byte* __restrict data) NO_EXCEPT
+int32 asset_archive_header_size(const AssetArchive* const __restrict archive, const byte* __restrict data) NO_EXCEPT
 {
     data += sizeof(archive->header.version);
 
-    int32 asset_count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
-    data += sizeof(archive->header.asset_count);
+    int32 asset_count;
+    data = read_le(data, &asset_count);
 
-    int32 asset_dependency_count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
-    data += sizeof(archive->header.asset_dependency_count);
+    int32 asset_dependency_count;
+    read_le(data, &asset_dependency_count);
+
+    //data += sizeof(archive->header.asset_dependency_count);
 
     return sizeof(archive->header.version)
         + sizeof(archive->header.asset_count)
@@ -95,14 +104,9 @@ int32 asset_archive_header_size(AssetArchive* const __restrict archive, const by
 static inline
 void asset_archive_header_load(AssetArchiveHeader* const __restrict header, const byte* __restrict data, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {
-    header->version = SWAP_ENDIAN_LITTLE(*((int32 *) data));
-    data += sizeof(header->version);
-
-    header->asset_count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
-    data += sizeof(header->asset_count);
-
-    header->asset_dependency_count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
-    data += sizeof(header->asset_dependency_count);
+    data = read_le(data, &header->version);
+    data = read_le(data, &header->asset_count);
+    data = read_le(data, &header->asset_dependency_count);
 
     memcpy(header->asset_element, data, header->asset_count * sizeof(AssetArchiveElement));
     data += header->asset_count * sizeof(AssetArchiveElement);
@@ -191,6 +195,7 @@ void asset_archive_load(
     file.size = asset_archive_header_size(archive, file.content);
 
     // Reserve memory for the header
+    // @question Do I even want this here? Maybe this should have already happened outside when passing the asset archive
     archive->data = buffer_get_memory(
         buf,
         file.size
@@ -221,7 +226,12 @@ void asset_archive_load(
 // Maybe we could just accept a int value which we set atomically as a flag that the asset is complete?
 // this way we can check much faster if we can work with this data from the caller?!
 // The only problem is that we need to pass the pointer to this int in the thrd_queue since we queue the files to load there
-Asset* const asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManagementSystem* const ams, RingMemory* const ring) NO_EXCEPT
+Asset* const asset_archive_asset_load(
+    const AssetArchive* archive,
+    int32 id,
+    AssetManagementSystem* const ams,
+    RingMemory* const ring
+) NO_EXCEPT
 {
     // Create a string representation from the asset id
     // We can't just use the asset id, since an int can have a \0 between high byte and low byte
@@ -236,8 +246,8 @@ Asset* const asset_archive_asset_load(const AssetArchive* archive, int32 id, Ass
 
     // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
     const AssetArchiveElement* const element = &archive->header.asset_element[id & 0x00FFFFFF];
-    ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
 
+    ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
     byte component_id = archive->asset_type_map[element->type];
     //AssetComponent* ac = &ams->asset_components[component_id];
 
@@ -246,8 +256,8 @@ Asset* const asset_archive_asset_load(const AssetArchive* archive, int32 id, Ass
         {DATA_TYPE_UINT64, &id}, {DATA_TYPE_UINT32, &element->type}, {DATA_TYPE_UINT8, &component_id}, {DATA_TYPE_UINT32, &element->length}, {DATA_TYPE_UINT32, &element->uncompressed}
     );
 
+    // Check if asset already exists
     Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
-
     if (asset) {
         // Prevent garbage collection
         asset->state &= ~ASSET_STATE_RAM_GC;
@@ -260,7 +270,6 @@ Asset* const asset_archive_asset_load(const AssetArchive* archive, int32 id, Ass
     // This would mean we are overwriting it
     // A solution could be a function called thrd_ams_get_reserve_wait() that reserves, if not available
     // However, that function would have to lock the ams during that entire time
-
     if (element->type == ASSET_TYPE_GENERAL) {
         asset = thrd_ams_reserve_asset(ams, (byte) component_id, id_str, element->uncompressed);
         asset->official_id = id;
@@ -313,32 +322,32 @@ Asset* const asset_archive_asset_load(const AssetArchive* archive, int32 id, Ass
                 #endif
             } break;
             case ASSET_TYPE_AUDIO: {
-                Audio* audio = (Audio *) asset->self;
+                Audio* const audio = (Audio *) asset->self;
                 audio->data = (byte *) (audio + 1);
 
                 file.content += audio_header_from_data(file.content, audio);
                 qoa_decode(file.content, audio);
             } break;
             case ASSET_TYPE_OBJ: {
-                Mesh* mesh = (Mesh *) asset->self;
+                Mesh* const mesh = (Mesh *) asset->self;
                 mesh->data = (byte *) (mesh + 1);
 
                 mesh_from_data(file.content, mesh);
             } break;
             case ASSET_TYPE_LANGUAGE: {
-                Language* language = (Language *) asset->self;
+                Language* const language = (Language *) asset->self;
                 language->data = (byte *) (language + 1);
 
                 language_from_data(file.content, language);
             } break;
             case ASSET_TYPE_FONT: {
-                Font* font = (Font *) asset->self;
+                Font* const font = (Font *) asset->self;
                 font->glyphs = (Glyph *) (font + 1);
 
                 font_from_data(file.content, font);
             } break;
             case ASSET_TYPE_THEME: {
-                UIThemeStyle* theme = (UIThemeStyle *) asset->self;
+                UIThemeStyle* const theme = (UIThemeStyle *) asset->self;
                 theme->data = (byte *) (theme + 1);
 
                 theme_from_data(file.content, theme);

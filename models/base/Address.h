@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_BASE_ADDRESS_H
 #define COMS_MODELS_BASE_ADDRESS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../../serialize/WebBinary.h"
 #include "GeoLocation.h"

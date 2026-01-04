@@ -9,7 +9,7 @@
 #ifndef COMS_APP_COMMAND_BUFFER_H
 #define COMS_APP_COMMAND_BUFFER_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemory.h"
 #include "../memory/RingMemory.h"
 #include "../audio/AudioMixer.h"

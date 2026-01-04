@@ -22,9 +22,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../network/SocketConnection.h"
-#include "../../../utils/EndianUtils.h"
 
 inline
 bool socket_non_blocking(SocketConnection* con)

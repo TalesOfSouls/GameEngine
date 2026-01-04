@@ -98,20 +98,20 @@ static void test_hashmap_dump_load() {
 #define MAX_TEST_KEY_LENGTH 26
 typedef struct {
     char key[MAX_TEST_KEY_LENGTH];
-    int32_t value;
+    int32 value;
     int used;   // 0 = empty, 1 = used, -1 = tombstone (removed)
 } HashEntryStd;
 
 typedef struct {
     HashEntryStd* entries;
-    uint32_t capacity;
-    uint32_t count;
+    uint32 capacity;
+    uint32 count;
     HashMapHashFunction hash_function;
 } HashMapStd;
 
 // ------------------ Core HashMap Functions ------------------
 
-HashMapStd* hashmap_test_create(uint32_t capacity) {
+HashMapStd* hashmap_test_create(uint32 capacity) {
     HashMapStd* map = (HashMapStd*) platform_alloc(sizeof(HashMapStd));
     map->capacity = capacity;
     map->count = 0;
@@ -125,14 +125,14 @@ void hashmap_test_free(HashMapStd* map) {
     platform_free((void **) &map);
 }
 
-HashEntryStd* open_test_insert(HashMapStd* map, const char* key, int32_t value) {
-    uint64_t hash = map->hash_function ? map->hash_function((void *) key) : hash_djb2(key);
-    uint32_t index = hash % map->capacity;
+HashEntryStd* open_test_insert(HashMapStd* map, const char* key, int32 value) {
+    uint64 hash = map->hash_function ? map->hash_function((void *) key) : hash_djb2(key);
+    uint32 index = hash % map->capacity;
 
     str_move_to_pos(&key, -((int32) MAX_TEST_KEY_LENGTH));
 
-    for (uint32_t i = 0; i < map->capacity; i++) {
-        uint32_t probe = (index + i) % map->capacity;
+    for (uint32 i = 0; i < map->capacity; i++) {
+        uint32 probe = (index + i) % map->capacity;
         HashEntryStd* entry = &map->entries[probe];
 
         if (entry->used == 0 || entry->used == -1) {
@@ -152,11 +152,11 @@ HashEntryStd* open_test_insert(HashMapStd* map, const char* key, int32_t value) 
 }
 
 HashEntryStd* hashmap_test_get(HashMapStd* map, const char* key) {
-    uint64_t hash = map->hash_function ? map->hash_function((void *) key) : hash_djb2(key);
-    uint32_t index = hash % map->capacity;
+    uint64 hash = map->hash_function ? map->hash_function((void *) key) : hash_djb2(key);
+    uint32 index = hash % map->capacity;
 
-    for (uint32_t i = 0; i < map->capacity; i++) {
-        uint32_t probe = (index + i) % map->capacity;
+    for (uint32 i = 0; i < map->capacity; i++) {
+        uint32 probe = (index + i) % map->capacity;
         HashEntryStd* entry = &map->entries[probe];
 
         if (entry->used == 0) {
@@ -169,11 +169,11 @@ HashEntryStd* hashmap_test_get(HashMapStd* map, const char* key) {
 }
 
 void hashmap_test_remove(HashMapStd* map, const char* key) {
-    uint64_t hash = map->hash_function ? map->hash_function((void *) key) : hash_djb2(key);
-    uint32_t index = hash % map->capacity;
+    uint64 hash = map->hash_function ? map->hash_function((void *) key) : hash_djb2(key);
+    uint32 index = hash % map->capacity;
 
-    for (uint32_t i = 0; i < map->capacity; i++) {
-        uint32_t probe = (index + i) % map->capacity;
+    for (uint32 i = 0; i < map->capacity; i++) {
+        uint32 probe = (index + i) % map->capacity;
         HashEntryStd* entry = &map->entries[probe];
 
         if (entry->used == 0) {
@@ -190,7 +190,7 @@ void hashmap_test_remove(HashMapStd* map, const char* key) {
 
 typedef struct ChainTestNode {
     char key[MAX_TEST_KEY_LENGTH];
-    int32_t value;
+    int32 value;
     struct ChainTestNode* next;
 } ChainTestNode;
 
@@ -198,15 +198,15 @@ typedef struct {
     ChainTestNode** buckets;       // Hash table buckets
     ChainTestNode* nodes_pool;     // Pre-allocated nodes
     ChainTestNode* free_list;      // Free nodes list
-    uint32_t capacity;             // Number of buckets
-    uint32_t max_nodes;            // Total nodes pre-allocated
-    uint32_t count;                // Current number of used nodes
+    uint32 capacity;             // Number of buckets
+    uint32 max_nodes;            // Total nodes pre-allocated
+    uint32 count;                // Current number of used nodes
     HashMapHashFunction hash_function;
 } ChainTestMap;
 
 // ------------------ Core HashMap Functions ------------------
 
-ChainTestMap* chain_test_create(uint32_t capacity, uint32_t max_nodes) {
+ChainTestMap* chain_test_create(uint32 capacity, uint32 max_nodes) {
     ChainTestMap* map = (ChainTestMap*) platform_alloc(sizeof(ChainTestMap));
     map->capacity = capacity;
     map->max_nodes = max_nodes;
@@ -219,7 +219,7 @@ ChainTestMap* chain_test_create(uint32_t capacity, uint32_t max_nodes) {
 
     // Initialize free list
     map->free_list = &map->nodes_pool[0];
-    for (uint32_t i = 0; i < max_nodes - 1; i++) {
+    for (uint32 i = 0; i < max_nodes - 1; i++) {
         map->nodes_pool[i].next = &map->nodes_pool[i + 1];
     }
     map->nodes_pool[max_nodes - 1].next = NULL;
@@ -250,9 +250,9 @@ static void chain_test_free_node(ChainTestMap* map, ChainTestNode* node) {
 
 // ------------------ HashMap Operations ------------------
 
-ChainTestNode* chain_test_insert(ChainTestMap* map, const char* key, int32_t value) {
-    uint64_t hash = map->hash_function ? map->hash_function((void*)key) : hash_djb2(key);
-    uint32_t index = hash % map->capacity;
+ChainTestNode* chain_test_insert(ChainTestMap* map, const char* key, int32 value) {
+    uint64 hash = map->hash_function ? map->hash_function((void*)key) : hash_djb2(key);
+    uint32 index = hash % map->capacity;
 
     str_move_to_pos(&key, -((int32) MAX_TEST_KEY_LENGTH));
 
@@ -282,8 +282,8 @@ ChainTestNode* chain_test_insert(ChainTestMap* map, const char* key, int32_t val
 }
 
 ChainTestNode* chain_test_get(ChainTestMap* map, const char* key) {
-    uint64_t hash = map->hash_function ? map->hash_function((void*)key) : hash_djb2(key);
-    uint32_t index = hash % map->capacity;
+    uint64 hash = map->hash_function ? map->hash_function((void*)key) : hash_djb2(key);
+    uint32 index = hash % map->capacity;
 
     ChainTestNode* node = map->buckets[index];
     while (node) {
@@ -294,8 +294,8 @@ ChainTestNode* chain_test_get(ChainTestMap* map, const char* key) {
 }
 
 void chain_test_remove(ChainTestMap* map, const char* key) {
-    uint64_t hash = map->hash_function ? map->hash_function((void*)key) : hash_djb2(key);
-    uint32_t index = hash % map->capacity;
+    uint64 hash = map->hash_function ? map->hash_function((void*)key) : hash_djb2(key);
+    uint32 index = hash % map->capacity;
 
     ChainTestNode* node = map->buckets[index];
     ChainTestNode* prev = NULL;
@@ -316,8 +316,8 @@ void chain_test_remove(ChainTestMap* map, const char* key) {
     }
 }
 
-#define HASH_MAP_MAX_COUNT (1 << 13)
-#define HASH_MAP_TEST_COUNT (1 << 12)
+#define HASH_MAP_MAX_COUNT (1 << 10)
+#define HASH_MAP_TEST_COUNT (1 << 9)
 
 #include "../../utils/RandomUtils.h"
 

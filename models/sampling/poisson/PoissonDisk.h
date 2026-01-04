@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_SAMPLING_POISSON_DISK_H
 #define COMS_MODELS_SAMPLING_POISSON_DISK_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../memory/RingMemory.h"
 
 // Calculates the amount of max points to generate

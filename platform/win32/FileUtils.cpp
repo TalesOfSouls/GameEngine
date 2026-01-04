@@ -17,7 +17,7 @@
     #include  <io.h>
 #endif
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/Utils.h"
 #include "../../utils/Assert.h"
 #include "../../memory/RingMemory.h"
@@ -70,9 +70,9 @@ void file_mmf_close(MMFHandle fh) NO_EXCEPT
 inline
 void relative_to_absolute(const char* __restrict rel, char* __restrict path) NO_EXCEPT
 {
-    char self_path[MAX_PATH];
-    int32 self_path_length = GetModuleFileNameA(NULL, self_path, MAX_PATH);
-    if (self_path_length == 0) {
+    char spath[MAX_PATH];
+    int32 spath_length = GetModuleFileNameA(NULL, spath, MAX_PATH);
+    if (spath_length == 0) {
         return;
     }
 
@@ -81,16 +81,22 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path) NO_
         temp += 2;
     }
 
-    char* last = self_path + self_path_length;
-    while (*last != '\\' && self_path_length > 0) {
+    char* last = spath + spath_length;
+    while (*last != '\\' && spath_length > 0) {
         --last;
-        --self_path_length;
+        --spath_length;
     }
 
-    ++self_path_length;
+    ++spath_length;
 
-    memcpy(path, self_path, self_path_length);
-    str_copy(path + self_path_length, temp);
+    memcpy(path, spath, spath_length);
+    str_copy(path + spath_length, temp);
+}
+
+inline
+int32 self_file_path(wchar_t* path)
+{
+    return (int32) GetModuleFileNameW(NULL, path, MAX_PATH);
 }
 
 inline
@@ -99,9 +105,9 @@ void relative_to_absolute(
     wchar_t* __restrict path
 ) NO_EXCEPT
 {
-    wchar_t self_path[MAX_PATH];
-    int32 self_path_length = GetModuleFileNameW(NULL, self_path, MAX_PATH);
-    if (self_path_length == 0) {
+    wchar_t spath[MAX_PATH];
+    int32 spath_length = GetModuleFileNameW(NULL, spath, MAX_PATH);
+    if (spath_length == 0) {
         return;
     }
 
@@ -110,17 +116,17 @@ void relative_to_absolute(
         temp += 2;
     }
 
-    wchar_t* last = self_path + self_path_length;
-    while (*last != L'\\' && self_path_length > 0) {
+    wchar_t* last = spath + spath_length;
+    while (*last != L'\\' && spath_length > 0) {
         --last;
-        --self_path_length;
+        --spath_length;
     }
 
-    ++self_path_length;
+    ++spath_length;
 
-    memcpy(path, self_path, self_path_length * sizeof(wchar_t));
+    memcpy(path, spath, spath_length * sizeof(wchar_t));
 
-    str_copy(path + self_path_length, temp);
+    str_copy(path + spath_length, temp);
 }
 
 FORCE_INLINE
@@ -132,7 +138,7 @@ void file_seek(FileHandle fh, uint64 pos) NO_EXCEPT
     SetFilePointer(fh, li.LowPart, &li.HighPart, FILE_BEGIN);
 }
 
-inline uint64
+inline size_t
 file_size(const char* path) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
@@ -176,7 +182,7 @@ file_size(const char* path) NO_EXCEPT
     return size.QuadPart;
 }
 
-inline uint64
+inline size_t
 file_size(const wchar_t* path) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -441,8 +447,8 @@ void file_read(
     }
 
     // Ensure the offset and length do not exceed the file size
-    const uint64 file_size = size.QuadPart;
-    if (offset >= file_size) {
+    const uint64 fsize = size.QuadPart;
+    if (offset >= fsize) {
         file->size = 0;
         file->content = NULL;
         CloseHandle(fp);
@@ -451,7 +457,7 @@ void file_read(
     }
 
     // Adjust the length to read so that it does not exceed the file size
-    const uint64 read_length = OMS_MIN(length, file_size - offset);
+    const uint64 read_length = OMS_MIN(length, fsize - offset);
 
     if (ring != NULL) {
         file->content = ring_get_memory(ring, read_length + 1);
@@ -533,8 +539,8 @@ void file_read(
     }
 
     // Ensure the offset and length do not exceed the file size
-    const uint64 file_size = size.QuadPart;
-    if (offset >= file_size) {
+    const uint64 fsize = size.QuadPart;
+    if (offset >= fsize) {
         file->size = 0;
         file->content = NULL;
         CloseHandle(fp);
@@ -543,7 +549,7 @@ void file_read(
     }
 
     // Adjust the length to read so that it does not exceed the file size
-    const uint64 read_length = OMS_MIN(length, file_size - offset);
+    const uint64 read_length = OMS_MIN(length, fsize - offset);
 
     if (ring != NULL) {
         file->content = ring_get_memory(ring, read_length + 1);
@@ -593,8 +599,8 @@ void file_read(
     }
 
     // Ensure the offset and length do not exceed the file size
-    const uint64 file_size = size.QuadPart;
-    if (offset >= file_size) {
+    const uint64 fsize = size.QuadPart;
+    if (offset >= fsize) {
         file->size = 0;
         file->content = NULL;
         ASSERT_TRUE(false);
@@ -603,7 +609,7 @@ void file_read(
     }
 
     // Adjust the length to read so that it does not exceed the file size
-    const uint64 read_length = OMS_MIN(length, file_size - offset);
+    const uint64 read_length = OMS_MIN(length, fsize - offset);
 
     if (ring != NULL) {
         file->content = ring_get_memory(ring, read_length + 1);
@@ -642,13 +648,13 @@ uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UI
         return 0;
     }
 
-    const uint64 file_size = size.QuadPart;
-    if (offset >= file_size) {
+    const uint64 fsize = size.QuadPart;
+    if (offset >= fsize) {
         return 0;
     }
 
     // Adjust the length to read so that it does not exceed the file size
-    const uint64 read_length = OMS_MIN(length, file_size - offset);
+    const uint64 read_length = OMS_MIN(length, fsize - offset);
 
     // Move file pointer
     if (offset) {
@@ -979,8 +985,8 @@ bool file_read_async(
     }
 
     // Ensure the offset and length do not exceed the file size
-    uint64 file_size = size.QuadPart;
-    if (offset >= file_size) {
+    uint64 fsize = size.QuadPart;
+    if (offset >= fsize) {
         file->size = 0;
         file->content = NULL;
         ASSERT_TRUE(false);
@@ -989,7 +995,7 @@ bool file_read_async(
     }
 
     // Adjust the length to read so that it does not exceed the file size
-    uint64 read_length = OMS_MIN(length, file_size - offset);
+    uint64 read_length = OMS_MIN(length, fsize - offset);
 
     // Allocate memory for the content
     if (ring != NULL) {
@@ -1306,6 +1312,99 @@ file_append(const char* __restrict path, const FileBody* __restrict file) NO_EXC
     return true;
 }
 
+bool file_append(const wchar_t* __restrict path, const wchar_t* __restrict file) NO_EXCEPT
+{
+    PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
+
+    FileHandle fp;
+    if (*path == '.') {
+        wchar_t full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileW((LPCWSTR) full_path,
+            FILE_APPEND_DATA,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileW((LPCWSTR) path,
+            FILE_APPEND_DATA,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
+
+    if (fp == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    DWORD written;
+    DWORD length = (DWORD) str_length(file);
+    if (!WriteFile(fp, file, length, &written, NULL)) {
+        CloseHandle(fp);
+        return false;
+    }
+
+    CloseHandle(fp);
+
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+
+    return true;
+}
+
+inline bool
+file_append(const wchar_t* __restrict path, const FileBody* __restrict file) NO_EXCEPT
+{
+    PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
+
+    FileHandle fp;
+    if (*path == '.') {
+        wchar_t full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileW((LPCWSTR) full_path,
+            FILE_APPEND_DATA,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileW((LPCWSTR) path,
+            FILE_APPEND_DATA,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
+
+    if (fp == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    DWORD bytes;
+    const DWORD length = (DWORD) file->size;
+    if (!WriteFile(fp, file->content, length, &bytes, NULL)) {
+        CloseHandle(fp);
+        return false;
+    }
+
+    CloseHandle(fp);
+
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, bytes);
+
+    return true;
+}
+
 inline
 uint64 file_last_modified(const char* path) NO_EXCEPT
 {
@@ -1363,15 +1462,47 @@ uint64 file_last_modified(const wchar_t* path) NO_EXCEPT
 }
 
 FORCE_INLINE
-void self_path(char* path) NO_EXCEPT
+int32 self_path(char* path) NO_EXCEPT
 {
-    GetModuleFileNameA(NULL, (LPSTR) path, MAX_PATH);
+    int32 path_length = GetModuleFileNameA(NULL, path, MAX_PATH);
+    if (path_length == 0) {
+        return 0;
+    }
+
+    char* last = path + path_length;
+    while (*last != '\\' && path_length > 0) {
+        --last;
+        --path_length;
+    }
+
+    ++path_length;
+
+    ++last;
+    *last = '\0';
+
+    return path_length;
 }
 
 FORCE_INLINE
-void self_path(wchar_t* path) NO_EXCEPT
+int32 self_path(wchar_t* path) NO_EXCEPT
 {
-    GetModuleFileNameW(NULL, (LPWSTR) path, MAX_PATH);
+    int32 path_length = GetModuleFileNameW(NULL, path, MAX_PATH);
+    if (path_length == 0) {
+        return 0;
+    }
+
+    wchar_t* last = path + path_length;
+    while (*last != L'\\' && path_length > 0) {
+        --last;
+        --path_length;
+    }
+
+    ++path_length;
+
+    ++last;
+    *last = L'\0';
+
+    return path_length;
 }
 
 void iterate_directory(const char* base_path, const char* file_ending, void (*handler)(const char *, void *), ...) NO_EXCEPT
@@ -1388,6 +1519,8 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
 
     HANDLE hFind = FindFirstFileA((LPCSTR) search_path, &find_file_data);
     if (hFind == INVALID_HANDLE_VALUE) {
+        va_end(args);
+
         return;
     }
 
@@ -1419,6 +1552,14 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
     FindClose(hFind);
 
     va_end(args);
+}
+
+void file_delete(const char* path) {
+    DeleteFileA(path);
+}
+
+void file_delete(const wchar_t* path) {
+    DeleteFileW(path);
 }
 
 #endif

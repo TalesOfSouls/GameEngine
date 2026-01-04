@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_LOCATION_H
 #define COMS_MODELS_LOCATION_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 struct Location {
     v3_f32 position;

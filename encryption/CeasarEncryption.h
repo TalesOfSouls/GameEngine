@@ -9,7 +9,7 @@
 #ifndef COMS_ENCRYPTION_CEASAR_H
 #define COMS_ENCRYPTION_CEASAR_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 CONSTEXPR inline
 void encrypt_ceasar(char* input, int32 shift) NO_EXCEPT

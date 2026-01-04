@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_SOFTWARE_RENDERER_H
 #define COMS_GPUAPI_SOFTWARE_RENDERER_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../object/Vertex.h"
 #include "../../object/Texture.h"
 #include "../../memory/ChunkMemory.h"
@@ -62,7 +62,7 @@ struct SoftwareRenderer {
 };
 
 FORCE_INLINE
-void soft_clear(SoftwareRenderer* renderer) NO_EXCEPT
+void soft_clear(SoftwareRenderer* const renderer) NO_EXCEPT
 {
     const int32 dim = renderer->dimension.width * renderer->dimension.height;
     memset(renderer->pixels, 0, sizeof(uint32) * dim);
@@ -70,7 +70,7 @@ void soft_clear(SoftwareRenderer* renderer) NO_EXCEPT
 }
 
 inline
-void soft_clear(SoftwareRenderer* renderer, uint32 x, uint32 y, uint32 w, uint32 h) NO_EXCEPT
+void soft_clear(SoftwareRenderer* const renderer, uint32 x, uint32 y, uint32 w, uint32 h) NO_EXCEPT
 {
     const int32 x1 = x + w > renderer->dimension.width  ? renderer->dimension.width  : x + w;
     const int32 y1 = y + h > renderer->dimension.height ? renderer->dimension.height : y + h;
@@ -84,13 +84,13 @@ void soft_clear(SoftwareRenderer* renderer, uint32 x, uint32 y, uint32 w, uint32
 }
 
 FORCE_INLINE
-void soft_clear_color(SoftwareRenderer* renderer) NO_EXCEPT
+void soft_clear_color(SoftwareRenderer* const renderer) NO_EXCEPT
 {
     memset(renderer->pixels, 0, sizeof(uint32) * renderer->dimension.width * renderer->dimension.height);
 }
 
 inline
-void soft_clear_color(SoftwareRenderer* renderer, uint32 x, uint32 y, uint32 w, uint32 h) NO_EXCEPT
+void soft_clear_color(SoftwareRenderer* const renderer, uint32 x, uint32 y, uint32 w, uint32 h) NO_EXCEPT
 {
     const int32 x1 = x + w > renderer->dimension.width  ? renderer->dimension.width  : x + w;
     const int32 y1 = y + h > renderer->dimension.height ? renderer->dimension.height : y + h;
@@ -102,13 +102,13 @@ void soft_clear_color(SoftwareRenderer* renderer, uint32 x, uint32 y, uint32 w, 
 }
 
 FORCE_INLINE
-void soft_clear_depth(SoftwareRenderer* renderer) NO_EXCEPT
+void soft_clear_depth(SoftwareRenderer* const renderer) NO_EXCEPT
 {
     memset(renderer->zbuffer, 0x7E, sizeof(f32) * renderer->dimension.width * renderer->dimension.height);
 }
 
 inline
-void soft_clear_depth(SoftwareRenderer* renderer, uint32 x, uint32 y, uint32 w, uint32 h) NO_EXCEPT
+void soft_clear_depth(SoftwareRenderer* const renderer, uint32 x, uint32 y, uint32 w, uint32 h) NO_EXCEPT
 {
     const int32 x1 = x + w > renderer->dimension.width  ? renderer->dimension.width  : x + w;
     const int32 y1 = y + h > renderer->dimension.height ? renderer->dimension.height : y + h;
@@ -141,7 +141,7 @@ v4_byte soft_sample_texture_nearest(const Texture* texture, f32 u, f32 v) NO_EXC
 }
 
 static inline v4_uint32 soft_sample_texture_nearest_sse(
-    const byte* base_pixels,
+    const byte* const base_pixels,
     __m128 u4, __m128 v4,
     int32 tw, int32 th,
     uint32 final_mask
@@ -624,29 +624,29 @@ void soft_rasterize_msaa(
     PSEUDO_USE(steps);
 
     // Convert NDC [-1,1] -> screen (Y flipped for top-down DIB)
-    v2_f32 pos_1 = soft_ndc_to_screen(v0.position.x, v0.position.y, renderer->dimension);
-    v2_f32 pos_2 = soft_ndc_to_screen(v1.position.x, v1.position.y, renderer->dimension);
-    v2_f32 pos_3 = soft_ndc_to_screen(v2.position.x, v2.position.y, renderer->dimension);
+    const v2_f32 pos_1 = soft_ndc_to_screen(v0.position.x, v0.position.y, renderer->dimension);
+    const v2_f32 pos_2 = soft_ndc_to_screen(v1.position.x, v1.position.y, renderer->dimension);
+    const v2_f32 pos_3 = soft_ndc_to_screen(v2.position.x, v2.position.y, renderer->dimension);
 
-    f32 area = soft_edge(pos_1, pos_2, pos_3);
+    const f32 area = soft_edge(pos_1, pos_2, pos_3);
     if (area <= 0.0f) {
         // == 0 is degenerate triangle
         // < 0 is backface -> backface culling
         return;
     }
 
-    f32 inv_area = 1.0f / area;
+    const f32 inv_area = 1.0f / area;
 
     // msaa samples
-    f32 inv_samples = 1.0f / renderer->aa_details;
+    const f32 inv_samples = 1.0f / renderer->aa_details;
 
-    int32 minx = OMS_MAX(0, OMS_MIN(OMS_MIN((int32) pos_1.x, (int32) pos_2.x), (int32) pos_3.x));
-    int32 maxx = OMS_MIN(renderer->dimension.width - 1, OMS_MAX(OMS_MAX((int32) pos_1.x, (int32) pos_2.x), (int32) pos_3.x));
-    int32 miny = OMS_MAX(0, OMS_MIN(OMS_MIN((int32) pos_1.y, (int32) pos_2.y), (int32) pos_3.y));
-    int32 maxy = OMS_MIN(renderer->dimension.height - 1, OMS_MAX(OMS_MAX((int32) pos_1.y, (int32) pos_2.y), (int32) pos_3.y));
+    const int32 minx = OMS_MAX(0, OMS_MIN(OMS_MIN((int32) pos_1.x, (int32) pos_2.x), (int32) pos_3.x));
+    const int32 maxx = OMS_MIN(renderer->dimension.width - 1, OMS_MAX(OMS_MAX((int32) pos_1.x, (int32) pos_2.x), (int32) pos_3.x));
+    const int32 miny = OMS_MAX(0, OMS_MIN(OMS_MIN((int32) pos_1.y, (int32) pos_2.y), (int32) pos_3.y));
+    const int32 maxy = OMS_MIN(renderer->dimension.height - 1, OMS_MAX(OMS_MAX((int32) pos_1.y, (int32) pos_2.y), (int32) pos_3.y));
 
     uint32* pixels = renderer->pixels;
-    f32* zbuf = renderer->zbuffer;
+    const f32* zbuf = renderer->zbuffer;
 
     // Check if the triangle uses texture or solid color
     bool textured = (v0.texture_color.x >= 0.0f || v1.texture_color.x >= 0.0f || v2.texture_color.x >= 0.0f);
@@ -677,26 +677,26 @@ void soft_rasterize_msaa(
             v3_f32 accum_color = {0,0,0};
             f32 accum_coverage = 0.0f;
 
-            int32 idx = y_width + x;
+            const int32 idx = y_width + x;
 
             for (int32 s = 0; s < renderer->aa_details; ++s) {
-                f32 sx = x + offsets[s].x;
-                f32 sy = y + offsets[s].y;
-                v2_f32 spos = {sx, sy};
+                const f32 sx = x + offsets[s].x;
+                const f32 sy = y + offsets[s].y;
+                const v2_f32 spos = {sx, sy};
 
-                f32 w0 = soft_edge(pos_2, pos_3, spos) * inv_area;
-                f32 w1 = soft_edge(pos_3, pos_1, spos) * inv_area;
-                f32 w2 = soft_edge(pos_1, pos_2, spos) * inv_area;
+                const f32 w0 = soft_edge(pos_2, pos_3, spos) * inv_area;
+                const f32 w1 = soft_edge(pos_3, pos_1, spos) * inv_area;
+                const f32 w2 = soft_edge(pos_1, pos_2, spos) * inv_area;
 
                 if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-                    f32 depth = w0 * v0.position.z + w1 * v1.position.z + w2 * v2.position.z;
+                    const f32 depth = w0 * v0.position.z + w1 * v1.position.z + w2 * v2.position.z;
 
                     if (depth < zbuf[idx]) {
                         accum_coverage += 1.0f;
                         if (textured) {
-                            f32 u = w0 * v0.texture_color.x + w1 * v1.texture_color.x + w2 * v2.texture_color.x;
-                            f32 v = w0 * v0.texture_color.y + w1 * v1.texture_color.y + w2 * v2.texture_color.y;
-                            v4_byte tex_color = soft_sample_texture_nearest(renderer->textures[v0.sampler], u, v);
+                            const f32 u = w0 * v0.texture_color.x + w1 * v1.texture_color.x + w2 * v2.texture_color.x;
+                            const f32 v = w0 * v0.texture_color.y + w1 * v1.texture_color.y + w2 * v2.texture_color.y;
+                            const v4_byte tex_color = soft_sample_texture_nearest(renderer->textures[v0.sampler], u, v);
                             accum_color.x += tex_color.x;
                             accum_color.y += tex_color.y;
                             accum_color.z += tex_color.z;
@@ -710,10 +710,10 @@ void soft_rasterize_msaa(
             }
 
             if (accum_coverage > 0.0f) {
-                v3_f32 final_color = vec3_mul(accum_color, inv_samples);
-                f32 coverage = accum_coverage / renderer->aa_details;
+                const v3_f32 final_color = vec3_mul(accum_color, inv_samples);
+                const f32 coverage = accum_coverage / renderer->aa_details;
 
-                v4_byte rgba = {
+                const v4_byte rgba = {
                     oms_min((byte) ceil(OMS_LERP(background_color.r, final_color.r, coverage) * 255.0f), (byte) 255),
                     oms_min((byte) ceil(OMS_LERP(background_color.g, final_color.g, coverage) * 255.0f), (byte) 255),
                     oms_min((byte) ceil(OMS_LERP(background_color.b, final_color.b, coverage) * 255.0f), (byte) 255),
@@ -754,7 +754,7 @@ void soft_shader_default3d(
     alignas(16) Vertex4DSamplerTextureColor v1;
     alignas(16) Vertex4DSamplerTextureColor v2;
 
-    Vertex3DSamplerTextureColor* vertices = (Vertex3DSamplerTextureColor *) data;
+    const Vertex3DSamplerTextureColor* vertices = (Vertex3DSamplerTextureColor *) data;
 
     for (int32 i = 0; i < data_count; ++i) {
         alignas(16) v4_f32 t0 = {vertices[i].position.x, vertices[i].position.y, vertices[i].position.z, 1.0};
@@ -825,7 +825,7 @@ void soft_shader_ui(
     //alignas(16) Vertex4DSamplerTextureColor v1;
     //alignas(16) Vertex4DSamplerTextureColor v2;
 
-    const Vertex3DSamplerTextureColor* vertices = (const Vertex3DSamplerTextureColor *) data;
+    const Vertex3DSamplerTextureColor* const vertices = (const Vertex3DSamplerTextureColor *) data;
 
     // alignas(16) v4_f32 t0;
     // alignas(16) v4_f32 t1;
@@ -932,7 +932,7 @@ void soft_render(
                 int32 data_chunk_size = 0;
                 if (data_count > 0 && j < data_chunks) {
                     data_start = j * data_count / (3 * data_chunks); // @todo replace 3 with stride
-                    int32 data_end = oms_min((j + 1) * data_count / (3 * data_chunks), data_count / 3); // @todo replace 3 with stride
+                    const int32 data_end = oms_min((j + 1) * data_count / (3 * data_chunks), data_count / 3); // @todo replace 3 with stride
                     data_chunk_size = (data_end - data_start) * 3; // @todo replace 3 with stride
                 }
 
@@ -940,7 +940,7 @@ void soft_render(
                 int32 index_chunk_size = 0;
                 if (data_index_count > 0 && j < index_chunks) {
                     index_start = j * data_index_count / index_chunks;
-                    int32 index_end = (j + 1) * data_index_count / index_chunks;
+                    const int32 index_end = (j + 1) * data_index_count / index_chunks;
                     index_chunk_size = index_end - index_start;
                 }
 
@@ -955,7 +955,7 @@ void soft_render(
                     renderer->active_shader->shader_functions[i]
                 };
 
-                PoolWorker job = {
+                const PoolWorker job = {
                     0,
                     POOL_WORKER_STATE_WAITING,
                     thrd_soft_shader,

@@ -9,7 +9,7 @@
 #ifndef COMS_NETWORK_SOCKET_CONNECTION_H
 #define COMS_NETWORK_SOCKET_CONNECTION_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 #if _WIN32
     #include <winsock2.h>

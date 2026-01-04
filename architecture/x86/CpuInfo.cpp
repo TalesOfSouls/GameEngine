@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../CpuInfo.h"
 #include "../../compiler/CompilerUtils.h"
 
@@ -92,7 +92,7 @@ uint64 cpu_info_features() {
     if (edx81 & (1 << 22)) feature_bitfield |= CPU_FEATURE_MMEXT;
     if (edx81 & (1 << 27)) feature_bitfield |= CPU_FEATURE_RDTSCP;
     if (edx81 & (1 << 30)) feature_bitfield |= CPU_FEATURE_3DNOWEXT;
-    if (edx81 & (1 << 31)) feature_bitfield |= CPU_FEATURE_3DNOW;
+    if (edx81 & (1U << 31)) feature_bitfield |= CPU_FEATURE_3DNOW;
 
     return feature_bitfield;
 }

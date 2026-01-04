@@ -10,7 +10,7 @@
 #ifndef COMS_IMAGE_QOI_H
 #define COMS_IMAGE_QOI_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include <string.h>
 #include "Image.cpp"
 

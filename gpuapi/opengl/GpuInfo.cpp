@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_OPENGL_GPU_INFO_C
 #define COMS_GPUAPI_OPENGL_GPU_INFO_C
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../GPUInfo.h"
 
@@ -103,7 +103,7 @@ void gpuapi_info_get(GpuInfo* info) {
     const char* vendor  = (const char*) glGetString(GL_VENDOR);
     const char* renderer = (const char*) glGetString(GL_RENDERER);
     const char* version = (const char*) glGetString(GL_VERSION);
-    const char* shader = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
+    const char* shader_version = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
 
     if (vendor) {
         str_copy(info->vendor, vendor, sizeof(info->vendor) - 1);

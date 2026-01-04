@@ -9,9 +9,6 @@
 #ifndef COMS_PLATFORM
 #define COMS_PLATFORM
 
-#include "../stdlib/Types.h"
-#include "../stdlib/Helper.h"
-
 #if PLAYSTATION || XBOX
 #elif NINTENDO_SWITCH
 #else

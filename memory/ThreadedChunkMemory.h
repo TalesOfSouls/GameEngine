@@ -9,7 +9,7 @@
 #ifndef COMS_MEMORY_THREADED_CHUNK_MEMORY_H
 #define COMS_MEMORY_THREADED_CHUNK_MEMORY_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../thread/Thread.h"
 #include "ChunkMemory.h"
 
@@ -44,14 +44,14 @@ void thrd_chunk_alloc(ThreadedChunkMemory* const buf, uint32 count, int32 chunk_
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
     LOG_1("[INFO] Allocating ThreadedChunkMemory");
 
-    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
+    chunk_size = align_up(chunk_size, alignment);
 
     uint64 size = count * chunk_size
         + sizeof(uint64) * ceil_div(count, 64) // free
         + sizeof(uint64) * ceil_div(count, 64) // completeness
         + alignment * 3; // overhead for alignment
 
-    size = OMS_ALIGN_UP(size, alignment);
+    size = align_up(size, alignment);
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)
@@ -64,8 +64,8 @@ void thrd_chunk_alloc(ThreadedChunkMemory* const buf, uint32 count, int32 chunk_
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->completeness = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->completeness = (uint64 *) align_up((uintptr_t) (buf->free + count), alignment);
 
     // @question Why is this even here?
     memset(buf->memory, 0, buf->size);
@@ -81,7 +81,7 @@ void thrd_chunk_init(ThreadedChunkMemory* const buf, BufferMemory* data, uint32 
     ASSERT_TRUE(count);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
+    chunk_size = align_up(chunk_size, alignment);
 
     uint64 size = count * chunk_size
         + sizeof(uint64) * ceil_div(count, 64) // free
@@ -99,8 +99,8 @@ void thrd_chunk_init(ThreadedChunkMemory* const buf, BufferMemory* data, uint32 
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->completeness = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->completeness = (uint64 *) align_up((uintptr_t) (buf->free + count), alignment);
 
     mutex_init(&buf->lock, NULL);
 
@@ -114,7 +114,7 @@ void thrd_chunk_init(ThreadedChunkMemory* const buf, byte* data, uint32 count, i
     ASSERT_TRUE(count);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
+    chunk_size = align_up(chunk_size, alignment);
 
     uint64 size = count * chunk_size
         + sizeof(uint64) * ceil_div(count, 64) // free
@@ -133,8 +133,8 @@ void thrd_chunk_init(ThreadedChunkMemory* const buf, byte* data, uint32 count, i
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->completeness = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->completeness = (uint64 *) align_up((uintptr_t) (buf->free + count), alignment);
 
     mutex_init(&buf->lock, NULL);
 

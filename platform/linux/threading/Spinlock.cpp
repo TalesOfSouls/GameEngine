@@ -9,7 +9,7 @@
 #ifndef COMS_PLATFORM_LINUX_THREADING_SPINLOCK_C
 #define COMS_PLATFORM_LINUX_THREADING_SPINLOCK_C
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "Spinlock.h"
 #include <time.h>
 

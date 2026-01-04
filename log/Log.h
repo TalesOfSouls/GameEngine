@@ -11,7 +11,7 @@
 
 // Keep includes to a minimum to avoid circular dependencies
 // Log is used in many other header files
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../compiler/CompilerUtils.h"
 #include "../architecture/Intrinsics.h"
 #include "../utils/StringUtils.h"
@@ -217,7 +217,7 @@ struct LogSpinlockGuard {
     log_spinlock32* _lock = NULL;
 
     inline HOT_CODE
-    LogSpinlockGuard(log_spinlock32* const lock, int32 delay = 10) {
+    explicit LogSpinlockGuard(log_spinlock32* const lock, int32 delay = 10) {
         this->_lock = lock;
 
         log_spinlock_start(this->_lock, delay);
@@ -555,7 +555,7 @@ void log(const char* const format, LogDataArray data, const char* const file, co
 inline HOT_CODE
 LogData makeLogData(DataType type, const void* value) NO_EXCEPT
 {
-    LogData d = {type, value};
+    const LogData d = {type, value};
     return d;
 }
 #define LOG_ENTRY(type, value) makeLogData(type, (const void*)(value))

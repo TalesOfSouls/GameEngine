@@ -11,7 +11,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../memory/RingMemory.h"
 #include "../GpuAttributeType.h"
 #include "../../object/Vertex.h"
@@ -21,9 +21,9 @@
 #include "../../log/PerformanceProfiler.h"
 
 inline
-uint32_t shader_get_uniform_location(
+void shader_get_uniform_location(
     VkWriteDescriptorSet* descriptor,
-    VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorType descriptorType
+    VkDescriptorSet descriptorSet, uint32 binding, VkDescriptorType descriptorType
 ) {
     descriptor->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptor->dstSet = descriptorSet;
@@ -34,7 +34,7 @@ uint32_t shader_get_uniform_location(
 }
 
 inline
-void gpuapi_uniform_buffer_update(VkDevice device, VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorType descriptorType, int32_t value)
+void gpuapi_uniform_buffer_update(VkDevice device, VkDescriptorSet descriptorSet, uint32 binding, VkDescriptorType descriptorType, int32_t value)
 {
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = {};  // You should have a buffer holding the value
@@ -233,7 +233,7 @@ VkPipeline gpuapi_pipeline_make(
     vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input_info.vertexBindingDescriptionCount = 1;
     vertex_input_info.pVertexBindingDescriptions = &binding_description;
-    vertex_input_info.vertexAttributeDescriptionCount = (uint32_t) ARRAY_COUNT(input_attribute_description);
+    vertex_input_info.vertexAttributeDescriptionCount = (uint32) ARRAY_COUNT(input_attribute_description);
     vertex_input_info.pVertexAttributeDescriptions = input_attribute_description;
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly = {};

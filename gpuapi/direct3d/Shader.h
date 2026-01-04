@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_DIRECT3D_SHADER_H
 #define COMS_GPUAPI_DIRECT3D_SHADER_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include <d3d12.h>
 
 struct Shader {

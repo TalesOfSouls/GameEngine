@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_VULKAN_GPU_INFO_C
 #define COMS_GPUAPI_VULKAN_GPU_INFO_C
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../GPUInfo.h"
 #include <d3d12.h>
@@ -100,8 +100,7 @@ uint64 gpu_info_features() {
     features |= GPU_FEATURE_ASYNC_COMPUTE;
 
     D3D12_FEATURE_DATA_SHADER_MODEL shaderModel = { D3D_SHADER_MODEL_6_5 };
-    if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModel, sizeof(shaderModel))))
-    {
+    if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModel, sizeof(shaderModel)))) {
         // FP64 support is guaranteed at feature level 11_0 and up (double precision).
         features |= GPU_FEATURE_FP64;
 
@@ -110,20 +109,14 @@ uint64 gpu_info_features() {
         // but shader model ≥ 6.2 usually implies it.
         if (shaderModel.HighestShaderModel >= D3D_SHADER_MODEL_6_2)
             features |= GPU_FEATURE_FP16;
-
-        // INT16 and INT64 are also tied to shader model capabilities.
-        if (shaderModel.HighestShaderModel >= D3D_SHADER_MODEL_6_2)
             features |= GPU_FEATURE_SHADER_INT16;
+            features |= GPU_FEATURE_VARIABLE_PRECISION;
 
         if (shaderModel.HighestShaderModel >= D3D_SHADER_MODEL_6_0)
             features |= GPU_FEATURE_SHADER_INT64;
 
         // Bitfield operations are part of SM 5.1+ → available on DX12.
         features |= GPU_FEATURE_SHADER_BITFIELD;
-
-        // Variable precision (min16float/int) is also part of SM 6.2+.
-        if (shaderModel.HighestShaderModel >= D3D_SHADER_MODEL_6_2)
-            features |= GPU_FEATURE_VARIABLE_PRECISION;
     }
 
     return features;

@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_OBJECT_TYPE_H
 #define COMS_MODELS_OBJECT_TYPE_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 enum ObjectFlag : uint8 {
     OBJECT_FLAG_CLIMBABLE = 1 << 0,

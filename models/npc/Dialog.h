@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_NPC_DIALOG_H
 #define COMS_MODELS_NPC_DIALOG_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../mob/player/Reputation.h"
 #include "DialogType.h"
 #include "DialogSentiment.h"

@@ -17,7 +17,6 @@
 #include <ws2tcpip.h>
 
 #include "../../../network/SocketConnection.h"
-#include "../../../utils/EndianUtils.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 

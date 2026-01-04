@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_GUILD_H
 #define COMS_MODELS_GUILD_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 #ifndef MAX_CHAR_NAME_LENGTH
     #define MAX_CHAR_NAME_LENGTH 32

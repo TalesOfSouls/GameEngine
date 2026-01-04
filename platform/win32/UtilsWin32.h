@@ -9,7 +9,7 @@
 #ifndef COMS_PLATFORM_WIN32_UTILS_H
 #define COMS_PLATFORM_WIN32_UTILS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include <windows.h>
 
@@ -18,7 +18,7 @@
 uint32 key_to_unicode(byte scan_code, byte vkey, byte keyboard_state[256]) NO_EXCEPT
 {
     WCHAR char_buffer[5] = {};
-    int32 result = ToUnicode(vkey, scan_code, keyboard_state, char_buffer, 5, 0);
+    const int32 result = ToUnicode(vkey, scan_code, keyboard_state, char_buffer, 5, 0);
 
     if (result == 1) {
         return (uint32) char_buffer[0];

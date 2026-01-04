@@ -10,7 +10,7 @@
 #define COMS_UTILS_H
 
 #include <string.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
 #include "../compiler/CompilerUtils.h"
 
@@ -29,7 +29,7 @@
 #endif
 
 struct FileBody {
-    uint64 size; // doesn't include null termination (same as strlen)
+    size_t size; // doesn't include null termination (same as strlen)
     byte* content;
 };
 

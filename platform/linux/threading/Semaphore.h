@@ -11,7 +11,7 @@
 
 #include <semaphore.h>
 #include <time.h>
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../compiler/CompilerUtils.h"
 
 typedef sem_t sem;

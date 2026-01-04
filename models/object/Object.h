@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_OBJECT_H
 #define COMS_MODELS_OBJECT_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 // Object coordinates are relative to the chunk coordinates
 struct Object {

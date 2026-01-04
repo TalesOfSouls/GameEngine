@@ -9,7 +9,7 @@
 #ifndef COMS_ENVIRONMENT_WEATHER_INTENSITY_H
 #define COMS_ENVIRONMENT_WEATHER_INTENSITY_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 enum WeatherIntensity : byte {
     WEATHER_STATES_SUNNY = 1 << 0,

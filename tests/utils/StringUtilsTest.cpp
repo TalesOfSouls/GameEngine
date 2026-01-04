@@ -2,7 +2,6 @@
 #include <ctype.h>
 #include "../TestFramework.h"
 #include "../../utils/StringUtils.h"
-#include "../../utils/EndianUtils.h"
 
 static void test_utf8_encode()
 {
@@ -80,9 +79,98 @@ static void test_str_is_alphanum()
     TEST_FALSE(str_is_alphanum('-'));
 }
 
+static void test_str_move_past()
+{
+    const char* str = "123456789";
+    const char* tmp = str;
+
+    str_move_past(&tmp, '3');
+    TEST_EQUALS(*tmp, '4');
+}
+
+static void test_str_move_to()
+{
+    const char* str = "123456789";
+    const char* tmp = str;
+
+    str_move_to(&tmp, '3');
+    TEST_EQUALS(*tmp, '3');
+}
+
+static void test_str_move_to_pos()
+{
+    const char* str = "123456789";
+    const char* tmp = str;
+
+    str_move_to_pos(&tmp, 3);
+    TEST_EQUALS(*tmp, '4');
+
+    tmp = str;
+    str_move_to_pos(&tmp, -3);
+    TEST_EQUALS(*tmp, '7');
+
+    // -----------
+    tmp = str_move_to_pos(str, 3);
+    TEST_EQUALS(*tmp, '4');
+
+    tmp = str_move_to_pos(str, -3);
+    TEST_EQUALS(*tmp, '7');
+}
+
 static void test_str_length()
 {
     TEST_EQUALS(str_length("2asdf dw"), 8);
+}
+
+static void test_str_length_wchar()
+{
+    TEST_EQUALS(str_length(L"2asdf dw"), 8);
+}
+
+static void test_str_contains()
+{
+    TEST_TRUE(str_contains("2asdf dw", "asd"));
+    TEST_FALSE(str_contains("2asdf dw", "asda"));
+    TEST_TRUE(str_contains("2asdf dw", "asd", 4));
+    TEST_FALSE(str_contains("2asdf dw", "asd", 3));
+}
+
+static void test_str_is_empty()
+{
+    TEST_TRUE(str_is_empty(' '));
+    TEST_TRUE(str_is_empty('\t'));
+    TEST_TRUE(str_is_empty('\n'));
+    TEST_TRUE(str_is_empty('\r'));
+
+    TEST_FALSE(str_is_empty('a'));
+}
+
+static void test_str_is_eol()
+{
+    TEST_FALSE(str_is_eol('\t'));
+
+    TEST_TRUE(str_is_eol('\n'));
+    TEST_TRUE(str_is_eol('\r'));
+}
+
+static void test_str_contains_wchar()
+{
+    TEST_TRUE(str_contains(L"2asdf dw", L"asd"));
+    TEST_FALSE(str_contains(L"2asdf dw", L"asda"));
+    //TEST_TRUE(str_contains(L"2asdf dw", L"asd", 4)); Doesn't exist for wchar
+    //TEST_FALSE(str_contains(L"2asdf dw", L"asd", 3)); Doesn't exist for wchar
+}
+
+static void test_str_compare()
+{
+    TEST_EQUALS(str_compare("2asdf dw", "2asdf dw"), 0);
+    TEST_NOT_EQUALS(str_compare("2asdf dw", "2asdf"), 0);
+}
+
+static void test_str_compare_wchar()
+{
+    TEST_EQUALS(str_compare(L"2asdf dw", L"2asdf dw"), 0);
+    TEST_NOT_EQUALS(str_compare(L"2asdf dw", L"2asdf"), 0);
 }
 
 #if PERFORMANCE_TEST
@@ -199,8 +287,20 @@ int main() {
     TEST_RUN(test_str_is_alpha);
     TEST_RUN(test_str_is_num);
     TEST_RUN(test_str_is_alphanum);
-    TEST_RUN(test_str_length);
     TEST_RUN(test_str_to_float);
+    TEST_RUN(test_str_move_past);
+    TEST_RUN(test_str_move_to);
+    TEST_RUN(test_str_move_to_pos);
+    TEST_RUN(test_str_length);
+    TEST_RUN(test_str_contains);
+    TEST_RUN(test_str_compare);
+    TEST_RUN(test_str_is_empty);
+    TEST_RUN(test_str_is_eol);
+
+    // Wchar functions
+    TEST_RUN(test_str_length_wchar);
+    TEST_RUN(test_str_contains_wchar);
+    TEST_RUN(test_str_compare_wchar);
 
     #if PERFORMANCE_TEST
         TEST_RUN(test_str_length_performance);

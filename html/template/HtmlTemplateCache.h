@@ -9,7 +9,7 @@
 #ifndef COMS_HTML_TEMPLATE_CACHE_H
 #define COMS_HTML_TEMPLATE_CACHE_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../stdlib/PerfectHashMap.h"
 #include "../../memory/RingMemory.h"
 #include "../../stdlib/PerfectHashMap.h"

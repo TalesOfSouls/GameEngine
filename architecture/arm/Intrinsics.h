@@ -13,9 +13,6 @@
 #include <arm_acle.h>
 #include <arm_neon.h>
 
-#include "../../stdlib/Types.h"
-#include "../../compiler/CompilerUtils.h"
-
 #define intrin_sqrt_f32(a) svget1_f32(svsqrt_f32(svdup_f32((a))))
 #define intrin_sqrt_f64(a) svget1_f64(svsqrt_f64(svdup_f64((a))))
 

@@ -9,7 +9,7 @@
 #ifndef COMS_OBJECT_MATERIAL_H
 #define COMS_OBJECT_MATERIAL_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../memory/RingMemory.h"
 #include "../system/FileUtils.cpp"
 

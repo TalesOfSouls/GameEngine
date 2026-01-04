@@ -9,7 +9,7 @@
 #ifndef COMS_DATABASE_QUERY_BUILDER_H
 #define COMS_DATABASE_QUERY_BUILDER_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "query/grammar/DbQueryGrammar.h"
 
 struct DbQueryValue {

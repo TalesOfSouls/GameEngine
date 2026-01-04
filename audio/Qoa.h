@@ -10,8 +10,7 @@
 #ifndef COMS_AUDIO_QOA_H
 #define COMS_AUDIO_QOA_H
 
-#include "../stdlib/Types.h"
-#include "../utils/EndianUtils.h"
+#include "../stdlib/Stdlib.h"
 #include "../audio/Audio.cpp"
 
 #define QOA_SLICE_LEN 20
@@ -316,7 +315,7 @@ uint32 qoa_encode_frame(const int16* sample_data, uint32 channels, uint32 frame_
 }
 
 uint32 qoa_encode(const Audio* audio, byte* data) {
-    byte* start = data;
+    const byte* start = data;
 
 	/* Calculate the encoded size and allocate */
     uint32 sample_count = audio->size / (audio->channels * audio->bloc_size);

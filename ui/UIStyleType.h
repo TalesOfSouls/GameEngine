@@ -1,7 +1,7 @@
 #ifndef COMS_UI_STYLE_TYPE_H
 #define COMS_UI_STYLE_TYPE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 enum UIStyleType : byte {
     // This can be the same as one of the style_types below but doesn't have to be

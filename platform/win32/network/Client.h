@@ -16,9 +16,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../network/SocketConnection.h"
-#include "../../../utils/EndianUtils.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 

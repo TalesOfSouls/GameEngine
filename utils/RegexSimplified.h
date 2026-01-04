@@ -9,7 +9,7 @@
 #ifndef COMS_UTILS_REGEX_SIMPLIFIED_H
 #define COMS_UTILS_REGEX_SIMPLIFIED_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "StringUtils.h"
 
 struct SimplifiedRegexParser {

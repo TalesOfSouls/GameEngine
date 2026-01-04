@@ -11,27 +11,16 @@
 
 #include <string.h>
 #include <stdarg.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../compiler/CompilerUtils.h"
 #include "../utils/Assert.h"
 
-// WARNING: We need this function because the other function relies on none-CONSTEXPR performance features
-CONSTEXPR
-size_t str_length_CONSTEXPR(const char* str) NO_EXCEPT
-{
-    size_t len = 0;
-    while (str[len] != '\0') {
-        ++len;
-    }
-    return len;
-}
-
-inline
+inline CONSTEXPR
 size_t str_length(const char* const str) NO_EXCEPT
 {
     const char* ptr = str;
 
-    while ((uintptr_t) ptr % sizeof(size_t) != 0) {
+    while (((uintptr_t) ptr % sizeof(size_t)) != 0) {
         if (*ptr == '\0') {
             return ptr - str;
         }
@@ -62,7 +51,7 @@ size_t str_length(const wchar_t* const str) noexcept
 {
     const wchar_t* ptr = str;
 
-    while ((uintptr_t)ptr % sizeof(size_t) != 0) {
+    while (((uintptr_t)ptr % sizeof(size_t)) != 0) {
         if (*ptr == L'\0') {
             return ptr - str;
         }
@@ -92,8 +81,8 @@ size_t str_length(const wchar_t* const str) noexcept
 inline CONSTEXPR
 int64 str_find_CONSTEXPR(const char* const __restrict str, const char* const __restrict needle) NO_EXCEPT
 {
-    const size_t needle_len = str_length_CONSTEXPR(needle);
-    const size_t limit = str_length_CONSTEXPR(str) - needle_len + 1;
+    const size_t needle_len = str_length(needle);
+    const size_t limit = str_length(str) - needle_len + 1;
 
     for (size_t i = 0; i < limit; ++i) {
         if (str[i] == needle[0] && memcmp(&str[i + 1], &needle[1], needle_len - 1) == 0) {
@@ -201,6 +190,80 @@ int64 str_find(const char* str, char needle) NO_EXCEPT
             }
         }
     }
+}
+
+inline
+int64 str_find(
+    const wchar_t* __restrict haystack,
+    const wchar_t* __restrict needle
+) NO_EXCEPT
+{
+    const wchar_t first = needle[0];
+    const size_t needle_len = str_length(needle);
+    const wchar_t* ptr = haystack;
+
+    if (needle_len == 0) {
+        return 0;
+    }
+
+    constexpr size_t W = sizeof(wchar_t);
+    constexpr size_t S = sizeof(size_t);
+    constexpr size_t N = S / W;
+
+    size_t first_mask = 0;
+    for (size_t i = 0; i < N; ++i) {
+        first_mask |= (size_t)first << (i * 8 * W);
+    }
+
+    while (*ptr != L'\0') {
+        // Align pointer
+        while ((uintptr_t)ptr % S != 0 && *ptr != L'\0') {
+            if (*ptr == first) {
+                break;
+            }
+            ++ptr;
+        }
+
+        if (*ptr == L'\0') {
+            break;
+        }
+
+        // Word-wise scan
+        const size_t* wptr = (const size_t*)ptr;
+
+        while (true) {
+            const size_t v = *wptr;
+            if (OMS_HAS_ZERO_WCHAR(v) || OMS_HAS_ZERO_WCHAR(v ^ first_mask)) {
+                break;
+            }
+            ++wptr;
+        }
+
+        ptr = (const wchar_t*)wptr;
+        for (size_t i = 0; i < N; ++i) {
+            if (ptr[i] == L'\0') {
+                return -1;
+            }
+            if (ptr[i] == first) {
+                ptr += i;
+                break;
+            }
+        }
+
+        const wchar_t* p1 = ptr;
+        size_t i = 0;
+        while (i < needle_len && p1[i] != L'\0' && p1[i] == needle[i]) {
+            ++i;
+        }
+
+        if (i == needle_len) {
+            return (int64)(ptr - haystack);
+        }
+
+        ++ptr;
+    }
+
+    return -1;
 }
 
 static CONSTEXPR const unsigned char TO_LOWER_TABLE[256] = {
@@ -453,15 +516,14 @@ void wchar_to_char(wchar_t* str) NO_EXCEPT
 {
     ASSERT_TRUE_CONST(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
 
-    char* src = (char *) str;
-    char* dest = src;
+    char* dest = (char *) str;
 
     while (*str) {
-        wchar_t wc = *str++;
+        const wchar_t wc = *str++;
 
         IF_CONSTEXPR(sizeof(wchar_t) == 2) {
-            byte low  = (byte)(wc & 0xFF);
-            byte high = (byte)((wc >> 8) & 0xFF);
+            const byte low  = (byte)(wc & 0xFF);
+            const byte high = (byte)((wc >> 8) & 0xFF);
 
             if (low) {
                 *dest++ = (char)low;
@@ -472,7 +534,7 @@ void wchar_to_char(wchar_t* str) NO_EXCEPT
             }
         } else { // sizeof(wchar_t) == 4
             for (int32 i = 0; i < 4; ++i) {
-                byte b = (byte)((wc >> (8 * i)) & 0xFF);
+                const byte b = (byte)((wc >> (8 * i)) & 0xFF);
                 if (b) {
                     *dest++ = (char)b;
                 }
@@ -490,11 +552,11 @@ void wchar_to_char(char* __restrict dest, const wchar_t* __restrict str) NO_EXCE
     ASSERT_TRUE_CONST(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
 
     while (*str) {
-        wchar_t wc = *str++;
+        const wchar_t wc = *str++;
 
         IF_CONSTEXPR(sizeof(wchar_t) == 2) {
-            byte low  = (byte)(wc & 0xFF);
-            byte high = (byte)((wc >> 8) & 0xFF);
+            const byte low  = (byte)(wc & 0xFF);
+            const byte high = (byte)((wc >> 8) & 0xFF);
             if (low) {
                 *dest++ = (char)low;
             }
@@ -504,7 +566,7 @@ void wchar_to_char(char* __restrict dest, const wchar_t* __restrict str) NO_EXCE
             }
         } else { // sizeof(wchar_t) == 4
             for (int32 i = 0; i < 4; ++i) {
-                byte b = (byte)((wc >> (8 * i)) & 0xFF);
+                const byte b = (byte)((wc >> (8 * i)) & 0xFF);
                 if (b) {
                     *dest++ = (char)b;
                 }
@@ -527,13 +589,13 @@ void wchar_to_char(
     int32 i = 0;
 
     while (*str && i < length) {
-        wchar_t wc = *str++;
+        const wchar_t wc = *str++;
 
         if constexpr (sizeof(wchar_t) == 2) {
-            byte low  = (byte)(wc & 0xFF);
-            byte high = (byte)((wc >> 8) & 0xFF);
+            const byte low  = (byte)(wc & 0xFF);
+            const byte high = (byte)((wc >> 8) & 0xFF);
 
-            if (low && i < length) {
+            if (low) {
                 *dest++ = (char)low;
                 ++i;
             }
@@ -544,7 +606,7 @@ void wchar_to_char(
             }
         } else { // sizeof(wchar_t) == 4
             for (int32 j = 0; j < 4 && i < length; ++j) {
-                byte b = (byte)((wc >> (8 * j)) & 0xFF);
+                const byte b = (byte)((wc >> (8 * j)) & 0xFF);
                 if (b) {
                     *dest++ = (char)b;
                     ++i;
@@ -1157,7 +1219,7 @@ size_t str_count(const char* __restrict str, const char* __restrict substr) NO_E
     const size_t substr_len = str_length(substr);
 
     const char* s = str;
-    char first = substr[0];
+    const char first = substr[0];
 
     // Align pointer for word-wise scanning
     while ((uintptr_t)s % sizeof(size_t) != 0 && *s != '\0') {
@@ -1252,7 +1314,7 @@ int32 str_copy_until(char* __restrict dest, const char* __restrict src, char del
             const char* cp = (const char *) wptr;
             for (size_t i = 0; i < sizeof(size_t); ++i) {
                 if (cp[i] == '\0' || cp[i] == delim) {
-                    size_t len = cp + i - src;
+                    const size_t len = cp + i - src;
                     for (size_t j = 0; j < len; ++j) {
                         dest[j] = src[j];
                     }
@@ -1301,7 +1363,7 @@ int32 str_copy_until(wchar_t* __restrict dest, const wchar_t* __restrict src, wc
             const wchar_t* cp = (const wchar_t *) wptr;
             for (size_t i = 0; i < sizeof(size_t) / sizeof(wchar_t); ++i) {
                 if (cp[i] == L'\0' || cp[i] == delim) {
-                    size_t len = cp + i - src;
+                    const size_t len = cp + i - src;
                     for (size_t j = 0; j < len; ++j) {
                         dest[j] = src[j];
                     }
@@ -1395,7 +1457,7 @@ void str_copy(
 
     // Align src pointer to size_t boundary
     while ((uintptr_t)src % sizeof(size_t) != 0 && copied < length - 1) {
-        wchar_t c = *src++;
+        const wchar_t c = *src++;
         *dest++ = c;
         ++copied;
 
@@ -1488,7 +1550,7 @@ int32 str_copy(
 
     // Align src pointer
     while ((uintptr_t)src % sizeof(size_t) != 0) {
-        wchar_t c = *src++;
+        const wchar_t c = *src++;
         *dest++ = c;
         if (c == L'\0') {
             return -1;
@@ -2055,6 +2117,20 @@ int32 str_compare(const char* str1, const char* str2) NO_EXCEPT
     return c1 - c2;
 }
 
+inline CONSTEXPR
+int32 str_compare(const wchar_t* str1, const wchar_t* str2) NO_EXCEPT
+{
+    wchar_t c1 INITIALIZER;
+    wchar_t c2 INITIALIZER;
+
+    do {
+        c1 = *str1++;
+        c2 = *str2++;
+    } while (c1 == c2 && c1 != L'\0');
+
+    return c1 - c2;
+}
+
 CONSTEXPR
 int32 str_compare(const char* str1, const char* str2, size_t n) NO_EXCEPT
 {
@@ -2540,6 +2616,7 @@ void str_skip_list(const char** __restrict str, const char* __restrict delim, in
     }
 }
 
+// @question same as move_to ???
 inline
 void str_skip_until_list(const char** __restrict str, const char* __restrict delim) NO_EXCEPT
 {
@@ -2691,7 +2768,7 @@ int32 float_to_str(f64 value, T* buffer, int32 precision = 5) NO_EXCEPT
         *buffer++ = '.';
         for (int32 i = 0; i < precision; ++i) {
             frac_part *= 10;
-            int32 digit = (int32) frac_part;
+            const int32 digit = (int32) frac_part;
             *buffer++ = T(digit + '0');
             frac_part -= digit;
         }

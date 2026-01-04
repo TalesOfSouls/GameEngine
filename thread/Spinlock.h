@@ -21,7 +21,7 @@ struct SpinlockGuard {
     spinlock32* _lock = NULL;
 
     inline HOT_CODE
-    SpinlockGuard(spinlock32* const lock, int32 delay = 10) {
+    explicit SpinlockGuard(spinlock32* const lock, int32 delay = 10) {
         this->_lock = lock;
 
         spinlock_start(this->_lock, delay);

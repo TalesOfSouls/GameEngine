@@ -9,7 +9,7 @@
 #ifndef COMS_JINGGA_HTTP_HEADER_KEY_H
 #define COMS_JINGGA_HTTP_HEADER_KEY_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 enum HttpHeaderKey : byte {
     // Standard HTTP/1.1 & HTTP/2 Headers (RFC 9110, 9113, etc.)

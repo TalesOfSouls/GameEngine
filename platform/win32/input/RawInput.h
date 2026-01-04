@@ -11,7 +11,7 @@
 
 #include <windows.h>
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../input/Input.h"
 #include "../../../input/ControllerType.h"
 #include "../../../input/ControllerInput.h"
@@ -24,7 +24,33 @@
 // Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions required
 // aligned memory. So far we only figured out that 4 bytes works, maybe this needs to be 8 in the future?!
 
-uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory* const __restrict ring) NO_EXCEPT
+static inline
+bool rawinput_extract_vid_pid(
+    const wchar_t* device_name,
+    wchar_t* out_id
+) {
+    int64 vid_pos = str_find(device_name, L"VID_");
+    int64 pid_pos = str_find(device_name, L"PID_");
+
+    if (vid_pos < 0 || pid_pos < 0) {
+        return false;
+    }
+
+    const wchar_t* vid = device_name + vid_pos;
+    const wchar_t* pid = device_name + pid_pos;
+
+    memcpy(out_id, vid, 8 * sizeof(wchar_t));
+    out_id[8] = L'&';
+    memcpy(out_id + 9, pid, 8 * sizeof(wchar_t));
+
+    return true;
+}
+
+uint32 rawinput_init_mousekeyboard(
+    HWND hwnd,
+    Input* __restrict states,
+    RingMemory* const __restrict ring
+) NO_EXCEPT
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
@@ -41,58 +67,140 @@ uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemo
         return 0;
     }
 
-    uint32 cb_size = 256;
-
     int32 mouse_found = 0;
     int32 keyboard_found = 0;
 
     uint32 i;
+
+    // @bug This could overflow states count since device_count > states
     for (i = 0; i < device_count; ++i) {
-        cb_size = sizeof(RID_DEVICE_INFO);
+        uint32 cb_size = sizeof(RID_DEVICE_INFO);
         RID_DEVICE_INFO rdi;
         GetRawInputDeviceInfoW(pRawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cb_size);
 
-        RAWINPUTDEVICE rid[1];
-
         switch (rdi.dwType) {
             case RIM_TYPEMOUSE: {
-                    if (states[mouse_found].handle_mouse != NULL) {
-                        ++mouse_found;
-                    }
+                // Extract device ID
+                wchar_t device_name[512];
+                UINT name_size = sizeof(device_name);
 
-                    states[mouse_found].handle_mouse = pRawInputDeviceList[i].hDevice;
+                GetRawInputDeviceInfoW(
+                    pRawInputDeviceList[i].hDevice,
+                    RIDI_DEVICENAME,
+                    device_name,
+                    &name_size
+                );
+
+                wchar_t device_id[32] = {};
+                if (!rawinput_extract_vid_pid(device_name, device_id)) {
+                    ASSERT_TRUE(false);
+
+                    continue;
+                }
+
+                // We now check if the device is already bound
+                // Remember one physical device may have multiple logical devices
+                // We need to group them together as one device
+                int32 found_state = -1;
+                for (int32 c = 0; c < 4; ++c) {
+                    if (memcmp(states[c].mouse.device_name, device_id, sizeof(device_id)) == 0) {
+                        found_state = c;
+                        break;
+                    }
+                }
+
+                if (found_state >= 0) {
+                    // Physical device already bound
+                    // We need to add the handle to the handle list of that device
+
+                    // Find empty handle
+                    for (int32 c = 0; c < ARRAY_COUNT(states[found_state].mouse.handle); ++c) {
+                        if (!states[found_state].mouse.handle[c]) {
+                            states[found_state].mouse.handle[c] = pRawInputDeviceList[i].hDevice;
+                            break;
+                        }
+                    }
+                } else {
+                    // New device added
+                    memcpy(states[mouse_found].mouse.device_name, device_id, sizeof(device_id));
+
+                    states[mouse_found].mouse.handle[0] = pRawInputDeviceList[i].hDevice;
                     states[mouse_found].connection_type = INPUT_CONNECTION_TYPE_USB;
-
-                    // Mouse
-                    rid[0].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
-                    rid[0].usUsage     = 0x02;
-                    rid[0].dwFlags     = RIDEV_DEVNOTIFY;
-                    rid[0].hwndTarget  = hwnd;
-
-                    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
-                        // @todo Log
-                        ASSERT_TRUE(false);
-                    }
-                } break;
+                    ++mouse_found;
+                }
+            } break;
             case RIM_TYPEKEYBOARD: {
-                    if (states[keyboard_found].handle_keyboard != NULL) {
-                        ++keyboard_found;
-                    }
+                // Extract device ID
+                wchar_t device_name[512];
+                UINT name_size = sizeof(device_name);
 
-                    states[keyboard_found].handle_keyboard = pRawInputDeviceList[i].hDevice;
+                GetRawInputDeviceInfoW(
+                    pRawInputDeviceList[i].hDevice,
+                    RIDI_DEVICENAME,
+                    device_name,
+                    &name_size
+                );
+
+                wchar_t device_id[32] = {};
+                if (!rawinput_extract_vid_pid(device_name, device_id)) {
+                    ASSERT_TRUE(false);
+
+                    continue;
+                }
+
+                // We now check if the device is already bound
+                // Remember one physical device may have multiple logical devices
+                // We need to group them together as one device
+                int32 found_state = -1;
+                for (int32 c = 0; c < 4; ++c) {
+                    if (memcmp(states[c].keyboard.device_name, device_id, sizeof(device_id)) == 0) {
+                        found_state = c;
+                        break;
+                    }
+                }
+
+                if (found_state >= 0) {
+                    // Physical device already bound
+                    // We need to add the handle to the handle list of that device
+
+                    // Find empty handle
+                    for (int32 c = 0; c < ARRAY_COUNT(states[found_state].keyboard.handle); ++c) {
+                        if (!states[found_state].keyboard.handle[c]) {
+                            states[found_state].keyboard.handle[c] = pRawInputDeviceList[i].hDevice;
+                            break;
+                        }
+                    }
+                } else {
+                    // New device added
+                    memcpy(states[keyboard_found].keyboard.device_name, device_id, sizeof(device_id));
+
+                    states[keyboard_found].keyboard.handle[0] = pRawInputDeviceList[i].hDevice;
                     states[keyboard_found].connection_type = INPUT_CONNECTION_TYPE_USB;
+                    ++keyboard_found;
+                }
+            } break;
+            default: break;
+        }
+    }
 
-                    // Keyboard
-                    rid[0].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
-                    rid[0].usUsage	   = 0x06;
-                    rid[0].dwFlags     = RIDEV_DEVNOTIFY;
-                    rid[0].hwndTarget = hwnd;
+    if (mouse_found || keyboard_found) {
+        alignas(8) RAWINPUTDEVICE rid[2];
 
-                    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
-                        // @todo Log
-                        ASSERT_TRUE(false);
-                    }
-                } break;
+        // Mouse
+        rid[0].usUsagePage = 0x01;
+        rid[0].usUsage     = 0x02;
+        rid[0].dwFlags     = RIDEV_DEVNOTIFY;
+        rid[0].hwndTarget  = hwnd;
+
+        // Keyboard
+        rid[1].usUsagePage = 0x01;
+        rid[1].usUsage     = 0x06;
+        rid[1].dwFlags     = RIDEV_DEVNOTIFY;
+        rid[1].hwndTarget  = hwnd;
+
+        if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 2, sizeof(RAWINPUTDEVICE))) {
+            // @todo Log
+            ASSERT_TRUE(false);
         }
     }
 
@@ -100,7 +208,11 @@ uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemo
 }
 
 // WARNING: While this works we highly recommend to use hid_init_controllers
-uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* const __restrict ring) NO_EXCEPT
+uint32 rawinput_init_controllers(
+    HWND hwnd,
+    Input* __restrict states,
+    RingMemory* const __restrict ring
+) NO_EXCEPT
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
@@ -117,78 +229,77 @@ uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory
         return 0;
     }
 
-    uint32 cb_size = 256;
     int32 controller_found = 0;
 
     uint32 i;
     for (i = 0; i < device_count; ++i) {
-        cb_size = sizeof(RID_DEVICE_INFO);
+        uint32 cb_size = sizeof(RID_DEVICE_INFO);
         RID_DEVICE_INFO rdi;
         GetRawInputDeviceInfoW(pRawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cb_size);
 
-        RAWINPUTDEVICE rid[1];
+        alignas(8) RAWINPUTDEVICE rid[1];
 
         switch (rdi.dwType) {
             case RIM_TYPEHID: {
-                    if (rdi.hid.usUsage == 0x05) {
-                        if (states[controller_found].controller.handle != NULL) {
-                            ++controller_found;
-                        }
-
-                        states[controller_found].controller.handle = pRawInputDeviceList[i].hDevice;
-                        // @bug This is not always true, how to check?
-                        states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
-
-                        if (rdi.hid.dwVendorId == 0x054C
-                            && (rdi.hid.dwProductId == 0x05C4 || rdi.hid.dwProductId == 0x09CC)
-                        ) {
-                            states[controller_found].controller_type = CONTROLLER_TYPE_DUALSHOCK4;
-                        } else if (rdi.hid.dwVendorId == 0x054C
-                            && (rdi.hid.dwProductId == 0x0CE6 || rdi.hid.dwProductId == 0x0DF2)
-                        ) {
-                            states[controller_found].controller_type = CONTROLLER_TYPE_DUALSENSE;
-                        } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x02E0) {
-                            states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_360;
-                        } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x02FF) {
-                            states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_ONE;
-                        } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x028E) {
-                            states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_S;
-                        } else {
-                            states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
-                        }
-
-                        // Gamepad
-                        rid[0].usUsagePage = 0x01;
-                        rid[0].usUsage	   = 0x05;
-                        rid[0].dwFlags     = RIDEV_DEVNOTIFY;
-                        rid[0].hwndTarget = hwnd;
-
-                        if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
-                            // @todo Log
-                            ASSERT_TRUE(false);
-                        }
-                    } else if (rdi.hid.usUsage == 0x04) {
-                        if (states[controller_found].controller.handle != NULL) {
-                            ++controller_found;
-                        }
-
-                        states[controller_found].controller.handle = pRawInputDeviceList[i].hDevice;
-                        // @bug This is not always true, how to check?
-                        states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
-                        states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
-
-                        // Joystick
-                        rid[0].usUsagePage = 0x01;
-                        rid[0].usUsage	   = 0x04;
-                        rid[0].dwFlags     = RIDEV_DEVNOTIFY;
-                        rid[0].hwndTarget = hwnd;
-
-                        if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
-                            // @todo Log
-                            ASSERT_TRUE(false);
-                        }
+                if (rdi.hid.usUsage == 0x05) {
+                    if (states[controller_found].controller.handle != NULL) {
+                        ++controller_found;
                     }
-                } break;
+
+                    states[controller_found].controller.handle = pRawInputDeviceList[i].hDevice;
+                    // @bug This is not always true, how to check?
+                    states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
+
+                    if (rdi.hid.dwVendorId == 0x054C
+                        && (rdi.hid.dwProductId == 0x05C4 || rdi.hid.dwProductId == 0x09CC)
+                    ) {
+                        states[controller_found].controller_type = CONTROLLER_TYPE_DUALSHOCK4;
+                    } else if (rdi.hid.dwVendorId == 0x054C
+                        && (rdi.hid.dwProductId == 0x0CE6 || rdi.hid.dwProductId == 0x0DF2)
+                    ) {
+                        states[controller_found].controller_type = CONTROLLER_TYPE_DUALSENSE;
+                    } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x02E0) {
+                        states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_360;
+                    } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x02FF) {
+                        states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_ONE;
+                    } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x028E) {
+                        states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_S;
+                    } else {
+                        states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
+                    }
+
+                    // Gamepad
+                    rid[0].usUsagePage = 0x01;
+                    rid[0].usUsage	   = 0x05;
+                    rid[0].dwFlags     = RIDEV_DEVNOTIFY;
+                    rid[0].hwndTarget = hwnd;
+
+                    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
+                        // @todo Log
+                        ASSERT_TRUE(false);
+                    }
+                } else if (rdi.hid.usUsage == 0x04) {
+                    if (states[controller_found].controller.handle != NULL) {
+                        ++controller_found;
+                    }
+
+                    states[controller_found].controller.handle = pRawInputDeviceList[i].hDevice;
+                    // @bug This is not always true, how to check?
+                    states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
+                    states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
+
+                    // Joystick
+                    rid[0].usUsagePage = 0x01;
+                    rid[0].usUsage	   = 0x04;
+                    rid[0].dwFlags     = RIDEV_DEVNOTIFY;
+                    rid[0].hwndTarget = hwnd;
+
+                    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
+                        // @todo Log
+                        ASSERT_TRUE(false);
+                    }
+                }
+            } break;
             default: {}
         }
     }
@@ -207,19 +318,28 @@ void input_mouse_position(HWND hwnd, v2_int32* pos) NO_EXCEPT
 }
 
 static
-int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32 state_count, uint64 time) NO_EXCEPT
+int16 input_raw_handle(
+    const RAWINPUT* __restrict raw,
+    Input* __restrict states,
+    int32 state_count,
+    uint64 time
+) NO_EXCEPT
 {
     int16 input_count = 0;
 
     int32 i = 0;
+    int32 h = 0;
     if (raw->header.dwType == RIM_TYPEMOUSE) {
-        while (i < state_count
-            && states[i].handle_mouse != raw->header.hDevice
-        ) {
-            ++i;
+        for (i = 0; i < state_count; ++i) {
+            for (h = 0; h < ARRAY_COUNT(states[i].mouse.handle); ++h) {
+                if (states[i].mouse.handle[h] == raw->header.hDevice) {
+                    goto FOUND_MATCH_MOUSE;
+                }
+            }
         }
 
-        if (i >= state_count || !states[i].connection_type) {
+        FOUND_MATCH_MOUSE:
+        if (i >= state_count || h >= ARRAY_COUNT(states[i].mouse.handle) || !states[i].connection_type) {
             return 0;
         }
 
@@ -315,21 +435,27 @@ int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
         }
     } else if (raw->header.dwType == RIM_TYPEKEYBOARD) {
         // @todo Change so we can directly access the correct state (maybe map handle address to index?)
-        while (i < state_count
-            && states[i].handle_keyboard != raw->header.hDevice
-        ) {
-            ++i;
+        for (i = 0; i < state_count; ++i) {
+            for (h = 0; h < ARRAY_COUNT(states[i].keyboard.handle); ++h) {
+                if (states[i].keyboard.handle[h] == raw->header.hDevice) {
+                    goto FOUND_MATCH_KEYBOARD;
+                }
+            }
         }
 
-        if (i >= state_count || !states[i].connection_type) {
+        FOUND_MATCH_KEYBOARD:
+        if (i >= state_count || h >= ARRAY_COUNT(states[i].keyboard.handle) || !states[i].connection_type) {
             return 0;
         }
 
         KeyPressType new_state;
-        if (raw->data.keyboard.Flags == RI_KEY_BREAK) {
-            new_state = KEY_PRESS_TYPE_RELEASED;
-        } else if (raw->data.keyboard.Flags == RI_KEY_MAKE) {
+        if (raw->data.keyboard.Flags == RI_KEY_MAKE
+            || raw->data.keyboard.Flags == RI_KEY_E0
+            || raw->data.keyboard.Flags == RI_KEY_E1
+        ) {
             new_state = KEY_PRESS_TYPE_PRESSED;
+        } else if (raw->data.keyboard.Flags & RI_KEY_BREAK) {
+            new_state = KEY_PRESS_TYPE_RELEASED;
         } else {
             return 0;
         }
@@ -337,7 +463,7 @@ int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
         ++input_count;
 
         // @todo we need to support vkey and MakeCode/ScanCode for input mode -> typing and recognizing the respective unicode
-        InputKey key = {
+        const InputKey key = {
             (uint16) (raw->data.keyboard.MakeCode | INPUT_KEYBOARD_PREFIX),
             (uint16) (raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX),
             new_state, false, 0, time
@@ -382,7 +508,12 @@ int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
     return input_count;
 }
 
-void input_handle(LPARAM lParam, Input* __restrict states, int state_count, RingMemory* const __restrict ring, uint64 time) NO_EXCEPT
+void input_handle(
+    LPARAM lParam,
+    Input* __restrict states, int32 state_count,
+    RingMemory* const __restrict ring,
+    uint64 time
+) NO_EXCEPT
 {
     uint32 db_size;
     GetRawInputData((HRAWINPUT) lParam, RID_INPUT, NULL, &db_size, sizeof(RAWINPUTHEADER));
@@ -400,7 +531,12 @@ void input_handle(LPARAM lParam, Input* __restrict states, int state_count, Ring
 }
 
 // max_inputs = max input messages
-int16 input_handle_buffered(int32 max_inputs, Input* __restrict states, int32 state_count, RingMemory* const __restrict ring, uint64 time) NO_EXCEPT
+int16 input_handle_buffered(
+    int32 max_inputs,
+    Input* __restrict states, int32 state_count,
+    RingMemory* const __restrict ring,
+    uint64 time
+) NO_EXCEPT
 {
     uint32 cb_size;
     GetRawInputBuffer(NULL, &cb_size, sizeof(RAWINPUTHEADER));
@@ -414,12 +550,9 @@ int16 input_handle_buffered(int32 max_inputs, Input* __restrict states, int32 st
     PRAWINPUT raw_input = (PRAWINPUT) ring_get_memory(ring, cb_size, sizeof(size_t));
 
     int16 input_count = 0;
-    uint32 input;
 
     while (true) {
-        uint32 cb_size_t = cb_size;
-        input = GetRawInputBuffer(raw_input, &cb_size_t, sizeof(RAWINPUTHEADER));
-
+        const uint32 input = GetRawInputBuffer(raw_input, &cb_size, sizeof(RAWINPUTHEADER));
         if (input == 0 || input == (uint32) -1) {
             break;
         }
@@ -435,8 +568,6 @@ int16 input_handle_buffered(int32 max_inputs, Input* __restrict states, int32 st
             pri = NEXTRAWINPUTBLOCK(pri);
         }
     }
-
-    ASSERT_TRUE(input != (uint32) -1);
 
     return input_count;
 }

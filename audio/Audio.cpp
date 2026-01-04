@@ -56,8 +56,7 @@ uint32 audio_header_from_data(const byte* __restrict data, Audio* __restrict aud
 
     audio->byte_per_sec = audio->sample_rate * audio->sample_size;
 
-    audio->size = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
-    data += sizeof(audio->size);
+    data = read_le(data, &audio->size);
 
     return (int32) (data - start);
 }
@@ -74,8 +73,7 @@ uint32 audio_header_to_data(const Audio* const __restrict audio, byte* __restric
     *data = ((audio->channels & 0x0F) << 4) | (audio->bloc_size & 0x0F);
     data += sizeof(byte);
 
-    *((uint32 *) data) = SWAP_ENDIAN_LITTLE(audio->size);
-    data += sizeof(audio->size);
+    data = write_le(data, audio->size);
 
     return (int32) (data - start);
 }
@@ -86,7 +84,7 @@ uint32 audio_from_data(const byte* __restrict data, Audio* __restrict audio) NO_
     data += audio_header_from_data(data, audio);
 
     memcpy(audio->data, data, audio->size);
-    data += audio->size;
+    //data += audio->size;
 
     LOG_3("Loaded audio");
 
@@ -98,7 +96,7 @@ uint32 audio_to_data(const Audio* __restrict audio, byte* __restrict data) NO_EX
     data += audio_header_to_data(audio, data);
 
     memcpy(data, audio->data, audio->size);
-    data += audio->size;
+    //data += audio->size;
 
     return audio_data_size(audio);
 }

@@ -9,7 +9,7 @@
 #ifndef COMS_THREADS_THREAD_DEFINES_H
 #define COMS_THREADS_THREAD_DEFINES_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 int32 thread_local _thread_local_id = 0;
 int32 thread_local _thread_cpu_id = 0;
@@ -26,7 +26,7 @@ struct MutexGuard {
     mutex* _mutex = NULL;
 
     inline HOT_CODE
-    MutexGuard(mutex* const mut) {
+    explicit MutexGuard(mutex* const mut) {
         this->_mutex = mut;
 
         mutex_lock(this->_mutex);

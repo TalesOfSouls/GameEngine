@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_CONSUMABLE_H
 #define COMS_MODELS_CONSUMABLE_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 #include "../mob/PrimaryStatsPoints.h"
 #include "../mob/SecondaryStatsPoints.h"

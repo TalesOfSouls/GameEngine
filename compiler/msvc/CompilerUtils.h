@@ -45,6 +45,11 @@
 #define HOT_CODE __declspec(code_seg(".text$hot"))
 #define COLD_CODE __declspec(code_seg(".text$cold"))
 
+#define DECLARE_SECTION(name) __pragma(section(name, read))
+#define SECTION_ALLOC(name) __declspec(allocate(name)) __declspec(selectany)
+#define SECTION_START(name) __##name##_start
+#define SECTION_END(name)   __##name##_end
+
 FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT
 {

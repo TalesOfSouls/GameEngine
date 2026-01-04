@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_CHAT_TYPE_H
 #define COMS_MODELS_CHAT_TYPE_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 // NOT the message type, just where the message is sent to/from
 enum ChatType : uint16 {

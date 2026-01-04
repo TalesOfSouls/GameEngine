@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 uint32 lzp_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
 {
@@ -20,13 +20,13 @@ uint32 lzp_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
     byte table[1 << 16] = {0};
 
     uint16 hash = 0;
-    int32 i, j;
-    byte mask, c;
+    int32 i;
+    byte c;
     uint32 in_pos = 0, out_pos = 0;
 
     while(true) {
-        j = 1;
-        mask = 0;
+        int32 j = 1;
+        byte mask = 0;
         for (i = 0; i < 8; ++i) {
             if (in_pos == length) {
                 break;
@@ -64,17 +64,17 @@ uint32 lzp_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
     byte table[1 << 16] = {0};
 
     uint16 hash = 0;
-    int32 i, j;
-    byte mask, c;
+    int32 i;
+    byte c;
     uint32 in_pos = 0, out_pos = 0;
 
     while (true) {
-        j = 0;
+        int32 j = 0;
         if (in_pos == length) {
             break;
         }
 
-        mask = in[in_pos++];
+        byte mask = in[in_pos++];
         for (i = 0; i < 8; ++i) {
             if ((mask & (1 << i)) != 0) {
                 c = table[hash];
@@ -100,7 +100,11 @@ uint32 lzp_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
     return out_pos;
 }
 
-int32 find_longest_match(char *window, int32 window_start, char *buffer, int32 buffer_size, int32 *match_position) NO_EXCEPT
+int32 lzp_find_longest_match(
+    const char* window, int32 window_start,
+    const char* buffer, int32 buffer_size,
+    int32* match_position
+) NO_EXCEPT
 {
     int32 best_length = 0;
     int32 best_offset = 0;
@@ -136,7 +140,7 @@ uint32 lzp3_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
     size_t i = 0;
     while (i < length) {
         int32 match_position = 0;
-        int32 match_length = find_longest_match(
+        int32 match_length = lzp_find_longest_match(
             window,
             window_start,
             (char *) &in[i], (int32) (length - i),

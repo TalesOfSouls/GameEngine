@@ -9,7 +9,7 @@
 #ifndef COMS_STDLIB_THREADED_HASH_MAP_H
 #define COMS_STDLIB_THREADED_HASH_MAP_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "HashMap.h"
 
 #include "../thread/Atomic.h"

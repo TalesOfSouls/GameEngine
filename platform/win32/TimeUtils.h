@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <windows.h>
 #include <time.h>
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../log/PerformanceProfiler.h"
 
 inline
@@ -24,7 +24,7 @@ void usleep(uint64 microseconds) NO_EXCEPT
     QueryPerformanceFrequency(&frequency);
     QueryPerformanceCounter(&start);
 
-    long long target = start.QuadPart + (microseconds * frequency.QuadPart) / 1000000;
+    const long long target = start.QuadPart + (microseconds * frequency.QuadPart) / 1000000;
 
     do {
         QueryPerformanceCounter(&end);
@@ -113,8 +113,8 @@ DWORD timespec_to_ms(const timespec* abstime) NO_EXCEPT
         return INFINITE;
     }
 
-    uint64 seconds_since_epoch = unix_epoch_s();
-    DWORD t = (DWORD) (((abstime->tv_sec - seconds_since_epoch) * 1000) + (abstime->tv_nsec / 1000000));
+    const uint64 seconds_since_epoch = unix_epoch_s();
+    const DWORD t = (DWORD) (((abstime->tv_sec - seconds_since_epoch) * 1000) + (abstime->tv_nsec / 1000000));
 
     return t < 0 ? 1 : t;
 }

@@ -9,7 +9,7 @@
 #ifndef COMS_DATABASE_CONNECTION_H
 #define COMS_DATABASE_CONNECTION_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "DatabaseType.h"
 
 struct DatabaseConnection {

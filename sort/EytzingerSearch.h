@@ -1,7 +1,7 @@
 #ifndef COMS_SORT_EYTZINGER_SEARCH_H
 #define COMS_SORT_EYTZINGER_SEARCH_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../memory/RingMemory.h"
 
 // @performance We could optimize eytzinger by using 1 based index

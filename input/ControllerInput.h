@@ -9,7 +9,7 @@
 #ifndef COMS_INPUT_CONTROLLER_INPUT_H
 #define COMS_INPUT_CONTROLLER_INPUT_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 // @question Why are we even using this, shouldn't CONTROLLER_BUTTON_SIZE be sufficient
 #define MAX_CONTROLLER_KEYS 32

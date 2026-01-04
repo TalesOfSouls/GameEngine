@@ -10,7 +10,7 @@
 #ifndef COMS_ANIMATION_EASE_TYPE_H
 #define COMS_ANIMATION_EASE_TYPE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 enum AnimationEaseType : byte {
     ANIMATION_LINEAR,

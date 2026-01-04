@@ -10,7 +10,7 @@
 #ifndef COMS_PARTICLE_H
 #define COMS_PARTICLE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 struct Particle {
     v3_f32 position;

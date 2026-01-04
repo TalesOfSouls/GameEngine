@@ -9,7 +9,7 @@
 #ifndef COMS_SERIALIZE_OMSSETTINGS_H
 #define COMS_SERIALIZE_OMSSETTINGS_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 struct SettingsMatch {
     const char* name;
@@ -203,8 +203,20 @@ void settings_load(
             continue;
         }
 
+        //const char* name_prev;
+
+        // index in case of array data
+        //int32 index;
+
         for (int32 i = 0; i < math_count; ++i) {
             if (str_compare(name, match[i].name, str_length(match[i].name)) == 0) {
+                /*
+                // If the name is != prev name -> we need to reset the index
+                if (str_compare(name, name_prev) != 0) {
+                    index = -1;
+                }
+                */
+
                 void* const member = (void *) (settings + match[i].offset);
 
                 switch (match[i].type) {
@@ -249,7 +261,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -261,7 +273,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((bool *) member)[++index] = (bool) str_to_int(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -271,7 +285,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -283,7 +297,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((int8 *) member)[++index] = (int8) str_to_int(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -293,7 +309,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -305,7 +321,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((int16 *) member)[++index] = (int16) str_to_int(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -315,7 +333,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -327,7 +345,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((int32 *) member)[++index] = (int32) str_to_int(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -337,7 +357,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -349,7 +369,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((int64 *) member)[++index] = (int64) str_to_int(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -359,7 +381,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -371,7 +393,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((uint8 *) member)[++index] = (uint8) str_to_int(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -381,7 +405,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -393,7 +417,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((uint16 *) member)[++index] = (uint16) str_to_int(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -403,7 +429,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -415,7 +441,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((uint32 *) member)[++index] = (uint32) str_to_int(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -425,7 +453,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -437,7 +465,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((uint64 *) member)[++index] = (uint64) str_to_int(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -447,7 +477,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -459,7 +489,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((f32 *) member)[++index] = (f32) str_to_float(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -469,7 +501,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");
@@ -481,7 +513,9 @@ void settings_load(
                         } else {
                             // handles name[] = 1 1 0 1 0
                             do {
+                                str_skip_whitespace(&pos);
                                 ((f64 *) member)[++index] = (f64) str_to_float(pos);
+                                str_skip_until_list(&pos, " \n");
                             } while (*pos == ' ' && str_is_num(*(pos + 1)));
                         }
                     } break;
@@ -499,7 +533,7 @@ void settings_load(
 
                         int32 index = -1;
                         if (str_is_num(*pos)) {
-                            index = (int32) str_to_int(++pos, &pos); ++pos;
+                            index = (int32) str_to_int(pos, &pos); ++pos;
                         }
 
                         str_skip_until_list(&pos, " ");

@@ -9,7 +9,7 @@
 #ifndef COMS_ACCOUNT_PERMISSION_TYPE_H
 #define COMS_ACCOUNT_PERMISSION_TYPE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 enum PermissionType {
     PERMISSION_TYPE_NONE = 0,

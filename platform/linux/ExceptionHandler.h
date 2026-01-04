@@ -72,7 +72,7 @@ void print_stack_trace() {
         printf("%s\n", symbols[i]); // Print each symbol
     }
 
-    free(symbols); // Free the memory allocated by backtrace_symbols
+    free(symbols);
 }
 
 #endif

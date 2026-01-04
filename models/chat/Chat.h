@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_CHAT_H
 #define COMS_MODELS_CHAT_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "ChatLevel.h"
 #include "ChatType.h"
 

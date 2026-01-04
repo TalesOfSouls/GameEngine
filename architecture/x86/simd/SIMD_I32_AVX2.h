@@ -13,7 +13,7 @@
 #include <xmmintrin.h>
 #include <emmintrin.h>
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 // @todo a lot of sse functions require high level (e.g. sse4.1) this needs to be changed to be more general
 //      or better create alternative functions for the available sse version.

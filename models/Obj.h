@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_OBJ_H
 #define COMS_MODELS_OBJ_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 struct ObjFile {
     // Amount of references to this object

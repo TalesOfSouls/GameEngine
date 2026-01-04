@@ -9,7 +9,7 @@
 #ifndef COMS_HASH_GENERAL_H
 #define COMS_HASH_GENERAL_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 FORCE_INLINE
 uint32 hash_downscale_64(uint64 key) NO_EXCEPT
@@ -21,6 +21,12 @@ uint32 hash_downscale_64(uint64 key) NO_EXCEPT
     key ^= key >> 33;
 
     return (uint32) key;
+}
+
+inline
+uint64 hash_int64(const void* value) NO_EXCEPT
+{
+    return (uint64) value;
 }
 
 inline
@@ -37,7 +43,7 @@ uint64 hash_djb2(const char* key) NO_EXCEPT
 }
 
 inline
-uint64 hash_djb2(void* value) NO_EXCEPT
+uint64 hash_djb2(const void* value) NO_EXCEPT
 {
     const char* key = (const char*) value;
     uint64 hash = 5381;

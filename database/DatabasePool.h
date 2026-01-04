@@ -9,7 +9,7 @@
 #ifndef COMS_DATABASE_POOL_H
 #define COMS_DATABASE_POOL_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
 #include "../log/PerformanceProfiler.h"
@@ -41,7 +41,7 @@ void db_pool_alloc(DatabasePool* pool, uint8 count) {
         + 64 * 2; // overhead for alignment
 
     pool->connections = (DatabaseConnection *) platform_alloc_aligned(size, 64);
-    pool->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (pool->connections + count * sizeof(DatabaseConnection)), 64);
+    pool->free = (uint64 *) align_up((uintptr_t) (pool->connections + count * sizeof(DatabaseConnection)), 64);
     pool->count = count;
 }
 

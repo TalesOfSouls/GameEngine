@@ -9,8 +9,6 @@
 #ifndef COMS_STDLIB_HELPER_H
 #define COMS_STDLIB_HELPER_H
 
-#include "../compiler/CompilerUtils.h"
-
 /**
  * @question Consider to make the helper functions below compiler dependent
  *          A lot of the code gets optimized in different ways by different compilers
@@ -99,19 +97,35 @@ inline T clamp_branchless_general(T v, T lo, T hi) NO_EXCEPT
 // Abs
 FORCE_INLINE
 int8 oms_abs(int8 a) NO_EXCEPT
-{ return (a ^ (a >> 7)) - (a >> 7); }
+{
+    uint8 ua = (uint8)a;
+    uint8 mask = ua >> 7;
+    return (int8)((ua ^ mask) - mask);
+}
 
 FORCE_INLINE
 int16 oms_abs(int16 a) NO_EXCEPT
-{ return (a ^ (a >> 15)) - (a >> 15); }
+{
+    uint16 ua = (uint16)a;
+    uint16 mask = ua >> 15;
+    return (int16)((ua ^ mask) - mask);
+}
 
 FORCE_INLINE
 int32 oms_abs(int32 a) NO_EXCEPT
-{ return (a ^ (a >> 31)) - (a >> 31); }
+{
+    uint32 ua = (uint32)a;
+    uint32 mask = ua >> 31;
+    return (int32)((ua ^ mask) - mask);
+}
 
 FORCE_INLINE
 int64 oms_abs(int64 a) NO_EXCEPT
-{ return (a ^ (a >> 63)) - (a >> 63); }
+{
+    uint64 ua = (uint64)a;
+    uint64 mask = ua >> 63;
+    return (int64)((ua ^ mask) - mask);
+}
 
 // For floats the high bit is still defining the sign
 // But we need to reinterpret it as int to mask the sign
@@ -195,11 +209,19 @@ F oms_floor(F x) NO_EXCEPT {
 // However, 7 / 3 = 2 is what we would expect
 FORCE_INLINE
 int32 floor_div(int32 a, int32 b) NO_EXCEPT
-{ return (a - ((b - 1) & (a >> 31))) / b; }
+{
+    int32 q = a / b;
+    int32 r = a - q * b;
+    return q - (r < 0);
+}
 
 FORCE_INLINE
 int64 floor_div(int64 a, int64 b) NO_EXCEPT
-{ return (a - ((b - 1) & (a >> 63))) / b; }
+{
+    int64 q = a / b;
+    int64 r = a - q * b;
+    return q - (r < 0);
+}
 
 // Trig
 FORCE_INLINE
@@ -266,12 +288,16 @@ bool has_zero(char c) NO_EXCEPT {
 #define OMS_DIV2_I32(n) ((n) >> 1U)
 #define OMS_MUL2_I64(n) ((n) << 1ULL)
 #define OMS_MUL2_I32(n) ((n) << 1U)
+#define OMS_IS_POW2(n) ((n & (n - 1)) == 0)
 
 // Bitwise utilities
 #define OMS_SIGN_32(x) (1 | ((x) >> 31 << 1))
 #define OMS_SIGN_64(x) (1LL | ((x) >> 63 << 1))
-#define OMS_IS_POW2(x) (((x) & ((x) - 1)) == 0)
-#define OMS_ALIGN_UP(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
+
+template <typename T>
+FORCE_INLINE T align_up(T x, size_t align) NO_EXCEPT
+{ return (T) (((x) + ((align) - 1)) & ~((align) - 1)); }
+
 #define OMS_ALIGN_DOWN(x, align) ((x) & ~((align) - 1))
 #define OMS_IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
 
@@ -333,24 +359,9 @@ DEFINE_BITCAST_FUNCTION(int64, f64)
     int32 _i = start;                      \
     while (_i++ < end) {
 
-#define iterator_end    \
+#define iterator_end \
         ++obj;       \
-    }}                  \
-
-// Adjusts the step size based on the memory alignment
-inline
-int32 intrin_validate_steps(const byte* mem, int32 steps) NO_EXCEPT
-{
-    if (steps >= 16 && ((uintptr_t) mem & 63) == 0) {
-        return 16;
-    } else if (steps >= 8 && ((uintptr_t) mem & 31) == 0) {
-        return 8;
-    } else if (steps >= 4 && ((uintptr_t) mem & 15) == 0) {
-        return 4;
-    } else {
-        return 1;
-    }
-}
+    }}               \
 
 // Template helpers
 template<typename A, typename B>
@@ -370,5 +381,224 @@ template<typename T>
 struct enable_if<true, T> {
     using type = T;
 };
+
+/*
+#define SWAP_ENDIAN_16(val) ((((val) << 8) | ((val) >> 8)))
+#define SWAP_ENDIAN_32(val) (((val) << 24) | (((val) & 0xFF00) << 8) | (((val) >> 8) & 0xFF00) | ((val) >> 24))
+#define SWAP_ENDIAN_64(val) (((val) << 56) | (((val) & 0x000000000000FF00ULL) << 40) | (((val) & 0x0000000000FF0000ULL) << 24) | (((val) & 0x00000000FF000000ULL) << 8) | (((val) & 0x000000FF00000000ULL) >> 8) | (((val) & 0x0000FF0000000000ULL) >> 24) | (((val) & 0x00FF000000000000ULL) >> 40) | ((val) >> 56))
+*/
+
+// Automatically perform endian swap if necessary
+// If we are on little endian (e.g. Win32) we swap big endian data but not little endian
+#if _WIN32 || __LITTLE_ENDIAN__
+    #define SWAP_ENDIAN_LITTLE(val) (val)
+    #define SWAP_ENDIAN_BIG(val) endian_swap(val)
+
+    #define SWAP_ENDIAN_LITTLE_SELF(val) ((void) 0)
+    #define SWAP_ENDIAN_BIG_SELF(val) val = endian_swap(val)
+#else
+    #define SWAP_ENDIAN_LITTLE(val) endian_swap(val)
+    #define SWAP_ENDIAN_BIG(val) (val)
+
+    #define SWAP_ENDIAN_LITTLE_SELF(val) val = endian_swap(val)
+    #define SWAP_ENDIAN_BIG_SELF(val) ((void) 0)
+#endif
+
+FORCE_INLINE
+bool is_little_endian() NO_EXCEPT
+{
+    uint32 num = 1;
+    return ((int32) (*(char *) & num)) == 1;
+}
+
+FORCE_INLINE
+uint16 endian_swap(uint16 val) NO_EXCEPT
+{
+    //return ((val << 8) | (val >> 8));
+    return SWAP_ENDIAN_16(val);
+}
+
+FORCE_INLINE
+int16 endian_swap(int16 val) NO_EXCEPT
+{
+    //return (int16) ((val << 8) | (val >> 8));
+    return SWAP_ENDIAN_16(val);
+}
+
+FORCE_INLINE
+uint32 endian_swap(uint32 val) NO_EXCEPT
+{
+    /*
+    return ((val << 24)
+        | ((val & 0xFF00) << 8)
+        | ((val >> 8) & 0xFF00)
+        | (val >> 24));
+    */
+   return SWAP_ENDIAN_32(val);
+}
+
+FORCE_INLINE
+int32 endian_swap(int32 val) NO_EXCEPT
+{
+    /*
+    return (int32) ((val << 24)
+        | ((val & 0xFF00) << 8)
+        | ((val >> 8) & 0xFF00)
+        | (val >> 24));
+    */
+    return SWAP_ENDIAN_32(val);
+}
+
+FORCE_INLINE
+uint64 endian_swap(uint64 val) NO_EXCEPT
+{
+    /*
+    return ((val << 56)
+        | ((val & 0x000000000000FF00ULL) << 40)
+        | ((val & 0x0000000000FF0000ULL) << 24)
+        | ((val & 0x00000000FF000000ULL) << 8)
+        | ((val & 0x000000FF00000000ULL) >> 8)
+        | ((val & 0x0000FF0000000000ULL) >> 24)
+        | ((val & 0x00FF000000000000ULL) >> 40)
+        | (val >> 56));
+    */
+    return SWAP_ENDIAN_64(val);
+}
+
+FORCE_INLINE
+int64 endian_swap(int64 val) NO_EXCEPT
+{
+    /*
+    return (int64) ((val << 56)
+        | ((val & 0x000000000000FF00ULL) << 40)
+        | ((val & 0x0000000000FF0000ULL) << 24)
+        | ((val & 0x00000000FF000000ULL) << 8)
+        | ((val & 0x000000FF00000000ULL) >> 8)
+        | ((val & 0x0000FF0000000000ULL) >> 24)
+        | ((val & 0x00FF000000000000ULL) >> 40)
+        | (val >> 56));
+    */
+    return SWAP_ENDIAN_64(val);
+}
+
+FORCE_INLINE
+f32 endian_swap(f32 val) NO_EXCEPT
+{
+    return (f32) BITCAST(endian_swap(BITCAST(val, uint32)), f32);
+}
+
+FORCE_INLINE
+f64 endian_swap(f64 val) NO_EXCEPT
+{
+    return (f64) BITCAST(endian_swap(BITCAST(val, uint64)), f64);
+}
+
+FORCE_INLINE
+byte* write_le(byte* p, uint32 v) NO_EXCEPT
+{
+    SWAP_ENDIAN_LITTLE_SELF(v);
+    memcpy(p, &v, sizeof(v));
+
+    return p + sizeof(v);
+}
+
+FORCE_INLINE
+byte* write_le(byte* p, int32 v) NO_EXCEPT
+{
+    return write_le(p, (uint32)v);
+}
+
+FORCE_INLINE
+byte* write_le(byte* p, uint64 v) NO_EXCEPT
+{
+    SWAP_ENDIAN_LITTLE_SELF(v);
+    memcpy(p, &v, sizeof(v));
+
+    return p + sizeof(v);
+}
+
+FORCE_INLINE
+byte* write_le(byte* p, int64 v) NO_EXCEPT
+{
+    return write_le(p, (uint64)v);
+}
+
+FORCE_INLINE
+byte* write_le(byte* p, f32 v) NO_EXCEPT
+{
+    uint32 bits;
+    memcpy(&bits, &v, sizeof(bits));
+
+    return write_le(p, bits);
+}
+
+FORCE_INLINE
+byte* write_le(byte* p, f64 v) NO_EXCEPT
+{
+    uint64 bits;
+    memcpy(&bits, &v, sizeof(bits));
+
+    return write_le(p, bits);
+}
+
+FORCE_INLINE
+const byte* read_le(const byte* p, uint32* out) NO_EXCEPT
+{
+    uint32 v;
+    memcpy(&v, p, sizeof(v));
+    *out = SWAP_ENDIAN_LITTLE(v);
+
+    return p + sizeof(v);
+}
+
+FORCE_INLINE
+const byte* read_le(const byte* p, int32* out) NO_EXCEPT
+{
+    uint32 v;
+    p = read_le(p, &v);
+    *out = (int32)v;
+
+    return p;
+}
+
+FORCE_INLINE
+const byte* read_le(const byte* p, uint64* out) NO_EXCEPT
+{
+    uint64 v;
+    memcpy(&v, p, sizeof(v));
+    *out = SWAP_ENDIAN_LITTLE(v);
+
+    return p + sizeof(v);
+}
+
+FORCE_INLINE
+const byte* read_le(const byte* p, int64* out) NO_EXCEPT
+{
+    uint64 v;
+    p = read_le(p, &v);
+    *out = (int64)v;
+
+    return p;
+}
+
+FORCE_INLINE
+const byte* read_le(const byte* p, f32* out) NO_EXCEPT
+{
+    uint32 bits;
+    p = read_le(p, &bits);
+    memcpy(out, &bits, sizeof(bits));
+
+    return p;
+}
+
+FORCE_INLINE
+const byte* read_le(const byte* p, f64* out) NO_EXCEPT
+{
+    uint64 bits;
+    p = read_le(p, &bits);
+    memcpy(out, &bits, sizeof(bits));
+
+    return p;
+}
 
 #endif

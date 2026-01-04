@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_EQUIPMENT_GEN_STAT_H
 #define COMS_MODELS_EQUIPMENT_GEN_STAT_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 #include "../mob/MobStats.h"
 #include "ItemStatsDistribution.h"

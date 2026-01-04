@@ -11,7 +11,7 @@
 #define COMS_ANIMATION_H
 
 #include <math.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 #include "AnimationEaseType.h"
 

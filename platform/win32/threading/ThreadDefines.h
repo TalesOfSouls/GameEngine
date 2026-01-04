@@ -9,7 +9,7 @@
 #ifndef COMS_PLATFORM_WIN32_THREADING_THREAD_DEFINES_H
 #define COMS_PLATFORM_WIN32_THREADING_THREAD_DEFINES_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../thread/Atomic.h"
 #include <windows.h>
 

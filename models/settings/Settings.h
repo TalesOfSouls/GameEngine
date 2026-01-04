@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_SETTINGS_H
 #define COMS_MODELS_SETTINGS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 #if _WIN32
     #include <Ws2ipdef.h>

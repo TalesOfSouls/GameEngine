@@ -9,7 +9,7 @@
 #ifndef COMS_ANIMATION_ENTITY_H
 #define COMS_ANIMATION_ENTITY_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../animation/AnimationEaseType.h"
 #include "../animation/Animation.h"
 #include "../utils/BitUtils.h"

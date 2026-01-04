@@ -10,7 +10,7 @@
 #define COMS_ENCODING_BASE64_SIMD_X86_H
 
 #include <immintrin.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../stdlib/Simd.h"
 #include "../utils/StringUtils.h"
 #include "Base64Definitions.h"

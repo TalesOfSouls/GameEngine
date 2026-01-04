@@ -9,7 +9,7 @@
 #ifndef COMS_HASH_SHA1_DEFINITIONS_H
 #define COMS_HASH_SHA1_DEFINITIONS_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 #define SHA1_ROTL32(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
 

@@ -6,10 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef COMS_STDLIB_TYPES_H
-#define COMS_STDLIB_TYPES_H
-
-// @question Consider to rename to Stdlib.h
+#ifndef COMS_STDLIB_H
+#define COMS_STDLIB_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -38,9 +36,44 @@ typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
 
+typedef unsigned int uint;
+
+/**
+ * Some implementations should support 32 bit and 64 bit.
+ * For this reason we need types that are universal.
+ * And who knows, maybe we will get to 128 bits as default integer sizes.
+ */
+#if !defined(_WIN64) && !__x86_64__ && !__ppc64__
+    typedef int32 sint_max;
+    typedef uint32 uint_max;
+
+    #define OMS_UINT_MAX 0xFFFFFFFFU
+    #define OMS_UINT_ONE 1U
+
+    #define ENV_64 1
+#else
+    typedef int64 sint_max;
+    typedef uint64 uint_max;
+
+    #define OMS_UINT_MAX 0xFFFFFFFFFFFFFFFFULL
+    #define OMS_UINT_ONE 1ULL
+
+    #define ENV_32 1
+#endif
+
 typedef uint16_t f16;
 typedef float f32;
 typedef double f64;
+
+typedef union {
+    f32 f;
+    uint32 u;
+} f32_bits;
+
+typedef union {
+    f64 f;
+    uint64 u;
+} f64_bits;
 
 typedef unsigned char byte;
 typedef char sbyte;
@@ -405,8 +438,8 @@ enum DataType : byte {
 };
 
 #include "../compiler/CompilerUtils.h"
-#include "Helper.h"
 #include "../architecture/Intrinsics.h"
+#include "Helper.h"
 #include "../platform/Platform.h"
 
 #endif

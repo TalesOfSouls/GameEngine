@@ -11,7 +11,7 @@
 
 #include <windows.h>
 #include "../../platform/win32/Window.h"
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "OpenglDefines.h"
 
 #pragma comment(lib, "OpenGL32.Lib")

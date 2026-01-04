@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_MOB_H
 #define COMS_MODELS_MOB_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 #include "../settings/Settings.h"
 #include "../item/Equipment.h"

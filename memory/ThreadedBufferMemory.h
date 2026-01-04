@@ -9,7 +9,7 @@
 #ifndef COMS_MEMORY_THREADED_BUFFER_MEMORY_H
 #define COMS_MEMORY_THREADED_BUFFER_MEMORY_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../thread/Thread.h"
 #include "BufferMemory.h"
 

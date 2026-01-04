@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_MOB_PLAYER_REPUTATION_H
 #define COMS_MODELS_MOB_PLAYER_REPUTATION_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 struct Reputation {
     // Character trait

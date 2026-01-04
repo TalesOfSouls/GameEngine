@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_VULKAN_GPU_INFO_C
 #define COMS_GPUAPI_VULKAN_GPU_INFO_C
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../GPUInfo.h"
 #include <vulkan/vulkan.h>
@@ -131,7 +131,7 @@ void gpuapi_info_get(GpuInfo* info, VkPhysicalDevice device) {
     //str_copy(info->vendor, std::to_string(props.vendorID).c_str(), sizeof(info->vendor) - 1);
     str_copy(info->name, props.deviceName, sizeof(info->name) - 1);
 
-    sprintf_fast(info->api_version, sizeof(info->api_version) - 1, "%d.%d.%d";
+    sprintf_fast(info->api_version, sizeof(info->api_version) - 1, "%d.%d.%d",
         VK_VERSION_MAJOR(props.apiVersion),
         VK_VERSION_MINOR(props.apiVersion),
         VK_VERSION_PATCH(props.apiVersion)

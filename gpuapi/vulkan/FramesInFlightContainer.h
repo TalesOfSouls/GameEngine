@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_VULKAN_FRAMES_IN_FLIGHT_CONTAINER_H
 #define COMS_GPUAPI_VULKAN_FRAMES_IN_FLIGHT_CONTAINER_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include <vulkan/vulkan.h>
 
 struct FramesInFlightContainer {

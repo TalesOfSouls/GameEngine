@@ -1,7 +1,7 @@
 #ifndef COMS_MODELS_ITEM_RARITY_H
 #define COMS_MODELS_ITEM_RARITY_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 enum ItemRarity : uint8 {
     ITEM_RARITY_NONE,

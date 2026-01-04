@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_MOB_PRIMARY_STATS_POINTS_H
 #define COMS_MODELS_MOB_PRIMARY_STATS_POINTS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 #define PRIMARY_STAT_SIZE 7
 static const int PRIMARY_STAT_INDICES[] = {0, 1, 2, 3, 4, 5, 6, 7};

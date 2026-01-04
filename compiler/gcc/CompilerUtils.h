@@ -9,7 +9,7 @@
 #ifndef COMS_COMPILER_GCC_COMPILER_UTILS_H
 #define COMS_COMPILER_GCC_COMPILER_UTILS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/Assert.h"
 
 #if CPP_VERSION < 17
@@ -44,6 +44,11 @@
 
 #define HOT_CODE __attribute__((hot))
 #define COLD_CODE __attribute__((cold))
+
+#define DECLARE_SECTION(name)
+#define SECTION_ALLOC(name) __attribute__((section(name), used))
+#define SECTION_START(name) __start_##name
+#define SECTION_END(name)   __stop_##name
 
 FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT

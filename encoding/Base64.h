@@ -9,7 +9,7 @@
 #ifndef COMS_ENCODING_BASE64_H
 #define COMS_ENCODING_BASE64_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
 #include "Base64Definitions.h"
 

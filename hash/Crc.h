@@ -9,7 +9,7 @@
 #ifndef COMS_HASH_CRC_H
 #define COMS_HASH_CRC_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../architecture/Intrinsics.h"
 
 static const uint32 crc_table[256] =

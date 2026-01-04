@@ -10,8 +10,7 @@
 #ifndef COMS_AUDIO_QOA_H
 #define COMS_AUDIO_QOA_H
 
-#include "../stdlib/Types.h"
-#include "../utils/EndianUtils.h"
+#include "../stdlib/Stdlib.h"
 #include "../audio/Audio.cpp"
 #include "../stdlib/Simd.h"
 

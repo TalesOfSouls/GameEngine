@@ -12,7 +12,7 @@
 #include <dinput.h>
 #include "../../../input/Input.h"
 #include "../../../input/ControllerInput.h"
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 BOOL CALLBACK EnumJoysticksCallback(const DIDEVICEINSTANCE* instance, void* pDevicePtr)
 {

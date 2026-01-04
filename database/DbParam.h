@@ -9,7 +9,7 @@
 #ifndef COMS_DATABASE_PARAM_H
 #define COMS_DATABASE_PARAM_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 enum DbParamType : byte {
     DB_PARAM_INT8,

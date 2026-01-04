@@ -9,7 +9,7 @@
 #ifndef COMS_PLATFORM_WIN32_CLIPBOARD_H
 #define COMS_PLATFORM_WIN32_CLIPBOARD_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include <windows.h>
 #include <string.h>

@@ -1,7 +1,7 @@
 #ifndef COMS_UI_LABEL_H
 #define COMS_UI_LABEL_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "attribute/UIAttributeFont.h"
 #include "attribute/UIAttributeDimension.h"
 #include "UIStyleType.h"

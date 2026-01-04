@@ -1,7 +1,7 @@
 #ifndef COMS_UI_ATTRIBUTE_BACKGROUND_STYLE_H
 #define COMS_UI_ATTRIBUTE_BACKGROUND_STYLE_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 enum UIBackgroundStyle : byte {
     UI_BACKGROUND_STYLE_NONE = 1 << 0,

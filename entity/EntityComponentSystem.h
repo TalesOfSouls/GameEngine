@@ -10,7 +10,7 @@
 #define COMS_ENTITY_COMPONENT_SYSTEM_H
 
 #include <string.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemory.h"
 #include "../utils/Assert.h"
 #include "../utils/BitUtils.h"

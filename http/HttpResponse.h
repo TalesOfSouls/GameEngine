@@ -9,7 +9,7 @@
 #ifndef COMS_JINGGA_HTTP_RESPONSE_H
 #define COMS_JINGGA_HTTP_RESPONSE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "HttpMethod.h"
 #include "HttpHeader.h"
 #include "HttpProtocol.h"

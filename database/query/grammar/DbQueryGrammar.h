@@ -9,7 +9,7 @@
 #ifndef COMS_DATABASE_QUERY_GRAMMAR_H
 #define COMS_DATABASE_QUERY_GRAMMAR_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 struct DbQueryGrammar {
 };

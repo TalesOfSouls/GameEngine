@@ -1,7 +1,7 @@
 #ifndef COMS_UI_ANIMATION_H
 #define COMS_UI_ANIMATION_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../animation/AnimationEaseType.h"
 
 struct UIAnimationState {

@@ -9,7 +9,7 @@
 #ifndef COMS_HTML_TEMPLATE_H
 #define COMS_HTML_TEMPLATE_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../stdlib/PerfectHashMap.h"
 #include "../../memory/RingMemory.h"
 #include "../../system/FileUtils.cpp"

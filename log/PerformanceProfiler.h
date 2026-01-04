@@ -9,7 +9,7 @@
 #ifndef COMS_LOG_PERFORMANCE_PROFILER_H
 #define COMS_LOG_PERFORMANCE_PROFILER_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
 #include "../architecture/Intrinsics.h"
 #include "../compiler/CompilerUtils.h"
@@ -27,6 +27,7 @@
         PROFILE_FILE_UTILS,
         PROFILE_BUFFER_ALLOC,
         PROFILE_CHUNK_ALLOC,
+        PROFILE_FRAGMENT_ALLOC,
         PROFILE_RING_ALLOC,
         PROFILE_DB_POOL_ALLOC,
         PROFILE_THREAD_POOL_ALLOC,
@@ -104,7 +105,7 @@ void profile_performance_snapshot() NO_EXCEPT
         return;
     }
 
-    int32 pos = atomic_increment_wrap_acquire_release(&_perf_stats->pos, ARRAY_COUNT(_perf_stats->perfs) / PROFILE_SIZE);
+    const int32 pos = atomic_increment_wrap_acquire_release(&_perf_stats->pos, ARRAY_COUNT(_perf_stats->perfs) / PROFILE_SIZE);
     memset(
         &_perf_stats->perfs[pos * PROFILE_SIZE],
         0,
@@ -209,8 +210,8 @@ struct PerformanceThreadProfiler {
     int32 _id;
     uint64 start_cycle;
 
-    HOT_CODE
-    PerformanceThreadProfiler(
+    HOT_CODE inline
+    explicit PerformanceThreadProfiler(
         int32 id
     ) NO_EXCEPT
     {
@@ -258,10 +259,10 @@ void performance_log_to_file() NO_EXCEPT
         return;
     }
 
-    MAYBE_UNUSED int32 count = PROFILE_SIZE;
+    MAYBE_UNUSED const int32 count = PROFILE_SIZE;
     LOG_1("[BEGIN] Performance log (count %d)", {DATA_TYPE_INT32, &count});
 
-    MAYBE_UNUSED int32 size = sizeof(*_perf_stats);
+    MAYBE_UNUSED const int32 size = sizeof(*_perf_stats);
 
     LOG_1((const char *) _perf_stats, {DATA_TYPE_BYTE_ARRAY, (void *) &size});
 
@@ -283,7 +284,7 @@ void performance_log_to_file_formatted() NO_EXCEPT
         return;
     }
 
-    MAYBE_UNUSED int32 count = PROFILE_SIZE;
+    MAYBE_UNUSED const int32 count = PROFILE_SIZE;
     LOG_1("[BEGIN] Performance log (count %d)", {DATA_TYPE_INT32, &count});
 
     const int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
@@ -292,7 +293,7 @@ void performance_log_to_file_formatted() NO_EXCEPT
     for (int32 i = 0; i < PROFILE_SIZE; ++i) {
         const PerformanceProfileResult* const perf = &_perf_stats->perfs[pos + i];
         if (perf->name) {
-            const int32 length = sprintf_fast(
+            MAYBE_UNUSED const int32 length = sprintf_fast(
                 line, sizeof(line) - 1, "%s;%l\n",
                 perf->name,
                 perf->total_cycle
@@ -324,8 +325,8 @@ struct PerformanceProfiler {
 
     PerformanceProfiler* parent;
 
-    HOT_CODE
-    PerformanceProfiler(
+    HOT_CODE inline
+    explicit PerformanceProfiler(
         int32 id, const char* scope_name, const char* info = NULL,
         uint32 flags = 0
     ) NO_EXCEPT

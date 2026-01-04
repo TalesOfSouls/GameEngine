@@ -9,7 +9,7 @@
 #ifndef COMS_SCHEDULER_H
 #define COMS_SCHEDULER_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../system/Allocator.h"
 #include "../thread/Thread.h"
 
@@ -57,8 +57,8 @@ void scheduler_alloc(TaskScheduler* scheduler, int32 count) NO_EXCEPT
     );
 
     scheduler->tasks = (TaskSchedule *) data;
-    scheduler->priorities = (volatile int32 *) OMS_ALIGN_UP((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
-    scheduler->free = (volatile uint64 *) OMS_ALIGN_UP((uintptr_t) (scheduler->priorities + count), 64);
+    scheduler->priorities = (volatile int32 *) align_up((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
+    scheduler->free = (volatile uint64 *) align_up((uintptr_t) (scheduler->priorities + count), 64);
 
     mutex_init(&scheduler->lock, NULL);
 }
@@ -76,8 +76,8 @@ void scheduler_create(TaskScheduler* scheduler, int32 count, BufferMemory* const
     );
 
     scheduler->tasks = (TaskSchedule *) data;
-    scheduler->priorities = (volatile int32 *) OMS_ALIGN_UP((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
-    scheduler->free = (volatile uint64 *) OMS_ALIGN_UP((uintptr_t) (scheduler->priorities + count), 64);
+    scheduler->priorities = (volatile int32 *) align_up((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
+    scheduler->free = (volatile uint64 *) align_up((uintptr_t) (scheduler->priorities + count), 64);
 
     mutex_init(&scheduler->lock, NULL);
 }
@@ -86,7 +86,7 @@ static
 int32 scheduler_get_unset(volatile uint64* state, uint32 state_count) NO_EXCEPT
 {
     uint32 free_index = 0;
-    uint32 bit_index = 0;
+    uint32 bit_index;
 
     for (uint32 i = 0; i < state_count; i+= 64) {
         if (state[free_index] != 0xFFFFFFFFFFFFFFFF) {
@@ -117,7 +117,7 @@ int32 scheduler_get_unset(volatile uint64* state, uint32 state_count) NO_EXCEPT
 }
 
 static inline
-void scheduler_add(TaskScheduler* scheduler, TaskSchedule* task) NO_EXCEPT
+void scheduler_add(TaskScheduler* const scheduler, const TaskSchedule* const task) NO_EXCEPT
 {
     MutexGuard _guard(&scheduler->lock);
     int32 idx = scheduler_get_unset(scheduler->free, scheduler->task_count);

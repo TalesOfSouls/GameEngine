@@ -1,7 +1,7 @@
 #ifndef COMS_MODELS_SKILL_H
 #define COMS_MODELS_SKILL_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "ProjectileDistribution.h"
 #include "SkillLocation.h"
 #include "AoeDistribution.h"
@@ -10,6 +10,43 @@
 
 #define MAX_SKILL_NAME 32
 #define MAX_SKILL_DESCRIPTION 128
+
+enum SkillFlag {
+    SKILL_FLAG_HAS_HITBOX = 1 << 0,
+
+    SKILL_FLAG_IS_RANGED = 1 << 1,
+    SKILL_FLAG_HAS_PROJECTILE = 1 << 2,
+    SKILL_FLAG_PROJECTILE_ANIM_USES_ITEM = 1 << 3,
+    SKILL_FLAG_PROJECTILE_FOLLOWS = 1 << 4,
+
+    // Can be casted with other skills at the same time/another skill can be cast while casting this
+    SKILL_FLAG_ASYNC_CAST = 1 << 5,
+    SKILL_FLAG_SHATTER = 1 << 6,
+
+    // If multiple attacks you may be able to switch targets in between
+    SKILL_FLAG_IS_RETARGETABLE = 1 << 7,
+    SKILL_FLAG_IS_BOOMERANG = 1 << 8,
+
+    // cancellable = player decision to cancel
+    SKILL_FLAG_IS_CAST_CANCELLABLE = 1 << 9,
+
+    // disruption = other player/npc can stop it
+    SKILL_FLAG_IS_CAST_DISRUPTABLE = 1 << 10,
+
+    // Player can move during casting
+    SKILL_FLAG_IS_CAST_MOVABLE = 1 << 11,
+
+    // Similar to casting but now if it is a channeling ability
+    SKILL_FLAG_IS_CHANNELING = 1 << 12,
+    SKILL_FLAG_IS_CHANNELING_CANCELLABLE = 1 << 13,
+    SKILL_FLAG_IS_CHANNELING_DISRUPTABLE = 1 << 14,
+    SKILL_FLAG_IS_CHANNELING_MOVABLE = 1 << 15,
+
+    SKILL_FLAG_IS_AOE = 1 << 16,
+    SKILL_FLAG_IS_EFFECT_SPREADING = 1 << 17,
+
+    SKILL_FLAG_IS_PASSIVE = 1 << 18,
+};
 
 /**
  * @todo optimize order of struct members to ensure optimal struct size
@@ -41,9 +78,9 @@ struct Skill
     // @todo configuration e.g. which minions to pick, release minion, select new minion...
     void* options;
 
-    bool projectile_animation_uses_item; // Use the equiped item for the projectile
+    bool projectile_animation_uses_item; // Use the equipped item for the projectile
 
-    byte target; // what is targatable (self, enemies, allies, ground, none?) Has to be bitset 2^n to define multiple
+    byte target; // what is targetable (self, enemies, allies, ground, none?) Has to be bitset 2^n to define multiple
     byte default_target;
 
     bool has_hitbox; // some skills have hitboxes (e.g. totems, minions, some breakable prisons, ...)
@@ -99,7 +136,7 @@ struct Skill
     SecondaryStatsPoints secondary_item_add;
     SecondaryStatsPoints secondary_item_mul;
 
-    int skill_movement; // none, follows target, random moevement, random movement in aoe
+    int skill_movement; // none, follows target, random movement, random movement in aoe
     // @todo how to make specific custom movement pattern for boss fights
 
     // Useful to cast multiple totems:
@@ -136,12 +173,12 @@ struct Skill
     f32 shatter_duration;
     uint32 shatter_damage;
 
-    bool is_retargatable; // If multiple you may be able to switch targets in between
+    bool is_retargetable; // If multiple you may be able to switch targets in between
     bool is_boomerang;
 
     // Casting happens before the skill
     // This can also be used for telegraphs
-    bool is_cast_cancalable;
+    bool is_cast_cancellable;
     bool is_cast_disruptable;
     bool is_cast_movable;
 
@@ -149,11 +186,11 @@ struct Skill
     // even a normal punch attack is a channelled skill
     f32 channeling_duration; // -1.0 = infinite (e.g. aura), 0 = no duration = instant
     bool is_channeling; // duration = skill_duration + it shows the channeling timeline
-    bool is_channeling_cancalable;
+    bool is_channeling_cancellable;
     bool is_channeling_disruptable;
     bool is_channeling_movable;
 
-    byte channeling_distribution; // beginning, on hit, end, intervals, or use damage distribution -> also effects dmg if channeling is cancled
+    byte channeling_distribution; // beginning, on hit, end, intervals, or use damage distribution -> also effects dmg if channeling is canceled
     byte channeling_ticks; // how often is dmg dealt
 
     byte damage_distribution_location; // const, linear-increase, linear-decrease according to the shape of the skill.. e.g. more damage in center of aoe or more damage at the end of a end of a wave like skill

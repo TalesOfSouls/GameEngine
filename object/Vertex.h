@@ -9,7 +9,7 @@
 #ifndef COMS_OBJECT_VERTEX_H
 #define COMS_OBJECT_VERTEX_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 struct Vertex4DSamplerTextureColor {
     v4_f32 position;

@@ -9,7 +9,7 @@
 #ifndef COMS_PLATFORM_WIN32_THREADING_ATOMIC_H
 #define COMS_PLATFORM_WIN32_THREADING_ATOMIC_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../compiler/CompilerUtils.h"
 #include <windows.h>
 

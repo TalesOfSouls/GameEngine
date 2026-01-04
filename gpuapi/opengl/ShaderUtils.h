@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_OPENGL_SHADER_UTILS_H
 #define COMS_GPUAPI_OPENGL_SHADER_UTILS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../memory/RingMemory.h"
 #include "../../log/Log.h"
 #include "../../log/Stats.h"
@@ -233,7 +233,7 @@ int32 opengl_program_optimize(const char* __restrict input, char* __restrict out
 GLuint gpuapi_shader_make(GLenum type, const char* source) NO_EXCEPT
 {
     LOG_1("Create shader");
-    GLuint shader = glCreateShader(type);
+    const GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, (GLchar **) &source, NULL);
     glCompileShader(shader);
 
@@ -279,7 +279,7 @@ GLuint gpuapi_pipeline_make(
 {
     PROFILE(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Create pipeline");
-    GLuint program = glCreateProgram();
+    const GLuint program = glCreateProgram();
 
     if (geometry_shader > -1) {
         glAttachShader(program, geometry_shader);
@@ -338,7 +338,7 @@ void gpuapi_pipeline_use(uint32 id) NO_EXCEPT
 inline
 void gpuapi_attribute_setup(GpuAttributeType type, const OpenglVertexInputAttributeDescription* attr) NO_EXCEPT
 {
-    int32 length = gpuapi_attribute_count(type);
+    const int32 length = gpuapi_attribute_count(type);
     for (int32 i = 0; i < length; ++i) {
         if (attr[i].format == GL_INT) {
             glVertexAttribIPointer(attr[i].location, attr[i].count, attr[i].format, attr[i].stride, attr[i].offset);

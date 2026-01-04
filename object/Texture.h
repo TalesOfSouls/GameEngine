@@ -32,7 +32,7 @@
 #define TEXTURE_MINIFICATION_NEAREST_MIPMAP_LINEAR 5
 #define TEXTURE_MINIFICATION_LINEAR_MIPMAP_LINEAR 6
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../image/Image.h"
 
 struct Texture {

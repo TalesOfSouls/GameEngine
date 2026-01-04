@@ -12,9 +12,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../utils/Utils.h"
-#include "../utils/EndianUtils.h"
 #include "Image.h"
 #include "../compiler/CompilerUtils.h"
 
@@ -277,9 +276,9 @@ void image_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
     image->pixel_count = image->width * image->height;
 
     // rows are 4 bytes multiples in length
-    const uint32 width = OMS_ALIGN_UP(src.dib_header.width, 4);
+    const uint32 width = align_up(src.dib_header.width, 4);
 
-    const uint32 pixel_bytes = compiler_div_pow2(src.dib_header.bits_per_pixel, 8);
+    const uint32 pixel_bytes = src.dib_header.bits_per_pixel / 8;
     const byte alpha_offset = pixel_bytes > 3;
 
     image->image_settings |= (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT) == 0

@@ -1,7 +1,7 @@
 #ifndef COMS_UI_LANGUAGE_H
 #define COMS_UI_LANGUAGE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../memory/RingMemory.h"
 #include "../system/FileUtils.cpp"
 
@@ -83,12 +83,8 @@ int32 language_from_data(
 {
     const byte* pos = data;
 
-    // Count
-    language->count = SWAP_ENDIAN_LITTLE(*((int32 *) pos));
-    pos += sizeof(language->count);
-
-    language->size = SWAP_ENDIAN_LITTLE(*((int32 *) pos));
-    pos += sizeof(language->size);
+    pos = read_le(pos, &language->count);
+    pos = read_le(pos, &language->size);
 
     language->lang = (char **) language->data;
     char** pos_lang = language->lang;
@@ -97,8 +93,10 @@ int32 language_from_data(
 
     // Load pointers/offsets
     for (int32 i = 0; i < language->count; ++i) {
-        *pos_lang++ = (char *) (start + SWAP_ENDIAN_LITTLE(*((uint32 *) pos)));
-        pos += sizeof(uint32);
+        uint32 offset;
+        pos = read_le(pos, &offset);
+
+        *pos_lang++ = (char *) (start + offset);
     }
 
     memcpy(
@@ -117,20 +115,14 @@ int32 language_to_data(
 {
     byte* pos = data;
 
-    // Count
-    *((int32 *) pos) = SWAP_ENDIAN_LITTLE(language->count);
-    pos += sizeof(language->count);
-
-    // Count
-    *((int32 *) pos) = SWAP_ENDIAN_LITTLE((int32) language->size);
-    pos += sizeof(language->size);
+    pos = write_le(pos, language->count);
+    pos = write_le(pos, language->size);
 
     const byte* const start = pos;
 
     // Save pointers
     for (int32 i = 0; i < language->count; ++i) {
-       *((uint32 *) pos) = SWAP_ENDIAN_LITTLE((uint32) ((uintptr_t) pos - (uintptr_t) start));
-        pos += sizeof(uint32);
+        pos = write_le(pos, (uint32) ((uintptr_t) pos - (uintptr_t) start));
     }
 
     // Save actual strings

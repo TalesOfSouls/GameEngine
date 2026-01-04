@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_MOB_DROP_H
 #define COMS_MODELS_MOB_DROP_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 struct Drop {
     uint64 item;

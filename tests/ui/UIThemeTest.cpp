@@ -31,7 +31,7 @@ static void test_theme_to_from_data() {
     theme_dump.data = (byte *) platform_alloc(2 * MEGABYTE);
     theme_from_file_txt(&theme_dump, "./../../GameEditor/assets/themes/default/scene1.themetxt", &ring);
 
-    UIThemeStyle theme_load;
+    UIThemeStyle theme_load = {};
     theme_load.data = (byte *) platform_alloc(2 * MEGABYTE);
 
     byte* out = ring_get_memory(&ring, 1024 * 1024);

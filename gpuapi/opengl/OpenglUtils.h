@@ -9,7 +9,7 @@
 #ifndef COMS_GPUAPI_OPENGL_UTILS_H
 #define COMS_GPUAPI_OPENGL_UTILS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../memory/RingMemory.h"
 #include "../../utils/Assert.h"
 #include "../../object/Texture.h"
@@ -230,7 +230,7 @@ uint32 get_texture_data_type(uint32 texture_data_type) NO_EXCEPT
 FORCE_INLINE
 void gpuapi_prepare_texture(Texture* texture) NO_EXCEPT
 {
-    uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
+    const uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
 
     glGenTextures(1, (GLuint *) &texture->id);
     glActiveTexture(GL_TEXTURE0 + texture->sample_id);
@@ -243,7 +243,7 @@ void gpuapi_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0) NO_EX
 {
     PROFILE_START(PROFILE_GPU);
     // @todo also handle different texture formats (R, RG, RGB, 1 byte vs 4 byte per pixel)
-    uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
+    const uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
     glTexImage2D(
         texture_data_type, mipmap_level, GL_RGBA,
         texture->image.width, texture->image.height,
@@ -262,7 +262,7 @@ void gpuapi_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0) NO_EX
 FORCE_INLINE
 void gpuapi_texture_use(const Texture* texture) NO_EXCEPT
 {
-    uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
+    const uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
 
     glActiveTexture(GL_TEXTURE0 + texture->sample_id);
     glBindTexture(texture_data_type, (GLuint) texture->id);
@@ -505,7 +505,7 @@ void gpuapi_buffer_persistent_delete(GLuint vbo) NO_EXCEPT
 inline
 void gpuapi_draw_buffer_subregion(void* region_start, int32 frame_index, size_t region_size) NO_EXCEPT
 {
-    region_size = OMS_ALIGN_UP(region_size, 16);
+    region_size = align_up(region_size, 16);
     size_t offset = frame_index * region_size;
 
     glDrawArrays(GL_TRIANGLES, 0, vertex_count);

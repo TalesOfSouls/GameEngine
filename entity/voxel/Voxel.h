@@ -9,7 +9,7 @@
 #ifndef COMS_ENTITY_VOXEL_H
 #define COMS_ENTITY_VOXEL_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../stdlib/GameMathTypes.h"
 
 enum VoxelRotation : byte {
@@ -131,8 +131,20 @@ VoxelChunk voxel_chunk_create(int32 x, int32 y, int32 z) NO_EXCEPT
     chunk.coord = {x, y, z};
     chunk.bounds.min = {x * VOXEL_CHUNK_SIZE, y * VOXEL_CHUNK_SIZE, z * VOXEL_CHUNK_SIZE};
     chunk.bounds.max = {(x + 1) * VOXEL_CHUNK_SIZE, (y + 1) * VOXEL_CHUNK_SIZE, (z + 1) * VOXEL_CHUNK_SIZE};
+    chunk.mesh.cap_indices = ARRAY_COUNT(chunk.mesh.indices);
+    chunk.mesh.cap_vertices = ARRAY_COUNT(chunk.mesh.vertices);
 
     return chunk;
+}
+
+FORCE_INLINE
+void voxel_chunk_init(VoxelChunk* chunk, int32 x, int32 y, int32 z) NO_EXCEPT
+{
+    chunk->coord = {x, y, z};
+    chunk->bounds.min = {x * VOXEL_CHUNK_SIZE, y * VOXEL_CHUNK_SIZE, z * VOXEL_CHUNK_SIZE};
+    chunk->bounds.max = {(x + 1) * VOXEL_CHUNK_SIZE, (y + 1) * VOXEL_CHUNK_SIZE, (z + 1) * VOXEL_CHUNK_SIZE};
+    chunk->mesh.cap_indices = ARRAY_COUNT(chunk->mesh.indices);
+    chunk->mesh.cap_vertices = ARRAY_COUNT(chunk->mesh.vertices);
 }
 
 // Calculates the index in a 1-dimensional array

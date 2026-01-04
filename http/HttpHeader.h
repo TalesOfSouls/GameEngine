@@ -9,7 +9,7 @@
 #ifndef COMS_JINGGA_HTTP_HEADER_H
 #define COMS_JINGGA_HTTP_HEADER_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "header/HttpHeaderKey.h"
 
 struct HttpHeaderElement {

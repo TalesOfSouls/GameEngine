@@ -9,7 +9,7 @@
 #ifndef COMS_SYSTEM_INFO_H
 #define COMS_SYSTEM_INFO_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../architecture/CpuInfo.h"
 #include "../gpuapi/GpuInfo.h"
 
@@ -47,32 +47,34 @@ struct DisplayInfo {
 };
 
 struct SystemInfo {
+    uint8 gpu_count;
+    uint8 display_count;
+    uint8 network_count;
+
+    uint16 language;
+    uint16 country;
+
     OSInfo os;
     MainboardInfo mainboard;
 
     NetworkInfo network[4];
-    int32 network_count;
 
     CpuInfo cpu;
     RamInfo ram;
 
     GpuInfo gpu[3];
-    int32 gpu_count;
 
     DisplayInfo display[6];
-    int32 display_count;
-
-    int32 language;
 };
 
-enum RamChannelType {
+enum RamChannelType : byte {
     RAM_CHANNEL_TYPE_FAILED,
     RAM_CHANNEL_TYPE_SINGLE_CHANNEL,
     RAM_CHANNEL_TYPE_CAN_UPGRADE,
     RAM_CHANNEL_TYPE_DUAL_CHANNEL,
 };
 
-enum DriveType {
+enum DriveType : byte {
     DRIVE_TYPE_UNKNOWN,
     DRIVE_TYPE_NVME,
     DRIVE_TYPE_SSD,

@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_SETTINGS_DUNGEON_SETTINGS_H
 #define COMS_MODELS_SETTINGS_DUNGEON_SETTINGS_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "ItemDistributionType.h"
 
 struct DungeonSettings {

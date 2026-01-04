@@ -10,7 +10,7 @@
 #define COMS_MODELS_OBJECT_CHUNK_H
 
 #include "../../stdlib/SIMD/SIMD_I32.h"
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "Block.h"
 #include "Object.h"
 

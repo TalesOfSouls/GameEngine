@@ -19,10 +19,6 @@
     #include <x86gprintrin.h>
 #endif
 
-#include "../../stdlib/Types.h"
-#include "../../stdlib/Simd.h"
-#include "../../compiler/CompilerUtils.h"
-
 #ifdef _MSC_VER
     #define intrin_sqrt_f32(a) _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss((a))))
 #else

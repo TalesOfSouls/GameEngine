@@ -3,7 +3,7 @@
 
 #include <windows.h>
 #include <psapi.h>
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../compiler/CompilerUtils.h"
 
 // Find all running process ids
@@ -11,7 +11,7 @@ inline
 int32 process_id_enum(uint32* pids, int32 max_count) NO_EXCEPT
 {
     DWORD bytes_needed = 0;
-    DWORD max_bytes = static_cast<DWORD>(max_count * sizeof(DWORD));
+    DWORD max_bytes = (DWORD) (max_count * sizeof(DWORD));
 
     // Call EnumProcesses with correct types
     if (!EnumProcesses((DWORD *) pids, max_bytes, &bytes_needed)) {

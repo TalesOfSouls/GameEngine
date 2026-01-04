@@ -10,7 +10,7 @@
 #define COMS_HASH_SHA1_SIMD_ARM_H
 
 #include <immintrin.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "Sha1Definitions.h"
 
 #ifdef __ARM_FEATURE_SVE

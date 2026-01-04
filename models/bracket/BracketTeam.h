@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_BRACKET_TEAM_H
 #define COMS_MODELS_BRACKET_TEAM_H
 
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 
 struct BracketTeam {
     int32 size;

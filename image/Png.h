@@ -15,9 +15,8 @@
 #define COMS_IMAGE_PNG_H
 
 #include <string.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../utils/BitUtils.h"
-#include "../utils/EndianUtils.h"
 #include "Image.h"
 
 // Packed header size
@@ -451,11 +450,11 @@ void generate_default_png_references(const FileBody* file, Png* png)
     ASSERT_TRUE_CONST(PNG_HEADER_SIZE + PNG_IHDR_SIZE == 33);
     memcpy(png, file->content, PNG_HEADER_SIZE + PNG_IHDR_SIZE);
 
-    png->ihdr.length = SWAP_ENDIAN_BIG(png->ihdr.length);
-    png->ihdr.type = SWAP_ENDIAN_BIG(png->ihdr.type);
-    png->ihdr.width = SWAP_ENDIAN_BIG(png->ihdr.width);
-    png->ihdr.height = SWAP_ENDIAN_BIG(png->ihdr.height);
-    png->ihdr.crc = SWAP_ENDIAN_BIG(png->ihdr.crc);
+    SWAP_ENDIAN_BIG_SELF(png->ihdr.length);
+    SWAP_ENDIAN_BIG_SELF(png->ihdr.type);
+    SWAP_ENDIAN_BIG_SELF(png->ihdr.width);
+    SWAP_ENDIAN_BIG_SELF(png->ihdr.height);
+    SWAP_ENDIAN_BIG_SELF(png->ihdr.crc);
 }
 
 // @performance Profile: BITS_GET_16_R2L(SWAP_ENDIAN_BIG((uint16) *stream.pos)) vs BITS_GET_16_R2L(BYTES_MERGE_2_R2L())
@@ -767,7 +766,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* cons
                     }
 
                     // @performance Maybe we could use memcopy depending on length and dist
-                    uint8* source = dest - dist;
+                    const uint8* source = dest - dist;
                     while (length--) {
                         *dest++ = *source++;
                     }

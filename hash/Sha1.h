@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../stdlib/Simd.h"
 #include "Sha1Definitions.h"
 
@@ -23,7 +23,7 @@
     #include "Sha1SimdArm.h"
 #else
     static inline
-    void sha1_transform(SHA1_CTX *ctx, const byte data[64], [[mayb_unused]] int32 steps) NO_EXCEPT
+    void sha1_transform(SHA1_CTX* ctx, const byte data[64], MAYBE_UNUSED int32 steps) NO_EXCEPT
 {
         uint32 a, b, c, d, e, temp;
         uint32 w[80];
@@ -151,10 +151,10 @@ void sha1_final(SHA1_CTX* ctx, byte digest[20], int32 steps) NO_EXCEPT
     sha1_update(ctx, bits, 8, steps);
 
     for (int32 i = 0; i < 5; i++) {
-        digest[i*4+0] = (byte) ((ctx->state[i] >> 24) & 0xFF);
-        digest[i*4+1] = (byte) ((ctx->state[i] >> 16) & 0xFF);
-        digest[i*4+2] = (byte) ((ctx->state[i] >>  8) & 0xFF);
-        digest[i*4+3] = (byte) ( ctx->state[i]        & 0xFF);
+        digest[i * 4 + 0] = (byte) ((ctx->state[i] >> 24) & 0xFF);
+        digest[i * 4 + 1] = (byte) ((ctx->state[i] >> 16) & 0xFF);
+        digest[i * 4 + 2] = (byte) ((ctx->state[i] >>  8) & 0xFF);
+        digest[i * 4 + 3] = (byte) ( ctx->state[i]        & 0xFF);
     }
 
     // WARNING: We are not doing this since no sensitive data should use sha1 anyways
@@ -163,7 +163,8 @@ void sha1_final(SHA1_CTX* ctx, byte digest[20], int32 steps) NO_EXCEPT
 }
 
 inline
-void sha1_hash(const byte* data, size_t len, byte digest[20], int32 steps = 16) {
+void sha1_hash(const byte* data, size_t len, byte digest[20], int32 steps = 16) NO_EXCEPT
+{
     SHA1_CTX ctx;
     sha1_init(&ctx);
 

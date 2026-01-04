@@ -10,10 +10,9 @@
 #define COMS_OBJECT_MESH_H
 
 #include "Vertex.h"
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../system/FileUtils.cpp"
 #include "../memory/RingMemory.h"
-#include "../utils/EndianUtils.h"
 #include "../utils/StringUtils.h"
 #include "../stdlib/Simd.h"
 #include "../compiler/CompilerUtils.h"
@@ -473,22 +472,10 @@ int32 mesh_from_data(
     LOG_3("Load mesh");
     const byte* pos = data;
 
-    // Read version, use to handle different versions differently
-    int32 version = *((int32 *) pos);
-    pos += sizeof(version);
-
-    // Read base data
-    mesh->vertex_type = *((int32 *) pos);
-    pos += sizeof(mesh->vertex_type);
-
-    mesh->vertex_count = *((int32 *) pos);
-    pos += sizeof(mesh->vertex_count);
-
-    #if !_WIN32 && !__LITTLE_ENDIAN__
-        mesh->version = endian_swap(mesh->version);
-        mesh->vertex_type = endian_swap(mesh->vertex_type);
-        mesh->vertex_count = endian_swap(mesh->vertex_count);
-    #endif
+    int32 version;
+    pos = read_le(pos, &version);
+    pos = read_le(pos, &mesh->vertex_type);
+    pos = read_le(pos, &mesh->vertex_count);
 
     int32 vertex_size = 0;
     if (mesh->vertex_type & VERTEX_TYPE_POSITION) {
@@ -531,7 +518,7 @@ int32 mesh_from_data(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) mesh->data,
         (int32 *) mesh->data,
-        compiler_div_pow2(offset, 4), // everything is 4 bytes -> easy to swap
+        offset / 4, // everything is 4 bytes -> easy to swap
         steps
     );
     PSEUDO_USE(steps);
@@ -560,19 +547,19 @@ int32 mesh_to_data(
 {
     byte* pos = data;
 
-    // version
-    *((int32 *) pos) = MESH_VERSION;
-    pos += sizeof(int32);
+    const int32 version = MESH_VERSION;
+    memcpy(pos, &version, sizeof(version));
+    pos += sizeof(version);
 
     // vertices
     if (vertex_save_format == VERTEX_TYPE_ALL) {
         vertex_save_format = mesh->vertex_type;
     }
 
-    *((uint32 *) pos) = vertex_save_format;
+    memcpy(pos, &vertex_save_format, sizeof(vertex_save_format));
     pos += sizeof(vertex_save_format);
 
-    *((uint32 *) pos) = mesh->vertex_count;
+    memcpy(pos, &mesh->vertex_count, sizeof(mesh->vertex_count));
     pos += sizeof(mesh->vertex_count);
 
     // vertices
@@ -623,7 +610,7 @@ int32 mesh_to_data(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) data,
         (int32 *) data,
-        compiler_div_pow2(size, 4), // everything in here is 4 bytes -> easy to swap
+        size / 4, // everything in here is 4 bytes -> easy to swap
         steps
     );
     PSEUDO_USE(steps);

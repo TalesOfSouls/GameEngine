@@ -13,7 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 
 enum HtmlTemplateTokenType : byte {

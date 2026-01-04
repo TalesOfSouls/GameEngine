@@ -9,7 +9,7 @@
 #ifndef COMS_SYSTEM_WINDOW_H
 #define COMS_SYSTEM_WINDOW_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 // @question Why do I have this struct and don't use it in the window struct?
 struct WindowState {

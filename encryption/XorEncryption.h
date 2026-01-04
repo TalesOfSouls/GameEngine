@@ -9,7 +9,7 @@
 #ifndef COMS_ENCRYPTION_XOR_H
 #define COMS_ENCRYPTION_XOR_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 CONSTEXPR inline
 void encrypt_xor(char* input, char key) NO_EXCEPT

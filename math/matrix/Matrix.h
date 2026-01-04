@@ -10,7 +10,7 @@
 #define COMS_MATH_MATRIX_FLOAT32_H
 
 #include <math.h>
-#include "../../stdlib/Types.h"
+#include "../../stdlib/Stdlib.h"
 #include "../../utils/Assert.h"
 #include "../../architecture/Intrinsics.h"
 #include "../../compiler/CompilerUtils.h"
@@ -22,7 +22,7 @@
 
 template<typename T>
 FORCE_INLINE
-auto vec2_sum(T* const vec) NO_EXCEPT -> decltype(vec->x)
+auto vec2_sum(const T* const vec) NO_EXCEPT -> decltype(vec->x)
 {
     return vec->x + vec->y;
 }
@@ -203,7 +203,7 @@ T vec3_length(T x, T y, T z) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-f32 vec3_length(T* const vec) NO_EXCEPT
+f32 vec3_length(const T* const vec) NO_EXCEPT
 {
     return intrin_sqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
 }
@@ -228,7 +228,7 @@ void vec3_normalize(T* const vec) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-auto vec3_sum(T* const vec) NO_EXCEPT -> decltype(vec->x)
+auto vec3_sum(const T* const vec) NO_EXCEPT -> decltype(vec->x)
 {
     return vec->x + vec->y + vec->z;
 }
@@ -397,6 +397,22 @@ T vec3_cross(T a, T b) NO_EXCEPT
     return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
+// Very often we need to create the cross and then normalize it
+// This function does both
+template<typename T>
+FORCE_INLINE
+T vec3_cross_normalized(T a, T b) NO_EXCEPT
+{
+    T cross = {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
+
+    f32 d = intrin_rsqrt_f32(cross.x * cross.x + cross.y * cross.y + cross.z * cross.z);
+    cross.x *= d;
+    cross.y *= d;
+    cross.z *= d;
+
+    return cross;
+}
+
 template<typename T>
 FORCE_INLINE
 auto vec3_dot(const T* const a, const T* const b) NO_EXCEPT -> decltype(a->x)
@@ -420,7 +436,7 @@ T vec4_length(T x, T y, T z, T w) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-f32 vec4_length(T* const vec) NO_EXCEPT
+f32 vec4_length(const T* const vec) NO_EXCEPT
 {
     return intrin_sqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z + vec->w * vec->w);
 }
@@ -446,7 +462,7 @@ void vec4_normalize(T* const vec) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-auto vec4_sum(T* const vec) NO_EXCEPT -> decltype(vec->x)
+auto vec4_sum(const T* const vec) NO_EXCEPT -> decltype(vec->x)
 {
     return vec->x + vec->y + vec->z + + vec.w;
 }
@@ -803,14 +819,15 @@ void mat4vec4_mult(
 
             _mm_store_ps(result, res);
         } else {
-    #else
-        result[0] = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2] + matrix[3] * vector[3];
-        result[1] = matrix[4] * vector[0] + matrix[5] * vector[1] + matrix[6] * vector[2] + matrix[7] * vector[3];
-        result[2] = matrix[8] * vector[0] + matrix[9] * vector[1] + matrix[10] * vector[2] + matrix[11] * vector[3];
-        result[3] = matrix[12] * vector[0] + matrix[13] * vector[1] + matrix[14] * vector[2] + matrix[15] * vector[3];
-
-        PSEUDO_USE(steps);
     #endif
+
+    result[0] = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2] + matrix[3] * vector[3];
+    result[1] = matrix[4] * vector[0] + matrix[5] * vector[1] + matrix[6] * vector[2] + matrix[7] * vector[3];
+    result[2] = matrix[8] * vector[0] + matrix[9] * vector[1] + matrix[10] * vector[2] + matrix[11] * vector[3];
+    result[3] = matrix[12] * vector[0] + matrix[13] * vector[1] + matrix[14] * vector[2] + matrix[15] * vector[3];
+
+    PSEUDO_USE(steps);
+
     #if defined(__SSE4_2__)
         }
     #endif
@@ -838,14 +855,15 @@ void mat4vec4_mult(
 
             _mm_store_ps(result, res);
         } else {
-    #else
-        result[0] = matrix->vec[0] * vector[0] + matrix->vec[1] * vector[1] + matrix->vec[2] * vector[2] + matrix->vec[3] * vector[3];
-        result[1] = matrix->vec[4] * vector[0] + matrix->vec[5] * vector[1] + matrix->vec[6] * vector[2] + matrix->vec[7] * vector[3];
-        result[2] = matrix->vec[8] * vector[0] + matrix->vec[9] * vector[1] + matrix->vec[10] * vector[2] + matrix->vec[11] * vector[3];
-        result[3] = matrix->vec[12] * vector[0] + matrix->vec[13] * vector[1] + matrix->vec[14] * vector[2] + matrix->vec[15] * vector[3];
-
-        PSEUDO_USE(steps);
     #endif
+
+    result[0] = matrix->vec[0] * vector[0] + matrix->vec[1] * vector[1] + matrix->vec[2] * vector[2] + matrix->vec[3] * vector[3];
+    result[1] = matrix->vec[4] * vector[0] + matrix->vec[5] * vector[1] + matrix->vec[6] * vector[2] + matrix->vec[7] * vector[3];
+    result[2] = matrix->vec[8] * vector[0] + matrix->vec[9] * vector[1] + matrix->vec[10] * vector[2] + matrix->vec[11] * vector[3];
+    result[3] = matrix->vec[12] * vector[0] + matrix->vec[13] * vector[1] + matrix->vec[14] * vector[2] + matrix->vec[15] * vector[3];
+
+    PSEUDO_USE(steps);
+
     #if defined(__SSE4_2__)
         }
     #endif
@@ -877,14 +895,15 @@ v4_f32 mat4vec4_mult(const f32* __restrict matrix, const f32* __restrict vector,
 
             _mm_store_ps(result.vec, res);
         } else {
-    #else
-        result.x = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2] + matrix[3] * vector[3];
-        result.y = matrix[4] * vector[0] + matrix[5] * vector[1] + matrix[6] * vector[2] + matrix[7] * vector[3];
-        result.z = matrix[8] * vector[0] + matrix[9] * vector[1] + matrix[10] * vector[2] + matrix[11] * vector[3];
-        result.w = matrix[12] * vector[0] + matrix[13] * vector[1] + matrix[14] * vector[2] + matrix[15] * vector[3];
-
-        PSEUDO_USE(steps);
     #endif
+
+    result.x = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2] + matrix[3] * vector[3];
+    result.y = matrix[4] * vector[0] + matrix[5] * vector[1] + matrix[6] * vector[2] + matrix[7] * vector[3];
+    result.z = matrix[8] * vector[0] + matrix[9] * vector[1] + matrix[10] * vector[2] + matrix[11] * vector[3];
+    result.w = matrix[12] * vector[0] + matrix[13] * vector[1] + matrix[14] * vector[2] + matrix[15] * vector[3];
+
+    PSEUDO_USE(steps);
+
     #if defined(__SSE4_2__)
         }
     #endif
@@ -907,14 +926,15 @@ v4_f32 mat4vec4_mult(const v16_f32* __restrict matrix, const v4_f32* __restrict 
                 _mm_cvtss_f32(_mm_dp_ps(matrix->s_16[0], vector->s_16, 0xF1))  // row0 · vec
             );
         } else {
-    #else
-        result.x = matrix->vec[0] * vector->vec[0] + matrix->vec[1] * vector->vec[1] + matrix->vec[2] * vector->vec[2] + matrix->vec[3] * vector->vec[3];
-        result.y = matrix->vec[4] * vector->vec[0] + matrix->vec[5] * vector->vec[1] + matrix->vec[6] * vector->vec[2] + matrix->vec[7] * vector->vec[3];
-        result.z = matrix->vec[8] * vector->vec[0] + matrix->vec[9] * vector->vec[1] + matrix->vec[10] * vector->vec[2] + matrix->vec[11] * vector->vec[3];
-        result.w = matrix->vec[12] * vector->vec[0] + matrix->vec[13] * vector->vec[1] + matrix->vec[14] * vector->vec[2] + matrix->vec[15] * vector->vec[3];
-
-        PSEUDO_USE(steps);
     #endif
+
+    result.x = matrix->vec[0] * vector->vec[0] + matrix->vec[1] * vector->vec[1] + matrix->vec[2] * vector->vec[2] + matrix->vec[3] * vector->vec[3];
+    result.y = matrix->vec[4] * vector->vec[0] + matrix->vec[5] * vector->vec[1] + matrix->vec[6] * vector->vec[2] + matrix->vec[7] * vector->vec[3];
+    result.z = matrix->vec[8] * vector->vec[0] + matrix->vec[9] * vector->vec[1] + matrix->vec[10] * vector->vec[2] + matrix->vec[11] * vector->vec[3];
+    result.w = matrix->vec[12] * vector->vec[0] + matrix->vec[13] * vector->vec[1] + matrix->vec[14] * vector->vec[2] + matrix->vec[15] * vector->vec[3];
+
+    PSEUDO_USE(steps);
+
     #if defined(__SSE4_2__)
         }
     #endif
@@ -937,14 +957,15 @@ void mat4vec4_mult(const v16_f32* __restrict matrix, const v4_f32* __restrict ve
 
             _mm_store_ps(result->vec, res);
         } else {
-    #else
-        result->x = matrix->vec[0] * vector->vec[0] + matrix->vec[1] * vector->vec[1] + matrix->vec[2] * vector->vec[2] + matrix->vec[3] * vector->vec[3];
-        result->y = matrix->vec[4] * vector->vec[0] + matrix->vec[5] * vector->vec[1] + matrix->vec[6] * vector->vec[2] + matrix->vec[7] * vector->vec[3];
-        result->z = matrix->vec[8] * vector->vec[0] + matrix->vec[9] * vector->vec[1] + matrix->vec[10] * vector->vec[2] + matrix->vec[11] * vector->vec[3];
-        result->w = matrix->vec[12] * vector->vec[0] + matrix->vec[13] * vector->vec[1] + matrix->vec[14] * vector->vec[2] + matrix->vec[15] * vector->vec[3];
-
-        PSEUDO_USE(steps);
     #endif
+
+    result->x = matrix->vec[0] * vector->vec[0] + matrix->vec[1] * vector->vec[1] + matrix->vec[2] * vector->vec[2] + matrix->vec[3] * vector->vec[3];
+    result->y = matrix->vec[4] * vector->vec[0] + matrix->vec[5] * vector->vec[1] + matrix->vec[6] * vector->vec[2] + matrix->vec[7] * vector->vec[3];
+    result->z = matrix->vec[8] * vector->vec[0] + matrix->vec[9] * vector->vec[1] + matrix->vec[10] * vector->vec[2] + matrix->vec[11] * vector->vec[3];
+    result->w = matrix->vec[12] * vector->vec[0] + matrix->vec[13] * vector->vec[1] + matrix->vec[14] * vector->vec[2] + matrix->vec[15] * vector->vec[3];
+
+    PSEUDO_USE(steps);
+
     #if defined(__SSE4_2__)
         }
     #endif
@@ -965,14 +986,15 @@ void mat4vec4_mult(const v16_f32* __restrict matrix, const v4_f32* __restrict ve
 
             _mm_store_ps(result, res);
         } else {
-    #else
-        result[0] = matrix->vec[0] * vector->vec[0] + matrix->vec[1] * vector->vec[1] + matrix->vec[2] * vector->vec[2] + matrix->vec[3] * vector->vec[3];
-        result[1] = matrix->vec[4] * vector->vec[0] + matrix->vec[5] * vector->vec[1] + matrix->vec[6] * vector->vec[2] + matrix->vec[7] * vector->vec[3];
-        result[2] = matrix->vec[8] * vector->vec[0] + matrix->vec[9] * vector->vec[1] + matrix->vec[10] * vector->vec[2] + matrix->vec[11] * vector->vec[3];
-        result[3] = matrix->vec[12] * vector->vec[0] + matrix->vec[13] * vector->vec[1] + matrix->vec[14] * vector->vec[2] + matrix->vec[15] * vector->vec[3];
-
-        PSEUDO_USE(steps);
     #endif
+
+    result[0] = matrix->vec[0] * vector->vec[0] + matrix->vec[1] * vector->vec[1] + matrix->vec[2] * vector->vec[2] + matrix->vec[3] * vector->vec[3];
+    result[1] = matrix->vec[4] * vector->vec[0] + matrix->vec[5] * vector->vec[1] + matrix->vec[6] * vector->vec[2] + matrix->vec[7] * vector->vec[3];
+    result[2] = matrix->vec[8] * vector->vec[0] + matrix->vec[9] * vector->vec[1] + matrix->vec[10] * vector->vec[2] + matrix->vec[11] * vector->vec[3];
+    result[3] = matrix->vec[12] * vector->vec[0] + matrix->vec[13] * vector->vec[1] + matrix->vec[14] * vector->vec[2] + matrix->vec[15] * vector->vec[3];
+
+    PSEUDO_USE(steps);
+
     #if defined(__SSE4_2__)
         }
     #endif
@@ -1002,14 +1024,15 @@ v4_f32 mat4vec4_mult_sse(const v16_f32* __restrict matrix, const v4_f32* __restr
                 _mm_cvtss_f32(_mm_dp_ps(matrix->s_16[0], vector->s_16, 0xF1))  // row0 · vec
             );
         } else {
-    #else
-        result.x = matrix->vec[0] * vector->vec[0] + matrix->vec[1] * vector->vec[1] + matrix->vec[2] * vector->vec[2] + matrix->vec[3] * vector->vec[3];
-        result.y = matrix->vec[4] * vector->vec[0] + matrix->vec[5] * vector->vec[1] + matrix->vec[6] * vector->vec[2] + matrix->vec[7] * vector->vec[3];
-        result.z = matrix->vec[8] * vector->vec[0] + matrix->vec[9] * vector->vec[1] + matrix->vec[10] * vector->vec[2] + matrix->vec[11] * vector->vec[3];
-        result.w = matrix->vec[12] * vector->vec[0] + matrix->vec[13] * vector->vec[1] + matrix->vec[14] * vector->vec[2] + matrix->vec[15] * vector->vec[3];
-
-        PSEUDO_USE(steps);
     #endif
+
+    result.x = matrix->vec[0] * vector->vec[0] + matrix->vec[1] * vector->vec[1] + matrix->vec[2] * vector->vec[2] + matrix->vec[3] * vector->vec[3];
+    result.y = matrix->vec[4] * vector->vec[0] + matrix->vec[5] * vector->vec[1] + matrix->vec[6] * vector->vec[2] + matrix->vec[7] * vector->vec[3];
+    result.z = matrix->vec[8] * vector->vec[0] + matrix->vec[9] * vector->vec[1] + matrix->vec[10] * vector->vec[2] + matrix->vec[11] * vector->vec[3];
+    result.w = matrix->vec[12] * vector->vec[0] + matrix->vec[13] * vector->vec[1] + matrix->vec[14] * vector->vec[2] + matrix->vec[15] * vector->vec[3];
+
+    PSEUDO_USE(steps);
+
     #if defined(__SSE4_2__)
         }
     #endif
@@ -1030,14 +1053,15 @@ void mat4vec4_mult_sse(const v16_f32* __restrict matrix, const v4_f32* __restric
                 _mm_cvtss_f32(_mm_dp_ps(matrix->s_16[0], vector->s_16, 0xF1))  // row0 · vec
             );
         } else {
-    #else
-        result->x = matrix->vec[0] * vector->vec[0] + matrix->vec[1] * vector->vec[1] + matrix->vec[2] * vector->vec[2] + matrix->vec[3] * vector->vec[3];
-        result->y = matrix->vec[4] * vector->vec[0] + matrix->vec[5] * vector->vec[1] + matrix->vec[6] * vector->vec[2] + matrix->vec[7] * vector->vec[3];
-        result->z = matrix->vec[8] * vector->vec[0] + matrix->vec[9] * vector->vec[1] + matrix->vec[10] * vector->vec[2] + matrix->vec[11] * vector->vec[3];
-        result->w = matrix->vec[12] * vector->vec[0] + matrix->vec[13] * vector->vec[1] + matrix->vec[14] * vector->vec[2] + matrix->vec[15] * vector->vec[3];
-
-        PSEUDO_USE(steps);
     #endif
+
+    result->x = matrix->vec[0] * vector->vec[0] + matrix->vec[1] * vector->vec[1] + matrix->vec[2] * vector->vec[2] + matrix->vec[3] * vector->vec[3];
+    result->y = matrix->vec[4] * vector->vec[0] + matrix->vec[5] * vector->vec[1] + matrix->vec[6] * vector->vec[2] + matrix->vec[7] * vector->vec[3];
+    result->z = matrix->vec[8] * vector->vec[0] + matrix->vec[9] * vector->vec[1] + matrix->vec[10] * vector->vec[2] + matrix->vec[11] * vector->vec[3];
+    result->w = matrix->vec[12] * vector->vec[0] + matrix->vec[13] * vector->vec[1] + matrix->vec[14] * vector->vec[2] + matrix->vec[15] * vector->vec[3];
+
+    PSEUDO_USE(steps);
+
     #if defined(__SSE4_2__)
         }
     #endif
@@ -1563,10 +1587,10 @@ v4_f32 vec4_load(f32 a[4], MAYBE_UNUSED int32 steps = 4) {
         if (steps >= 4) {
             result.s_16 = _mm_load_ps(a);
         } else {
-    #else
-        result.ref = a;
-        PSEUDO_USE(steps);
     #endif
+
+    result.ref = a;
+    PSEUDO_USE(steps);
 
     #if defined(__SSE4_2__)
         }
@@ -1584,10 +1608,10 @@ v4_f32 vec4_store(v4_f32 vec, MAYBE_UNUSED int32 steps = 4) {
 
             return result;
         } else {
-    #else
-        PSEUDO_USE(steps);
-        return vec;
     #endif
+
+    PSEUDO_USE(steps);
+    return vec;
 
     #if defined(__SSE4_2__)
         }
@@ -1605,11 +1629,11 @@ v16_f32 mat4_load(const f32 a[16], MAYBE_UNUSED int32 steps = 4) {
             result.s_16[2] = _mm_load_ps(&a[8]);
             result.s_16[3] = _mm_load_ps(&a[12]);
         } else {
-    #else
-        memcpy(result.vec, a, sizeof(f32) * 16);
-        //result.ref = a;
-        PSEUDO_USE(steps);
     #endif
+
+    memcpy(result.vec, a, sizeof(f32) * 16);
+    //result.ref = a;
+    PSEUDO_USE(steps);
 
     #if defined(__SSE4_2__)
         }

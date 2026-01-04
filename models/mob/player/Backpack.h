@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_BACKPACK_H
 #define COMS_MODELS_BACKPACK_H
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../item/Item.h"
 
 #define MAX_BACKPACK_ITEM_STACK 1024

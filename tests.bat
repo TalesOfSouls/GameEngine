@@ -8,6 +8,8 @@ set "DESTINATION_DIR=..\build\cOMS"
 IF NOT EXIST ..\build mkdir ..\build
 IF NOT EXIST "%DESTINATION_DIR%" mkdir "%DESTINATION_DIR%"
 
+set "DEFAULT_COMPILER_ARGS=/Oi /MT /nologo /Gm- /GR- /EHsc /W4 /wd4201 /wd4706 /wd4324 /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++20 /D WIN32 /D _WINDOWS /D _UNICODE /D UNICODE /D _CRT_SECURE_NO_WARNINGS"
+
 if not defined DevEnvDir (call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat")
 
 if "%Platform%" neq "x64" (
@@ -23,30 +25,27 @@ cd ..\..\cOMS
 REM Use /showIncludes for include debugging
 
 set BUILD_TYPE=DEBUG
-set BUILD_FLAGS=/Od /Z7 /WX /FC /RTC1 /DDEBUG
+set "BUILD_FLAGS=/Od /Z7 /WX /FC /RTC1 /DDEBUG"
 
 set "DEBUG_DATA=/Fd"%DESTINATION_DIR%\%EXE_NAME%.pdb" /Fm"%DESTINATION_DIR%\%EXE_NAME%.map""
 
 REM Parse command-line arguments
 if "%1"=="-r" (
     set BUILD_TYPE=RELEASE
-    set BUILD_FLAGS=/O2 /D NDEBUG
+    set "BUILD_FLAGS=/O2 /D NDEBUG /fp:fast /D CPP_VERSION=20"
 
     set DEBUG_DATA=
 )
 if "%1"=="-d" (
     set BUILD_TYPE=DEBUG
-    set BUILD_FLAGS=/Od /Z7 /WX /FC /RTC1 /DDEBUG
+    set "BUILD_FLAGS=/Od /Z7 /WX /FC /RTC1 /DDEBUG /fp:fast /D CPP_VERSION=20"
 
     set "DEBUG_DATA=/Fd"%DESTINATION_DIR%\%EXE_NAME%.pdb" /Fm"%DESTINATION_DIR%\%EXE_NAME%.map""
 )
 
 REM Compile each .cpp file into an executable
 cl ^
-    %BUILD_FLAGS% /MT /nologo /Gm- /GR- /EHsc /W4 /wd4201 /wd4706 /wd4324 ^
-    /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++20 ^
-    /D WIN32 /D _WINDOWS /D _UNICODE /D UNICODE ^
-    /D _CRT_SECURE_NO_WARNINGS ^
+    %BUILD_FLAGS% %DEFAULT_COMPILER_ARGS% ^
     /Fo"%DESTINATION_DIR%/" /Fe"%DESTINATION_DIR%\MainTest.exe" %DEBUG_DATA% ^
     MainTest.cpp ^
     /link /INCREMENTAL:no ^

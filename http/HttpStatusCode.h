@@ -9,7 +9,7 @@
 #ifndef COMS_JINGGA_HTTP_STATUS_CODE_H
 #define COMS_JINGGA_HTTP_STATUS_CODE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 enum HttpStatusCode : uint16 {
     HTTP_STATUS_CODE_100 = 100,

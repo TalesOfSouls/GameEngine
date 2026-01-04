@@ -1,6 +1,5 @@
 #include <string.h>
 #include "../TestFramework.h"
-#include "../../utils/EndianUtils.h"
 
 static void test_swap_endian_16() {
     uint16_t val = 0x1234;

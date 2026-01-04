@@ -13,7 +13,7 @@
 #include <xmmintrin.h>
 #include <emmintrin.h>
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 
 #ifdef __SSE4_2__
     #include "SIMD_I32_SSE.h"

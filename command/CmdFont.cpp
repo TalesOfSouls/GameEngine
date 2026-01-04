@@ -17,7 +17,7 @@ Asset* cmd_internal_font_create(AppCmdBuffer* const __restrict cb, Command* cons
         return asset;
     }
 
-    Font* font = (Font *) asset->self;
+    Font* const font = (Font *) asset->self;
     if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
         || cb->gpu_api_type == GPU_API_TYPE_VULKAN
         || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
@@ -78,12 +78,12 @@ Asset* cmd_font_load_sync(AppCmdBuffer* const cb, int32 asset_id) NO_EXCEPT
 
     // Load asset if not loaded
     if (!asset) {
-        int32 archive_id = (asset_id >> 24) & 0xFF;
+        const int32 archive_id = (asset_id >> 24) & 0xFF;
         asset = asset_archive_asset_load(&cb->asset_archives[archive_id], asset_id, cb->ams, cb->mem_vol);
     }
 
     // Setup font
-    Font* font = (Font *) asset->self;
+    Font* const font = (Font *) asset->self;
     if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
         || cb->gpu_api_type == GPU_API_TYPE_VULKAN
         || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
@@ -107,8 +107,8 @@ Asset* cmd_font_load_sync(AppCmdBuffer* const cb, const char* name) NO_EXCEPT
 
     // Load asset if not loaded
     if (!asset) {
-        int32 asset_id = (int32) hex_to_int(name);
-        int32 archive_id = (asset_id >> 24) & 0xFF;
+        const int32 asset_id = (int32) hex_to_int(name);
+        const int32 archive_id = (asset_id >> 24) & 0xFF;
         asset = asset_archive_asset_load(&cb->asset_archives[archive_id], asset_id, cb->ams, cb->mem_vol);
     }
 

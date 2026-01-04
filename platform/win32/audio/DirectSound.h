@@ -13,14 +13,14 @@
 #include <mmeapi.h>
 #include <dsound.h>
 
-#include "../../../stdlib/Types.h"
+#include "../../../stdlib/Stdlib.h"
 #include "../../../audio/AudioSetting.h"
 #include "../../../log/Log.h"
 #include "../../../audio/Audio.cpp"
 #include "../../../compiler/CompilerUtils.h"
 
 struct DirectSoundSetting {
-    LPDIRECTSOUND8 audio_handle;
+    LPDIRECTSOUND8 direct_sound_handle;
     LPDIRECTSOUNDBUFFER primary_buffer;
     LPDIRECTSOUNDBUFFER secondary_buffer;
 };
@@ -32,17 +32,17 @@ HRESULT WINAPI DirectSoundCreate8Stub(LPCGUID, LPDIRECTSOUND8*, LPUNKNOWN) {
 }
 // END: Dynamically load DirectSound
 
-void audio_load(HWND hwnd, AudioSetting* __restrict setting, DirectSoundSetting* __restrict api_setting) {
+void direct_sound_load(HWND hwnd, const AudioSetting* const __restrict setting, DirectSoundSetting* const __restrict api_setting) {
     LOG_1("Load audio API DirectSound");
 
-    HMODULE lib = LoadLibraryExW((LPCWSTR) L"dsound.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    const HMODULE lib = LoadLibraryExW((LPCWSTR) L"dsound.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!lib) {
         LOG_1("DirectSound: Couldn't load dsound.dll");
 
         return;
     }
 
-    DirectSoundCreate8_t* DirectSoundCreate8 = (DirectSoundCreate8_t *) GetProcAddress(lib, "DirectSoundCreate8");
+    DirectSoundCreate8_t* const DirectSoundCreate8 = (DirectSoundCreate8_t *) GetProcAddress(lib, "DirectSoundCreate8");
 
     if (!DirectSoundCreate8 || !SUCCEEDED(DirectSoundCreate8(0, &api_setting->audio_handle, 0))) {
         LOG_1("DirectSound: DirectSoundCreate8 failed");
@@ -60,7 +60,7 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, DirectSoundSetting*
     wf.wFormatTag = WAVE_FORMAT_PCM;
     wf.nChannels = 2;
     wf.wBitsPerSample = 16;
-    wf.nBlockAlign = (WORD) compiler_div_pow2(wf.nChannels * wf.wBitsPerSample, 8);
+    wf.nBlockAlign = (wf.nChannels * wf.wBitsPerSample) / 8; //(WORD) compiler_div_pow2(wf.nChannels * wf.wBitsPerSample, 8);
     wf.nSamplesPerSec = setting->sample_rate;
     wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
     wf.cbSize = 0;
@@ -102,7 +102,7 @@ void audio_load(HWND hwnd, AudioSetting* __restrict setting, DirectSoundSetting*
 }
 
 inline
-void audio_play(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
+void direct_sound_play(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->secondary_buffer);
     /*if (!api_setting->secondary_buffer) {
@@ -113,7 +113,7 @@ void audio_play(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EX
 }
 
 inline
-void audio_stop(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
+void direct_sound_stop(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->secondary_buffer);
     /*if (!api_setting->secondary_buffer) {
@@ -124,7 +124,7 @@ void audio_stop(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EX
 }
 
 inline
-void audio_free(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
+void direct_sound_free(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
     if (api_setting->audio_handle) {
         api_setting->audio_handle->Release();
@@ -143,7 +143,7 @@ void audio_free(AudioSetting*, DirectSoundSetting* __restrict api_setting) NO_EX
  * Calculates the samples in bytes to generate for the buffer
  */
 inline
-uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const DirectSoundSetting* __restrict api_setting) NO_EXCEPT
+uint32 direct_sound_buffer_fillable(const AudioSetting* __restrict setting, const DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
 
@@ -155,10 +155,10 @@ uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const Direc
         return 0;
     }
 
-    DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
+    const DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
     DWORD bytes_to_write = 0;
 
-    DWORD target_cursor = (player_cursor + (setting->latency * setting->sample_size)) % setting->buffer_size;
+    const DWORD target_cursor = (player_cursor + (setting->latency * setting->sample_size)) % setting->buffer_size;
 
     // @bug Why does this case even exist?
     if (bytes_to_lock == player_cursor) {
@@ -175,7 +175,7 @@ uint32 audio_buffer_fillable(const AudioSetting* __restrict setting, const Direc
 }
 
 inline
-void audio_play_buffer(AudioSetting* __restrict setting, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
+void direct_sound_play_buffer(AudioSetting* __restrict setting, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
     if (setting->sample_buffer_size == 0) {
@@ -188,7 +188,7 @@ void audio_play_buffer(AudioSetting* __restrict setting, DirectSoundSetting* __r
     void* region2;
     DWORD region2_size;
 
-    DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
+    const DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
 
     api_setting->secondary_buffer->Lock(
         bytes_to_lock, setting->sample_buffer_size,

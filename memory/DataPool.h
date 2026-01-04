@@ -9,7 +9,7 @@
 #ifndef COMS_MEMORY_DATA_POOL_H
 #define COMS_MEMORY_DATA_POOL_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "ChunkMemory.h"
 
 // WARNING: Structure needs to be the same as ChunkMemory
@@ -46,11 +46,11 @@ void pool_alloc(DataPool* buf, uint32 count, int32 chunk_size, int32 alignment =
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Allocating DataPool");
 
-    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
+    chunk_size = align_up(chunk_size, alignment);
 
-    uint64 size = count * chunk_size
-        + sizeof(uint64) * ceil_div(count, 64) // free
-        + sizeof(uint64) * ceil_div(count, 64) // used
+    const uint64 size = count * chunk_size
+        + sizeof(uint64) * ceil_div(count, 64U) // free
+        + sizeof(uint64) * ceil_div(count, 64U) // used
         + alignment * 3; // overhead for alignment
 
     buf->memory = alignment < 2
@@ -64,8 +64,8 @@ void pool_alloc(DataPool* buf, uint32 count, int32 chunk_size, int32 alignment =
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->used = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->used = (uint64 *) align_up((uintptr_t) (buf->free + count), alignment);
 
     memset(buf->memory, 0, buf->size);
 
@@ -78,11 +78,11 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 count, int32 chunk_size
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
 
-    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
+    chunk_size = align_up(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * ceil_div(count, 64) // free
-        + sizeof(uint64) * ceil_div(count, 64) // used
+        + sizeof(uint64) * ceil_div(count, 64U) // free
+        + sizeof(uint64) * ceil_div(count, 64U) // used
         + alignment * 3; // overhead for alignment
 
     buf->memory = buffer_get_memory(data, size);
@@ -96,8 +96,8 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 count, int32 chunk_size
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->used = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->used = (uint64 *) align_up((uintptr_t) (buf->free + count), alignment);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -108,11 +108,11 @@ void pool_init(DataPool* buf, byte* data, uint32 count, int32 chunk_size, int32 
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(count);
 
-    chunk_size = OMS_ALIGN_UP(chunk_size, alignment);
+    chunk_size = align_up(chunk_size, alignment);
 
     uint64 size = count * chunk_size
-        + sizeof(uint64) * ceil_div(count, 64) // free
-        + sizeof(uint64) * ceil_div(count, 64) // used
+        + sizeof(uint64) * ceil_div(count, 64U) // free
+        + sizeof(uint64) * ceil_div(count, 64U) // used
         + alignment * 3; // overhead for alignment
 
     // @bug what if an alignment is defined?
@@ -127,8 +127,8 @@ void pool_init(DataPool* buf, byte* data, uint32 count, int32 chunk_size, int32 
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->used = (uint64 *) OMS_ALIGN_UP((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + count * chunk_size), alignment);
+    buf->used = (uint64 *) align_up((uintptr_t) (buf->free + count), alignment);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -148,6 +148,7 @@ int32 pool_reserve(DataPool* buf, uint32 elements = 1) NO_EXCEPT
 FORCE_INLINE
 byte* pool_get_element(DataPool* buf, uint32 element) NO_EXCEPT
 {
+    // @bug We have to mark the element as in use
     return chunk_get_element((ChunkMemory *) buf, element);
 }
 
@@ -156,6 +157,20 @@ FORCE_INLINE
 int32 pool_reserve_unused(DataPool* buf, int32 start_index = 0) NO_EXCEPT
 {
     return chunk_reserve_one(buf->used, buf->count, start_index);
+}
+
+FORCE_INLINE
+byte* pool_get_memory(DataPool* const buf, uint32 elements) NO_EXCEPT
+{
+    // @bug We have to mark the elements as in use
+    return chunk_get_memory((ChunkMemory *) buf, elements);
+}
+
+FORCE_INLINE
+byte* pool_get_memory_one(DataPool* const buf) NO_EXCEPT
+{
+    // @bug We have to mark the element as in use
+    return chunk_get_memory_one((ChunkMemory *) buf);
 }
 
 // Release an element to be used by someone else

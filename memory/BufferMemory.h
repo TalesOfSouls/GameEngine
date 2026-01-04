@@ -10,8 +10,7 @@
 #define COMS_MEMORY_BUFFER_MEMORY_H
 
 #include <string.h>
-#include "../stdlib/Types.h"
-#include "../utils/EndianUtils.h"
+#include "../stdlib/Stdlib.h"
 #include "../utils/Assert.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
@@ -36,6 +35,7 @@ void buffer_alloc(BufferMemory* const buf, size_t size, int32 alignment = sizeof
     ASSERT_TRUE(size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
+    size = align_up(size, 64);
     LOG_1("[INFO] Allocating BufferMemory: %n B", {DATA_TYPE_UINT64, &size});
 
     buf->memory = alignment < 2
@@ -61,6 +61,9 @@ void buffer_free(BufferMemory* const buf) NO_EXCEPT
     } else {
         platform_aligned_free((void **) &buf->memory);
     }
+
+    buf->size = 0;
+    buf->memory = NULL;
 }
 
 inline
@@ -96,17 +99,18 @@ byte* buffer_get_memory(BufferMemory* const buf, size_t size, int32 alignment = 
 {
     ASSERT_TRUE(size <= buf->size);
 
-    buf->head = (byte *) OMS_ALIGN_UP((uintptr_t) buf->head, alignment);
-    size = OMS_ALIGN_UP(size, alignment);
+    buf->head = (byte *) align_up((uintptr_t) buf->head, alignment);
+    size = align_up(size, alignment);
 
     ASSERT_TRUE(buf->head + size <= buf->end);
 
     DEBUG_MEMORY_WRITE((uintptr_t) buf->head, size);
 
-    byte* offset = buf->head;
+    byte* const offset = buf->head;
     buf->head += size;
 
     ASSERT_TRUE(offset);
+    ASSERT_STRICT((uintptr_t) offset + size < (uintptr_t) buf->memory + buf->size);
 
     return offset;
 }
@@ -116,24 +120,11 @@ int64 buffer_dump(const BufferMemory* const buf, byte* data) NO_EXCEPT
 {
     const byte* const start = data;
 
-    // Size
-    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->size);
-    data += sizeof(buf->size);
-
-    // head
-    *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uint64) (buf->head - buf->memory));
-    data += sizeof(uint64);
-
-    // Alignment
-    *((int32 *) data) = SWAP_ENDIAN_LITTLE(buf->alignment);
-    data += sizeof(buf->alignment);
-
-    *((int32 *) data) = SWAP_ENDIAN_LITTLE(buf->element_alignment);
-    data += sizeof(buf->element_alignment);
-
-    // End
-    *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uint64) (buf->end - buf->memory));
-    data += sizeof(buf->end);
+    data = write_le(data, buf->size);
+    data = write_le(data, (uint64) (buf->head - buf->memory));
+    data = write_le(data, buf->alignment);
+    data = write_le(data, buf->element_alignment);
+    data = write_le(data, (uint64) (buf->end - buf->memory));
 
     // All memory is handled in the buffer -> simply copy the buffer
     memcpy(data, buf->memory, buf->size);
@@ -147,21 +138,17 @@ int64 buffer_load(BufferMemory* const buf, const byte* data) NO_EXCEPT
 {
     const byte* const start = data;
 
-    // Size
-    buf->size = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
-    data += sizeof(buf->size);
+    data = read_le(data, &buf->size);
 
-    // head
-    buf->head = buf->memory + SWAP_ENDIAN_LITTLE(*((uint64 *) data));
-    data += sizeof(uint64);
+    uint64 head;
+    data = read_le(data, &head);
+    buf->head = buf->memory + head;
 
-    // Alignment
-    buf->alignment = SWAP_ENDIAN_LITTLE(*((int32 *) data));
-    data += sizeof(buf->alignment);
+    data = read_le(data, &buf->alignment);
 
-    // End
-    buf->end = buf->memory + SWAP_ENDIAN_LITTLE(*((uint64 *) data));
-    data += sizeof(uint64);
+    uint64 end;
+    data = read_le(data, &end);
+    buf->end = buf->memory + end;
 
     memcpy(buf->memory, data, buf->size);
     data += buf->size;

@@ -1,7 +1,7 @@
 #ifndef COMS_SORT_QUICK_SORT_H
 #define COMS_SORT_QUICK_SORT_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../utils/Utils.h"
 #include "SortDefine.h"
 

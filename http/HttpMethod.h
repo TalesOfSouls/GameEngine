@@ -9,7 +9,7 @@
 #ifndef COMS_JINGGA_HTTP_METHOD_H
 #define COMS_JINGGA_HTTP_METHOD_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 enum HttpMethod : byte {
     HTTP_METHOD_UNKNOWN = 0,

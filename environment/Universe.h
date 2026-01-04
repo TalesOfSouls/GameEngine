@@ -1,7 +1,7 @@
 #ifndef COMS_ENVIRONMENT_UNIVERSE_H
 #define COMS_ENVIRONMENT_UNIVERSE_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 enum StarType {
     STAR_TYPE_STAR,

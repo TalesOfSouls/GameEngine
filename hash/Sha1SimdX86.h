@@ -10,7 +10,7 @@
 #define COMS_HASH_SHA1_SIMD_X86_H
 
 #include <immintrin.h>
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "Sha1Definitions.h"
 
 static inline

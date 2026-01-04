@@ -9,7 +9,7 @@
 #ifndef COMS_JINGGA_HTTP_PROTOCOL_H
 #define COMS_JINGGA_HTTP_PROTOCOL_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 #define HTTP_PROTOCOL_1_1_STR "1.1"
 #define HTTP_PROTOCOL_2_STR "2"

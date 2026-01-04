@@ -75,7 +75,7 @@ inline
 void thrd_cmd_insert(AppCmdBuffer* const __restrict cb, Command* const __restrict cmd_temp) NO_EXCEPT
 {
     MutexGuard _guard(&cb->mtx);
-    int32 index = chunk_reserve_one(&cb->commands);
+    const int32 index = chunk_reserve_one(&cb->commands);
     if (index < 0) {
         mutex_unlock(&cb->mtx);
         ASSERT_TRUE(false);

@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 struct JPSNode {
     int32 x, y;

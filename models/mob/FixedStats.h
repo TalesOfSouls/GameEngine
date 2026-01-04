@@ -9,7 +9,7 @@
 #ifndef COMS_MODELS_MOB_SECONDARY_STATS_POINTS_H
 #define COMS_MODELS_MOB_SECONDARY_STATS_POINTS_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 
 struct FixedStats {
     // Movement

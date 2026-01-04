@@ -9,7 +9,7 @@
 #ifndef COMS_CAMERA_H
 #define COMS_CAMERA_H
 
-#include "../stdlib/Types.h"
+#include "../stdlib/Stdlib.h"
 #include "../stdlib/GameMathTypes.h"
 #include "../math/matrix/Matrix.h"
 #include "../compiler/CompilerUtils.h"
@@ -235,13 +235,10 @@ void camera_vectors_update(Camera* const camera) NO_EXCEPT
     camera->front.x *= cos_ori_x;
     camera->front.z *= cos_ori_x;
 
-    camera->right = vec3_cross(camera->front, camera->world_up);
-    camera->up = vec3_cross(camera->right, camera->front);
+    camera->right = vec3_cross_normalized(camera->front, camera->world_up);
+    camera->up = vec3_cross_normalized(camera->right, camera->front);
 
-    // We checked if combining these 3 into a single SIMD function, but it was slower
-    vec3_normalize(&camera->right);
     vec3_normalize(&camera->front);
-    vec3_normalize(&camera->up);
 }
 
 inline HOT_CODE
@@ -329,12 +326,8 @@ void camera_movement(
         camera->state_changes |= CAMERA_STATE_CHANGE_ORIENTATION;
 
         const v3_f32 forward = camera->front;
-
-        v3_f32 right = vec3_cross(camera->world_up, forward);
-        v3_f32 up = vec3_cross(right, forward);
-
-        vec3_normalize(&right);
-        vec3_normalize(&up);
+        const v3_f32 right = vec3_cross_normalized(camera->world_up, forward);
+        const v3_f32 up = vec3_cross_normalized(right, forward);
 
         switch(movement) {
             case CAMERA_MOVEMENT_NONE: {
@@ -465,12 +458,8 @@ void camera_movement(
         }
     } else {
         const v3_f32 forward = camera->front;
-
-        v3_f32 right = vec3_cross(camera->world_up, forward);
-        v3_f32 up = vec3_cross(right, forward);
-
-        vec3_normalize(&right);
-        vec3_normalize(&up);
+        const v3_f32 right = vec3_cross_normalized(camera->world_up, forward);
+        const v3_f32 up = vec3_cross_normalized(right, forward);
 
         for (int32 i = 0; i < CAMERA_MAX_INPUTS; i++) {
             switch(movement[i]) {
@@ -688,10 +677,7 @@ void
 camera_view_matrix_lh(Camera* const camera) NO_EXCEPT
 {
     const v3_f32 zaxis = camera->front;
-
-    v3_f32 xaxis = vec3_cross(camera->world_up, zaxis);
-    vec3_normalize(&xaxis);
-
+    const v3_f32 xaxis = vec3_cross_normalized(camera->world_up, zaxis);
     const v3_f32 yaxis = vec3_cross(zaxis, xaxis);
 
     // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
@@ -718,10 +704,7 @@ void
 camera_view_matrix_rh_opengl(Camera* const camera) NO_EXCEPT
 {
     const v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
-
-    v3_f32 xaxis = vec3_cross(zaxis, camera->world_up);
-    vec3_normalize(&xaxis);
-
+    const v3_f32 xaxis = vec3_cross_normalized(zaxis, camera->world_up);
     const v3_f32 yaxis = vec3_cross(zaxis, xaxis);
 
    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
@@ -748,10 +731,7 @@ void
 camera_view_matrix_rh_vulkan(Camera* const camera) NO_EXCEPT
 {
     const v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
-
-    v3_f32 xaxis = vec3_cross(zaxis, camera->world_up);
-    vec3_normalize(&xaxis);
-
+    const v3_f32 xaxis = vec3_cross_normalized(zaxis, camera->world_up);
     const v3_f32 yaxis = vec3_cross(zaxis, xaxis);
 
    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
@@ -788,7 +768,7 @@ f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT
             return value + (nextafterf(value, -INFINITY) - value) * 1000;
         case GPU_API_TYPE_VULKAN:
             return value + (nextafterf(value, -INFINITY) - value) * 1000;
-        case GPU_API_TYPE_DIRECTX:
+        case GPU_API_TYPE_DIRECTX_12:
             return value + (nextafterf(value, -INFINITY) - value) * 1000;
         default:
             UNREACHABLE();
@@ -809,7 +789,7 @@ f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT
             return value + (nextafterf(value, INFINITY) - value) * 1000;
         case GPU_API_TYPE_VULKAN:
             return value + (nextafterf(value, INFINITY) - value) * 1000;
-        case GPU_API_TYPE_DIRECTX:
+        case GPU_API_TYPE_DIRECTX_12:
             return value + (nextafterf(value, INFINITY) - value) * 1000;
         default:
             UNREACHABLE();
@@ -841,7 +821,7 @@ void camera_init(Camera* const camera) NO_EXCEPT
             camera_orth_matrix_rh_vulkan(camera);
             camera_view_matrix_rh_vulkan(camera);
         } break;
-        case GPU_API_TYPE_DIRECTX: {
+        case GPU_API_TYPE_DIRECTX_12: {
             camera_init_lh(camera);
             camera_projection_matrix_lh(camera);
             camera_orth_matrix_lh(camera);
