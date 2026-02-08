@@ -70,10 +70,10 @@ int16 input_kbm_handle(
 {
     switch (mode) {
         case INPUT_MODE_EVENT: {
-            return input_poll_handle(states, time);
+            return input_raw_handle_buffered(max_inputs, states, state_count, ring, time);
         };
         case INPUT_MODE_POLLING: {
-            return input_raw_handle_buffered(max_inputs, states, state_count, ring, time);
+            return input_poll_handle(states, time);
         };
         default:
             UNREACHABLE();

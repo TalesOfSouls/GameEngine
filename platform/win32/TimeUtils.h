@@ -71,7 +71,6 @@ uint64 system_time_utc() NO_EXCEPT
     return ((uint64) (li.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
 }
 
-
 // Used as initializer for 64bit random number generators instead of time()
 FORCE_INLINE
 uint64 time_index() NO_EXCEPT

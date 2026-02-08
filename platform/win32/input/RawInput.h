@@ -380,7 +380,9 @@ int16 input_raw_handle(
 
             input_set_state(states[i].state.active_keys, &key);
             states[i].general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
-        } else if (states[i].general_states & INPUT_STATE_GENERAL_MOUSE_MOVEMENT) {
+        }
+
+        if (raw->data.mouse.lLastX || raw->data.mouse.lLastY) {
             // @question do we want to handle mouse movement for every individual movement, or do we want to pull it
             if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) {
                 RECT rect;

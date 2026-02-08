@@ -16,14 +16,6 @@
 #include "ControllerInput.h"
 #include "InputConnectionType.h"
 
-#define INPUT_MOUSE_BUTTON_1 1
-#define INPUT_MOUSE_BUTTON_2 2
-#define INPUT_MOUSE_BUTTON_3 3
-#define INPUT_MOUSE_BUTTON_4 4
-#define INPUT_MOUSE_BUTTON_5 5
-#define INPUT_MOUSE_BUTTON_WHEEL 6
-#define INPUT_MOUSE_BUTTON_HWHEEL 7
-
 // How many concurrent mouse/secondary input device presses to we recognize
 #define MAX_MOUSE_PRESSES 3
 
@@ -51,6 +43,7 @@ enum InputType : byte {
     INPUT_TYPE_OTHER = 1 << 2,
 };
 
+// @todo This should probably be a setting
 #define INPUT_LONG_PRESS_DURATION 250
 
 #ifdef _WIN32
@@ -58,6 +51,20 @@ enum InputType : byte {
     #include <dinput.h>
     #include "../platform/win32/UtilsWin32.h"
 #endif
+
+enum InputMouseAction {
+    INPUT_MOUSE_BUTTON_1 = 1,
+    INPUT_MOUSE_BUTTON_2 = 2,
+    INPUT_MOUSE_BUTTON_3 = 3,
+    INPUT_MOUSE_BUTTON_4 = 4,
+    INPUT_MOUSE_BUTTON_5 = 5,
+    INPUT_MOUSE_BUTTON_WHEEL = 6,
+    INPUT_MOUSE_BUTTON_HWHEEL = 7,
+    INPUT_MOUSE_WHEEL_UP = 8,
+    INPUT_MOUSE_WHEEL_DOWN = 9,
+    INPUT_MOUSE_HWHEEL_LEFT = 10,
+    INPUT_MOUSE_HWHEEL_RIGHT = 11,
+};
 
 /**
  * @param void* data General data to pass to the event function
@@ -67,11 +74,16 @@ typedef void (*InputCallback)(void* data, int32 input_id);
 
 enum InputEventFlag : uint8 {
     INPUT_EVENT_FLAG_NONE = 0,
-    INPUT_EVENT_FLAG_MULTIPLE = 1 << 0, // can run multiple times per frame/input handling
-    INPUT_EVENT_FLAG_REPEAT = 1 << 1, // not getting removed after run
+
+    // can run multiple times per frame/input handling
+    INPUT_EVENT_FLAG_MULTIPLE = 1 << 0,
+
+    // not getting removed after run
+    INPUT_EVENT_FLAG_REPEAT = 1 << 1,
 };
 
 struct InputEvent {
+    // InputEventFlag
     uint8 flag;
     InputCallback callback;
 };
@@ -146,10 +158,14 @@ struct InputState {
     int16 y[3];
 };
 
+// @todo Do we even want to use these input states, I don't really see there use case
 enum GeneralInputState : byte {
     INPUT_STATE_GENERAL_BUTTON_CHANGE = 1 << 0,
     INPUT_STATE_GENERAL_MOUSE_CHANGE = 1 << 1,
+
+    // @bug This isn't used
     INPUT_STATE_GENERAL_MOUSE_MOVEMENT = 1 << 2,
+
     INPUT_STATE_GENERAL_TYPING_MODE = 1 << 3, // Used for typing in chat box etc. otherwise we could have conflicts with hotkeys
     INPUT_STATE_GENERAL_HOTKEY_ACTIVE = 1 << 4, // At least one hotkey is active
 };
@@ -402,7 +418,11 @@ bool hotkey_is_active(const uint16* const active_hotkeys, uint16 hotkey) NO_EXCE
 // similar to hotkey_is_active but instead of just performing a lookup in the input_hotkey_state created results
 // this is actively checking the current input state (not the hotkey state)
 inline HOT_CODE
-bool hotkey_keys_are_active(const InputKey* const active_keys, const Hotkey* mapping, uint16 hotkey) NO_EXCEPT
+bool hotkey_keys_are_active(
+    const InputKey* const __restrict active_keys,
+    const Hotkey* const __restrict mapping,
+    uint16 hotkey
+) NO_EXCEPT
 {
     // Hotkeys are 0-indexed but the enum starts at 1
     --hotkey;
@@ -422,7 +442,11 @@ bool hotkey_keys_are_active(const InputKey* const active_keys, const Hotkey* map
     // If it was handled it would've been removed (at least in case of RELEASED)
     // Therefore, if a key has a state -> treat it as if active
 
-    // The code below also allows optional keys which have a negative sign (at least one of the optional keys must be valid)
+    // The code below also allows optional keys which have a negative sign
+    //      (at least one of the optional keys must be valid)
+    // @todo Do we really want to have "optional" keys for a hotkey
+    //      It doesn't feel like it makes sense
+    //      It was originally implemented to handle controller sticks where either horizontal or vertical input was needed
     bool is_active = input_action_exists(active_keys, (int16) abs(key0), key->key_state);
     if ((!is_active && (key0 > 0 || key1 >= 0)) || (is_active && key0 < 0) || (key1 == 0 && key2 == 0)) {
         return is_active;
@@ -437,7 +461,10 @@ bool hotkey_keys_are_active(const InputKey* const active_keys, const Hotkey* map
 }
 
 inline HOT_CODE
-void input_set_state(InputKey* const __restrict active_keys, const InputKey* const __restrict new_key) NO_EXCEPT
+void input_set_state(
+    InputKey* const __restrict active_keys,
+    const InputKey* const __restrict new_key
+) NO_EXCEPT
 {
     InputKey* free_state = NULL;
 
@@ -569,6 +596,7 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
         return;
     }
 
+    // @question Should this be changed to context instead of state?
     // Check typing mode
     if (input->general_states & INPUT_STATE_GENERAL_TYPING_MODE) {
         *input->text = '\0';
@@ -793,7 +821,7 @@ void input_handle_hotkeys(const Input* const input, void* data) NO_EXCEPT {
     int32 input_event_count = 0;
 
     // Identify possible input events
-    for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
+    for (int i = 0; i < ARRAY_COUNT(input_events); ++i) {
         if (!input->state.active_hotkeys[i]) {
             continue;
         }
@@ -817,7 +845,7 @@ void input_handle_hotkeys(const Input* const input, void* data) NO_EXCEPT {
     }
 
     // Run all input events
-    for (int32 i = 0; i < input_event_count; ++i) {
+    for (int i = 0; i < input_event_count; ++i) {
         // @bug The order of the hotkeys is not based on timing, that could potentially be an issue
         // @performance Instead of doing pointer chasing maybe we should have one index array and a reference to the event array
         // @bug we need to pass the input id but we only have the input pointer. Currently always passing 0
