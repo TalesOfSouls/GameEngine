@@ -50,6 +50,8 @@ static int _test_profiling_loops = 1000;
             return __rdtsc();
         }
     #endif
+
+    static LARGE_INTEGER _test_performance_frequency = {0};
 #else
     #define test_timestamp_counter() __builtin_readcyclecounter()
 #endif
@@ -88,7 +90,7 @@ void test_print_stack_trace(CONTEXT* context)
     // Initialize symbols
     SymInitialize(process, NULL, TRUE);
 
-    STACKFRAME64 stack_frame = {};
+    STACKFRAME64 stack_frame = {0};
     DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
 
     // Initialize stack frame for x64
@@ -151,19 +153,29 @@ inline int64_t test_start_time()
 
 inline double test_duration_time(int64_t start)
 {
-    LARGE_INTEGER frequency;
-    QueryPerformanceFrequency(&frequency);
+    if (!_test_performance_frequency.QuadPart) {
+        QueryPerformanceFrequency(&_test_performance_frequency);
+    }
+
     return (double)(test_start_time() - start) / frequency.QuadPart;
 }
 
-inline double test_measure_func_time_ns(void (*func)(volatile void *), volatile void* para, int profiling_loops)
+inline double test_measure_func_time_ns(
+    void (*func)(volatile void *),
+    volatile void* para,
+    int profiling_loops
+)
 {
-    LARGE_INTEGER frequency, start, end;
-    QueryPerformanceFrequency(&frequency);
+    if (!_test_performance_frequency.QuadPart) {
+        QueryPerformanceFrequency(&_test_performance_frequency);
+    }
+
+    LARGE_INTEGER start, end;
     QueryPerformanceCounter(&start);
     for (int i = 0; i < profiling_loops; ++i) {
         func(para);
     }
+
     QueryPerformanceCounter(&end);
     return (double)(end.QuadPart - start.QuadPart) * 1e9 / frequency.QuadPart;
 }
@@ -225,7 +237,11 @@ inline double test_duration_time(int64_t start)
     return (double)(test_start_time() - start);
 }
 
-inline double test_measure_func_time_ns(void (*func)(volatile void *), volatile void* para, int profiling_loops)
+inline double test_measure_func_time_ns(
+    void (*func)(volatile void *),
+    volatile void* para,
+    int profiling_loops
+)
 {
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -261,7 +277,11 @@ inline void test_finalize_impl(const char* file)
     if (_test_assert_error_count) {
         printf(
             "[NG] %5d   (%5d/%5d)   %8.2f   %s\n",
-            _test_count, _test_assert_count - _test_assert_error_count, _test_assert_count, test_duration_time(_test_start), file
+            _test_count,
+            _test_assert_count - _test_assert_error_count,
+            _test_assert_count,
+            test_duration_time(_test_start),
+            file
         );
         for (int i = 0; i < _test_assert_error_count; ++i) {
             printf("                                            %s\n", _test_log[i]);
@@ -270,7 +290,11 @@ inline void test_finalize_impl(const char* file)
     } else {
         printf(
             "[OK] %5d   (%5d/%5d)   %8.2f   %s\n",
-            _test_count, _test_assert_count - _test_assert_error_count, _test_assert_count, test_duration_time(_test_start), file
+            _test_count,
+            _test_assert_count - _test_assert_error_count,
+            _test_assert_count,
+            test_duration_time(_test_start),
+            file
         );
     }
     fflush(stdout);

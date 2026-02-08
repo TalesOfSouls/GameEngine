@@ -50,6 +50,7 @@
     #define NOPROFILER 1
     #define NODEFERWINDOWPOS 1
     #define NOMCX 1
+    #define NOBITMAP 1
 #endif
 
 #endif

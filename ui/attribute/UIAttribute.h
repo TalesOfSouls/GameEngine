@@ -40,7 +40,7 @@ struct UIAttributeGroup {
     //UIAttribute* attributes;
 };
 
-UIAttribute* ui_attribute_from_group(const UIAttributeGroup* group, UIAttributeType type)
+UIAttribute* ui_attribute_from_group(const UIAttributeGroup* const group, UIAttributeType type)
 {
     if (!group->attribute_count) {
         return NULL;
@@ -60,142 +60,141 @@ UIAttribute* ui_attribute_from_group(const UIAttributeGroup* group, UIAttributeT
     return attributes->attribute_id == type ? attributes : NULL;
 }
 
-CONSTEXPR
 int32 ui_attribute_type_to_id(const char* attribute_name)
 {
-    if (str_compare(attribute_name, "x") == 0) {
+    if (strcmp(attribute_name, "x") == 0) {
         return UI_ATTRIBUTE_TYPE_POSITION_X;
-    } else if (str_compare(attribute_name, "y") == 0) {
+    } else if (strcmp(attribute_name, "y") == 0) {
         return UI_ATTRIBUTE_TYPE_POSITION_Y;
-    } else if (str_compare(attribute_name, "width") == 0) {
+    } else if (strcmp(attribute_name, "width") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH;
-    } else if (str_compare(attribute_name, "height") == 0) {
+    } else if (strcmp(attribute_name, "height") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT;
-    } else if (str_compare(attribute_name, "width_min") == 0) {
+    } else if (strcmp(attribute_name, "width_min") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH_MIN;
-    } else if (str_compare(attribute_name, "height_min") == 0) {
+    } else if (strcmp(attribute_name, "height_min") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT_MIN;
-    } else if (str_compare(attribute_name, "width_max") == 0) {
+    } else if (strcmp(attribute_name, "width_max") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH_MAX;
-    } else if (str_compare(attribute_name, "height_max") == 0) {
+    } else if (strcmp(attribute_name, "height_max") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT_MAX;
-    } else if (str_compare(attribute_name, "overflow") == 0) {
+    } else if (strcmp(attribute_name, "overflow") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_OVERFLOW;
-    } else if (str_compare(attribute_name, "font_name") == 0) {
+    } else if (strcmp(attribute_name, "font_name") == 0) {
         return UI_ATTRIBUTE_TYPE_FONT_NAME;
-    } else if (str_compare(attribute_name, "font_color") == 0) {
+    } else if (strcmp(attribute_name, "font_color") == 0) {
         return UI_ATTRIBUTE_TYPE_FONT_COLOR;
-    } else if (str_compare(attribute_name, "font_size") == 0) {
+    } else if (strcmp(attribute_name, "font_size") == 0) {
         return UI_ATTRIBUTE_TYPE_FONT_SIZE;
-    } else if (str_compare(attribute_name, "font_weight") == 0) {
+    } else if (strcmp(attribute_name, "font_weight") == 0) {
         return UI_ATTRIBUTE_TYPE_FONT_WEIGHT;
-    } else if (str_compare(attribute_name, "font_line_height") == 0) {
+    } else if (strcmp(attribute_name, "font_line_height") == 0) {
         return UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT;
-    } else if (str_compare(attribute_name, "align_h") == 0) {
+    } else if (strcmp(attribute_name, "align_h") == 0) {
         return UI_ATTRIBUTE_TYPE_ALIGN_H;
-    } else if (str_compare(attribute_name, "align_v") == 0) {
+    } else if (strcmp(attribute_name, "align_v") == 0) {
         return UI_ATTRIBUTE_TYPE_ALIGN_V;
-    } else if (str_compare(attribute_name, "zindex") == 0) {
+    } else if (strcmp(attribute_name, "zindex") == 0) {
         return UI_ATTRIBUTE_TYPE_ZINDEX;
-    } else if (str_compare(attribute_name, "style1") == 0) {
+    } else if (strcmp(attribute_name, "style1") == 0) {
         return UI_ATTRIBUTE_TYPE_STYLE1;
-    } else if (str_compare(attribute_name, "style2") == 0) {
+    } else if (strcmp(attribute_name, "style2") == 0) {
         return UI_ATTRIBUTE_TYPE_STYLE2;
-    } else if (str_compare(attribute_name, "style3") == 0) {
+    } else if (strcmp(attribute_name, "style3") == 0) {
         return UI_ATTRIBUTE_TYPE_STYLE3;
-    } else if (str_compare(attribute_name, "style4") == 0) {
+    } else if (strcmp(attribute_name, "style4") == 0) {
         return UI_ATTRIBUTE_TYPE_STYLE4;
-    } else if (str_compare(attribute_name, "style5") == 0) {
+    } else if (strcmp(attribute_name, "style5") == 0) {
         return UI_ATTRIBUTE_TYPE_STYLE5;
-    } else if (str_compare(attribute_name, "style6") == 0) {
+    } else if (strcmp(attribute_name, "style6") == 0) {
         return UI_ATTRIBUTE_TYPE_STYLE6;
-    } else if (str_compare(attribute_name, "style7") == 0) {
+    } else if (strcmp(attribute_name, "style7") == 0) {
         return UI_ATTRIBUTE_TYPE_STYLE7;
-    } else if (str_compare(attribute_name, "style8") == 0) {
+    } else if (strcmp(attribute_name, "style8") == 0) {
         return UI_ATTRIBUTE_TYPE_STYLE8;
-    } else if (str_compare(attribute_name, "foreground_color") == 0) {
+    } else if (strcmp(attribute_name, "foreground_color") == 0) {
         return UI_ATTRIBUTE_TYPE_FOREGROUND_COLOR;
-    } else if (str_compare(attribute_name, "foreground_img") == 0) {
+    } else if (strcmp(attribute_name, "foreground_img") == 0) {
         return UI_ATTRIBUTE_TYPE_FOREGROUND_IMG;
-    } else if (str_compare(attribute_name, "foreground_img_opacity") == 0) {
+    } else if (strcmp(attribute_name, "foreground_img_opacity") == 0) {
         return UI_ATTRIBUTE_TYPE_FOREGROUND_IMG_OPACITY;
-    } else if (str_compare(attribute_name, "foreground_img_position_v") == 0) {
+    } else if (strcmp(attribute_name, "foreground_img_position_v") == 0) {
         return UI_ATTRIBUTE_TYPE_FOREGROUND_IMG_POSITION_V;
-    } else if (str_compare(attribute_name, "foreground_img_position_h") == 0) {
+    } else if (strcmp(attribute_name, "foreground_img_position_h") == 0) {
         return UI_ATTRIBUTE_TYPE_FOREGROUND_IMG_POSITION_H;
-    } else if (str_compare(attribute_name, "foreground_img_style") == 0) {
+    } else if (strcmp(attribute_name, "foreground_img_style") == 0) {
         return UI_ATTRIBUTE_TYPE_FOREGROUND_IMG_STYLE;
-    } else if (str_compare(attribute_name, "background_color") == 0) {
+    } else if (strcmp(attribute_name, "background_color") == 0) {
         return UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR;
-    } else if (str_compare(attribute_name, "background_img") == 0) {
+    } else if (strcmp(attribute_name, "background_img") == 0) {
         return UI_ATTRIBUTE_TYPE_BACKGROUND_IMG;
-    } else if (str_compare(attribute_name, "background_img_opacity") == 0) {
+    } else if (strcmp(attribute_name, "background_img_opacity") == 0) {
         return UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY;
-    } else if (str_compare(attribute_name, "background_img_position_v") == 0) {
+    } else if (strcmp(attribute_name, "background_img_position_v") == 0) {
         return UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V;
-    } else if (str_compare(attribute_name, "background_img_position_h") == 0) {
+    } else if (strcmp(attribute_name, "background_img_position_h") == 0) {
         return UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H;
-    } else if (str_compare(attribute_name, "background_img_style") == 0) {
+    } else if (strcmp(attribute_name, "background_img_style") == 0) {
         return UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE;
-    } else if (str_compare(attribute_name, "border_color") == 0) {
+    } else if (strcmp(attribute_name, "border_color") == 0) {
         return UI_ATTRIBUTE_TYPE_BORDER_COLOR;
-    } else if (str_compare(attribute_name, "border_width") == 0) {
+    } else if (strcmp(attribute_name, "border_width") == 0) {
         return UI_ATTRIBUTE_TYPE_BORDER_WIDTH;
-    } else if (str_compare(attribute_name, "border_top_color") == 0) {
+    } else if (strcmp(attribute_name, "border_top_color") == 0) {
         return UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR;
-    } else if (str_compare(attribute_name, "border_top_width") == 0) {
+    } else if (strcmp(attribute_name, "border_top_width") == 0) {
         return UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH;
-    } else if (str_compare(attribute_name, "border_right_color") == 0) {
+    } else if (strcmp(attribute_name, "border_right_color") == 0) {
         return UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR;
-    } else if (str_compare(attribute_name, "border_right_width") == 0) {
+    } else if (strcmp(attribute_name, "border_right_width") == 0) {
         return UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH;
-    } else if (str_compare(attribute_name, "border_bottom_color") == 0) {
+    } else if (strcmp(attribute_name, "border_bottom_color") == 0) {
         return UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR;
-    } else if (str_compare(attribute_name, "border_bottom_width") == 0) {
+    } else if (strcmp(attribute_name, "border_bottom_width") == 0) {
         return UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH;
-    } else if (str_compare(attribute_name, "border_left_color") == 0) {
+    } else if (strcmp(attribute_name, "border_left_color") == 0) {
         return UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR;
-    } else if (str_compare(attribute_name, "border_left_width") == 0) {
+    } else if (strcmp(attribute_name, "border_left_width") == 0) {
         return UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH;
-    } else if (str_compare(attribute_name, "padding") == 0) {
+    } else if (strcmp(attribute_name, "padding") == 0) {
         return UI_ATTRIBUTE_TYPE_PADDING;
-    } else if (str_compare(attribute_name, "padding_top") == 0) {
+    } else if (strcmp(attribute_name, "padding_top") == 0) {
         return UI_ATTRIBUTE_TYPE_PADDING_TOP;
-    } else if (str_compare(attribute_name, "padding_right") == 0) {
+    } else if (strcmp(attribute_name, "padding_right") == 0) {
         return UI_ATTRIBUTE_TYPE_PADDING_RIGHT;
-    } else if (str_compare(attribute_name, "padding_bottom") == 0) {
+    } else if (strcmp(attribute_name, "padding_bottom") == 0) {
         return UI_ATTRIBUTE_TYPE_PADDING_BOTTOM;
-    } else if (str_compare(attribute_name, "padding_left") == 0) {
+    } else if (strcmp(attribute_name, "padding_left") == 0) {
         return UI_ATTRIBUTE_TYPE_PADDING_LEFT;
-    } else if (str_compare(attribute_name, "scroll_style") == 0) {
+    } else if (strcmp(attribute_name, "scroll_style") == 0) {
         return UI_ATTRIBUTE_TYPE_SCROLL_STYLE;
-    } else if (str_compare(attribute_name, "scroll_x") == 0) {
+    } else if (strcmp(attribute_name, "scroll_x") == 0) {
         return UI_ATTRIBUTE_TYPE_SCROLL_X;
-    } else if (str_compare(attribute_name, "scroll_y") == 0) {
+    } else if (strcmp(attribute_name, "scroll_y") == 0) {
         return UI_ATTRIBUTE_TYPE_SCROLL_Y;
-    } else if (str_compare(attribute_name, "shadow_inner_color") == 0) {
+    } else if (strcmp(attribute_name, "shadow_inner_color") == 0) {
         return UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR;
-    } else if (str_compare(attribute_name, "shadow_inner_angle") == 0) {
+    } else if (strcmp(attribute_name, "shadow_inner_angle") == 0) {
         return UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE;
-    } else if (str_compare(attribute_name, "shadow_inner_distance") == 0) {
+    } else if (strcmp(attribute_name, "shadow_inner_distance") == 0) {
         return UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE;
-    } else if (str_compare(attribute_name, "shadow_outer_color") == 0) {
+    } else if (strcmp(attribute_name, "shadow_outer_color") == 0) {
         return UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR;
-    } else if (str_compare(attribute_name, "shadow_outer_angle") == 0) {
+    } else if (strcmp(attribute_name, "shadow_outer_angle") == 0) {
         return UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE;
-    } else if (str_compare(attribute_name, "shadow_outer_distance") == 0) {
+    } else if (strcmp(attribute_name, "shadow_outer_distance") == 0) {
         return UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE;
-    } else if (str_compare(attribute_name, "transition_animation") == 0) {
+    } else if (strcmp(attribute_name, "transition_animation") == 0) {
         return UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION;
-    } else if (str_compare(attribute_name, "transition_duration") == 0) {
+    } else if (strcmp(attribute_name, "transition_duration") == 0) {
         return UI_ATTRIBUTE_TYPE_TRANSITION_DURATION;
-    } else if (str_compare(attribute_name, "text_limit") == 0) {
+    } else if (strcmp(attribute_name, "text_limit") == 0) {
         return UI_ATTRIBUTE_TYPE_TEXT_LIMIT;
-    } else if (str_compare(attribute_name, "cache_size") == 0) {
+    } else if (strcmp(attribute_name, "cache_size") == 0) {
         return UI_ATTRIBUTE_TYPE_CACHE_SIZE;
-    } else if (str_compare(attribute_name, "anim") == 0) {
+    } else if (strcmp(attribute_name, "anim") == 0) {
         return UI_ATTRIBUTE_TYPE_ANIMATION;
-    } else if (str_compare(attribute_name, "vertex_count") == 0) {
+    } else if (strcmp(attribute_name, "vertex_count") == 0) {
         return UI_ATTRIBUTE_TYPE_VERTEX_COUNT;
     }
 
@@ -205,7 +204,7 @@ int32 ui_attribute_type_to_id(const char* attribute_name)
 }
 
 inline
-void ui_attribute_parse_value(UIAttribute* attr, const char* attribute_name, const char* pos)
+void ui_attribute_parse_value(UIAttribute* const attr, const char* attribute_name, const char* pos)
 {
     attr->attribute_id = (UIAttributeType) ui_attribute_type_to_id(attribute_name);
     char value[64];
@@ -229,14 +228,14 @@ void ui_attribute_parse_value(UIAttribute* attr, const char* attribute_name, con
 }
 
 inline
-void ui_theme_assign_f32(f32* a, const UIAttribute* attr)
+void ui_theme_assign_f32(f32* a, const UIAttribute* const attr)
 {
     if (attr->datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
         *a = (f32) attr->value_int;
     } else if (attr->datatype == UI_ATTRIBUTE_DATA_TYPE_F32) {
         *a = (f32) attr->value_float;
     } else if (attr->datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
-        ASSERT_TRUE(str_length(attr->value_str) > 0);
+        ASSERT_TRUE(strlen(attr->value_str) > 0);
 
         char value[32];
         memcpy(value, attr->value_str, ARRAY_COUNT(attr->value_str));
@@ -245,7 +244,7 @@ void ui_theme_assign_f32(f32* a, const UIAttribute* attr)
 }
 
 inline
-void ui_theme_assign_dimension(UIAttributeDimension* dimension, const UIAttribute* attr)
+void ui_theme_assign_dimension(UIAttributeDimension* const dimension, const UIAttribute* const attr)
 {
     switch (attr->attribute_id) {
         case UI_ATTRIBUTE_TYPE_POSITION_X: {
@@ -267,7 +266,7 @@ void ui_theme_assign_dimension(UIAttributeDimension* dimension, const UIAttribut
 }
 
 inline
-void ui_theme_assign_font(UIAttributeFont* font, const UIAttribute* attr)
+void ui_theme_assign_font(UIAttributeFont* const font, const UIAttribute* const attr)
 {
     switch (attr->attribute_id) {
         case UI_ATTRIBUTE_TYPE_FONT_NAME: {

@@ -42,10 +42,10 @@ inline
 void ecs_create(EntityComponentSystem* ecs, BufferMemory* const buf, int32 entity_count, int32 component_count)
 {
     ecs->entity_type_count = entity_count;
-    ecs->entities = (ChunkMemory *) buffer_get_memory(buf, sizeof(ChunkMemory) * entity_count, 64);
+    ecs->entities = (ChunkMemory *) buffer_get_memory(buf, sizeof(ChunkMemory) * entity_count, ASSUMED_CACHE_LINE_SIZE);
 
     ecs->component_type_count = component_count;
-    ecs->components = (ChunkMemory *) buffer_get_memory(buf, sizeof(ChunkMemory) * component_count, 64);
+    ecs->components = (ChunkMemory *) buffer_get_memory(buf, sizeof(ChunkMemory) * component_count, ASSUMED_CACHE_LINE_SIZE);
 }
 
 inline
@@ -53,7 +53,7 @@ void ecs_entity_type_create(ChunkMemory* ec, BufferMemory* const buf, int32 chun
 {
     ASSERT_TRUE(chunk_size);
 
-    chunk_init(ec, buf, count, chunk_size, 64);
+    chunk_init(ec, buf, count, chunk_size, ASSUMED_CACHE_LINE_SIZE);
     //mutex_init(&ec->mtx, NULL);
 }
 
@@ -62,10 +62,11 @@ void ecs_component_type_create(ChunkMemory* ec, BufferMemory* const buf, int32 c
 {
     ASSERT_TRUE(chunk_size);
 
-    chunk_init(ec, buf, count, chunk_size, 64);
+    chunk_init(ec, buf, count, chunk_size, ASSUMED_CACHE_LINE_SIZE);
     //mutex_init(&ec->mtx, NULL);
 }
 
+// @bug using 64 as fixed value might be wrong
 Entity* ecs_get_entity(EntityComponentSystem* ecs, int32 entity_id)
 {
     int32 ecs_type = (entity_id >> 24) & 0xFF;

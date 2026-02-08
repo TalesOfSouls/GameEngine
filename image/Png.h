@@ -133,7 +133,7 @@ static const PngHuffmanEntry PNG_DIST_EXTRA[] = {
 
 void huffman_png_compute(uint32 symbol_count, const uint32* __restrict symbol_code_length, PngHuffman* huff)
 {
-    uint32 code_length_hist[16] = {};
+    uint32 code_length_hist[16] = {0};
     for (uint32 i = 0; i < symbol_count; ++i) {
         ++code_length_hist[symbol_code_length[i]];
     }
@@ -464,7 +464,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* cons
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some asignment/copy overhead
-    Png src = {};
+    Png src = {0};
     generate_default_png_references(src_data, &src);
 
     // @todo Support color_type == 3
@@ -674,7 +674,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* cons
                 huffman_dist += 1;
                 huffman_code_length += 4;
 
-                uint32 huffman_code_length_table[ARRAY_COUNT(HUFFMAN_CODE_LENGTH_ALPHA)] = {};
+                uint32 huffman_code_length_table[ARRAY_COUNT(HUFFMAN_CODE_LENGTH_ALPHA)] = {0};
 
                 for (uint32 j = 0; j < huffman_code_length; ++j) {
                     huffman_code_length_table[HUFFMAN_CODE_LENGTH_ALPHA[j]] = BITS_GET_16_R2L(BYTES_MERGE_2_R2L(stream.pos), stream.bit_pos, 3);

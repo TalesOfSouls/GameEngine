@@ -16,9 +16,21 @@
 #include "../../../log/PerformanceProfiler.h"
 
 inline
-int32 coms_pthread_create(coms_pthread_t* __restrict thread, void*, ThreadJobFunc start_routine, void* __restrict arg) NO_EXCEPT
+void coms_thread_affinity_set(coms_pthread_t* const thread, int64 mask) NO_EXCEPT
 {
-    // @question Do we want to pin threads automatically to p cores based on a utilization score?
+    SetThreadAffinityMask(thread->h, (DWORD_PTR) mask);
+}
+
+// @todo write a function
+
+inline
+int32 coms_pthread_create(
+    coms_pthread_t* const __restrict thread,
+    void*,
+    ThreadJobFunc start_routine,
+    void* const __restrict arg
+) NO_EXCEPT
+{
     ASSERT_TRUE(thread);
     ASSERT_TRUE(start_routine);
 
@@ -28,13 +40,11 @@ int32 coms_pthread_create(coms_pthread_t* __restrict thread, void*, ThreadJobFun
         return -1;
     }
 
-    int32 thread_id = (int32) GetThreadId(thread->h);
-    THREAD_LOG_CREATE(thread_id);
+    thread->id = (int32) GetThreadId(thread->h);
+    THREAD_LOG_CREATE(thread->id);
 
-    return thread_id;
+    return thread->id;
 }
-
-// @bug when we close a thread we need to cleanup create_thread_profile_history(thread_id);
 
 FORCE_INLINE
 int32 coms_pthread_join(coms_pthread_t thread, void**) NO_EXCEPT
@@ -43,6 +53,7 @@ int32 coms_pthread_join(coms_pthread_t thread, void**) NO_EXCEPT
 
     WaitForSingleObject(thread.h, INFINITE);
     CloseHandle(thread.h);
+    THREAD_LOG_DELETE(thread.id);
 
     return 0;
 }
@@ -57,7 +68,7 @@ int32 coms_pthread_detach(coms_pthread_t thread) NO_EXCEPT
 
 // WARNING: We don't support windows events since they are much slower than conditional variables/mutexes
 FORCE_INLINE
-int32 coms_pthread_cond_init(mutex_cond* __restrict cond, coms_pthread_condattr_t*) NO_EXCEPT
+int32 coms_pthread_cond_init(mutex_cond* const __restrict cond, coms_pthread_condattr_t*) NO_EXCEPT
 {
     ASSERT_TRUE(cond);
     InitializeConditionVariable(cond);
@@ -74,7 +85,7 @@ int32 coms_pthread_cond_destroy(mutex_cond*) NO_EXCEPT
 
 // @question Can't we turn timespec in a typedef of uint64? I would like to avoid the time.h class
 FORCE_INLINE
-int32 mutex_condimedwait(mutex_cond* __restrict cond, mutex* mutex, const timespec* __restrict abstime) NO_EXCEPT
+int32 mutex_condimedwait(mutex_cond* __restrict cond, mutex* __restrict mutex, const timespec* __restrict abstime) NO_EXCEPT
 {
     ASSERT_TRUE(cond);
     ASSERT_TRUE(mutex);

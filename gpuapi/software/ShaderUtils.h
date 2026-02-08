@@ -32,7 +32,7 @@ void gpuapi_descriptor_set_layout_create(
     const SoftwareDescriptorSetLayoutBinding* __restrict layout
 ) NO_EXCEPT
 {
-    for (int32 i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
         if (!renderer->descriptor_set_layout[i].binding) {
             renderer->descriptor_set_layout[i].name = layout->name;
             renderer->descriptor_set_layout[i].size = ceil_div(layout->size, renderer->buf.chunk_size);
@@ -52,7 +52,7 @@ void gpuapi_descriptor_set_layout_set(
     const SoftwareDescriptorSetLayoutBinding* __restrict layout
 ) NO_EXCEPT
 {
-    for (int32 i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
         if (!renderer->descriptor_set_layout[i].binding) {
             renderer->descriptor_set_layout[i].name = layout->name;
             renderer->descriptor_set_layout[i].size = ceil_div(layout->size, renderer->buf.chunk_size);
@@ -73,7 +73,7 @@ void gpuapi_descriptor_set_layout_set(
     void* data
 ) NO_EXCEPT
 {
-    for (int32 i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
         if (renderer->descriptor_set_layout[i].binding == binding) {
             renderer->descriptor_set_layout[i].data = data;
 
@@ -92,7 +92,7 @@ void gpuapi_descriptor_set_layout_create(
     int32 layout_length
 ) NO_EXCEPT
 {
-    for (int32 i = 0; i < layout_length; ++i) {
+    for (int i = 0; i < layout_length; ++i) {
         shader->descriptor_set_layout[i].name = layouts[i].name;
         shader->descriptor_set_layout[i].size = ceil_div(layouts[i].size, renderer->buf.chunk_size);
         shader->descriptor_set_layout[i].binding = chunk_reserve(&renderer->buf, shader->descriptor_set_layout[i].size) + 1;
@@ -106,56 +106,56 @@ FORCE_INLINE
 void gpuapi_buffer_update(void* location, bool value) NO_EXCEPT
 {
     *((bool *) location) = value;
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, int32 value) NO_EXCEPT
 {
     *((int32 *) location) = value;
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, f32 value) NO_EXCEPT
 {
     *((f32 *) location) = value;
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, const void* value, size_t size) NO_EXCEPT
 {
     memcpy(location, value, size);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, v3_f32 value) NO_EXCEPT
 {
     memcpy(location, value.vec, sizeof(f32) * 3);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(f32) * 3);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 3);
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, v4_f32 value) NO_EXCEPT
 {
     memcpy(location, value.vec, sizeof(f32) * 4);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(f32) * 4);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 4);
 }
 
 FORCE_INLINE
 void gpuapi_ref_update(void* location, void* value) NO_EXCEPT
 {
     location = value;
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(void*));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(void*));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update_m4(void* location, const f32* value) NO_EXCEPT
 {
     memcpy(location, value, sizeof(f32) * 16);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 16);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 16);
 }
 
 #endif

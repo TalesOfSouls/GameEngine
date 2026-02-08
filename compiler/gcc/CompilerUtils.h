@@ -9,10 +9,10 @@
 #ifndef COMS_COMPILER_GCC_COMPILER_UTILS_H
 #define COMS_COMPILER_GCC_COMPILER_UTILS_H
 
-#include "../../stdlib/Stdlib.h"
 #include "../../utils/Assert.h"
+#include "../../stdlib/Types.h"
 
-#if CPP_VERSION < 17
+#if defined(CPP_VERSION) && CPP_VERSION < 17
     #define IF_CONSTEXPR(cond) if (cond)
 #endif
 
@@ -133,7 +133,11 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) NO_EXCEP
 
 // 8 byte alignment required
 FORCE_INLINE
-void compiler_memcpy_aligned_8(void* __restrict dst, const void* __restrict src, size_t size)
+void compiler_memcpy_aligned_8(
+    void* const __restrict dst,
+    const void* const __restrict src,
+    size_t size
+)
 {
     __builtin_memcpy(dst, src, size);
 }

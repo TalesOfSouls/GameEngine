@@ -9,8 +9,6 @@
 #ifndef COMS_PLATFORM_LINUX_EXCEPTION_HANDLER_H
 #define COMS_PLATFORM_LINUX_EXCEPTION_HANDLER_H
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <signal.h>
 #include <execinfo.h>
 #include <unistd.h>

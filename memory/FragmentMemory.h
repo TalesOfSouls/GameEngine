@@ -6,10 +6,9 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef COMS_MEMORY_RESERVE_MEMORY_H
-#define COMS_MEMORY_RESERVE_MEMORY_H
+#ifndef COMS_MEMORY_FRAGMENT_MEMORY_H
+#define COMS_MEMORY_FRAGMENT_MEMORY_H
 
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "../utils/Assert.h"
 #include "../compiler/CompilerUtils.h"
@@ -43,7 +42,9 @@ struct FragmentMemory {
     uint32 alignment;
 
     // Array that contains pointers into the free chunks
-    byte* free;
+    byte** free;
+
+    mutex lock;
 };
 
 FORCE_INLINE
@@ -64,6 +65,7 @@ uint_max fragment_size_total(uint32 count, int32 element_size, int32 alignment =
         + alignment * 2; // overhead for alignment
 }
 
+// @performance Do we maybe want to define both the element alignment and memory start alignment (e.g. 64 byte = cache line alignment for the memory)
 inline
 void fragment_alloc(FragmentMemory* const fragment, uint32 count, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
@@ -79,20 +81,20 @@ void fragment_alloc(FragmentMemory* const fragment, uint32 count, int32 element_
 
     fragment->memory = alignment < 2
         ? (byte *) platform_alloc(size)
-        : (byte *) platform_alloc_aligned(size, alignment);
+        : (byte *) platform_alloc_aligned(size, size, alignment);
 
     fragment->count = count;
     fragment->size = size;
     fragment->chunk_size = element_size;
     fragment->last_pos = count - 1;
     fragment->alignment = alignment;
-    fragment->free = (uint_max *) align_up(
+    fragment->free = (byte **) align_up(
         (uint_max) ((uintptr_t) (fragment->memory + count * element_size)),
         (uint_max) alignment
     );
 
     for (int i = 0; i < count; ++i) {
-        fragment->free[i] = fragment->memory + i * fragment->chunk_size;
+        fragment->free[i] = &fragment->memory[i * fragment->chunk_size];
     }
 }
 
@@ -109,7 +111,7 @@ byte* fragment_get_memory(FragmentMemory* const fragment) NO_EXCEPT
 }
 
 inline HOT_CODE
-byte* fragment_release_memory(FragmentMemory* const fragment, byte* data) NO_EXCEPT
+void fragment_release_memory(FragmentMemory* const fragment, byte* const data) NO_EXCEPT
 {
     fragment->free[++fragment->last_pos] = data;
 }

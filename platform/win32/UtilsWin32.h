@@ -17,7 +17,7 @@
 
 uint32 key_to_unicode(byte scan_code, byte vkey, byte keyboard_state[256]) NO_EXCEPT
 {
-    WCHAR char_buffer[5] = {};
+    WCHAR char_buffer[5] = {0};
     const int32 result = ToUnicode(vkey, scan_code, keyboard_state, char_buffer, 5, 0);
 
     if (result == 1) {

@@ -139,23 +139,33 @@ void camera_frustum_update(Camera* const camera) NO_EXCEPT
     const v3_f32 fbl_r = vec3_sub(fbl, pos);
     const v3_f32 fbr_r = vec3_sub(fbr, pos);
 
-    v3_f32 cross;
-
     // Left plane: cross( ftl - pos, fbl - pos )
-    cross = vec3_cross(ftl_r, fbl_r);
-    camera->frustum.eq[0] = { cross.x, cross.y, cross.z, -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z) };
+    v3_f32 cross = vec3_cross(ftl_r, fbl_r);
+    camera->frustum.eq[0] = {
+        cross.x, cross.y, cross.z,
+        -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z)
+    };
 
     // Right plane: cross( fbr - pos, ftr - pos )
     cross = vec3_cross(fbr_r, ftr_r);
-    camera->frustum.eq[1] = { cross.x, cross.y, cross.z, -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z) };
+    camera->frustum.eq[1] = {
+        cross.x, cross.y, cross.z,
+        -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z)
+    };
 
     // Bottom plane: cross( fbl - pos, fbr - pos )
     cross = vec3_cross(fbl_r, fbr_r);
-    camera->frustum.eq[2] = { cross.x, cross.y, cross.z, -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z) };
+    camera->frustum.eq[2] = {
+        cross.x, cross.y, cross.z,
+        -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z)
+    };
 
     // Top plane: cross( ftr - pos, ftl - pos )
     cross = vec3_cross(ftr_r, ftl_r);
-    camera->frustum.eq[3] = { cross.x, cross.y, cross.z, -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z) };
+    camera->frustum.eq[3] = {
+        cross.x, cross.y, cross.z,
+        -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z)
+    };
 
     // Near plane: normal = front
     camera->frustum.eq[4] = {
@@ -394,7 +404,7 @@ void camera_movement(
     }
 }
 
-// you can have up to 4 camera movement inputs at the same time
+// You can have up to CAMERA_MAX_INPUTS camera movement inputs at the same time
 inline
 void camera_movement(
     Camera* const __restrict camera,
@@ -658,7 +668,10 @@ void camera_projection_matrix_rh_vulkan(Camera* const camera) NO_EXCEPT
 // This is usually not used, since it is included in the view matrix
 // expects the identity matrix
 FORCE_INLINE
-void camera_translation_matrix_sparse_rh(const Camera* const __restrict camera, f32* translation) NO_EXCEPT
+void camera_translation_matrix_sparse_rh(
+    const Camera* const __restrict camera,
+    f32* translation
+) NO_EXCEPT
 {
     translation[12] = camera->location.x;
     translation[13] = camera->location.y;
@@ -666,7 +679,10 @@ void camera_translation_matrix_sparse_rh(const Camera* const __restrict camera, 
 }
 
 FORCE_INLINE
-void camera_translation_matrix_sparse_lh(const Camera* const __restrict camera, f32* translation) NO_EXCEPT
+void camera_translation_matrix_sparse_lh(
+    const Camera* const __restrict camera,
+    f32* translation
+) NO_EXCEPT
 {
     translation[3] = camera->location.x;
     translation[7] = camera->location.y;
@@ -765,11 +781,12 @@ f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT
     switch (type) {
         case GPU_API_TYPE_SOFTWARE:
         case GPU_API_TYPE_OPENGL:
-            return value + (nextafterf(value, -INFINITY) - value) * 1000;
+            return value + (nextafterf(value, -999.9f) - value) * 1000.0f;
         case GPU_API_TYPE_VULKAN:
-            return value + (nextafterf(value, -INFINITY) - value) * 1000;
+            return value + (nextafterf(value, -999.9f) - value) * 1000.0f;
+        case GPU_API_TYPE_DIRECTX_11:
         case GPU_API_TYPE_DIRECTX_12:
-            return value + (nextafterf(value, -INFINITY) - value) * 1000;
+            return value + (nextafterf(value, -999.9f) - value) * 1000.0f;
         default:
             UNREACHABLE();
     }
@@ -786,11 +803,12 @@ f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT
     switch (type) {
         case GPU_API_TYPE_SOFTWARE:
         case GPU_API_TYPE_OPENGL:
-            return value + (nextafterf(value, INFINITY) - value) * 1000;
+            return value + (nextafterf(value, 999.9f) - value) * 1000.0f;
         case GPU_API_TYPE_VULKAN:
-            return value + (nextafterf(value, INFINITY) - value) * 1000;
+            return value + (nextafterf(value, 999.9f) - value) * 1000.0f;
+        case GPU_API_TYPE_DIRECTX_11:
         case GPU_API_TYPE_DIRECTX_12:
-            return value + (nextafterf(value, INFINITY) - value) * 1000;
+            return value + (nextafterf(value, 999.9f) - value) * 1000.0f;
         default:
             UNREACHABLE();
     }
@@ -821,6 +839,7 @@ void camera_init(Camera* const camera) NO_EXCEPT
             camera_orth_matrix_rh_vulkan(camera);
             camera_view_matrix_rh_vulkan(camera);
         } break;
+        case GPU_API_TYPE_DIRECTX_11:
         case GPU_API_TYPE_DIRECTX_12: {
             camera_init_lh(camera);
             camera_projection_matrix_lh(camera);
@@ -852,7 +871,10 @@ bool aabb_intersects_frustum(const AABB_f32* const __restrict box, const Frustum
 }
 
 inline
-bool aabb_intersects_frustum(const AABB_int32* const __restrict box, const Frustum* const __restrict frustum) NO_EXCEPT
+bool aabb_intersects_frustum(
+    const AABB_int32* const __restrict box,
+    const Frustum* const __restrict frustum
+) NO_EXCEPT
 {
     for(int32 i = 0; i < 6; ++i) {
         const v4_f32 eq = frustum->eq[i];

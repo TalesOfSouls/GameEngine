@@ -13,6 +13,7 @@
 #include "../../../memory/BufferMemory.h"
 #include "../../../math/matrix/Matrix.h"
 #include "../../../camera/Camera.h"
+#include "../../../platform/win32/Window.h"
 #include "../SoftwareRenderer.h"
 #include <windows.h>
 #include <wingdi.h>
@@ -25,9 +26,9 @@ void soft_renderer_update(
     size_t vram
 ) NO_EXCEPT
 {
-    if ((renderer->dimension.width == w->physical_width
-        && renderer->dimension.height == w->physical_height)
-        || w->physical_width == 0 || w->physical_height == 0
+    if ((renderer->dimension.width == w->state_current.physical_width
+        && renderer->dimension.height == w->state_current.physical_height)
+        || w->state_current.physical_width == 0 || w->state_current.physical_height == 0
     ) {
         return;
     }
@@ -43,7 +44,7 @@ void soft_renderer_update(
     }
 
     if (!renderer->buf.size) {
-        chunk_alloc(&renderer->buf, (uint32) (vram / 64), 64, 64);
+        chunk_alloc(&renderer->buf, (uint32) (vram / 64), 64, ASSUMED_CACHE_LINE_SIZE);
     }
 
     /*
@@ -54,13 +55,14 @@ void soft_renderer_update(
     }
     */
 
-    renderer->dimension.width = w->physical_width;
-    renderer->dimension.height = w->physical_height;
+    renderer->dimension.width = w->state_current.physical_width;
+    renderer->dimension.height = w->state_current.physical_height;
 
-    renderer->platform.hwnd = w->hwnd;
+    WindowPlatform* platform_window = (WindowPlatform *) w->platform_window;
+    renderer->platform.hwnd = platform_window->hwnd;
 
     if (!renderer->platform.window_hdc) {
-        renderer->platform.window_hdc = GetDC(w->hwnd);
+        renderer->platform.window_hdc = GetDC(platform_window->hwnd);
     }
 
     renderer->platform.bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -88,7 +90,13 @@ void soft_renderer_update(
             platform_aligned_free((void **) &renderer->zbuffer);
         }
 
-        renderer->zbuffer = (f32 *) platform_alloc_aligned(renderer->dimension.width * renderer->dimension.height * sizeof(f32), sizeof(size_t) * 4);
+        const size_t memory_size = renderer->dimension.width * renderer->dimension.height * sizeof(f32);
+
+        renderer->zbuffer = (f32 *) platform_alloc_aligned(
+            memory_size,
+            memory_size,
+            sizeof(size_t) * 4
+        );
         renderer->max_dimension.width = renderer->dimension.width;
         renderer->max_dimension.height = renderer->dimension.height;
         soft_clear(renderer);
@@ -96,7 +104,7 @@ void soft_renderer_update(
 }
 
 inline
-void soft_buffer_swap(SoftwareRenderer* const __restrict renderer) NO_EXCEPT
+void soft_buffer_swap(SoftwareRenderer* const renderer) NO_EXCEPT
 {
     // This is comparable with SwapBuffer()
     BitBlt(

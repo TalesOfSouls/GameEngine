@@ -43,7 +43,11 @@ SessionManager* session_manager_alloc(
     int32 alignment = sizeof(size_t)
 ) {
     size_t internal_buffer_size = align_up(sizeof(Session) * initial_capacity, 4096);
-    byte* internal_buffer = (byte *) platform_alloc_aligned(internal_buffer_size, alignment);
+    byte* internal_buffer = (byte *) platform_alloc_aligned(
+        internal_buffer_size,
+        internal_buffer_size,
+        alignment
+    );
 
     // distribute internal_buffer to:
     //      session_key_data
@@ -202,7 +206,7 @@ void session_manager_cleanup(SessionManager *manager) {
             struct dirent *entry;
             while ((entry = readdir(dir)) != NULL) {
                 if (strlen(entry->d_name) == SESSION_ID_LENGTH) {
-                    char path[PATH_MAX];
+                    char path[PATH_MAX_LENGTH];
                     snprintf(path, sizeof(path), "%s/%s", manager->storage_path, entry->d_name);
 
                     struct stat st;
@@ -232,7 +236,7 @@ void session_id_generate(char* id) {
 }
 
 static void save_session_to_disk(SessionManager *manager, const Session *session) {
-    char path[PATH_MAX];
+    char path[PATH_MAX_LENGTH];
     snprintf(path, sizeof(path), "%s/%s", manager->storage_path, session->id);
 
     FILE *file = fopen(path, "wb");
@@ -249,7 +253,7 @@ static void save_session_to_disk(SessionManager *manager, const Session *session
 }
 
 static bool load_session_from_disk(SessionManager *manager, Session *session, const char *session_id) {
-    char path[PATH_MAX];
+    char path[PATH_MAX_LENGTH];
     snprintf(path, sizeof(path), "%s/%s", manager->storage_path, session_id);
 
     FILE *file = fopen(path, "rb");
@@ -262,13 +266,13 @@ static bool load_session_from_disk(SessionManager *manager, Session *session, co
 }
 
 static void delete_session_from_disk(SessionManager *manager, const char *session_id) {
-    char path[PATH_MAX];
+    char path[PATH_MAX_LENGTH];
     snprintf(path, sizeof(path), "%s/%s", manager->storage_path, session_id);
     unlink(path);
 }
 
 static void ensure_storage_directory_exists(const char *path) {
-    struct stat st = {};
+    struct stat st = {0};
     if (stat(path, &st) == -1) {
         mkdir(path, 0700);
     }

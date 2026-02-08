@@ -9,8 +9,6 @@
 #ifndef COMS_PLATFORM_WIN32_SYSTEM_INFO_C
 #define COMS_PLATFORM_WIN32_SYSTEM_INFO_C
 
-#include <stdio.h>
-#include <stdint.h>
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../../system/SystemInfo.h"
@@ -18,7 +16,6 @@
 
 #include <psapi.h>
 #include <winsock2.h>
-#include <iphlpapi.h>
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <d3d11.h>
@@ -28,36 +25,97 @@
 #include <winnls.h>
 #include <wingdi.h>
 #include <hidsdi.h>
-#include <setupapi.h>
-#include <cfgmgr32.h>
 
-// @performance Do we really need all these libs, can't we simplify that?!
-// At least we should dynamically load them, this way the application won't crash if the lib doesn't exist
+#include "libs/ole32_static.h"
+#include "libs/cfgmgr32.h"
+#include "libs/setupapi.h"
+#include "libs/iphlpapi.h"
+#include "libs/comsuppw.h"
+#include "libs/wbemuuid.h"
+#include "libs/Advapi32.h"
+
 #include <intrin.h>
-#pragma comment(lib, "Advapi32.lib")
-#pragma comment(lib, "wbemuuid.lib")
-#pragma comment(lib, "iphlpapi.lib")
+//#pragma comment(lib, "Advapi32.lib")
+//#pragma comment(lib, "wbemuuid.lib")
+//#pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "Ws2_32.lib")
-#pragma comment(lib, "setupapi.lib")
-#pragma comment(lib, "cfgmgr32.lib")
-#pragma comment(lib, "comsuppw.lib")
-
-// Used by NtCurrentTeb in system_stack_usage
-// #pragma comment(lib, "ntdll.lib")
+//#pragma comment(lib, "setupapi.lib")
+//#pragma comment(lib, "cfgmgr32.lib")
+//#pragma comment(lib, "comsuppw.lib")
+#pragma comment(lib, "ntdll.lib")
 
 FORCE_INLINE
 uint64 system_private_memory_usage()
 {
     PROCESS_MEMORY_COUNTERS_EX pmc;
-    HANDLE process = GetCurrentProcess();
+    const HANDLE process = GetCurrentProcess();
 
     GetProcessMemoryInfo(process, (PROCESS_MEMORY_COUNTERS *) &pmc, sizeof(pmc));
 
     CloseHandle(process);
 
     return pmc.PrivateUsage;
+}
+
+#include <winternl.h>
+typedef NTSTATUS (NTAPI* NtQuerySystemInformation_t)(
+    SYSTEM_INFORMATION_CLASS,
+    PVOID,
+    ULONG,
+    PULONG
+);
+
+void system_cpu_usage(f32* const __restrict usage, int32 core_count, RingMemory* const __restrict ring) {
+    NtQuerySystemInformation_t NtQuerySystemInformation = (NtQuerySystemInformation_t) GetProcAddress(
+        GetModuleHandleW(L"ntdll.dll"),
+        "NtQuerySystemInformation"
+    );
+
+    if (!NtQuerySystemInformation) {
+        return;
+    };
+
+    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p1 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) ring_get_memory(
+        ring,
+        sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * core_count,
+        sizeof(size_t)
+    );
+    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p2 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) ring_get_memory(
+        ring,
+        sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * core_count,
+        sizeof(size_t)
+    );
+
+    NtQuerySystemInformation(
+        SystemProcessorPerformanceInformation,
+        p1,
+        sizeof(*p1) * core_count,
+        NULL
+    );
+
+    Sleep(100);
+
+    NtQuerySystemInformation(
+        SystemProcessorPerformanceInformation,
+        p2,
+        sizeof(*p2) * core_count,
+        NULL
+    );
+
+    for (int i = 0; i < core_count; ++i) {
+        const LONGLONG idle = p2[i].IdleTime.QuadPart
+            - p1[i].IdleTime.QuadPart;
+
+        const LONGLONG total = (p2[i].KernelTime.QuadPart - p1[i].KernelTime.QuadPart)
+            + (p2[i].UserTime.QuadPart   - p1[i].UserTime.QuadPart);
+
+        usage[i] = 0.0f;
+        if (total > 0.0f) {
+            usage[i] = 1.0f - ((f32)idle / (f32)total);
+        }
+    }
 }
 
 inline
@@ -74,10 +132,10 @@ uint32 system_stack_usage()
         stack_base  = (char *) tib->StackBase;
     }
 
-    volatile const char local_var = '0'; // current position on stack
-    uint32 used = (uint32) (stack_base - (char *) &local_var);
+    // Find the current stack position
+    volatile const char local_var = '0';
 
-    return used;
+    return (uint32) (stack_base - (char *) &local_var);
 }
 
 inline
@@ -126,46 +184,21 @@ uint16 system_country_code()
     return (local_name[3] << 8) | local_name[4];
 }
 
-void mainboard_info_get(MainboardInfo* info) {
+void mainboard_info_get(MainboardInfo* const info) {
     info->name[sizeof(info->name) - 1] = '\0';
     info->serial_number[sizeof(info->serial_number) - 1] = '\0';
 
-    // Initialize COM library
-    HRESULT hres = CoInitializeEx(0, COINIT_MULTITHREADED);
-    if (FAILED(hres)) {
-        return;
-    }
-
-    // Set general COM security levels
-    hres = CoInitializeSecurity(
-        NULL,
-        -1,
-        NULL,
-        NULL,
-        RPC_C_AUTHN_LEVEL_DEFAULT,
-        RPC_C_IMP_LEVEL_IMPERSONATE,
-        NULL,
-        EOAC_NONE,
-        NULL
-    );
-
-    if (FAILED(hres)) {
-        CoUninitialize();
-        return;
-    }
-
     // Obtain initial locator to WMI
     IWbemLocator* pLoc = NULL;
-    hres = CoCreateInstance(
-        CLSID_WbemLocator,
+    HRESULT hres = CoCreateInstance(
+        pCLSID_WbemLocator,
         0,
         CLSCTX_INPROC_SERVER,
-        IID_IWbemLocator,
+        pIID_IWbemLocator,
         (LPVOID *)&pLoc
     );
 
     if (FAILED(hres)) {
-        CoUninitialize();
         return;
     }
 
@@ -184,7 +217,6 @@ void mainboard_info_get(MainboardInfo* info) {
 
     if (FAILED(hres)) {
         pLoc->Release();
-        CoUninitialize();
         return;
     }
 
@@ -203,7 +235,6 @@ void mainboard_info_get(MainboardInfo* info) {
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
-        CoUninitialize();
         return;
     }
 
@@ -220,7 +251,6 @@ void mainboard_info_get(MainboardInfo* info) {
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
-        CoUninitialize();
         return;
     }
 
@@ -253,13 +283,12 @@ void mainboard_info_get(MainboardInfo* info) {
     pSvc->Release();
     pLoc->Release();
     enumerator->Release();
-    CoUninitialize();
 
     info->name[sizeof(info->name) - 1] = '\0';
     info->serial_number[sizeof(info->serial_number) - 1] = '\0';
 }
 
-int32 network_info_get(NetworkInfo* info, int32 limit = 4) {
+int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* ring = NULL) {
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         return 0;
@@ -270,21 +299,28 @@ int32 network_info_get(NetworkInfo* info, int32 limit = 4) {
     PIP_ADAPTER_ADDRESSES adapter = NULL;
 
     // Get the size of the adapter addresses buffer
-    if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, NULL, &dwSize) == ERROR_BUFFER_OVERFLOW) {
-        // @todo Remove malloc
-        adapter_address = (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
-        if (adapter_address == NULL) {
-            WSACleanup();
-            return 0;
-        }
+    if (pGetAdaptersAddresses(AF_UNSPEC, 0, NULL, NULL, &dwSize) == ERROR_BUFFER_OVERFLOW) {
+        WSACleanup();
+        return 0;
+    }
+
+    if (ring) {
+        adapter_address = (PIP_ADAPTER_ADDRESSES) ring_get_memory(ring, sizeof(*adapter_address), sizeof(size_t));
     } else {
+        adapter_address = (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
+    }
+
+    if (!adapter_address) {
         WSACleanup();
         return 0;
     }
 
     // Get the adapter addresses
-    if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, adapter_address, &dwSize) != NO_ERROR) {
-        free(adapter_address);
+    if (pGetAdaptersAddresses(AF_UNSPEC, 0, NULL, adapter_address, &dwSize) != NO_ERROR) {
+        if (!ring) {
+            free(adapter_address);
+        }
+
         WSACleanup();
         return 0;
     }
@@ -307,13 +343,16 @@ int32 network_info_get(NetworkInfo* info, int32 limit = 4) {
         adapter = adapter->Next;
     }
 
-    free(adapter_address);
+    if (!ring) {
+        free(adapter_address);
+    }
+
     WSACleanup();
 
     return i;
 }
 
-void cpu_info_get(CpuInfo* info) {
+void cpu_info_get(CpuInfo* const info) {
     info->features = cpu_info_features();
 
     cpu_info_cache(1, &info->cache[0]);
@@ -326,7 +365,7 @@ void cpu_info_get(CpuInfo* info) {
     info->core_count = (uint16) sys_info.dwNumberOfProcessors;
     info->page_size = (uint16) sys_info.dwPageSize;
 
-    int32 cpuInfo[4] = { 0 };
+    int32 cpuInfo[4] = {0};
     __cpuid(cpuInfo, 0);
 
     memset(info->vendor, 0, sizeof(info->vendor));
@@ -349,21 +388,21 @@ void cpu_info_get(CpuInfo* info) {
 
     DWORD bufSize = sizeof(DWORD);
     HKEY hKey;
-    const long lError = RegOpenKeyExW(
+    const long lError = pRegOpenKeyExW(
         HKEY_LOCAL_MACHINE,
         L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
         0, KEY_READ, &hKey
     );
 
     if (lError == ERROR_SUCCESS) {
-        RegQueryValueExW(hKey, L"~MHz", NULL, NULL, (LPBYTE) &(info->mhz), &bufSize);
+        pRegQueryValueExW(hKey, L"~MHz", NULL, NULL, (LPBYTE) &(info->mhz), &bufSize);
     }
 
-    RegCloseKey(hKey);
+    pRegCloseKey(hKey);
 }
 
 inline
-void os_info_get(OSInfo* info) {
+void os_info_get(OSInfo* const info) {
     info->vendor[15] = '\0';
     info->name[63] = '\0';
 
@@ -384,7 +423,7 @@ void os_info_get(OSInfo* info) {
 }
 
 FORCE_INLINE
-void ram_info_get(RamInfo* info) {
+void ram_info_get(RamInfo* const info) {
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
@@ -392,22 +431,9 @@ void ram_info_get(RamInfo* info) {
 }
 
 RamChannelType ram_channel_info() {
-    HRESULT hres = CoInitializeEx(0, COINIT_MULTITHREADED);
-    if (FAILED(hres)) {
-        return RAM_CHANNEL_TYPE_FAILED;
-    }
-
-    hres = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
-    if (FAILED(hres)) {
-        CoUninitialize();
-
-        return RAM_CHANNEL_TYPE_FAILED;
-    }
-
     IWbemLocator* pLoc = NULL;
-    hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID *)&pLoc);
+    HRESULT hres = CoCreateInstance(pCLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, pIID_IWbemLocator, (LPVOID *)&pLoc);
     if (FAILED(hres)) {
-        CoUninitialize();
 
         return RAM_CHANNEL_TYPE_FAILED;
     }
@@ -416,7 +442,6 @@ RamChannelType ram_channel_info() {
     hres = pLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pSvc);
     if (FAILED(hres)) {
         pLoc->Release();
-        CoUninitialize();
 
         return RAM_CHANNEL_TYPE_FAILED;
     }
@@ -425,7 +450,6 @@ RamChannelType ram_channel_info() {
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
-        CoUninitialize();
 
         return RAM_CHANNEL_TYPE_FAILED;
     }
@@ -435,7 +459,6 @@ RamChannelType ram_channel_info() {
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
-        CoUninitialize();
 
         return RAM_CHANNEL_TYPE_FAILED;
     }
@@ -478,7 +501,7 @@ RamChannelType ram_channel_info() {
 }
 
 inline
-int32 gpu_info_get(GpuInfo* info, int32 limit = 3) {
+int32 gpu_info_get(GpuInfo*const  info, int32 limit = 3) {
     IDXGIFactory* factory = NULL;
     IDXGIAdapter* adapter = NULL;
     DXGI_ADAPTER_DESC adapter_description;
@@ -509,7 +532,7 @@ int32 gpu_info_get(GpuInfo* info, int32 limit = 3) {
 }
 
 inline
-int32 display_info_get(DisplayInfo* info, int32 limit = 4) {
+int32 display_info_get(DisplayInfo* const info, int32 limit = 4) {
     DISPLAY_DEVICEW device;
     DEVMODEW mode;
 

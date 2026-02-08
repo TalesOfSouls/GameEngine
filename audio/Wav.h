@@ -9,7 +9,6 @@
 #ifndef COMS_AUDIO_WAV_H
 #define COMS_AUDIO_WAV_H
 
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "../utils/Utils.h"
 #include "../compiler/CompilerUtils.h"
@@ -52,7 +51,7 @@ struct Wav {
     byte* data; // Data owner
 };
 
-void generate_default_wav_references(const byte* data, uint32 size, Wav* wav)
+void generate_default_wav_references(const byte* data, uint32 size, Wav* const __restrict wav)
 {
     wav->size = size;
     ASSERT_TRUE(size >= WAV_HEADER_SIZE);
@@ -126,10 +125,13 @@ void generate_default_wav_references(const byte* data, uint32 size, Wav* wav)
 
 void wav_from_data(const byte* data, uint32 size, Audio* audio, RingMemory* const ring)
 {
-    // @performance We are generating the struct and then filling the data.
-    //      There is some assignment/copy overhead
-    Wav src = {};
-    src.data = ring_get_memory(ring, size, sizeof(size_t));
+    Wav src = {
+        {}, // .header =
+        NULL, // .sample_data =
+        0, // .size =
+        ring_get_memory(ring, size, sizeof(size_t)) // .data =
+    };
+
     generate_default_wav_references(data, size, &src);
 
     if (!src.size) {

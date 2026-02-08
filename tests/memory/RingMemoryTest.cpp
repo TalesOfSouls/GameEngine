@@ -2,7 +2,7 @@
 #include "../../memory/RingMemory.h"
 
 static void test_ring_alloc() {
-    RingMemory mem = {};
+    RingMemory mem = {0};
     ring_alloc(&mem, 50);
 
     TEST_TRUE(memcmp(mem.memory, mem.memory + 1, 49) == 0);
@@ -16,7 +16,7 @@ static void test_ring_alloc() {
 }
 
 static void test_ring_get_memory() {
-    RingMemory mem = {};
+    RingMemory mem = {0};
     ring_alloc(&mem, 50);
 
     TEST_EQUALS(ring_get_memory(&mem, 20), mem.memory);
@@ -26,7 +26,7 @@ static void test_ring_get_memory() {
 }
 
 static void test_ring_calculate_position() {
-    RingMemory mem = {};
+    RingMemory mem = {0};
     ring_alloc(&mem, 50);
 
     ring_get_memory(&mem, 20);
@@ -36,7 +36,7 @@ static void test_ring_calculate_position() {
 }
 
 static void test_ring_reset() {
-    RingMemory mem = {};
+    RingMemory mem = {0};
     ring_alloc(&mem, 50);
 
     ring_get_memory(&mem, 20);
@@ -49,7 +49,7 @@ static void test_ring_reset() {
 }
 
 static void test_ring_get_memory_nomove() {
-    RingMemory mem = {};
+    RingMemory mem = {0};
     ring_alloc(&mem, 50);
 
     TEST_EQUALS(ring_get_memory_nomove(&mem, 20), mem.memory);
@@ -59,7 +59,7 @@ static void test_ring_get_memory_nomove() {
 }
 
 static void test_ring_move_pointer() {
-    RingMemory mem = {};
+    RingMemory mem = {0};
     ring_alloc(&mem, 50);
 
     ring_move_pointer(&mem, &mem.head, 20);
@@ -69,7 +69,7 @@ static void test_ring_move_pointer() {
 }
 
 static void test_ring_commit_safe() {
-    RingMemory mem = {};
+    RingMemory mem = {0};
     ring_alloc(&mem, 50);
 
     ring_get_memory(&mem, 24, 1);

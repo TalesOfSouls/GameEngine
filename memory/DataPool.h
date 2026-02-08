@@ -24,7 +24,7 @@ struct DataPool {
     // @question Do I really want to use uint?
     uint64 size;
     int32 last_pos;
-    uint32 count;
+    uint32 capacity;
     int32 chunk_size;
     uint32 alignment;
 
@@ -37,35 +37,36 @@ struct DataPool {
     alignas(8) uint64* used;
 };
 
+// @bug replace free and used uint64 with uint_max
 // INFO: A chunk count of 2^n is recommended for maximum performance
 inline
-void pool_alloc(DataPool* buf, uint32 count, int32 chunk_size, int32 alignment = sizeof(size_t))
+void pool_alloc(DataPool* buf, uint32 capacity, int32 chunk_size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(chunk_size);
-    ASSERT_TRUE(count);
+    ASSERT_TRUE(capacity);
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Allocating DataPool");
 
     chunk_size = align_up(chunk_size, alignment);
 
-    const uint64 size = count * chunk_size
-        + sizeof(uint64) * ceil_div(count, 64U) // free
-        + sizeof(uint64) * ceil_div(count, 64U) // used
+    const uint64 size = capacity * chunk_size
+        + sizeof(uint64) * ceil_div(capacity, 64U) // free
+        + sizeof(uint64) * ceil_div(capacity, 64U) // used
         + alignment * 3; // overhead for alignment
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)
-        : (byte *) platform_alloc_aligned(size, alignment);
+        : (byte *) platform_alloc_aligned(size, size, alignment);
 
-    buf->count = count;
+    buf->capacity = capacity;
     buf->size = size;
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->used = (uint64 *) align_up((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + capacity * chunk_size), alignment);
+    buf->used = (uint64 *) align_up((uintptr_t) (buf->free + capacity), alignment);
 
     memset(buf->memory, 0, buf->size);
 
@@ -73,21 +74,21 @@ void pool_alloc(DataPool* buf, uint32 count, int32 chunk_size, int32 alignment =
 }
 
 inline
-void pool_init(DataPool* buf, BufferMemory* data, uint32 count, int32 chunk_size, int32 alignment = sizeof(size_t))
+void pool_init(DataPool* buf, BufferMemory* data, uint32 capacity, int32 chunk_size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(chunk_size);
-    ASSERT_TRUE(count);
+    ASSERT_TRUE(capacity);
 
     chunk_size = align_up(chunk_size, alignment);
 
-    uint64 size = count * chunk_size
-        + sizeof(uint64) * ceil_div(count, 64U) // free
-        + sizeof(uint64) * ceil_div(count, 64U) // used
+    uint64 size = capacity * chunk_size
+        + sizeof(uint64) * ceil_div(capacity, 64U) // free
+        + sizeof(uint64) * ceil_div(capacity, 64U) // used
         + alignment * 3; // overhead for alignment
 
     buf->memory = buffer_get_memory(data, size);
 
-    buf->count = count;
+    buf->capacity = capacity;
     buf->size = size;
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
@@ -96,29 +97,29 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 count, int32 chunk_size
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->used = (uint64 *) align_up((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + capacity * chunk_size), alignment);
+    buf->used = (uint64 *) align_up((uintptr_t) (buf->free + capacity), alignment);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
-void pool_init(DataPool* buf, byte* data, uint32 count, int32 chunk_size, int32 alignment = sizeof(size_t))
+void pool_init(DataPool* buf, byte* data, uint32 capacity, int32 chunk_size, int32 alignment = sizeof(size_t))
 {
     ASSERT_TRUE(chunk_size);
-    ASSERT_TRUE(count);
+    ASSERT_TRUE(capacity);
 
     chunk_size = align_up(chunk_size, alignment);
 
-    uint64 size = count * chunk_size
-        + sizeof(uint64) * ceil_div(count, 64U) // free
-        + sizeof(uint64) * ceil_div(count, 64U) // used
+    uint64 size = capacity * chunk_size
+        + sizeof(uint64) * ceil_div(capacity, 64U) // free
+        + sizeof(uint64) * ceil_div(capacity, 64U) // used
         + alignment * 3; // overhead for alignment
 
     // @bug what if an alignment is defined?
     buf->memory = data;
 
-    buf->count = count;
+    buf->capacity = capacity;
     buf->size = size;
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
@@ -127,8 +128,8 @@ void pool_init(DataPool* buf, byte* data, uint32 count, int32 chunk_size, int32 
     // @question Could it be beneficial to have this before the element data?
     //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
     //  On another hand we could by accident overwrite the values in free if we are not careful
-    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + count * chunk_size), alignment);
-    buf->used = (uint64 *) align_up((uintptr_t) (buf->free + count), alignment);
+    buf->free = (uint64 *) align_up((uintptr_t) (buf->memory + capacity * chunk_size), alignment);
+    buf->used = (uint64 *) align_up((uintptr_t) (buf->free + capacity), alignment);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -156,7 +157,7 @@ byte* pool_get_element(DataPool* buf, uint32 element) NO_EXCEPT
 FORCE_INLINE
 int32 pool_reserve_unused(DataPool* buf, int32 start_index = 0) NO_EXCEPT
 {
-    return chunk_reserve_one(buf->used, buf->count, start_index);
+    return chunk_reserve_one(buf->used, buf->capacity, start_index);
 }
 
 FORCE_INLINE

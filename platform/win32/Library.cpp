@@ -9,14 +9,36 @@
 #ifndef COMS_PLATFORM_WIN32_LIBRARY_C
 #define COMS_PLATFORM_WIN32_LIBRARY_C
 
-#include <stdio.h>
 #include <windows.h>
-#include <string.h>
 
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../../system/Library.h"
 #include "../../system/FileUtils.cpp"
+
+inline
+bool library_dyn_load(LibraryHandle* const __restrict lib, const wchar_t* const __restrict name) NO_EXCEPT
+{
+    *lib = LoadLibraryExW((LPCWSTR) name, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (!*lib) {
+        LOG_1("Library: Couldn't load library");
+        return false;
+    }
+
+    return true;
+}
+
+inline
+void library_dyn_unload(LibraryHandle* const lib) NO_EXCEPT
+{
+    FreeLibrary(*lib);
+    *lib = NULL;
+}
+
+inline
+void* library_dyn_proc(LibraryHandle const __restrict lib, const char* const __restrict name) {
+    return (void *) GetProcAddress(lib, name);
+}
 
 inline
 void* library_get_symbol(Library* lib, const char* symbol) NO_EXCEPT
@@ -25,19 +47,19 @@ void* library_get_symbol(Library* lib, const char* symbol) NO_EXCEPT
         return NULL;
     }
 
-    return (void*)GetProcAddress((HMODULE) lib->handle, (LPCSTR) symbol);
+    return (void *) GetProcAddress((HMODULE) lib->handle, (LPCSTR) symbol);
 }
 
 inline
-bool library_load(Library* lib) NO_EXCEPT
+bool library_load(Library* const lib) NO_EXCEPT
 {
-    wchar_t dst[MAX_PATH];
+    wchar_t dst[PATH_MAX_LENGTH];
     str_concat_new(dst, lib->dir, lib->dst);
 
     // In debug mode, we create a copy at runtime, so we can recompile & reload it
     #if DEBUG || INTERNAL
-        wchar_t src[MAX_PATH];
-        const size_t dst_len = str_length(dst);
+        wchar_t src[PATH_MAX_LENGTH];
+        const size_t dst_len = wcslen(dst);
 
         memcpy(src, dst, (dst_len + 1) * sizeof(wchar_t));
         str_insert(dst, dst_len - (sizeof(".dll") - 1), L"_temp");
@@ -73,7 +95,7 @@ bool library_load(Library* lib) NO_EXCEPT
 }
 
 inline
-bool library_bind_functions(Library* lib) NO_EXCEPT {
+bool library_bind_functions(Library* const lib) NO_EXCEPT {
     lib->is_valid = true;
     for (int32 c = 0; c < lib->function_count; ++c) {
         void* function = (void *) GetProcAddress(lib->handle, (LPCSTR) lib->function_names[c]);

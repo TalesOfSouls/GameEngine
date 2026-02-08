@@ -15,4 +15,13 @@
     #include "../platform/linux/FileUtils.cpp"
 #endif
 
+// @question Consider to create a FileUtils.h file that also defines struct FileBody,
+//          which is currently defined in Utils.h
+typedef void (*FileToLoadCallback)(FileBody* file, void* data);
+
+struct FileToLoad {
+    FileToLoadCallback callback;
+    char file_path[64 - sizeof(void*)];
+};
+
 #endif

@@ -12,6 +12,7 @@
 #include <arm_sve.h>
 #include <arm_acle.h>
 #include <arm_neon.h>
+#include "../../stdlib/Types.h"
 
 #define intrin_sqrt_f32(a) svget1_f32(svsqrt_f32(svdup_f32((a))))
 #define intrin_sqrt_f64(a) svget1_f64(svsqrt_f64(svdup_f64((a))))
@@ -41,6 +42,8 @@
 #define intrin_prefetch_l1(mem) compiler_prefetch_l1((mem))
 #define intrin_prefetch_l2(mem) compiler_prefetch_l2((mem))
 #define intrin_prefetch_l3(mem) compiler_prefetch_l3((mem))
+
+#define cpu_yield() asm volatile("yield")
 
 #if _WIN32
     #define intrin_timestamp_counter() ({ uint64_t cntvct; asm volatile("mrs %0, cntvct_el0" : "=r"(cntvct)); cntvct;  })

@@ -20,24 +20,17 @@
 #include "../../../memory/RingMemory.h"
 #include <winDNS.h>
 
-// IMPORTANT:
-// Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions required
-// aligned memory. So far we only figured out that 4 bytes works, maybe this needs to be 8 in the future?!
-
 static inline
 bool rawinput_extract_vid_pid(
     const wchar_t* device_name,
     wchar_t* out_id
 ) {
-    int64 vid_pos = str_find(device_name, L"VID_");
-    int64 pid_pos = str_find(device_name, L"PID_");
+    const wchar_t* vid = wcsstr(device_name, L"VID_");
+    const wchar_t* pid = wcsstr(device_name, L"PID_");
 
-    if (vid_pos < 0 || pid_pos < 0) {
+    if (!vid || !pid) {
         return false;
     }
-
-    const wchar_t* vid = device_name + vid_pos;
-    const wchar_t* pid = device_name + pid_pos;
 
     memcpy(out_id, vid, 8 * sizeof(wchar_t));
     out_id[8] = L'&';
@@ -46,7 +39,7 @@ bool rawinput_extract_vid_pid(
     return true;
 }
 
-uint32 rawinput_init_mousekeyboard(
+uint32 rawinput_kbm_init(
     HWND hwnd,
     Input* __restrict states,
     RingMemory* const __restrict ring
@@ -91,7 +84,7 @@ uint32 rawinput_init_mousekeyboard(
                     &name_size
                 );
 
-                wchar_t device_id[32] = {};
+                wchar_t device_id[32] = {0};
                 if (!rawinput_extract_vid_pid(device_name, device_id)) {
                     ASSERT_TRUE(false);
 
@@ -141,7 +134,7 @@ uint32 rawinput_init_mousekeyboard(
                     &name_size
                 );
 
-                wchar_t device_id[32] = {};
+                wchar_t device_id[32] = {0};
                 if (!rawinput_extract_vid_pid(device_name, device_id)) {
                     ASSERT_TRUE(false);
 
@@ -307,20 +300,10 @@ uint32 rawinput_init_controllers(
     return i;
 }
 
-FORCE_INLINE
-void input_mouse_position(HWND hwnd, v2_int32* pos) NO_EXCEPT
-{
-    POINT p;
-    if (GetCursorPos(&p) && ScreenToClient(hwnd, &p)) {
-        pos->x = p.x;
-        pos->y = p.y;
-    }
-}
-
 static
 int16 input_raw_handle(
-    const RAWINPUT* __restrict raw,
-    Input* __restrict states,
+    const RAWINPUT* const __restrict raw,
+    Input* const __restrict states,
     int32 state_count,
     uint64 time
 ) NO_EXCEPT
@@ -491,7 +474,7 @@ int16 input_raw_handle(
             return 0;
         }
 
-        ControllerInput controller = {};
+        ControllerInput controller = {0};
         switch(states[i].controller_type) {
             case CONTROLLER_TYPE_DUALSHOCK4: {
                 input_map_dualshock4(&controller, states[i].connection_type, raw->data.hid.bRawData);
@@ -508,7 +491,7 @@ int16 input_raw_handle(
     return input_count;
 }
 
-void input_handle(
+void input_raw_handle(
     LPARAM lParam,
     Input* __restrict states, int32 state_count,
     RingMemory* const __restrict ring,
@@ -531,7 +514,7 @@ void input_handle(
 }
 
 // max_inputs = max input messages
-int16 input_handle_buffered(
+int16 input_raw_handle_buffered(
     int32 max_inputs,
     Input* __restrict states, int32 state_count,
     RingMemory* const __restrict ring,

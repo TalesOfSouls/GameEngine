@@ -91,7 +91,7 @@ void http_router_find_iter(
 ) {
     for (uint32 i = 0; i < node->children_count; ++i) {
         HttpRouteNode* test_node = &router->nodes[node->children_offset + i];
-        if ((!test_node->is_regex && str_compare(test_node->segment, uri_segments) == 0)
+        if ((!test_node->is_regex && strcmp(test_node->segment, uri_segments) == 0)
             || (test_node->is_regex && regex_simplified_validate(test_node->segment, uri_segments))
         ) {
             if (uri_segment_index < uri_segment_count && test_node->children_count) {
@@ -99,7 +99,7 @@ void http_router_find_iter(
                 // -> We need to continue pattern matching
                 http_router_find_iter(
                     router,
-                    uri_segments + str_length(uri_segments) + 1,
+                    uri_segments + strlen(uri_segments) + 1,
                     uri_segment_index + 1,
                     uri_segment_count,
                     matches,

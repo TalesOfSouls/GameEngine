@@ -13,6 +13,7 @@
 #include "../../object/Vertex.h"
 #include "../../object/Texture.h"
 #include "../../memory/ChunkMemory.h"
+#include "../../thread/ThreadPool.h"
 #include "SoftwareDescriptorSetLayoutBinding.h"
 #include "Shader.h"
 #include "../anti_aliasing/AntiAliasingType.h"
@@ -54,6 +55,7 @@ struct SoftwareRenderer {
     SoftwareDescriptorSetLayoutBinding descriptor_set_layout[12];
 
     // This simulates partly the VRAM but as temp memory
+    // Recommended chunk size = 64 bytes
     ChunkMemory buf;
 
     ThreadPool* pool;
@@ -125,11 +127,8 @@ v4_byte soft_sample_texture_nearest(const Texture* texture, f32 u, f32 v) NO_EXC
     const int32 tw = texture->image.width;
     const int32 th = texture->image.height;
 
-    ASSERT_TRUE(tw * u > 0);
-    ASSERT_TRUE(th * v > 0);
-
-    const int32 x = oms_min((int32) (u * (f32) tw), tw - 1);
-    const int32 y = oms_min((int32) (v * (f32) th), th - 1);
+    const int32 x = oms_max(oms_min((int32) (u * (f32) tw), tw - 1), 0);
+    const int32 y = oms_max(oms_min((int32) (v * (f32) th), th - 1), 0);
     const byte* ptr = &texture->image.pixels[(y * tw + x) * sizeof(uint32)];
 
     return {
@@ -154,8 +153,16 @@ static inline v4_uint32 soft_sample_texture_nearest_sse(
     const __m128 x_f = _mm_mul_ps(u4, _mm_set1_ps((f32) tw));
     const __m128 y_f = _mm_mul_ps(v4, _mm_set1_ps((f32) th));
 
-    const __m128i xi = _mm_min_epi32(_mm_cvttps_epi32(x_f), _mm_set1_epi32(tw - 1));
-    const __m128i yi = _mm_min_epi32(_mm_cvttps_epi32(y_f), _mm_set1_epi32(th - 1));
+    const __m128i zero = _mm_setzero_si128();
+
+    __m128i xi = _mm_cvttps_epi32(x_f);
+    __m128i yi = _mm_cvttps_epi32(y_f);
+
+    xi = _mm_max_epi32(xi, zero);
+    yi = _mm_max_epi32(yi, zero);
+
+    xi = _mm_min_epi32(xi, _mm_set1_epi32(tw - 1));
+    yi = _mm_min_epi32(yi, _mm_set1_epi32(th - 1));
 
     // byte offsets = (y*tw + x) * 4
     // @performance Could we work with floats here instead and then use fmadd?
@@ -168,13 +175,13 @@ static inline v4_uint32 soft_sample_texture_nearest_sse(
     alignas(16) int32 offs[4];
     _mm_store_si128((__m128i *) offs, byte_offset);
 
-    v4_uint32 px = {};
+    v4_uint32 px = {0};
     for (int32 lane = 0; lane < 4; ++lane) {
         if (!(final_mask & (1 << lane))) {
             continue;
         }
 
-        px.vec[lane] = *((uint32*)(base_pixels + offs[lane]));
+        memcpy(&px.vec[lane], base_pixels + offs[lane], sizeof(uint32));
     }
 
     return px;
@@ -195,8 +202,8 @@ v4_byte soft_sample_texture_bilinear(const Texture* texture, f32 u, f32 v) NO_EX
     const f32 fx = u * (tw - 1.0f);
     const f32 fy = v * (th - 1.0f);
 
-    int32 x0 = (int32) oms_floor(fx);
-    int32 y0 = (int32) oms_floor(fy);
+    int32 x0 = (int32) floorf(fx);
+    int32 y0 = (int32) floorf(fy);
     const int32 x1 = oms_min(x0 + 1, tw - 1);
     const int32 y1 = oms_min(y0 + 1, th - 1);
 
@@ -333,9 +340,9 @@ void soft_rasterize(
     // Check if the triangle uses texture or solid color
     const bool textured = (v0.texture_color.x >= 0.0f || v1.texture_color.x >= 0.0f || v2.texture_color.x >= 0.0f);
 
-    v4_byte color1 = {};
-    v4_byte color2 = {};
-    v4_byte color3 = {};
+    v4_byte color1 = {0};
+    v4_byte color2 = {0};
+    v4_byte color3 = {0};
 
     #ifdef __SSE4_2__
         __m128 u0_v = {0}, u1_v = {0}, u2_v = {0}, v0_v = {0}, v1_v = {0}, v2_v = {0};
@@ -651,9 +658,9 @@ void soft_rasterize_msaa(
     // Check if the triangle uses texture or solid color
     bool textured = (v0.texture_color.x >= 0.0f || v1.texture_color.x >= 0.0f || v2.texture_color.x >= 0.0f);
 
-    v4_byte color1 = {};
-    v4_byte color2 = {};
-    v4_byte color3 = {};
+    v4_byte color1 = {0};
+    v4_byte color2 = {0};
+    v4_byte color3 = {0};
     if(!textured){
         color1.val = BITCAST(v0.texture_color.y, uint32);
         color2.val = BITCAST(v1.texture_color.y, uint32);
@@ -730,11 +737,11 @@ void soft_shader_default3d(
     const SoftwareRenderer* const __restrict renderer,
     int32 data_index,
     int32 instance_index,
-    void* __restrict data,
+    void* const __restrict data,
     int32 data_count,
-    const uint32* __restrict data_indices = NULL,
+    const uint32* const __restrict data_indices = NULL,
     int32 data_index_count = 0,
-    void* __restrict instance_data = NULL,
+    void* const __restrict instance_data = NULL,
     int32 instance_data_count = 0,
     int32 steps = 8
 ) NO_EXCEPT
@@ -799,11 +806,11 @@ void soft_shader_ui(
     const SoftwareRenderer* const __restrict renderer,
     int32 data_index,
     int32 instance_index,
-    void* __restrict data,
+    void* const __restrict data,
     int32 data_count,
-    const uint32* __restrict data_indices = NULL,
+    const uint32* const __restrict data_indices = NULL,
     int32 data_index_count = 0,
-    void* __restrict instance_data = NULL,
+    void* const __restrict instance_data = NULL,
     int32 instance_data_count = 0,
     int32 steps = 8
 ) NO_EXCEPT
@@ -893,8 +900,10 @@ struct ThrdSoftwareShaderArg {
 static inline
 void thrd_soft_shader(void* arg)
 {
-    PoolWorker* job = (PoolWorker *) arg;
-    ThrdSoftwareShaderArg* shader = (ThrdSoftwareShaderArg *) job->arg;
+    PoolWorker* const job = (PoolWorker *) arg;
+
+    // @bug I think we need atomics or locks here to avoid race conditions and then copy the data to a thread local variable
+    ThrdSoftwareShaderArg* const shader = (ThrdSoftwareShaderArg *) job->arg;
     shader->func(
         shader->renderer,
         0, 0,
@@ -907,48 +916,66 @@ void thrd_soft_shader(void* arg)
 
 // @todo Allow to define the rasterizer (soft_rasterize, soft_rasterize_msaa, soft_rasterize_ssa)
 // WARNING: data_size is not the individual vertex size, but vertex size * vertex count that creates one triangle
+
 inline
 void soft_render(
-    const SoftwareRenderer* const __restrict renderer,
-    void* __restrict data = NULL,
+    SoftwareRenderer* const __restrict renderer,
+    void* const __restrict data = NULL,
     int32 data_count = 0,
     int32 data_size = 0, // @question Consider to split into size and stride
-    const uint32* __restrict data_indices = NULL,
+    const uint32* const __restrict data_indices = NULL,
     int32 data_index_count = 0,
     int32 steps = 8
 ) NO_EXCEPT
 {
+    // @bug The multi threaded version has artifacts and skips if you go through frame by frame
+    //      Even if I only use one thread this breaks
     if (renderer->pool) {
-        const int32 MAX_CHUNKS = 4;
-        ThrdSoftwareShaderArg args[MAX_CHUNKS];
+        const int MAX_CHUNKS = 4;
+
+        // WARNING: We have to make this heap memory
+        //          If we would use the stack (which would be nicer) we could have corrupted memory in the thread due to race conditions
+        const int32 element_count = (int32) ((sizeof(ThrdSoftwareShaderArg) * MAX_CHUNKS + renderer->buf.chunk_size - 1)
+            / renderer->buf.chunk_size);
+
+        ThrdSoftwareShaderArg* args = (ThrdSoftwareShaderArg *) chunk_get_memory(&renderer->buf, element_count);
+
         PoolWorker* jobs[MAX_CHUNKS];
 
-        const int32 data_chunks = data_count < MAX_CHUNKS ? data_count : MAX_CHUNKS;
-        const int32 index_chunks = data_index_count < MAX_CHUNKS ? data_index_count : MAX_CHUNKS;
+        const int data_chunks = OMS_MIN(data_count / 3, MAX_CHUNKS);
+        const int index_chunks = OMS_MIN(data_index_count, MAX_CHUNKS);
 
-        for (int32 i = 0; i < renderer->active_shader->shader_count; ++i) {
-            for (int32 j = 0; j < MAX_CHUNKS; ++j) {
-                int32 data_start = 0;
-                int32 data_chunk_size = 0;
-                if (data_count > 0 && j < data_chunks) {
-                    data_start = j * data_count / (3 * data_chunks); // @todo replace 3 with stride
-                    const int32 data_end = oms_min((j + 1) * data_count / (3 * data_chunks), data_count / 3); // @todo replace 3 with stride
-                    data_chunk_size = (data_end - data_start) * 3; // @todo replace 3 with stride
-                }
+        const int base = data_count / data_chunks;
+        const int remainder = data_count % data_chunks;
 
-                int32 index_start = 0;
-                int32 index_chunk_size = 0;
+        for (int i = 0; i < renderer->active_shader->shader_count; ++i) {
+            ASSERT_TRUE(renderer->active_shader->shader_functions[i]);
+
+            for (int j = 0; j < data_chunks; ++j) {
+                // @todo replace 3 with stride
+                const int extra = (j < remainder) ? 1 : 0;
+                const int data_start = j * base + OMS_MIN(j, remainder);
+                const int data_end = data_start + base + extra;
+
+                // Basically the data_count but now split up for the thread
+                // In most cases this is just the vertex count the helper thread should render
+                const int data_chunk_count = (data_end - data_start) * 3;
+
+                int index_start = 0;
+                int index_chunk_size = 0;
                 if (data_index_count > 0 && j < index_chunks) {
                     index_start = j * data_index_count / index_chunks;
-                    const int32 index_end = (j + 1) * data_index_count / index_chunks;
+                    const int index_end = (j + 1) * data_index_count / index_chunks;
                     index_chunk_size = index_end - index_start;
                 }
 
                 // @bug if indices exist we must alway send the entire data array
+                // @bug I think we need atomics or locks here to avoid race conditions
+                //      Maybe test by passing the full data to the thread
                 args[j] = {
                     renderer,
-                    data ? (void*)((uint8 *)data + data_start * data_size) : NULL, // @todo replace 3 with stride
-                    data_chunk_size,
+                    data ? (void*)(((uint8 *)data) + data_start * data_size) : NULL, // @todo replace 3 with stride
+                    data_chunk_count,
                     data_indices ? data_indices + index_start : NULL,
                     index_chunk_size,
                     steps,
@@ -958,6 +985,7 @@ void soft_render(
                 const PoolWorker job = {
                     0,
                     POOL_WORKER_STATE_WAITING,
+                    false,
                     thrd_soft_shader,
                     NULL,
                     &args[j]
@@ -968,8 +996,15 @@ void soft_render(
 
             thread_pool_join(jobs, MAX_CHUNKS);
         }
+
+        const uint32 arg_id = chunk_id_from_memory(
+            (uintptr_t) renderer->buf.memory,
+            (uintptr_t) args,
+            renderer->buf.chunk_size
+        );
+        chunk_free_elements(&renderer->buf, arg_id, element_count);
     } else {
-        for (int32 i = 0; i < renderer->active_shader->shader_count; ++i) {
+        for (int i = 0; i < renderer->active_shader->shader_count; ++i) {
             renderer->active_shader->shader_functions[i](
                 renderer,
                 i, 0,
@@ -984,18 +1019,18 @@ void soft_render(
 
 inline
 void soft_render_instanced(
-    const SoftwareRenderer* const __restrict renderer,
-    void* __restrict data = NULL,
+    SoftwareRenderer* const __restrict renderer,
+    void* const __restrict data = NULL,
     int32 data_count = 0,
-    void* __restrict instance_data = NULL,
+    void* const __restrict instance_data = NULL,
     int32 instance_data_count = 0,
-    const uint32* __restrict data_indices = NULL,
+    const uint32* const __restrict data_indices = NULL,
     int32 data_index_count = 0,
     int32 steps = 8
 ) NO_EXCEPT
 {
-    for (int32 i = 0; i < renderer->active_shader->shader_count; ++i) {
-        for (int32 j = 0; j < data_count; ++j) {
+    for (int i = 0; i < renderer->active_shader->shader_count; ++i) {
+        for (int j = 0; j < data_count; ++j) {
             renderer->active_shader->shader_functions[i](
                 renderer,
                 i, j,

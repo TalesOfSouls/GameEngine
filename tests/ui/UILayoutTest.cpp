@@ -5,7 +5,7 @@
 
 static void test_layout_from_file_txt() {
     RingMemory ring;
-    ring_alloc(&ring, 10 * MEGABYTE, 64);
+    ring_alloc(&ring, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
     UILayout layout;
     layout.data = (byte *) platform_alloc(2 * MEGABYTE);
@@ -20,7 +20,7 @@ static void test_layout_from_file_txt() {
 
 static void test_layout_to_from_data() {
     RingMemory ring;
-    ring_alloc(&ring, 10 * MEGABYTE, 64);
+    ring_alloc(&ring, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
     UILayout layout_dump;
     layout_dump.data = (byte *) platform_alloc(2 * MEGABYTE);
@@ -45,7 +45,7 @@ static void test_layout_to_from_data() {
 
 static void test_layout_from_theme() {
     RingMemory ring;
-    ring_alloc(&ring, 10 * MEGABYTE, 64);
+    ring_alloc(&ring, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
     UILayout layout;
     layout.data = (byte *) platform_alloc(10 * MEGABYTE);

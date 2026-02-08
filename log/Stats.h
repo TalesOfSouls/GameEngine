@@ -20,8 +20,7 @@
         // How many threads are active, not just initialized
         DEBUG_COUNTER_THREAD_ACTIVE,
 
-        DEBUG_COUNTER_GPU_VERTEX_UPLOAD,
-        DEBUG_COUNTER_GPU_UNIFORM_UPLOAD,
+        DEBUG_COUNTER_GPU_UPLOAD,
         DEBUG_COUNTER_GPU_DRAW_CALLS,
         DEBUG_COUNTER_GPU_DOWNLOAD,
 
@@ -43,7 +42,7 @@ struct StatCounterHistory {
     atomic_64 int64 stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE];
 };
 static StatCounterHistory* _stats_counter = NULL;
-static volatile int32* _stats_counter_active = NULL;
+static int32* _stats_counter_active = NULL;
 
 /**
  * Creates a snapshot of the current stats
@@ -189,6 +188,7 @@ void stats_log_to_file() NO_EXCEPT
     #define STATS_INCREMENT(a) ((void) 0)
     #define STATS_INCREMENT_BY(a, b) ((void) 0)
     #define STATS_DECREMENT(a) ((void) 0)
+    #define STATS_DECREMENT_BY(a, b) ((void) 0)
     #define STATS_COUNTER(a, b) ((void) 0)
     #define STATS_MAX(a, b) ((void) 0)
     #define STATS_MIN(a, b) ((void) 0)
@@ -199,6 +199,7 @@ void stats_log_to_file() NO_EXCEPT
     #define STATS_INCREMENT(a) stats_increment((a), 1)
     #define STATS_INCREMENT_BY(a, b) stats_increment((a), (b))
     #define STATS_DECREMENT(a) stats_decrement((a), 1)
+    #define STATS_DECREMENT_BY(a, b) stats_decrement((a), (b))
     #define STATS_COUNTER(a, b) stats_counter((a), (b))
     #define STATS_MAX(a, b) stats_max((a), (b))
     #define STATS_MIN(a, b) stats_min((a), (b))

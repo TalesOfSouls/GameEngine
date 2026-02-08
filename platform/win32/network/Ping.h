@@ -17,13 +17,14 @@
 #include <iphlpapi.h>
 #include <icmpapi.h>
 
+// @todo We are statically linking, and dynamically loading it somewhere else, this is bad
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 
 int32 ping_ipv6(const char* ipv6_address, int32 payload_size, int32 timeout = 2000)
 {
     // Convert IPv6 address string to socket structure
-    SOCKADDR_IN6 destAddr = {};
+    SOCKADDR_IN6 destAddr = {0};
     destAddr.sin6_family = AF_INET6;
 
     if (inet_pton(AF_INET6, ipv6_address, &destAddr.sin6_addr) != 1) {

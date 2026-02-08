@@ -19,15 +19,15 @@ enum DatabaseType : byte {
 
 DatabaseType db_type_from_string(const char* str)
 {
-    if (str_compare(str, "sqlite", sizeof("sqlite") - 1) == 0) {
+    if (strncmp(str, "sqlite", sizeof("sqlite") - 1) == 0) {
         return DB_TYPE_SQLITE;
-    } else if (str_compare(str, "mariadb", sizeof("mariadb") - 1) == 0) {
+    } else if (strncmp(str, "mariadb", sizeof("mariadb") - 1) == 0) {
         return DB_TYPE_MARIA;
-    } else if (str_compare(str, "mysql", sizeof("mysql") - 1) == 0) {
+    } else if (strncmp(str, "mysql", sizeof("mysql") - 1) == 0) {
         return DB_TYPE_MARIA;
-    } else if (str_compare(str, "psql", sizeof("psql") - 1) == 0) {
+    } else if (strncmp(str, "psql", sizeof("psql") - 1) == 0) {
         return DB_TYPE_PSQL;
-    } else if (str_compare(str, "mssql", sizeof("mssql") - 1) == 0) {
+    } else if (strncmp(str, "mssql", sizeof("mssql") - 1) == 0) {
         return DB_TYPE_MSSQL;
     }
 

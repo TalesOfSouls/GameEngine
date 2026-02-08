@@ -68,7 +68,7 @@ inline
 void db_unprepare_psql(void* con, const char* name) {
     char dealloc[64];
     memcpy(dealloc, "DEALLOCATE ", sizeof("DEALLOCATE ") - 1);
-    str_concat_append(dealloc + sizeof("DEALLOCATE ") - 1, name);
+    strcat(dealloc + sizeof("DEALLOCATE ") - 1, name);
 
     PGresult *del_res = PQexec((PGconn *) con, dealloc);
     PQclear(del_res);
@@ -79,12 +79,12 @@ void db_unprepare_psql(void* con, const char** name, uint8 length) {
     char dealloc[16 * KILOBYTE];
     memcpy(dealloc, "DEALLOCATE", sizeof("DEALLOCATE") - 1);
 
-    int32 offset = sizeof("DEALLOCATE") - 1;
+    const int32 offset = sizeof("DEALLOCATE") - 1;
     for (int32 i = 0 i < length; ++i) {
         dealloc[offset] = ' ';
         ++offset;
-        str_concat_append(dealloc + offset, name);
-        offset += str_length(name);
+        strcat(dealloc + offset, name);
+        offset += strlen(name);
         ++name;
     }
 
@@ -111,7 +111,7 @@ void* db_execute_prepared(
     int32* formats = (int32 *) ring_get_memory(ring, sizeof(int32) * param_count);
     int32* lengths = (int32 *) ring_get_memory(ring, sizeof(int32) * param_count);
 
-    char* local_arena = (char *) ring_get_memory(ring, 4 * KILOBYTE, 64, true);
+    char* local_arena = (char *) ring_get_memory(ring, 4 * KILOBYTE, ASSUMED_CACHE_LINE_SIZE, true);
     char* local_arena_end = local_arena + 4 * KILOBYTE;
 
     for (int32 i = 0; i < param_count; ++i) {
@@ -197,7 +197,7 @@ void* db_execute_prepared(
             case DB_PARAM_TEXT: {
                 const int32 data_length = sizeof(char *);
                 values[i] = (char *) params[i].text_val;
-                lengths[i] = (int32) str_length(params[i].text_val)
+                lengths[i] = (int32) strlen(params[i].text_val)
                 formats[i] = 0;
             } break;
             default:

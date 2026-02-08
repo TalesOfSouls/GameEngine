@@ -9,331 +9,10 @@
 #ifndef COMS_UTILS_STRING_UTILS_H
 #define COMS_UTILS_STRING_UTILS_H
 
-#include <string.h>
 #include <stdarg.h>
 #include "../stdlib/Stdlib.h"
 #include "../compiler/CompilerUtils.h"
 #include "../utils/Assert.h"
-
-inline CONSTEXPR
-size_t str_length(const char* const str) NO_EXCEPT
-{
-    const char* ptr = str;
-
-    while (((uintptr_t) ptr % sizeof(size_t)) != 0) {
-        if (*ptr == '\0') {
-            return ptr - str;
-        }
-
-        ++ptr;
-    }
-
-    const size_t* longword_ptr = (const size_t *) ptr;
-
-    while (true) {
-        const size_t v = *longword_ptr;
-
-        if (OMS_HAS_ZERO(v)) {
-            const char* cp = (const char *)longword_ptr;
-            for (size_t i = 0; i < sizeof(size_t); ++i) {
-                if (cp[i] == '\0') {
-                    return cp + i - str;
-                }
-            }
-        }
-
-        ++longword_ptr;
-    }
-}
-
-inline
-size_t str_length(const wchar_t* const str) noexcept
-{
-    const wchar_t* ptr = str;
-
-    while (((uintptr_t)ptr % sizeof(size_t)) != 0) {
-        if (*ptr == L'\0') {
-            return ptr - str;
-        }
-
-        ++ptr;
-    }
-
-    const size_t* longword_ptr = (const size_t*) ptr;
-
-    while (true) {
-        const size_t v = *longword_ptr;
-
-        if (OMS_HAS_ZERO_WCHAR(v)) {
-            const wchar_t* cp = (const wchar_t*) longword_ptr;
-            for (size_t i = 0; i < sizeof(size_t) / sizeof(wchar_t); ++i) {
-                if (cp[i] == L'\0') {
-                    return cp + i - str;
-                }
-            }
-        }
-
-        ++longword_ptr;
-    }
-}
-
-// WARNING: We need this function because the other function relies on none-CONSTEXPR performance features
-inline CONSTEXPR
-int64 str_find_CONSTEXPR(const char* const __restrict str, const char* const __restrict needle) NO_EXCEPT
-{
-    const size_t needle_len = str_length(needle);
-    const size_t limit = str_length(str) - needle_len + 1;
-
-    for (size_t i = 0; i < limit; ++i) {
-        if (str[i] == needle[0] && memcmp(&str[i + 1], &needle[1], needle_len - 1) == 0) {
-            return (str - &str[i]);
-        }
-    }
-
-    return -1;
-}
-
-inline
-int64 str_find(const char* __restrict haystack, const char* __restrict needle) NO_EXCEPT
-{
-    const char first = needle[0];
-    const size_t needle_len = str_length(needle);
-    const char* ptr = haystack;
-
-    while (*ptr != '\0') {
-        // Align pointer for size_t access
-        while ((uintptr_t) ptr % sizeof(size_t) != 0 && *ptr != '\0') {
-            if (*ptr == first) {
-                break;
-            }
-
-            ++ptr;
-        }
-
-        if (*ptr == '\0') {
-            break;
-        }
-
-        // Word-wise scanning
-        const size_t* wptr = (const size_t *) ptr;
-        const size_t first_mask = ((size_t) -1 / 0xFF) * first;
-
-        while (true) {
-            const size_t v = *wptr;
-            if (((v - ((size_t) - 1 / 0xFF)) & ~v & (((size_t) - 1 / 0xFF) * 0x80))
-                || (((v ^ first_mask) - ((size_t) - 1 / 0xFF)) & ~(v ^ first_mask) & (((size_t) - 1 / 0xFF) * 0x80))
-            ) {
-                break;
-            }
-
-            ++wptr;
-        }
-
-        ptr = (const char *) wptr;
-
-        const char* p1 = ptr;
-        size_t i = 0;
-        while (i < needle_len && p1[i] != '\0' && p1[i] == needle[i]) {
-            ++i;
-        }
-
-        if (i == needle_len) {
-            return (int64) (ptr - haystack);
-        }
-
-        ++ptr;
-    }
-
-    return -1;
-}
-
-int64 str_find(const char* str, char needle) NO_EXCEPT
-{
-    const char* start = str;
-    const byte target = (const byte) needle;
-
-    // Process byte-by-byte until alignment is achieved
-    for (; (uintptr_t) str % sizeof(size_t) != 0; ++str) {
-        if (*str == target) {
-            return (str - start);
-        }
-
-        if (*str == '\0') {
-            return -1;
-        }
-    }
-
-    // Broadcast the target character to all bytes of a word
-    size_t target_word = target;
-    for (size_t i = 1; i < sizeof(size_t); ++i) {
-        target_word |= target_word << 8;
-    }
-
-    const size_t* word_ptr = (const size_t *) str;
-    while (true) {
-        size_t word = *word_ptr++;
-        if (OMS_HAS_CHAR(word, target)) {
-            const char* byte_ptr = (const char *) (word_ptr - 1);
-            for (size_t i = 0; i < sizeof(size_t); ++i) {
-                if (byte_ptr[i] == target) {
-                    return (int64) ((byte_ptr + i) - start);
-                }
-            }
-        }
-
-        if (OMS_HAS_ZERO(word)) {
-            const char* byte_ptr = (const char *) (word_ptr - 1);
-            for (size_t i = 0; i < sizeof(size_t); ++i) {
-                if (byte_ptr[i] == '\0') {
-                    return -1;
-                }
-            }
-        }
-    }
-}
-
-inline
-int64 str_find(
-    const wchar_t* __restrict haystack,
-    const wchar_t* __restrict needle
-) NO_EXCEPT
-{
-    const wchar_t first = needle[0];
-    const size_t needle_len = str_length(needle);
-    const wchar_t* ptr = haystack;
-
-    if (needle_len == 0) {
-        return 0;
-    }
-
-    constexpr size_t W = sizeof(wchar_t);
-    constexpr size_t S = sizeof(size_t);
-    constexpr size_t N = S / W;
-
-    size_t first_mask = 0;
-    for (size_t i = 0; i < N; ++i) {
-        first_mask |= (size_t)first << (i * 8 * W);
-    }
-
-    while (*ptr != L'\0') {
-        // Align pointer
-        while ((uintptr_t)ptr % S != 0 && *ptr != L'\0') {
-            if (*ptr == first) {
-                break;
-            }
-            ++ptr;
-        }
-
-        if (*ptr == L'\0') {
-            break;
-        }
-
-        // Word-wise scan
-        const size_t* wptr = (const size_t*)ptr;
-
-        while (true) {
-            const size_t v = *wptr;
-            if (OMS_HAS_ZERO_WCHAR(v) || OMS_HAS_ZERO_WCHAR(v ^ first_mask)) {
-                break;
-            }
-            ++wptr;
-        }
-
-        ptr = (const wchar_t*)wptr;
-        for (size_t i = 0; i < N; ++i) {
-            if (ptr[i] == L'\0') {
-                return -1;
-            }
-            if (ptr[i] == first) {
-                ptr += i;
-                break;
-            }
-        }
-
-        const wchar_t* p1 = ptr;
-        size_t i = 0;
-        while (i < needle_len && p1[i] != L'\0' && p1[i] == needle[i]) {
-            ++i;
-        }
-
-        if (i == needle_len) {
-            return (int64)(ptr - haystack);
-        }
-
-        ++ptr;
-    }
-
-    return -1;
-}
-
-static CONSTEXPR const unsigned char TO_LOWER_TABLE[256] = {
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
-    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
-    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
-    0x40, 'a',  'b',  'c',  'd',  'e',  'f',  'g',  'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o',
-    'p',  'q',  'r',  's',  't',  'u',  'v',  'w',  'x',  'y',  'z',  0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
-    0x60, 'a',  'b',  'c',  'd',  'e',  'f',  'g',  'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o',
-    'p',  'q',  'r',  's',  't',  'u',  'v',  'w',  'x',  'y',  'z',  0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
-    0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
-    0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
-    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
-    0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
-    0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
-    0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
-    0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
-    0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
-};
-
-static CONSTEXPR const unsigned char TO_UPPER_TABLE[256] = {
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
-    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
-    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
-    0x40, 'A',  'B',  'C',  'D',  'E',  'F',  'G',  'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O',
-    'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',  'X',  'Y',  'Z',  0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
-    0x60, 'A',  'B',  'C',  'D',  'E',  'F',  'G',  'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O',
-    'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',  'X',  'Y',  'Z',  0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
-    0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
-    0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
-    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
-    0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
-    0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
-    0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
-    0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
-    0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
-};
-
-
-FORCE_INLINE CONSTEXPR
-char toupper_ascii(char c) NO_EXCEPT
-{
-    return c - 32 * (c >= 'a' && c <= 'z');
-}
-
-FORCE_INLINE
-void toupper_ascii(char* str) NO_EXCEPT
-{
-    while (*str != '\0') {
-        *str -= 32 * (*str >= 'a' && *str <= 'z');
-        ++str;
-    }
-}
-
-FORCE_INLINE CONSTEXPR
-char tolower_ascii(char c) NO_EXCEPT
-{
-    return c + 32 * (c >= 'A' && c <= 'Z');
-}
-
-inline
-void tolower_ascii(char* str) NO_EXCEPT
-{
-    while (*str != '\0') {
-        *str += 32 * (*str >= 'A' && *str <= 'Z');
-        ++str;
-    }
-}
 
 inline
 int32 utf8_encode(uint32 codepoint, char* out) NO_EXCEPT
@@ -435,7 +114,7 @@ int32 utf8_decode(const uint32 codepoint, char* out) NO_EXCEPT
 }
 
 inline
-int32 utf8_str_length(const char* in) NO_EXCEPT
+int32 utf8_strlen(const char* in) NO_EXCEPT
 {
     int32 length = 0;
     uint32 codepoint;
@@ -687,52 +366,12 @@ int32 utf8_to_wchar(const char* in, wchar_t* out, int32 length)
     return out_pos + 1;
 }
 
-static CONSTEXPR const bool STR_IS_ALPHA_LOOKUP_TABLE[] = {
-    false, false, false, false, false, false, false, false, // 0-7
-    false, false, false, false, false, false, false, false, // 8-15
-    false, false, false, false, false, false, false, false, // 16-23
-    false, false, false, false, false, false, false, false, // 24-31
-    false, false, false, false, false, false, false, false, // 32-39
-    false, false, false, false, false, false, false, false, // 40-47
-    false, false, false, false, false, false, false, false, // 48-55 ('0'-'7')
-    false, false, false, false, false, false, false, false, // 56-63 ('8'-'9', others)
-    false, true,  true,  true,  true,  true,  true,  true,  // 64-71 ('A'-'G')
-    true,  true,  true,  true,  true,  true,  true,  true,  // 72-79 ('H'-'O')
-    true,  true,  true,  true,  true,  true,  true,  true,  // 80-87 ('P'-'W')
-    true,  true,  true, false, false, false, false, false,  // 88-95 ('X'-'Z', others)
-    false, true,  true,  true,  true,  true,  true,  true,  // 96-103 ('a'-'g')
-    true,  true,  true,  true,  true,  true,  true,  true,  // 104-111 ('h'-'o')
-    true,  true,  true,  true,  true,  true,  true,  true,  // 112-119 ('p'-'w')
-    true,  true,  true, false, false, false, false, false,  // 120-127 ('x'-'z', others)
-    false, false, false, false, false, false, false, false, // 128-135
-    false, false, false, false, false, false, false, false, // 136-143
-    false, false, false, false, false, false, false, false, // 144-151
-    false, false, false, false, false, false, false, false, // 152-159
-    false, false, false, false, false, false, false, false, // 160-167
-    false, false, false, false, false, false, false, false, // 168-175
-    false, false, false, false, false, false, false, false, // 176-183
-    false, false, false, false, false, false, false, false, // 184-191
-    false, false, false, false, false, false, false, false, // 192-199
-    false, false, false, false, false, false, false, false, // 200-207
-    false, false, false, false, false, false, false, false, // 208-215
-    false, false, false, false, false, false, false, false, // 216-223
-    false, false, false, false, false, false, false, false, // 224-231
-    false, false, false, false, false, false, false, false, // 232-239
-    false, false, false, false, false, false, false, false, // 240-247
-    false, false, false, false, false, false, false, false  // 248-255
-};
-
-FORCE_INLINE CONSTEXPR
-bool str_is_alpha(char str) NO_EXCEPT
-{
-    return STR_IS_ALPHA_LOOKUP_TABLE[(byte) str];
-}
 
 inline CONSTEXPR
 bool str_is_alpha(const char* str) NO_EXCEPT
 {
     while (*str != '\0') {
-        if (!str_is_alpha(*str++)) {
+        if (!isalpha(*str++)) {
             return false;
         }
     }
@@ -740,52 +379,11 @@ bool str_is_alpha(const char* str) NO_EXCEPT
     return true;
 }
 
-static CONSTEXPR const bool STR_IS_NUM_LOOKUP_TABLE[] = {
-    false, false, false, false, false, false, false, false, // 0-7
-    false, false, false, false, false, false, false, false, // 8-15
-    false, false, false, false, false, false, false, false, // 16-23
-    false, false, false, false, false, false, false, false, // 24-31
-    false, false, false, false, false, false, false, false, // 32-39
-    false, false, false, false, false, false, false, false, // 40-47
-    true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
-    true,  true,  false, false, false, false, false, false, // 56-63 ('8'-'9', others)
-    false, true,  false, false, false, false, false, false, // 64-71 ('A'-'G')
-    false, false, false, false, false, false, false, false, // 72-79 ('H'-'O')
-    false, false, false, false, false, false, false, false, // 80-87 ('P'-'W')
-    false, false, false, false, false, false, false, false, // 88-95 ('X'-'Z', others)
-    false, false, false, false, false, false, false, false, // 96-103 ('a'-'g')
-    false, false, false, false, false, false, false, false, // 104-111 ('h'-'o')
-    false, false, false, false, false, false, false, false, // 112-119 ('p'-'w')
-    false, false, false, false, false, false, false, false, // 120-127 ('x'-'z', others)
-    false, false, false, false, false, false, false, false, // 128-135
-    false, false, false, false, false, false, false, false, // 136-143
-    false, false, false, false, false, false, false, false, // 144-151
-    false, false, false, false, false, false, false, false, // 152-159
-    false, false, false, false, false, false, false, false, // 160-167
-    false, false, false, false, false, false, false, false, // 168-175
-    false, false, false, false, false, false, false, false, // 176-183
-    false, false, false, false, false, false, false, false, // 184-191
-    false, false, false, false, false, false, false, false, // 192-199
-    false, false, false, false, false, false, false, false, // 200-207
-    false, false, false, false, false, false, false, false, // 208-215
-    false, false, false, false, false, false, false, false, // 216-223
-    false, false, false, false, false, false, false, false, // 224-231
-    false, false, false, false, false, false, false, false, // 232-239
-    false, false, false, false, false, false, false, false, // 240-247
-    false, false, false, false, false, false, false, false  // 248-255
-};
-
-FORCE_INLINE CONSTEXPR
-bool str_is_num(char str) NO_EXCEPT
-{
-    return STR_IS_NUM_LOOKUP_TABLE[(byte) str];
-}
-
 inline CONSTEXPR
 bool str_is_num(const char* str) NO_EXCEPT
 {
     while (*str != '\0') {
-        if (!str_is_num(*str++)) {
+        if (!isdigit(*str++)) {
             return false;
         }
     }
@@ -802,7 +400,7 @@ bool str_starts_with_num(const char* str) NO_EXCEPT
 
     bool decimal = false;
     while (*str != '\0' && *str != ' ') {
-        if (!str_is_num(*str) || (decimal && *str == '.')) {
+        if (!isdigit(*str) || (decimal && *str == '.')) {
             return false;
         }
 
@@ -816,52 +414,11 @@ bool str_starts_with_num(const char* str) NO_EXCEPT
     return true;
 }
 
-static CONSTEXPR const bool STR_IS_ALPHANUM_LOOKUP_TABLE[] = {
-    false, false, false, false, false, false, false, false, // 0-7
-    false, false, false, false, false, false, false, false, // 8-15
-    false, false, false, false, false, false, false, false, // 16-23
-    false, false, false, false, false, false, false, false, // 24-31
-    false, false, false, false, false, false, false, false, // 32-39
-    false, false, false, false, false, false, false, false, // 40-47
-    true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
-    true,  true, false, false, false, false, false, false,  // 56-63 ('8'-'9', others)
-    false, true,  true,  true,  true,  true,  true,  true,  // 64-71 ('A'-'G')
-    true,  true,  true,  true,  true,  true,  true,  true,  // 72-79 ('H'-'O')
-    true,  true,  true,  true,  true,  true,  true,  true,  // 80-87 ('P'-'W')
-    true,  true,  true, false, false, false, false, false,  // 88-95 ('X'-'Z', others)
-    false, true,  true,  true,  true,  true,  true,  true,  // 96-103 ('a'-'g')
-    true,  true,  true,  true,  true,  true,  true,  true,  // 104-111 ('h'-'o')
-    true,  true,  true,  true,  true,  true,  true,  true,  // 112-119 ('p'-'w')
-    true,  true,  true, false, false, false, false, false,  // 120-127 ('x'-'z', others)
-    false, false, false, false, false, false, false, false, // 128-135
-    false, false, false, false, false, false, false, false, // 136-143
-    false, false, false, false, false, false, false, false, // 144-151
-    false, false, false, false, false, false, false, false, // 152-159
-    false, false, false, false, false, false, false, false, // 160-167
-    false, false, false, false, false, false, false, false, // 168-175
-    false, false, false, false, false, false, false, false, // 176-183
-    false, false, false, false, false, false, false, false, // 184-191
-    false, false, false, false, false, false, false, false, // 192-199
-    false, false, false, false, false, false, false, false, // 200-207
-    false, false, false, false, false, false, false, false, // 208-215
-    false, false, false, false, false, false, false, false, // 216-223
-    false, false, false, false, false, false, false, false, // 224-231
-    false, false, false, false, false, false, false, false, // 232-239
-    false, false, false, false, false, false, false, false, // 240-247
-    false, false, false, false, false, false, false, false  // 248-255
-};
-
-FORCE_INLINE CONSTEXPR
-bool str_is_alphanum(char str) NO_EXCEPT
-{
-    return STR_IS_ALPHANUM_LOOKUP_TABLE[(byte) str];
-}
-
 inline
 bool str_is_alphanum(const char* str) NO_EXCEPT
 {
     while (*str != '\0') {
-        if (!str_is_alphanum(*str++)) {
+        if (!isalnum(*str++)) {
             return false;
         }
     }
@@ -885,7 +442,7 @@ bool str_is_float(const char* str) NO_EXCEPT
             }
 
             has_dot = true;
-        } else if (!str_is_num(*str)) {
+        } else if (!isdigit(*str)) {
             return false;
         }
 
@@ -904,7 +461,7 @@ bool str_is_integer(const char* str) NO_EXCEPT
 
     bool is_int = false;
     while (*str) {
-        if (!str_is_num(*str)) {
+        if (!isdigit(*str)) {
             return false;
         }
 
@@ -925,7 +482,7 @@ int64 str_to_int(const char* str, const char** pos = NULL) NO_EXCEPT
     }
 
     int64 result = 0;
-    while (str_is_num(*str)) {
+    while (isdigit(*str)) {
         result *= 10;
         result += (*str - '0');
 
@@ -1169,8 +726,32 @@ bool str_is_hex_color(const char* str) NO_EXCEPT
     return true;
 }
 
+// @bug doesn't this fail for 64 bits?
 inline CONSTEXPR
-int32 int_to_hex(int64 number, char str[9]) NO_EXCEPT
+int32 int_to_hex(int32 number, char str[9]) NO_EXCEPT
+{
+    int32 i = -1;
+    uint32 n = (uint32) number;
+
+    do {
+        const byte digit = n % 16;
+        str[++i] = HEX_TABLE[digit];
+        n /= 16;
+    } while (n > 0);
+
+    str[++i] = '\0';
+
+    for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
+        const char temp = str[j];
+        str[j] = str[k];
+        str[k] = temp;
+    }
+
+    return i;
+}
+
+inline CONSTEXPR
+int32 int_to_hex(int64 number, char str[17]) NO_EXCEPT
 {
     int32 i = -1;
     uint64 n = (uint64) number;
@@ -1198,7 +779,7 @@ int64 hex_to_int(const char* hex) NO_EXCEPT
     int64 result = 0;
     while (HEX_LOOKUP_TABLE[(byte) *hex]) {
         byte value = *hex++;
-        if (str_is_num(value)) {
+        if (isdigit(value)) {
             value = value - '0';
         } else if (value >= 'A' && value <='F') {
             value = value - 'A' + 10;
@@ -1216,7 +797,7 @@ inline
 size_t str_count(const char* __restrict str, const char* __restrict substr) NO_EXCEPT
 {
     size_t count = 0;
-    const size_t substr_len = str_length(substr);
+    const size_t substr_len = strlen(substr);
 
     const char* s = str;
     const char first = substr[0];
@@ -1284,6 +865,94 @@ int32 is_eol(const char* str) NO_EXCEPT
     }
 
     return 0;
+}
+
+// Similar to wcscpy but returns length instead of pointer to the beginning
+inline
+int32 str_copy(char* __restrict dest, const char* __restrict src)
+{
+    const char* start = dest;
+
+    // Align src pointer
+    while ((uintptr_t)src % sizeof(size_t) != 0) {
+        const char c = *src++;
+        *dest++ = c;
+        if (c == '\0') {
+            return -1;
+        }
+    }
+
+    const size_t* wptr = (const size_t *) src;
+    size_t* dptr = (size_t *)dest;
+
+    while (true) {
+        const size_t v = *wptr;
+        if (OMS_HAS_ZERO(v)) {
+            break; // null byte found
+        }
+
+        *dptr++ = v;
+        wptr++;
+    }
+
+    // Copy remaining bytes
+    src = (const char *) wptr;
+    dest = (char *) dptr;
+    while (true) {
+        const char c = *src++;
+        *dest++ = c;
+        if (c == '\0') {
+            break;
+        }
+    }
+
+    return (int32) (dest - start);
+}
+
+// Similar to wcscpy but returns length instead of pointer to the beginning
+inline
+int32 str_copy(
+    wchar_t* __restrict dest,
+    const wchar_t* __restrict src
+) NO_EXCEPT
+{
+    const wchar_t* start = dest;
+
+    // Align src pointer
+    while ((uintptr_t)src % sizeof(size_t) != 0) {
+        const wchar_t c = *src++;
+        *dest++ = c;
+        if (c == L'\0') {
+            return -1;
+        }
+    }
+
+    const size_t* wptr = (const size_t*)src;
+    size_t* dptr = (size_t*)dest;
+
+    // Bulk copy size_t blocks
+    while (true) {
+        const size_t v = *wptr;
+        if (OMS_HAS_ZERO_WCHAR(v)) {
+            break;
+        }
+
+        *dptr++ = v;
+        ++wptr;
+    }
+
+    // Copy remaining bytes
+    src = (const wchar_t*)wptr;
+    dest = (wchar_t*)dptr;
+    while (true) {
+        const wchar_t c = *src++;
+        *dest++ = c;
+        if (c == L'\0') {
+            break;
+        }
+    }
+
+    return (int32)(dest - start);
 }
 
 inline
@@ -1382,7 +1051,7 @@ int32 str_copy_until(wchar_t* __restrict dest, const wchar_t* __restrict src, wc
 template <typename T>
 inline void str_copy_until(T* __restrict dest, const T* __restrict src, const T* __restrict delim) NO_EXCEPT
 {
-    const size_t len = str_length(delim);
+    const size_t len = strlen(delim);
 
     const T end = (T) 0;
 
@@ -1398,191 +1067,6 @@ inline void str_copy_until(T* __restrict dest, const T* __restrict src, const T*
     }
 
     *dest = end;
-}
-
-inline CONSTEXPR
-void str_copy(char* __restrict dest, const char* __restrict src, int32 length) NO_EXCEPT
-{
-    int32 copied = 0;
-
-    // Align src pointer to size_t boundary
-    while ((uintptr_t)src % sizeof(size_t) != 0 && copied < length - 1) {
-        const char c = *src++;
-        *dest++ = c;
-        ++copied;
-
-        if (c == '\0') {
-            return;
-        }
-    }
-
-    const size_t* wptr = (const size_t *) src;
-    size_t* dptr = (size_t *) dest;
-
-    while (copied + (int32) sizeof(size_t) < length) {
-        const size_t v = *wptr;
-        if (OMS_HAS_ZERO(v)) {
-            break;
-        }
-
-        *dptr++ = v;
-        ++wptr;
-        copied += sizeof(size_t);
-    }
-
-    // Copy remaining bytes one by one
-    src = (const char *) wptr;
-    dest = (char *) dptr;
-    while (copied < length - 1) {
-        const char c = *src++;
-        *dest++ = c;
-        ++copied;
-
-        if (c == '\0') {
-            break;
-        }
-    }
-
-    *dest = '\0';
-}
-
-inline CONSTEXPR
-void str_copy(
-    wchar_t* __restrict dest,
-    const wchar_t* __restrict src,
-    int32 length
-) NO_EXCEPT
-{
-    int32 copied = 0;
-
-    // Align src pointer to size_t boundary
-    while ((uintptr_t)src % sizeof(size_t) != 0 && copied < length - 1) {
-        const wchar_t c = *src++;
-        *dest++ = c;
-        ++copied;
-
-        if (c == L'\0') {
-            return;
-        }
-    }
-
-    const size_t* wptr = (const size_t*)src;
-    size_t* dptr = (size_t*)dest;
-
-    // Bulk copy size_t blocks
-    while (copied + (int32) sizeof(size_t) / sizeof(wchar_t) < length) {
-        const size_t v = *wptr;
-        if (OMS_HAS_ZERO_WCHAR(v)) {
-            break;
-        }
-
-        *dptr++ = v;
-        ++wptr;
-
-        copied += sizeof(size_t) / sizeof(wchar_t);
-    }
-
-    // Tail copy wchar_t-by-wchar_t
-    src = (const wchar_t*)wptr;
-    dest = (wchar_t*)dptr;
-
-    while (copied < length - 1) {
-        const wchar_t c = *src++;
-        *dest++ = c;
-        ++copied;
-
-        if (c == L'\0') {
-            break;
-        }
-    }
-
-    *dest = L'\0';
-}
-
-inline CONSTEXPR
-int32 str_copy(char* __restrict dest, const char* __restrict src) NO_EXCEPT
-{
-    const char* start = dest;
-
-    // Align src pointer
-    while ((uintptr_t)src % sizeof(size_t) != 0) {
-        const char c = *src++;
-        *dest++ = c;
-        if (c == '\0') {
-            return -1;
-        }
-    }
-
-    const size_t* wptr = (const size_t *) src;
-    size_t* dptr = (size_t *)dest;
-
-    while (true) {
-        const size_t v = *wptr;
-        if (OMS_HAS_ZERO(v)) {
-            break; // null byte found
-        }
-
-        *dptr++ = v;
-        wptr++;
-    }
-
-    // Copy remaining bytes
-    src = (const char *) wptr;
-    dest = (char *) dptr;
-    while (true) {
-        const char c = *src++;
-        *dest++ = c;
-        if (c == '\0') {
-            break;
-        }
-    }
-
-    return (int32) (dest - start);
-}
-
-inline CONSTEXPR
-int32 str_copy(
-    wchar_t* __restrict dest,
-    const wchar_t* __restrict src
-) NO_EXCEPT
-{
-    const wchar_t* start = dest;
-
-    // Align src pointer
-    while ((uintptr_t)src % sizeof(size_t) != 0) {
-        const wchar_t c = *src++;
-        *dest++ = c;
-        if (c == L'\0') {
-            return -1;
-        }
-    }
-
-    const size_t* wptr = (const size_t*)src;
-    size_t* dptr = (size_t*)dest;
-
-    // Bulk copy size_t blocks
-    while (true) {
-        const size_t v = *wptr;
-        if (OMS_HAS_ZERO_WCHAR(v)) {
-            break;
-        }
-
-        *dptr++ = v;
-        ++wptr;
-    }
-
-    // Copy remaining bytes
-    src = (const wchar_t*)wptr;
-    dest = (wchar_t*)dptr;
-    while (true) {
-        const wchar_t c = *src++;
-        *dest++ = c;
-        if (c == L'\0') {
-            break;
-        }
-    }
-
-    return (int32)(dest - start);
 }
 
 inline
@@ -1639,7 +1123,7 @@ void str_copy_move_until(char* __restrict dest, const char* __restrict* __restri
 inline
 void str_copy_move_until(char* __restrict dest, const char* __restrict* __restrict src, const char* __restrict delim) NO_EXCEPT
 {
-    const size_t len = str_length(delim);
+    const size_t len = strlen(delim);
 
     while (**src != '\0') {
         for (size_t i = 0; i < len; ++i) {
@@ -1733,14 +1217,6 @@ char* strsep(const char** sp, const char* sep) NO_EXCEPT
     *sp = p;
 
     return s;
-}
-
-template <typename T>
-inline void
-str_concat_append(T* __restrict dst, const T* __restrict src) NO_EXCEPT
-{
-    dst += str_length(dst);
-    str_copy(dst, src);
 }
 
 template <typename T>
@@ -1840,7 +1316,7 @@ void str_concat_new(wchar_t* __restrict dst,
 }
 
 inline int64
-str_concat_append(char* __restrict dst, size_t dst_length, const char* __restrict src, size_t src_length) NO_EXCEPT
+strcat(char* __restrict dst, size_t dst_length, const char* __restrict src, size_t src_length) NO_EXCEPT
 {
     memcpy(&dst[dst_length], src, src_length);
     dst[dst_length + src_length] = '\0';
@@ -1849,9 +1325,9 @@ str_concat_append(char* __restrict dst, size_t dst_length, const char* __restric
 }
 
 FORCE_INLINE
-void str_concat_append(char* __restrict dst, size_t dst_length, const char* __restrict src) NO_EXCEPT
+void strcat(char* __restrict dst, size_t dst_length, const char* __restrict src) NO_EXCEPT
 {
-    str_copy(&dst[dst_length], src);
+    strcat(&dst[dst_length], src);
 }
 
 inline int64
@@ -1886,19 +1362,19 @@ void str_concat_new(
 }
 
 inline
-void str_concat_append(
+void strcat(
     char* dst,
     int64 data
 ) NO_EXCEPT
 {
-    const size_t dst_len = str_length(dst);
+    const size_t dst_len = strlen(dst);
     int_to_str(data, dst + dst_len);
 }
 
 inline void
 str_concat_new(char* __restrict dst, const char* __restrict src, int64 data) NO_EXCEPT
 {
-    const size_t src_len = str_length(src);
+    const size_t src_len = strlen(src);
     memcpy(dst, src, src_len);
 
     int_to_str(data, dst + src_len);
@@ -1907,8 +1383,8 @@ str_concat_new(char* __restrict dst, const char* __restrict src, int64 data) NO_
 inline
 void str_insert(char* __restrict dst, size_t insert_pos, const char* __restrict src) NO_EXCEPT
 {
-    const size_t src_length = str_length(src);
-    const size_t dst_length = str_length(dst);
+    const size_t src_length = strlen(src);
+    const size_t dst_length = strlen(dst);
 
     /* This is UB
     memcpy(dst + insert_pos + src_length, dst + insert_pos, dst_length - insert_pos + 1);
@@ -1922,8 +1398,8 @@ void str_insert(char* __restrict dst, size_t insert_pos, const char* __restrict 
 inline
 void str_insert(wchar_t* __restrict dst, size_t insert_pos, const wchar_t* __restrict src) NO_EXCEPT
 {
-    const size_t src_length = str_length(src);
-    const size_t dst_length = str_length(dst);
+    const size_t src_length = wcslen(src);
+    const size_t dst_length = wcslen(dst);
 
     memmove(dst + insert_pos + src_length, dst + insert_pos, (dst_length - insert_pos + 1) * sizeof(wchar_t));
     memcpy(dst + insert_pos, src, src_length * sizeof(wchar_t));
@@ -1932,7 +1408,7 @@ void str_insert(wchar_t* __restrict dst, size_t insert_pos, const wchar_t* __res
 inline
 void str_remove(char* __restrict dst, size_t remove_pos, size_t remove_length) NO_EXCEPT
 {
-    const size_t src_length = str_length(dst);
+    const size_t src_length = strlen(dst);
     memmove(dst + remove_pos, dst + remove_pos + remove_length, src_length - (remove_pos + remove_length) + 1);
 }
 
@@ -2103,90 +1579,6 @@ bool byte_contains(
     return false;
 }
 
-inline CONSTEXPR
-int32 str_compare(const char* str1, const char* str2) NO_EXCEPT
-{
-    byte c1 INITIALIZER;
-    byte c2 INITIALIZER;
-
-    do {
-        c1 = (byte) *str1++;
-        c2 = (byte) *str2++;
-    } while (c1 == c2 && c1 != '\0');
-
-    return c1 - c2;
-}
-
-inline CONSTEXPR
-int32 str_compare(const wchar_t* str1, const wchar_t* str2) NO_EXCEPT
-{
-    wchar_t c1 INITIALIZER;
-    wchar_t c2 INITIALIZER;
-
-    do {
-        c1 = *str1++;
-        c2 = *str2++;
-    } while (c1 == c2 && c1 != L'\0');
-
-    return c1 - c2;
-}
-
-CONSTEXPR
-int32 str_compare(const char* str1, const char* str2, size_t n) NO_EXCEPT
-{
-    byte c1 = '\0';
-    byte c2 = '\0';
-
-    if (n >= 4) {
-        size_t n4 = n >> 2;
-
-        do {
-            c1 = (byte) *str1++;
-            c2 = (byte) *str2++;
-
-            if (c1 == '\0' || c1 != c2) {
-                return c1 - c2;
-            }
-
-            c1 = (byte) *str1++;
-            c2 = (byte) *str2++;
-
-            if (c1 == '\0' || c1 != c2) {
-                return c1 - c2;
-            }
-
-            c1 = (byte) *str1++;
-            c2 = (byte) *str2++;
-
-            if (c1 == '\0' || c1 != c2) {
-                return c1 - c2;
-            }
-
-            c1 = (byte) *str1++;
-            c2 = (byte) *str2++;
-
-            if (c1 == '\0' || c1 != c2) {
-                return c1 - c2;
-            }
-        } while (--n4 > 0);
-
-        n &= 3;
-    }
-
-    while (n > 0) {
-        c1 = (byte) *str1++;
-        c2 = (byte) *str2++;
-
-        if (c1 == '\0' || c1 != c2) {
-            return c1 - c2;
-        }
-
-        --n;
-    }
-
-    return c1 - c2;
-}
-
 inline
 int32 str_compare_caseless(const char* str1, const char* str2) NO_EXCEPT
 {
@@ -2258,14 +1650,14 @@ bool str_ends_with(const char* __restrict str, const char* __restrict suffix) NO
         return false;
     }
 
-    const size_t str_len = str_length(str);
-    const size_t suffix_len = str_length(suffix);
+    const size_t str_len = strlen(str);
+    const size_t suffix_len = strlen(suffix);
 
     if (suffix_len > str_len) {
         return false;
     }
 
-    return str_compare(str + str_len - suffix_len, suffix, suffix_len) == 0;
+    return strncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
 }
 
 // WARNING: result needs to have the correct length
@@ -2275,22 +1667,18 @@ void str_replace(const char* __restrict str, const char* __restrict search, cons
         return;
     }
 
-    const size_t search_len = str_length(search);
-    const size_t replace_len = str_length(replace);
+    const size_t search_len = strlen(search);
+    const size_t replace_len = strlen(replace);
 
     if (search_len == 0) {
-        str_copy(result, str);
+        strcpy(result, str);
         return;
     }
 
     const char* current = str;
     char* result_ptr = result;
 
-    int64 current_pos;
-
-    while (*current && (current_pos = str_find(current, search)) >= 0) {
-        current = current + current_pos;
-
+    while (*current && (current = strstr(current, search))) {
         const size_t bytes_to_copy = current - str;
         memcpy(result_ptr, str, bytes_to_copy);
         result_ptr += bytes_to_copy;
@@ -2302,7 +1690,7 @@ void str_replace(const char* __restrict str, const char* __restrict search, cons
         str = current;
     }
 
-    str_copy(result_ptr, str);
+    strcpy(result_ptr, str);
 }
 
 /*
@@ -2479,7 +1867,7 @@ void str_move_to_pos(const char** str, int32 pos) NO_EXCEPT
 {
     *str += pos >= 0
         ? pos
-        : OMS_MAX(((int32) str_length(*str) + pos), 0);
+        : OMS_MAX(((int32) strlen(*str) + pos), 0);
 }
 
 // Negative pos counts backwards
@@ -2489,7 +1877,7 @@ const char* str_move_to_pos(const char* str, int32 pos) NO_EXCEPT
     return str + (
         pos >= 0
             ? pos
-            : OMS_MAX(((int32) str_length(str) + pos), 0)
+            : OMS_MAX(((int32) strlen(str) + pos), 0)
         );
 }
 
@@ -2533,7 +1921,7 @@ void str_move_past(const char* __restrict* __restrict str, char delim) NO_EXCEPT
 FORCE_INLINE
 void str_move_past_alpha_num(const char** str) NO_EXCEPT
 {
-    while (str_is_alphanum(**str)
+    while (isalnum(**str)
         || **str == 45 || **str == 95
     )  {
         ++(*str);
@@ -2616,9 +2004,8 @@ void str_skip_list(const char** __restrict str, const char* __restrict delim, in
     }
 }
 
-// @question same as move_to ???
 inline
-void str_skip_until_list(const char** __restrict str, const char* __restrict delim) NO_EXCEPT
+void str_move_to(const char** __restrict str, const char* __restrict delim) NO_EXCEPT
 {
     while (**str != '\0') {
         const char* delim_temp = delim;
@@ -2664,7 +2051,7 @@ void str_pad_right(const char* __restrict input, char* __restrict output, char p
 inline
 void str_pad_left(const char* __restrict input, char* __restrict output, char pad, size_t len) NO_EXCEPT
 {
-    const size_t input_len = str_length(input);
+    const size_t input_len = strlen(input);
 
     size_t i = 0;
     for (; i < len - input_len; ++i) {
@@ -2695,7 +2082,7 @@ f32 str_to_float(const char* str, const char** pos = NULL) NO_EXCEPT
     }
 
     // Parse integer part
-    while (str_is_num(*p)) {
+    while (isdigit(*p)) {
         result = result * 10.0f + (*p - '0');
         ++p;
     }
@@ -2705,7 +2092,7 @@ f32 str_to_float(const char* str, const char** pos = NULL) NO_EXCEPT
         int32 decimals = 0;
         ++p;
 
-        while (str_is_num(*p)) {
+        while (isdigit(*p)) {
             result = result * 10.0f + (*p - '0');
             ++decimals;
             ++p;
@@ -3200,9 +2587,9 @@ bool sscanf_fast(const char *input, const char *format, ...) NO_EXCEPT
 
                         switch (mode) {
                             case S_ANY: valid = true; break;
-                            case S_ALPHA: valid = str_is_alpha(ch) || (allow_space && ch == ' '); break;
-                            case S_NUM: valid = str_is_num(ch) || (allow_space && ch == ' '); break;
-                            case S_ALNUM: valid = str_is_alphanum(ch) || (allow_space && ch == ' '); break;
+                            case S_ALPHA: valid = isalpha(ch) || (allow_space && ch == ' '); break;
+                            case S_NUM: valid = isdigit(ch) || (allow_space && ch == ' '); break;
+                            case S_ALNUM: valid = isalnum(ch) || (allow_space && ch == ' '); break;
                         }
 
                         if (!valid) {

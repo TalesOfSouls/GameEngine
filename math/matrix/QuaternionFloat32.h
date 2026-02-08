@@ -96,7 +96,7 @@ void quaternion_to_euler(const v4_f32* __restrict quat, v3_f32* __restrict v) {
     v->pitch = atan2f(sinp, cosp);
 
     // Check for gimbal lock
-    if (oms_abs(sinp) >= 0.9999f) {
+    if (abs(sinp) >= 0.9999f) {
         v->yaw = atan2f(quat->x * quat->z - quat->w * quat->y, quat->w * quat->x + quat->y * quat->z);
         v->roll = 0.0f;
     } else {
@@ -224,7 +224,7 @@ void quaternion_rotate_vector(v3_f32* __restrict vec, const v4_f32* __restrict q
 inline
 void quaternion_rotate_active(v4_f32* __restrict p, const v4_f32* __restrict quat, const v4_f32* __restrict quat_inv)
 {
-    //ASSERT_TRUE(oms_abs(x * x + y * y + z * z + w * z - 1.0f) < 0.01);
+    //ASSERT_TRUE(abs(x * x + y * y + z * z + w * z - 1.0f) < 0.01);
 
     v4_f32 p_tmp;
     quaternion_multiply(&p_tmp, quat_inv, p);
@@ -235,7 +235,7 @@ void quaternion_rotate_active(v4_f32* __restrict p, const v4_f32* __restrict qua
 inline
 void quaternion_rotate_passive(v4_f32* __restrict p, const v4_f32* __restrict quat, const v4_f32* __restrict quat_inv)
 {
-    //ASSERT_TRUE(oms_abs(x * x + y * y + z * z + w * w - 1.0f) < 0.01);
+    //ASSERT_TRUE(abs(x * x + y * y + z * z + w * w - 1.0f) < 0.01);
 
     v4_f32 p_tmp;
     quaternion_multiply(&p_tmp, quat, p);

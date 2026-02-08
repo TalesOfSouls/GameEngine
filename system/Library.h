@@ -22,7 +22,7 @@ struct Library {
 
     bool is_valid;
 
-    wchar_t dir[MAX_PATH];
+    wchar_t dir[PATH_MAX_LENGTH];
     wchar_t dst[64];
 
     #if DEBUG || INTERNAL
@@ -42,9 +42,9 @@ struct LibraryModuleDescriptor {
     void* functions;
 
     // A callback to run after binding
-    void (*load)(DebugContainer);
+    void (*load)(DebugContainer*);
 };
 
-#define LIBRARY_MODULE_DESCRIPTOR_SYMBOL "LIBRARY_MODULE_DESCRIPTOR"
+#define LIBRARY_MODULE_DESCRIPTOR_SYMBOL "_LIBRARY_MODULE_DESCRIPTOR"
 
 #endif

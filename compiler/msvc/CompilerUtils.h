@@ -9,10 +9,11 @@
 #ifndef COMS_COMPILER_MSVC_COMPILER_UTILS_H
 #define COMS_COMPILER_MSVC_COMPILER_UTILS_H
 
-#include "../../utils/Assert.h"
 #include <basetsd.h>
 #include <intrin.h>
-#include <string.h>
+#include "../../utils/Assert.h"
+#include "../../stdlib/Types.h"
+#include "../../stdlib/stdlib_has.h"
 
 #if CPP_VERSION < 17
     #define IF_CONSTEXPR(cond) __pragma(warning(suppress:4127)) if (cond)
@@ -229,7 +230,11 @@ byte compiler_div_pow2(byte a, uint32 b) NO_EXCEPT
 
 // 8 byte alignment required and size needs to be multiple of 8
 FORCE_INLINE HOT_CODE
-void compiler_memcpy_aligned_8(void* __restrict dst, const void* __restrict src, size_t size) NO_EXCEPT
+void compiler_memcpy_aligned_8(
+    void* const __restrict dst,
+    const void* const __restrict src,
+    size_t size
+) NO_EXCEPT
 {
     ASSERT_STRICT((size & 7) == 0);
     ASSERT_STRICT(((uintptr_t) dst) & 7 == 0);
@@ -243,7 +248,11 @@ void compiler_memcpy_aligned_8(void* __restrict dst, const void* __restrict src,
 }
 
 FORCE_INLINE HOT_CODE
-void compiler_memcpy_aligned_4(void* __restrict dst, const void* __restrict src, size_t size) NO_EXCEPT
+void compiler_memcpy_aligned_4(
+    void* const __restrict dst,
+    const void* const __restrict src,
+    size_t size
+) NO_EXCEPT
 {
     ASSERT_STRICT((size & 3) == 0);
     ASSERT_STRICT(((uintptr_t) dst) & 3 == 0);
@@ -258,7 +267,7 @@ void compiler_memcpy_aligned_4(void* __restrict dst, const void* __restrict src,
 
 // 8 byte alignment required and size needs to be multiple of 8
 FORCE_INLINE HOT_CODE
-void compiler_memset_aligned_8(void* dst, int value, size_t size) NO_EXCEPT
+void compiler_memset_aligned_8(void* const dst, int value, size_t size) NO_EXCEPT
 {
     ASSERT_STRICT((size & 7) == 0);
     ASSERT_STRICT(((uintptr_t) dst) & 7 == 0);
@@ -271,7 +280,7 @@ void compiler_memset_aligned_8(void* dst, int value, size_t size) NO_EXCEPT
 }
 
 FORCE_INLINE HOT_CODE
-void compiler_memset_aligned_4(void* dst, int value, size_t size) NO_EXCEPT
+void compiler_memset_aligned_4(void* const dst, int value, size_t size) NO_EXCEPT
 {
     ASSERT_STRICT((size & 3) == 0);
     ASSERT_STRICT(((uintptr_t) dst) & 3 == 0);

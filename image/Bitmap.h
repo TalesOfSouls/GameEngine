@@ -9,9 +9,6 @@
 #ifndef COMS_IMAGE_BITMAP_H
 #define COMS_IMAGE_BITMAP_H
 
-#include <stdio.h>
-#include <string.h>
-
 #include "../stdlib/Stdlib.h"
 #include "../utils/Utils.h"
 #include "Image.h"
@@ -268,7 +265,7 @@ void image_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some assignment/copy overhead
-    Bitmap src = {};
+    Bitmap src = {0};
     generate_default_bitmap_references(src_data, &src);
 
     image->width = src.dib_header.width;

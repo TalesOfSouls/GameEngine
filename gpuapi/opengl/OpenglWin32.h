@@ -14,6 +14,7 @@
 #include "../../stdlib/Stdlib.h"
 #include "OpenglDefines.h"
 
+// @question Why do i even need this? We are dynamically loading!
 #pragma comment(lib, "OpenGL32.Lib")
 
 typedef ptrdiff_t GLsizeiptr;
@@ -683,14 +684,21 @@ static wgl_swap_interval_ext* wglSwapIntervalEXT;
 typedef const char* WINAPI wgl_get_extensions_string_ext(void);
 static wgl_get_extensions_string_ext* wglGetExtensionsStringEXT;
 
+struct OpenglRenderer {
+    // @bug This should only be available on opengl.
+    // The problem is the main program doesn't know which gpuapi we are using, so maybe a void pointer?
+    // If we do this here than we also must do SoftwareRenderer here, no?
+    HGLRC openGLRC;
+};
+
 static inline
-void set_pixel_format(HDC hdc, int32 multisampling = 0) NO_EXCEPT
+void set_pixel_format(HDC const hdc, int32 multisampling = 0) NO_EXCEPT
 {
     int32 suggested_pixel_format_idx = 0;
     uint32 extended_pick = 0;
 
     if (wglChoosePixelFormatARB) {
-        int32 attr_list[] = {
+        const int32 attr_list[] = {
             WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
             WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
             WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
@@ -706,11 +714,11 @@ void set_pixel_format(HDC hdc, int32 multisampling = 0) NO_EXCEPT
     }
 
     if(!extended_pick) {
-        PIXELFORMATDESCRIPTOR desired_pixel_format = {};
+        PIXELFORMATDESCRIPTOR desired_pixel_format = {0};
         desired_pixel_format.nSize = sizeof(desired_pixel_format);
         desired_pixel_format.nVersion = 1;
-        desired_pixel_format.iPixelType = PFD_TYPE_RGBA;
         desired_pixel_format.dwFlags = PFD_SUPPORT_OPENGL|PFD_DRAW_TO_WINDOW|PFD_DOUBLEBUFFER;
+        desired_pixel_format.iPixelType = PFD_TYPE_RGBA;
         desired_pixel_format.cColorBits = 32;
         desired_pixel_format.cAlphaBits = 8;
         desired_pixel_format.cDepthBits = 24;
@@ -730,9 +738,9 @@ bool gl_has_extension(const char* name) NO_EXCEPT
     int32 n;
     glGetIntegerv(GL_NUM_EXTENSIONS, &n);
 
-    for (int32 i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
         const char* e = (const char*) glGetStringi(GL_EXTENSIONS, i);
-        if (str_compare(e, name) == 0) {
+        if (strcmp(e, name) == 0) {
             return true;
         }
     }
@@ -743,17 +751,24 @@ bool gl_has_extension(const char* name) NO_EXCEPT
 static
 bool gl_extensions_load() NO_EXCEPT
 {
-    WNDCLASSW wc = {};
-
-    wc.lpfnWndProc = DefWindowProcW;
-    wc.hInstance = GetModuleHandle(0);
-    wc.lpszClassName = L"WGLLoader";
+    WNDCLASSW wc = {
+        0, // .style =
+        DefWindowProcW, // .lpfnWndProc =
+        0, // .cbClsExtra =
+        0, // .cbWndExtra =
+        GetModuleHandle(0), // .hInstance =
+        NULL, // .hIcon =
+        NULL, // .hCursor =
+        NULL, // .hbrBackground =
+        NULL, // .lpszMenuName =
+        L"WGLLoader"// .lpszClassName =
+    };
 
     if (!RegisterClassW(&wc)) {
         return false;
     }
 
-    HWND window = CreateWindowExW(
+    HWND const window = CreateWindowExW(
         0,
         wc.lpszClassName,
         L"ExtensionLoader",
@@ -768,17 +783,17 @@ bool gl_extensions_load() NO_EXCEPT
         0
     );
 
-    HDC hdc = GetDC(window);
+    HDC const hdc = GetDC(window);
     set_pixel_format(hdc);
 
-    HGLRC openGLRC = wglCreateContext(hdc);
+    HGLRC const openGLRC = wglCreateContext(hdc);
 
     if (!wglMakeCurrent(hdc, openGLRC) || !wglGetExtensionsStringEXT) {
         return false;
     }
 
-    char *extension = (char *) wglGetExtensionsStringEXT();
-    char *pos = extension;
+    char* extension = (char *) wglGetExtensionsStringEXT();
+    char* pos = extension;
 
     while(*pos) {
         while(*pos == ' ' || *pos == '\t' || *pos == '\r' || *pos == '\n') {
@@ -791,7 +806,7 @@ bool gl_extensions_load() NO_EXCEPT
         }
 
         // umm count = end - pos;
-        // OpenGL->SupportsSRGBFramebuffer = str_compare(count, pos, "WGL_EXT_framebuffer_sRGB") == 0 || str_compare(count, pos, "WGL_ARB_framebuffer_sRGB") == 0;
+        // OpenGL->SupportsSRGBFramebuffer = strcmp(count, pos, "WGL_EXT_framebuffer_sRGB") == 0 || strcmp(count, pos, "WGL_ARB_framebuffer_sRGB") == 0;
 
         pos = end;
     }
@@ -913,12 +928,13 @@ void opengl_init_gl() NO_EXCEPT
     };
 
     OPENGL_HAS_NVIDIA_EXT = true;
-    for (int32 i = 0; i < ARRAY_COUNT(optional_nvidia_ext); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(optional_nvidia_ext); ++i) {
         if (!gl_has_extension(optional_nvidia_ext[i])) {
             OPENGL_HAS_NVIDIA_EXT = false;
             break;
         }
     }
+
     if (OPENGL_HAS_NVIDIA_EXT) {
         glMakeBufferResidentNV = (type_glMakeBufferResidentNV *) wglGetProcAddress("glMakeBufferResidentNV");
         glMakeBufferNonResidentNV = (type_glMakeBufferNonResidentNV *) wglGetProcAddress("glMakeBufferNonResidentNV");
@@ -928,34 +944,40 @@ void opengl_init_gl() NO_EXCEPT
 }
 
 inline
-void opengl_destroy(Window* window) NO_EXCEPT
+void opengl_destroy(Window* const window) NO_EXCEPT
 {
+    WindowPlatform* const platform_window = (WindowPlatform *) window->platform_window;
+    OpenglRenderer* const context = (OpenglRenderer *) window->gpu_api_context;
+
     wglMakeCurrent(NULL, NULL);
-    wglDeleteContext(window->openGLRC);
-    ReleaseDC(window->hwnd, window->hdc);
+    wglDeleteContext(context->openGLRC);
+    ReleaseDC(platform_window->hwnd, platform_window->hdc);
 }
 
-void opengl_instance_create(Window* window, int32 multisample = 0) NO_EXCEPT
+void opengl_instance_create(Window* const __restrict window, int32 multisample = 0) NO_EXCEPT
 {
     LOG_1("Load opengl");
     gl_extensions_load();
 
     opengl_init_wgl();
 
+    WindowPlatform* const platform_window = (WindowPlatform *) window->platform_window;
+    OpenglRenderer* const context = (OpenglRenderer *) window->gpu_api_context;
+
     // @question Why do we do the GetDC here? Couldn't we do it in UtilsWindows.h
-    window->hdc = GetDC(window->hwnd);
-    set_pixel_format(window->hdc, multisample);
+    platform_window->hdc = GetDC(platform_window->hwnd);
+    set_pixel_format(platform_window->hdc, multisample);
 
-    window->openGLRC = 0;
+    context->openGLRC = 0;
     if (wglCreateContextAttribsARB) {
-        window->openGLRC = wglCreateContextAttribsARB(window->hdc, 0, win32_opengl_attribs);
+        context->openGLRC = wglCreateContextAttribsARB(platform_window->hdc, 0, win32_opengl_attribs);
     }
 
-    if (!window->openGLRC) {
-        window->openGLRC = wglCreateContext(window->hdc);
+    if (!context->openGLRC) {
+        context->openGLRC = wglCreateContext(platform_window->hdc);
     }
 
-    if(!wglMakeCurrent(window->hdc, window->openGLRC)) {
+    if(!wglMakeCurrent(platform_window->hdc, context->openGLRC)) {
         LOG_1("Couldn't load opengl");
         return;
     }
@@ -966,6 +988,13 @@ void opengl_instance_create(Window* window, int32 multisample = 0) NO_EXCEPT
         wglSwapIntervalEXT(0);
     }
     LOG_1("Loaded opengl");
+}
+
+inline
+void gpuapi_swap_buffers(const Window* const window) NO_EXCEPT
+{
+    WindowPlatform* const platform_window = (WindowPlatform *) window->platform_window;
+    SwapBuffers(platform_window->hdc);
 }
 
 #endif

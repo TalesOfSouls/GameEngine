@@ -18,7 +18,7 @@
 #include "../system/Allocator.h"
 #include "DatabaseConnection.h"
 #include "Database.h"
-#include "../memory/ThreadedChunkMemory.h"
+#include "../memory/ChunkMemory.h"
 
 struct DatabasePool {
     // How many connections does this pool support?
@@ -31,7 +31,7 @@ struct DatabasePool {
     atomic_64 uint64* free;
 };
 
-void db_pool_alloc(DatabasePool* pool, uint8 count) {
+void db_pool_alloc(DatabasePool* const pool, uint8 count) NO_EXCEPT {
     ASSERT_TRUE(count);
     PROFILE(PROFILE_DB_POOL_ALLOC, NULL, false, true);
     LOG_1("[INFO] Allocating DatabasePool for %d connections", {DATA_TYPE_UINT8, &count});
@@ -40,18 +40,21 @@ void db_pool_alloc(DatabasePool* pool, uint8 count) {
         + sizeof(uint64) * ceil_div(count, 64) // free
         + 64 * 2; // overhead for alignment
 
-    pool->connections = (DatabaseConnection *) platform_alloc_aligned(size, 64);
+    pool->connections = (DatabaseConnection *) platform_alloc_aligned(size, size, ASSUMED_CACHE_LINE_SIZE);
     pool->free = (uint64 *) align_up((uintptr_t) (pool->connections + count * sizeof(DatabaseConnection)), 64);
     pool->count = count;
 }
 
-void db_pool_add(DatabasePool* __restrict pool, DatabaseConnection* __restrict db) NO_EXCEPT
+void db_pool_add(
+    DatabasePool* const __restrict pool,
+    DatabaseConnection* const __restrict db
+) NO_EXCEPT
 {
     db->id = ++pool->pos;
     memcpy(&pool->connections[pool->pos], db, sizeof(DatabaseConnection));
 }
 
-void db_pool_free(DatabasePool* pool) {
+void db_pool_free(DatabasePool* const pool) NO_EXCEPT {
     LOG_1("[INFO] Freeing DatabasePool");
 
     for (int32 i = 0; i < pool->count; ++i) {
@@ -66,7 +69,7 @@ void db_pool_free(DatabasePool* pool) {
 // Returns free database connection or null if none could be found
 // @todo implement db_pool_get_wait(pool, waittime)
 FORCE_INLINE
-const DatabaseConnection* db_pool_get(DatabasePool* pool) NO_EXCEPT
+const DatabaseConnection* db_pool_get(DatabasePool* const pool) NO_EXCEPT
 {
     // @question Why are we not using reserve?
     int32 id = thrd_chunk_reserve_one(pool->free, (pool->count - 1) / 64, 0);
@@ -76,9 +79,9 @@ const DatabaseConnection* db_pool_get(DatabasePool* pool) NO_EXCEPT
 
 // releases the database connection for use
 FORCE_INLINE
-void db_pool_release(DatabasePool* pool, int32 id) NO_EXCEPT
+void db_pool_release(DatabasePool* const pool, int32 id) NO_EXCEPT
 {
-    thrd_chunk_set_unset(id, pool->free);
+    thrd_chunk_set_unset_atomic(id, pool->free);
 }
 
 #endif

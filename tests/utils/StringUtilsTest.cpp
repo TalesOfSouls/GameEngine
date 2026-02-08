@@ -5,14 +5,14 @@
 
 static void test_utf8_encode()
 {
-    char out[5] = {};
+    char out[5] = {0};
     TEST_EQUALS(utf8_encode(659, out), 2);
     TEST_EQUALS(utf8_encode(67857, out), 4);
 }
 
 static void test_utf8_decode()
 {
-    char in[5] = {};
+    char in[5] = {0};
     uint32 codepoint;
 
     *((uint16 *) in) = SWAP_ENDIAN_BIG((uint16) 0xCA93);
@@ -23,15 +23,15 @@ static void test_utf8_decode()
     TEST_EQUALS(utf8_decode(in, &codepoint), 4);
     TEST_EQUALS(codepoint, 67857);
 
-    char out[5] = {};
+    char out[5] = {0};
     TEST_EQUALS(utf8_decode(codepoint, out), 4);
     TEST_TRUE(strcmp(out, in) == 0);
 }
 
-static void test_utf8_str_length()
+static void test_utf8_strlen()
 {
     char in[] = "Foo © bar 𝌆 baz ☃ qux";
-    TEST_EQUALS(utf8_str_length(in), 21);
+    TEST_EQUALS(utf8_strlen(in), 21);
 }
 
 static void test_str_is_float()
@@ -117,14 +117,14 @@ static void test_str_move_to_pos()
     TEST_EQUALS(*tmp, '7');
 }
 
-static void test_str_length()
+static void test_strlen()
 {
-    TEST_EQUALS(str_length("2asdf dw"), 8);
+    TEST_EQUALS(strlen("2asdf dw"), 8);
 }
 
 static void test_str_length_wchar()
 {
-    TEST_EQUALS(str_length(L"2asdf dw"), 8);
+    TEST_EQUALS(strlen(L"2asdf dw"), 8);
 }
 
 static void test_str_contains()
@@ -161,27 +161,27 @@ static void test_str_contains_wchar()
     //TEST_FALSE(str_contains(L"2asdf dw", L"asd", 3)); Doesn't exist for wchar
 }
 
-static void test_str_compare()
+static void test_strcmp()
 {
-    TEST_EQUALS(str_compare("2asdf dw", "2asdf dw"), 0);
-    TEST_NOT_EQUALS(str_compare("2asdf dw", "2asdf"), 0);
+    TEST_EQUALS(strcmp("2asdf dw", "2asdf dw"), 0);
+    TEST_NOT_EQUALS(strcmp("2asdf dw", "2asdf"), 0);
 }
 
-static void test_str_compare_wchar()
+static void test_strcmp_wchar()
 {
-    TEST_EQUALS(str_compare(L"2asdf dw", L"2asdf dw"), 0);
-    TEST_NOT_EQUALS(str_compare(L"2asdf dw", L"2asdf"), 0);
+    TEST_EQUALS(strcmp(L"2asdf dw", L"2asdf dw"), 0);
+    TEST_NOT_EQUALS(strcmp(L"2asdf dw", L"2asdf"), 0);
 }
 
 #if PERFORMANCE_TEST
-static void _str_length(volatile void* val) {
+static void _strlen(volatile void* val) {
     volatile int64* res = (volatile int64 *) val;
 
     char buffer[32];
     memcpy(buffer, "This %d is a %s with %f values", sizeof("This %d is a %s with %f values"));
     buffer[30] = (byte) *res;
 
-    *res += (int64) str_length(buffer);
+    *res += (int64) strlen(buffer);
 }
 
 static void _strlen(volatile void* val) {
@@ -293,14 +293,14 @@ int main() {
     TEST_RUN(test_str_move_to_pos);
     TEST_RUN(test_str_length);
     TEST_RUN(test_str_contains);
-    TEST_RUN(test_str_compare);
+    TEST_RUN(test_strcmp);
     TEST_RUN(test_str_is_empty);
     TEST_RUN(test_str_is_eol);
 
     // Wchar functions
     TEST_RUN(test_str_length_wchar);
     TEST_RUN(test_str_contains_wchar);
-    TEST_RUN(test_str_compare_wchar);
+    TEST_RUN(test_strcmp_wchar);
 
     #if PERFORMANCE_TEST
         TEST_RUN(test_str_length_performance);

@@ -21,7 +21,7 @@
 inline
 void image_from_file(Image* __restrict image, const char* __restrict path, RingMemory* const __restrict ring) NO_EXCEPT
 {
-    FileBody file = {};
+    FileBody file = {0};
     file_read(path, &file, ring);
 
     if (str_ends_with(path, ".png")) {

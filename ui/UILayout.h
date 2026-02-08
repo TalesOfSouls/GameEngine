@@ -1,7 +1,6 @@
 #ifndef COMS_UI_LAYOUT_H
 #define COMS_UI_LAYOUT_H
 
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "../stdlib/HashMap.h"
 #include "../asset/Asset.h"

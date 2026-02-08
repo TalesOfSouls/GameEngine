@@ -11,9 +11,12 @@
 
 #include "Stdlib.h"
 
+// @question Game math is so specific that we should probably move it out of stdlib and to math/game/GameMathDefines.h
+
 #define OMS_LERP(a, b, t) ((1 - (t)) * (a) + (t) * (b))
 #define OMS_INVERSE_LERP(a, b, x) (((x) - (a)) / ((b) - (a)))
-// Remap x from [inMin,inMax] to [outMin,outMax]
+
+// Remap x from [inMin, inMax] to [outMin, outMax]
 #define OMS_REMAP(x, inMin, inMax, outMin, outMax) (OMS_LERP((outMin), (outMax), OMS_INVERSE_LERP((inMin), (inMax), (x))))
 
 struct AABB_f32 {

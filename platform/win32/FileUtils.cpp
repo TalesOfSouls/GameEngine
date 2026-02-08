@@ -9,9 +9,7 @@
 #ifndef COMS_PLATFORM_WIN32_FILE_UTILS_C
 #define COMS_PLATFORM_WIN32_FILE_UTILS_C
 
-#include <stdio.h>
 #include <windows.h>
-#include <string.h>
 
 #ifdef _MSC_VER
     #include  <io.h>
@@ -70,8 +68,8 @@ void file_mmf_close(MMFHandle fh) NO_EXCEPT
 inline
 void relative_to_absolute(const char* __restrict rel, char* __restrict path) NO_EXCEPT
 {
-    char spath[MAX_PATH];
-    int32 spath_length = GetModuleFileNameA(NULL, spath, MAX_PATH);
+    char spath[PATH_MAX_LENGTH];
+    int32 spath_length = GetModuleFileNameA(NULL, spath, PATH_MAX_LENGTH);
     if (spath_length == 0) {
         return;
     }
@@ -90,13 +88,13 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path) NO_
     ++spath_length;
 
     memcpy(path, spath, spath_length);
-    str_copy(path + spath_length, temp);
+    strcpy(path + spath_length, temp);
 }
 
 inline
 int32 self_file_path(wchar_t* path)
 {
-    return (int32) GetModuleFileNameW(NULL, path, MAX_PATH);
+    return (int32) GetModuleFileNameW(NULL, path, PATH_MAX_LENGTH);
 }
 
 inline
@@ -105,8 +103,8 @@ void relative_to_absolute(
     wchar_t* __restrict path
 ) NO_EXCEPT
 {
-    wchar_t spath[MAX_PATH];
-    int32 spath_length = GetModuleFileNameW(NULL, spath, MAX_PATH);
+    wchar_t spath[PATH_MAX_LENGTH];
+    int32 spath_length = GetModuleFileNameW(NULL, spath, PATH_MAX_LENGTH);
     if (spath_length == 0) {
         return;
     }
@@ -126,7 +124,7 @@ void relative_to_absolute(
 
     memcpy(path, spath, spath_length * sizeof(wchar_t));
 
-    str_copy(path + spath_length, temp);
+    wcscpy(path + spath_length, temp);
 }
 
 FORCE_INLINE
@@ -146,7 +144,7 @@ file_size(const char* path) NO_EXCEPT
     // @performance Profile against fseek strategy
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileA((LPCSTR) full_path,
@@ -190,7 +188,7 @@ file_size(const wchar_t* path) NO_EXCEPT
     // @performance Profile against fseek strategy
     FileHandle fp;
     if (*path == '.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileW((LPCWSTR) full_path,
@@ -232,9 +230,8 @@ bool file_exists(const char* path) NO_EXCEPT
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     DWORD file_attr;
-
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         file_attr = GetFileAttributesA(full_path);
@@ -251,9 +248,8 @@ bool file_exists(const wchar_t* path) NO_EXCEPT
     //PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     DWORD file_attr;
-
     if (*path == L'.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         file_attr = GetFileAttributesW(full_path);
@@ -265,13 +261,17 @@ bool file_exists(const wchar_t* path) NO_EXCEPT
 }
 
 inline void
-file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* const __restrict ring = NULL) NO_EXCEPT
+file_read(
+    const char* __restrict path,
+    FileBody* __restrict file,
+    RingMemory* const __restrict ring = NULL
+) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileA((LPCSTR) full_path,
@@ -324,6 +324,8 @@ file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* co
 
     CloseHandle(fp);
 
+    ASSERT_TRUE(bytes_read <= 2147483648);
+
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
@@ -331,13 +333,17 @@ file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* co
 }
 
 inline void
-file_read(const wchar_t* __restrict path, FileBody* __restrict file, RingMemory* const __restrict ring = NULL) NO_EXCEPT
+file_read(
+    const wchar_t* __restrict path,
+    FileBody* __restrict file,
+    RingMemory* const __restrict ring = NULL
+) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == L'.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileW((LPCWSTR) full_path,
@@ -389,6 +395,8 @@ file_read(const wchar_t* __restrict path, FileBody* __restrict file, RingMemory*
     }
 
     CloseHandle(fp);
+
+    ASSERT_TRUE(bytes_read <= 2147483648);
 
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
@@ -410,7 +418,7 @@ void file_read(
 
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileA((LPCSTR) full_path,
@@ -483,6 +491,8 @@ void file_read(
 
     CloseHandle(fp);
 
+    ASSERT_TRUE(bytes_read <= 2147483648);
+
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
@@ -502,7 +512,7 @@ void file_read(
 
     FileHandle fp;
     if (*path == L'.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileW((LPCWSTR) full_path,
@@ -574,6 +584,8 @@ void file_read(
     }
 
     CloseHandle(fp);
+
+    ASSERT_TRUE(bytes_read <= 2147483648);
 
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
@@ -635,6 +647,8 @@ void file_read(
         return;
     }
 
+    ASSERT_TRUE(bytes_read <= 2147483648);
+
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
@@ -672,7 +686,11 @@ uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UI
     uint64 line_count = 0;
 
     while (total_read < read_length) {
-        DWORD to_read = (DWORD)((read_length - total_read) > chunk_size ? chunk_size : (read_length - total_read));
+        DWORD to_read = (DWORD)((read_length - total_read) > chunk_size
+            ? chunk_size
+            : (read_length - total_read)
+        );
+
         if (!ReadFile(fp, buffer, to_read, &bytes_read, NULL) || bytes_read == 0) {
             break;
         }
@@ -752,7 +770,7 @@ file_write(const char* __restrict path, const FileBody* __restrict file) NO_EXCE
 
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileA((LPCSTR) full_path,
@@ -799,7 +817,7 @@ file_write(const wchar_t* __restrict path, const FileBody* __restrict file) NO_E
 
     FileHandle fp;
     if (*path == L'.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileW((LPCWSTR) full_path,
@@ -845,11 +863,11 @@ file_copy(const char* __restrict src, const char* __restrict dst) NO_EXCEPT
     PROFILE(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
 
     if (*src == '.') {
-        char src_full_path[MAX_PATH];
+        char src_full_path[PATH_MAX_LENGTH];
         relative_to_absolute(src, src_full_path);
 
         if (*dst == '.') {
-            char dst_full_path[MAX_PATH];
+            char dst_full_path[PATH_MAX_LENGTH];
             relative_to_absolute(dst, dst_full_path);
 
             CopyFileA((LPCSTR) src_full_path, (LPCSTR) dst_full_path, false);
@@ -857,7 +875,7 @@ file_copy(const char* __restrict src, const char* __restrict dst) NO_EXCEPT
             CopyFileA((LPCSTR) src_full_path, (LPCSTR) dst, false);
         }
     } else if (*dst == '.') {
-        char dst_full_path[MAX_PATH];
+        char dst_full_path[PATH_MAX_LENGTH];
         relative_to_absolute(dst, dst_full_path);
 
         CopyFileA((LPCSTR) src, (LPCSTR) dst_full_path, false);
@@ -872,11 +890,11 @@ file_copy(const wchar_t* __restrict src, const wchar_t* __restrict dst) NO_EXCEP
     //PROFILE(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
 
     if (*src == L'.') {
-        wchar_t src_full_path[MAX_PATH];
+        wchar_t src_full_path[PATH_MAX_LENGTH];
         relative_to_absolute(src, src_full_path);
 
         if (*dst == L'.') {
-            wchar_t dst_full_path[MAX_PATH];
+            wchar_t dst_full_path[PATH_MAX_LENGTH];
             relative_to_absolute(dst, dst_full_path);
 
             CopyFileW(src_full_path, dst_full_path, FALSE);
@@ -884,7 +902,7 @@ file_copy(const wchar_t* __restrict src, const wchar_t* __restrict dst) NO_EXCEP
             CopyFileW(src_full_path, dst, FALSE);
         }
     } else if (*dst == L'.') {
-        wchar_t dst_full_path[MAX_PATH];
+        wchar_t dst_full_path[PATH_MAX_LENGTH];
         relative_to_absolute(dst, dst_full_path);
 
         CopyFileW(src, dst_full_path, FALSE);
@@ -904,7 +922,7 @@ FileHandle file_append_handle(const char* path) NO_EXCEPT
 {
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileA((LPCSTR) full_path,
@@ -938,7 +956,7 @@ FileHandle file_append_handle(const wchar_t* path) NO_EXCEPT
 {
     FileHandle fp;
     if (*path == L'.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileW((LPCWSTR) full_path,
@@ -1045,7 +1063,7 @@ FileHandle file_read_handle(const char* path) NO_EXCEPT
 {
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileA((LPCSTR) full_path,
@@ -1079,7 +1097,7 @@ FileHandle file_read_handle(const wchar_t* path) NO_EXCEPT
 {
     FileHandle fp;
     if (*path == '.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileW((LPCWSTR) full_path,
@@ -1113,7 +1131,7 @@ FileHandle file_read_async_handle(const char* path) NO_EXCEPT
 {
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileA((LPCSTR) full_path,
@@ -1147,7 +1165,7 @@ FileHandle file_read_async_handle(const wchar_t* path) NO_EXCEPT
 {
     FileHandle fp;
     if (*path == '.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileW((LPCWSTR) full_path,
@@ -1182,7 +1200,7 @@ bool file_append(const char* __restrict path, const char* __restrict file) NO_EX
 
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileA((LPCSTR) full_path,
@@ -1209,7 +1227,7 @@ bool file_append(const char* __restrict path, const char* __restrict file) NO_EX
     }
 
     DWORD written;
-    DWORD length = (DWORD) str_length(file);
+    DWORD length = (DWORD) strlen(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
         CloseHandle(fp);
         return false;
@@ -1233,7 +1251,7 @@ file_append(FileHandle fp, const char* file) NO_EXCEPT
     }
 
     DWORD written;
-    const DWORD length = (DWORD) str_length(file);
+    const DWORD length = (DWORD) strlen(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
         ASSERT_TRUE(false);
         return false;
@@ -1272,7 +1290,7 @@ file_append(const char* __restrict path, const FileBody* __restrict file) NO_EXC
 
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileA((LPCSTR) full_path,
@@ -1318,7 +1336,7 @@ bool file_append(const wchar_t* __restrict path, const wchar_t* __restrict file)
 
     FileHandle fp;
     if (*path == '.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileW((LPCWSTR) full_path,
@@ -1345,7 +1363,7 @@ bool file_append(const wchar_t* __restrict path, const wchar_t* __restrict file)
     }
 
     DWORD written;
-    DWORD length = (DWORD) str_length(file);
+    DWORD length = (DWORD) wcslen(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
         CloseHandle(fp);
         return false;
@@ -1365,7 +1383,7 @@ file_append(const wchar_t* __restrict path, const FileBody* __restrict file) NO_
 
     FileHandle fp;
     if (*path == '.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = CreateFileW((LPCWSTR) full_path,
@@ -1412,7 +1430,7 @@ uint64 file_last_modified(const char* path) NO_EXCEPT
 
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = FindFirstFileA(full_path, (LPWIN32_FIND_DATAA) &find_data);
@@ -1420,7 +1438,7 @@ uint64 file_last_modified(const char* path) NO_EXCEPT
         fp = FindFirstFileA(path, (LPWIN32_FIND_DATAA) &find_data);
     }
 
-    FILETIME modified = {};
+    FILETIME modified = {0};
     if(fp != INVALID_HANDLE_VALUE) {
         modified = find_data.ftLastWriteTime;
         FindClose(fp);
@@ -1440,7 +1458,7 @@ uint64 file_last_modified(const wchar_t* path) NO_EXCEPT
 
     FileHandle fp;
     if (*path == L'.') {
-        wchar_t full_path[MAX_PATH];
+        wchar_t full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = FindFirstFileW(full_path, &find_data);
@@ -1448,7 +1466,7 @@ uint64 file_last_modified(const wchar_t* path) NO_EXCEPT
         fp = FindFirstFileW(path, &find_data);
     }
 
-    FILETIME modified = {};
+    FILETIME modified = {0};
     if (fp != INVALID_HANDLE_VALUE) {
         modified = find_data.ftLastWriteTime;
         FindClose(fp);
@@ -1464,7 +1482,7 @@ uint64 file_last_modified(const wchar_t* path) NO_EXCEPT
 FORCE_INLINE
 int32 self_path(char* path) NO_EXCEPT
 {
-    int32 path_length = GetModuleFileNameA(NULL, path, MAX_PATH);
+    int32 path_length = GetModuleFileNameA(NULL, path, PATH_MAX_LENGTH);
     if (path_length == 0) {
         return 0;
     }
@@ -1486,7 +1504,7 @@ int32 self_path(char* path) NO_EXCEPT
 FORCE_INLINE
 int32 self_path(wchar_t* path) NO_EXCEPT
 {
-    int32 path_length = GetModuleFileNameW(NULL, path, MAX_PATH);
+    int32 path_length = GetModuleFileNameW(NULL, path, PATH_MAX_LENGTH);
     if (path_length == 0) {
         return 0;
     }
@@ -1505,17 +1523,22 @@ int32 self_path(wchar_t* path) NO_EXCEPT
     return path_length;
 }
 
-void iterate_directory(const char* base_path, const char* file_ending, void (*handler)(const char *, void *), ...) NO_EXCEPT
+void iterate_directory(
+    const char* base_path,
+    const char* file_ending,
+    void (*handler)(const char *, void *),
+    ...
+) NO_EXCEPT
 {
     va_list args;
     va_start(args, handler);
 
-    char full_base_path[MAX_PATH];
+    char full_base_path[PATH_MAX_LENGTH];
     relative_to_absolute(base_path, full_base_path);
 
     WIN32_FIND_DATAA find_file_data;
-    char search_path[MAX_PATH];
-    snprintf(search_path, MAX_PATH, "%s\\*", full_base_path);
+    char search_path[PATH_MAX_LENGTH];
+    snprintf(search_path, PATH_MAX_LENGTH, "%s\\*", full_base_path);
 
     HANDLE hFind = FindFirstFileA((LPCSTR) search_path, &find_file_data);
     if (hFind == INVALID_HANDLE_VALUE) {
@@ -1533,14 +1556,14 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
             continue;
         }
 
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         // @performance This is bad, we are internally moving two times too often to the end of full_path
         //      Maybe make str_copy return the length, same as append?
-        str_copy(full_path, base_path);
+        strcpy(full_path, base_path);
         if (!str_ends_with(base_path, "/")) {
-            str_concat_append(full_path, "/");
+            strcat(full_path, "/");
         }
-        str_concat_append(full_path, (const char *) find_file_data.cFileName);
+        strcat(full_path, (const char *) find_file_data.cFileName);
 
         if (find_file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
             iterate_directory(full_path, file_ending, handler, args);
@@ -1554,10 +1577,12 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
     va_end(args);
 }
 
+FORCE_INLINE
 void file_delete(const char* path) {
     DeleteFileA(path);
 }
 
+FORCE_INLINE
 void file_delete(const wchar_t* path) {
     DeleteFileW(path);
 }

@@ -10,12 +10,12 @@
 #define COMS_PLATFORM_LINUX_THREADING_THREAD_H
 
 #include <sched.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include <linux/futex.h>
 #include <sys/syscall.h>
+#include <sched.h>
 
 #include "../../../stdlib/Stdlib.h"
 #include "../../../compiler/CompilerUtils.h"
@@ -25,6 +25,16 @@
 #include "../../../log/PerformanceProfiler.h"
 
 inline
+void coms_thread_affinity_set(coms_pthread_t* thread, int64 mask) NO_EXCEPT
+{
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(mask, &cpuset);
+
+    sched_setaffinity(0, sizeof(cpuset), &cpuset);
+}
+
+inline
 int32 coms_pthread_create(coms_pthread_t* __restrict thread, void*, ThreadJobFunc start_routine, void* __restrict arg) NO_EXCEPT
 {
     // @question Do we want to pin threads automatically to p cores based on a utilization score?
@@ -32,7 +42,7 @@ int32 coms_pthread_create(coms_pthread_t* __restrict thread, void*, ThreadJobFun
     ASSERT_TRUE(start_routine);
 
     const uint64 stack_size = 1 * MEGABYTE;
-    thread->stack = platform_alloc_aligned(stack_size, 64);
+    thread->stack = platform_alloc_aligned(stack_size, stack_size, ASSUMED_CACHE_LINE_SIZE);
 
     int32 flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM;
 
@@ -43,10 +53,10 @@ int32 coms_pthread_create(coms_pthread_t* __restrict thread, void*, ThreadJobFun
         return -1;
     }
 
-    int32 thread_id = (int32) thread->h;
-    THREAD_LOG_CREATE(thread_id);
+    thread->id = (int32) thread->h;
+    THREAD_LOG_CREATE(thread->id);
 
-    return thread_id;
+    return thread->id;
 }
 
 FORCE_INLINE
@@ -59,6 +69,7 @@ int32 coms_pthread_join(coms_pthread_t thread, void** retval) NO_EXCEPT
         : 0;
 
     platform_aligned_free((void **) &thread.stack);
+    THREAD_LOG_DELETE(thread.id);
 
     return res;
 }

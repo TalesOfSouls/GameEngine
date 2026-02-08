@@ -9,8 +9,6 @@
 #ifndef COMS_PLATFORM_LINUX_FILE_UTILS_C
 #define COMS_PLATFORM_LINUX_FILE_UTILS_C
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -20,7 +18,6 @@
 #include <linux/limits.h>
 #include <stdarg.h>
 #include <fcntl.h>
-#include <string.h>
 
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/Utils.h"
@@ -29,8 +26,8 @@
 #include "../../memory/RingMemory.h"
 #include "../../log/PerformanceProfiler.h"
 
-#ifndef MAX_PATH
-    #define MAX_PATH PATH_MAX
+#ifndef PATH_MAX_LENGTH
+    #define PATH_MAX_LENGTH PATH_MAX_LENGTH
 #endif
 
 typedef int32 FileHandle;
@@ -85,8 +82,8 @@ void file_mmf_close(MMFHandle fh) {
 inline
 void relative_to_absolute(const char* __restrict rel, char* __restrict path)
 {
-    char self_path[MAX_PATH];
-    int32 self_path_length = readlink("/proc/self/exe", self_path, MAX_PATH - 1);
+    char self_path[PATH_MAX_LENGTH];
+    int32 self_path_length = readlink("/proc/self/exe", self_path, PATH_MAX_LENGTH - 1);
     if (self_path_length == -1) {
         return;
     }
@@ -114,7 +111,7 @@ size_t file_size(const char* filename) {
     struct stat buffer;
 
     if (*filename == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(filename, full_path);
         if (stat(full_path, &buffer) != 0) {
             return 0;
@@ -134,7 +131,7 @@ uint64 file_last_modified(const char* filename)
     struct stat buffer;
 
     if (*filename == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(filename, full_path);
         stat(full_path, &buffer);
     } else {
@@ -148,7 +145,7 @@ inline
 FileHandle file_append_handle(const char* path) {
     FileHandle fp;
     if (*path == '.') {
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
         fp = open(full_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
@@ -166,7 +163,7 @@ bool file_exists(const char* path) NO_EXCEPT
 
     struct stat buffer;
     const char* full_path = path;
-    char abs_path[MAX_PATH];
+    char abs_path[PATH_MAX_LENGTH];
 
     if (*path == '.') {
         relative_to_absolute(path, abs_path);
@@ -180,8 +177,8 @@ inline
 bool file_copy(const char* __restrict src, const char* __restrict dst) {
     PROFILE(PROFILE_FILE_UTILS, src, false, true);
 
-    char src_full_path[MAX_PATH];
-    char dst_full_path[MAX_PATH];
+    char src_full_path[PATH_MAX_LENGTH];
+    char dst_full_path[PATH_MAX_LENGTH];
 
     if (*src == '.') {
         relative_to_absolute(src, src_full_path);
@@ -238,7 +235,7 @@ void file_read(
 ) {
     PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
-    char full_path[MAX_PATH];
+    char full_path[PATH_MAX_LENGTH];
     const char* abs_path = path;
 
     if (*path == '.') {
@@ -354,7 +351,7 @@ bool file_write(const char* __restrict path, const FileBody* __restrict file) {
     PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     int32 fd;
-    char full_path[PATH_MAX];
+    char full_path[PATH_MAX_LENGTH];
 
     if (*path == '.') {
         relative_to_absolute(path, full_path);
@@ -385,7 +382,7 @@ bool file_write(const char* __restrict path, const FileBody* __restrict file) {
 
 FileHandle file_read_handle(const char* path) {
     FileHandle fd;
-    char full_path[MAX_PATH];
+    char full_path[PATH_MAX_LENGTH];
 
     if (*path == '.') {
         relative_to_absolute(path, full_path);
@@ -409,7 +406,7 @@ void file_close_handle(FileHandle fp)
 
 inline
 void self_path(char* path) {
-    size_t len = readlink("/proc/self/exe", path, PATH_MAX);
+    size_t len = readlink("/proc/self/exe", path, PATH_MAX_LENGTH);
     if (len > 0) { LIKELY
         path[len] = '\0';
     } else {
@@ -421,7 +418,7 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
     va_list args;
     va_start(args, handler);
 
-    char full_base_path[MAX_PATH];
+    char full_base_path[PATH_MAX_LENGTH];
     relative_to_absolute(base_path, full_base_path);
 
     DIR* dir = opendir(full_base_path);
@@ -439,16 +436,16 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
             continue;
         }
 
-        char full_path[MAX_PATH];
+        char full_path[PATH_MAX_LENGTH];
         // @performance This is bad, we are internally moving two times too often to the end of full_path
         //      Maybe make str_copy return the length, same as append?
         str_copy(full_path, base_path);
         if (!str_ends_with(base_path, "/")) {
-            str_concat_append(full_path, "/");
+            strcat(full_path, "/");
         }
-        str_concat_append(full_path, entry->d_name);
+        strcat(full_path, entry->d_name);
 
-        char full_file_path[MAX_PATH];
+        char full_file_path[PATH_MAX_LENGTH];
         relative_to_absolute(full_path, full_file_path);
 
         struct stat statbuf;

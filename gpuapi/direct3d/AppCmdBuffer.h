@@ -21,15 +21,23 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 
-void* cmd_shader_load(AppCmdBuffer*, Command*) {
+void* cmd_shader_load(AppCmdBuffer*, AppCommand*) {
     return NULL;
 }
 
 void* cmd_shader_load_sync(
-    AppCmdBuffer* const __restrict cb, Shader* const __restrict shader, const int32* __restrict shader_ids,
-    ID3D12Device* __restrict device, ID3D12PipelineState** __restrict pipeline, ID3D12RootSignature* __restrict pipeline_layout,
-    D3D12_INPUT_ELEMENT_DESC* __restrict descriptor_set_layouts, int32 layout_count
-) {
+    const AssetArchive* const __restrict asset_archives,
+    AssetManagementSystem* const __restrict ams,
+    RingMemory* const __restrict ring,
+    Shader* const __restrict shader,
+    const int32* const __restrict shader_ids,
+    ID3D12Device* const __restrict device,
+    ID3D12PipelineState** const __restrict pipeline,
+    ID3D12RootSignature* const __restrict pipeline_layout,
+    D3D12_INPUT_ELEMENT_DESC* const __restrict descriptor_set_layouts,
+    int32 layout_count
+) NO_EXCEPT
+{
     PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
     char asset_id[9];
 
@@ -47,10 +55,10 @@ void* cmd_shader_load_sync(
 
         // Load sub asset
         int_to_hex(shader_ids[i], asset_id);
-        Asset* shader_asset = thrd_ams_get_asset_wait(cb->ams, asset_id);
+        Asset* shader_asset = thrd_ams_get_asset_wait(ams, asset_id);
         if (!shader_asset) {
             int32 archive_id = (shader_ids[i] >> 24) & 0xFF;
-            shader_asset = asset_archive_asset_load(&cb->asset_archives[archive_id], shader_ids[i], cb->ams, cb->mem_vol);
+            shader_asset = asset_archive_asset_load(&asset_archives[archive_id], shader_ids[i], ams, ring);
         }
 
         // Make sub shader

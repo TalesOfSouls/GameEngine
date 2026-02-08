@@ -9,8 +9,6 @@
 #ifndef COMS_GPUAPI_RENDER_UTILS_H
 #define COMS_GPUAPI_RENDER_UTILS_H
 
-#include <stdio.h>
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
 #include "../font/Font.h"
@@ -20,7 +18,7 @@
 
 FORCE_INLINE
 int32 vertex_degenerate_create(
-    Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex,
+    Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex,
     f32 x, f32 y
 ) NO_EXCEPT
 {
@@ -36,7 +34,7 @@ int32 vertex_degenerate_create(
 
 static inline
 void adjust_aligned_position(
-    f32* __restrict x, f32* __restrict y,
+    f32* const __restrict x, f32* const __restrict y,
     f32 width, f32 height,
     byte alignment
 ) NO_EXCEPT
@@ -56,7 +54,7 @@ void adjust_aligned_position(
 
 static FORCE_INLINE
 void adjust_aligned_position(
-    v4_f32* vec,
+    v4_f32* const vec,
     byte alignment
 ) NO_EXCEPT
 {
@@ -75,7 +73,7 @@ void adjust_aligned_position(
 
 inline
 int32 vertex_line_create(
-    Vertex3DSamplerTextureColor* vertices, f32 zindex,
+    Vertex3DSamplerTextureColor* const vertices, f32 zindex,
     v2_f32 start, v2_f32 end, f32 thickness,
     uint32 rgba = 0
 ) NO_EXCEPT
@@ -118,7 +116,7 @@ int32 vertex_line_create(
 // @question Do we really want this to be inline? we are calling this function very often -> a lot of inlined code size
 inline
 int32 vertex_rect_create(
-    Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex, int32 sampler,
+    Vertex3DSamplerTextureColor* const vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     uint32 rgba = 0, v2_f32 tex1 = {}, v2_f32 tex2 = {}
 ) NO_EXCEPT
@@ -153,7 +151,7 @@ int32 vertex_rect_create(
 
 inline
 int32 vertex_circle_create(
-    Vertex3DSamplerTextureColor* __restrict vertices,
+    Vertex3DSamplerTextureColor* const vertices,
     f32 zindex, int32 sampler,
     v4_f32 dimension,
     byte alignment,
@@ -184,7 +182,7 @@ int32 vertex_circle_create(
     // Generate a triangle fan: center + pairs of edge vertices
 
     // @performance For sure this is vectorizable (SIMD)
-    for (int32 i = 0; i < segments; ++i) {
+    for (int i = 0; i < segments; ++i) {
         const f32 angle0 = (OMS_TWO_PI_F32 * i) / segments;
         const f32 angle1 = (OMS_TWO_PI_F32 * (i + 1)) / segments;
 
@@ -209,7 +207,7 @@ int32 vertex_circle_create(
 
 inline
 int32 vertex_arc_create(
-    Vertex3DSamplerTextureColor* __restrict vertices,
+    Vertex3DSamplerTextureColor* const vertices,
     f32 zindex, int32 sampler,
     v4_f32 dimension,
     byte alignment,
@@ -264,7 +262,7 @@ int32 vertex_arc_create(
 
 static
 f32 text_calculate_dimensions_height(
-    const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
+    const Font* const __restrict font, const char* const __restrict text, f32 scale, int32 length
 ) NO_EXCEPT
 {
     const f32 line_height = font->line_height * scale;
@@ -353,19 +351,19 @@ v2_f32 text_calculate_dimensions(
 // @todo We should be able to cut off text at an arbitrary position, not just at a line_height incremental
 // we could probably get the MIN of the glyph height and the remaining window height
 v3_int32 vertex_text_create(
-    Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex, int32 sampler,
+    Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
-    const Font* __restrict font, const char* __restrict text,
+    const Font* const __restrict font, const char* const __restrict text,
     f32 size, uint32 rgba = 0
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_VERTEX_TEXT_CREATE);
-    int32 length = utf8_str_length(text);
+    int32 length = utf8_strlen(text);
     if (length < 1) {
         return {};
     }
 
-    const bool is_ascii = (int32) str_length(text) == length;
+    const bool is_ascii = (int32) strlen(text) == length;
     const f32 scale = size / font->size;
 
     (void) rgba; // @todo we don't have a way to change colors of text for now due to our reduce Vertex size

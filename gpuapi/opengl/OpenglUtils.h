@@ -23,12 +23,6 @@
 #include "Opengl.h"
 #include "PersistentGpuBuffer.h"
 
-#if _WIN32
-    #include "../../platform/win32/Window.h"
-#elif __linux__
-    #include "../../platform/linux/Window.h"
-#endif
-
 #if DEBUG
     void gpuapi_error()
     {
@@ -105,7 +99,7 @@ GpuFence gpuapi_fence_create() NO_EXCEPT
 }
 
 FORCE_INLINE
-void gpuapi_fence_lock(GpuFence* fence) NO_EXCEPT
+void gpuapi_fence_lock(GpuFence* const fence) NO_EXCEPT
 {
     if (fence) {
         ASSERT_TRUE_CONST(false);
@@ -118,13 +112,13 @@ void gpuapi_fence_lock(GpuFence* fence) NO_EXCEPT
 
 // Checks if a fence is unlocked
 inline
-bool gpuapi_fence_is_unlocked(GpuFence* fence) NO_EXCEPT
+bool gpuapi_fence_is_unlocked(GpuFence* const fence) NO_EXCEPT
 {
     if (!(*fence)) {
         return true;
     }
 
-    GLenum res = glClientWaitSync(*fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0); /* timeout 0 -> poll */
+    const GLenum res = glClientWaitSync(*fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0); /* timeout 0 -> poll */
     if (res == GL_ALREADY_SIGNALED || res == GL_CONDITION_SATISFIED) {
         // GPU is done; delete sync and mark slot free
         glDeleteSync(*fence);
@@ -139,7 +133,7 @@ bool gpuapi_fence_is_unlocked(GpuFence* fence) NO_EXCEPT
 }
 
 FORCE_INLINE
-void gpuapi_fence_delete(GpuFence* fence) NO_EXCEPT
+void gpuapi_fence_delete(GpuFence* const fence) NO_EXCEPT
 {
     glDeleteSync(*fence);
     *fence = 0;
@@ -170,7 +164,7 @@ struct OpenglInfo {
 };
 
 inline
-void opengl_info(OpenglInfo* info) NO_EXCEPT
+void opengl_info(OpenglInfo* const info) NO_EXCEPT
 {
     info->renderer = (char *) glGetString(GL_RENDERER);
     info->major = 1;
@@ -191,7 +185,7 @@ void opengl_info(OpenglInfo* info) NO_EXCEPT
 
 // @todo rename to gpuapi_*
 inline
-uint32 get_texture_data_type(uint32 texture_data_type) NO_EXCEPT
+uint32 gpuapi_texture_data_type(uint32 texture_data_type) NO_EXCEPT
 {
     switch (texture_data_type) {
         case TEXTURE_DATA_TYPE_2D: {
@@ -228,9 +222,9 @@ uint32 get_texture_data_type(uint32 texture_data_type) NO_EXCEPT
 // 5. texture_use
 
 FORCE_INLINE
-void gpuapi_prepare_texture(Texture* texture) NO_EXCEPT
+void gpuapi_prepare_texture(Texture* const texture) NO_EXCEPT
 {
-    const uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
+    const uint32 texture_data_type = gpuapi_texture_data_type(texture->texture_data_type);
 
     glGenTextures(1, (GLuint *) &texture->id);
     glActiveTexture(GL_TEXTURE0 + texture->sample_id);
@@ -239,11 +233,11 @@ void gpuapi_prepare_texture(Texture* texture) NO_EXCEPT
 
 // @todo this should have a gpuapi_ name
 inline
-void gpuapi_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0) NO_EXCEPT
+void gpuapi_texture_to_gpu(const Texture* const texture, int32 mipmap_level = 0) NO_EXCEPT
 {
     PROFILE_START(PROFILE_GPU);
     // @todo also handle different texture formats (R, RG, RGB, 1 byte vs 4 byte per pixel)
-    const uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
+    const uint32 texture_data_type = gpuapi_texture_data_type(texture->texture_data_type);
     glTexImage2D(
         texture_data_type, mipmap_level, GL_RGBA,
         texture->image.width, texture->image.height,
@@ -256,26 +250,29 @@ void gpuapi_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0) NO_EX
     }
     PROFILE_END(PROFILE_GPU);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings));
+    STATS_INCREMENT_BY(
+        DEBUG_COUNTER_GPU_UPLOAD,
+        texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings)
+    );
 }
 
 FORCE_INLINE
-void gpuapi_texture_use(const Texture* texture) NO_EXCEPT
+void gpuapi_texture_use(const Texture* const texture) NO_EXCEPT
 {
-    const uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
+    const uint32 texture_data_type = gpuapi_texture_data_type(texture->texture_data_type);
 
     glActiveTexture(GL_TEXTURE0 + texture->sample_id);
     glBindTexture(texture_data_type, (GLuint) texture->id);
 }
 
 FORCE_INLINE
-void gpuapi_texture_delete(Texture* texture) NO_EXCEPT
+void gpuapi_texture_delete(Texture* const texture) NO_EXCEPT
 {
     glDeleteTextures(1, &texture->id);
 }
 
 inline
-void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+void draw_triangles_3d(VertexRef* const vertices, GLuint buffer, int32 count) NO_EXCEPT
 {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
@@ -307,7 +304,7 @@ void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEP
 }
 
 inline
-void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+void draw_triangles_3d_textureless(VertexRef* const vertices, GLuint buffer, int32 count) NO_EXCEPT
 {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
@@ -328,7 +325,7 @@ void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int32 cou
 }
 
 inline
-void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+void draw_triangles_3d_colorless(VertexRef* const vertices, GLuint buffer, int32 count) NO_EXCEPT
 {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
@@ -354,7 +351,7 @@ void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int32 count
 }
 
 inline
-void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+void draw_triangles_2d(VertexRef* const vertices, GLuint buffer, int32 count) NO_EXCEPT
 {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
@@ -377,7 +374,7 @@ void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEP
 }
 
 inline
-void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+void draw_triangles_2d_textureless(VertexRef* const vertices, GLuint buffer, int32 count) NO_EXCEPT
 {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
@@ -398,7 +395,7 @@ void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int32 cou
 }
 
 inline
-void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int32 count) NO_EXCEPT
+void draw_triangles_2d_colorless(VertexRef* const vertices, GLuint buffer, int32 count) NO_EXCEPT
 {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
@@ -435,7 +432,7 @@ uint32 gpuapi_buffer_generate(int32 type, int32 size, const void* data) NO_EXCEP
     glBindBuffer(type, bo);
     glBufferData(type, size, data, GL_STATIC_DRAW);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
 
     return bo;
 }
@@ -449,14 +446,14 @@ uint32 gpuapi_buffer_generate_dynamic(int32 type, int32 size, const void* data) 
     glBindBuffer(type, bo);
     glBufferData(type, size, data, GL_DYNAMIC_DRAW);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
 
     return bo;
 }
 
 // type is GL_UNIFORM_BUFFER or GL_ARRAY_BUFFER
 inline
-void gpuapi_buffer_persistent_generate(int32 type, PersistentGpuBuffer* buffer) NO_EXCEPT
+void gpuapi_buffer_persistent_generate(int32 type, PersistentGpuBuffer* const buffer) NO_EXCEPT
 {
     // @todo we need to dynamically get the alignment and pass it in
     //      For that we need to get it once and then store it in the system info struct?
@@ -479,7 +476,7 @@ void gpuapi_buffer_persistent_generate(int32 type, PersistentGpuBuffer* buffer) 
     ASSERT_GPU_API();
     ASSERT_TRUE(buffer->data);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, buffer->size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
 }
 
 FORCE_INLINE
@@ -542,7 +539,7 @@ void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data) NO_E
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
     PROFILE_END(PROFILE_GPU);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
 }
 
 // @todo change name. vulkan and directx have different functions for vertex buffer updates
@@ -569,7 +566,7 @@ void gpuapi_vertex_buffer_update(
     PROFILE_END(PROFILE_GPU);
     ASSERT_GPU_API();
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, vertex_size * vertex_count - offset);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, vertex_size * vertex_count - offset);
 }
 
 FORCE_INLINE

@@ -10,30 +10,25 @@
 #define COMS_PLATFORM_WIN32_EXCEPTION_HANDLER_H
 
 #include <windows.h>
-#include <dbghelp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../log/Log.h"
 
-#ifdef _MSC_VER
-    #pragma comment(lib, "dbghelp.lib")
-#endif
+#include "libs/dbghelp.h"
 
 void create_minidump(EXCEPTION_POINTERS* exception_pointers) NO_EXCEPT
 {
     HANDLE fp = CreateFileW(L"crash_dump.dmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-
     if (fp == INVALID_HANDLE_VALUE) {
         return;
     }
 
-    // Write the minidump
     MINIDUMP_EXCEPTION_INFORMATION mdei;
     mdei.ThreadId = GetCurrentThreadId();
     mdei.ExceptionPointers = exception_pointers;
     mdei.ClientPointers = FALSE;
 
-    MiniDumpWriteDump(
+    pMiniDumpWriteDump(
         GetCurrentProcess(),
         GetCurrentProcessId(),
         fp,
@@ -54,12 +49,12 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
     HANDLE thread = GetCurrentThread();
 
     // Initialize symbols
-    SymInitialize(process, NULL, TRUE);
+    pSymInitialize(process, NULL, TRUE);
 
     // Set symbol options to load line numbers and undecorated names
-    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
+    pSymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
-    STACKFRAME64 stack_frame = {};
+    STACKFRAME64 stack_frame = {0};
     DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
 
     // Initialize stack frame for x64
@@ -73,8 +68,8 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
     LOG_1("Stack trace:");
 
     // Walk the stack
-    while (StackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
-        SymFunctionTableAccess64, SymGetModuleBase64, NULL)
+    while (pStackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
+        pSymFunctionTableAccess64, pSymGetModuleBase64, NULL)
     ) {
         DWORD64 address = stack_frame.AddrPC.Offset;
 
@@ -89,7 +84,7 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
         symbol->MaxNameLen = MAX_SYM_NAME;
 
-        if (SymFromAddr(process, address, NULL, symbol)) {
+        if (pSymFromAddr(process, address, NULL, symbol)) {
             LOG_1("Function: %s - Address: %l", {DATA_TYPE_CHAR_STR, symbol->Name}, {DATA_TYPE_INT64, &symbol->Address});
         } else {
             LOG_1("Function: (unknown) - Address: %l", {DATA_TYPE_INT64, &address});
@@ -100,7 +95,7 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
         DWORD displacement = 0;
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
-        if (SymGetLineFromAddr64(process, address, &displacement, &line)) {
+        if (pSymGetLineFromAddr64(process, address, &displacement, &line)) {
             LOG_1("    File: %s, Line: %l", {DATA_TYPE_CHAR_STR, line.FileName}, {DATA_TYPE_INT64, &line.LineNumber});
         } else {
             LOG_1("    File: (unknown), Line: (unknown)");
@@ -109,7 +104,7 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
         // Print module name
         IMAGEHLP_MODULE64 module_info;
         module_info.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
-        if (SymGetModuleInfo64(process, address, &module_info)) {
+        if (pSymGetModuleInfo64(process, address, &module_info)) {
             LOG_1("    Module: %s", {DATA_TYPE_CHAR_STR, module_info.ModuleName});
         } else {
             LOG_1("    Module: (unknown)");
@@ -117,7 +112,7 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
     }
 
     LOG_TO_FILE();
-    SymCleanup(process);
+    pSymCleanup(process);
 }
 
 void print_stack_trace(CONTEXT* context) NO_EXCEPT
@@ -126,9 +121,9 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
     HANDLE thread = GetCurrentThread();
 
     // Initialize symbols
-    SymInitialize(process, NULL, TRUE);
+    pSymInitialize(process, NULL, TRUE);
 
-    STACKFRAME64 stack_frame = {};
+    STACKFRAME64 stack_frame = {0};
     DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
 
     // Initialize stack frame for x64
@@ -141,8 +136,8 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
 
     printf("Stack trace:\n");
 
-    while (StackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
-        SymFunctionTableAccess64, SymGetModuleBase64, NULL)
+    while (pStackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
+        pSymFunctionTableAccess64, pSymGetModuleBase64, NULL)
     ) {
         DWORD64 address = stack_frame.AddrPC.Offset;
 
@@ -152,7 +147,7 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
         symbol->MaxNameLen = MAX_SYM_NAME;
 
-        if (SymFromAddr(process, address, NULL, symbol)) {
+        if (pSymFromAddr(process, address, NULL, symbol)) {
             printf("Function: %s - Address: 0x%llx\n", symbol->Name, symbol->Address);
         } else {
             printf("Function: (unknown) - Address: 0x%llx\n", address);
@@ -163,14 +158,14 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
         DWORD displacement = 0;
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
-        if (SymGetLineFromAddr64(process, address, &displacement, &line)) {
+        if (pSymGetLineFromAddr64(process, address, &displacement, &line)) {
             printf("    File: %s, Line: %lu\n", line.FileName, line.LineNumber);
         } else {
             printf("    File: (unknown), Line: (unknown)\n");
         }
     }
 
-    SymCleanup(process);
+    pSymCleanup(process);
 }
 
 #endif

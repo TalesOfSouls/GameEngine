@@ -9,10 +9,6 @@
 #ifndef COMS_HASH_SHA1_H
 #define COMS_HASH_SHA1_H
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-
 #include "../stdlib/Stdlib.h"
 #include "../stdlib/Simd.h"
 #include "Sha1Definitions.h"
@@ -23,7 +19,7 @@
     #include "Sha1SimdArm.h"
 #else
     static inline
-    void sha1_transform(SHA1_CTX* ctx, const byte data[64], MAYBE_UNUSED int32 steps) NO_EXCEPT
+    void sha1_transform(Sha1Context* ctx, const byte data[64], MAYBE_UNUSED int32 steps) NO_EXCEPT
 {
         uint32 a, b, c, d, e, temp;
         uint32 w[80];
@@ -96,7 +92,7 @@
 #endif
 
 inline
-void sha1_init(SHA1_CTX* ctx) NO_EXCEPT
+void sha1_init(Sha1Context* ctx) NO_EXCEPT
 {
     ctx->state[0] = 0x67452301;
     ctx->state[1] = 0xEFCDAB89;
@@ -107,7 +103,7 @@ void sha1_init(SHA1_CTX* ctx) NO_EXCEPT
 }
 
 static inline
-void sha1_update(SHA1_CTX* ctx, const byte* data, size_t len, int32 steps) NO_EXCEPT
+void sha1_update(Sha1Context* ctx, const byte* data, size_t len, int32 steps) NO_EXCEPT
 {
     size_t i, index, part_len;
 
@@ -132,7 +128,7 @@ void sha1_update(SHA1_CTX* ctx, const byte* data, size_t len, int32 steps) NO_EX
 }
 
 static inline
-void sha1_final(SHA1_CTX* ctx, byte digest[20], int32 steps) NO_EXCEPT
+void sha1_final(Sha1Context* ctx, byte digest[20], int32 steps) NO_EXCEPT
 {
     byte bits[8];
     uint32 index, pad_len;
@@ -165,7 +161,7 @@ void sha1_final(SHA1_CTX* ctx, byte digest[20], int32 steps) NO_EXCEPT
 inline
 void sha1_hash(const byte* data, size_t len, byte digest[20], int32 steps = 16) NO_EXCEPT
 {
-    SHA1_CTX ctx;
+    Sha1Context ctx;
     sha1_init(&ctx);
 
     steps = intrin_validate_steps(data, steps);

@@ -214,7 +214,7 @@ uint32 qoa_encode_frame(const int16* sample_data, uint32 channels, uint32 frame_
 	E.g. for stereo: (ch-0, slice 0), (ch 1, slice 0), (ch 0, slice 1), ...
     */
 	for (uint32 sample_index = 0; sample_index < frame_samples; sample_index += QOA_SLICE_LEN) {
-		QoaLms best_lms = {};
+		QoaLms best_lms = {0};
 
         // @performance SIMDable
 		for (uint32 c = 0; c < channels; ++c) {

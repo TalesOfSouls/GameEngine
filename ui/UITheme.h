@@ -25,6 +25,8 @@ struct UIThemeStyle {
     // A theme may have N named styles
     // The hashmap contains the offset where the respective style can be found
     // @performance Switch to perfect hash map
+    // @question Both the layout and theme have their own hashmap
+    //          Would it make sense to have one hashmap for both together?
     HashMap hash_map;
 
     // Total size of the theme incl. hash_map
@@ -81,7 +83,7 @@ void theme_from_file_txt(
     const char* path,
     RingMemory* const ring
 ) {
-    FileBody file = {};
+    FileBody file = {0};
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
 
@@ -177,7 +179,7 @@ void theme_from_file_txt(
                 data_offset += sizeof(UIAttributeGroup);
             }
 
-            if (str_length(block_name) + 1 > HASH_MAP_MAX_KEY_LENGTH) {
+            if (strlen(block_name) + 1 > HASH_MAP_MAX_KEY_LENGTH) {
                 LOG_1("Identifier %s too long", {DATA_TYPE_CHAR_STR, block_name});
             }
 
@@ -192,7 +194,7 @@ void theme_from_file_txt(
         str_skip_list(&pos, " \t:", sizeof(" \t:") - 1);
 
         // Parse attribute value
-        UIAttribute attribute = {};
+        UIAttribute attribute = {0};
         ui_attribute_parse_value(&attribute, attribute_name, pos);
 
         // @bug How to handle "anim"
@@ -206,7 +208,7 @@ void theme_from_file_txt(
         if (block_name[0] == '#' || block_name[0] == '.') {
             // Named block
             UIAttribute* attribute_reference = (UIAttribute *) (temp_group + 1);
-            // @question Whe are we even doing this? couldn't we just pass this offset to the ui_attribute_parse_value() function?
+            // @question Why are we even doing this? couldn't we just pass this offset to the ui_attribute_parse_value() function?
             memcpy(
                 attribute_reference + temp_group->attribute_count,
                 &attribute,
@@ -335,7 +337,7 @@ FORCE_INLINE
 int64 theme_data_size_max(const UIThemeStyle* theme)
 {
     return hashmap_size(&theme->hash_map)
-        + theme->hash_map.buf.count * UI_ATTRIBUTE_TYPE_SIZE * sizeof(UIAttribute);
+        + theme->hash_map.buf.capacity * UI_ATTRIBUTE_TYPE_SIZE * sizeof(UIAttribute);
 }
 
 // @todo Why do even need **pos, shouldn't it just be *pos

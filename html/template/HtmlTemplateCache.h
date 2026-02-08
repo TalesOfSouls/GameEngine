@@ -18,7 +18,7 @@
 
 bool html_template_in_control_structure(const char* str, const char** controls, int32 control_length) {
     for (int32 i = 0; i < control_length; ++i) {
-        if (str_compare(controls[i], str) == 0) {
+        if (strcmp(controls[i], str) == 0) {
             return true;
         }
     }
@@ -83,8 +83,8 @@ void html_template_build(const FileBody* in, FileBody* out) {
     // Now add AST to cache
     HtmlTemplateToken current_token = html_template_token_next((const char**) &minified_start, HTML_TEMPLATE_CONTEXT_FLAG_HTML);
 
-    HtmlTemplateContextStack context_stack = {};
-    HtmlTemplateContext initial_context = {};
+    HtmlTemplateContextStack context_stack = {0};
+    HtmlTemplateContext initial_context = {0};
     pushContext(&context_stack, initial_context);
 
     // @todo Instead of doing this, we want to use the cache.memory
@@ -120,15 +120,15 @@ void html_template_cache_load(PerfectHashMapRef* cache, const char* key, const c
 void html_template_build_iter(const char* path, va_list args) {
     RingMemory* const ring = va_arg(args, RingMemory*);
 
-    char full_path[MAX_PATH];
+    char full_path[PATH_MAX_LENGTH];
     relative_to_absolute(path, full_path);
 
-    FileBody in = {};
+    FileBody in = {0};
     file_read(full_path, &in, ring);
 
     FileBody out = {
         .size = 0,
-        .content = ring_get_memory(ring, in.size * 2, 64)
+        .content = ring_get_memory(ring, in.size * 2, ASSUMED_CACHE_LINE_SIZE)
     };
 
     html_template_build(&in, &out);
@@ -140,10 +140,10 @@ void html_template_cache_iter(const char* path, va_list args) {
     PerfectHashMapRef* cache = va_arg(args, PerfectHashMapRef*);
     RingMemory* const ring = va_arg(args, RingMemory*);
 
-    char full_path[MAX_PATH];
+    char full_path[PATH_MAX_LENGTH];
     relative_to_absolute(path, full_path);
 
-    FileBody file = {};
+    FileBody file = {0};
     file_read(full_path, &file, ring);
     html_template_cache_load(cache, path, (const char *) file.content);
 }
@@ -152,10 +152,10 @@ void raw_file_cache_iter(const char* path, va_list args) {
     PerfectHashMapRef* cache = va_arg(args, PerfectHashMapRef*);
     RingMemory* const ring = va_arg(args, RingMemory*);
 
-    char full_path[MAX_PATH];
+    char full_path[PATH_MAX_LENGTH];
     relative_to_absolute(path, full_path);
 
-    FileBody file = {};
+    FileBody file = {0};
     file_read(full_path, &file, ring);
 
     perfect_hashmap_insert(cache, path, file.content, file.size);

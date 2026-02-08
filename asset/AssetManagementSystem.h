@@ -9,7 +9,6 @@
 #ifndef COMS_ASSET_MANAGEMENT_SYSTEM_H
 #define COMS_ASSET_MANAGEMENT_SYSTEM_H
 
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "Asset.h"
 #include "../memory/ChunkMemory.h"
@@ -46,6 +45,7 @@ struct AssetComponent {
 // Once core stuff is on the gpu, it should be removed from RAM (at least after n seconds)
 struct AssetManagementSystem {
     // Used to find an asset in any asset component
+    // @performance Change to HashMapT<???>
     HashMap hash_map;
 
     int32 asset_component_count;
@@ -58,10 +58,10 @@ void ams_create(AssetManagementSystem* const ams, BufferMemory* const buf, int32
     LOG_1("Create AMS for %n assets", {DATA_TYPE_INT32, &count});
     hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
     ams->asset_component_count = asset_component_count;
-    ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64);
+    ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), ASSUMED_CACHE_LINE_SIZE);
 
     //memset(ams->asset_components, 0, asset_component_count * sizeof(AssetComponent));
-    memset(ams->asset_components, 0, align_up(asset_component_count * sizeof(AssetComponent), 64));
+    memset(ams->asset_components, 0, align_up(asset_component_count * sizeof(AssetComponent), ASSUMED_CACHE_LINE_SIZE));
 }
 
 // Different AMS components can have different chunk sizes
@@ -75,7 +75,7 @@ void ams_component_create(AssetComponent* ac, BufferMemory* const buf, int32 chu
         {DATA_TYPE_INT32, &count}, {DATA_TYPE_UINT32, &chunk_size}
     );
 
-    chunk_init(&ac->asset_memory, buf, count, chunk_size, 64);
+    chunk_init(&ac->asset_memory, buf, count, chunk_size, ASSUMED_CACHE_LINE_SIZE);
     mutex_init(&ac->mtx, NULL);
 }
 
@@ -88,7 +88,7 @@ void ams_component_alloc(AssetComponent* ac, int32 chunk_size, int32 count) NO_E
         {DATA_TYPE_INT32, &count}, {DATA_TYPE_UINT32, &chunk_size}
     );
 
-    chunk_alloc(&ac->asset_memory, count, chunk_size, 64);
+    chunk_alloc(&ac->asset_memory, count, chunk_size, ASSUMED_CACHE_LINE_SIZE);
     mutex_init(&ac->mtx, NULL);
 }
 
@@ -101,7 +101,7 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
         {DATA_TYPE_INT32, &count}, {DATA_TYPE_UINT32, &chunk_size}
     );
 
-    ac->asset_memory.count = count;
+    ac->asset_memory.capacity = count;
     ac->asset_memory.chunk_size = chunk_size;
     ac->asset_memory.last_pos = 0;
     ac->asset_memory.alignment = sizeof(size_t);
@@ -252,7 +252,11 @@ void ams_remove_asset(AssetManagementSystem* const ams, AssetComponent* ac, Asse
     hashmap_remove(&ams->hash_map, name);
     chunk_free_elements(
         &ac->asset_memory,
-        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        chunk_id_from_memory(
+            (uintptr_t) ac->asset_memory.memory,
+            (uintptr_t) asset->self,
+            ac->asset_memory.chunk_size
+        ),
         asset->size
     );
 }
@@ -263,7 +267,11 @@ void ams_remove_asset_ram(AssetComponent* const ac, const Asset* const asset) NO
     ac->ram_size -= asset->ram_size;
     chunk_free_elements(
         &ac->asset_memory,
-        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        chunk_id_from_memory(
+            (uintptr_t) ac->asset_memory.memory,
+            (uintptr_t) asset->self,
+            ac->asset_memory.chunk_size
+        ),
         asset->size
     );
 }
@@ -287,7 +295,11 @@ void ams_remove_asset(AssetManagementSystem* const ams, const char* name) NO_EXC
     hashmap_remove(&ams->hash_map, name);
     chunk_free_elements(
         &ac->asset_memory,
-        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        chunk_id_from_memory(
+            (uintptr_t) ac->asset_memory.memory,
+            (uintptr_t) asset->self,
+            ac->asset_memory.chunk_size
+        ),
         asset->size
     );
 }
@@ -307,7 +319,11 @@ void ams_remove_asset(AssetManagementSystem* const ams, Asset* const asset, cons
     hashmap_remove(&ams->hash_map, name);
     chunk_free_elements(
         &ac->asset_memory,
-        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        chunk_id_from_memory(
+            (uintptr_t) ac->asset_memory.memory,
+            (uintptr_t) asset->self,
+            ac->asset_memory.chunk_size
+        ),
         asset->size
     );
 }
@@ -320,7 +336,11 @@ void ams_remove_asset_ram(AssetManagementSystem* const ams, const Asset* const a
 
     chunk_free_elements(
         &ac->asset_memory,
-        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        chunk_id_from_memory(
+            (uintptr_t) ac->asset_memory.memory,
+            (uintptr_t) asset->self,
+            ac->asset_memory.chunk_size
+        ),
         asset->size
     );
 }
@@ -339,7 +359,11 @@ void thrd_ams_remove_asset(AssetManagementSystem* const ams, AssetComponent* ac,
     hashmap_remove(&ams->hash_map, name);
     chunk_free_elements(
         &ac->asset_memory,
-        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        chunk_id_from_memory(
+            (uintptr_t) ac->asset_memory.memory,
+            (uintptr_t) asset->self,
+            ac->asset_memory.chunk_size
+        ),
         asset->size
     );
 }
@@ -354,7 +378,11 @@ void thrd_ams_remove_asset(AssetManagementSystem* const ams, const char* name) N
     AssetComponent* const ac = &ams->asset_components[asset->component_id];
     chunk_free_elements(
         &ac->asset_memory,
-        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        chunk_id_from_memory(
+            (uintptr_t) ac->asset_memory.memory,
+            (uintptr_t) asset->self,
+            ac->asset_memory.chunk_size
+        ),
         asset->size
     );
 
@@ -371,7 +399,11 @@ void thrd_ams_remove_asset(AssetManagementSystem* const ams, const char* name, A
     AssetComponent* const ac = &ams->asset_components[asset->component_id];
     chunk_free_elements(
         &ac->asset_memory,
-        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        chunk_id_from_memory(
+            (uintptr_t) ac->asset_memory.memory,
+            (uintptr_t) asset->self,
+            ac->asset_memory.chunk_size
+        ),
         asset->size
     );
 

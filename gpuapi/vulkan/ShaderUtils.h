@@ -36,19 +36,23 @@ void shader_get_uniform_location(
 inline
 void gpuapi_uniform_buffer_update(VkDevice device, VkDescriptorSet descriptorSet, uint32 binding, VkDescriptorType descriptorType, int32_t value)
 {
-    VkDescriptorBufferInfo bufferInfo = {};
-    bufferInfo.buffer = {};  // You should have a buffer holding the value
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(value);
+    VkDescriptorBufferInfo bufferInfo = {
+        {0}, // You should have a buffer holding the value, .buffer =
+        0, // .offset =
+        sizeof(value) // .range =
+    };
 
-    VkWriteDescriptorSet descriptorWrite = {};
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = descriptorSet;
-    descriptorWrite.dstBinding = binding;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = descriptorType;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pBufferInfo = &bufferInfo;
+    VkWriteDescriptorSet descriptorWrite = {
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, // .sType =
+        NULL, // .pNext
+        descriptorSet, // .dstSet =
+        binding, // .dstBinding =
+        0, // .dstArrayElement =
+        1, // .descriptorCount =
+        descriptorType, // .descriptorType =
+        NULL, // .pImageInfo =
+        &bufferInfo, // .pBufferInfo =
+    };
 
     vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, NULL);
 }
@@ -58,10 +62,13 @@ VkShaderModule gpuapi_shader_make(VkDevice device, const char* source, int32 sou
 {
     LOG_1("Create shader");
     // Create shader module create info
-    VkShaderModuleCreateInfo create_info = {};
-    create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    create_info.codeSize = source_size;
-    create_info.pCode = (uint32 *) source;
+    VkShaderModuleCreateInfo create_info = {
+        VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, // .sType =
+        NULL, // .pNext =
+        0, // .flags =
+        (size_t) source_size, // .codeSize =
+        (uint32 *) source // .pCode =
+    };
 
     // Create shader module
     VkShaderModule shader_module;
@@ -80,13 +87,13 @@ VkShaderModule gpuapi_shader_make(VkDevice device, const char* source, int32 sou
 }
 
 inline
-void vulkan_vertex_binding_description(uint32 size, VkVertexInputBindingDescription* binding) {
+void vulkan_vertex_binding_description(uint32 size, VkVertexInputBindingDescription* const binding) {
     binding->binding = 0;
     binding->stride = size;
     binding->inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 }
 
-void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeDescription* attr)
+void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeDescription* const attr)
 {
     switch (type) {
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D: {
@@ -206,17 +213,23 @@ VkPipeline gpuapi_pipeline_make(
 ) {
     PROFILE(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Create pipeline");
-    VkPipelineShaderStageCreateInfo vertex_shader_stage_info = {};
-    vertex_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertex_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertex_shader_stage_info.module = vertex_shader;
-    vertex_shader_stage_info.pName = "main";
+    VkPipelineShaderStageCreateInfo vertex_shader_stage_info = {
+        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, // .sType =
+        NULL, // .pNext =
+        0, // .flags =
+        VK_SHADER_STAGE_VERTEX_BIT, // .stage =
+        vertex_shader, // .module =
+        "main" // .pName =
+    };
 
-    VkPipelineShaderStageCreateInfo fragment_shader_stage_info = {};
-    fragment_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragment_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragment_shader_stage_info.module = fragment_shader;
-    fragment_shader_stage_info.pName = "main";
+    VkPipelineShaderStageCreateInfo fragment_shader_stage_info = {
+        VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, // .sType =
+        NULL, // .pNext =
+        0, // .flags =
+        VK_SHADER_STAGE_FRAGMENT_BIT, // .stage =
+        fragment_shader, // .module =
+        "main" // .pName =
+    };
 
     VkPipelineShaderStageCreateInfo shader_stages[] = {
         vertex_shader_stage_info,
@@ -229,75 +242,95 @@ VkPipeline gpuapi_pipeline_make(
     VkVertexInputAttributeDescription input_attribute_description[gpuapi_attribute_count(GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR)];
     gpuapi_attribute_info_create(GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR, input_attribute_description);
 
-    VkPipelineVertexInputStateCreateInfo vertex_input_info = {};
-    vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_info.vertexBindingDescriptionCount = 1;
-    vertex_input_info.pVertexBindingDescriptions = &binding_description;
-    vertex_input_info.vertexAttributeDescriptionCount = (uint32) ARRAY_COUNT(input_attribute_description);
-    vertex_input_info.pVertexAttributeDescriptions = input_attribute_description;
+    VkPipelineVertexInputStateCreateInfo vertex_input_info = {
+        VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, // .sType =
+        NULL, // .pNext =
+        0, // .flags =
+        1, // .vertexBindingDescriptionCount =
+        &binding_description, // .pVertexBindingDescriptions =
+        (uint32) ARRAY_COUNT(input_attribute_description), // .vertexAttributeDescriptionCount =
+        input_attribute_description, // .pVertexAttributeDescriptions =
+    };
 
-    VkPipelineInputAssemblyStateCreateInfo input_assembly = {};
-    input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    input_assembly.primitiveRestartEnable = VK_FALSE;
+    VkPipelineInputAssemblyStateCreateInfo input_assembly = {
+        VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, // .sType =
+        NULL, // .pNext =
+        0, // .flags =
+        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, // .topology =
+        VK_FALSE, // .primitiveRestartEnable =
+    };
 
-    VkPipelineViewportStateCreateInfo viewport_state = {};
+    VkPipelineViewportStateCreateInfo viewport_state = {0};
     viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewport_state.viewportCount = 1;
     viewport_state.scissorCount = 1;
+    // @question if viewportcount and scissorcount are 1, why am I not passing a pointer of those then?
 
-    VkPipelineRasterizationStateCreateInfo rasterizer = {};
-    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    rasterizer.depthBiasEnable = VK_FALSE;
+    const VkPipelineRasterizationStateCreateInfo rasterizer = {
+        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO, // .sType =
+        NULL, // .pNext =
+        0, // .flags =
+        VK_FALSE, // .depthClampEnable =
+        VK_FALSE, // .rasterizerDiscardEnable =
+        VK_POLYGON_MODE_FILL, // .polygonMode =
+        VK_CULL_MODE_BACK_BIT, // .cullMode =
+        VK_FRONT_FACE_CLOCKWISE, // .frontFace =
+        VK_FALSE, // .depthBiasEnable =
+        0.0f, // .depthBiasConstantFactor =
+        0.0f, // .depthBiasClamp =
+        0.0f, // .depthBiasSlopeFactor =
+        1.0f, // .lineWidth =
+    };
 
-    VkPipelineMultisampleStateCreateInfo multisampling = {};
+    VkPipelineMultisampleStateCreateInfo multisampling = {0};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
     // @todo This depends on the texture -> shouldn't be here
-    VkPipelineColorBlendAttachmentState color_blend_attachment = {};
-    color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    color_blend_attachment.blendEnable = VK_TRUE;
-    color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
-    color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    const VkPipelineColorBlendAttachmentState color_blend_attachment = {
+        VK_TRUE, // .blendEnable =
+        VK_BLEND_FACTOR_SRC_ALPHA, // .srcColorBlendFactor =
+        VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, // .dstColorBlendFactor =
+        VK_BLEND_OP_ADD, // .colorBlendOp =
+        VK_BLEND_FACTOR_ONE, // .srcAlphaBlendFactor =
+        VK_BLEND_FACTOR_ZERO, // .dstAlphaBlendFactor =
+        VK_BLEND_OP_ADD, // .alphaBlendOp =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT // .colorWriteMask =
+    };
 
-    VkPipelineColorBlendStateCreateInfo color_blending = {};
-    color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    color_blending.logicOpEnable = VK_FALSE;
-    color_blending.logicOp = VK_LOGIC_OP_COPY;
-    color_blending.attachmentCount = 1;
-    color_blending.pAttachments = &color_blend_attachment;
-    color_blending.blendConstants[0] = 0.0f;
-    color_blending.blendConstants[1] = 0.0f;
-    color_blending.blendConstants[2] = 0.0f;
-    color_blending.blendConstants[3] = 0.0f;
+    const VkPipelineColorBlendStateCreateInfo color_blending = {
+        VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, // .sType =
+        NULL, // .pNext =
+        0, // .flags =
+        VK_FALSE, // .logicOpEnable =
+        VK_LOGIC_OP_COPY, // .logicOp =
+        1, // .attachmentCount =
+        &color_blend_attachment, // .pAttachments =
+        {0.0f, 0.0f, 0.0f, 0.0f}, // .blendConstants[0-3]
+    };
 
     const VkDynamicState dynamic_states[] = {
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR
     };
 
-    VkPipelineDynamicStateCreateInfo dynamic_state = {};
-    dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamic_state.dynamicStateCount = ARRAY_COUNT(dynamic_states);
-    dynamic_state.pDynamicStates = dynamic_states;
+    const VkPipelineDynamicStateCreateInfo dynamic_state = {
+        VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, // .sType =
+        NULL, // .pNext =
+        0, // .flags =
+        ARRAY_COUNT(dynamic_states), // .dynamicStateCount =
+        dynamic_states, // .pDynamicStates =
+    };
 
-    VkPipelineLayoutCreateInfo pipeline_info_layout = {};
-    pipeline_info_layout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipeline_info_layout.setLayoutCount = 1;
-    pipeline_info_layout.pSetLayouts = descriptor_set_layouts;
-    pipeline_info_layout.pushConstantRangeCount = 0;
+    const VkPipelineLayoutCreateInfo pipeline_info_layout = {
+        VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, // .sType =
+        NULL, // .pNext =
+        0, // .flags =
+        1, // .setLayoutCount =
+        descriptor_set_layouts, // .pSetLayouts =
+        0 // .pushConstantRangeCount =
+    };
 
     VkResult result;
     if ((result = vkCreatePipelineLayout(device, &pipeline_info_layout, NULL, pipeline_layout)) != VK_SUCCESS) {
@@ -307,21 +340,26 @@ VkPipeline gpuapi_pipeline_make(
         return NULL;
     }
 
-    VkGraphicsPipelineCreateInfo pipeline_info = {};
-    pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipeline_info.stageCount = 2;
-    pipeline_info.pStages = shader_stages;
-    pipeline_info.pVertexInputState = &vertex_input_info;
-    pipeline_info.pInputAssemblyState = &input_assembly;
-    pipeline_info.pViewportState = &viewport_state;
-    pipeline_info.pRasterizationState = &rasterizer;
-    pipeline_info.pMultisampleState = &multisampling;
-    pipeline_info.pColorBlendState = &color_blending;
-    pipeline_info.pDynamicState = &dynamic_state;
-    pipeline_info.layout = *pipeline_layout;
-    pipeline_info.renderPass = render_pass;
-    pipeline_info.subpass = 0;
-    pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+    const VkGraphicsPipelineCreateInfo pipeline_info = {
+        VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, // .sType =
+        NULL, // .pNext =
+        0, // .flags =
+        2, // .stageCount =
+        shader_stages, // .pStages =
+        &vertex_input_info, // .pVertexInputState =
+        &input_assembly, // .pInputAssemblyState =
+        NULL,
+        &viewport_state, // .pViewportState =
+        &rasterizer, // .pRasterizationState =
+        &multisampling, // .pMultisampleState =
+        NULL, // .pDepthStencilState =
+        &color_blending, // .pColorBlendState =
+        &dynamic_state, // .pDynamicState =
+        *pipeline_layout, // .layout =
+        render_pass, // .renderPass =
+        0, // .subpass =
+        VK_NULL_HANDLE // .basePipelineHandle =
+    };
 
     if ((result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, pipeline)) != VK_SUCCESS) {
         LOG_1("Vulkan vkCreateGraphicsPipelines: %d", {DATA_TYPE_INT32, (int32 *) &result});
@@ -351,7 +389,7 @@ void gpuapi_descriptor_set_layout_create(
     VkDevice device,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorSetLayoutBinding* bindings, int32 binding_length
 ) {
-    VkDescriptorSetLayoutCreateInfo layout_info = {};
+    VkDescriptorSetLayoutCreateInfo layout_info = {0};
     layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layout_info.bindingCount = binding_length;
     layout_info.pBindings = bindings;
@@ -371,7 +409,7 @@ void vulkan_descriptor_pool_create(
 {
     // @question Why is the pool size 2?
     // @todo Isn't this shader specific?
-    VkDescriptorPoolSize poolSizes[2] = {
+    const VkDescriptorPoolSize poolSizes[2] = {
         {
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, // .type =
             frames_in_flight, // .descriptorCount =
@@ -404,16 +442,18 @@ void vulkan_descriptor_sets_create(
     int32 frames_in_flight, RingMemory* const ring
 )
 {
-    VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout *) ring_get_memory(ring, sizeof(VkDescriptorSetLayout) * frames_in_flight, 64);
+    VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout *) ring_get_memory(ring, sizeof(VkDescriptorSetLayout) * frames_in_flight, ASSUMED_CACHE_LINE_SIZE);
     for (int32 i = 0; i < frames_in_flight; ++i) {
         layouts[i] = descriptor_set_layout;
     }
 
-    VkDescriptorSetAllocateInfo alloc_info = {};
-    alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    alloc_info.descriptorPool = descriptor_pool;
-    alloc_info.descriptorSetCount = frames_in_flight;
-    alloc_info.pSetLayouts = layouts;
+    const VkDescriptorSetAllocateInfo alloc_info = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, // .sType =
+        NULL, // .pNext =
+        descriptor_pool, // .descriptorPool =
+        (uint32) frames_in_flight, // .descriptorSetCount =
+        layouts, // .pSetLayouts =
+    };
 
     VkResult result;
     if ((result = vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets)) != VK_SUCCESS) {
@@ -425,12 +465,13 @@ void vulkan_descriptor_sets_create(
 
     // @todo this is shader specific, it shouldn't be here
     for (int32 i = 0; i < frames_in_flight; ++i) {
-        VkDescriptorBufferInfo buffer_info = {};
-        buffer_info.buffer = uniform_buffers[i];
-        buffer_info.offset = 0;
-        buffer_info.range = uniform_buffer_object_size;
+        const VkDescriptorBufferInfo buffer_info = {
+            uniform_buffers[i], // .buffer =
+            0, // .offset =
+            uniform_buffer_object_size // .range =
+        };
 
-        VkDescriptorImageInfo image_info[] = {
+        const VkDescriptorImageInfo image_info[] = {
             {
                 texture_sampler, // .sampler =
                 texture_image_view, // .imageView =
@@ -443,7 +484,7 @@ void vulkan_descriptor_sets_create(
             }
         };
 
-        VkWriteDescriptorSet descriptor_writes[] = {
+        const VkWriteDescriptorSet descriptor_writes[] = {
             {
                 VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, // .sType =
                 NULL, // .pNext =

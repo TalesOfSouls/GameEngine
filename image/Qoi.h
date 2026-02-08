@@ -11,7 +11,6 @@
 #define COMS_IMAGE_QOI_H
 
 #include "../stdlib/Stdlib.h"
-#include <string.h>
 #include "Image.cpp"
 
 #define QOI_OP_LUMA555 0b00000000

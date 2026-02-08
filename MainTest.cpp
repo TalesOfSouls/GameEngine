@@ -6,6 +6,7 @@
 #include "tests/memory/ChunkMemoryTest.cpp"
 #include "tests/memory/RingMemoryTest.cpp"
 #include "tests/memory/BufferMemoryTest.cpp"
+#include "tests/memory/QueueTest.cpp"
 #include "tests/stdlib/HashMapTest.cpp"
 #include "tests/ui/UILayoutTest.cpp"
 #include "tests/ui/UIThemeTest.cpp"
@@ -34,6 +35,7 @@ int main() {
     MemoryChunkMemoryTest();
     MemoryRingMemoryTest();
     MemoryBufferMemoryTest();
+    QueueTest();
     StdlibHashMapTest();
     UIUILayoutTest();
     UIUIThemeTest();

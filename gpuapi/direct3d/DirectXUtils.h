@@ -324,7 +324,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
 ) {
     DXGI_FORMAT texture_format = gpuapi_texture_format(texture->image.image_settings);
 
-    D3D12_RESOURCE_DESC texture_info = {};
+    D3D12_RESOURCE_DESC texture_info = {0};
     texture_info.MipLevels = 1;
     texture_info.Format = texture_format;
     texture_info.Width = texture->image.width;
@@ -422,7 +422,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
     uint64 required_size = 0;
     uint64 mem_size = (uint64) (sizeof(D3D12_PLACED_SUBRESOURCE_FOOTPRINT) + sizeof(uint32) + sizeof(uint64)) * number_of_resources;
 
-    D3D12_PLACED_SUBRESOURCE_FOOTPRINT* layouts = (D3D12_PLACED_SUBRESOURCE_FOOTPRINT *) ring_get_memory(ring, mem_size, 64);
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT* layouts = (D3D12_PLACED_SUBRESOURCE_FOOTPRINT *) ring_get_memory(ring, mem_size, ASSUMED_CACHE_LINE_SIZE);
     uint64* row_size = (uint64 *) (layouts + number_of_resources);
     uint32* row_num = (uint32 *) (row_size + number_of_resources);
 
@@ -504,7 +504,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
     };
     command_buffer->ResourceBarrier(1, &barrier);
 
-    D3D12_SHADER_RESOURCE_VIEW_DESC srv_info = {};
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_info = {0};
     srv_info.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srv_info.Format = texture_info.Format;
     srv_info.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -571,7 +571,7 @@ void gpuapi_vertex_buffer_create(
     // Copy the triangle data to the vertex buffer
     uint8* vertex_data_begin;
     // We do not intend to read from this resource on the CPU
-    D3D12_RANGE read_range = {};
+    D3D12_RANGE read_range = {0};
     if (FAILED(hr = (*vertex_buffer)->Map(0, &read_range, (void **) &vertex_data_begin))) {
         LOG_1("DirectX12 Map: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
@@ -598,7 +598,7 @@ void gpuapi_vertex_buffer_update(
     uint64 size = vertex_count * vertex_size - offset;
 
     uint8* vertex_data_begin;
-    D3D12_RANGE read_range = {};
+    D3D12_RANGE read_range = {0};
     D3D12_RANGE write_range = { offset, offset + size };
 
     HRESULT hr;
@@ -657,7 +657,7 @@ void gpuapi_uniform_buffers_create(
         NULL,
         IID_PPV_ARGS(uniform_buffer));
 
-    D3D12_RANGE read_range = {};
+    D3D12_RANGE read_range = {0};
 
     uint8* data_begin;
     (*uniform_buffer)->Map(0, &read_range, (void **) &data_begin);
@@ -671,7 +671,7 @@ void gpuapi_uniform_buffer_update(
     uint32 buffer_size
 )
 {
-    D3D12_RANGE read_range = {};
+    D3D12_RANGE read_range = {0};
     uint8* data_begin = NULL;
     uniform_buffer->Map(0, &read_range, (void **) &data_begin);
 

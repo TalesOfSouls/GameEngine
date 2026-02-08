@@ -17,11 +17,15 @@
 #include "../../asset/Asset.h"
 #include "../../command/AppCmdBuffer.h"
 
-void* cmd_shader_load(AppCmdBuffer*, Command*) {
+void* cmd_shader_load(AppCmdBuffer*, AppCommand*) {
     return NULL;
 }
 
-void* cmd_shader_load_sync(AppCmdBuffer*, Shader* shader, const SoftShaderFunc* shader_func) {
+void* cmd_shader_load_sync(
+    Shader* shader,
+    const SoftShaderFunc* shader_func
+) NO_EXCEPT
+{
     // @question Currently the shader id has no purpose in software rendering
     // MAybe we want to bind all "loaded" shaders to the SoftwareRenderer then you could use them via ids like in opengl
     // Currently we use the shader simply by setting the currently active pointer to the shader

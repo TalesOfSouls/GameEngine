@@ -35,8 +35,8 @@ CONSTEXPR const char* RemoveQualifiers(const char* typeName) {
     const char* qualifiers[] = {"enum ", "struct ", "class ", "const ", "volatile ", "restrict "};
 
     for (const char* qual : qualifiers) {
-        size_t len = str_length(qual);
-        if (str_compare(typeName, qual, len) == 0) {
+        size_t len = strlen(qual);
+        if (strncmp(typeName, qual, len) == 0) {
             return typeName + len;
         }
     }

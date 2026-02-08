@@ -9,7 +9,6 @@
 #ifndef COMS_IMAGE_TGA_H
 #define COMS_IMAGE_TGA_H
 
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "../utils/Utils.h"
 #include "../compiler/CompilerUtils.h"
@@ -80,7 +79,7 @@ void image_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some assignment/copy overhead
-    Tga src = {};
+    Tga src = {0};
     generate_default_tga_references(src_data, &src);
 
     image->width = src.header.width;

@@ -1,0 +1,3 @@
+Some libraries are used in many places. Such libraries shouldn't be loaded in multiple places but once globally.
+Of course we could bind them at compile/runtime but if they are not available then we couldn't handle that gracefully.
+For example if a audio library cannot be initialized then another one could jump into its place.

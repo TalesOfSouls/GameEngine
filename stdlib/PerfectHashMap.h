@@ -85,7 +85,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, i
     int32* indices = (int32 *) ring_get_memory(ring, hm->map_count * sizeof(int32), 4);
     bool is_unique = false;
 
-    for (uint32 i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
         int32 seed;
         int32 c = 0;
 
@@ -127,7 +127,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* __restri
     int32* const indices = (int32 *) ring_get_memory(ring, hm->map_count * sizeof(int32), sizeof(size_t));
     bool is_unique = false;
 
-    for (uint32 i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
         int32 seed;
         int32 c = 0;
 
@@ -169,7 +169,7 @@ void perfect_hashmap_alloc(PerfectHashMap* hm, int32 count, int32 element_size, 
     LOG_1("[INFO] Allocating PerfectHashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->map_count = count;
     hm->entry_size = element_size;
-    hm->hash_entries = (byte *) platform_alloc_aligned(count * element_size, alignment);
+    hm->hash_entries = (byte *) platform_alloc_aligned(count * element_size, count * element_size, alignment);
 
     // @todo memset 0
     // Do we even need this?
@@ -364,7 +364,7 @@ PerfectHashEntry* perfect_hashmap_get_entry(const PerfectHashMap* __restrict hm,
 
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
 
-    return str_compare(entry->key, key) == 0 ? entry : NULL;
+    return strcmp(entry->key, key) == 0 ? entry : NULL;
 }
 
 inline
@@ -375,7 +375,7 @@ byte* perfect_hashmap_get_value(const PerfectHashMapRef* hmr, const char* key) N
 
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
 
-    return str_compare(entry->key, key) == 0 ? hmr->data + entry->value : NULL;
+    return strcmp(entry->key, key) == 0 ? hmr->data + entry->value : NULL;
 }
 
 inline
@@ -386,7 +386,7 @@ void perfect_hashmap_delete_entry(PerfectHashMap* __restrict hm, const char* __r
 
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
 
-    if (str_compare(entry->key, key) != 0) {
+    if (strcmp(entry->key, key) != 0) {
         return;
     }
 
@@ -405,7 +405,7 @@ int64 perfect_hashmap_dump(const PerfectHashMap* hm, byte* data)
     *((int32 *) data) = SWAP_ENDIAN_LITTLE(hm->hash_seed);
     data += sizeof(hm->hash_seed);
 
-    for (uint32 i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
         if (hm->hash_function == PERFECT_HASH_FUNCTIONS[i]) {
             *((int32 *) data) = SWAP_ENDIAN_LITTLE((uint64) i);
             data += sizeof(i);
@@ -449,7 +449,7 @@ int64 perfect_hashmap_load(PerfectHashMap* hm, const byte* data)
 // WARNiNG: Requires the phm to be initialized already incl. element count and element size etc.
 bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 seed_tries, RingMemory* const ring)
 {
-    char** keys = (char **) ring_get_memory(ring, sizeof(char *) * hm->buf.count, sizeof(size_t));
+    char** keys = (char **) ring_get_memory(ring, sizeof(char *) * hm->buf.capacity, sizeof(size_t));
 
     // Find all keys
     int32 key_index = 0;

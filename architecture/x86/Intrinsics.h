@@ -11,6 +11,7 @@
 
 #include <immintrin.h>
 #include <xmmintrin.h>
+#include "../../stdlib/Types.h"
 
 #if _WIN32
     #include <intrin.h>
@@ -21,13 +22,9 @@
 
 #ifdef _MSC_VER
     #define intrin_sqrt_f32(a) _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss((a))))
-#else
-    #define intrin_sqrt_f32(a) ({ float res; asm volatile("sqrtss %0, %1" : "=x"(res) : "x"(a)); res; })
-#endif
-
-#ifdef _MSC_VER
     #define intrin_sqrt_f64(a) _mm_cvtsd_f64(_mm_sqrt_sd(_mm_set_sd(0.0), _mm_set_sd((a))))
 #else
+    #define intrin_sqrt_f32(a) ({ float res; asm volatile("sqrtss %0, %1" : "=x"(res) : "x"(a)); res; })
     #define intrin_sqrt_f64(a) ({ double res; asm volatile("sqrtsd %0, %1" : "=x" (res) : "x" (a)); res; })
 #endif
 
@@ -55,6 +52,8 @@
 #define intrin_prefetch_l1(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T0)
 #define intrin_prefetch_l2(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T1)
 #define intrin_prefetch_l3(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T2)
+
+#define cpu_yield() _mm_pause()
 
 FORCE_INLINE
 uint64 intrin_timestamp_counter() NO_EXCEPT

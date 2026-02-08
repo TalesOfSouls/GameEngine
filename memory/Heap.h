@@ -9,8 +9,6 @@
 #ifndef COMS_MEMORY_HEAP_H
 #define COMS_MEMORY_HEAP_H
 
-#include <stdio.h>
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "../log/DebugMemory.h"
 #include "BufferMemory.h"

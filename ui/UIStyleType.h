@@ -23,13 +23,13 @@ int32 ui_style_type_to_id(const char* str)
 {
     if (*str == '\0') {
         return UI_STYLE_TYPE_DEFAULT;
-    } else if (str_compare(":hid", str, 4) == 0) {
+    } else if (strncmp(":hid", str, 4) == 0) {
         return UI_STYLE_TYPE_HIDDEN;
-    } else if (str_compare(":foc", str, 4) == 0) {
+    } else if (strncmp(":foc", str, 4) == 0) {
         return UI_STYLE_TYPE_FOCUS;
-    } else if (str_compare(":dis", str, 4) == 0) {
+    } else if (strncmp(":dis", str, 4) == 0) {
         return UI_STYLE_TYPE_DISABLED;
-    } else if (str_compare(":hov", str, 4) == 0) {
+    } else if (strncmp(":hov", str, 4) == 0) {
         return UI_STYLE_TYPE_HOVER;
     } else {
         return UI_STYLE_TYPE_MANUAL;

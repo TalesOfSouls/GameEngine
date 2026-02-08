@@ -14,7 +14,14 @@
 #include <time.h>
 
 inline
-void spinlock_start(spinlock32* lock, int32 delay = 10) {
+void spinlock_start(spinlock32* lock) {
+    while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE) != 0) {
+        cpu_yield();
+    }
+}
+
+inline
+void spinlock_start(spinlock32* lock, int32 delay) {
     while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE) != 0) {
         usleep(delay);
     }

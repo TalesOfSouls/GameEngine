@@ -19,9 +19,9 @@ void compute_aabb_x_primitives(const OBB* obbs, int32 n, AABB1D* arr) {
     for (int32 i = 0; i < n; ++i) {
         const OBB* o = &obbs[i];
 
-        float ex = oms_abs(o->axis[0].x) * o->half[0]
-            + oms_abs(o->axis[1].x) * o->half[1]
-            + oms_abs(o->axis[2].x) * o->half[2];
+        float ex = abs(o->axis[0].x) * o->half[0]
+            + abs(o->axis[1].x) * o->half[1]
+            + abs(o->axis[2].x) * o->half[2];
 
         arr[i].minx = o->center.x - ex;
         arr[i].maxx = o->center.x + ex;
@@ -57,7 +57,7 @@ bool obb_overlap(const OBB *A, const OBB *B)
     for(int32 i = 0; i < 3; i++) {
         for(int32 j = 0; j < 3; j++) {
             R[i][j] = vec3_dot(&A->axis[i], &B->axis[j]);
-            AbsR[i][j] = oms_abs(R[i][j]) + 1e-6f;
+            AbsR[i][j] = abs(R[i][j]) + 1e-6f;
         }
     }
 
@@ -71,7 +71,7 @@ bool obb_overlap(const OBB *A, const OBB *B)
         float ra = A->half[i];
         float rb = B->half[0] * AbsR[i][0] + B->half[1] * AbsR[i][1] + B->half[2] * AbsR[i][2];
 
-        if (oms_abs(t[i]) > ra + rb) {
+        if (abs(t[i]) > ra + rb) {
             return false;
         }
     }
@@ -81,7 +81,7 @@ bool obb_overlap(const OBB *A, const OBB *B)
         float tb = vec3_dot(&T, &B->axis[j]);
         float rb = B->half[j];
 
-        if (oms_abs(tb) > ra + rb) {
+        if (abs(tb) > ra + rb) {
             return false;
         }
     }
@@ -91,7 +91,7 @@ bool obb_overlap(const OBB *A, const OBB *B)
         float rb = B->half[(j + 1) % 3] * AbsR[i][(j + 2) % 3] + B->half[(j + 2) % 3] * AbsR[i][(j + 1) % 3];
         float tij = t[(i + 2) % 3] * R[(i + 1) % 3][j] - t[(i + 1) % 3] * R[(i + 2) % 3][j];
 
-        if (oms_abs(tij) > ra + rb) {
+        if (abs(tij) > ra + rb) {
             return false;
         }
     }

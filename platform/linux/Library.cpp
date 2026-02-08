@@ -9,11 +9,9 @@
 #ifndef COMS_PLATFORM_LINUX_LIBRARY_C
 #define COMS_PLATFORM_LINUX_LIBRARY_C
 
-#include <stdio.h>
 #include <dlfcn.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
 
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
@@ -23,13 +21,13 @@
 inline
 bool library_load(Library* lib)
 {
-    char dst[PATH_MAX];
+    char dst[PATH_MAX_LENGTH];
     str_concat_new(dst, lib->dir, lib->dst);
 
     // In debug mode, we create a copy at runtime, so we can recompile & reload it
     #if DEBUG || INTERNAL
-        char src[PATH_MAX];
-        size_t dst_len = str_length(dst);
+        char src[PATH_MAX_LENGTH];
+        size_t dst_len = strlen(dst);
 
         memcpy(src, dst, dst_len + 1);
         str_insert(dst, dst_len - (sizeof(".so") - 1), "_temp");

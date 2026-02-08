@@ -86,7 +86,7 @@ void font_from_file_txt(
     RingMemory* const ring
 ) NO_EXCEPT
 {
-    FileBody file = {};
+    FileBody file = {0};
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
 
@@ -116,21 +116,21 @@ void font_from_file_txt(
             ++pos;
         }
 
-        if (str_compare(block_name, "texture") == 0) {
+        if (strcmp(block_name, "texture") == 0) {
             while (*pos != '\n') {
                 *texture_pos++ = *pos++;
             }
 
             *texture_pos++ = '\0';
-        } else if (str_compare(block_name, "font_size") == 0) {
+        } else if (strcmp(block_name, "font_size") == 0) {
             font->size = str_to_float(pos, &pos);
-        } else if (str_compare(block_name, "line_height") == 0) {
+        } else if (strcmp(block_name, "line_height") == 0) {
             font->line_height = str_to_float(pos, &pos);
-        } else if (str_compare(block_name, "image_width") == 0) {
+        } else if (strcmp(block_name, "image_width") == 0) {
             image_width = (int32) str_to_int(pos, &pos);
-        } else if (str_compare(block_name, "image_height") == 0) {
+        } else if (strcmp(block_name, "image_height") == 0) {
             image_height = (int32) str_to_int(pos, &pos);
-        } else if (str_compare(block_name, "glyph_count") == 0) {
+        } else if (strcmp(block_name, "glyph_count") == 0) {
             // glyph_count has to be the last general element
             font->glyph_count = (uint32) str_to_int(pos, &pos);
             break;
@@ -245,7 +245,7 @@ int32 font_to_data(
     memcpy(pos, font->glyphs, font->glyph_count * sizeof(Glyph));
     pos += font->glyph_count * sizeof(Glyph);
 
-    int32 size = font_data_size(font);
+    const int32 size = font_data_size(font);
 
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) data,

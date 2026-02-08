@@ -34,6 +34,6 @@ const uint32 default_colors_256[256] = {
 };
 
 // @todo Implement (extends the default_colors_256 -> both together form 1024 colors)
-const uint32 default_colors_768[768] = {};
+const uint32 default_colors_768[768] = {0};
 
 #endif

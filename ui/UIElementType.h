@@ -1,7 +1,6 @@
 #ifndef COMS_UI_ELEMENT_TYPE_H
 #define COMS_UI_ELEMENT_TYPE_H
 
-#include <stdio.h>
 #include "../stdlib/Stdlib.h"
 #include "../compiler/CompilerUtils.h"
 #include "UIButton.h"
@@ -99,38 +98,37 @@ int32 ui_element_state_size(UIElementType e)
     }
 }
 
-CONSTEXPR
 int32 ui_element_type_to_id(const char* str)
 {
-    if (str_compare("button", str) == 0) {
+    if (strcmp("button", str) == 0) {
         return UI_ELEMENT_TYPE_BUTTON;
-    } else if (str_compare("select", str) == 0) {
+    } else if (strcmp("select", str) == 0) {
         return UI_ELEMENT_TYPE_SELECT;
-    } else if (str_compare("input", str) == 0) {
+    } else if (strcmp("input", str) == 0) {
         return UI_ELEMENT_TYPE_INPUT;
-    } else if (str_compare("textarea", str) == 0) {
+    } else if (strcmp("textarea", str) == 0) {
         return UI_ELEMENT_TYPE_TEXTAREA;
-    } else if (str_compare("image", str) == 0) {
+    } else if (strcmp("image", str) == 0) {
         return UI_ELEMENT_TYPE_IMAGE;
-    } else if (str_compare("label", str) == 0) {
+    } else if (strcmp("label", str) == 0) {
         return UI_ELEMENT_TYPE_LABEL;
-    } else if (str_compare("text", str) == 0) {
+    } else if (strcmp("text", str) == 0) {
         return UI_ELEMENT_TYPE_TEXT;
-    } else if (str_compare("link", str) == 0) {
+    } else if (strcmp("link", str) == 0) {
         return UI_ELEMENT_TYPE_LINK;
-    } else if (str_compare("table", str) == 0) {
+    } else if (strcmp("table", str) == 0) {
         return UI_ELEMENT_TYPE_TABLE;
-    } else if (str_compare("window", str) == 0) {
+    } else if (strcmp("window", str) == 0) {
         return UI_ELEMENT_TYPE_VIEW_WINDOW;
-    } else if (str_compare("panel", str) == 0) {
+    } else if (strcmp("panel", str) == 0) {
         return UI_ELEMENT_TYPE_VIEW_PANEL;
-    } else if (str_compare("tab", str) == 0) {
+    } else if (strcmp("tab", str) == 0) {
         return UI_ELEMENT_TYPE_VIEW_TAB;
-    } else if (str_compare("cursor", str) == 0) {
+    } else if (strcmp("cursor", str) == 0) {
         return UI_ELEMENT_TYPE_CURSOR;
-    } else if (str_compare("custom", str) == 0) {
+    } else if (strcmp("custom", str) == 0) {
         return UI_ELEMENT_TYPE_CUSTOM;
-    } else if (str_compare("manual", str) == 0) {
+    } else if (strcmp("manual", str) == 0) {
         return UI_ELEMENT_TYPE_MANUAL;
     }
 

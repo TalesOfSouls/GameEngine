@@ -56,9 +56,9 @@
 // Other header files most likely would also use the log header creating circular dependencies
 // As a result we are kinda implementing some things twice
 #if _WIN32
-    #include <stdio.h>
     #include <windows.h>
-    #include <time.h>
+
+    static LARGE_INTEGER _log_performance_frequency = {0};
 
     /**
      * Get the system time
@@ -83,7 +83,7 @@
     }
 
     static HANDLE _log_fp;
-    typedef volatile long log_spinlock32;
+    typedef long log_spinlock32;
 
     /**
      * Initialize the log specific spinlock
@@ -109,12 +109,17 @@
     static FORCE_INLINE HOT_CODE
     void log_spinlock_start(log_spinlock32* const lock, int32 delay = 10) NO_EXCEPT
     {
+        if (!_log_performance_frequency.QuadPart) {
+            QueryPerformanceFrequency(&_log_performance_frequency);
+        }
+
         while (InterlockedExchange(lock, 1) != 0) {
-            LARGE_INTEGER frequency, start, end;
-            QueryPerformanceFrequency(&frequency);
+            LARGE_INTEGER start, end;
             QueryPerformanceCounter(&start);
 
-            const long long target = start.QuadPart + (delay * frequency.QuadPart) / 1000000;
+            const long long target = start.QuadPart
+                + (delay * _log_performance_frequency.QuadPart)
+                / 1000000ULL;
 
             do {
                 QueryPerformanceCounter(&end);
@@ -154,7 +159,7 @@
     }
 
     static int32 _log_fp;
-    typedef volatile int32 log_spinlock32;
+    typedef int32 log_spinlock32;
 
     /**
      * Initialize the log specific spinlock
@@ -303,7 +308,7 @@ byte* log_get_memory() NO_EXCEPT
  *
  * @return void
  */
-void log_to_file(const void* data, size_t size) NO_EXCEPT
+void log_to_file(const void* const data, size_t size) NO_EXCEPT
 {
     if (!_log_memory || _log_memory->pos == 0 || !_log_fp) {
         return;
@@ -378,7 +383,12 @@ void log_to_terminal(uint64 time, const char* const msg) NO_EXCEPT
  * @return void
  */
 HOT_CODE
-void log(const char* str, const char* const file, const char* function, int32 line) NO_EXCEPT
+void log(
+    const char* __restrict str,
+    const char* const __restrict file,
+    const char* const __restrict function,
+    int32 line
+) NO_EXCEPT
 {
     if (!_log_memory) {
         return;
@@ -386,7 +396,7 @@ void log(const char* str, const char* const file, const char* function, int32 li
 
     LogSpinlockGuard _guard(&_log_memory->lock, 0);
 
-    int32 len = (int32) str_length(str);
+    int32 len = (int32) strlen(str);
 
     // Ensure that we have enough space in our log memory, otherwise log to file
     const int32 total_len = (len + (MAX_LOG_LENGTH - 1) / MAX_LOG_LENGTH) * sizeof(LogMessage) + len;
@@ -406,7 +416,10 @@ void log(const char* str, const char* const file, const char* function, int32 li
         msg->time = log_sys_time();
         msg->newline = '\n';
 
-        const int32 message_length = (int32) OMS_MIN((int32) (MAX_LOG_LENGTH - sizeof(LogMessage) - 1), len);
+        const int32 message_length = (int32) OMS_MIN(
+            (int32) (MAX_LOG_LENGTH - sizeof(LogMessage) - 1),
+            len
+        );
 
         memcpy(msg->message, str, message_length);
         msg->message[message_length] = '\0';
@@ -434,7 +447,13 @@ void log(const char* str, const char* const file, const char* function, int32 li
  * @return void
  */
 HOT_CODE
-void log(const char* const format, LogDataArray data, const char* const file, const char* const function, int32 line) NO_EXCEPT
+void log(
+    const char* const __restrict format,
+    LogDataArray data,
+    const char* const __restrict file,
+    const char* const __restrict function,
+    int32 line
+) NO_EXCEPT
 {
     if (!_log_memory) {
         return;
@@ -445,7 +464,7 @@ void log(const char* const format, LogDataArray data, const char* const file, co
         return;
     }
 
-    ASSERT_TRUE(str_length(format) + str_length(file) + str_length(function) + 50 < MAX_LOG_LENGTH);
+    ASSERT_TRUE(strlen(format) + strlen(file) + strlen(function) + 50 < MAX_LOG_LENGTH);
 
     LogSpinlockGuard _guard(&_log_memory->lock, 0);
 
@@ -476,14 +495,14 @@ void log(const char* const format, LogDataArray data, const char* const file, co
     msg->newline = '\n';
 
     char temp_format[MAX_LOG_LENGTH];
-    str_copy(msg->message, format);
+    strcpy(msg->message, format);
 
     for (int32 i = 0; i < LOG_DATA_ARRAY; ++i) {
         if (data.data[i].type == DATA_TYPE_VOID) {
             break;
         }
 
-        str_copy(temp_format, msg->message);
+        strcpy(temp_format, msg->message);
 
         switch (data.data[i].type) {
             case DATA_TYPE_VOID: {
@@ -553,14 +572,15 @@ void log(const char* const format, LogDataArray data, const char* const file, co
  * @return LogData
  */
 inline HOT_CODE
-LogData makeLogData(DataType type, const void* value) NO_EXCEPT
+LogData makeLogData(DataType type, const void* const value) NO_EXCEPT
 {
     const LogData d = {type, value};
     return d;
 }
 #define LOG_ENTRY(type, value) makeLogData(type, (const void*)(value))
 
-// WARNING: Unfortunately this helper function is required since post c++20 nested-brace initialize no longer support array initialization
+// WARNING: Unfortunately this helper function is required
+//          since post c++20 nested-brace initialize no longer support array initialization
 #include <initializer_list>
 inline HOT_CODE
 LogDataArray makeLogDataArray(std::initializer_list<LogData> list) NO_EXCEPT

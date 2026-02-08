@@ -11,16 +11,18 @@
 
 #include "../stdlib/Stdlib.h"
 
-// @question Why do I have this struct and don't use it in the window struct?
 struct WindowState {
+    // Logical dimension
     uint16 logical_width;
     uint16 logical_height;
 
+    // Physical dimension (a monitor may have more pixels than used in software e.g. retina)
     uint16 physical_width;
     uint16 physical_height;
 
     uint16 x;
     uint16 y;
+
     uint64 style;
 };
 
@@ -37,6 +39,24 @@ enum WindowStateFlag : byte {
     WINDOW_STATE_FLAG_FOCUSED = 1 << 0,
     WINDOW_STATE_FLAG_FULLSCREEN = 1 << 1,
     WINDOW_STATE_FLAG_DIMENSIONLESS = 1 << 2,
+};
+
+struct Window {
+    WindowState state_current;
+    WindowState state_old;
+
+    // WindowStateChanges
+    byte state_changes;
+
+    // WindowsStateFlag
+    byte state_flag;
+
+    byte dpi;
+
+    const char* name;
+
+    void* platform_window;
+    void* gpu_api_context;
 };
 
 #endif

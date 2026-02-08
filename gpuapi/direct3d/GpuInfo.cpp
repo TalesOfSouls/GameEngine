@@ -18,9 +18,8 @@
 uint64 gpu_info_features() {
     uint64 features = 0;
 
-    D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
-    if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options))))
-    {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS options = {0};
+    if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options)))) {
         // Bindless textures ↔ Resource Binding Tier 2 or above
         if (options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_2) {
             features |= GPU_FEATURE_BINDLESS_TEXTURE;
@@ -39,31 +38,25 @@ uint64 gpu_info_features() {
     // This is the equivalent of SSBOs → always supported.
     features |= GPU_FEATURE_SHADER_STORAGE_BUFFER_OBJECTS;
 
-    D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
-    if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5))))
-    {
-        if (options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
-        {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {0};
+    if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5)))) {
+        if (options5.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED) {
             features |= GPU_FEATURE_RAY_TRACING_DXR;
             features |= GPU_FEATURE_RAY_TRACING_ACCEL_BLAS;
             features |= GPU_FEATURE_RAY_TRACING_ACCEL_TLAS;
         }
     }
 
-    D3D12_FEATURE_DATA_D3D12_OPTIONS6 options6 = {};
-    if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &options6, sizeof(options6))))
-    {
-        if (options6.VariableShadingRateTier != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
-        {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS6 options6 = {0};
+    if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &options6, sizeof(options6)))) {
+        if (options6.VariableShadingRateTier != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED) {
             features |= GPU_FEATURE_VARIABLE_RATE_SHADING;
         }
     }
 
-    D3D12_FEATURE_DATA_D3D12_OPTIONS7 options7 = {};
-    if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &options7, sizeof(options7))))
-    {
-        if (options7.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED)
-        {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS7 options7 = {0};
+    if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &options7, sizeof(options7)))) {
+        if (options7.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED) {
             features |= GPU_FEATURE_MASH_SHADERS;
         }
     }
@@ -142,13 +135,13 @@ void gpuapi_info_get(GpuInfo* info, ID3D12Device* device) {
         dxgiDevice->Release();
     }
 
-    D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
+    D3D12_FEATURE_DATA_D3D12_OPTIONS options = {0};
     if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options)))) {
         sprintf_fast(info->api_version, sizeof(info->api_version) - 1, "D3D12");
         sprintf_fast(info->shader_version, sizeof(info->shader_version) - 1, "SM %d.%d", 6, 0);
     }
 
-    D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT addrSupport = {};
+    D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT addrSupport = {0};
     if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &addrSupport, sizeof(addrSupport)))) {
         info->alignment = 256;
     }

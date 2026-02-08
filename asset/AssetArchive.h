@@ -82,7 +82,10 @@ struct AssetArchive {
 
 // Calculates how large the header memory has to be to hold all its information
 static inline
-int32 asset_archive_header_size(const AssetArchive* const __restrict archive, const byte* __restrict data) NO_EXCEPT
+int32 asset_archive_header_size(
+    const AssetArchive* const __restrict archive,
+    const byte* __restrict data
+) NO_EXCEPT
 {
     data += sizeof(archive->header.version);
 
@@ -94,6 +97,8 @@ int32 asset_archive_header_size(const AssetArchive* const __restrict archive, co
 
     //data += sizeof(archive->header.asset_dependency_count);
 
+    ASSERT_TRUE(asset_count + asset_dependency_count < 100000);
+
     return sizeof(archive->header.version)
         + sizeof(archive->header.asset_count)
         + sizeof(archive->header.asset_dependency_count)
@@ -102,7 +107,11 @@ int32 asset_archive_header_size(const AssetArchive* const __restrict archive, co
 }
 
 static inline
-void asset_archive_header_load(AssetArchiveHeader* const __restrict header, const byte* __restrict data, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
+void asset_archive_header_load(
+    AssetArchiveHeader* const __restrict header,
+    const byte* __restrict data,
+    MAYBE_UNUSED int32 steps = 8
+) NO_EXCEPT
 {
     data = read_le(data, &header->version);
     data = read_le(data, &header->asset_count);
@@ -186,7 +195,7 @@ void asset_archive_load(
     }
     archive->mmf = file_mmf_handle(archive->fd_async);
 
-    FileBody file = {};
+    FileBody file = {0};
     file.size = sizeof(AssetArchiveHeader); // We only want to read the header at first
 
     // Find header size
@@ -227,7 +236,7 @@ void asset_archive_load(
 // this way we can check much faster if we can work with this data from the caller?!
 // The only problem is that we need to pass the pointer to this int in the thrd_queue since we queue the files to load there
 Asset* const asset_archive_asset_load(
-    const AssetArchive* archive,
+    const AssetArchive* const archive,
     int32 id,
     AssetManagementSystem* const ams,
     RingMemory* const ring
@@ -275,7 +284,7 @@ Asset* const asset_archive_asset_load(
         asset->official_id = id;
         asset->ram_size = element->uncompressed;
 
-        FileBody file = {};
+        FileBody file = {0};
         file.content = asset->self;
 
         // @performance Consider to implement general purpose fast compression algorithm
@@ -290,7 +299,7 @@ Asset* const asset_archive_asset_load(
         // 4. Of course the disadvantage would be to no longer have async loading
 
         // We are reading into temp memory since we have to perform transformations on the data
-        FileBodyAsync file = {};
+        FileBodyAsync file = {0};
         file_read_async(archive->fd_async, &file, element->start, element->length, ring);
 
         // This happens while the file system loads the data

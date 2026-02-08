@@ -16,25 +16,34 @@
 
 // Since we don't upload textures in software rendering this is the same as texture_use
 FORCE_INLINE
-void gpuapi_prepare_texture(SoftwareRenderer* renderer, const Texture* texture) NO_EXCEPT
+void gpuapi_prepare_texture(
+    SoftwareRenderer* const renderer,
+    const Texture* const texture
+) NO_EXCEPT
 {
     renderer->textures[texture->sample_id] = texture;
 }
 
 FORCE_INLINE
-void gpuapi_texture_use(SoftwareRenderer* renderer, const Texture* texture) NO_EXCEPT
+void gpuapi_texture_use(
+    SoftwareRenderer* const renderer,
+    const Texture* const texture
+) NO_EXCEPT
 {
     renderer->textures[texture->sample_id] = texture;
 }
 
 // @question Why is this here instead of in the shaderutils? same goes for opengl
 FORCE_INLINE
-void gpuapi_buffer_persistent_generate(SoftwareRenderer* renderer, const char* name, PersistentGpuBuffer* buffer) NO_EXCEPT
+void gpuapi_buffer_persistent_generate(
+    SoftwareRenderer* const renderer,
+    const char* name, PersistentGpuBuffer* buffer
+) NO_EXCEPT
 {
     buffer->bo = chunk_reserve(&renderer->buf, ceil_div(buffer->size, renderer->buf.chunk_size)) + 1;
     buffer->data = chunk_get_element(&renderer->buf, buffer->bo - 1);
 
-    for (int32 i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
         if (renderer->descriptor_set_layout[i].binding) {
             continue;
         }
@@ -48,20 +57,20 @@ void gpuapi_buffer_persistent_generate(SoftwareRenderer* renderer, const char* n
     }
 
     // @bug This is not a vertex upload it's just a generic data upload
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, buffer->size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
 }
 
 inline
-int32 gpuapi_buffer_generate(SoftwareRenderer* renderer, void* data, int32 size) NO_EXCEPT
+int32 gpuapi_buffer_generate(SoftwareRenderer* const renderer, void* data, int32 size) NO_EXCEPT
 {
-    int32 id = chunk_reserve(&renderer->buf, ceil_div(size, renderer->buf.chunk_size)) + 1;
-    byte* mem = chunk_get_element(&renderer->buf, id - 1);
+    const int32 id = chunk_reserve(&renderer->buf, ceil_div(size, renderer->buf.chunk_size)) + 1;
+    byte* const mem = chunk_get_element(&renderer->buf, id - 1);
 
     if (data) {
         memcpy(mem, data, size);
     }
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
 
     return id;
 }

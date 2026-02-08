@@ -24,7 +24,7 @@ void language_from_file_txt(
     RingMemory* const ring
 ) NO_EXCEPT
 {
-    FileBody file = {};
+    FileBody file = {0};
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
 

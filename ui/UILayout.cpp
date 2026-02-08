@@ -1,7 +1,6 @@
 #ifndef COMS_UI_LAYOUT_C
 #define COMS_UI_LAYOUT_C
 
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "../stdlib/HashMap.h"
 #include "../asset/Asset.h"
@@ -22,7 +21,11 @@
 
 // Doesn't change the position of pos outside of the function, since lookahead
 static
-void ui_layout_count_direct_children(UIElement* __restrict element, const char* __restrict pos, int32 parent_level)
+void ui_layout_count_direct_children(
+    UIElement* const __restrict element,
+    const char* __restrict pos,
+    int32 parent_level
+) NO_EXCEPT
 {
     // Find amount of child elements
     // We have to perform a lookahead since this determins the size of our children array
@@ -62,10 +65,10 @@ void ui_layout_count_direct_children(UIElement* __restrict element, const char* 
 static
 void ui_layout_assign_children(
     UILayout* const __restrict layout,
-    UIElement* __restrict element,
+    UIElement* const __restrict element,
     const char* __restrict pos,
     int32 parent_level
-) {
+) NO_EXCEPT {
     int32 current_child_pos = 0;
 
     char block_name[HASH_MAP_MAX_KEY_LENGTH];
@@ -113,7 +116,7 @@ void layout_from_file_txt(
     const char* __restrict path,
     RingMemory* const ring
 ) {
-    FileBody file = {};
+    FileBody file = {0};
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
 
@@ -192,7 +195,7 @@ void layout_from_file_txt(
         str_copy_move_until(block_type, &pos, " \r\n");
         str_move_past(&pos, '\n');
 
-        if (str_length(block_name) + 1 > HASH_MAP_MAX_KEY_LENGTH) {
+        if (strlen(block_name) + 1 > HASH_MAP_MAX_KEY_LENGTH) {
             LOG_1("Identifier %s too long", {DATA_TYPE_CHAR_STR, block_name});
         }
 
@@ -653,7 +656,7 @@ void layout_from_theme(
         HashEntryInt32* style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         // We don't handle special styles here, only the default one
-        if (str_find(style_entry->key, ':') >= 0) {
+        if (strchr(style_entry->key, ':')) {
             continue;
         }
 
@@ -711,13 +714,11 @@ void layout_from_theme(
         HashEntryInt32* const style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         // We only handle special styles here, not the default one
-        const int64 special_pos = str_find(style_entry->key, ':');
-        if (special_pos < 0) {
+        const char* special = strchr(style_entry->key, ':');
+        if (!special) {
             // The default element was already handled outside this loop
             continue;
         }
-
-        const char* special = style_entry->key + special_pos;
 
         char pure_name[HASH_MAP_MAX_KEY_LENGTH];
         // +1 to skip '#' or '.'

@@ -13,10 +13,10 @@
 #include <winsock2.h>
 #include <ws2ipdef.h>
 #include <ws2tcpip.h>
-#include <iphlpapi.h>
-#include <netioapi.h>
 
-#pragma comment(lib, "iphlpapi.lib")
+#include "../libs/Advapi32.h"
+#include "../libs/iphlpapi.h"
+
 #pragma comment(lib, "ws2_32.lib")
 
 void socket_close(SOCKET sd) {
@@ -34,11 +34,15 @@ void socket_close(SOCKET sd) {
 
 static inline
 bool network_is_ipv6_enabled_in_os() NO_EXCEPT {
+    if (!pRegOpenKeyExW || !pRegQueryValueExW || !pRegCloseKey) {
+        return true;
+    }
+
     DWORD value = 0;
     DWORD size = sizeof(value);
 
     HKEY key;
-    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+    if (pRegOpenKeyExW(HKEY_LOCAL_MACHINE,
         L"SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters",
         0, KEY_READ, &key) != ERROR_SUCCESS
     ) {
@@ -46,27 +50,31 @@ bool network_is_ipv6_enabled_in_os() NO_EXCEPT {
         return true;
     }
 
-    if (RegQueryValueExW(key, L"DisabledComponents", NULL, NULL,
+    if (pRegQueryValueExW(key, L"DisabledComponents", NULL, NULL,
         (LPBYTE) &value, &size) == ERROR_SUCCESS
     ) {
-        RegCloseKey(key);
+        pRegCloseKey(key);
 
         if (value == 0xffffffff) {
             return false;
         }
     }
 
-    RegCloseKey(key);
+    pRegCloseKey(key);
 
     return true;
 }
 
 static inline
 bool network_has_ipv6_address() NO_EXCEPT {
+    if (!pGetAdaptersAddresses) {
+        return false;
+    }
+
     IP_ADAPTER_ADDRESSES addresses[16384 / sizeof(IP_ADAPTER_ADDRESSES)] = {0};
     unsigned long size = sizeof(addresses);
 
-    if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, addresses, &size) != ERROR_SUCCESS) {
+    if (pGetAdaptersAddresses(AF_UNSPEC, 0, NULL, addresses, &size) != ERROR_SUCCESS) {
         return false;
     }
 
@@ -91,8 +99,12 @@ bool network_has_ipv6_address() NO_EXCEPT {
 
 static inline
 bool network_has_ipv6_default_route() NO_EXCEPT {
+    if (!pGetIpForwardTable2 || !pFreeMibTable) {
+        return false;
+    }
+
     PMIB_IPFORWARD_TABLE2 table;
-    if (GetIpForwardTable2(AF_INET6, &table) != NO_ERROR) {
+    if (pGetIpForwardTable2(AF_INET6, &table) != NO_ERROR) {
         return false;
     }
 
@@ -108,7 +120,7 @@ bool network_has_ipv6_default_route() NO_EXCEPT {
         }
     }
 
-    FreeMibTable(table);
+    pFreeMibTable(table);
 
     return found;
 }

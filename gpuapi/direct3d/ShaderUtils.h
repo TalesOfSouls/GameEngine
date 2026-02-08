@@ -79,7 +79,7 @@ ID3D12PipelineState* gpuapi_pipeline_make(
     PROFILE(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Create pipeline");
 
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_info = {};
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_info = {0};
     pipeline_state_info.InputLayout = { descriptor_set_layouts, layout_count };
     pipeline_state_info.pRootSignature = pipeline_layout;
     pipeline_state_info.VS = {

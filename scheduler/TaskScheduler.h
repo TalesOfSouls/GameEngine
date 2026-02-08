@@ -45,20 +45,24 @@ struct TaskScheduler {
     mutex lock;
 };
 
+// @bug replace uint64 for free with uint_max
 inline
 void scheduler_alloc(TaskScheduler* scheduler, int32 count) NO_EXCEPT
 {
-    byte* data = (byte *) platform_alloc_aligned(
-        count * sizeof(TaskSchedule)
+    const size_t memory_size = count * sizeof(TaskSchedule)
         + count * sizeof(int32)
         + ceil_div(count, 64) * sizeof(*scheduler->free)
-        + 128,
-        64
+        + 128;
+
+    byte* data = (byte *) platform_alloc_aligned(
+        memory_size,
+        memory_size,
+        ASSUMED_CACHE_LINE_SIZE
     );
 
     scheduler->tasks = (TaskSchedule *) data;
-    scheduler->priorities = (volatile int32 *) align_up((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
-    scheduler->free = (volatile uint64 *) align_up((uintptr_t) (scheduler->priorities + count), 64);
+    scheduler->priorities = (int32 *) align_up((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
+    scheduler->free = (uint64 *) align_up((uintptr_t) (scheduler->priorities + count), 64);
 
     mutex_init(&scheduler->lock, NULL);
 }
@@ -72,18 +76,18 @@ void scheduler_create(TaskScheduler* scheduler, int32 count, BufferMemory* const
         + count * sizeof(int32)
         + ceil_div(count, 64) * sizeof(*scheduler->free)
         + 128,
-        64
+        ASSUMED_CACHE_LINE_SIZE
     );
 
     scheduler->tasks = (TaskSchedule *) data;
-    scheduler->priorities = (volatile int32 *) align_up((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
-    scheduler->free = (volatile uint64 *) align_up((uintptr_t) (scheduler->priorities + count), 64);
+    scheduler->priorities = (int32 *) align_up((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
+    scheduler->free = (uint64 *) align_up((uintptr_t) (scheduler->priorities + count), 64);
 
     mutex_init(&scheduler->lock, NULL);
 }
 
 static
-int32 scheduler_get_unset(volatile uint64* state, uint32 state_count) NO_EXCEPT
+int32 scheduler_get_unset(uint64* state, uint32 state_count) NO_EXCEPT
 {
     uint32 free_index = 0;
     uint32 bit_index;

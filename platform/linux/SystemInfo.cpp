@@ -9,10 +9,6 @@
 #ifndef COMS_PLATFORM_LINUX_SYSTEM_INFO_C
 #define COMS_PLATFORM_LINUX_SYSTEM_INFO_C
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 #include "../../stdlib/Stdlib.h"
 #include "../../system/SystemInfo.h"
 #include "../../architecture/CpuInfo.cpp"
@@ -86,7 +82,7 @@ uint64 system_app_memory_usage()
     char* internal_pos = NULL;
 
     while (file_read_line(fp, line, sizeof(line), internal_buffer, &internal_buffer_size, &internal_pos)) {
-        if (str_compare(line, "Private_Dirty:", sizeof("Private_Dirty:") - 1) == 0) {
+        if (strncmp(line, "Private_Dirty:", sizeof("Private_Dirty:") - 1) == 0) {
             uint64 private_dirty;
             if (sscanf(line, "Private_Dirty: %lu kB", &private_dirty) == 1) {
                 total_size += private_dirty * 1024;  // Convert from kB to bytes
@@ -133,7 +129,7 @@ int32 network_info_get(NetworkInfo* info) {
     struct stat st;
     int32 i = 0;
 
-    FileBody file = {};
+    FileBody file = {0};
 
     for (i = 0; i < 4; ++i) {
         int_to_str(i, path + sizeof("/sys/class/net/eth") - 1);
@@ -175,15 +171,15 @@ void cpu_info_get(CpuInfo* info) {
     char* internal_pos = NULL;
 
     while (file_read_line(fp, line, sizeof(line), internal_buffer, &internal_buffer_size, &internal_pos)) {
-        if (str_compare(line, "vendor_id", sizeof("vendor_id") - 1) == 0) {
+        if (strncmp(line, "vendor_id", sizeof("vendor_id") - 1) == 0) {
             sscanf(line, "vendor_id : %s", info->vendor);
-        } else if (str_compare(line, "model", sizeof("model") - 1) == 0) {
+        } else if (strncmp(line, "model", sizeof("model") - 1) == 0) {
             sscanf(line, "model : %hhd", &info->model);
-        } else if (str_compare(line, "cpu MHz", sizeof("cpu MHz") - 1) == 0) {
+        } else if (strncmp(line, "cpu MHz", sizeof("cpu MHz") - 1) == 0) {
             sscanf(line, "cpu MHz : %d", &info->mhz);
-        } else if (str_compare(line, "cpu cores", sizeof("cpu cores") - 1) == 0) {
+        } else if (strncmp(line, "cpu cores", sizeof("cpu cores") - 1) == 0) {
             sscanf(line, "cpu cores : %hd", &info->core_count);
-        } else if (str_compare(line, "model name", sizeof("model name") - 1) == 0) {
+        } else if (strncmp(line, "model name", sizeof("model name") - 1) == 0) {
             sscanf(line, "model name : %63[^\n]", info->brand);
         }
     }

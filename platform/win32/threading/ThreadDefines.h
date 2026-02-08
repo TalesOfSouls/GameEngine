@@ -22,6 +22,7 @@ typedef void coms_pthread_condattr_t;
 typedef void coms_pthread_rwlockattr_t;
 
 struct coms_pthread_t {
+    int32 id;
     HANDLE h;
     void* stack;
 };
@@ -29,7 +30,9 @@ struct coms_pthread_t {
 typedef CONDITION_VARIABLE mutex_cond;
 
 // Thread local variable Already exists in c++11
-// #define thread_local __declspec(thread)
+#if defined(CPP_VERSION) && CPP_VERSION < 11
+    #define thread_local __declspec(thread)
+#endif
 
 struct coms_pthread_rwlock_t {
     SRWLOCK lock;

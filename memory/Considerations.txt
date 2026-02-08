@@ -1,0 +1,23 @@
+Threading
+=================================
+
+We are using the same data types for single threaded and multi threaded purpose.
+
+Advantages:
+    1. Only one data type to maintain
+    2. We can switch between multi threaded and single threaded use for the same instantiation
+        for additional performance
+
+Disadvantages:
+    1. There is the risk that the _atomic functions are bugged because we no longer define them volatile?
+    2. Other platforms may not allow our very simple wrappers around atomic functions.
+
+Templates
+=================================
+
+We are supporting template types in some cases which hopefully provide better optimizations during compile time.
+When profiling those we had very mixed results.
+
+Not sure if the additional code really provides performance benefits. This needs to be investigated further.
+If it doesn't provide any benefits using the general purpose solution with element_size could be better,
+because we then only have to maintain one solution

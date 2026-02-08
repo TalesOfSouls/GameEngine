@@ -9,7 +9,6 @@
 #ifndef COMS_MEMORY_BUFFER_MEMORY_H
 #define COMS_MEMORY_BUFFER_MEMORY_H
 
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "../utils/Assert.h"
 #include "../log/Log.h"
@@ -17,6 +16,7 @@
 #include "../log/PerformanceProfiler.h"
 #include "../log/DebugMemory.h"
 #include "../system/Allocator.h"
+#include "../thread/Thread.h"
 
 struct BufferMemory {
     byte* memory;
@@ -25,7 +25,8 @@ struct BufferMemory {
 
     size_t size;
     int32 alignment;
-    int32 element_alignment;
+
+    mutex lock;
 };
 
 inline
@@ -35,22 +36,28 @@ void buffer_alloc(BufferMemory* const buf, size_t size, int32 alignment = sizeof
     ASSERT_TRUE(size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    size = align_up(size, 64);
+    size = align_up(size, ASSUMED_CACHE_LINE_SIZE);
     LOG_1("[INFO] Allocating BufferMemory: %n B", {DATA_TYPE_UINT64, &size});
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)
-        : (byte *) platform_alloc_aligned(size, alignment);
+        : (byte *) platform_alloc_aligned(size, size, alignment);
 
     buf->end = buf->memory + size;
     buf->head = buf->memory;
     buf->size = size;
     buf->alignment = alignment;
-    buf->element_alignment = 0;
 
     memset(buf->memory, 0, buf->size);
 
     STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
+}
+
+FORCE_INLINE
+void thrd_buffer_alloc(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    buffer_alloc(buf, size, alignment);
+    mutex_init(&buf->lock, NULL);
 }
 
 inline
@@ -66,8 +73,20 @@ void buffer_free(BufferMemory* const buf) NO_EXCEPT
     buf->memory = NULL;
 }
 
+FORCE_INLINE
+void thrd_buffer_free(BufferMemory* const buf) NO_EXCEPT
+{
+    buffer_free(buf);
+    mutex_destroy(&buf->lock);
+}
+
 inline
-void buffer_init(BufferMemory* const buf, byte* data, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void buffer_init(
+    BufferMemory* const buf,
+    byte* const data,
+    size_t size,
+    int32 alignment = sizeof(size_t)
+) NO_EXCEPT
 {
     ASSERT_TRUE(size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -79,11 +98,17 @@ void buffer_init(BufferMemory* const buf, byte* data, size_t size, int32 alignme
     buf->head = buf->memory;
     buf->size = size;
     buf->alignment = alignment;
-    buf->element_alignment = 0;
 
     memset(buf->memory, 0, buf->size);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
+}
+
+FORCE_INLINE
+void thrd_buffer_init(BufferMemory* const buf, byte* data, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    buffer_init(buf, data, size, alignment);
+    mutex_init(&buf->lock, NULL);
 }
 
 FORCE_INLINE
@@ -92,6 +117,13 @@ void buffer_reset(BufferMemory* const buf) NO_EXCEPT
     // @bug aren't we wasting element 0 (see get_memory, we are not using 0 only next element)
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->head - buf->memory);
     buf->head = buf->memory;
+}
+
+FORCE_INLINE
+void thrd_buffer_reset(BufferMemory* const buf) NO_EXCEPT
+{
+    MutexGuard _guard(&buf->lock);
+    buffer_reset(buf);
 }
 
 inline HOT_CODE
@@ -115,6 +147,13 @@ byte* buffer_get_memory(BufferMemory* const buf, size_t size, int32 alignment = 
     return offset;
 }
 
+FORCE_INLINE
+byte* thrd_buffer_get_memory(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    MutexGuard _guard(&buf->lock);
+    return buffer_get_memory(buf, size, alignment);
+}
+
 inline
 int64 buffer_dump(const BufferMemory* const buf, byte* data) NO_EXCEPT
 {
@@ -123,7 +162,6 @@ int64 buffer_dump(const BufferMemory* const buf, byte* data) NO_EXCEPT
     data = write_le(data, buf->size);
     data = write_le(data, (uint64) (buf->head - buf->memory));
     data = write_le(data, buf->alignment);
-    data = write_le(data, buf->element_alignment);
     data = write_le(data, (uint64) (buf->end - buf->memory));
 
     // All memory is handled in the buffer -> simply copy the buffer
@@ -131,6 +169,13 @@ int64 buffer_dump(const BufferMemory* const buf, byte* data) NO_EXCEPT
     data += buf->size;
 
     return data - start;
+}
+
+FORCE_INLINE
+int64 thrd_buffer_dump(BufferMemory* const buf, byte* data) NO_EXCEPT
+{
+    MutexGuard _guard(&buf->lock);
+    return buffer_dump(buf, data);
 }
 
 inline
@@ -154,6 +199,13 @@ int64 buffer_load(BufferMemory* const buf, const byte* data) NO_EXCEPT
     data += buf->size;
 
     return data - start;
+}
+
+FORCE_INLINE
+int64 thrd_buffer_load(BufferMemory* const buf, const byte* data) NO_EXCEPT
+{
+    MutexGuard _guard(&buf->lock);
+    return buffer_load(buf, data);
 }
 
 #endif

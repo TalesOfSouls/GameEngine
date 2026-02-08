@@ -25,7 +25,7 @@ void clipboard_get(char* text, int32 max_length) NO_EXCEPT
         if (clipboard_data) {
             const char* clipboard_text = (const char*) GlobalLock(clipboard_data);
             if (clipboard_text) {
-                str_copy(text, clipboard_text, max_length);
+                strncpy(text, clipboard_text, max_length);
                 GlobalUnlock(clipboard_data);
             }
         }

@@ -9,7 +9,6 @@
 #ifndef COMS_UTILS_RANDOM_H
 #define COMS_UTILS_RANDOM_H
 
-#include <stdlib.h>
 #include "../stdlib/Stdlib.h"
 #include "../utils/Assert.h"
 #include "../utils/TimeUtils.h"

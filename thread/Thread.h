@@ -9,7 +9,6 @@
 #ifndef COMS_THREADS_THREAD_H
 #define COMS_THREADS_THREAD_H
 
-#include <stdio.h>
 #include "../stdlib/Stdlib.h"
 #include "../compiler/CompilerUtils.h"
 #include "../log/Log.h"

@@ -9,19 +9,27 @@
 #ifndef COMS_STDLIB_DEFINES_H
 #define COMS_STDLIB_DEFINES_H
 
-#if _WIN32
-    // @question Do I really need <windows.h> here or could I go lower?
-    #include <windows.h>
-    typedef SSIZE_T ssize_t;
-#elif __linux__
+#if __linux__
     #include <linux/limits.h>
-    #define MAX_PATH PATH_MAX
+    #define PATH_MAX_LENGTH PATH_MAX
+#elif _WIN32
+    #include <stddef.h>
+    #define PATH_MAX_LENGTH MAX_PATH
+#else
+    #define PATH_MAX_LENGTH 255
 #endif
 
 #ifdef DEBUG
     #define NO_EXCEPT
 #else
     #define NO_EXCEPT noexcept
+#endif
+
+#ifndef ASSUMED_CACHE_LINE_SIZE
+    // In some places it is not really feasible to use runtime cache line size
+    // By using this macro we can at least define a semi sensible value,
+    // which we can modify during compilation for different platforms
+    #define ASSUMED_CACHE_LINE_SIZE 64
 #endif
 
 // PI
@@ -48,16 +56,19 @@
 #define GIGABYTE 1073741824ULL
 
 #define MAX_BYTE 0xFF
+#define MAX_UINT8 0xFF
 #define MAX_UINT16 0xFFFF
 #define MAX_UINT32 0xFFFFFFFF
 #define MAX_UINT64 0xFFFFFFFFFFFFFFFFULL
 
 #define MAX_CHAR 0x7F
+#define MAX_INT8 0x7F
 #define MAX_INT16 0x7FFF
 #define MAX_INT32 0x7FFFFFFF
 #define MAX_INT64 0x7FFFFFFFFFFFFFFF
 
 #define MIN_CHAR 0x80
+#define MIN_INT8 0x80
 #define MIN_INT16 0x8000
 #define MIN_INT32 0x80000000
 #define MIN_INT64 0x8000000000000000LL
@@ -71,18 +82,39 @@
 #define MHZ 1000000
 #define GHZ 1000000000ULL
 
-#define HALF_FLOAT_SIGN_MASK 0x8000
-#define HALF_FLOAT_EXP_MASK 0x7C00
-#define HALF_FLOAT_FRAC_MASK 0x03FF
-
-#define HALF_FLOAT_EXP_SHIFT 10
-#define HALF_FLOAT_EXP_BIAS 15
-
 #define FLOAT32_SIGN_MASK 0x80000000
-#define FLOAT32_EXP_MASK 0x7F800000
-#define FLOAT32_FRAC_MASK 0x007FFFFF
+#define FLOAT64_SIGN_MASK 0x8000000000000000
 
-#define FLOAT32_EXP_SHIFT 23
-#define FLOAT32_EXP_BIAS 127
+#define OMS_EPSILON_F32 1.19209290e-07f
+#define OMS_EPSILON_F64 2.2204460492503131e-16
+
+/**
+ * Some implementations should support 32 bit and 64 bit.
+ * For this reason we need types that are universal.
+ * And who knows, maybe we will get to 128 bits as default integer sizes.
+ */
+#if !defined(_WIN64) && !__x86_64__ && !__ppc64__
+    #define OMS_UINT_MAX 0xFFFFFFFFU
+    #define OMS_UINT_ONE 1U
+
+    #define ENV_64 1
+#else
+    #define OMS_UINT_MAX 0xFFFFFFFFFFFFFFFFULL
+    #define OMS_UINT_ONE 1ULL
+
+    #define ENV_32 1
+#endif
+
+// This is of course CPU dependent but we need a reasonable default value
+#define CACHE_LINE_SIZE 64
+#define CACHE_PAGE_SIZE 4096
+#define CACHE_L1_SIZE 32768
+#define CACHE_L2_SIZE 262144
+#define CACHE_L3_SIZE 4194304
+
+// Compiler macros/flags defaults
+#ifndef CPP_VERSION
+    #define CPP_VERSION 25
+#endif
 
 #endif

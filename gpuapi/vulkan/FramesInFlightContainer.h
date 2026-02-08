@@ -16,6 +16,9 @@ struct FramesInFlightContainer {
     // @performance Can we make both uint16? I don't think because the other variables are 8 bytes values.
     uint32 count;
     uint32 index;
+
+    // @todo Instead of having individual arrays here maybe create a FramesInFlightElement
+    //      That could contain the data below
     VkSemaphore* image_available_semaphores;
     VkSemaphore* render_finished_semaphores;
     VkFence* fences;

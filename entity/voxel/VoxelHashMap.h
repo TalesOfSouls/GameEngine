@@ -29,28 +29,32 @@ uint64 voxel_chunk_coord_pack(int32 x, int32 y, int32 z) NO_EXCEPT
 }
 
 FORCE_INLINE
-HashEntryVoidPKeyInt64* voxel_hashmap_insert(HashMap* __restrict hm, int32 x, int32 y, int32 z, VoxelChunk* __restrict chunk) NO_EXCEPT
+HashEntryVoidPKeyInt64* voxel_hashmap_insert(
+    HashMap* const __restrict hm,
+    int32 x, int32 y, int32 z,
+    VoxelChunk* const __restrict chunk
+) NO_EXCEPT
 {
     uint64 key = voxel_chunk_coord_pack(x, y, z);
     return hashmap_insert(hm, key, (void *) chunk);
 }
 
 FORCE_INLINE
-void voxel_hashmap_remove(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT
+void voxel_hashmap_remove(HashMap* const hm, int32 x, int32 y, int32 z) NO_EXCEPT
 {
     uint64 key = voxel_chunk_coord_pack(x, y, z);
     hashmap_remove(hm, key);
 }
 
 FORCE_INLINE
-HashEntryVoidPKeyInt64* voxel_hashmap_get_entry(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT
+HashEntryVoidPKeyInt64* voxel_hashmap_get_entry(HashMap* const hm, int32 x, int32 y, int32 z) NO_EXCEPT
 {
     uint64 key = voxel_chunk_coord_pack(x, y, z);
     return (HashEntryVoidPKeyInt64 *) hashmap_get_entry(hm, key);
 }
 
 FORCE_INLINE
-VoxelChunk* voxel_hashmap_get_value(HashMap* hm, int32 x, int32 y, int32 z) NO_EXCEPT
+VoxelChunk* voxel_hashmap_get_value(HashMap* const hm, int32 x, int32 y, int32 z) NO_EXCEPT
 {
     HashEntryVoidPKeyInt64* entry = (HashEntryVoidPKeyInt64 *) voxel_hashmap_get_entry(hm, x, y, z);
 

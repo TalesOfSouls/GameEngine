@@ -27,6 +27,7 @@
         PROFILE_FILE_UTILS,
         PROFILE_BUFFER_ALLOC,
         PROFILE_CHUNK_ALLOC,
+        PROFILE_QUEUE_ALLOC,
         PROFILE_FRAGMENT_ALLOC,
         PROFILE_RING_ALLOC,
         PROFILE_DB_POOL_ALLOC,
@@ -91,7 +92,7 @@ struct PerformanceStatHistory {
     alignas(8) PerformanceProfileResult perfs[MAX_PERFORMANCE_STATS_HISTORY * PROFILE_SIZE];
 };
 static PerformanceStatHistory* _perf_stats = NULL;
-static volatile int32* _perf_active = NULL;
+static int32* _perf_active = NULL;
 
 /**
  * Creates a snapshot of the current performance logs
@@ -105,7 +106,10 @@ void profile_performance_snapshot() NO_EXCEPT
         return;
     }
 
-    const int32 pos = atomic_increment_wrap_acquire_release(&_perf_stats->pos, ARRAY_COUNT(_perf_stats->perfs) / PROFILE_SIZE);
+    const int32 pos = atomic_increment_wrap_acquire_release(
+        &_perf_stats->pos,
+        (int32) ARRAY_COUNT(_perf_stats->perfs) / PROFILE_SIZE
+    );
     memset(
         &_perf_stats->perfs[pos * PROFILE_SIZE],
         0,
@@ -327,7 +331,7 @@ struct PerformanceProfiler {
 
     HOT_CODE inline
     explicit PerformanceProfiler(
-        int32 id, const char* scope_name, const char* info = NULL,
+        int32 id, const char* const __restrict scope_name, const char* __restrict info = NULL,
         uint32 flags = 0
     ) NO_EXCEPT
     {
@@ -375,7 +379,7 @@ struct PerformanceProfiler {
         atomic_increment_relaxed(&_perf_stats->perfs[pos + this->_id].counter);
 
         // Store result
-        PerformanceProfileResult temp_perf = {};
+        PerformanceProfileResult temp_perf = {0};
         PerformanceProfileResult* const perf = (this->_flags & PROFILE_FLAG_STATELESS)
             ? &temp_perf
             : &_perf_stats->perfs[pos + this->_id];
@@ -388,9 +392,9 @@ struct PerformanceProfiler {
         if (this->_flags & PROFILE_FLAG_ADD_HISTORY && _perf_thread_history_count) {
             for (int32 i = 0; i < _perf_thread_history_count; ++i) {
                 if (_perf_thread_history[i].thread_id == _thread_local_id) {
-                    int32 hist_pos = atomic_increment_wrap_relaxed(
+                    uint32 hist_pos = atomic_increment_wrap_relaxed(
                         &_perf_thread_history[i].pos,
-                        MAX_PERFORMANCE_THREAD_HISTORY
+                        (uint32) MAX_PERFORMANCE_THREAD_HISTORY
                     );
 
                     _perf_thread_history[i].cpu_id = _thread_cpu_id;

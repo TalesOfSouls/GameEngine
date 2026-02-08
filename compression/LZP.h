@@ -9,9 +9,6 @@
 #ifndef COMS_COMPRESSION_LZP_H
 #define COMS_COMPRESSION_LZP_H
 
-#include <stdio.h>
-#include <string.h>
-
 #include "../stdlib/Stdlib.h"
 
 uint32 lzp_encode(const byte* in, size_t length, byte* out) NO_EXCEPT

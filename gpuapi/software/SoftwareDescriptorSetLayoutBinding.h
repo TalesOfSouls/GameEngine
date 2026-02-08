@@ -29,7 +29,7 @@ inline T* soft_layout_find(
 )
 {
     for (int32 i = 0; i < length; ++i) {
-        if (layouts[i].name && str_compare(layouts[i].name, name) == 0) {
+        if (layouts[i].name && strcmp(layouts[i].name, name) == 0) {
             return &layouts[i];
         }
     }

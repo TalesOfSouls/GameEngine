@@ -17,7 +17,6 @@
 #include <windows.h>
 #include <io.h>
 #include <fcntl.h>
-#include <stdio.h>
 
 static
 int32 fast_pipes_enable() NO_EXCEPT

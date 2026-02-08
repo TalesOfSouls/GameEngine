@@ -9,7 +9,6 @@
 #ifndef COMS_UTILS_H
 #define COMS_UTILS_H
 
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
 #include "../compiler/CompilerUtils.h"
@@ -29,7 +28,13 @@
 #endif
 
 struct FileBody {
-    size_t size; // doesn't include null termination (same as strlen)
+    // doesn't include null termination (same as strlen)
+    size_t size;
+
+    // If size is defined you also must allocate memory for content when reading from a file
+    // Otherwise the API expects a ring memory it can use for reserving memory
+    // Of course this means that the content is only temporarily available and will be overwritten any time
+    // If you allocate content, make sure to allocate +1 since we always add \0 at the end even in binary
     byte* content;
 };
 
@@ -43,7 +48,7 @@ inline
 void str_output(const char* __restrict str, ...) NO_EXCEPT
 {
     char buffer[1024];
-    if (str_find(str, '%') >= 0) {
+    if (strchr(str, '%')) {
         va_list args;
         va_start(args, str);
         sprintf_fast(buffer, 1024, str, args);
@@ -54,9 +59,9 @@ void str_output(const char* __restrict str, ...) NO_EXCEPT
 
     #ifdef _WIN32
         HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-        WriteFile(hStdout, str, (DWORD) str_length(str), NULL, NULL);
+        WriteFile(hStdout, str, (DWORD) strlen(str), NULL, NULL);
     #else
-        write(STDOUT_FILENO, str, str_length(str));
+        write(STDOUT_FILENO, str, strlen(str));
     #endif
 }
 

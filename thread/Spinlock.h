@@ -11,8 +11,10 @@
 
 #if _WIN32
     #include "../platform/win32/threading/Spinlock.h"
+    #include "../platform/win32/threading/Spinlock.cpp"
 #elif __linux__
     #include "../platform/linux/threading/Spinlock.h"
+    #include "../platform/linux/threading/Spinlock.cpp"
 #endif
 
 // By using this constructor/destructor pattern you can avoid deadlocks in case of exceptions

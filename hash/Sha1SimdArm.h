@@ -17,7 +17,7 @@
     #include <arm_sve.h>
 
     static inline
-    void sha1_transform(SHA1_CTX* ctx, const byte data[64], int32 steps) NO_EXCEPT
+    void sha1_transform(Sha1Context* ctx, const byte data[64], int32 steps) NO_EXCEPT
 {
         uint32 a, b, c, d, e, temp;
         alignas(64) uint32 w[80];
@@ -93,7 +93,7 @@
     #include <arm_neon.h>
 
     static inline
-    void sha1_transform(SHA1_CTX* ctx, const byte data[64], int32 steps) NO_EXCEPT
+    void sha1_transform(Sha1Context* ctx, const byte data[64], int32 steps) NO_EXCEPT
 {
         uint32 a, b, c, d, e, temp;
         alignas(64) uint32 w[80];

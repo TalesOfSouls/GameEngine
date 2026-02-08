@@ -20,7 +20,7 @@ void base64_encode_simd(const byte* data, char* encoded_data, size_t data_length
     if (!data_length) {
         // WARNING: This should only happen if the data is a char string
         // Binary data is not allowed since it often has '\0' characters
-        data_length = str_length((const char *) data);
+        data_length = strlen((const char *) data);
     }
 
     steps = intrin_validate_steps(data, steps);
@@ -216,7 +216,7 @@ void base64_encode_simd(const byte* data, char* encoded_data, size_t data_length
 size_t base64_decode_simd(const char* encoded_data, byte* data, size_t encoded_length, int32 steps = 16) NO_EXCEPT
 {
     if (!encoded_length) {
-        encoded_length = str_length(encoded_data);
+        encoded_length = strlen(encoded_data);
     }
 
     size_t padding = 0;

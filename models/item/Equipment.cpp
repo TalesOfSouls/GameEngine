@@ -9,9 +9,6 @@
 #ifndef COMS_MODELS_EQUIPMENT_C
 #define COMS_MODELS_EQUIPMENT_C
 
-#include <stdlib.h>
-#include <string.h>
-
 #include "../../stdlib/Stdlib.h"
 #include "../mob/monster/LootTable.h"
 

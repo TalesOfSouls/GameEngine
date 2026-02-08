@@ -9,8 +9,6 @@
 #ifndef COMS_ARCHITECTURE_X86_CPU_INFO_C
 #define COMS_ARCHITECTURE_X86_CPU_INFO_C
 
-#include <stdio.h>
-#include <stdint.h>
 #include "../../stdlib/Stdlib.h"
 #include "../CpuInfo.h"
 #include "../../compiler/CompilerUtils.h"
@@ -123,7 +121,7 @@ void cpu_info_cache(byte level, CpuCacheInfo* cache) {
 
     cache->ways = (byte) ((ebx >> 22) & 0x3FF) + 1;
     cache->partitions = (byte) ((ebx >> 12) & 0x3FF) + 1;
-    cache->line_size = (uint16) OMS_MAX((uint16) (ebx & 0xFFF) + 1, 64);
+    cache->line_size = (uint16) OMS_MAX((uint16) (ebx & 0xFFF) + 1, ASSUMED_CACHE_LINE_SIZE);
     cache->sets = ecx + 1;
     cache->size = cache->ways * cache->partitions * cache->line_size * cache->sets;
 }

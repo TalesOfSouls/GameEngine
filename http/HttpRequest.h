@@ -9,10 +9,6 @@
 #ifndef COMS_JINGGA_HTTP_REQUEST_H
 #define COMS_JINGGA_HTTP_REQUEST_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
 #include "../log/Log.h"
@@ -113,7 +109,7 @@ void http_header_value_set(
         }
     }
 
-    value_length = value_length == 0 ? str_length(value) : value_length;
+    value_length = value_length == 0 ? strlen(value) : value_length;
     int32 header_content_offset = req->header_available_count * sizeof(HttpHeaderElement);
 
     if (element) {
@@ -342,13 +338,13 @@ void http_header_parse(HttpRequest** http_request, const char* request, Threaded
     str_skip_empty(&request);
 
     // Parse request type
-    if (str_compare(request, "GET") == 0) {
+    if (strcmp(request, "GET") == 0) {
         http_req->method = HTTP_METHOD_GET;
-    } else if (str_compare(request, "POST") == 0) {
+    } else if (strcmp(request, "POST") == 0) {
         http_req->method = HTTP_METHOD_POST;
-    } else if (str_compare(request, "PUT") == 0) {
+    } else if (strcmp(request, "PUT") == 0) {
         http_req->method = HTTP_METHOD_PUT;
-    } else if (str_compare(request, "DELETE") == 0) {
+    } else if (strcmp(request, "DELETE") == 0) {
         http_req->method = HTTP_METHOD_DELETE;
     } else {
         // Additional request types are possible BUT we don't support them in our internal framework
@@ -360,7 +356,7 @@ void http_header_parse(HttpRequest** http_request, const char* request, Threaded
     str_move_past(&request, ' ');
     http_req->uri.path_offset = request - request_start;
 
-    str_skip_until_list(&request, ":?# ");
+    str_move_to(&request, ":?# ");
     http_req->uri.path_length = (request - request_start) - http_req->uri.path_offset;
 
     // Parse port
@@ -371,7 +367,7 @@ void http_header_parse(HttpRequest** http_request, const char* request, Threaded
     // Parse query parameters
     if (*request == '?') {
         http_req->uri.parameter_offset = request - request_start;
-        str_skip_until_list(&request, "# ");
+        str_move_to(&request, "# ");
         //http_req->uri.parameter_length = (request - request_start) - http_req->uri.parameter_offset;
     }
 
@@ -384,7 +380,7 @@ void http_header_parse(HttpRequest** http_request, const char* request, Threaded
 
     // Parse protocol
     str_move_past(&request, ' ');
-    if (str_compare(request, "HTTP/", sizeof("HTTP/") - 1) != 0) {
+    if (strncmp(request, "HTTP/", sizeof("HTTP/") - 1) != 0) {
         LOG_1("[ERROR] Invalid HTTP header, no protocol defined");
         ASSERT_TRUE(false);
 

@@ -22,7 +22,15 @@ void spinlock_init(spinlock32* const lock) NO_EXCEPT
 }
 
 FORCE_INLINE
-void spinlock_start(spinlock32* const lock, int32 delay = 10) NO_EXCEPT
+void spinlock_start(spinlock32* const lock) NO_EXCEPT
+{
+    while (InterlockedExchange(lock, 1) != 0) {
+        YieldProcessor();
+    }
+}
+
+FORCE_INLINE
+void spinlock_start(spinlock32* const lock, int32 delay) NO_EXCEPT
 {
     while (InterlockedExchange(lock, 1) != 0) {
         usleep(delay);

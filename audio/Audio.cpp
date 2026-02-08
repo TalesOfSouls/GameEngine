@@ -17,9 +17,13 @@
 #include "AudioSetting.h"
 #include "Wav.h"
 
-void audio_from_file(Audio* __restrict audio, const char* __restrict path, RingMemory* const __restrict ring) NO_EXCEPT
+void audio_from_file(
+    Audio* const __restrict audio,
+    const char* const __restrict path,
+    RingMemory* const __restrict ring
+) NO_EXCEPT
 {
-    FileBody file = {};
+    FileBody file = {0};
     file_read(path, &file, ring);
 
     ASSERT_TRUE(file.size);
@@ -30,7 +34,7 @@ void audio_from_file(Audio* __restrict audio, const char* __restrict path, RingM
 }
 
 FORCE_INLINE
-int32 audio_data_size(const Audio* audio) NO_EXCEPT
+int32 audio_data_size(const Audio* const audio) NO_EXCEPT
 {
     return (int32) (audio->size
         + sizeof(audio->sample_rate)
@@ -41,7 +45,7 @@ int32 audio_data_size(const Audio* audio) NO_EXCEPT
 }
 
 inline
-uint32 audio_header_from_data(const byte* __restrict data, Audio* __restrict audio) NO_EXCEPT
+uint32 audio_header_from_data(const byte* __restrict data, Audio* const __restrict audio) NO_EXCEPT
 {
     const byte* const start = data;
 
@@ -78,7 +82,7 @@ uint32 audio_header_to_data(const Audio* const __restrict audio, byte* __restric
     return (int32) (data - start);
 }
 
-uint32 audio_from_data(const byte* __restrict data, Audio* __restrict audio) NO_EXCEPT
+uint32 audio_from_data(const byte* __restrict data, Audio* const __restrict audio) NO_EXCEPT
 {
     LOG_3("Load audio");
     data += audio_header_from_data(data, audio);
@@ -91,7 +95,7 @@ uint32 audio_from_data(const byte* __restrict data, Audio* __restrict audio) NO_
     return audio_data_size(audio);
 }
 
-uint32 audio_to_data(const Audio* __restrict audio, byte* __restrict data) NO_EXCEPT
+uint32 audio_to_data(const Audio* const __restrict audio, byte* __restrict data) NO_EXCEPT
 {
     data += audio_header_to_data(audio, data);
 

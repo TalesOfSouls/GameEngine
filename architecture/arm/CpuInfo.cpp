@@ -9,8 +9,6 @@
 #ifndef COMS_ARCHITECTURE_ARM_CPU_INFO_C
 #define COMS_ARCHITECTURE_ARM_CPU_INFO_C
 
-#include <stdio.h>
-#include <stdint.h>
 #include "../../stdlib/Stdlib.h"
 #include "../CpuInfo.h"
 #include <arm_sve.h>

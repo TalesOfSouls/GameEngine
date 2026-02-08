@@ -13,7 +13,7 @@ static void test_asset_archive() {
     /////////////////////////////////////////////////
 
     // Current executable file path
-    char rel_path[MAX_PATH];
+    char rel_path[PATH_MAX_LENGTH];
     relative_to_absolute("./", rel_path);
 
     alignas(8) byte archive_buffer[4096];
@@ -23,14 +23,14 @@ static void test_asset_archive() {
         "./files/test2.txt";
     alignas(8) byte toc_buffer[sizeof(toc_str)];
 
-    FileBody toc = {};
+    FileBody toc = {0};
     toc.content = toc_buffer;
     memcpy(toc.content, toc_str, sizeof(toc_str));
 
-    FileBody output_header = {};
+    FileBody output_header = {0};
     output_header.content = archive_buffer;
 
-    FileBody output_body = {};
+    FileBody output_body = {0};
     // We offset the body from the header
     // At this point we don't know how large the header actually needs to be, so we pick a generous offset
     // Don't worry, we don't store the unused space in the asset later, we just need it now.
@@ -94,10 +94,10 @@ static void test_asset_archive() {
         }
 
         // Make the path of the asset absolute
-        char input_path[MAX_PATH];
+        char input_path[PATH_MAX_LENGTH];
         if (*file_path == '.') {
             memcpy(input_path, rel_path, sizeof(rel_path));
-            strcpy(input_path + str_length(input_path), file_path + 1);
+            strcpy(input_path + strlen(input_path), file_path + 1);
         } else {
             strcpy(input_path, file_path);
         }

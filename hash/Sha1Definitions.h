@@ -22,7 +22,7 @@
 #define K3 0x8F1BBCDC
 #define K4 0xCA62C1D6
 
-struct SHA1_CTX {
+struct Sha1Context {
     alignas(64) byte buffer[64];
     uint64 count;
     uint32 state[5];

@@ -116,16 +116,16 @@ f32 evaluator_evaluate_expression(const char* expr) {
 
     const char* ptr = expr;
     while (*ptr) {
-        if (str_is_num(*ptr) || *ptr == '.') {
+        if (isdigit(*ptr) || *ptr == '.') {
             // Parse number
             const char* end;
             f32 value = str_to_float(ptr, &end);
             evaluator_push_value(&values, value);
             ptr = end;
-        } else if (str_is_alpha(*ptr)) {
+        } else if (isalpha(*ptr)) {
             // Parse function
             const char* start = ptr;
-            while (str_is_alphanum(*ptr)) {
+            while (isalnum(*ptr)) {
                 ++ptr;
             }
 
@@ -175,11 +175,11 @@ f32 evaluator_evaluate_expression(const char* expr) {
 
             evaluator_pop_operator(&operators); // Remove '('
             ++ptr;
-        } else if (str_find("+-*/", *ptr) >= 0) {
+        } else if (strchr("+-*/", *ptr)) {
             // Operator
             char op = *ptr;
             // Check if the operator is unary
-            if (op == '-' && (ptr == expr || *(ptr - 1) == '(' || str_find("+-*/", *(ptr - 1)) >= 0)) {
+            if (op == '-' && (ptr == expr || *(ptr - 1) == '(' || strchr("+-*/", *(ptr - 1)))) {
                 op = 'u'; // Unary minus
             }
 
@@ -218,52 +218,48 @@ f32 evaluator_evaluate_expression(const char* expr) {
 
 // Evaluate built-in functions
 f32 evaluator_evaluate_function(const char* name, const char* args) {
-    if (str_compare(name, "min") == 0) {
-        int64 comma_pos = str_find(args, ',');
-        if (comma_pos < 0) {
+    if (strcmp(name, "min") == 0) {
+        const char* comma = strchr(args, ',');
+        if (!comma) {
             return 0.0; // Invalid function call (min requires at least two arguments)
         }
-
-        const char* comma = args + comma_pos;
 
         // Split the arguments into two expressions
         char arg1[64], arg2[64];
         memcpy(arg1, args, comma - args);
         arg1[comma - args] = '\0';
-        str_copy(arg2, comma + 1);
+        strcpy(arg2, comma + 1);
 
         // Recursively evaluate the arguments
         const f32 val1 = evaluator_evaluate_expression(arg1);
         const f32 val2 = evaluator_evaluate_expression(arg2);
 
         return (val1 < val2) ? val1 : val2; // Return the minimum value
-    } else if (str_compare(name, "max") == 0) {
-        int64 comma_pos = str_find(args, ',');
-        if (comma_pos < 0) {
+    } else if (strcmp(name, "max") == 0) {
+        const char* comma = strchr(args, ',');
+        if (!comma) {
             return 0.0; // Invalid function call (min requires at least two arguments)
         }
-
-        const char* comma = args + comma_pos;
 
         // Split the arguments into two expressions
         char arg1[64], arg2[64];
         memcpy(arg1, args, comma - args);
         arg1[comma - args] = '\0';
-        str_copy(arg2, comma + 1);
+        strcpy(arg2, comma + 1);
 
         // Recursively evaluate the arguments
         const f32 val1 = evaluator_evaluate_expression(arg1);
         const f32 val2 = evaluator_evaluate_expression(arg2);
 
         return (val1 > val2) ? val1 : val2; // Return the maximum value
-    } else if (str_compare(name, "sqrt") == 0) {
+    } else if (strcmp(name, "sqrt") == 0) {
         // Evaluate the single argument
         f32 val = evaluator_evaluate_expression(args);
         return intrin_sqrt_f32(val); // Return the square root
-    } else if (str_compare(name, "abs") == 0) {
+    } else if (strcmp(name, "abs") == 0) {
         // Evaluate the single argument
         f32 val = evaluator_evaluate_expression(args);
-        return oms_abs(val); // Return the absolute value
+        return fabsf(val); // Return the absolute value
     }
 
     // Handle unknown functions (you can add more functions as needed)
@@ -271,7 +267,7 @@ f32 evaluator_evaluate_function(const char* name, const char* args) {
 }
 
 f32 evaluator_evaluate(const char* expr, int32 variable_count = 0, const EvaluatorVariable* variables = NULL) {
-    ASSERT_TRUE(str_length(expr) > 0);
+    ASSERT_TRUE(strlen(expr) > 0);
 
     // Handle variables
     char expr_internal[1024];
@@ -280,7 +276,7 @@ f32 evaluator_evaluate(const char* expr, int32 variable_count = 0, const Evaluat
     if (variable_count) {
         while (*expr != '\0') {
             // Skip none-alpha values
-            while (!str_is_alpha(*expr) && *expr != '\0') {
+            while (!isalpha(*expr) && *expr != '\0') {
                 if (*expr != ' ') {
                     *dest++ = *expr;
                 }
@@ -295,11 +291,11 @@ f32 evaluator_evaluate(const char* expr, int32 variable_count = 0, const Evaluat
             // Potential variable name
             bool found_variable = false;
             for (int32 i = 0; i < variable_count; ++i) {
-                size_t len = str_length(variables[i].name);
+                size_t len = strlen(variables[i].name);
 
                 // Check if string is variable (must be followed by none-alpha value = string mustn't continue)
-                if (str_compare(expr, variables[i].name, len) == 0
-                    && !str_is_alphanum(expr[len]) && expr[len] != '('
+                if (strncmp(expr, variables[i].name, len) == 0
+                    && !isalnum(expr[len]) && expr[len] != '('
                 ) {
                     // Replace variable with value
                     dest += float_to_str(variables[i].value, dest, 4);
@@ -312,7 +308,7 @@ f32 evaluator_evaluate(const char* expr, int32 variable_count = 0, const Evaluat
             if (!found_variable) {
                 // If no variable is found we must skip the entire alpha string,
                 // otherwise a substring may match a variable name later on
-                while (str_is_alphanum(*expr)) {
+                while (isalnum(*expr)) {
                     *dest++ = *expr++;
                 }
             }

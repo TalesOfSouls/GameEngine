@@ -38,6 +38,7 @@ struct coms_pthread_rwlock_t {
 };
 
 struct coms_pthread_t {
+    int32 id;
     int h;
     void* stack;
 };

@@ -11,9 +11,6 @@
 
 #include "../stdlib/Stdlib.h"
 
-// @question Why are we even using this, shouldn't CONTROLLER_BUTTON_SIZE be sufficient
-#define MAX_CONTROLLER_KEYS 32
-
 enum ControllerButton {
     CONTROLLER_BUTTON_STICK_LEFT_BUTTON,
     CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL,
@@ -62,10 +59,10 @@ enum ControllerButton {
 struct ControllerInput {
     // @todo should probably include controller_id for xinput and LPDIRECTINPUTDEVICE8 for directinput
     // @question Is int8 even enough? I thought some are int16, maybe even f32
-    int8 button[MAX_CONTROLLER_KEYS];
+    int8 button[CONTROLLER_BUTTON_SIZE];
 
     // @performance is a bit field better? uint64 should be plenty
-    bool is_analog[MAX_CONTROLLER_KEYS]; // = uses deadzone
+    bool is_analog[CONTROLLER_BUTTON_SIZE]; // = uses deadzone
 
     int16 gyro_x;
     int16 gyro_y;

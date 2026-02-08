@@ -10,8 +10,6 @@
 #define COMS_PLATFORM_LINUX_GUI_UTILS_H
 
 #include "../../stdlib/Stdlib.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdarg.h>
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>

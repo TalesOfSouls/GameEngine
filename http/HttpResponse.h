@@ -100,7 +100,7 @@ void http_header_value_set(
         }
     }
 
-    size_t value_length = str_length(value);
+    size_t value_length = strlen(value);
     int32 header_content_offset = resp->header_available_count * sizeof(HttpHeaderElement);
 
     if (element) {
@@ -354,7 +354,7 @@ void http_response_body_add(HttpResponse** response, const char* __restrict body
     HttpResponse* resp = *response;
     char* response_body = (char *) (resp + 1);
 
-    length = (length == 0) ? str_length(body) : length;
+    length = (length == 0) ? strlen(body) : length;
 
     // Resize if needed
     if (resp->body_used_size + length > resp->size * mem->chunk_size - sizeof(HttpResponse)) {

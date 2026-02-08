@@ -33,12 +33,6 @@ enum VoxelRotation : byte {
     //      Or, is dynamic, updated, ....
 };
 
-enum CoordAxis {
-    COORD_AXIS_X = 1 << 0,
-    COORD_AXIS_Y = 1 << 1,
-    COORD_AXIS_Z = 1 << 2
-};
-
 struct Voxel {
     uint16 type;
     uint8 rotation;
@@ -92,7 +86,8 @@ enum VoxelChunkFlag : byte {
     VOXEL_CHUNK_FLAG_NONE = 0,
     VOXEL_CHUNK_FLAG_IS_NEW = 1 << 0,
     VOXEL_CHUNK_FLAG_IS_CHANGED = 1 << 1,
-    VOXEL_CHUNK_FLAG_SHOULD_REMOVE = 1 << 2,
+    VOXEL_CHUNK_FLAG_IS_INACTIVE = 1 << 2, // not rendered currently
+    VOXEL_CHUNK_FLAG_SHOULD_REMOVE = 1 << 3, // shouldn't stay in memory
 };
 
 // CPU-side mesh buffers (triangulated greedy mesh)
@@ -127,7 +122,7 @@ struct VoxelChunk {
 FORCE_INLINE
 VoxelChunk voxel_chunk_create(int32 x, int32 y, int32 z) NO_EXCEPT
 {
-    VoxelChunk chunk = {};
+    VoxelChunk chunk = {0};
     chunk.coord = {x, y, z};
     chunk.bounds.min = {x * VOXEL_CHUNK_SIZE, y * VOXEL_CHUNK_SIZE, z * VOXEL_CHUNK_SIZE};
     chunk.bounds.max = {(x + 1) * VOXEL_CHUNK_SIZE, (y + 1) * VOXEL_CHUNK_SIZE, (z + 1) * VOXEL_CHUNK_SIZE};
@@ -186,10 +181,10 @@ void voxel_chunk_set(VoxelChunk* chunk, int32 x, int32 y, int32 z, Voxel v) NO_E
 
 inline
 void voxel_chunk_vertex_push(
-    VoxelChunk* __restrict chunk,
+    VoxelChunk* const __restrict chunk,
     v3_f32 coord,
     v3_byte normal,
-    const VoxelFace* __restrict face
+    const VoxelFace* const __restrict face
 ) NO_EXCEPT
 {
     // We currently don't support growing chunks

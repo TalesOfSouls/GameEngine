@@ -14,52 +14,68 @@
 
 #include "../../../input/ControllerInput.h"
 #include "../../../stdlib/Stdlib.h"
+#include "../../../system/Library.h"
+#include "../../../system/Library.cpp"
 
 // @todo consider to remove some static and defines since we are never calling it somewhere else
 
 // BEGIN: Dynamically load XInput
-typedef DWORD WINAPI x_input_get_state(DWORD, XINPUT_STATE*);
-DWORD WINAPI XInputGetStateStub(DWORD, XINPUT_STATE*) {
-    return 0;
-}
-static x_input_get_state* XInputGetState_ = XInputGetStateStub;
-#define XInputGetState XInputGetState_
+typedef DWORD (WINAPI *XInputGetState_t)(DWORD, XINPUT_STATE*);
+typedef DWORD (WINAPI *XInputSetState_t)(DWORD, XINPUT_VIBRATION*);
 
-typedef DWORD WINAPI x_input_set_state(DWORD, XINPUT_VIBRATION*);
-DWORD WINAPI XInputSetStateStub(DWORD, XINPUT_VIBRATION*) {
-    return 0;
-}
-static x_input_set_state* XInputSetState_ = XInputSetStateStub;
-#define XInputSetState XInputSetState_
+static XInputGetState_t pXInputGetState = NULL;
+static XInputSetState_t pXInputSetState = NULL;
 
-void xinput_load() {
-    HMODULE lib = LoadLibraryExW((LPCWSTR) L"xinput1_4.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-    if(!lib) {
-        // @todo Log
-        lib = LoadLibraryExW((LPCWSTR) L"xinput1_3.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-    }
+static LibraryHandle _xinput_lib;
 
-    if (!lib) {
-        // @todo Log
-        return;
-    }
-
-    XInputGetState = (x_input_get_state *) GetProcAddress(lib, "XInputGetState");
-    XInputSetState = (x_input_set_state *) GetProcAddress(lib, "XInputSetState");
-
-    if (!XInputGetState || !XInputSetState) {
-        // @todo Log
-        return;
-    }
-}
+static int _xinput_lib_ref_count = 0;
 // END: Dynamically load XInput
+
+bool xinput_load() {
+    if (_xinput_lib_ref_count) {
+        ++_xinput_lib_ref_count;
+        return true;
+    }
+
+    bool success = library_dyn_load(&_xinput_lib, L"xinput1_4.dll");
+    if(!success) {
+        success = library_dyn_load(&_xinput_lib, L"xinput1_3.dll");
+
+        if (!success) {
+            return false;
+        }
+    }
+
+    pXInputGetState = (XInputGetState_t) library_dyn_proc(_xinput_lib, "XInputGetState");
+    pXInputSetState = (XInputSetState_t) library_dyn_proc(_xinput_lib, "XInputSetState");
+
+    if (!pXInputGetState || !pXInputSetState) {
+        return false;
+    }
+
+    ++_xinput_lib_ref_count;
+
+    return true;
+}
+
+inline
+void xinput_free() NO_EXCEPT
+{
+    if (_xinput_lib_ref_count > 1) {
+        --_xinput_lib_ref_count;
+        return;
+    }
+
+    library_dyn_unload(&_xinput_lib);
+    _xinput_lib_ref_count = 0;
+}
 
 ControllerInput* xinput_init_controllers()
 {
     uint32 c = 0;
     for (uint32 controller_index = 0; controller_index < XUSER_MAX_COUNT; ++controller_index) {
         XINPUT_STATE controller_state;
-        if (XInputGetState(controller_index, &controller_state) == ERROR_SUCCESS) {
+        if (pXInputGetState(controller_index, &controller_state) == ERROR_SUCCESS) {
             ++c;
         }
     }
@@ -75,7 +91,7 @@ ControllerInput* xinput_init_controllers()
     c = 0;
     for (uint32 controller_index = 0; controller_index < XUSER_MAX_COUNT; ++controller_index) {
         XINPUT_STATE controller_state;
-        if (XInputGetState(controller_index, &controller_state) == ERROR_SUCCESS) {
+        if (pXInputGetState(controller_index, &controller_state) == ERROR_SUCCESS) {
             ++c;
         }
     }
@@ -87,7 +103,7 @@ inline
 void input_map_xinput(ControllerInput* controller, int32 controller_id) NO_EXCEPT
 {
     XINPUT_STATE controller_state;
-    if (XInputGetState(controller_id, &controller_state) != ERROR_SUCCESS) {
+    if (pXInputGetState(controller_id, &controller_state) != ERROR_SUCCESS) {
         return;
     }
 

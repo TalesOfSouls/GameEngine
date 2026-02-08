@@ -9,6 +9,8 @@
 #ifndef COMS_ARCHITECTURE_INTRINSICS_H
 #define COMS_ARCHITECTURE_INTRINSICS_H
 
+#include "../stdlib/Types.h"
+
 // Adjusts the step size based on the memory alignment
 inline
 int32 intrin_validate_steps(const byte* mem, int32 steps) NO_EXCEPT

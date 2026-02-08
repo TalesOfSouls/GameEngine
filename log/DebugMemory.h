@@ -106,7 +106,7 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
     if (_dmc->memory_size <= _dmc->memory_element_idx) {
         const uint32 new_size = _dmc->memory_size + 3;
         // @performance Can we get rid of this calloc?
-        DebugMemory* const new_stats = (DebugMemory *) calloc(new_size * sizeof(DebugMemory), 64);
+        DebugMemory* const new_stats = (DebugMemory *) calloc(new_size * sizeof(DebugMemory), ASSUMED_CACHE_LINE_SIZE);
         if (!new_stats) {
             return;
         }
@@ -150,7 +150,7 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
         return;
     }
 
-    const uint32 idx = atomic_increment_wrap_relaxed(&mem->action_idx, ARRAY_COUNT(mem->last_action));
+    const uint32 idx = atomic_increment_wrap_relaxed(&mem->action_idx, (uint32) ARRAY_COUNT(mem->last_action));
 
     DebugMemoryRange* const dmr = &mem->last_action[idx];
     dmr->type = type;
@@ -190,7 +190,7 @@ void debug_memory_reserve(uintptr_t start, size_t size, MemoryDebugType type, co
 
     const uint32 idx = atomic_increment_wrap_relaxed(
         &mem->reserve_action_idx,
-        ARRAY_COUNT(mem->reserve_action)
+        (uint32) ARRAY_COUNT(mem->reserve_action)
     );
 
     DebugMemoryRange* const dmr = &mem->reserve_action[idx];
@@ -220,7 +220,7 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
         return;
     }
 
-    for (uint32 i = 0; i < ARRAY_COUNT(mem->reserve_action); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(mem->reserve_action); ++i) {
         DebugMemoryRange* const dmr = &mem->reserve_action[i];
         if (dmr->start == start - mem->start) {
             dmr->size = 0;

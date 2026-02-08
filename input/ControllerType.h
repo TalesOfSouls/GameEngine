@@ -21,4 +21,9 @@ enum ControllerType {
     CONTROLLER_TYPE_OTHER,
 };
 
+enum ControllerInputType : byte {
+    CONTROLLER_INPUT_TYPE_HID,
+    CONTROLLER_INPUT_TYPE_XINPUT,
+};
+
 #endif

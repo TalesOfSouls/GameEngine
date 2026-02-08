@@ -71,7 +71,7 @@ void mesh_from_file_txt(
     const char* path,
     RingMemory* const ring
 ) {
-    FileBody file = {};
+    FileBody file = {0};
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
 
@@ -605,7 +605,7 @@ int32 mesh_to_data(
         pos += vertex_size * sizeof(f32) * mesh->vertex_count;
     }
 
-    int32 size = (int32) (pos - data);
+    const int32 size = (int32) (pos - data);
 
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) data,

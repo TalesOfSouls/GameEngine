@@ -9,9 +9,6 @@
 #ifndef COMS_COMPRESSION_HUFFMAN_H
 #define COMS_COMPRESSION_HUFFMAN_H
 
-#include <stdio.h>
-#include <string.h>
-
 #include "../stdlib/Stdlib.h"
 #include "../utils/BitUtils.h"
 
@@ -145,7 +142,7 @@ inline
 void huffman_dump(const Huffman* hf, byte* out)
 {
     // dump the char -> code relations as relative indices
-    for (uint32 i = 0; i < ARRAY_COUNT(hf->code); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(hf->code); ++i) {
         *((int64 *) out) = hf->code[i]
             ? SWAP_ENDIAN_LITTLE(hf->code[i] - hf->buffer)
             : SWAP_ENDIAN_LITTLE(-1);
@@ -161,7 +158,7 @@ inline
 void huffman_load(Huffman* hf, const byte* in)
 {
     // load the char -> code relations and convert relative indices to pointers
-    for (uint32 i = 0; i < ARRAY_COUNT(hf->code); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(hf->code); ++i) {
         const int64 value = SWAP_ENDIAN_LITTLE(*((int64 *) in));
         in += sizeof(value);
 

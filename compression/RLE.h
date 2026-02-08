@@ -9,9 +9,6 @@
 #ifndef COMS_COMPRESSION_RLE_H
 #define COMS_COMPRESSION_RLE_H
 
-#include <stdio.h>
-#include <string.h>
-
 #include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
 

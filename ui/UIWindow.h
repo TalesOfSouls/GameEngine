@@ -61,12 +61,12 @@ void ui_window_element_unserialize(UIWindow* __restrict details, const byte** __
 }
 
 void ui_window_element_populate(
-    UILayout* layout,
-    UIElement* element,
-    const UIAttributeGroup* __restrict  group,
-    UIWindow* __restrict window
+    UILayout* const layout,
+    UIElement* const element,
+    const UIAttributeGroup* const __restrict  group,
+    UIWindow* const __restrict window
 ) {
-    v4_f32 parent_dimension = {};
+    v4_f32 parent_dimension = {0};
     if (element->parent) {
         UIElement* parent = (UIElement *) (layout->data + element->parent);
         // @bug How to ensure that the parent is initialized before the child element
@@ -86,7 +86,7 @@ void ui_window_element_populate(
 
     if (!element->vertices_active_offset && !element->vertex_count_max) {
         element->vertices_active_offset = layout->active_vertex_offset;
-        UIAttribute* vertex_attr = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_VERTEX_COUNT);
+        const UIAttribute* const vertex_attr = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_VERTEX_COUNT);
 
         // @todo Strongly depends on the window components (e.g. title bar, close button, ...)
         element->vertex_count_max = (uint16) (vertex_attr ? vertex_attr->value_int : 8);
@@ -94,10 +94,10 @@ void ui_window_element_populate(
         layout->active_vertex_offset += element->vertex_count_max;
     }
 
-    UIAttribute* attributes = (UIAttribute *) (group + 1);
+    const UIAttribute* const attributes = (UIAttribute *) (group + 1);
 
     // First set all values, which we can set immediately
-    for (int32 i = 0; i < group->attribute_count; ++i) {
+    for (int i = 0; i < group->attribute_count; ++i) {
         switch (attributes[i].attribute_id) {
             case UI_ATTRIBUTE_TYPE_POSITION_X:
             case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH:

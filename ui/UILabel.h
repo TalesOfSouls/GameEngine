@@ -56,7 +56,7 @@ void ui_label_element_populate(
     const UIAttributeGroup* __restrict  group,
     UILabel* __restrict label
 ) {
-    v4_f32 parent_dimension = {};
+    v4_f32 parent_dimension = {0};
     if (element->parent) {
         UIElement* parent = element->parent ? (UIElement *) (layout->data + element->parent) : NULL;
         // @bug How to ensure that the parent is initialized before the child element

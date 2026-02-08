@@ -9,7 +9,6 @@
 #ifndef COMS_ARCHITECTURE_ARM_NEON_UTILS_H
 #define COMS_ARCHITECTURE_ARM_NEON_UTILS_H
 
-#include <stdlib.h>
 #include "../../../../stdlib/Stdlib.h"
 #include "../../../../compiler/CompilerUtils.h"
 #include "../../../../stdlib/Simd.h"

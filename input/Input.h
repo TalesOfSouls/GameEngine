@@ -59,7 +59,11 @@ enum InputType : byte {
     #include "../platform/win32/UtilsWin32.h"
 #endif
 
-typedef void (*InputCallback)(void* data);
+/**
+ * @param void* data General data to pass to the event function
+ * @param int32 input_id Input state that triggered this callback
+ */
+typedef void (*InputCallback)(void* data, int32 input_id);
 
 enum InputEventFlag : uint8 {
     INPUT_EVENT_FLAG_NONE = 0,
@@ -82,12 +86,34 @@ enum KeyPressType : byte {
     KEY_PRESS_TYPE_RELEASED,
 };
 
+// This is probably never used but serves as a general idea how to handle input context
+enum InputContext : byte {
+    // used for typing
+    HOTKEY_CONTEXT_TYPING = 1 << 0,
+
+    HOTKEY_CONTEXT_MAIN_MENU = 1 << 1,
+    HOTKEY_CONTEXT_INGAME_MENU = 1 << 2,
+
+    // Different game modes
+    HOTKEY_CONTEXT_INGAME_1 = 1 << 3,
+    HOTKEY_CONTEXT_INGAME_2 = 1 << 4,
+    HOTKEY_CONTEXT_INGAME_3 = 1 << 5,
+
+    HOTKEY_CONTEXT_EDITOR_MODE = 1 << 6,
+    HOTKEY_CONTEXT_ADMIN_MODE = 1 << 7
+};
+
 struct Hotkey {
     // negative hotkeys mean any of them needs to match, positive hotkeys means all of them need to match
     // mixing positive and negative keys for one hotkey is not possible
     // index = hotkey, value = key id
+    // https://kbdlayout.info/
     int16 scan_codes[MAX_HOTKEY_COMBINATION];
     KeyPressType key_state;
+
+    // Some hotkeys are only available in certain context
+    // uses enum InputContext as a baseline
+    byte context;
 };
 
 struct InputKey {
@@ -129,9 +155,9 @@ enum GeneralInputState : byte {
 };
 
 struct KBMDevice {
-    #ifdef _WIN32
-        wchar_t device_name[128];
+    wchar_t device_name[128];
 
+    #ifdef _WIN32
         // Windows is nuts, one device can have multiple handles
         // Sometimes to simulate additional buttons additional devices are created
         // There are probably more insane reasons
@@ -337,19 +363,30 @@ input_add_hotkey(
     // Define required keys for hotkey
     // Note: -1 since the hotkeys always MUST start at 1 (0 is a special value for empty)
     key->scan_codes[count++] = key0;
-    //key0 = oms_abs(key0);
+    //key0 = abs(key0);
 
     if (key1) {
         // Note: -1 since the hotkeys MUST start at 1 (0 is a special value for empty)
         key->scan_codes[count++] = key1;
-        //key1 = oms_abs(key1);
+        //key1 = abs(key1);
     }
 
     if (key2) {
         // Note: -1 since the hotkeys MUST start at 1 (0 is a special value for empty)
         key->scan_codes[count++] = key2;
-        //key2 = oms_abs(key2);
+        //key2 = abs(key2);
     }
+}
+
+inline void
+input_add_hotkey(
+    Hotkey* const __restrict mapping, uint8 hotkey,
+    const Hotkey* const __restrict key
+) NO_EXCEPT
+{
+    // Hotkey enums should start at 1 but in our array we are 0-indexed
+    --hotkey;
+    memcpy(&mapping[hotkey], key, sizeof(*key));
 }
 
 FORCE_INLINE HOT_CODE
@@ -386,17 +423,17 @@ bool hotkey_keys_are_active(const InputKey* const active_keys, const Hotkey* map
     // Therefore, if a key has a state -> treat it as if active
 
     // The code below also allows optional keys which have a negative sign (at least one of the optional keys must be valid)
-    bool is_active = input_action_exists(active_keys, oms_abs(key0), key->key_state);
+    bool is_active = input_action_exists(active_keys, (int16) abs(key0), key->key_state);
     if ((!is_active && (key0 > 0 || key1 >= 0)) || (is_active && key0 < 0) || (key1 == 0 && key2 == 0)) {
         return is_active;
     }
 
-    is_active = input_action_exists(active_keys, oms_abs(key1), key->key_state);
+    is_active = input_action_exists(active_keys, (int16) abs(key1), key->key_state);
     if ((!is_active && (key1 > 0 || key2 >= 0)) || (is_active && key1 < 0) || (key2 == 0)) {
         return is_active;
     }
 
-    return input_action_exists(active_keys, oms_abs(key2), key->key_state);
+    return input_action_exists(active_keys, (int16) abs(key2), key->key_state);
 }
 
 inline HOT_CODE
@@ -447,7 +484,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
         ) {
             const uint32 scan_code = ((uint32) key->scan_code) & ~INPUT_CONTROLLER_PREFIX;
 
-            if ((controller->is_analog[scan_code] && oms_abs(controller->button[scan_code]) < input->deadzone)
+            if ((controller->is_analog[scan_code] && abs(controller->button[scan_code]) < input->deadzone)
                 || (!controller->is_analog[scan_code] && controller->button[scan_code] == 0)
             ) {
                 key->key_state = KEY_PRESS_TYPE_RELEASED;
@@ -458,28 +495,28 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     // Special keys
     // @todo this code means we cannot change this behavior (e.g. swap mouse view to dpad, swap sticks, ...)
     // @todo This is also not very general, maybe we can fix it like we did with analog vs digital key (instead of bool flag maybe bit flag)
-    if (oms_abs(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL]) > input->deadzone) {
+    if (abs(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL]) > input->deadzone) {
         input->state.dx[0] += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] / 8;
         input->general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
     } else {
         input->state.dx[0] = 0;
     }
 
-    if (oms_abs(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL]) > input->deadzone) {
+    if (abs(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL]) > input->deadzone) {
         input->state.dy[0] += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] / 8;
         input->general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
     } else {
         input->state.dy[0] = 0;
     }
 
-    if (oms_abs(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
+    if (abs(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
         input->state.dx[1] += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
         // @todo needs state change flag like mouse?!
     } else {
         input->state.dx[1] = 0;
     }
 
-    if (oms_abs(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
+    if (abs(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
         input->state.dy[1] += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
         // @todo needs state change flag like mouse?!
     } else {
@@ -493,7 +530,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     InputKey keys[5];
 
     for (uint16 i = 0; i < 32; ++i) {
-        if ((controller->is_analog[i] && oms_abs(controller->button[i]) > input->deadzone)
+        if ((controller->is_analog[i] && abs(controller->button[i]) > input->deadzone)
             || (!controller->is_analog[i] && controller->button[i] != 0)
         ) {
             keys[count].scan_code = i | INPUT_CONTROLLER_PREFIX;
@@ -518,6 +555,9 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
     // @performance Can't we have a input state that checks if we even have to check the input?
     // careful even no active keys may require a minor update because we need to set it to inactive
 
+    // @todo implement _HELD state based on time
+    // @bug Maybe we then need to check if it is still held down through a poll event to avoid bugs when tabbing etc.
+
     InputState* const state = &input->state;
     memset(state->active_hotkeys, 0, sizeof(uint16) * MAX_KEY_PRESSES);
 
@@ -536,7 +576,7 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
         uint32 characters[10];
 
         // Create keyboard state array
-        byte keyboard_state[256] = {};
+        byte keyboard_state[256] = {0};
         for (int32 key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
             const InputKey* const key = &state_active_keys[key_state];
             if (key->scan_code == 0
@@ -550,7 +590,7 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
         }
 
         // Check if all keys result in text, if not -> is potential hotkey -> shouldn't output any text
-        for (int32 key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
+        for (int key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
             const InputKey* const key = &state_active_keys[key_state];
             if ((input->general_states & INPUT_STATE_GENERAL_TYPING_MODE)
                 && (key->scan_code & INPUT_KEYBOARD_PREFIX)
@@ -581,7 +621,7 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
 
         if (input_characters) {
             // Mark keys
-            for (int32 key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
+            for (int key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
                 InputKey* const key = &state_active_keys[key_state];
 
                 key->is_processed = true;
@@ -590,7 +630,7 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
 
             // Create text from input
             char* pos = input->text;
-            for (uint32 i = 0; i < ARRAY_COUNT(characters); ++i) {
+            for (int i = 0; i < ARRAY_COUNT(characters); ++i) {
                 pos += utf8_decode(characters[i], pos);
             }
 
@@ -643,7 +683,7 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
 inline
 bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32 dt = 0.0f) NO_EXCEPT
 {
-    for (int32 i = 0; i < ARRAY_COUNT(state->active_keys); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(state->active_keys); ++i) {
         if (state->active_keys[i].scan_code == key) {
             return (f32) (time - state->active_keys[i].time) / 1000.0f >= (dt == 0.0f ? INPUT_LONG_PRESS_DURATION : dt);
         }
@@ -656,14 +696,14 @@ bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32
 bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f32 dt = 0.0f) NO_EXCEPT
 {
     bool is_longpress = false;
-    for (int32 i = 0; i < ARRAY_COUNT(input->state.active_hotkeys); ++i) {
+    for (int i = 0; i < ARRAY_COUNT(input->state.active_hotkeys); ++i) {
         if (input->state.active_hotkeys[i] != hotkey) {
             continue;
         }
 
         is_longpress = true;
 
-        for (int32 j = 0; j < MAX_HOTKEY_COMBINATION; ++j) {
+        for (int j = 0; j < MAX_HOTKEY_COMBINATION; ++j) {
             bool potential_miss = true;
             bool both_empty = false;
             if (input->input_mapping1[hotkey].scan_codes[j] > 0) {
@@ -704,7 +744,7 @@ bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f3
 inline
 uint32 input_get_typed_character(InputState* state, uint64 time, uint64 dt) NO_EXCEPT
 {
-    byte keyboard_state[256] = {};
+    byte keyboard_state[256] = {0};
     for (int32 key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
         if (state->active_keys[key_state].scan_code == 0
             || state->active_keys[key_state].key_state == KEY_PRESS_TYPE_RELEASED
@@ -749,7 +789,7 @@ uint32 input_get_typed_character(InputState* state, uint64 time, uint64 dt) NO_E
 inline
 void input_handle_hotkeys(const Input* const input, void* data) NO_EXCEPT {
     // @question One hotkey can trigger one function, do we want multiple functions per hotkey?
-    const InputEvent* input_events[MAX_KEY_PRESSES] = {};
+    const InputEvent* input_events[MAX_KEY_PRESSES] = {0};
     int32 input_event_count = 0;
 
     // Identify possible input events
@@ -780,7 +820,8 @@ void input_handle_hotkeys(const Input* const input, void* data) NO_EXCEPT {
     for (int32 i = 0; i < input_event_count; ++i) {
         // @bug The order of the hotkeys is not based on timing, that could potentially be an issue
         // @performance Instead of doing pointer chasing maybe we should have one index array and a reference to the event array
-        input_events[i]->callback(data);
+        // @bug we need to pass the input id but we only have the input pointer. Currently always passing 0
+        input_events[i]->callback(data, 0);
     }
 }
 

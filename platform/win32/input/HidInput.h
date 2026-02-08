@@ -11,27 +11,25 @@
 
 #include <windows.h>
 #include <setupapi.h>
+#include <guiddef.h>
 #include <hidsdi.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "../../../input/Input.h"
 #include "../../../input/ControllerType.h"
 #include "../../../memory/RingMemory.h"
 #include "controller/DualShock4.h"
 
-#pragma comment(lib, "hid.lib")
-#pragma comment(lib, "setupapi.lib")
+#include "../libs/hid.h"
+#include "../libs/setupapi.h"
 
 void hid_init_controllers(Input* __restrict states, RingMemory* const ring) NO_EXCEPT
 {
-
     // Get the GUID for HID devices
     GUID hid_guid;
-    HidD_GetHidGuid(&hid_guid);
+    pHidD_GetHidGuid(&hid_guid);
 
     // Get a handle to the device information set
-    HDEVINFO device_info_set = SetupDiGetClassDevs(&hid_guid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+    HDEVINFO device_info_set = pSetupDiGetClassDevsW(&hid_guid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
     if (device_info_set == INVALID_HANDLE_VALUE) {
         return;
     }
@@ -42,17 +40,17 @@ void hid_init_controllers(Input* __restrict states, RingMemory* const ring) NO_E
     DWORD device_index = 0;
     int32 controller_found = 0;
 
-    while (SetupDiEnumDeviceInterfaces(device_info_set, NULL, &hid_guid, device_index, &device_interface_data)) {
+    while (pSetupDiEnumDeviceInterfaces(device_info_set, NULL, &hid_guid, device_index, &device_interface_data)) {
         ++device_index;
         DWORD required_size = 0;
 
         // First call to get required buffer size for device detail data
-        SetupDiGetDeviceInterfaceDetail(device_info_set, &device_interface_data, NULL, 0, &required_size, NULL);
+        pSetupDiGetDeviceInterfaceDetailW(device_info_set, &device_interface_data, NULL, 0, &required_size, NULL);
         PSP_DEVICE_INTERFACE_DETAIL_DATA device_detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA) ring_get_memory(ring, required_size, sizeof(size_t));
         device_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
         // Get device interface detail
-        if (!SetupDiGetDeviceInterfaceDetail(device_info_set, &device_interface_data, device_detail_data, required_size, NULL, NULL)) {
+        if (!pSetupDiGetDeviceInterfaceDetailW(device_info_set, &device_interface_data, device_detail_data, required_size, NULL, NULL)) {
             continue;
         }
 
@@ -74,19 +72,19 @@ void hid_init_controllers(Input* __restrict states, RingMemory* const ring) NO_E
         // Check if the device is a gamepad or joystick by reading its attributes
         HIDD_ATTRIBUTES attributes;
         attributes.Size = sizeof(HIDD_ATTRIBUTES);
-        if (!HidD_GetAttributes(device_handle, &attributes)) {
+        if (!pHidD_GetAttributes(device_handle, &attributes)) {
             continue;
         }
 
         // Get the preparsed data to check usage page and usage ID
         PHIDP_PREPARSED_DATA preparsed_data;
-        if (!HidD_GetPreparsedData(device_handle, &preparsed_data)) {
+        if (!pHidD_GetPreparsedData(device_handle, &preparsed_data)) {
             continue;
         }
 
         HIDP_CAPS caps;
-        if (HidP_GetCaps(preparsed_data, &caps) == HIDP_STATUS_SUCCESS) {
-            HidD_FreePreparsedData(preparsed_data);
+        if (pHidP_GetCaps(preparsed_data, &caps) == HIDP_STATUS_SUCCESS) {
+            pHidD_FreePreparsedData(preparsed_data);
             continue;
         }
 
@@ -130,10 +128,10 @@ void hid_init_controllers(Input* __restrict states, RingMemory* const ring) NO_E
             CloseHandle(device_handle);
         }
 
-        HidD_FreePreparsedData(preparsed_data);
+        pHidD_FreePreparsedData(preparsed_data);
     }
 
-    SetupDiDestroyDeviceInfoList(device_info_set);
+    pSetupDiDestroyDeviceInfoList(device_info_set);
 }
 
 inline
@@ -146,7 +144,7 @@ uint32 hid_device_poll(Input* state, uint64 time) NO_EXCEPT
         return 0;
     }
 
-    ControllerInput controller = {};
+    ControllerInput controller = {0};
     switch(state->controller_type) {
         case CONTROLLER_TYPE_DUALSHOCK4: {
             input_map_dualshock4(&controller, state->connection_type, buffer);

@@ -9,12 +9,9 @@
 #ifndef COMS_THREADS_JOB_H
 #define COMS_THREADS_JOB_H
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "../stdlib/Stdlib.h"
-#include "../memory/ThreadedRingMemory.h"
 #include "../thread/ThreadDefines.h"
+#include "../thread/Spinlock.h"
 
 typedef void (*ThreadPoolJobFunc)(void*);
 
@@ -34,6 +31,9 @@ struct PoolWorker {
     //              Maybe this will become useful later if we add more members to the struct
     atomic_32 uint32 id;
     atomic_32 PoolWorkerState state;
+
+    // After running the task it is automatically removed from the thread queue
+    bool automatic_release;
 
     ThreadPoolJobFunc func;
 

@@ -9,6 +9,8 @@
 #ifndef COMS_GPUAPI_TYPE_H
 #define COMS_GPUAPI_TYPE_H
 
+#include "../stdlib/Types.h"
+
 enum GpuApiType : byte {
     GPU_API_TYPE_SOFTWARE,
     GPU_API_TYPE_OPENGL,

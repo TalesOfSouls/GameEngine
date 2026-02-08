@@ -2,10 +2,13 @@
 #include "../../../entity/voxel/VoxelWorldMap.h"
 
 static void test_voxel_world_map() {
-    VoxelWorld vw = {};
-    v3_int32 pos = {};
+    VoxelWorld vw = {0};
+    v3_int32 pos = {0};
 
-    voxel_world_alloc(&vw, pos, 4);
+    const int width = 10;
+    const int depth = 25;
+    const int height = 2;
+    voxel_world_alloc(&vw, pos, height * width * depth);
 
     Voxel voxel = {
         1,

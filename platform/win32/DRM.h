@@ -61,7 +61,7 @@ bool drm_is_being_debugged() NO_EXCEPT
         return false;
     }
 
-    PROCESS_BASIC_INFORMATION pbi = {};
+    PROCESS_BASIC_INFORMATION pbi = {0};
     ULONG returnLength = 0;
 
     const NTSTATUS status = NtQueryInformationProcess(
@@ -85,7 +85,8 @@ bool drm_is_being_debugged() NO_EXCEPT
 // Example: process_names = { "x64dbg.exe", "cheatengine-x86_64.exe", "ollydbg.exe" };
 bool drm_check_process_name(const utf16** process_names, int32 count) NO_EXCEPT
 {
-    DWORD processes[1024], cb_needed;
+    DWORD processes[1024];
+    DWORD cb_needed;
     if (!EnumProcesses(processes, sizeof(processes), &cb_needed)) {
         return false;
     }
@@ -100,7 +101,7 @@ bool drm_check_process_name(const utf16** process_names, int32 count) NO_EXCEPT
         DWORD cb_needed_mod;
 
         if (EnumProcessModules(process_handle, &mod_handle, sizeof(mod_handle), &cb_needed_mod)) {
-            utf16 process_name[MAX_PATH] = L"<unknown>";
+            utf16 process_name[PATH_MAX_LENGTH] = L"<unknown>";
 
             GetModuleBaseNameW(process_handle, mod_handle, process_name, sizeof(process_name) / sizeof(char));
             for (int32 j = 0; j < count; ++j) {
@@ -126,7 +127,7 @@ struct WindowTitleSearchContext {
 
 static
 BOOL CALLBACK drm_enum_windows_callback(HWND hWnd, LPARAM lParam) {
-    WindowTitleSearchContext* ctx = (WindowTitleSearchContext *) lParam;
+    WindowTitleSearchContext* const ctx = (WindowTitleSearchContext *) lParam;
 
     wchar_t window_title[256];
     GetWindowTextW(hWnd, window_title, ARRAY_COUNT(window_title) - 1);
@@ -183,7 +184,7 @@ bool drm_memory_scan(
         }
 
         if ((mbi.State == MEM_COMMIT) && (mbi.Protect & (PAGE_READWRITE | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_READ))) {
-            SIZE_T read_size = (mbi.RegionSize < helper_memory_size) ? mbi.RegionSize : helper_memory_size;
+            const SIZE_T read_size = (mbi.RegionSize < helper_memory_size) ? mbi.RegionSize : helper_memory_size;
             SIZE_T bytes_read = 0;
 
             if (ReadProcessMemory(hProcess, addr, helper_memory, read_size, &bytes_read)) {
@@ -196,7 +197,7 @@ bool drm_memory_scan(
                     // @question instead of decoding the signature we could encode the process. However, that's much slower
                     // @performance we are decrypting this over and over
                     byte decrypted_data[4096];
-                    size_t decrypted_length = drm_decode(decrypted_data, sig->encrypted_pattern, sig->length);
+                    const size_t decrypted_length = drm_decode(decrypted_data, sig->encrypted_pattern, sig->length);
 
                     if (byte_contains(helper_memory, bytes_read, decrypted_data, decrypted_length)) {
                         return true;
@@ -226,7 +227,7 @@ void drm_process_scan(
     byte* __restrict helper_memory, size_t helper_memory_size
 ) NO_EXCEPT
 {
-    for (int32 i = 0; i < process_count; ++i) {
+    for (int i = 0; i < process_count; ++i) {
         if (list[i].scanned) {
             // @todo how to remove no longer active processes?
             // maybe handle that outside in regular intervals... check all running processes

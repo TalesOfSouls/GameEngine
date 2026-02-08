@@ -9,22 +9,28 @@
 #ifndef COMS_PLATFORM_WIN32_TIME_UTILS_H
 #define COMS_PLATFORM_WIN32_TIME_UTILS_H
 
-#include <stdio.h>
 #include <windows.h>
 #include <time.h>
 #include "../../stdlib/Stdlib.h"
 #include "../../log/PerformanceProfiler.h"
+
+static LARGE_INTEGER _performance_frequency = {0};
 
 inline
 void usleep(uint64 microseconds) NO_EXCEPT
 {
     PROFILE(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
 
-    LARGE_INTEGER frequency, start, end;
-    QueryPerformanceFrequency(&frequency);
+    LARGE_INTEGER start, end;
     QueryPerformanceCounter(&start);
 
-    const long long target = start.QuadPart + (microseconds * frequency.QuadPart) / 1000000;
+    if (!_performance_frequency.QuadPart) {
+        QueryPerformanceFrequency(&_performance_frequency);
+    }
+
+    const long long target = start.QuadPart
+        + (microseconds * _performance_frequency.QuadPart)
+        / 1000000ULL;
 
     do {
         QueryPerformanceCounter(&end);
@@ -34,35 +40,35 @@ void usleep(uint64 microseconds) NO_EXCEPT
 inline
 uint64 system_time() NO_EXCEPT
 {
-    SYSTEMTIME systemTime;
-    FILETIME fileTime;
-    ULARGE_INTEGER largeInt;
+    SYSTEMTIME system_time;
+    FILETIME file_time;
+    ULARGE_INTEGER li;
 
-    GetLocalTime(&systemTime);
-    SystemTimeToFileTime(&systemTime, &fileTime);
+    GetLocalTime(&system_time);
+    SystemTimeToFileTime(&system_time, &file_time);
 
     // Convert FILETIME to a 64-bit integer
-    largeInt.LowPart = fileTime.dwLowDateTime;
-    largeInt.HighPart = fileTime.dwHighDateTime;
+    li.LowPart = file_time.dwLowDateTime;
+    li.HighPart = file_time.dwHighDateTime;
 
-    return ((uint64) (largeInt.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+    return ((uint64) (li.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
 }
 
 inline
 uint64 system_time_utc() NO_EXCEPT
 {
-    SYSTEMTIME systemTime;
-    FILETIME fileTime;
-    ULARGE_INTEGER largeInt;
+    SYSTEMTIME system_time;
+    FILETIME file_time;
+    ULARGE_INTEGER li;
 
-    GetSystemTime(&systemTime);
-    SystemTimeToFileTime(&systemTime, &fileTime);
+    GetSystemTime(&system_time);
+    SystemTimeToFileTime(&system_time, &file_time);
 
     // Convert FILETIME to a 64-bit integer
-    largeInt.LowPart = fileTime.dwLowDateTime;
-    largeInt.HighPart = fileTime.dwHighDateTime;
+    li.LowPart = file_time.dwLowDateTime;
+    li.HighPart = file_time.dwHighDateTime;
 
-    return ((uint64) (largeInt.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+    return ((uint64) (li.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
 }
 
 
@@ -81,16 +87,19 @@ uint64 time_index() NO_EXCEPT
 inline
 uint64 time_mu() NO_EXCEPT
 {
+    if (!_performance_frequency.QuadPart) {
+        QueryPerformanceFrequency(&_performance_frequency);
+    }
+
     LARGE_INTEGER counter;
     QueryPerformanceCounter(&counter);
 
-    static LARGE_INTEGER frequency;
-    QueryPerformanceFrequency(&frequency);
-
-    ASSERT_TRUE(counter.QuadPart != frequency.QuadPart);
+    ASSERT_TRUE(counter.QuadPart != _performance_frequency.QuadPart);
     ASSERT_TRUE(counter.QuadPart != 1);
 
-    return (counter.QuadPart * 1000000ULL) / frequency.QuadPart;
+    return (counter.QuadPart / _performance_frequency.QuadPart) * 1000000ULL
+        + (counter.QuadPart % _performance_frequency.QuadPart) * 1000000ULL
+        / _performance_frequency.QuadPart;
 }
 
 inline
@@ -107,14 +116,16 @@ uint64 unix_epoch_s() NO_EXCEPT
 }
 
 inline
-DWORD timespec_to_ms(const timespec* abstime) NO_EXCEPT
+DWORD timespec_to_ms(const timespec* const abstime) NO_EXCEPT
 {
     if (abstime == NULL) {
         return INFINITE;
     }
 
     const uint64 seconds_since_epoch = unix_epoch_s();
-    const DWORD t = (DWORD) (((abstime->tv_sec - seconds_since_epoch) * 1000) + (abstime->tv_nsec / 1000000));
+    const DWORD t = (DWORD) (((abstime->tv_sec - seconds_since_epoch) * 1000)
+        + (abstime->tv_nsec / 1000000)
+    );
 
     return t < 0 ? 1 : t;
 }
