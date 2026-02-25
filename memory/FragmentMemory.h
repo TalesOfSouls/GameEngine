@@ -17,6 +17,7 @@
 #include "../log/PerformanceProfiler.h"
 #include "../log/DebugMemory.h"
 #include "../system/Allocator.h"
+#include "MemoryArena.h"
 
 /**
  * Similar to the ChunkMemory but:
@@ -65,23 +66,68 @@ uint_max fragment_size_total(uint32 count, int32 element_size, int32 alignment =
         + alignment * 2; // overhead for alignment
 }
 
-// @performance Do we maybe want to define both the element alignment and memory start alignment (e.g. 64 byte = cache line alignment for the memory)
 inline
-void fragment_alloc(FragmentMemory* const fragment, uint32 count, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void fragment_alloc(
+    FragmentMemory* const fragment,
+    uint32 count,
+    uint32 max_count,
+    int32 element_size,
+    int32 alignment = sizeof(size_t)
+) NO_EXCEPT
 {
     PROFILE(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
+    ASSERT_TRUE(max_count >= count);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     LOG_1("[INFO] Allocating FragmentMemory");
 
     element_size = fragment_size_element(element_size, alignment);
     const uint_max size = fragment_size_total(count, element_size, alignment);
+    const uint_max max_size = fragment_size_total(max_count, element_size, alignment);
 
-    fragment->memory = alignment < 2
-        ? (byte *) platform_alloc(size)
-        : (byte *) platform_alloc_aligned(size, size, alignment);
+    fragment->memory = (byte *) platform_alloc_aligned(size, max_size, alignment);
+
+    fragment->count = count;
+    fragment->size = size;
+    fragment->chunk_size = element_size;
+    fragment->last_pos = count - 1;
+    fragment->alignment = alignment;
+    fragment->free = (byte **) align_up(
+        (uint_max) ((uintptr_t) (fragment->memory + count * element_size)),
+        (uint_max) alignment
+    );
+
+    for (int i = 0; i < count; ++i) {
+        fragment->free[i] = &fragment->memory[i * fragment->chunk_size];
+    }
+}
+
+inline
+void fragment_alloc(
+    FragmentMemory* const fragment,
+    MemoryArena* const mem,
+    uint32 count,
+    uint32 max_count,
+    int32 element_size,
+    int32 alignment = sizeof(size_t)
+) NO_EXCEPT
+{
+    PROFILE(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(element_size);
+    ASSERT_TRUE(count);
+    ASSERT_TRUE(max_count >= count);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    LOG_1("[INFO] Allocating FragmentMemory");
+
+    element_size = fragment_size_element(element_size, alignment);
+    const uint_max size = fragment_size_total(count, element_size, alignment);
+    const uint_max max_size = fragment_size_total(max_count, element_size, alignment);
+
+    MemoryArena* arena = mem_arena_add(mem, size, max_size, alignment);
+    fragment->memory = (byte *) arena->memory;
 
     fragment->count = count;
     fragment->size = size;
@@ -121,11 +167,19 @@ void fragment_free(FragmentMemory* const fragment) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE((uintptr_t) fragment->memory, fragment->size);
 
-    if (fragment->alignment < 2) {
-        platform_free((void **) &fragment->memory);
-    } else {
-        platform_aligned_free((void **) &fragment->memory);
-    }
+    platform_aligned_free((void **) &fragment->memory);
+
+    fragment->size = 0;
+    fragment->last_pos = -1;
+    fragment->memory = NULL;
+}
+
+inline
+void fragment_free(FragmentMemory* const fragment, MemoryArena* mem) NO_EXCEPT
+{
+    DEBUG_MEMORY_DELETE((uintptr_t) fragment->memory, fragment->size);
+
+    mem_arena_remove(mem, fragment->memory);
 
     fragment->size = 0;
     fragment->last_pos = -1;

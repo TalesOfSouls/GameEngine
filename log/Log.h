@@ -58,7 +58,11 @@
 #if _WIN32
     #include <windows.h>
 
-    static LARGE_INTEGER _log_performance_frequency = {0};
+    thread_local static LARGE_INTEGER _log_performance_frequency = []{
+        LARGE_INTEGER f;
+        QueryPerformanceFrequency(&f);
+        return f;
+    }();
 
     /**
      * Get the system time
@@ -109,10 +113,6 @@
     static FORCE_INLINE HOT_CODE
     void log_spinlock_start(log_spinlock32* const lock, int32 delay = 10) NO_EXCEPT
     {
-        if (!_log_performance_frequency.QuadPart) {
-            QueryPerformanceFrequency(&_log_performance_frequency);
-        }
-
         while (InterlockedExchange(lock, 1) != 0) {
             LARGE_INTEGER start, end;
             QueryPerformanceCounter(&start);
@@ -299,6 +299,7 @@ byte* log_get_memory() NO_EXCEPT
  * Log data to file
  *
  * WARNING: This is not thread safe by itself
+ * WARNING: This doesn't log file names and function names since these are only pointers
  *
  * @param const void*   data    Data to log
  * @param size_t        size    Data size to log

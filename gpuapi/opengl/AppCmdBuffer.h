@@ -16,6 +16,7 @@
 #include "ShaderUtils.h"
 #include "../ShaderType.h"
 #include "../../asset/Asset.h"
+#include "../../asset/AssetArchive.cpp"
 #include "../../command/AppCmdBuffer.h"
 
 void* cmd_shader_load(AppCmdBuffer*, AppCommand*) NO_EXCEPT

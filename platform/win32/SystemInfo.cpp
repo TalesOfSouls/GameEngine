@@ -584,4 +584,30 @@ bool is_dedicated_gpu_connected() {
     return false;
 }
 
+bool monitor_supports_higher_hz()
+{
+    DEVMODE current = {0};
+    current.dmSize = sizeof(DEVMODE);
+
+    if (!EnumDisplaySettingsW(NULL, ENUM_CURRENT_SETTINGS, &current)) {
+        return false;
+    }
+
+    const DWORD current_hz = current.dmDisplayFrequency;
+    if (current_hz <= 0) {
+        return false;
+    }
+
+    DEVMODE mode = {0};
+    mode.dmSize = sizeof(DEVMODE);
+
+    for (int i = 0; EnumDisplaySettingsW(NULL, i, &mode); ++i) {
+        if (mode.dmDisplayFrequency > current_hz) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 #endif

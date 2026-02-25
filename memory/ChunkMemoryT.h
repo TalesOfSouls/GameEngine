@@ -58,10 +58,11 @@ struct ChunkMemoryT {
 // INFO: A chunk count of 2^n is recommended for maximum performance
 template <typename T>
 inline
-void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     LOG_1("[INFO] Allocating ChunkMemoryT");
@@ -69,13 +70,14 @@ void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 alignment = s
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
     const size_t memory_size = capacity * sizeof(T) + sizeof(uint_max) * array_count + sizeof(uint_max);
 
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(uint_max) * max_array_count + sizeof(uint_max);
+
     buf->memory = (T *) platform_alloc_aligned(
         memory_size,
-        memory_size,
+        max_memory_size,
         alignment
     );
-
-    // @question Why don't I memset the memory to 0 here, but do it in chunk_init
 
     buf->capacity = capacity;
     buf->last_pos = -1;
@@ -88,25 +90,114 @@ void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 alignment = s
 
 template <typename T>
 inline
-void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     LOG_1("[INFO] Allocating ChunkMemoryT");
 
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t memory_size = capacity * sizeof(T)
+            + sizeof(uint_max) * array_count
+            + sizeof(uint_max) * array_count
+            + sizeof(uint_max) * 2;
+
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_memory_size = max_capacity * sizeof(T)
+            + sizeof(uint_max) * max_array_count
+            + sizeof(uint_max) * max_array_count
+            + sizeof(uint_max) * 2;
 
     buf->memory = (T *) platform_alloc_aligned(
-        capacity * sizeof(T)
-            + sizeof(uint_max) * array_count
-            + sizeof(uint_max) * array_count
-            + sizeof(uint_max) * 2,
+        memory_size,
+        max_memory_size,
         alignment
     );
 
-    // @question Why don't I memset the memory to 0 here, but do it in chunk_init
+    buf->capacity = capacity;
+    buf->last_pos = -1;
+    buf->free = (uint_max *) align_up(
+        (uint_max) ((uintptr_t) (buf->memory + capacity)),
+        (uint_max) sizeof(uint_max)
+    );
+    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), sizeof(uint_max));
+
+    memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
+    memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
+
+    mutex_init(&buf->lock, NULL);
+
+    LOG_1("[INFO] Allocated ChunkMemoryT: %n", {DATA_TYPE_UINT64, &buf->capacity});
+}
+
+// INFO: A chunk count of 2^n is recommended for maximum performance
+template <typename T>
+inline
+void chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    LOG_1("[INFO] Allocating ChunkMemoryT");
+
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t memory_size = capacity * sizeof(T) + sizeof(uint_max) * array_count + sizeof(uint_max);
+
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(uint_max) * max_array_count + sizeof(uint_max);
+
+    MemoryArena* arena = mem_arena_add(
+        mem,
+        memory_size,
+        max_memory_size,
+        alignment
+    );
+    buf->memory = (T *) arena->memory;
+
+    buf->capacity = capacity;
+    buf->last_pos = -1;
+    buf->free = (uint_max *) align_up(
+        (uint_max) ((uintptr_t) (buf->memory + capacity)),
+        sizeof(uint_max)
+    );
+    memset(buf->free, 0, sizeof(uint_max) * array_count);
+}
+
+template <typename T>
+inline
+void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    LOG_1("[INFO] Allocating ChunkMemoryT");
+
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t memory_size = capacity * sizeof(T)
+            + sizeof(uint_max) * array_count
+            + sizeof(uint_max) * array_count
+            + sizeof(uint_max) * 2;
+
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_memory_size = max_capacity * sizeof(T)
+            + sizeof(uint_max) * max_array_count
+            + sizeof(uint_max) * max_array_count
+            + sizeof(uint_max) * 2;
+
+    MemoryArena* arena = mem_arena_add(
+        mem,
+        memory_size,
+        max_memory_size,
+        alignment
+    );
+    buf->memory = (T *) arena->memory;
 
     buf->capacity = capacity;
     buf->last_pos = -1;
@@ -261,7 +352,13 @@ template <typename T>
 inline
 void chunk_free(ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
-    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, sizeof(T) * buf->capacity + sizeof(uint_max) * ceil_div(buf->capacity, (sizeof(uint_max) * 8)));
+    DEBUG_MEMORY_DELETE(
+        (uintptr_t) buf->memory,
+        sizeof(T) * buf->capacity + sizeof(uint_max) * ceil_div(
+            buf->capacity,
+            (int32) (sizeof(uint_max) * 8)
+        )
+    );
 
     platform_aligned_free((void **) &buf->memory);
 
@@ -274,6 +371,26 @@ inline
 void thrd_chunk_free(ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     chunk_free(buf);
+    mutex_destroy(&buf->lock);
+}
+
+template <typename T>
+inline
+void chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* mem) NO_EXCEPT
+{
+    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, sizeof(T) * buf->capacity + sizeof(uint_max) * ceil_div(buf->capacity, (sizeof(uint_max) * 8)));
+
+    mem_arena_remove(mem, buf->memory);
+
+    buf->capacity = 0;
+    buf->memory = NULL;
+}
+
+template <typename T>
+inline
+void thrd_chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* mem) NO_EXCEPT
+{
+    chunk_free(buf, mem);
     mutex_destroy(&buf->lock);
 }
 

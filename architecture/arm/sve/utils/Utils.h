@@ -9,10 +9,9 @@
 #ifndef COMS_ARCHITECTURE_ARM_SVE_UTILS_H
 #define COMS_ARCHITECTURE_ARM_SVE_UTILS_H
 
-#include <stdlib.h>
 #include "../../../../stdlib/Stdlib.h"
 #include "../../../../compiler/CompilerUtils.h"
-#include "../../../../stdlib/Simd.h"
+#include "../../../../architecture/Intrinsics.h"
 #include <arm_sve.h>
 
 // Only allowed for data >= 64 bits

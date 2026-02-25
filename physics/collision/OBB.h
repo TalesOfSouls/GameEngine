@@ -1,5 +1,4 @@
 #include "../../stdlib/Stdlib.h"
-#include "../../stdlib/Simd.h"
 #include "../../math/matrix/Matrix.h"
 
 typedef struct {

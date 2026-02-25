@@ -488,6 +488,7 @@ byte bits_count(uint8 data) NO_EXCEPT
     return BIT_COUNT_LOOKUP_TABLE[data];
 }
 
+// @bug what about sve/neon?
 void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps = 16) NO_EXCEPT
 {
     int32 i = 0;

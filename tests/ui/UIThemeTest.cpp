@@ -1,13 +1,13 @@
 #include "../TestFramework.h"
-#include "../../ui/UITheme.h"
+#include "../../ui/UITheme.cpp"
 #include "../../system/Allocator.h"
 
 static void test_theme_from_file_txt() {
     RingMemory ring;
-    ring_alloc(&ring, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
+    ring_alloc(&ring, 10 * MEGABYTE, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
     UIThemeStyle theme;
-    theme.data = (byte *) platform_alloc(2 * MEGABYTE);
+    theme.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
     theme_from_file_txt(&theme, "./../../GameEditor/assets/themes/default/scene1.themetxt", &ring);
 
     UIAttributeGroup* group = theme_style_group(&theme, "#cmd_window");
@@ -19,20 +19,20 @@ static void test_theme_from_file_txt() {
     TEST_EQUALS(attr->datatype, UI_ATTRIBUTE_DATA_TYPE_F32);
     TEST_EQUALS_WITH_DELTA(attr->value_float, 0.0f, 0.001f);
 
-    platform_free((void **) &theme.data);
+    platform_aligned_free((void **) &theme.data);
     ring_free(&ring);
 }
 
 static void test_theme_to_from_data() {
     RingMemory ring;
-    ring_alloc(&ring, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
+    ring_alloc(&ring, 10 * MEGABYTE, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
     UIThemeStyle theme_dump;
-    theme_dump.data = (byte *) platform_alloc(2 * MEGABYTE);
+    theme_dump.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
     theme_from_file_txt(&theme_dump, "./../../GameEditor/assets/themes/default/scene1.themetxt", &ring);
 
     UIThemeStyle theme_load = {0};
-    theme_load.data = (byte *) platform_alloc(2 * MEGABYTE);
+    theme_load.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
 
     byte* out = ring_get_memory(&ring, 1024 * 1024);
 
@@ -49,8 +49,8 @@ static void test_theme_to_from_data() {
     TEST_EQUALS(attr->datatype, UI_ATTRIBUTE_DATA_TYPE_F32);
     TEST_EQUALS_WITH_DELTA(attr->value_float, 0.0f, 0.001f);
 
-    platform_free((void **) &theme_load.data);
-    platform_free((void **) &theme_dump.data);
+    platform_aligned_free((void **) &theme_load.data);
+    platform_aligned_free((void **) &theme_dump.data);
     ring_free(&ring);
 }
 

@@ -9,7 +9,7 @@
 #ifndef COMS_NETWORK_PACKET_CACHE_H
 #define COMS_NETWORK_PACKET_CACHE_H
 
-#include "../../memory/RingMemory.h"
+#include "../../memory/RingMemory.cpp"
 #include "../../memory/BufferMemory.h"
 
 #if _WIN32

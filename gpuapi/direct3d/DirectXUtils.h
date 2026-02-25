@@ -15,7 +15,7 @@
 #include <dxgi1_6.h>
 #include <d3dcommon.h>
 #include "../../../cOMS/log/Log.h"
-#include "../../../cOMS/memory/RingMemory.h"
+#include "../../../cOMS/memory/RingMemory.cpp"
 #include "../../../cOMS/object/Texture.h"
 #include "../../../cOMS/image/Image.cpp"
 #include "../../compiler/CompilerUtils.h"
@@ -132,7 +132,7 @@ int32 wait_for_previous_frame(
 
     // Signal and increment the fence value.
     if(FAILED(hr = graphics_queue->Signal(frames_in_flight->fence, fence_value_temp))) {
-        LOG_1("DirectX12 Signal: %d", {DATA_TYPE_INT32, &hr});
+        LOG_1("[ERROR] DirectX12 Signal: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_TRUE(false);
     }
 

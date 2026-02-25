@@ -11,10 +11,10 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/QueueT.h"
-#include "../font/Font.h"
+#include "../font/Font.cpp"
 #include "../asset/Asset.h"
-#include "../asset/AssetArchive.h"
-#include "../asset/AssetManagementSystem.h"
+#include "../asset/AssetArchive.cpp"
+#include "../asset/AssetManagementSystem.cpp"
 #include "../gpuapi/GpuApiType.h"
 #include "AppCommand.h"
 
@@ -80,7 +80,7 @@ Asset* cmd_font_load_sync(
     int32 asset_id
 ) NO_EXCEPT
 {
-    LOG_1("Load font %d", {DATA_TYPE_INT32, &asset_id});
+    LOG_1("[INFO] Load font %d", {DATA_TYPE_INT32, &asset_id});
 
     // Check if asset already loaded
     char id_str[9];

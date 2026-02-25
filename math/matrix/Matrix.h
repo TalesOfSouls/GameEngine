@@ -9,7 +9,6 @@
 #ifndef COMS_MATH_MATRIX_FLOAT32_H
 #define COMS_MATH_MATRIX_FLOAT32_H
 
-#include <math.h>
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/Assert.h"
 #include "../../architecture/Intrinsics.h"
@@ -219,7 +218,7 @@ template<typename T>
 FORCE_INLINE
 void vec3_normalize(T* const vec) NO_EXCEPT
 {
-    f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
+    const f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
 
     vec->x *= d;
     vec->y *= d;
@@ -405,7 +404,7 @@ T vec3_cross_normalized(T a, T b) NO_EXCEPT
 {
     T cross = {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 
-    f32 d = intrin_rsqrt_f32(cross.x * cross.x + cross.y * cross.y + cross.z * cross.z);
+    const f32 d = intrin_rsqrt_f32(cross.x * cross.x + cross.y * cross.y + cross.z * cross.z);
     cross.x *= d;
     cross.y *= d;
     cross.z *= d;
@@ -452,7 +451,7 @@ template<typename T>
 FORCE_INLINE
 void vec4_normalize(T* const vec) NO_EXCEPT
 {
-    f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z + vec->w * vec->w);
+    const f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z + vec->w * vec->w);
 
     vec->x *= d;
     vec->y *= d;
@@ -709,19 +708,19 @@ void mat4_rotation(f32 matrix[16], f32 x, f32 y, f32 z, f32 angle) NO_EXCEPT
     f32 c;
     SINCOSF(angle, s, c);
 
-    f32 m = 1 - c;
+    const f32 m = 1 - c;
 
-    f32 mx = m * x;
-    f32 my = m * y;
-    f32 mz = m * z;
+    const f32 mx = m * x;
+    const f32 my = m * y;
+    const f32 mz = m * z;
 
-    f32 xs = x * s;
-    f32 ys = y * s;
-    f32 zs = z * s;
+    const f32 xs = x * s;
+    const f32 ys = y * s;
+    const f32 zs = z * s;
 
-    f32 mxy = mx * y;
-    f32 mzx = mz * x;
-    f32 myz = my * z;
+    const f32 mxy = mx * y;
+    const f32 mzx = mz * x;
+    const f32 myz = my * z;
 
     matrix[0] = mx * x + c;
     matrix[1] = mxy - zs;
@@ -764,13 +763,13 @@ void mat4_rotation(f32 matrix[16], f32 pitch, f32 yaw, f32 roll) NO_EXCEPT
     matrix[2] = -sin_yaw;
     matrix[3] = 0.0f;
 
-    f32 sin_pitch_sin_yaw = sin_pitch * sin_yaw;
+    const f32 sin_pitch_sin_yaw = sin_pitch * sin_yaw;
     matrix[4] = sin_pitch_sin_yaw * cos_roll - cos_pitch * sin_roll;
     matrix[5] = sin_pitch_sin_yaw * sin_roll + cos_pitch * cos_roll;
     matrix[6] = sin_pitch * cos_yaw;
     matrix[7] = 0.0f;
 
-    f32 cos_pitch_sin_yaw = cos_pitch * sin_yaw;
+    const f32 cos_pitch_sin_yaw = cos_pitch * sin_yaw;
     matrix[8] = cos_pitch_sin_yaw * cos_roll + sin_pitch * sin_roll;
     matrix[9] = cos_pitch_sin_yaw * sin_roll - sin_pitch * cos_roll;
     matrix[10] = cos_pitch * cos_yaw;
@@ -1159,10 +1158,10 @@ void mat4_frustum_sparse_rh(
     f32 znear, f32 zfar
  ) NO_EXCEPT
 {
-    f32 temp = 2.0f * znear;
-    f32 rl_delta = right - left;
-    f32 tb_delta = top - bottom;
-    f32 fn_delta = zfar - znear;
+    const f32 temp = 2.0f * znear;
+    const f32 rl_delta = right - left;
+    const f32 tb_delta = top - bottom;
+    const f32 fn_delta = zfar - znear;
 
     matrix[0] = temp / rl_delta;
     //matrix[1] = 0.0f;
@@ -1192,10 +1191,10 @@ void mat4_frustum_sparse_lh(
     f32 znear, f32 zfar
  ) NO_EXCEPT
 {
-    f32 temp = 2.0f * znear;
-    f32 rl_delta = right - left;
-    f32 tb_delta = top - bottom;
-    f32 fn_delta = zfar - znear;
+    const f32 temp = 2.0f * znear;
+    const f32 rl_delta = right - left;
+    const f32 tb_delta = top - bottom;
+    const f32 fn_delta = zfar - znear;
 
     matrix[0] = temp / rl_delta;
     //matrix[1] = 0.0f;
@@ -1227,9 +1226,8 @@ void mat4_perspective_sparse_lh(
 {
     ASSERT_TRUE(znear > 0.0f);
 
-    f32 ymax, xmax;
-    ymax = znear * tanf(fov * 0.5f);
-    xmax = ymax * aspect;
+    const f32 ymax = znear * tanf(fov * 0.5f);
+    const f32 xmax = ymax * aspect;
 
     mat4_frustum_sparse_lh(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
 }
@@ -1242,9 +1240,8 @@ void mat4_perspective_sparse_rh(
 {
     ASSERT_TRUE(znear > 0.0f);
 
-    f32 ymax, xmax;
-    ymax = znear * tanf(fov * 0.5f);
-    xmax = ymax * aspect;
+    const f32 ymax = znear * tanf(fov * 0.5f);
+    const f32 xmax = ymax * aspect;
 
     mat4_frustum_sparse_rh(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
 }
@@ -1256,9 +1253,9 @@ void mat4_ortho_sparse_lh(
     f32 znear, f32 zfar
 ) NO_EXCEPT
 {
-    f32 rl_delta = right - left;
-    f32 tb_delta = top - bottom;
-    f32 fn_delta = zfar - znear;
+    const f32 rl_delta = right - left;
+    const f32 tb_delta = top - bottom;
+    const f32 fn_delta = zfar - znear;
 
     matrix[0] = 2.0f / rl_delta;
     //matrix[1] = 0.0f;
@@ -1288,9 +1285,9 @@ void mat4_ortho_sparse_rh_opengl(
     f32 znear, f32 zfar
 ) NO_EXCEPT
 {
-    f32 rl_delta = right - left;
-    f32 tb_delta = top - bottom;
-    f32 fn_delta = zfar - znear;
+    const f32 rl_delta = right - left;
+    const f32 tb_delta = top - bottom;
+    const f32 fn_delta = zfar - znear;
 
     matrix[0] = 2.0f / rl_delta;
     //matrix[1] = 0.0f;
@@ -1320,9 +1317,9 @@ void mat4_ortho_sparse_rh_software(
     f32 znear, f32 zfar
 ) NO_EXCEPT
 {
-    f32 rl_delta = right - left;
-    f32 tb_delta = top - bottom;
-    f32 fn_delta = zfar - znear;
+    const f32 rl_delta = right - left;
+    const f32 tb_delta = top - bottom;
+    const f32 fn_delta = zfar - znear;
 
     matrix[0] = 2.0f / rl_delta;
     //matrix[1] = 0.0f;
@@ -1352,9 +1349,9 @@ void mat4_ortho_sparse_rh_vulkan(
     f32 znear, f32 zfar
 ) NO_EXCEPT
 {
-    f32 rl_delta = right - left;
-    f32 tb_delta = top - bottom;
-    f32 fn_delta = zfar - znear;
+    const f32 rl_delta = right - left;
+    const f32 tb_delta = top - bottom;
+    const f32 fn_delta = zfar - znear;
 
     matrix[0] = 2.0f / rl_delta;
     //matrix[1] = 0.0f;
@@ -1506,7 +1503,7 @@ void mat2_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO
 FORCE_INLINE
 void mat2_transpose(f32 matrix[4]) NO_EXCEPT
 {
-    f32 temp = matrix[1];
+    const f32 temp = matrix[1];
     matrix[1] = matrix[2];
     matrix[2] = temp;
 }
@@ -1517,17 +1514,17 @@ void vec3_normal(
     const v3_f32* __restrict a, const v3_f32* __restrict b, const v3_f32* __restrict c
 ) NO_EXCEPT
 {
-    v3_f32 edge1;
-    v3_f32 edge2;
-
     // Calculate two edges of the triangle
-    edge1.x = b->x - a->x;
-    edge1.y = b->y - a->y;
-    edge1.z = b->z - a->z;
-
-    edge2.x = c->x - a->x;
-    edge2.y = c->y - a->y;
-    edge2.z = c->z - a->z;
+    const v3_f32 edge1 = {
+        b->x - a->x,
+        b->y - a->y,
+        b->z - a->z
+    };
+    const v3_f32 edge2 = {
+        c->x - a->x,
+        c->y - a->y,
+        c->z - a->z
+    };
 
     vec3_cross(normal, &edge1, &edge2);
     vec3_normalize(normal);
@@ -1538,17 +1535,17 @@ v3_f32 vec3_normal(
     v3_f32 a, v3_f32 b, v3_f32 c
 ) NO_EXCEPT
 {
-    v3_f32 edge1;
-    v3_f32 edge2;
-
     // Calculate two edges of the triangle
-    edge1.x = b.x - a.x;
-    edge1.y = b.y - a.y;
-    edge1.z = b.z - a.z;
-
-    edge2.x = c.x - a.x;
-    edge2.y = c.y - a.y;
-    edge2.z = c.z - a.z;
+    const v3_f32 edge1 = {
+        b.x - a.x,
+        b.y - a.y,
+        b.z - a.z
+    };
+    const v3_f32 edge2 = {
+        c.x - a.x,
+        c.y - a.y,
+        c.z - a.z
+    };
 
     v3_f32 normal = vec3_cross(edge1, edge2);
     vec3_normalize(&normal);

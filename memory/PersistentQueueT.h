@@ -19,6 +19,7 @@
 #include "../log/DebugMemory.h"
 #include "../thread/ThreadDefines.h"
 #include "../system/Allocator.h"
+#include "MemoryArena.h"
 #include "BufferMemory.h"
 #include "ChunkMemory.h"
 #include "../thread/Thread.h"
@@ -56,23 +57,73 @@ struct PersistentQueueT {
 
 template <typename T>
 FORCE_INLINE
-void queue_alloc(PersistentQueueT<T>* const queue, int capacity, int alignment = sizeof(size_t)) NO_EXCEPT
+void queue_alloc(PersistentQueueT<T>* const queue, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     LOG_1("[INFO] Allocating QueueT");
 
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
-    const size_t memory_size = queue->capacity * sizeof(T)
-        + sizeof(uint_max) * array_count + sizeof(uint_max) // free
-        + sizeof(uint_max) * array_count + sizeof(uint_max); // complete
+    const size_t memory_size = capacity * sizeof(T)
+    + sizeof(uint_max) * array_count + sizeof(uint_max) // free
+    + sizeof(uint_max) * array_count + sizeof(uint_max); // complete
+
+    const size_t max_array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_memory_size = max_capacity * sizeof(T)
+        + sizeof(uint_max) * max_array_count + sizeof(uint_max) // free
+        + sizeof(uint_max) * max_array_count + sizeof(uint_max); // complete
 
     queue->capacity = capacity;
     queue->memory = (T *) platform_alloc_aligned(
         memory_size,
+        max_memory_size,
+        alignment
+    );
+    queue->head = 0;
+    queue->tail = 0;
+
+    queue->free = (uint_max *) align_up(
+        (uint_max) ((uintptr_t) (queue->memory + capacity)),
+        sizeof(uint_max)
+    );
+    memset(queue->free, 0, sizeof(uint_max) * array_count);
+
+    queue->completed = (uint_max *) align_up(
+        (uint_max) ((uintptr_t) (queue->free + array_count)),
+        sizeof(uint_max)
+    );
+    memset(queue->completed, 0, sizeof(uint_max) * array_count);
+}
+
+template <typename T>
+FORCE_INLINE
+void queue_alloc(
+    PersistentQueueT<T>* const queue,
+    MemoryArena* const mem,
+    int capacity, int max_capacity,
+    uint32 alignment = sizeof(size_t)
+) NO_EXCEPT
+{
+    ASSERT_TRUE(max_capacity >= capacity);
+
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t memory_size = queue->capacity * sizeof(T)
+    + sizeof(uint_max) * array_count + sizeof(uint_max) // free
+    + sizeof(uint_max) * array_count + sizeof(uint_max); // complete
+
+    const size_t max_array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_memory_size = max_capacity * sizeof(T)
+        + sizeof(uint_max) * max_array_count + sizeof(uint_max) // free
+        + sizeof(uint_max) * max_array_count + sizeof(uint_max); // complete
+
+    queue->capacity = capacity;
+    queue->memory = (T *) mem_arena_add(
+        mem,
         memory_size,
+        max_memory_size,
         alignment
     );
     queue->head = 0;
@@ -149,7 +200,7 @@ template <typename T>
 static inline
 void thrd_queue_locks_init(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    mutex_init(&queue->mtx, NULL);
+    mutex_init(&queue->lock, NULL);
     coms_pthread_cond_init(&queue->cond, NULL);
 
     coms_sem_init(&queue->empty, queue->capacity);
@@ -158,9 +209,17 @@ void thrd_queue_locks_init(PersistentQueueT<T>* const queue) NO_EXCEPT
 
 template <typename T>
 inline
-void thrd_queue_alloc(PersistentQueueT<T>* const queue, uint32 capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
+void thrd_queue_alloc(PersistentQueueT<T>* const queue, uint32 capacity, uint32 max_capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    queue_alloc(queue, capacity, alignment);
+    queue_alloc(queue, capacity, max_capacity, alignment);
+    thrd_queue_locks_init(queue);
+}
+
+template <typename T>
+inline
+void thrd_queue_alloc(PersistentQueueT<T>* const queue, MemoryArena* mem, uint32 capacity, uint32 max_capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    queue_alloc(queue, mem, capacity, max_capacity, alignment);
     thrd_queue_locks_init(queue);
 }
 
@@ -188,15 +247,36 @@ void queue_free(PersistentQueueT<T>* const queue) NO_EXCEPT
 }
 
 template <typename T>
+static inline
+void thrd_queue_locks_free(PersistentQueueT<T>* const queue) NO_EXCEPT
+{
+    coms_sem_destroy(&queue->empty);
+    coms_sem_destroy(&queue->full);
+    mutex_destroy(&queue->lock);
+    coms_pthread_cond_destroy(&queue->cond);
+}
+
+template <typename T>
 inline
 void thrd_queue_free(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
     queue_free(queue);
+    thrd_queue_locks_free(queue);
+}
 
-    coms_sem_destroy(&queue->empty);
-    coms_sem_destroy(&queue->full);
-    mutex_destroy(&queue->mtx);
-    coms_pthread_cond_destroy(&queue->cond);
+template <typename T>
+FORCE_INLINE
+void queue_free(PersistentQueueT<T>* const queue, MemoryArena* mem) NO_EXCEPT
+{
+    mem_arena_remove(mem, (byte *) queue->memory);
+}
+
+template <typename T>
+inline
+void thrd_queue_free(PersistentQueueT<T>* const queue, MemoryArena* mem) NO_EXCEPT
+{
+    queue_free(queue, mem);
+    thrd_queue_locks_free(queue);
 }
 
 template <typename T>
@@ -217,7 +297,7 @@ template <typename T>
 FORCE_INLINE
 bool thrd_queue_is_empty(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    MutexGuard _guard(&queue->mtx);
+    MutexGuard _guard(&queue->lock);
     return queue_is_empty(queue);
 }
 
@@ -239,7 +319,6 @@ template <typename T>
 static inline
 bool queue_has_space(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    // @bug Doesn't this mean we always have one unused element
     return queue->tail - 1 != queue->head;
 }
 
@@ -247,7 +326,6 @@ template <typename T>
 static inline
 bool queue_has_space_atomic(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    // @bug Doesn't this mean we always have one unused element
     return atomic_get_relaxed(&queue->head) - 1 != atomic_get_relaxed(&queue->tail);
 }
 
@@ -262,7 +340,7 @@ template <typename T>
 inline
 bool thrd_queue_is_full(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    MutexGuard _guard(&queue->mtx);
+    MutexGuard _guard(&queue->lock);
     return !queue_has_space(queue);
 }
 
@@ -326,12 +404,14 @@ T* queue_enqueue(PersistentQueueT<T>* const __restrict queue, const T* __restric
 // @todo implement enqueue with pass by value
 template <typename T>
 inline
-void thrd_queue_enqueue(PersistentQueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
+T* thrd_queue_enqueue(PersistentQueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
 {
-    MutexGuard _guard(&queue->mtx);
-    queue_enqueue(queue, data);
+    MutexGuard _guard(&queue->lock);
+    T* mem = queue_enqueue(queue, data);
 
     coms_pthread_cond_signal(&queue->cond);
+
+    return mem;
 }
 
 // @todo implement enqueue with pass by value
@@ -376,7 +456,7 @@ template <typename T>
 inline
 T* thrd_queue_enqueue_safe(PersistentQueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
 {
-    MutexGuard _guard(&queue->mtx);
+    MutexGuard _guard(&queue->lock);
     if(!queue_has_space(queue)) {
         return NULL;
     }
@@ -415,7 +495,7 @@ inline
 void thrd_queue_enqueue_unique(PersistentQueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
 {
     ASSERT_TRUE((uint64_t) data % 4 == 0);
-    MutexGuard _guard(&queue->mtx);
+    MutexGuard _guard(&queue->lock);
 
     queue_enqueue_unique(queue, data);
 
@@ -428,7 +508,7 @@ inline
 void thrd_queue_enqueue_unique_wait(PersistentQueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
 {
     ASSERT_TRUE((uint64_t) data % 4 == 0);
-    MutexGuard _guard(&queue->mtx);
+    MutexGuard _guard(&queue->lock);
 
     uint32 tail = queue->tail;
     while (tail != queue->head) {
@@ -445,7 +525,7 @@ void thrd_queue_enqueue_unique_wait(PersistentQueueT<T>* __restrict queue, const
     }
 
     while (!queue_enqueue_safe(queue, data)) {
-        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
+        coms_pthread_cond_wait(&queue->cond, &queue->lock);
     }
 
     coms_pthread_cond_signal(&queue->cond);
@@ -484,10 +564,10 @@ template <typename T>
 inline
 void thrd_queue_enqueue_wait(PersistentQueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
 {
-    MutexGuard _guard(&queue->mtx);
+    MutexGuard _guard(&queue->lock);
 
     while (!queue_enqueue_safe(queue, data)) {
-        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
+        coms_pthread_cond_wait(&queue->cond, &queue->lock);
     }
 
     coms_pthread_cond_signal(&queue->cond);
@@ -498,11 +578,11 @@ inline
 void thrd_queue_enqueue_sem_wait(PersistentQueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
 {
     coms_sem_wait(&queue->empty);
-    mutex_lock(&queue->mtx);
+    mutex_lock(&queue->lock);
 
     queue_enqueue(queue, data);
 
-    mutex_unlock(&queue->mtx);
+    mutex_unlock(&queue->lock);
     coms_sem_post(&queue->full);
 }
 
@@ -515,7 +595,7 @@ bool thrd_queue_enqueue_semimedwait(PersistentQueueT<T>* __restrict queue, const
     }
 
     {
-        MutexGuard _guard(&queue->mtx);
+        MutexGuard _guard(&queue->lock);
         queue_enqueue(queue, data);
     }
 
@@ -529,12 +609,12 @@ template <typename T>
 inline
 T* thrd_queue_enqueue_start_wait(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    mutex_lock(&queue->mtx);
+    mutex_lock(&queue->lock);
 
     // @bug I don't think this is enough for a PersistentQueue
     //      We also need to check free
     while (!queue_has_space(queue)) {
-        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
+        coms_pthread_cond_wait(&queue->cond, &queue->lock);
     }
 
     return queue_enqueue_start(queue);
@@ -545,7 +625,7 @@ FORCE_INLINE
 T* thrd_queue_enqueue_start_sem_wait(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
     coms_sem_wait(&queue->empty);
-    mutex_lock(&queue->mtx);
+    mutex_lock(&queue->lock);
 
     return queue->head;
 }
@@ -571,14 +651,14 @@ void thrd_queue_enqueue_end_wait(PersistentQueueT<T>* const queue) NO_EXCEPT
     queue_enqueue_end(queue);
     coms_pthread_cond_signal(&queue->cond);
 
-    mutex_unlock(&queue->mtx);
+    mutex_unlock(&queue->lock);
 }
 
 template <typename T>
 FORCE_INLINE
 void thrd_queue_enqueue_end_sem_wait(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    mutex_unlock(&queue->mtx);
+    mutex_unlock(&queue->lock);
     coms_sem_post(&queue->full);
 }
 
@@ -591,10 +671,15 @@ bool queue_dequeue(PersistentQueueT<T>* const __restrict queue, T* __restrict da
     // We have to check if it is still stored AND if it isn't yet completed
     // If we say _keep, then completeness is 1 -> we don't want to dequeue it again
     // The element already got processed and just awaits manual releasing from somewhere
-    // @performance This is free check is bad, we are calculating the index 2-times (free and completed)
+
+    // Some of the code below basically replaces chunk_is_free_internal
+    // By doing this we can reduce the repetition of calculating free_index/bit_index
+    uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
+    uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+
     while (queue->head != queue->tail
-        && (chunk_is_free_internal(queue->free, queue->tail)
-        || !chunk_is_free_internal(queue->completed, queue->tail))
+        && (!IS_BIT_SET_R2L(queue->free[free_index], bit_index)
+        || IS_BIT_SET_R2L(queue->completed[free_index], bit_index))
     ) {
         OMS_WRAPPED_INCREMENT(
             queue->tail,
@@ -608,8 +693,8 @@ bool queue_dequeue(PersistentQueueT<T>* const __restrict queue, T* __restrict da
 
     *data = queue->memory[queue->tail];
 
-    const uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+    free_index = queue->tail / (sizeof(uint_max) * 8);
+    bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
 
     queue->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
 
@@ -633,7 +718,7 @@ bool thrd_queue_dequeue(PersistentQueueT<T>* __restrict queue, T* __restrict dat
     }
 
     // we do this twice because the first one is very fast but may return a false positive
-    MutexGuard _guard(&queue->mtx);
+    MutexGuard _guard(&queue->lock);
     bool result = queue_dequeue(queue, data);
 
     coms_pthread_cond_signal(&queue->cond);
@@ -649,10 +734,10 @@ template <typename T>
 inline
 void thrd_queue_dequeue_wait(PersistentQueueT<T>* __restrict queue, T* __restrict data) NO_EXCEPT
 {
-    MutexGuard _guard(&queue->mtx);
+    MutexGuard _guard(&queue->lock);
 
     while (queue_is_empty(queue)) {
-        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
+        coms_pthread_cond_wait(&queue->cond, &queue->lock);
     }
 
     queue_dequeue(queue, data);
@@ -667,7 +752,7 @@ T* thrd_queue_dequeue_sem_wait(PersistentQueueT<T>* __restrict queue, T* __restr
     coms_sem_wait(&queue->full);
 
     {
-        MutexGuard _guard(&queue->mtx);
+        MutexGuard _guard(&queue->lock);
         queue_dequeue(queue, data);
     }
 
@@ -683,7 +768,7 @@ bool thrd_queue_dequeue_semimedwait(PersistentQueueT<T>* __restrict queue, T* __
     }
 
     {
-        MutexGuard _guard(&queue->mtx);
+        MutexGuard _guard(&queue->lock);
         queue_dequeue(queue, data);
     }
 
@@ -701,10 +786,15 @@ T* queue_dequeue_keep(PersistentQueueT<T>* const queue) NO_EXCEPT
     // We have to check if it is still stored AND if it isn't yet completed
     // If we say _keep, then completeness is 1 -> we don't want to dequeue it again
     // The element already got processed and just awaits manual releasing from somewhere
-    // @performance This is free check is bad, we are calculating the index 2-times (free and completed)
+
+    // Some of the code below basically replaces chunk_is_free_internal
+    // By doing this we can reduce the repetition of calculating free_index/bit_index
+    uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
+    uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+
     while (queue->head != queue->tail
-        && (chunk_is_free_internal(queue->free, queue->tail)
-        || !chunk_is_free_internal(queue->completed, queue->tail))
+        && (!IS_BIT_SET_R2L(queue->free[free_index], bit_index)
+        || IS_BIT_SET_R2L(queue->completed[free_index], bit_index))
     ) {
         OMS_WRAPPED_INCREMENT(
             queue->tail,
@@ -712,15 +802,12 @@ T* queue_dequeue_keep(PersistentQueueT<T>* const queue) NO_EXCEPT
         );
     }
 
-    if (queue->head == queue->tail
-        || chunk_is_free_internal(queue->free, queue->tail)
-        || !chunk_is_free_internal(queue->completed, queue->tail)
-    ) {
+    if (queue->head == queue->tail) {
         return NULL;
     }
 
-    const uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+    free_index = queue->tail / (sizeof(uint_max) * 8);
+    bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
 
     // We don't mark the element as free since it still needs to keep the data stored
     // But we mark it as already handled/completed
@@ -737,11 +824,17 @@ T* queue_dequeue_keep(PersistentQueueT<T>* const queue) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
-void queue_dequeue_release(PersistentQueueT<T>* const queue, const T* element) NO_EXCEPT
+inline
+T* thrd_queue_dequeue_keep(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    const uint32 index = (uint32) (((uintptr_t) queue->memory - (uintptr_t) element) / sizeof(T));
+    MutexGuard _guard(&queue->lock);
+    return queue_dequeue_keep(queue);
+}
 
+template <typename T>
+FORCE_INLINE
+void queue_dequeue_release(PersistentQueueT<T>* const queue, uint32 index) NO_EXCEPT
+{
     const uint32 free_index = index / (sizeof(uint_max) * 8);
     const uint32 bit_index = MODULO_2(index, (sizeof(uint_max) * 8));
 
@@ -754,10 +847,70 @@ void queue_dequeue_release(PersistentQueueT<T>* const queue, const T* element) N
 
 template <typename T>
 FORCE_INLINE
+void queue_dequeue_release(PersistentQueueT<T>* const queue, const T* element) NO_EXCEPT
+{
+    const uint32 index = (uint32) (((uintptr_t) queue->memory - (uintptr_t) element) / sizeof(T));
+    queue_dequeue_release(queue, index);
+}
+
+template <typename T>
+FORCE_INLINE
+void thrd_queue_dequeue_release(PersistentQueueT<T>* const queue, const T* element) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->lock);
+    queue_dequeue_release(queue, element);
+}
+
+template <typename T>
+FORCE_INLINE
+void thrd_queue_dequeue_release(PersistentQueueT<T>* const queue, uint32 index) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->lock);
+    queue_dequeue_release(queue, index);
+}
+
+template <typename T>
+FORCE_INLINE
+void queue_uncomplete(PersistentQueueT<T>* const queue, uint32 index) NO_EXCEPT
+{
+    const uint32 free_index = index / (sizeof(uint_max) * 8);
+    const uint32 bit_index = MODULO_2(index, (sizeof(uint_max) * 8));
+
+    queue->completed[free_index] &= ~(OMS_UINT_ONE << bit_index);
+}
+
+template <typename T>
+FORCE_INLINE
+void queue_uncomplete(PersistentQueueT<T>* const queue, T* element) NO_EXCEPT
+{
+    const uint32 index = (uint32) (((uintptr_t) queue->memory - (uintptr_t) element) / sizeof(T));
+    queue_uncomplete(queue, index);
+}
+
+template <typename T>
+FORCE_INLINE
+void thrd_queue_uncomplete(PersistentQueueT<T>* const queue, T* element) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->lock);
+    queue_uncomplete(queue, element);
+}
+
+template <typename T>
+FORCE_INLINE
+void queue_uncomplete_atomic(PersistentQueueT<T>* const queue, T* element) NO_EXCEPT
+{
+    const uint32 index = ((uintptr_t) queue->memory - (uintptr_t) element) / sizeof(T);
+    const uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
+    const uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+
+    atomic_and_release(&queue->completed[free_index], ~(OMS_UINT_ONE << bit_index));
+}
+
+template <typename T>
+FORCE_INLINE
 void queue_dequeue_release_atomic(PersistentQueueT<T>* const queue, T* element) NO_EXCEPT
 {
     const uint32 index = ((uintptr_t) queue->memory - (uintptr_t) element) / sizeof(T);
-
     const uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
     const uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
 
@@ -772,11 +925,14 @@ template <typename T>
 inline
 T* queue_dequeue_start(const PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    // In a normal queue we would only go until tail BUT the tail might be VERY far behind in a persistent queue
-    // @performance This is free check is bad, we are calculating the index 2-times (free and completed)
+    // Some of the code below basically replaces chunk_is_free_internal
+    // By doing this we can reduce the repetition of calculating free_index/bit_index
+    const uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
+    const uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+
     while (queue->tail != queue->head
-        && (chunk_is_free_internal(queue->free, queue->tail)
-        || !chunk_is_free_internal(queue->completed, queue->tail))
+        && (!IS_BIT_SET_R2L(queue->free[free_index], bit_index)
+        || IS_BIT_SET_R2L(queue->completed[free_index], bit_index))
     ) {
         OMS_WRAPPED_INCREMENT(
             queue->tail,
@@ -784,13 +940,11 @@ T* queue_dequeue_start(const PersistentQueueT<T>* const queue) NO_EXCEPT
         );
     }
 
-    // @question could this part be considered the _safe part for the next function?
-    if (queue->head == queue->tail
-        || chunk_is_free_internal(queue->free, queue->tail)
-        || !chunk_is_free_internal(queue->completed, queue->tail)
-    ) {
+    if (queue->head == queue->tail) {
         return NULL;
     }
+
+    queue->completed[free_index] |= (OMS_UINT_ONE << bit_index);
 
     return queue->tail;
 }
@@ -799,10 +953,10 @@ template <typename T>
 FORCE_INLINE
 T* thrd_queue_dequeue_start_wait(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    mutex_lock(&queue->mtx);
+    mutex_lock(&queue->lock);
 
     while (queue_is_empty(queue)) {
-        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
+        coms_pthread_cond_wait(&queue->cond, &queue->lock);
     }
 
     return queue_dequeue_start(queue);
@@ -813,7 +967,7 @@ FORCE_INLINE
 T* thrd_queue_dequeue_start_sem_wait(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
     coms_sem_wait(&queue->full);
-    mutex_lock(&queue->mtx);
+    mutex_lock(&queue->lock);
 
     return queue_dequeue_start(queue);
 }
@@ -826,6 +980,7 @@ void queue_dequeue_end(PersistentQueueT<T>* const queue) NO_EXCEPT
     const uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
 
     queue->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
+    queue->completed[free_index] &= ~(OMS_UINT_ONE << bit_index);
 
     OMS_WRAPPED_INCREMENT(
         queue->tail,
@@ -840,7 +995,7 @@ void thrd_queue_dequeue_end_wait(PersistentQueueT<T>* const queue) NO_EXCEPT
     queue_dequeue_end(queue);
 
     coms_pthread_cond_signal(&queue->cond);
-    mutex_unlock(&queue->mtx);
+    mutex_unlock(&queue->lock);
 }
 
 template <typename T>
@@ -849,7 +1004,7 @@ void thrd_queue_dequeue_end_sem_wait(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
     queue_dequeue_end(queue);
 
-    mutex_unlock(&queue->mtx);
+    mutex_unlock(&queue->lock);
     coms_sem_post(&queue->empty);
 }
 

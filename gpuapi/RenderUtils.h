@@ -11,7 +11,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
-#include "../font/Font.h"
+#include "../font/Font.cpp"
 #include "../object/Vertex.h"
 #include "../ui/UIAlignment.h"
 #include "../architecture/Intrinsics.h"

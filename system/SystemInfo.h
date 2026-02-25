@@ -13,15 +13,12 @@
 #include "../architecture/CpuInfo.h"
 #include "../gpuapi/GpuInfo.h"
 
-// @todo Should we exchange some of the uints with int32? We often don't need uint
-
 struct MainboardInfo {
     char vendor[32]; // @todo implement
     char name[32];
     char serial_number[64];
 };
 
-// @todo add ipv6
 struct NetworkInfo {
     char slot[64];
     byte mac[24];
@@ -35,6 +32,7 @@ struct OSInfo {
 };
 
 struct RamInfo {
+    // @question shouldn't this be uint16
     uint32 memory;
 };
 

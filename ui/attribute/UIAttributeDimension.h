@@ -66,8 +66,10 @@ void ui_attr_dimension_serialize(const UIAttributeDimension* __restrict dim, byt
     **pos = dim->alignment;
     *pos += sizeof(dim->alignment);
 
+    f32 temp;
     for (int32 i = 0; i < 4; ++i) {
-        *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(dim->dimension.vec[i]);
+        temp = SWAP_ENDIAN_LITTLE(dim->dimension.vec[i]);
+        memcpy(*pos, &temp, sizeof(temp));
         *pos += sizeof(dim->dimension.vec[i]);
     }
 }
@@ -82,7 +84,8 @@ void ui_attr_dimension_unserialize(UIAttributeDimension* __restrict dim, const b
     *pos += sizeof(dim->alignment);
 
     for (int32 i = 0; i < 4; ++i) {
-        dim->dimension.vec[i] = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
+        memcpy(&dim->dimension.vec[i], *pos, sizeof(dim->dimension.vec[i]));
+        SWAP_ENDIAN_LITTLE_SELF(dim->dimension.vec[i]);
         *pos += sizeof(dim->dimension.vec[i]);
     }
 }

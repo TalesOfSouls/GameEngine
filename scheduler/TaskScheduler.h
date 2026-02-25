@@ -26,163 +26,96 @@ struct TaskSchedule {
     uint8 flags;
     int8 repeat_count; // -1 = infinite
     uint16 repeat_interval; // 1 = 100 ms, smaller intervals are not required?!
-    ThreadJobFunc task_func;
+    uint32 priority;
+    ThreadPoolJobFunc task_func;
+    uint64 time;
     void* data;
+    void* scheduler;
 };
 
 // Multithreading: Single consumer (one thread) multiple producers (multiple threads)
 struct TaskScheduler {
-    int32 task_count;
-    TaskSchedule* tasks;
+    PersistentQueueT<TaskSchedule> tasks;
     ThreadPool* pool;
-
-    // Array which holds the tasks array indices ordered by start time
-    // This way we can quickly find all tasks that should be run without re-ordering the tasks array every time
-    // To be fair re-ordering the tasks array isn't that slow but we may need a fixed memory position for pointers
-    atomic_32 int32* priorities;
-    atomic_64 uint64* free;
-
-    mutex lock;
 };
 
-// @bug replace uint64 for free with uint_max
-inline
-void scheduler_alloc(TaskScheduler* scheduler, int32 count) NO_EXCEPT
+FORCE_INLINE
+void scheduler_alloc(TaskScheduler* const scheduler, int32 count) NO_EXCEPT
 {
-    const size_t memory_size = count * sizeof(TaskSchedule)
-        + count * sizeof(int32)
-        + ceil_div(count, 64) * sizeof(*scheduler->free)
-        + 128;
-
-    byte* data = (byte *) platform_alloc_aligned(
-        memory_size,
-        memory_size,
-        ASSUMED_CACHE_LINE_SIZE
-    );
-
-    scheduler->tasks = (TaskSchedule *) data;
-    scheduler->priorities = (int32 *) align_up((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
-    scheduler->free = (uint64 *) align_up((uintptr_t) (scheduler->priorities + count), 64);
-
-    mutex_init(&scheduler->lock, NULL);
+    queue_alloc(&scheduler->tasks, count, count);
 }
 
-inline
-void scheduler_create(TaskScheduler* scheduler, int32 count, BufferMemory* const buf) NO_EXCEPT
+FORCE_INLINE
+void thrd_scheduler_alloc(TaskScheduler* const scheduler, int32 count) NO_EXCEPT
 {
-    byte* data = buffer_get_memory(
-        buf,
-        count * sizeof(TaskSchedule)
-        + count * sizeof(int32)
-        + ceil_div(count, 64) * sizeof(*scheduler->free)
-        + 128,
-        ASSUMED_CACHE_LINE_SIZE
-    );
-
-    scheduler->tasks = (TaskSchedule *) data;
-    scheduler->priorities = (int32 *) align_up((uintptr_t) (data + count * sizeof(TaskSchedule)), 64);
-    scheduler->free = (uint64 *) align_up((uintptr_t) (scheduler->priorities + count), 64);
-
-    mutex_init(&scheduler->lock, NULL);
+    thrd_queue_alloc(&scheduler->tasks, count, count);
 }
 
-static
-int32 scheduler_get_unset(uint64* state, uint32 state_count) NO_EXCEPT
+FORCE_INLINE
+void scheduler_create(TaskScheduler* const scheduler, int32 count, BufferMemory* const buf) NO_EXCEPT
 {
-    uint32 free_index = 0;
-    uint32 bit_index;
-
-    for (uint32 i = 0; i < state_count; i+= 64) {
-        if (state[free_index] != 0xFFFFFFFFFFFFFFFF) {
-            bit_index = compiler_find_first_bit_r2l(~state[free_index]);
-
-            uint32 id = free_index * 64 + bit_index;
-            if (id >= state_count) {
-                ++free_index;
-                if (free_index * 64 >= state_count) {
-                    free_index = 0;
-                }
-
-                continue;
-            }
-
-            state[free_index] |= (1ULL << bit_index);
-
-            return id;
-        }
-
-        ++free_index;
-        if (free_index * 64 >= state_count) {
-            free_index = 0;
-        }
-    }
-
-    return -1;
+    queue_init(&scheduler->tasks, buf, count);
 }
 
-static inline
+FORCE_INLINE
+void thrd_scheduler_create(TaskScheduler* const scheduler, int32 count, BufferMemory* const buf) NO_EXCEPT
+{
+    thrd_queue_init(&scheduler->tasks, buf, count);
+}
+
+FORCE_INLINE
 void scheduler_add(TaskScheduler* const scheduler, const TaskSchedule* const task) NO_EXCEPT
 {
-    MutexGuard _guard(&scheduler->lock);
-    int32 idx = scheduler_get_unset(scheduler->free, scheduler->task_count);
-    if (idx < 0) {
-        return;
-    }
-
-    memcpy(&scheduler->tasks[idx], task, sizeof(TaskSchedule));
-
-    for (int32 i = 0; i < scheduler->task_count; ++i) {
-        if (scheduler->tasks[scheduler->priorities[i]].start > task->start
-            || scheduler->priorities[i] == -1
-        ) {
-            // Next element starts later -> this task needs to come before
-
-            // Move larger elements 1 over
-            memmove(
-                (void *) (scheduler->priorities + i + 1),
-                (void *) (scheduler->priorities + i),
-                scheduler->task_count - i - 1
-            );
-
-            // Insert new element
-            scheduler->priorities[i] = idx;
-
-            break;
-        }
-    }
+    queue_enqueue(&scheduler->tasks, task);
 }
 
 FORCE_INLINE
-void scheduler_remove(TaskScheduler* scheduler, uint32 element) NO_EXCEPT
+void thrd_scheduler_add(TaskScheduler* const scheduler, const TaskSchedule* const task) NO_EXCEPT
 {
-    uint64 free_index = element / 64;
-    uint32 bit_index = MODULO_2(element, 64);
-
-    MutexGuard _guard(&scheduler->lock);
-    scheduler->free[free_index] &= ~(1ULL << bit_index);
-
-    for (int32 i = 0; i < scheduler->task_count; ++i) {
-        scheduler->tasks[element].start = 0;
-    }
+    thrd_queue_enqueue(&scheduler->tasks, task);
 }
 
 FORCE_INLINE
-void scheduler_free(TaskScheduler* scheduler) NO_EXCEPT
+void scheduler_remove(TaskScheduler* const scheduler, uint32 element) NO_EXCEPT
 {
-    platform_aligned_free((void **) &scheduler->tasks);
-    mutex_destroy(&scheduler->lock);
+    queue_dequeue_release(&scheduler->tasks, element);
 }
 
-// @question do we want to use mutex? do we want to use spinlock
-void scheduler_run(TaskScheduler* scheduler, uint64 current_time) NO_EXCEPT
+FORCE_INLINE
+void thrd_scheduler_remove(TaskScheduler* const scheduler, uint32 element) NO_EXCEPT
 {
-    for (int32 i = 0; i < scheduler->task_count; ++i) {
-        TaskSchedule* task = &scheduler->tasks[scheduler->priorities[i]];
+    thrd_queue_dequeue_release(&scheduler->tasks, element);
+}
 
-        // Check if task should be played
+FORCE_INLINE
+void scheduler_free(TaskScheduler* const scheduler) NO_EXCEPT
+{
+    queue_free(&scheduler->tasks);
+}
+
+FORCE_INLINE
+void thrd_scheduler_free(TaskScheduler* const scheduler) NO_EXCEPT
+{
+    thrd_queue_free(&scheduler->tasks);
+}
+
+// This removes the task from the task queue after it is completed
+static inline
+void scheduler_cleanup_callback(void* data) {
+    TaskSchedule* const task = (TaskSchedule *) data;
+    TaskScheduler* const scheduler = (TaskScheduler *) task->scheduler;
+
+    queue_dequeue_release(&scheduler->tasks, task);
+}
+
+void scheduler_run(TaskScheduler* const scheduler, uint64 current_time) NO_EXCEPT
+{
+    TaskSchedule* task;
+    while(task = queue_dequeue_keep(&scheduler->tasks)) {
         if (task->start <= current_time
             || (task->end != 0 && task->end <= current_time)
         ) {
+            queue_uncomplete(&scheduler->tasks, task);
             break;
         }
 
@@ -193,10 +126,40 @@ void scheduler_run(TaskScheduler* scheduler, uint64 current_time) NO_EXCEPT
             continue;
         }
 
-        // @todo run in thread pool
-        // @todo pass current time as well in data -> create new struct for data
-        // @question Do we even want this to call the pool in here? Maybe we want an iterator where we can decide per task if it should run in a pool or something else.
-        task->task_func(&scheduler->tasks[i]);
+        task->time = current_time;
+        task->task_func(&task);
+    }
+}
+
+void thrd_scheduler_run(TaskScheduler* const scheduler, uint64 current_time) NO_EXCEPT
+{
+    TaskSchedule* task;
+    while (task = thrd_queue_dequeue_keep(&scheduler->tasks)) {
+        if (task->start <= current_time
+            || (task->end != 0 && task->end <= current_time)
+        ) {
+            thrd_queue_uncomplete(&scheduler->tasks, task);
+            break;
+        }
+
+        // Already running or completed tasks are skipped
+        if ((task->flags & TASK_SCHEDULE_FLAG_RUNNING)
+            || (task->flags & TASK_SCHEDULE_FLAG_COMPLETED)
+        ) {
+            continue;
+        }
+
+        task->time = current_time;
+
+        const PoolWorker job = {
+            0,
+            POOL_WORKER_STATE_WAITING,
+            true,
+            task->task_func,
+            scheduler_cleanup_callback,
+            task
+        };
+        thread_pool_add_work(scheduler->pool, &job);
     }
 }
 

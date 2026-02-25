@@ -44,7 +44,13 @@ void soft_renderer_update(
     }
 
     if (!renderer->buf.size) {
-        chunk_alloc(&renderer->buf, (uint32) (vram / 64), 64, ASSUMED_CACHE_LINE_SIZE);
+        chunk_alloc(
+            &renderer->buf,
+            (uint32) (vram / 64),
+            (uint32) (vram / 64),
+            64,
+            ASSUMED_CACHE_LINE_SIZE
+        );
     }
 
     /*

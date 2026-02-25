@@ -10,7 +10,7 @@
 #define COMS_OBJECT_ANIMATION_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/RingMemory.h"
+#include "../memory/RingMemory.cpp"
 #include "../system/FileUtils.cpp"
 
 struct Skeleton {

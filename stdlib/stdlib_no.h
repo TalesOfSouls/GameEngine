@@ -15,6 +15,7 @@
     #define memmove __builtin_memmove
     #define memcpy __builtin_memcpy
     #define memset __builtin_memset
+    #define memcmp __builtin_memcmp
 
     #define strlen __builtin_strlen
     #define wcslen __builtin_wcslen
@@ -50,6 +51,7 @@
     #define memmove __internal_memmove
     #define memcpy __internal_memcpy
     #define memset __internal_memset
+    #define memcmp __internal_memcmp
 
     #define strlen __internal_strlen
     #define wcslen __internal_wcslen

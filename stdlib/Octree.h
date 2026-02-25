@@ -63,9 +63,6 @@ OctNode* octnode_child_create(Octree* const tree) NO_EXCEPT
     OctNode* const node = ++tree->last;
     memset(node, 0, sizeof(OctNode));
 
-    // @question Do I really want this to be true by default?
-    node->has_data = true;
-
     return node;
 }
 

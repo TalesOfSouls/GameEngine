@@ -172,6 +172,64 @@ void __internal_memset(void* dst, int value, size_t len)
     }
 }
 
+inline
+int __internal_memcmp(const void* a, const void* b, size_t len)
+{
+    const unsigned char* p1 = (const unsigned char*)a;
+    const unsigned char* p2 = (const unsigned char*)b;
+
+    // Align both pointers to word boundary
+    while (len
+        && (((uintptr_t)p1 & (sizeof(uintptr_t) - 1))
+        || ((uintptr_t)p2 & (sizeof(uintptr_t) - 1)))
+    ) {
+        if (*p1 != *p2) {
+            return (int) *p1 - (int) *p2;
+        }
+
+        ++p1;
+        ++p2;
+        --len;
+    }
+
+    // Word-wise compare
+    const uintptr_t* w1 = (const uintptr_t*)p1;
+    const uintptr_t* w2 = (const uintptr_t*)p2;
+
+    while (len >= sizeof(uintptr_t)) {
+        if (*w1 != *w2) {
+            // Find exact differing byte
+            p1 = (const unsigned char*)w1;
+            p2 = (const unsigned char*)w2;
+
+            for (size_t i = 0; i < sizeof(uintptr_t); ++i) {
+                if (p1[i] != p2[i]) {
+                    return (int)p1[i] - (int)p2[i];
+                }
+            }
+        }
+
+        ++w1;
+        ++w2;
+        len -= sizeof(uintptr_t);
+    }
+
+    // Tail compare
+    p1 = (const unsigned char*) w1;
+    p2 = (const unsigned char*) w2;
+
+    while (len--) {
+        if (*p1 != *p2) {
+            return (int)*p1 - (int)*p2;
+        }
+
+        ++p1;
+        ++p2;
+    }
+
+    return 0;
+}
+
 inline CONSTEXPR
 size_t __internal_strlen(const char* const str)
 {
@@ -391,44 +449,43 @@ char* __internal_strstr(const char* __restrict haystack, const char* __restrict 
 char* __internal_strchr(const char* str, char needle) NO_EXCEPT
 {
     const byte target = (const byte) needle;
+    const size_t mask = ((size_t)-1 / 0xFF) * target;
 
-    // Process byte-by-byte until alignment is achieved
-    for (; (uintptr_t) str % sizeof(size_t) != 0; ++str) {
-        if (*str == target) {
-            return (char *) str;
+    // Align to word boundary
+    while ((uintptr_t)str % sizeof(size_t) != 0) {
+        if (*str == needle) {
+            return (char*)str;
         }
 
         if (*str == '\0') {
             return NULL;
         }
+
+        ++str;
     }
 
-    // Broadcast the target character to all bytes of a word
-    size_t target_word = target;
-    for (size_t i = 1; i < sizeof(size_t); ++i) {
-        target_word |= target_word << 8;
-    }
+    const size_t* wptr = (const size_t*)str;
 
-    const size_t* word_ptr = (const size_t *) str;
     while (true) {
-        size_t word = *word_ptr++;
-        if (OMS_HAS_CHAR(word, target)) {
-            const char* byte_ptr = (const char *) (word_ptr - 1);
-            for (size_t i = 0; i < sizeof(size_t); ++i) {
-                if (byte_ptr[i] == target) {
-                    return (char *) (byte_ptr + i);
-                }
-            }
-        }
+        const size_t v = *wptr;
 
-        if (OMS_HAS_ZERO(word)) {
-            const char* byte_ptr = (const char *) (word_ptr - 1);
+        // Check for zero or delimiter byte
+        if (OMS_HAS_ZERO(v ^ mask) || OMS_HAS_ZERO(v)) {
+            const char* p = (const char*)wptr;
+
             for (size_t i = 0; i < sizeof(size_t); ++i) {
-                if (byte_ptr[i] == '\0') {
+                if (p[i] == needle) {
+                    return (char*)(p + i);
+                }
+
+                if (p[i] == '\0') {
                     return NULL;
                 }
+
             }
         }
+
+        ++wptr;
     }
 }
 
@@ -864,19 +921,19 @@ static CONSTEXPR const bool STR_IS_ALPHANUM_LOOKUP_TABLE[] = {
 };
 
 FORCE_INLINE CONSTEXPR
-bool isdigit(char str) NO_EXCEPT
+bool __internal_isdigit(char str) NO_EXCEPT
 {
     return STR_IS_NUM_LOOKUP_TABLE[(byte) str];
 }
 
 FORCE_INLINE CONSTEXPR
-bool isalpha(char str) NO_EXCEPT
+bool __internal_isalpha(char str) NO_EXCEPT
 {
     return STR_IS_ALPHANUM_LOOKUP_TABLE[(byte) str];
 }
 
 FORCE_INLINE CONSTEXPR
-bool isalnum(char str) NO_EXCEPT
+bool __internal_isalnum(char str) NO_EXCEPT
 {
     return STR_IS_ALPHA_LOOKUP_TABLE[(byte) str];
 }

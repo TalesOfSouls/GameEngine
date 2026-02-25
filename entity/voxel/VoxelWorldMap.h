@@ -494,7 +494,7 @@ void voxel_world_alloc(VoxelWorld* const vw, v3_int32 pos, int chunk_count) NO_E
     const int node_count = chunk_count * 8;
 
     // @todo calculate required size based on depth
-    buffer_alloc(&vw->mem, 1 * GIGABYTE, ASSUMED_CACHE_LINE_SIZE);
+    buffer_alloc(&vw->mem, 1 * GIGABYTE, 1 * GIGABYTE, ASSUMED_CACHE_LINE_SIZE);
     pool_init(&vw->chunks, &vw->mem, chunk_count, sizeof(VoxelChunk), ASSUMED_CACHE_LINE_SIZE);
 
     // We want a hashmap with 2* the amount of chunks for reduced hash collisions

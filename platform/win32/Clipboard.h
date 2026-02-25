@@ -12,7 +12,6 @@
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include <windows.h>
-#include <string.h>
 
 #define strtok_r strtok_s
 

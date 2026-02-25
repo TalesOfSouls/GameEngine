@@ -14,7 +14,6 @@
 #include "../../stdlib/Stdlib.h"
 #include "OpenglDefines.h"
 
-// @question Why do i even need this? We are dynamically loading!
 #pragma comment(lib, "OpenGL32.Lib")
 
 typedef ptrdiff_t GLsizeiptr;
@@ -357,34 +356,6 @@ extern "C" {
     WINGDIAPI void APIENTRY glVertex4sv (const GLshort *v);
     WINGDIAPI void APIENTRY glVertexPointer (GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
     WINGDIAPI void APIENTRY glViewport (GLint x, GLint y, GLsizei width, GLsizei height);
-
-    /*
-    @question Why was this even here? Can we remove?
-    typedef void (APIENTRY * PFNGLARRAYELEMENTEXTPROC) (GLint i);
-    typedef void (APIENTRY * PFNGLDRAWARRAYSEXTPROC) (GLenum mode, GLint first, GLsizei count);
-    typedef void (APIENTRY * PFNGLVERTEXPOINTEREXTPROC) (GLint size, GLenum type, GLsizei stride, GLsizei count, const GLvoid *pointer);
-    typedef void (APIENTRY * PFNGLNORMALPOINTEREXTPROC) (GLenum type, GLsizei stride, GLsizei count, const GLvoid *pointer);
-    typedef void (APIENTRY * PFNGLCOLORPOINTEREXTPROC) (GLint size, GLenum type, GLsizei stride, GLsizei count, const GLvoid *pointer);
-    typedef void (APIENTRY * PFNGLINDEXPOINTEREXTPROC) (GLenum type, GLsizei stride, GLsizei count, const GLvoid *pointer);
-    typedef void (APIENTRY * PFNGLTEXCOORDPOINTEREXTPROC) (GLint size, GLenum type, GLsizei stride, GLsizei count, const GLvoid *pointer);
-    typedef void (APIENTRY * PFNGLEDGEFLAGPOINTEREXTPROC) (GLsizei stride, GLsizei count, const GLboolean *pointer);
-    typedef void (APIENTRY * PFNGLGETPOINTERVEXTPROC) (GLenum pname, GLvoid* *params);
-    typedef void (APIENTRY * PFNGLARRAYELEMENTARRAYEXTPROC)(GLenum mode, GLsizei count, const GLvoid* pi);
-
-    typedef void (APIENTRY * PFNGLDRAWRANGEELEMENTSWINPROC) (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid *indices);
-
-    typedef void (APIENTRY * PFNGLADDSWAPHINTRECTWINPROC)  (GLint x, GLint y, GLsizei width, GLsizei height);
-
-    typedef void (APIENTRY * PFNGLCOLORTABLEEXTPROC)
-        (GLenum target, GLenum internalFormat, GLsizei width, GLenum format, GLenum type, const GLvoid *data);
-    typedef void (APIENTRY * PFNGLCOLORSUBTABLEEXTPROC)
-        (GLenum target, GLsizei start, GLsizei count, GLenum format, GLenum type, const GLvoid *data);
-    typedef void (APIENTRY * PFNGLGETCOLORTABLEEXTPROC) (GLenum target, GLenum format, GLenum type, GLvoid *data);
-    typedef void (APIENTRY * PFNGLGETCOLORTABLEPARAMETERIVEXTPROC) (GLenum target, GLenum pname, GLint *params);
-    typedef void (APIENTRY * PFNGLGETCOLORTABLEPARAMETERFVEXTPROC) (GLenum target, GLenum pname, GLfloat *params);
-
-    typedef void (APIENTRY * PFNGLMAKEBUFFERRESIDENTNVPROC) (GLenum target, GLenum access);
-    */
 }
 
 typedef const GLubyte* WINAPI type_glGetStringi(GLenum name, GLuint index);
@@ -685,9 +656,6 @@ typedef const char* WINAPI wgl_get_extensions_string_ext(void);
 static wgl_get_extensions_string_ext* wglGetExtensionsStringEXT;
 
 struct OpenglRenderer {
-    // @bug This should only be available on opengl.
-    // The problem is the main program doesn't know which gpuapi we are using, so maybe a void pointer?
-    // If we do this here than we also must do SoftwareRenderer here, no?
     HGLRC openGLRC;
 };
 
@@ -956,7 +924,7 @@ void opengl_destroy(Window* const window) NO_EXCEPT
 
 void opengl_instance_create(Window* const __restrict window, int32 multisample = 0) NO_EXCEPT
 {
-    LOG_1("Load opengl");
+    LOG_1("[INFO] Load opengl");
     gl_extensions_load();
 
     opengl_init_wgl();
@@ -964,7 +932,6 @@ void opengl_instance_create(Window* const __restrict window, int32 multisample =
     WindowPlatform* const platform_window = (WindowPlatform *) window->platform_window;
     OpenglRenderer* const context = (OpenglRenderer *) window->gpu_api_context;
 
-    // @question Why do we do the GetDC here? Couldn't we do it in UtilsWindows.h
     platform_window->hdc = GetDC(platform_window->hwnd);
     set_pixel_format(platform_window->hdc, multisample);
 
@@ -978,7 +945,7 @@ void opengl_instance_create(Window* const __restrict window, int32 multisample =
     }
 
     if(!wglMakeCurrent(platform_window->hdc, context->openGLRC)) {
-        LOG_1("Couldn't load opengl");
+        LOG_1("[ERROR] Couldn't load opengl");
         return;
     }
 
@@ -987,7 +954,7 @@ void opengl_instance_create(Window* const __restrict window, int32 multisample =
     if (wglSwapIntervalEXT) {
         wglSwapIntervalEXT(0);
     }
-    LOG_1("Loaded opengl");
+    LOG_1("[INFO] Loaded opengl");
 }
 
 inline

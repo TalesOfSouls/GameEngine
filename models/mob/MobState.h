@@ -13,10 +13,6 @@
 #include "../../stdlib/Stdlib.h"
 #include "MobAction.h"
 
-/**
- * @todo optimize order of struct members to ensure optimal struct size
- */
-
 // @todo consider to have an array of mob_location which contains position+orientation probably much better cache wise?
 // but these locations are only chunk relative?! Well the absolute position comes from the chunk id.
 // The whole world is split into a x b x c chunks

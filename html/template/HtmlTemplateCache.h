@@ -11,7 +11,7 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../../stdlib/PerfectHashMap.h"
-#include "../../memory/RingMemory.h"
+#include "../../memory/RingMemory.cpp"
 #include "../../stdlib/PerfectHashMap.h"
 #include "../../system/FileUtils.cpp"
 #include "../../html/template/HtmlTemplateInterpreter.h"

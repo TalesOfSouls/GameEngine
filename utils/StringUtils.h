@@ -14,6 +14,16 @@
 #include "../compiler/CompilerUtils.h"
 #include "../utils/Assert.h"
 
+FORCE_INLINE
+size_t str_length(const char* const str) NO_EXCEPT {
+    return strlen(str);
+}
+
+FORCE_INLINE
+size_t str_length(const wchar_t* const str) NO_EXCEPT {
+    return wcslen(str);
+}
+
 inline
 int32 utf8_encode(uint32 codepoint, char* out) NO_EXCEPT
 {
@@ -109,7 +119,6 @@ int32 utf8_decode(const uint32 codepoint, char* out) NO_EXCEPT
         return 4;
     }
 
-    // @bug For some reason this can happen for alt tab etc. That's why we need to allow this special case.
     return 0;
 }
 
@@ -472,7 +481,7 @@ bool str_is_integer(const char* str) NO_EXCEPT
     return is_int;
 }
 
-inline CONSTEXPR
+inline
 int64 str_to_int(const char* str, const char** pos = NULL) NO_EXCEPT
 {
     int64 sign = 1;
@@ -726,40 +735,51 @@ bool str_is_hex_color(const char* str) NO_EXCEPT
     return true;
 }
 
-// @bug doesn't this fail for 64 bits?
-inline CONSTEXPR
-int32 int_to_hex(int32 number, char str[9]) NO_EXCEPT
+
+template <typename T>
+inline void byte_to_hex(byte data, T* out)
 {
-    int32 i = -1;
-    uint32 n = (uint32) number;
+    static const T hex[] = {
+        T('0'), T('1'), T('2'), T('3'),
+        T('4'), T('5'), T('6'), T('7'),
+        T('8'), T('9'), T('A'), T('B'),
+        T('C'), T('D'), T('E'), T('F')
+    };
 
-    do {
-        const byte digit = n % 16;
-        str[++i] = HEX_TABLE[digit];
-        n /= 16;
-    } while (n > 0);
-
-    str[++i] = '\0';
-
-    for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
-        const char temp = str[j];
-        str[j] = str[k];
-        str[k] = temp;
-    }
-
-    return i;
+    out[0] = hex[(data >> 4) & 0xF];
+    out[1] = hex[data & 0xF];
 }
 
+template <typename T>
+inline void bytes_to_hex(const byte* data, size_t len, T* out)
+{
+    static const T hex[] = {
+        T('0'), T('1'), T('2'), T('3'),
+        T('4'), T('5'), T('6'), T('7'),
+        T('8'), T('9'), T('A'), T('B'),
+        T('C'), T('D'), T('E'), T('F')
+    };
+
+    for (size_t i = 0; i < len; ++i) {
+        out[i * 2]     = hex[(data[i] >> 4) & 0xF];
+        out[i * 2 + 1] = hex[data[i] & 0xF];
+    }
+}
+
+/**
+ * @param char* str Output string needs to be 9 or 17 chars depending on integer bit size
+ */
+template <typename T>
 inline CONSTEXPR
-int32 int_to_hex(int64 number, char str[17]) NO_EXCEPT
+int32 int_to_hex(T number, char* str) NO_EXCEPT
 {
     int32 i = -1;
     uint64 n = (uint64) number;
 
     do {
-        const byte digit = n % 16;
+        const byte digit = (byte) (n & 0xF);
         str[++i] = HEX_TABLE[digit];
-        n /= 16;
+        n >>= 4;
     } while (n > 0);
 
     str[++i] = '\0';
@@ -1760,41 +1780,6 @@ int32 str_to_eol(const char* str) NO_EXCEPT
 }
 
 inline
-int32 str_to(const char* str, char delim) NO_EXCEPT
-{
-    int32 offset = 0;
-    const size_t delim_mask = ((size_t) - 1 / 0xFF) * (byte)delim;
-
-    // Align to size_t
-    while ((uintptr_t)str % sizeof(size_t) != 0 && *str != '\0' && *str != delim) {
-        ++str;
-        ++offset;
-    }
-
-    const size_t* wptr = (const size_t *) str;
-
-    while (true) {
-        const size_t v = *wptr;
-        // Check for zero or delimiter byte
-        if (OMS_HAS_ZERO(v ^ delim_mask)) {
-            break;
-        }
-
-        ++wptr;
-        offset += sizeof(size_t);
-    }
-
-    // Scan remaining bytes byte-by-byte
-    str = (const char *) wptr;
-    while (*str != '\0' && *str != delim) {
-        ++str;
-        ++offset;
-    }
-
-    return offset;
-}
-
-inline
 void str_move_to(const char** str, char delim) NO_EXCEPT
 {
     const char* s = *str;
@@ -2253,19 +2238,76 @@ int32 sprintf_fast(T* __restrict buffer, const T* __restrict format, ...) NO_EXC
     const T* const start = buffer;
 
     while (*format) {
-        if (*format == T('\\') && format[1] == T('%')) {
+        if (*format == T('\\') && format[1] == T('%')) { UNLIKELY
             ++format;
             *buffer++ = *format;
-        } else if (*format != T('%')) {
+        } else if (*format != T('%')) { LIKELY
             *buffer++ = *format;
         } else {
+            // % found
             ++format;
 
             switch (*format) {
                 case T('s'): {
                     const T* str = va_arg(args, const T *);
-                    while (*str) {
-                        *buffer++ = *str++;
+
+                    // Default length (-1 string is \0 terminated)
+                    int32 length = -1;
+
+                    const T* prec_ptr = format + 1;
+                    if (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
+                        length = 0;
+                        while (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
+                            length = length * 10 + (*prec_ptr - T('0'));
+                            ++prec_ptr;
+                        }
+
+                        format = prec_ptr - 1;
+                    }
+
+                    if (!str) {
+                        break;
+                    }
+
+                    if (length > 0) {
+                        memcpy(buffer, str, sizeof(T) * length);
+                        buffer += length;
+                    } else {
+                        while (*str) {
+                            *buffer++ = *str++;
+                        }
+                    }
+                } break;
+                case T('h'): {
+                    // Print string as hex
+                    const byte* str = va_arg(args, const byte *);
+
+                    // Default length (-1 string is \0 terminated)
+                    int32 length = -1;
+
+                    const T* prec_ptr = format + 1;
+                    if (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
+                        length = 0;
+                        while (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
+                            length = length * 10 + (*prec_ptr - T('0'));
+                            ++prec_ptr;
+                        }
+
+                        format = prec_ptr - 1;
+                    }
+
+                    if (!str) {
+                        break;
+                    }
+
+                    if (length > 0) {
+                        bytes_to_hex(str, length, buffer);
+                        buffer += length;
+                    } else {
+                        while (*str) {
+                            byte_to_hex(*str++, buffer);
+                            buffer += 2;
+                        }
                     }
                 } break;
                 case T('c'): {
@@ -2295,7 +2337,7 @@ int32 sprintf_fast(T* __restrict buffer, const T* __restrict format, ...) NO_EXC
                         precision = 0;
                         while (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
                             precision = precision * 10 + (*prec_ptr - T('0'));
-                            prec_ptr++;
+                            ++prec_ptr;
                         }
 
                         format = prec_ptr - 1;
@@ -2335,10 +2377,10 @@ int32 sprintf_fast(T* __restrict buffer, int32 buffer_length, const T* __restric
 
     while (*format && length < buffer_length) {
         int32 offset = 1;
-        if (*format == T('\\') && format[1] == T('%')) {
+        if (*format == T('\\') && format[1] == T('%')) { UNLIKELY
             ++format;
             *buffer++ = *format;
-        } else if (*format != T('%')) {
+        } else if (*format != T('%')) { LIKELY
             *buffer++ = *format;
         } else {
             ++format;
@@ -2347,9 +2389,69 @@ int32 sprintf_fast(T* __restrict buffer, int32 buffer_length, const T* __restric
                 case T('s'): {
                     const T* str = va_arg(args, const T *);
                     --offset;
-                    while (*str) {
-                        *buffer++ = *str++;
-                        ++offset;
+
+                    // Default length (-1 string is \0 terminated)
+                    int32 data_length = -1;
+
+                    const T* prec_ptr = format + 1;
+                    if (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
+                        data_length = 0;
+                        while (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
+                            data_length = data_length * 10 + (*prec_ptr - T('0'));
+                            ++prec_ptr;
+                        }
+
+                        format = prec_ptr - 1;
+                    }
+
+                    if (!str) {
+                        break;
+                    }
+
+                    if (data_length > 0) {
+                        memcpy(buffer, str, sizeof(T) * data_length);
+                        buffer += data_length;
+                        offset += data_length;
+                    } else {
+                        while (*str) {
+                            *buffer++ = *str++;
+                            ++offset;
+                        }
+                    }
+                } break;
+                case T('h'): {
+                    // Print string as hex
+                    const byte* str = va_arg(args, const byte *);
+                    --offset;
+
+                    // Default length (-1 string is \0 terminated)
+                    int32 data_length = -1;
+
+                    const T* prec_ptr = format + 1;
+                    if (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
+                        data_length = 0;
+                        while (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
+                            data_length = data_length * 10 + (*prec_ptr - T('0'));
+                            ++prec_ptr;
+                        }
+
+                        format = prec_ptr - 1;
+                    }
+
+                    if (!str) {
+                        break;
+                    }
+
+                    if (data_length > 0) {
+                        bytes_to_hex(str, data_length, buffer);
+                        buffer += data_length;
+                        offset += data_length;
+                    } else {
+                        while (*str) {
+                            byte_to_hex(*str++, buffer);
+                            buffer += 2;
+                            offset += 2;
+                        }
                     }
                 } break;
                 case T('c'): {
@@ -2379,7 +2481,7 @@ int32 sprintf_fast(T* __restrict buffer, int32 buffer_length, const T* __restric
                         precision = 0;
                         while (*prec_ptr >= T('0') && *prec_ptr <= T('9')) {
                             precision = precision * 10 + (*prec_ptr - T('0'));
-                            prec_ptr++;
+                            ++prec_ptr;
                         }
 
                         format = prec_ptr - 1;
@@ -2461,7 +2563,7 @@ void sprintf_fast_iter(char* __restrict buffer, const char* __restrict format, .
                         precision = 0;
                         while (*prec_ptr >= '0' && *prec_ptr <= '9') {
                             precision = precision * 10 + (*prec_ptr - '0');
-                            prec_ptr++;
+                            ++prec_ptr;
                         }
 
                         format = prec_ptr - 1;

@@ -12,12 +12,12 @@
 #include <windows.h>
 
 #include "../../../stdlib/Stdlib.h"
-#include "../../../input/Input.h"
+#include "../../../input/Input.cpp"
 #include "../../../input/ControllerType.h"
 #include "../../../input/ControllerInput.h"
 #include "controller/DualShock4.h"
 #include "../../../utils/Assert.h"
-#include "../../../memory/RingMemory.h"
+#include "../../../memory/RingMemory.cpp"
 #include <winDNS.h>
 
 static inline
@@ -192,7 +192,7 @@ uint32 rawinput_kbm_init(
         rid[1].hwndTarget  = hwnd;
 
         if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 2, sizeof(RAWINPUTDEVICE))) {
-            // @todo Log
+            LOG_1("[WARNING] Couldn't register keyboard raw input device");
             ASSERT_TRUE(false);
         }
     }
@@ -217,8 +217,8 @@ uint32 rawinput_init_controllers(
     device_count = GetRawInputDeviceList(pRawInputDeviceList, &device_count, sizeof(RAWINPUTDEVICELIST));
 
     // We always want at least one empty input device slot
-    // @todo Change so that we store the actual number of devices
     if (device_count == 0 || device_count > 1000) {
+        LOG_1("[WARNING] Found %d raw input devices", {DATA_TYPE_INT32, &device_count});
         return 0;
     }
 
@@ -268,7 +268,7 @@ uint32 rawinput_init_controllers(
                     rid[0].hwndTarget = hwnd;
 
                     if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
-                        // @todo Log
+                        LOG_1("[WARNING] Couldn't register gamepad raw input device");
                         ASSERT_TRUE(false);
                     }
                 } else if (rdi.hid.usUsage == 0x04) {
@@ -288,7 +288,7 @@ uint32 rawinput_init_controllers(
                     rid[0].hwndTarget = hwnd;
 
                     if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
-                        // @todo Log
+                        LOG_1("[WARNING] Couldn't register joystick raw input device");
                         ASSERT_TRUE(false);
                     }
                 }
@@ -407,7 +407,7 @@ int16 input_raw_handle(
                 states[i].state.x[0] = (int16) (MulDiv(raw->data.mouse.lLastX, rect.right, 32768) + rect.left);
                 states[i].state.y[0] = (int16) (MulDiv(raw->data.mouse.lLastY, rect.bottom, 32768) + rect.top);
 
-                states[i].general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
+                states[i].general_states |= INPUT_STATE_GENERAL_MOUSE_MOVEMENT;
             } else if (raw->data.mouse.lLastX != 0 || raw->data.mouse.lLastY != 0) {
                 states[i].state.dx[0] += (int16) (raw->data.mouse.lLastX);
                 states[i].state.dy[0] += (int16) (raw->data.mouse.lLastY);
@@ -415,7 +415,7 @@ int16 input_raw_handle(
                 states[i].state.x[0] = (int16) (states[i].state.x[0] + raw->data.mouse.lLastX);
                 states[i].state.y[0] = (int16) (states[i].state.y[0] + raw->data.mouse.lLastY);
 
-                states[i].general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
+                states[i].general_states |= INPUT_STATE_GENERAL_MOUSE_MOVEMENT;
             }
         }
     } else if (raw->header.dwType == RIM_TYPEKEYBOARD) {
@@ -548,6 +548,7 @@ int16 input_raw_handle_buffered(
                 break;
             }
 
+            // @performance Instead of passing all input states we should only pass the state that actually matters
             input_count += input_raw_handle(pri, states, state_count, time);
 
             pri = NEXTRAWINPUTBLOCK(pri);

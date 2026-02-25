@@ -24,7 +24,8 @@ void ui_attr_background_serialize(const UIAttributeBackground* __restrict bg, by
     **pos = bg->background_style;
     *pos += sizeof(bg->background_style);
 
-    *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(bg->background_color);
+    uint32 temp = SWAP_ENDIAN_LITTLE(bg->background_color);
+    memcpy(*pos, &temp, sizeof(temp));
     *pos += sizeof(bg->background_color);
 }
 
@@ -34,7 +35,8 @@ void ui_attr_background_unserialize(UIAttributeBackground* __restrict bg, const 
     bg->background_style = (UIBackgroundStyle) **pos;
     *pos += sizeof(bg->background_style);
 
-    bg->background_color = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
+    memcpy(&bg->background_color, *pos, sizeof(bg->background_color));
+    SWAP_ENDIAN_LITTLE_SELF(bg->background_color);
     *pos += sizeof(bg->background_color);
 }
 

@@ -38,7 +38,8 @@ enum WindowStateChanges : byte {
 enum WindowStateFlag : byte {
     WINDOW_STATE_FLAG_FOCUSED = 1 << 0,
     WINDOW_STATE_FLAG_FULLSCREEN = 1 << 1,
-    WINDOW_STATE_FLAG_DIMENSIONLESS = 1 << 2,
+    WINDOW_STATE_FLAG_BORDERLESS = 1 << 2,
+    WINDOW_STATE_FLAG_DIMENSIONLESS = 1 << 3,
 };
 
 struct Window {

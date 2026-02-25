@@ -11,10 +11,6 @@
 
 #include "../../stdlib/Stdlib.h"
 
-/**
- * @todo optimize order of struct members to ensure optimal struct size
- */
-
 struct SActivityStats {
     int32 farming;
     int32 thiefing;

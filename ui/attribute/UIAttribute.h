@@ -32,8 +32,7 @@ struct UIAttribute {
 };
 
 struct UIAttributeGroup {
-    // @question Why is this a uint32 instead of uint16, I think it doesn't matter due to the alignment?!
-    // UIAttribute which comes afterwards would result in an alignment anyways?!
+    // We are using int32 to at least ensure 4 byte alignment of pointer manipulation (group + 1)
     int32 attribute_count;
     // We don't use a pointer since this would prevent us from copying around the main data owner
     // The UIAttribute values come directly after UIAttributeGroup (e.g. group + 1 in memory)
@@ -60,6 +59,7 @@ UIAttribute* ui_attribute_from_group(const UIAttributeGroup* const group, UIAttr
     return attributes->attribute_id == type ? attributes : NULL;
 }
 
+static inline
 int32 ui_attribute_type_to_id(const char* attribute_name)
 {
     if (strcmp(attribute_name, "x") == 0) {

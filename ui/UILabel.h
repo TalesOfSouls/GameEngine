@@ -6,7 +6,7 @@
 #include "attribute/UIAttributeDimension.h"
 #include "UIStyleType.h"
 #include "UIElement.h"
-#include "UITheme.h"
+#include "UITheme.cpp"
 #include "UILayout.h"
 #include "../object/Vertex.h"
 

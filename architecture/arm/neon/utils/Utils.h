@@ -11,7 +11,7 @@
 
 #include "../../../../stdlib/Stdlib.h"
 #include "../../../../compiler/CompilerUtils.h"
-#include "../../../../stdlib/Simd.h"
+#include "../../../../architecture/Intrinsics.h"
 #include <arm_neon.h>
 
 // @question When do we want to use neon and when do we want to use sve?

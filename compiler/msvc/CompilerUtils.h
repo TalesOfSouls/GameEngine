@@ -312,7 +312,6 @@ void compiler_memset_aligned_4(void* const dst, int value, size_t size) NO_EXCEP
     #define SWAP_ENDIAN_BIG_64(val) (val)
 #endif
 
-#include <math.h>
 #define SINCOSF(x, s, c) s = sinf(x); c = cosf(x)
 #define SINCOS(x, s, c) s = sin(x); c = cos(x)
 

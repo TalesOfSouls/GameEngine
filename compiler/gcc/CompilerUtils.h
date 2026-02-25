@@ -152,7 +152,6 @@ void compiler_memset_aligned_8(void* dst, int value, size_t size) {
 #define SWAP_ENDIAN_32(val) __builtin_bswap32((val))
 #define SWAP_ENDIAN_64(val) __builtin_bswap64((val))
 
-#include <math.h>
 #define SINCOSF(x, s, c) sincosf(x, &s, &c)
 #define SINCOS(x, s, c) sincos(x, &s, &c)
 

@@ -5,29 +5,29 @@
 
 static void test_layout_from_file_txt() {
     RingMemory ring;
-    ring_alloc(&ring, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
+    ring_alloc(&ring, 10 * MEGABYTE, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
     UILayout layout;
-    layout.data = (byte *) platform_alloc(2 * MEGABYTE);
+    layout.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
     layout_from_file_txt(&layout, "./../../GameEditor/assets/themes/default/scene1.layouttxt", &ring);
 
     UIElement* element = layout_get_element(&layout, "cmd_window");
     TEST_NOT_EQUALS(element, NULL);
 
-    platform_free((void **) &layout.data);
+    platform_aligned_free((void **) &layout.data);
     ring_free(&ring);
 }
 
 static void test_layout_to_from_data() {
     RingMemory ring;
-    ring_alloc(&ring, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
+    ring_alloc(&ring, 10 * MEGABYTE, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
     UILayout layout_dump;
-    layout_dump.data = (byte *) platform_alloc(2 * MEGABYTE);
+    layout_dump.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
     layout_from_file_txt(&layout_dump, "./../../GameEditor/assets/themes/default/scene1.layouttxt", &ring);
 
     UILayout layout_load;
-    layout_load.data = (byte *) platform_alloc(2 * MEGABYTE);
+    layout_load.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
 
     byte* out = ring_get_memory(&ring, 1024 * 1024);
 
@@ -38,25 +38,25 @@ static void test_layout_to_from_data() {
     UIElement* element = layout_get_element(&layout_load, "cmd_window");
     TEST_NOT_EQUALS(element, NULL);
 
-    platform_free((void **) &layout_load.data);
-    platform_free((void **) &layout_dump.data);
+    platform_aligned_free((void **) &layout_load.data);
+    platform_aligned_free((void **) &layout_dump.data);
     ring_free(&ring);
 }
 
 static void test_layout_from_theme() {
     RingMemory ring;
-    ring_alloc(&ring, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
+    ring_alloc(&ring, 10 * MEGABYTE, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
     UILayout layout;
-    layout.data = (byte *) platform_alloc(10 * MEGABYTE);
+    layout.data = (byte *) platform_alloc_aligned(10 * MEGABYTE);
     layout_from_file_txt(&layout, "./../../GameEditor/assets/themes/default/scene1.layouttxt", &ring);
 
     UIThemeStyle theme1;
-    theme1.data = (byte *) platform_alloc(2 * MEGABYTE);
+    theme1.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
     theme_from_file_txt(&theme1, "./../../GameEditor/assets/themes/default/general.themetxt", &ring);
 
     UIThemeStyle theme2;
-    theme2.data = (byte *) platform_alloc(2 * MEGABYTE);
+    theme2.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
     theme_from_file_txt(&theme2, "./../../GameEditor/assets/themes/default/scene1.themetxt", &ring);
 
     layout_from_theme(&layout, &theme1);
@@ -70,9 +70,9 @@ static void test_layout_from_theme() {
     TEST_EQUALS_WITH_DELTA(default_style->dimension.dimension.width, 1.0f, 0.001f);
     TEST_EQUALS_WITH_DELTA(default_style->dimension.dimension.height, 0.25f, 0.001f);
 
-    platform_free((void **) &layout.data);
-    platform_free((void **) &theme1.data);
-    platform_free((void **) &theme2.data);
+    platform_aligned_free((void **) &layout.data);
+    platform_aligned_free((void **) &theme1.data);
+    platform_aligned_free((void **) &theme2.data);
     ring_free(&ring);
 }
 

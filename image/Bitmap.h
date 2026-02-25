@@ -198,17 +198,17 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) NO
     ASSERT_TRUE(bitmap->size >= BITMAP_HEADER_SIZE);
 
     // Fill header
-    bitmap->header.identifier[0] = *(file->content + 0);
-    bitmap->header.identifier[1] = *(file->content + 1);
+    memcpy(bitmap->header.identifier, file->content, sizeof(bitmap->header.identifier));
 
-    bitmap->header.size        = SWAP_ENDIAN_LITTLE(*((uint32 *) (file->content + 2)));
-    bitmap->header.app_data[0] = *(file->content + 6);
-    bitmap->header.app_data[1] = *(file->content + 7);
-    bitmap->header.app_data[2] = *(file->content + 8);
-    bitmap->header.app_data[3] = *(file->content + 9);
-    bitmap->header.offset      = SWAP_ENDIAN_LITTLE(*((uint32 *) (file->content + 10)));
+    memcpy(&bitmap->header.size, file->content + 2, sizeof(bitmap->header.size));
+    SWAP_ENDIAN_LITTLE_SELF(bitmap->header.size);
 
-    byte* dib_header_offset = file->content + BITMAP_HEADER_SIZE;
+    memcpy(bitmap->header.app_data, file->content + 6, sizeof(bitmap->header.app_data));
+
+    memcpy(&bitmap->header.offset, file->content + 10, sizeof(bitmap->header.offset));
+    SWAP_ENDIAN_LITTLE_SELF(bitmap->header.offset);
+
+    const byte* dib_header_offset = file->content + BITMAP_HEADER_SIZE;
     bitmap->dib_header_type  = SWAP_ENDIAN_LITTLE(*((uint32 *) dib_header_offset));
 
     byte* color_table_offset = file->content + BITMAP_HEADER_SIZE + bitmap->dib_header_type;
@@ -216,11 +216,22 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) NO
     // Fill DIB header
     switch (bitmap->dib_header_type) {
         case DIB_BITMAP_TYPE_BITMAPCOREHEADER: {
-                bitmap->dib_header.size           = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset)));
-                bitmap->dib_header.width          = SWAP_ENDIAN_LITTLE(*((uint16 *) (dib_header_offset + 4)));
-                bitmap->dib_header.height         = SWAP_ENDIAN_LITTLE(*((uint16 *) (dib_header_offset + 6)));
-                bitmap->dib_header.color_planes   = SWAP_ENDIAN_LITTLE(*((uint16 *) (dib_header_offset + 8)));
-                bitmap->dib_header.bits_per_pixel = SWAP_ENDIAN_LITTLE(*((uint16 *) (dib_header_offset + 10)));
+                memcpy(&bitmap->dib_header.size, dib_header_offset, sizeof(uint32));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.size);
+
+                uint16 tmp16;
+                memcpy(&tmp16, dib_header_offset + 4, sizeof(uint16));
+                bitmap->dib_header.width = SWAP_ENDIAN_LITTLE(tmp16);
+
+                memcpy(&tmp16, dib_header_offset + 6, sizeof(uint16));
+                bitmap->dib_header.height = SWAP_ENDIAN_LITTLE(tmp16);
+
+                memcpy(&tmp16, dib_header_offset + 8, sizeof(uint16));
+                bitmap->dib_header.color_planes = SWAP_ENDIAN_LITTLE(tmp16);
+
+                memcpy(&tmp16, dib_header_offset + 10, sizeof(uint16));
+                bitmap->dib_header.bits_per_pixel = SWAP_ENDIAN_LITTLE(tmp16);
+
                 bitmap->dib_header.color_palette  = 1U << bitmap->dib_header.bits_per_pixel;
             } break;
         case DIB_BITMAP_TYPE_BITMAPV5HEADER: FALLTHROUGH;
@@ -229,30 +240,60 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) NO
         case DIB_BITMAP_TYPE_BITMAPV2INFOHEADER: FALLTHROUGH;
         case DIB_BITMAP_TYPE_OS22XBITMAPHEADER: FALLTHROUGH;
         case DIB_BITMAP_TYPE_BITMAPINFOHEADER: {
-                bitmap->dib_header.size               = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset)));
-                bitmap->dib_header.width              = SWAP_ENDIAN_LITTLE(*((int32 *) (dib_header_offset + 4)));
-                bitmap->dib_header.height             = SWAP_ENDIAN_LITTLE(*((int32 *) (dib_header_offset + 8)));
-                bitmap->dib_header.color_planes       = SWAP_ENDIAN_LITTLE(*((uint16 *) (dib_header_offset + 12)));
-                bitmap->dib_header.bits_per_pixel     = SWAP_ENDIAN_LITTLE(*((uint16 *) (dib_header_offset + 14)));
-                bitmap->dib_header.compression_method = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 16)));
-                bitmap->dib_header.raw_image_size     = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 20)));
-                bitmap->dib_header.horizontal_ppm     = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 24)));
-                bitmap->dib_header.vertical_ppm       = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 28)));
-                bitmap->dib_header.color_palette      = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 32)));
-                bitmap->dib_header.important_colors   = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 36)));
+                memcpy(&bitmap->dib_header.size, dib_header_offset, sizeof(bitmap->dib_header.size));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.size);
+
+                memcpy(&bitmap->dib_header.width, dib_header_offset + 4, sizeof(bitmap->dib_header.width));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.width);
+
+                memcpy(&bitmap->dib_header.height, dib_header_offset + 8, sizeof(bitmap->dib_header.height));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.height);
+
+                memcpy(&bitmap->dib_header.color_planes, dib_header_offset + 12, sizeof(bitmap->dib_header.color_planes));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.color_planes);
+
+                memcpy(&bitmap->dib_header.bits_per_pixel, dib_header_offset + 14, sizeof(bitmap->dib_header.bits_per_pixel));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.bits_per_pixel);
+
+                memcpy(&bitmap->dib_header.compression_method, dib_header_offset + 16, sizeof(bitmap->dib_header.compression_method));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.compression_method);
+
+                memcpy(&bitmap->dib_header.raw_image_size, dib_header_offset + 20, sizeof(bitmap->dib_header.raw_image_size));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.raw_image_size);
+
+                memcpy(&bitmap->dib_header.horizontal_ppm, dib_header_offset + 24, sizeof(bitmap->dib_header.horizontal_ppm));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.horizontal_ppm);
+
+                memcpy(&bitmap->dib_header.vertical_ppm, dib_header_offset + 28, sizeof(bitmap->dib_header.vertical_ppm));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.vertical_ppm);
+
+                memcpy(&bitmap->dib_header.color_palette, dib_header_offset + 32, sizeof(bitmap->dib_header.color_palette));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.color_palette);
+
+                memcpy(&bitmap->dib_header.important_colors, dib_header_offset + 36, sizeof(bitmap->dib_header.important_colors));
+                SWAP_ENDIAN_LITTLE_SELF(bitmap->dib_header.important_colors);
+
 
                 if (bitmap->dib_header.compression_method == DIB_BITMAPINFOHEADER_COMPRESSION_BI_BITFIELDS) {
                     // 12 bytes
-                    bitmap->extra_bit_mask = (uint32 *) (dib_header_offset + DIB_BITMAP_TYPE_BITMAPINFOHEADER);
+                    memcpy(
+                        &bitmap->extra_bit_mask,
+                        dib_header_offset + DIB_BITMAP_TYPE_BITMAPINFOHEADER,
+                        sizeof(bitmap->extra_bit_mask)
+                    );
                     color_table_offset += 12;
                 } else if (bitmap->dib_header.compression_method == DIB_BITMAPINFOHEADER_COMPRESSION_BI_ALPHABITFIELDS) {
                     // 16 bytes
-                    bitmap->extra_bit_mask = (uint32 *) (dib_header_offset + DIB_BITMAP_TYPE_BITMAPINFOHEADER);
+                    memcpy(
+                        &bitmap->extra_bit_mask,
+                        dib_header_offset + DIB_BITMAP_TYPE_BITMAPINFOHEADER,
+                        sizeof(bitmap->extra_bit_mask)
+                    );
                     color_table_offset += 16;
                 }
             } break;
         default: {
-
+            UNREACHABLE();
         }
     }
 
@@ -263,8 +304,6 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) NO
 
 void image_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
-    // @performance We are generating the struct and then filling the data.
-    //      There is some assignment/copy overhead
     Bitmap src = {0};
     generate_default_bitmap_references(src_data, &src);
 

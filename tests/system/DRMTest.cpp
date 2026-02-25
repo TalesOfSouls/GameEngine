@@ -1,5 +1,5 @@
 #include "../TestFramework.h"
-#include "../../memory/RingMemory.h"
+#include "../../memory/RingMemory.cpp"
 #include "../../system/DRM.h"
 #include "../../platform/win32/Process.h"
 #include "../../hash/Sha1.h"
@@ -41,7 +41,7 @@ static void test_drm_process_scan() {
     process_info.is_active = true;
 
     RingMemory ring;
-    ring_alloc(&ring, 256 * MEGABYTE);
+    ring_alloc(&ring, 256 * MEGABYTE, 256 * MEGABYTE);
     byte* helper_mem = ring_get_memory(&ring, 128);
 
     drm_process_scan(
@@ -61,7 +61,7 @@ static void test_drm_is_being_debugged() {
 
 static void test_drm_verify_code_integrity() {
     RingMemory ring;
-    ring_alloc(&ring, 256 * MEGABYTE);
+    ring_alloc(&ring, 256 * MEGABYTE, 256 * MEGABYTE);
 
     wchar_t exe_path[PATH_MAX_LENGTH];
     self_file_path(exe_path);

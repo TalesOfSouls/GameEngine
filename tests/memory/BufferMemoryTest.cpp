@@ -3,7 +3,7 @@
 
 static void test_buffer_alloc() {
     BufferMemory mem = {0};
-    buffer_alloc(&mem, 50);
+    buffer_alloc(&mem, 50, 50);
 
     TEST_TRUE(memcmp(mem.memory, mem.memory + 1, 49) == 0);
 
@@ -17,7 +17,7 @@ static void test_buffer_alloc() {
 
 static void test_buffer_get_memory() {
     BufferMemory mem = {0};
-    buffer_alloc(&mem, 50);
+    buffer_alloc(&mem, 50, 50);
 
     TEST_EQUALS(buffer_get_memory(&mem, 20), mem.memory);
     TEST_EQUALS(mem.head, mem.memory + 24);
@@ -27,7 +27,7 @@ static void test_buffer_get_memory() {
 
 static void test_buffer_reset() {
     BufferMemory mem = {0};
-    buffer_alloc(&mem, 50);
+    buffer_alloc(&mem, 50, 50);
 
     buffer_get_memory(&mem, 20);
     TEST_NOT_EQUALS(mem.head, mem.memory);

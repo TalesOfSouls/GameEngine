@@ -41,7 +41,7 @@ bool direct_sound_settings_load(
 )
 {
     if (!pDirectSoundCreate8 || !SUCCEEDED(pDirectSoundCreate8(0, &api_setting->direct_sound_handle, 0))) {
-        LOG_1("DirectSound: DirectSoundCreate8 failed");
+        LOG_1("[ERROR] DirectSound: DirectSoundCreate8 failed");
 
         return false;
     }
@@ -51,7 +51,7 @@ bool direct_sound_settings_load(
         window->hwnd,
         DSSCL_PRIORITY
     ))) {
-        LOG_1("DirectSound: SetCooperativeLevel failed.");
+        LOG_1("[ERROR] DirectSound: SetCooperativeLevel failed.");
 
         return false;
     }
@@ -87,13 +87,13 @@ bool direct_sound_settings_load(
         &api_setting->primary_buffer,
         0
     ))) {
-        LOG_1("DirectSound: CreateSoundBuffer1 failed.");
+        LOG_1("[ERROR] DirectSound: CreateSoundBuffer1 failed.");
 
         return false;
     }
 
     if (!SUCCEEDED(api_setting->primary_buffer->SetFormat(&wf))) {
-        LOG_1("DirectSound: SetFormat failed.");
+        LOG_1("[ERROR] DirectSound: SetFormat failed.");
 
         return false;
     }
@@ -113,7 +113,7 @@ bool direct_sound_settings_load(
         &api_setting->secondary_buffer,
         0
     ))) {
-        LOG_1("DirectSound: CreateSoundBuffer2 failed.");
+        LOG_1("[ERROR] DirectSound: CreateSoundBuffer2 failed.");
 
         return false;
     }
@@ -126,7 +126,7 @@ bool direct_sound_load(
     const AudioSetting* const __restrict setting,
     DirectSoundSetting* const __restrict api_setting
 ) {
-    LOG_1("Load audio API DirectSound");
+    LOG_1("[INFO] Load audio API DirectSound");
 
     if (_dsound_lib_ref_count) {
         direct_sound_settings_load(platform_window, setting, api_setting);
@@ -204,7 +204,7 @@ uint32 direct_sound_buffer_fillable(const AudioSetting* __restrict setting, cons
     DWORD player_cursor;
     DWORD write_cursor;
     if (!SUCCEEDED(api_setting->secondary_buffer->GetCurrentPosition(&player_cursor, &write_cursor))) {
-        LOG_1("DirectSound: GetCurrentPosition failed.");
+        LOG_1("[ERROR] DirectSound: GetCurrentPosition failed.");
 
         return 0;
     }

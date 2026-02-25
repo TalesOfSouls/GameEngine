@@ -13,10 +13,12 @@ struct UIAttributeShadow {
 inline
 void ui_attr_shadow_serialize(const UIAttributeShadow* __restrict shadow, byte** __restrict pos)
 {
-    *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(shadow->angle);
+    f32 tempf32 = SWAP_ENDIAN_LITTLE(shadow->angle);
+    memcpy(*pos, &tempf32, sizeof(tempf32));
     *pos += sizeof(shadow->angle);
 
-    *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(shadow->color);
+    uint32 temp32 = SWAP_ENDIAN_LITTLE(shadow->color);
+    memcpy(*pos, &temp32, sizeof(temp32));
     *pos += sizeof(shadow->color);
 
     **pos = shadow->fade;
@@ -29,10 +31,12 @@ void ui_attr_shadow_serialize(const UIAttributeShadow* __restrict shadow, byte**
 inline
 void ui_attr_shadow_unserialize(UIAttributeShadow* __restrict shadow, const byte** __restrict pos)
 {
-    shadow->angle = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
+    memcpy(&shadow->angle, *pos, sizeof(shadow->angle));
+    SWAP_ENDIAN_LITTLE_SELF(shadow->angle);
     *pos += sizeof(shadow->angle);
 
-    shadow->color = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
+    memcpy(&shadow->color, *pos, sizeof(shadow->color));
+    SWAP_ENDIAN_LITTLE_SELF(shadow->color);
     *pos += sizeof(shadow->color);
 
     shadow->fade = **pos;

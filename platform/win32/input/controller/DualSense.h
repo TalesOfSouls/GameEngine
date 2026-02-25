@@ -136,7 +136,7 @@ void input_map_dualsense(
 
     data += 22;
 
-    // @question pure guess
+    // @bug THIS IS JUST A GUESS
     controller->gyro_x = *data++;
     controller->gyro_y = *data++;
     controller->gyro_z = *data++;

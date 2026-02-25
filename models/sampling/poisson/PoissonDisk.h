@@ -10,7 +10,7 @@
 #define COMS_MODELS_SAMPLING_POISSON_DISK_H
 
 #include "../../../stdlib/Stdlib.h"
-#include "../../../memory/RingMemory.h"
+#include "../../../memory/RingMemory.cpp"
 
 // Calculates the amount of max points to generate
 size_t poisson_disk_bridson_cap(f64 width, f64 height, f64 r)

@@ -21,7 +21,7 @@
 #endif
 
 #include <vulkan/vulkan.h>
-#include <vector>
+//#include <vector>
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../../utils/Assert.h"
@@ -30,7 +30,7 @@
 #include "../../log/Log.h"
 #include "../../log/Stats.h"
 #include "../../log/PerformanceProfiler.h"
-#include "../../memory/RingMemory.h"
+#include "../../memory/RingMemory.cpp"
 #include "../../compiler/CompilerUtils.h"
 #include "ShaderUtils.h"
 #include "FramesInFlightContainer.h"
@@ -547,19 +547,22 @@ void gpuapi_swapchain_create(
     //memcpy(swapchain_image_format, &surface_format->format, sizeof(VkFormat));
 }
 
+uint32 vulkan_swapchain_images_calculate(VkDevice device, VkSwapchainKHR swapchain)
+{
+    uint32 swapchain_image_count;
+    vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, NULL);
+
+    return swapchain_image_count;
+}
+
 // WARNING: swapchain_images needs to already have reserved enough memory
 // @todo How can we ensure swapchain_images has enough but not too much space?
 inline
 void vulkan_swapchain_images_create(
     VkDevice device, VkSwapchainKHR swapchain,
-    VkImage** swapchain_images, uint32* swapchain_image_count,
-    BufferMemory* const buf
+    VkImage* swapchain_images, uint32* swapchain_image_count
 ) {
-    vkGetSwapchainImagesKHR(device, swapchain, swapchain_image_count, NULL);
-    // @question Do we really want to allocate in here or should that be done by the caller
-    *swapchain_images = (VkImage *) buffer_get_memory(buf, *swapchain_image_count * sizeof(VkImage), sizeof(size_t));
-
-    vkGetSwapchainImagesKHR(device, swapchain, swapchain_image_count, *swapchain_images);
+    vkGetSwapchainImagesKHR(device, swapchain, swapchain_image_count, swapchain_images);
 }
 
 inline
@@ -714,7 +717,10 @@ void gpuapi_command_buffer_create(VkDevice device, VkCommandPool command_pool, V
 }
 
 void vulkan_sync_objects_create(
-    VkDevice device, FramesInFlightContainer* frames_in_flight
+    VkDevice device, FramesInFlightContainer* frames_in_flight,
+    VkSemaphore* image_available_semaphores,
+    VkSemaphore* render_finished_semaphores,
+    VkFence* fences
 )
 {
     VkSemaphoreCreateInfo semaphore_info = {0};
@@ -726,9 +732,9 @@ void vulkan_sync_objects_create(
 
     VkResult result;
     for (uint32 i = 0; i < frames_in_flight->count; ++i) {
-        if ((result = vkCreateSemaphore(device, &semaphore_info, NULL, &frames_in_flight->image_available_semaphores[i])) != VK_SUCCESS
-            || (result = vkCreateSemaphore(device, &semaphore_info, NULL, &frames_in_flight->render_finished_semaphores[i])) != VK_SUCCESS
-            || (result = vkCreateFence(device, &fence_info, NULL, &frames_in_flight->fences[i])) != VK_SUCCESS
+        if ((result = vkCreateSemaphore(device, &semaphore_info, NULL, &image_available_semaphores[i])) != VK_SUCCESS
+            || (result = vkCreateSemaphore(device, &semaphore_info, NULL, &render_finished_semaphores[i])) != VK_SUCCESS
+            || (result = vkCreateFence(device, &fence_info, NULL, &fences[i])) != VK_SUCCESS
         ) {
             LOG_1("Vulkan vulkan_sync_objects_create: %d", {DATA_TYPE_INT32, (int32 *) &result});
             ASSERT_TRUE(false);

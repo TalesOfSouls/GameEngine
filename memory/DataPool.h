@@ -45,7 +45,7 @@ void pool_alloc(DataPool* buf, uint32 capacity, int32 chunk_size, int32 alignmen
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(capacity);
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Allocating DataPool");
+    LOG_1("[INFO] Allocating DataPool");
 
     chunk_size = align_up(chunk_size, alignment);
 
@@ -54,9 +54,7 @@ void pool_alloc(DataPool* buf, uint32 capacity, int32 chunk_size, int32 alignmen
         + sizeof(uint64) * ceil_div(capacity, 64U) // used
         + alignment * 3; // overhead for alignment
 
-    buf->memory = alignment < 2
-        ? (byte *) platform_alloc(size)
-        : (byte *) platform_alloc_aligned(size, size, alignment);
+    buf->memory = (byte *) platform_alloc_aligned(size, size, alignment);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -70,7 +68,7 @@ void pool_alloc(DataPool* buf, uint32 capacity, int32 chunk_size, int32 alignmen
 
     memset(buf->memory, 0, buf->size);
 
-    LOG_1("Allocated DataPool: %n B", {DATA_TYPE_UINT64, &buf->size});
+    LOG_1("[INFO] Allocated DataPool: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
 
 inline

@@ -12,6 +12,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../system/Allocator.h"
 #include "BufferMemory.h"
+#include "MemoryArena.h"
 #include "../thread/Thread.h"
 #include "../thread/Semaphore.h"
 
@@ -41,16 +42,46 @@ struct QueueT {
 
 template <typename T>
 FORCE_INLINE
-void queue_alloc(QueueT<T>* const queue, int capacity, int alignment = sizeof(size_t)) NO_EXCEPT
+void queue_alloc(QueueT<T>* const queue, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     LOG_1("[INFO] Allocating QueueT");
 
     queue->capacity = capacity;
-    queue->memory = (T *) platform_alloc_aligned(queue->capacity * sizeof(T), alignment);
+    queue->memory = (T *) platform_alloc_aligned(
+        queue->capacity * sizeof(T),
+        max_capacity * sizeof(T),
+        alignment
+    );
+    queue->head = queue->memory;
+    queue->tail = queue->memory;
+}
+
+template <typename T>
+FORCE_INLINE
+void queue_alloc(
+    QueueT<T>* const queue,
+    MemoryArena* const mem,
+    int capacity, int max_capacity,
+    uint32 alignment = sizeof(size_t)
+) NO_EXCEPT
+{
+    PROFILE(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(max_capacity >= capacity);
+    queue->capacity = capacity;
+
+    MemoryArena* arena = mem_arena_add(
+        mem,
+        sizeof(T) * capacity,
+        sizeof(T) * max_capacity,
+        alignment
+    );
+    queue->memory = (T *) arena->memory;
+
     queue->head = queue->memory;
     queue->tail = queue->memory;
 }
@@ -88,9 +119,17 @@ void thrd_queue_locks_init(QueueT<T>* const queue) NO_EXCEPT
 
 template <typename T>
 inline
-void thrd_queue_alloc(QueueT<T>* const queue, uint32 capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
+void thrd_queue_alloc(QueueT<T>* const queue, uint32 capacity, uint32 max_capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    queue_alloc(queue, capacity, alignment);
+    queue_alloc(queue, capacity, max_capacity, alignment);
+    thrd_queue_locks_init(queue);
+}
+
+template <typename T>
+inline
+void thrd_queue_alloc(QueueT<T>* const queue, MemoryArena* mem, uint32 capacity, uint32 max_capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    queue_alloc(queue, mem, capacity, max_capacity, alignment);
     thrd_queue_locks_init(queue);
 }
 
@@ -118,15 +157,36 @@ void queue_free(QueueT<T>* const queue) NO_EXCEPT
 }
 
 template <typename T>
-inline
-void thrd_queue_free(QueueT<T>* const queue) NO_EXCEPT
+static inline
+void thrd_queue_locks_free(QueueT<T>* const queue) NO_EXCEPT
 {
-    queue_free(queue);
-
     coms_sem_destroy(&queue->empty);
     coms_sem_destroy(&queue->full);
     mutex_destroy(&queue->mtx);
     coms_pthread_cond_destroy(&queue->cond);
+}
+
+template <typename T>
+inline
+void thrd_queue_free(QueueT<T>* const queue) NO_EXCEPT
+{
+    queue_free(queue);
+    thrd_queue_locks_free(queue);
+}
+
+template <typename T>
+FORCE_INLINE
+void queue_free(QueueT<T>* const queue, MemoryArena* mem) NO_EXCEPT
+{
+    mem_arena_remove(mem, queue->memory);
+}
+
+template <typename T>
+inline
+void thrd_queue_free(QueueT<T>* const queue, MemoryArena* mem) NO_EXCEPT
+{
+    queue_free(queue, mem);
+    thrd_queue_locks_free(queue);
 }
 
 template <typename T>
@@ -169,7 +229,6 @@ template <typename T>
 static inline
 bool queue_has_space(QueueT<T>* const queue) NO_EXCEPT
 {
-    // @bug Doesn't this mean we always have one unused element
     return queue->tail - 1 != queue->head;
 }
 
@@ -177,7 +236,6 @@ template <typename T>
 static inline
 bool queue_has_space_atomic(QueueT<T>* const queue) NO_EXCEPT
 {
-    // @bug Doesn't this mean we always have one unused element
     return atomic_get_relaxed((void **) &queue->head) - 1 != atomic_get_relaxed((void **) &queue->tail);
 }
 

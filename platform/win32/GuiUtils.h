@@ -90,7 +90,6 @@ void window_fullscreen(Window* const w) NO_EXCEPT
     w->state_current.x = 0;
     w->state_current.y = 0;
 
-    window_remove_style(w);
     SetWindowPos(
         ((WindowPlatform *) w->platform_window)->hwnd, HWND_TOP, 0, 0,
         w->state_current.logical_width, w->state_current.logical_height,

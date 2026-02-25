@@ -20,10 +20,9 @@
 #include <fcntl.h>
 
 #include "../../stdlib/Stdlib.h"
-#include "../../utils/Utils.h"
 #include "../../utils/Assert.h"
 #include "../../utils/StringUtils.h"
-#include "../../memory/RingMemory.h"
+#include "../../memory/RingMemory.cpp"
 #include "../../log/PerformanceProfiler.h"
 
 #ifndef PATH_MAX_LENGTH

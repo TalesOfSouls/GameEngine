@@ -66,14 +66,14 @@ bool wasapi_settings_load(WasapiSetting* const __restrict api_setting) {
     );
 
     if (FAILED(hr)) {
-        LOG_1("Wasapi: Wasapi CreateInstance failed");
+        LOG_1("[ERROR] Wasapi: Wasapi CreateInstance failed");
 
         return false;
     }
 
     hr  = IMMDeviceEnumerator_GetDefaultAudioEndpoint(enumerator, eRender, eConsole, &device);
     if (FAILED(hr)) {
-        LOG_1("Wasapi: Wasapi DefaultAudioEndpoint failed");
+        LOG_1("[ERROR] Wasapi: Wasapi DefaultAudioEndpoint failed");
 
         enumerator->Release();
 
@@ -82,7 +82,7 @@ bool wasapi_settings_load(WasapiSetting* const __restrict api_setting) {
 
     hr = IMMDevice_Activate(device, __uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **) &api_setting->wasapi_handle);
     if (FAILED(hr)) {
-        LOG_1("Wasapi: Wasapi DeviceActivate failed");
+        LOG_1("[ERROR] Wasapi: Wasapi DeviceActivate failed");
 
         device->Release();
         enumerator->Release();
@@ -103,7 +103,7 @@ bool wasapi_settings_load(WasapiSetting* const __restrict api_setting) {
 }
 
 bool wasapi_load(WasapiSetting* const __restrict api_setting) {
-    LOG_1("Load audio API WASAPI");
+    LOG_1("[INFO] Load audio API WASAPI");
 
     if (_mmdevapi_lib && _audioclient_lib) {
         wasapi_settings_load(api_setting);

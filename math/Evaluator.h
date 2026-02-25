@@ -13,8 +13,6 @@
 #include "../utils/StringUtils.h"
 #include "../utils/Assert.h"
 #include "../compiler/CompilerUtils.h"
-#include <string.h>
-#include <math.h>
 
 #define EVALUATOR_MAX_STACK_SIZE 16
 

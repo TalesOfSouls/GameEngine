@@ -37,9 +37,9 @@
  *              __ARM_FEATURE_SVE, __ARM_NEON
  *
  *      Release (requires also the correct compiler arguments e.g. -O2):
- *          DEBUG_STRICT (= unoptimized + heavy logging)
- *          DEBUG (= unoptimized + logging)
- *          INTERNAL (= optimized with debug info)
+ *          DEBUG_STRICT (= unoptimized + heavy logging and debug/profiling info)
+ *          DEBUG (= unoptimized + logging/debug/profiling)
+ *          INTERNAL (= optimized with logging/debug/profiling info)
  *          RELEASE
  *
  *      Log info (automatic based on release unless you want to change it):
@@ -55,7 +55,7 @@
  *          CPP_VERSION (default = 20)
  *
  *      Game stores:
- *          STEAM_STORE, EPIC_GAMES
+ *          STEAM_STORE, EPIC_GAMES, PLAYSTATION_STORE, MICROSOFT_STORE
  *
  *      Misc.
  *          NO_STDLIB (= disables stdlib usage and uses user/compiler space implementations)

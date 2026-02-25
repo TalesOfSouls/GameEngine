@@ -12,8 +12,8 @@
 #include "../stdlib/Stdlib.h"
 #include "../memory/QueueT.h"
 #include "../asset/Asset.h"
-#include "../asset/AssetArchive.h"
-#include "../asset/AssetManagementSystem.h"
+#include "../asset/AssetArchive.cpp"
+#include "../asset/AssetManagementSystem.cpp"
 #include "../gpuapi/GpuApiType.h"
 #include "AppCommand.h"
 #include "CmdAssetProducer.h"
@@ -82,7 +82,7 @@ Asset* cmd_texture_load_sync(
     int32 asset_id
 ) NO_EXCEPT
 {
-    LOG_1("Load texture %d", {DATA_TYPE_INT32, &asset_id});
+    LOG_1("[INFO] Load texture %d", {DATA_TYPE_INT32, &asset_id});
 
     // Check if asset already loaded
     char id_str[9];

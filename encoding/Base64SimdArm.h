@@ -10,7 +10,6 @@
 #define COMS_ENCODING_BASE64_SIMD_ARM_H
 
 #include "../stdlib/Stdlib.h"
-#include "../stdlib/Simd.h"
 #include "../utils/StringUtils.h"
 #include "Base64Definitions.h"
 

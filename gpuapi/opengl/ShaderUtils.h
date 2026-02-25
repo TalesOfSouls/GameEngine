@@ -10,7 +10,7 @@
 #define COMS_GPUAPI_OPENGL_SHADER_UTILS_H
 
 #include "../../stdlib/Stdlib.h"
-#include "../../memory/RingMemory.h"
+#include "../../memory/RingMemory.cpp"
 #include "../../log/Log.h"
 #include "../../log/Stats.h"
 #include "../../log/PerformanceProfiler.h"
@@ -232,7 +232,7 @@ int32 opengl_program_optimize(const char* __restrict input, char* __restrict out
 
 GLuint gpuapi_shader_make(GLenum type, const char* source) NO_EXCEPT
 {
-    LOG_1("Create shader");
+    LOG_1("[INFO] Create shader");
     const GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, (GLchar **) &source, NULL);
     glCompileShader(shader);
@@ -255,7 +255,7 @@ GLuint gpuapi_shader_make(GLenum type, const char* source) NO_EXCEPT
         }
     #endif
 
-    LOG_1("Created shader");
+    LOG_1("[INFO] Created shader");
 
     return shader;
 }
@@ -278,7 +278,7 @@ GLuint gpuapi_pipeline_make(
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Create pipeline");
+    LOG_1("[INFO] Create pipeline");
     const GLuint program = glCreateProgram();
 
     if (geometry_shader > -1) {
@@ -308,7 +308,6 @@ GLuint gpuapi_pipeline_make(
         }
     #endif
 
-    // @question really?
     if (geometry_shader > -1) {
         glDetachShader(program, geometry_shader);
     }
@@ -316,7 +315,6 @@ GLuint gpuapi_pipeline_make(
     glDetachShader(program, vertex_shader);
     glDetachShader(program, fragment_shader);
 
-    // @question really?
     if (geometry_shader > -1) {
         glDeleteShader(geometry_shader);
     }
@@ -324,7 +322,7 @@ GLuint gpuapi_pipeline_make(
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
 
-    LOG_1("Created pipeline");
+    LOG_1("[INFO] Created pipeline");
 
     return program;
 }

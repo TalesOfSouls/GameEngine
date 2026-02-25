@@ -10,7 +10,7 @@
 #define COMS_IMAGE_C
 
 #include "../utils/StringUtils.h"
-#include "../memory/RingMemory.h"
+#include "../memory/RingMemory.cpp"
 #include "../system/FileUtils.cpp"
 
 #include "Image.h"
@@ -36,7 +36,7 @@ void image_from_file(Image* __restrict image, const char* __restrict path, RingM
 inline
 void image_flip_vertical(RingMemory* const __restrict ring, Image* __restrict image) NO_EXCEPT
 {
-    uint32 stride = image->width * sizeof(uint32);
+    const uint32 stride = image->width * sizeof(uint32);
     byte* temp = ring_get_memory(ring, image->pixel_count * sizeof(uint32), sizeof(size_t));
     memcpy(temp, image->pixels, image->pixel_count * sizeof(uint32));
 
@@ -53,8 +53,8 @@ void image_flip_vertical(RingMemory* const __restrict ring, Image* __restrict im
 inline
 int32 image_pixel_size_from_type(byte type) NO_EXCEPT
 {
-    int32 channel_size = type & IMAGE_SETTING_CHANNEL_4_SIZE ? 4 : 1;
-    int32 channel_count = type & IMAGE_SETTING_CHANNEL_COUNT;
+    const int32 channel_size = type & IMAGE_SETTING_CHANNEL_4_SIZE ? 4 : 1;
+    const int32 channel_count = type & IMAGE_SETTING_CHANNEL_COUNT;
 
     return channel_size * channel_count;
 }

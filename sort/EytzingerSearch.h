@@ -2,7 +2,7 @@
 #define COMS_SORT_EYTZINGER_SEARCH_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/RingMemory.h"
+#include "../memory/RingMemory.cpp"
 
 // @performance We could optimize eytzinger by using 1 based index
 // Consider this https://en.algorithmica.org/hpc/data-structures/binary-search/

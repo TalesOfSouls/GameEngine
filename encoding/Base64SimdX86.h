@@ -11,7 +11,6 @@
 
 #include <immintrin.h>
 #include "../stdlib/Stdlib.h"
-#include "../stdlib/Simd.h"
 #include "../utils/StringUtils.h"
 #include "Base64Definitions.h"
 

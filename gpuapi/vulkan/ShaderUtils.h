@@ -12,7 +12,7 @@
 #include <vulkan/vulkan.h>
 
 #include "../../stdlib/Stdlib.h"
-#include "../../memory/RingMemory.h"
+#include "../../memory/RingMemory.cpp"
 #include "../GpuAttributeType.h"
 #include "../../object/Vertex.h"
 #include "../../log/Log.h"
@@ -407,7 +407,6 @@ void vulkan_descriptor_pool_create(
     uint32 frames_in_flight
 )
 {
-    // @question Why is the pool size 2?
     // @todo Isn't this shader specific?
     const VkDescriptorPoolSize poolSizes[2] = {
         {

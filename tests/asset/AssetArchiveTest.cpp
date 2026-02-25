@@ -1,5 +1,5 @@
 #include "../TestFramework.h"
-#include "../../asset/AssetArchive.h"
+#include "../../asset/AssetArchive.cpp"
 
 static void test_asset_archive() {
     /**
@@ -213,10 +213,10 @@ static void test_asset_archive() {
     /////////////////////////////////////////////////
 
     BufferMemory buf;
-    buffer_alloc(&buf, 16 * MEGABYTE);
+    buffer_alloc(&buf, 16 * MEGABYTE, 16 * MEGABYTE);
 
     RingMemory ring;
-    ring_alloc(&ring, 16 * MEGABYTE);
+    ring_alloc(&ring, 16 * MEGABYTE, 16 * MEGABYTE);
 
     AssetArchive archive;
     asset_archive_load(&archive, L"temp.asset", &buf, &ring);

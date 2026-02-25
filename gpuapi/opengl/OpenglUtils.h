@@ -10,7 +10,7 @@
 #define COMS_GPUAPI_OPENGL_UTILS_H
 
 #include "../../stdlib/Stdlib.h"
-#include "../../memory/RingMemory.h"
+#include "../../memory/RingMemory.cpp"
 #include "../../utils/Assert.h"
 #include "../../object/Texture.h"
 #include "../../image/Image.cpp"
@@ -30,35 +30,35 @@
         while ((err = glGetError()) != GL_NO_ERROR) {
             switch (err) {
                 case GL_INVALID_ENUM: {
-                    LOG_1("Opengl error (invalid enumeration parameter)");
+                    LOG_1("[ERROR] Opengl invalid enumeration parameter");
                     break;
                 }
                 case GL_INVALID_VALUE: {
-                    LOG_1("Opengl error (invalid parameter)");
+                    LOG_1("[ERROR] Opengl invalid parameter");
                     break;
                 }
                 case GL_INVALID_OPERATION: {
-                    LOG_1("Opengl error (invalid state and parameter combination)");
+                    LOG_1("[ERROR] Opengl invalid state and parameter combination");
                     break;
                 }
                 case GL_STACK_OVERFLOW: {
-                    LOG_1("Opengl error (stack overflow)");
+                    LOG_1("[ERROR] Opengl stack overflow");
                     break;
                 }
                 case GL_STACK_UNDERFLOW: {
-                    LOG_1("Opengl error (stack underflow)");
+                    LOG_1("[ERROR] Opengl stack underflow");
                     break;
                 }
                 case GL_OUT_OF_MEMORY: {
-                    LOG_1("Opengl error (couldn't allocate memory)");
+                    LOG_1("[ERROR] Opengl couldn't allocate memory");
                     break;
                 }
                 case GL_INVALID_FRAMEBUFFER_OPERATION: {
-                    LOG_1("Opengl error (reading/writing from/to incomplete framebuffer)");
+                    LOG_1("[ERROR] Opengl reading/writing from/to incomplete framebuffer");
                     break;
                 }
                 default:
-                    LOG_1("Opengl error: %d", {DATA_TYPE_INT32, (int32 *) &err});
+                    LOG_1("[ERROR] Opengl %d", {DATA_TYPE_INT32, (int32 *) &err});
             }
 
             ASSERT_TRUE(err == GL_NO_ERROR);
@@ -69,18 +69,6 @@
 #else
     #define ASSERT_GPU_API() ((void) 0)
 #endif
-
-struct OpenglFrameData {
-    uint32 framebuffer;
-    uint32 renderbuffer;
-    Texture* texture;
-
-    // msaa data
-    uint32 framebuffer_msaa;
-    uint32 colorbuffer_msaa;
-    uint32 depthbuffer_msaa;
-    Texture* texture_msaa;
-};
 
 void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, const GLchar* message, const void*)
 {

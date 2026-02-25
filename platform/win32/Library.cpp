@@ -16,12 +16,15 @@
 #include "../../system/Library.h"
 #include "../../system/FileUtils.cpp"
 
+const wchar_t _platform_suffix[] = L"_win32";
+const wchar_t _library_extension[] = L".dll";
+
 inline
 bool library_dyn_load(LibraryHandle* const __restrict lib, const wchar_t* const __restrict name) NO_EXCEPT
 {
     *lib = LoadLibraryExW((LPCWSTR) name, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!*lib) {
-        LOG_1("Library: Couldn't load library");
+        LOG_1("[WARNING] Couldn't load library");
         return false;
     }
 
@@ -40,7 +43,7 @@ void* library_dyn_proc(LibraryHandle const __restrict lib, const char* const __r
     return (void *) GetProcAddress(lib, name);
 }
 
-inline
+inline static
 void* library_get_symbol(Library* lib, const char* symbol) NO_EXCEPT
 {
     if (!lib || !lib->handle || !symbol) {
@@ -91,13 +94,16 @@ bool library_load(Library* const lib) NO_EXCEPT
         return lib->is_valid;
     }
 
+    lib->is_valid = true;
+
     return true;
 }
 
-inline
-bool library_bind_functions(Library* const lib) NO_EXCEPT {
+inline static
+bool library_bind_functions(Library* const lib) NO_EXCEPT
+{
     lib->is_valid = true;
-    for (int32 c = 0; c < lib->function_count; ++c) {
+    for (int c = 0; c < lib->function_count; ++c) {
         void* function = (void *) GetProcAddress(lib->handle, (LPCSTR) lib->function_names[c]);
         if (function) {
             lib->functions[c] = function;
@@ -113,20 +119,23 @@ bool library_bind_functions(Library* const lib) NO_EXCEPT {
 }
 
 inline
-void library_descriptor_load(Library* lib) {
+const LibraryModuleDescriptor* library_descriptor_load(Library* const lib) NO_EXCEPT
+{
     const LibraryModuleDescriptor* desc = (LibraryModuleDescriptor *) library_get_symbol(lib, LIBRARY_MODULE_DESCRIPTOR_SYMBOL);
     lib->function_names = desc->function_names;
     lib->function_count = desc->function_count;
     lib->functions = (void **) desc->functions;
 
     library_bind_functions(lib);
+
+    return desc;
 }
 
 inline
-void library_unload(Library* lib) NO_EXCEPT
+void library_unload(Library* const lib) NO_EXCEPT
 {
     FreeLibrary(lib->handle);
-    for (int32 c = 0; c < lib->function_count; ++c) {
+    for (int c = 0; c < lib->function_count; ++c) {
         lib->functions[c] = NULL;
     }
 }

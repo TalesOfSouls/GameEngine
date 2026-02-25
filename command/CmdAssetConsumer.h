@@ -10,9 +10,9 @@
 #define COMS_APP_COMMAND_ASSET_CONSUMER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../asset/AssetArchive.h"
-#include "../asset/AssetManagementSystem.h"
-#include "../memory/RingMemory.h"
+#include "../asset/AssetArchive.cpp"
+#include "../asset/AssetManagementSystem.cpp"
+#include "../memory/RingMemory.cpp"
 #include "AppCommand.h"
 
 static inline

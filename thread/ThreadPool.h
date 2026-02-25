@@ -120,14 +120,14 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
         atomic_increment_release(&pool->working_cnt);
         atomic_set_release((int32 *) &work->state, POOL_WORKER_STATE_RUNNING);
 
-        LOG_3("ThreadPool worker started");
+        LOG_3("[INFO] ThreadPool worker started");
         {
             PROFILE(PROFILE_THREADPOOL_WORK, NULL, PROFILE_FLAG_ADD_HISTORY);
             STATS_INCREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
             work->func(work);
             STATS_DECREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
         }
-        LOG_3("ThreadPool worker ended");
+        LOG_3("[INFO] ThreadPool worker ended");
 
         if (work->callback) {
             work->callback(work);
@@ -171,7 +171,7 @@ void thread_pool_alloc(
         {DATA_TYPE_INT32, &worker_capacity}
     );
 
-    queue_alloc(&pool->work_queue, worker_capacity, alignment);
+    queue_alloc(&pool->work_queue, worker_capacity, worker_capacity, alignment);
 
     pool->thread_cnt = thread_count;
 
@@ -206,7 +206,7 @@ void thread_pool_create(
 {
     PROFILE(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
-        "Creating thread pool with %d threads and %d queue length",
+        "[INFO] Creating thread pool with %d threads and %d queue length",
         {DATA_TYPE_INT32, &thread_count},
         {DATA_TYPE_INT32, &worker_capacity}
     );

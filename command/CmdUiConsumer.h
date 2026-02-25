@@ -12,12 +12,12 @@
 #include "../stdlib/Stdlib.h"
 #include "../memory/QueueT.h"
 #include "../asset/Asset.h"
-#include "../asset/AssetArchive.h"
-#include "../asset/AssetManagementSystem.h"
+#include "../asset/AssetArchive.cpp"
+#include "../asset/AssetManagementSystem.cpp"
 #include "../gpuapi/GpuApiType.h"
 #include "../system/FileUtils.cpp"
 #include "../ui/UILayout.cpp"
-#include "../ui/UITheme.h"
+#include "../ui/UITheme.cpp"
 #include "AppCommand.h"
 
 inline
@@ -26,14 +26,14 @@ UILayout* cmd_layout_load_sync(
     UILayout* const __restrict layout, const wchar_t* const __restrict layout_path
 ) NO_EXCEPT
 {
-    //PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path, PROFILE_FLAG_SHOULD_LOG);
-    //LOG_1("Load layout %s", {DATA_TYPE_CHAR_STR, (void *) layout_path});
+    PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    LOG_1("[INFO] Load layout");
 
     FileBody layout_file = {0};
     file_read(layout_path, &layout_file, ring);
 
     if (!layout_file.content) {
-        LOG_1("Failed loading layout");
+        LOG_1("[WARNING] Failed loading layout");
         return NULL;
     }
 
@@ -49,8 +49,8 @@ UIThemeStyle* cmd_theme_load_sync(
     UIThemeStyle* const __restrict theme, const wchar_t* const __restrict theme_path
 ) NO_EXCEPT
 {
-    //PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, theme_path, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load theme");
+    PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    LOG_1("[INFO] Load theme");
 
     FileBody theme_file = {0};
     file_read(theme_path, &theme_file, ring);
@@ -78,7 +78,7 @@ UILayout* cmd_ui_load_sync(
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_CMD_UI_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load ui");
+    LOG_1("[INFO] Load ui");
 
     if (!cmd_layout_load_sync(ring, layout, layout_path)) {
         // We have to make sure that at least the font is set

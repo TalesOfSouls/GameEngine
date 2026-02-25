@@ -12,7 +12,7 @@
 #include <windows.h>
 
 #include "../../../stdlib/Stdlib.h"
-#include "../../../input/Input.h"
+#include "../../../input/Input.cpp"
 #include "Keys.h"
 
 FORCE_INLINE

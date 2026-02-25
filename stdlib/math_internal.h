@@ -152,26 +152,29 @@ int64 oms_round_positive(f64 x) NO_EXCEPT {
     return (int64) (x + 0.5);
 }
 
+template <typename T>
 FORCE_INLINE CONSTEXPR
-f32 __internal_round(f32 x) NO_EXCEPT {
-    return (x >= 0.0f)
-        ? (f32)((int32)(x + 0.5f))
-        : (f32)((int32)(x - 0.5f));
+T __internal_round(T x) NO_EXCEPT {
+    return (x >= (T) 0)
+        ? (T)((int32)(x + 0.5f))
+        : (T)((int32)(x - 0.5f));
 }
 
 template <typename T>
-FORCE_INLINE T ceil_div(T a, T b) NO_EXCEPT
+FORCE_INLINE CONSTEXPR
+T ceil_div(T a, T b) NO_EXCEPT
 { return (a + b - 1) / b; }
 
-template <typename T, typename F>
-FORCE_INLINE T __internal_ceil(F x) NO_EXCEPT
+template <typename F>
+FORCE_INLINE CONSTEXPR
+F __internal_ceil(F x) NO_EXCEPT
 {
-    T xi = (T)x;
+    uint64 xi = (uint64)x;
     if (x == (F)xi) {
         return xi;
     }
 
-    return (x > (F) 0) ? (T) (xi + 1) : xi;
+    return (x > (F) 0) ? (F) (xi + 1) : xi;
 }
 
 template <typename F>
@@ -192,19 +195,12 @@ F __internal_floor(F x) NO_EXCEPT {
 // (= (int) floorf((float)a/(float)b))
 // This is required because -7 / 3 = -2 with normal int division, but we want -3
 // However, 7 / 3 = 2 is what we would expect
+template <typename T>
 FORCE_INLINE
-int32 floor_div(int32 a, int32 b) NO_EXCEPT
+T floor_div(T a, T b) NO_EXCEPT
 {
-    int32 q = a / b;
-    int32 r = a - q * b;
-    return q - (r < 0);
-}
-
-FORCE_INLINE
-int64 floor_div(int64 a, int64 b) NO_EXCEPT
-{
-    int64 q = a / b;
-    int64 r = a - q * b;
+    T q = a / b;
+    T r = a - q * b;
     return q - (r < 0);
 }
 
@@ -367,7 +363,7 @@ f32 exp_approx(f32 x) NO_EXCEPT
 
     // Raise to the nth power
     f32 final_result = result;
-    for (int32 i = 1; i < n; ++i) {
+    for (int i = 1; i < n; ++i) {
         final_result *= result;
     }
 
@@ -511,20 +507,20 @@ inline
 f64 exp_approx(f64 x) NO_EXCEPT
 {
     // Range reduction: e^x = e^(x / n)^n
-    const int32 n = 8;
+    const int n = 8;
     x /= n;
 
     // Taylor series approximation for e^x
     f64 result = 1.0;
     f64 term = 1.0;
-    for (int32 i = 1; i <= 10; ++i) {
+    for (int i = 1; i <= 10; ++i) {
         term *= x / i;
         result += term;
     }
 
     // Raise to the nth power
     f64 final_result = 1.0;
-    for (int32 i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
         final_result *= result;
     }
 

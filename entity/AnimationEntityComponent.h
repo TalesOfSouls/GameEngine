@@ -13,7 +13,7 @@
 #include "../animation/AnimationEaseType.h"
 #include "../animation/Animation.h"
 #include "../utils/BitUtils.h"
-#include "EntityComponentSystem.h"
+#include "EntityComponentSystem.cpp"
 #include "Entity.h"
 
 enum AnimationSetting {

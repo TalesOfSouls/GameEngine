@@ -2,7 +2,7 @@
 #define COMS_MODULE_MANAGER_H
 
 #include "Module.h"
-#include "../memory/RingMemory.h"
+#include "../memory/RingMemory.cpp"
 #include "../system/FileUtils.cpp"
 
 #if _WIN32

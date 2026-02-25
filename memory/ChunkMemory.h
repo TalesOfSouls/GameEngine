@@ -97,23 +97,21 @@ uint_max thrd_chunk_size_total(uint32 capacity, int32 element_size, int32 alignm
 // INFO: A chunk count of 2^n is recommended for maximum performance
 // @performance Do we maybe want to define both the element alignment and memory start alignment (e.g. 64 byte = cache line alignment for the memory)
 inline
-void chunk_alloc(ChunkMemory* const buf, uint32 capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void chunk_alloc(ChunkMemory* const buf, uint32 capacity, uint32 max_capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
     const uint_max size = chunk_size_total(capacity, element_size, alignment);
+    const uint_max max_size = chunk_size_total(max_capacity, element_size, alignment);
 
-    buf->memory = alignment < 2
-        ? (byte *) platform_alloc(size)
-        : (byte *) platform_alloc_aligned(size, size, alignment);
-
-    // @question Why don't I memset the memory to 0 here, but do it in chunk_init
+    buf->memory = (byte *) platform_alloc_aligned(size, max_size, alignment);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -130,10 +128,11 @@ void chunk_alloc(ChunkMemory* const buf, uint32 capacity, int32 element_size, in
 }
 
 inline
-void thrd_chunk_alloc(ChunkMemory* const buf, uint32 capacity, int32 element_size, int32 alignment = 32)
+void thrd_chunk_alloc(ChunkMemory* const buf, uint32 capacity, uint32 max_capacity, int32 element_size, int32 alignment = 32)
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -141,10 +140,79 @@ void thrd_chunk_alloc(ChunkMemory* const buf, uint32 capacity, int32 element_siz
 
     element_size = chunk_size_element(element_size, alignment);
     const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
+    const uint_max max_size = thrd_chunk_size_total(max_capacity, element_size, alignment);
 
-    buf->memory = alignment < 2
-        ? (byte *) platform_alloc(size)
-        : (byte *) platform_alloc_aligned(size, size, alignment);
+    buf->memory = (byte *) platform_alloc_aligned(size, max_size, alignment);
+
+    buf->capacity = capacity;
+    buf->size = size;
+    buf->chunk_size = element_size;
+    buf->last_pos = -1;
+    buf->alignment = alignment;
+
+    const size_t array_count = ceil_div(capacity, (uint32) (sizeof(uint_max) * 8));
+
+    // @question Could it be beneficial to have this before the element data?
+    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignment);
+    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignment);
+
+    memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
+    memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
+
+    mutex_init(&buf->lock, NULL);
+
+    LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
+}
+
+inline
+void chunk_alloc(ChunkMemory* const buf, MemoryArena* mem, uint32 capacity, uint32 max_capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(element_size);
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    LOG_1("[INFO] Allocating ChunkMemory");
+
+    element_size = chunk_size_element(element_size, alignment);
+    const uint_max size = chunk_size_total(capacity, element_size, alignment);
+    const uint_max max_size = chunk_size_total(max_capacity, element_size, alignment);
+
+    MemoryArena* arena = mem_arena_add(mem, size, max_size, alignment);
+    buf->memory = (byte *) arena->memory;
+
+    buf->capacity = capacity;
+    buf->size = size;
+    buf->chunk_size = element_size;
+    buf->last_pos = -1;
+    buf->alignment = alignment;
+    buf->free = (uint_max *) align_up(
+        (uint_max) ((uintptr_t) (buf->memory + capacity * element_size)),
+        (uint_max) alignment
+    );
+    memset((void *) buf->free, 0, sizeof(uint_max) * ceil_div(capacity, (uint32) (sizeof(uint_max) * 8)));
+
+    LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
+}
+
+inline
+void thrd_chunk_alloc(ChunkMemory* const buf, MemoryArena* mem, uint32 capacity, uint32 max_capacity, int32 element_size, int32 alignment = 32)
+{
+    ASSERT_TRUE(element_size);
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    LOG_1("[INFO] Allocating ChunkMemory");
+
+    element_size = chunk_size_element(element_size, alignment);
+    const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
+    const uint_max max_size = thrd_chunk_size_total(max_capacity, element_size, alignment);
+
+    MemoryArena* arena = mem_arena_add(mem, size, max_size, alignment);
+    buf->memory = (byte *) arena->memory;
 
     buf->capacity = capacity;
     buf->size = size;
@@ -225,7 +293,6 @@ void thrd_chunk_alloc(
 
     const size_t array_count = ceil_div(capacity, (uint32) (sizeof(uint_max) * 8));
 
-    // @question Could it be beneficial to have this before the element data?
     buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignment);
     buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignment);
 
@@ -277,7 +344,7 @@ void thrd_chunk_alloc(
     uint32 capacity,
     int32 element_size,
     int32 alignment = sizeof(size_t)
-)
+) NO_EXCEPT
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(capacity);
@@ -315,11 +382,7 @@ void chunk_free(ChunkMemory* const buf) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->size);
 
-    if (buf->alignment < 2) {
-        platform_free((void **) &buf->memory);
-    } else {
-        platform_aligned_free((void **) &buf->memory);
-    }
+    platform_aligned_free((void **) &buf->memory);
 
     buf->size = 0;
     buf->memory = NULL;
@@ -329,6 +392,24 @@ FORCE_INLINE
 void thrd_chunk_free(ChunkMemory* const buf) NO_EXCEPT
 {
     chunk_free(buf);
+    mutex_destroy(&buf->lock);
+}
+
+inline
+void chunk_free(ChunkMemory* const buf, MemoryArena* mem) NO_EXCEPT
+{
+    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->size);
+
+    mem_arena_remove(mem, buf->memory);
+
+    buf->size = 0;
+    buf->memory = NULL;
+}
+
+FORCE_INLINE
+void thrd_chunk_free(ChunkMemory* const buf, MemoryArena* mem) NO_EXCEPT
+{
+    chunk_free(buf, mem);
     mutex_destroy(&buf->lock);
 }
 

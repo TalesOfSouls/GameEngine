@@ -12,7 +12,6 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../audio/Audio.cpp"
-#include "../stdlib/Simd.h"
 
 #define QOA_SLICE_LEN 20
 #define QOA_SLICES_PER_FRAME 256

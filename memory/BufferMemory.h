@@ -17,6 +17,7 @@
 #include "../log/DebugMemory.h"
 #include "../system/Allocator.h"
 #include "../thread/Thread.h"
+#include "MemoryArena.h"
 
 struct BufferMemory {
     byte* memory;
@@ -30,18 +31,18 @@ struct BufferMemory {
 };
 
 inline
-void buffer_alloc(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void buffer_alloc(BufferMemory* const buf, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(size);
+    ASSERT_TRUE(max_size >= size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     size = align_up(size, ASSUMED_CACHE_LINE_SIZE);
+    max_size = align_up(max_size, ASSUMED_CACHE_LINE_SIZE);
     LOG_1("[INFO] Allocating BufferMemory: %n B", {DATA_TYPE_UINT64, &size});
 
-    buf->memory = alignment < 2
-        ? (byte *) platform_alloc(size)
-        : (byte *) platform_alloc_aligned(size, size, alignment);
+    buf->memory = (byte *) platform_alloc_aligned(size, max_size, alignment);
 
     buf->end = buf->memory + size;
     buf->head = buf->memory;
@@ -54,20 +55,53 @@ void buffer_alloc(BufferMemory* const buf, size_t size, int32 alignment = sizeof
 }
 
 FORCE_INLINE
-void thrd_buffer_alloc(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void thrd_buffer_alloc(BufferMemory* const buf, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    buffer_alloc(buf, size, alignment);
+    buffer_alloc(buf, size, max_size, alignment);
+    mutex_init(&buf->lock, NULL);
+}
+
+inline
+void buffer_alloc(BufferMemory* const buf, MemoryArena* mem, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    PROFILE(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(size);
+    ASSERT_TRUE(max_size >= size);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    size = align_up(size, ASSUMED_CACHE_LINE_SIZE);
+    max_size = align_up(max_size, ASSUMED_CACHE_LINE_SIZE);
+    LOG_1("[INFO] Allocating BufferMemory: %n B", {DATA_TYPE_UINT64, &size});
+
+    MemoryArena* arena = mem_arena_add(
+        mem,
+        size,
+        max_size,
+        alignment
+    );
+    buf->memory = arena->memory;
+
+    buf->end = buf->memory + size;
+    buf->head = buf->memory;
+    buf->size = size;
+    buf->alignment = alignment;
+
+    memset(buf->memory, 0, buf->size);
+
+    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
+}
+
+FORCE_INLINE
+void thrd_buffer_alloc(BufferMemory* const buf, MemoryArena* mem, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    buffer_alloc(buf, mem, size, max_size, alignment);
     mutex_init(&buf->lock, NULL);
 }
 
 inline
 void buffer_free(BufferMemory* const buf) NO_EXCEPT
 {
-    if (buf->alignment < 2) {
-        platform_free((void **) &buf->memory);
-    } else {
-        platform_aligned_free((void **) &buf->memory);
-    }
+    platform_aligned_free((void **) &buf->memory);
 
     buf->size = 0;
     buf->memory = NULL;
@@ -77,6 +111,21 @@ FORCE_INLINE
 void thrd_buffer_free(BufferMemory* const buf) NO_EXCEPT
 {
     buffer_free(buf);
+    mutex_destroy(&buf->lock);
+}
+
+inline
+void buffer_free(BufferMemory* const buf, MemoryArena* mem) NO_EXCEPT
+{
+    mem_arena_remove(mem, buf->memory);
+    buf->size = 0;
+    buf->memory = NULL;
+}
+
+FORCE_INLINE
+void thrd_buffer_free(BufferMemory* const buf, MemoryArena* mem) NO_EXCEPT
+{
+    buffer_free(buf, mem);
     mutex_destroy(&buf->lock);
 }
 

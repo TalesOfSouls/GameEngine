@@ -56,6 +56,10 @@ template <typename T>
 FORCE_INLINE T align_up(T x, size_t align) NO_EXCEPT
 { return (T) (((x) + ((align) - 1)) & ~((align) - 1)); }
 
+template <typename T>
+FORCE_INLINE T align_down(T x, size_t align) NO_EXCEPT
+{ return (T)((x) & ~((align) - 1)); }
+
 #define OMS_ALIGN_DOWN(x, align) ((x) & ~((align) - 1))
 #define OMS_IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
 
@@ -293,6 +297,7 @@ byte* write_le(byte* p, f64 v) NO_EXCEPT
 FORCE_INLINE
 const byte* read_le(const byte* __restrict p, uint32* __restrict out) NO_EXCEPT
 {
+    // @question Why do I even need v? Just use out directly
     uint32 v;
     memcpy(&v, p, sizeof(v));
     *out = SWAP_ENDIAN_LITTLE(v);

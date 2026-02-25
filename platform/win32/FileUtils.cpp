@@ -16,27 +16,17 @@
 #endif
 
 #include "../../stdlib/Stdlib.h"
-#include "../../utils/Utils.h"
 #include "../../utils/Assert.h"
-#include "../../memory/RingMemory.h"
+#include "../../memory/RingMemory.cpp"
 #include "../../log/Stats.h"
 #include "../../log/PerformanceProfiler.h"
+
+#include "FileUtils.h"
 
 // @todo create some simple wrapper functions that create file pointers for:
 //  1. game data location
 //  2. save data location
 //  3. download location
-
-typedef HANDLE FileHandle;
-typedef HANDLE MMFHandle;
-typedef OVERLAPPED file_overlapped;
-
-struct FileBodyAsync {
-    // doesn't include null termination (same as str_length)
-    uint64 size;
-    byte* content;
-    OVERLAPPED ov;
-};
 
 FORCE_INLINE
 MMFHandle file_mmf_handle(FileHandle fp) NO_EXCEPT
@@ -68,6 +58,11 @@ void file_mmf_close(MMFHandle fh) NO_EXCEPT
 inline
 void relative_to_absolute(const char* __restrict rel, char* __restrict path) NO_EXCEPT
 {
+    if (rel[0] != '.') {
+        strcpy(path, rel);
+        return;
+    }
+
     char spath[PATH_MAX_LENGTH];
     int32 spath_length = GetModuleFileNameA(NULL, spath, PATH_MAX_LENGTH);
     if (spath_length == 0) {
@@ -80,7 +75,7 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path) NO_
     }
 
     char* last = spath + spath_length;
-    while (*last != '\\' && spath_length > 0) {
+    while (*last != '\\' && *last != '/' && spath_length > 0) {
         --last;
         --spath_length;
     }
@@ -103,6 +98,11 @@ void relative_to_absolute(
     wchar_t* __restrict path
 ) NO_EXCEPT
 {
+    if (rel[0] != L'.') {
+        wcscpy(path, rel);
+        return;
+    }
+
     wchar_t spath[PATH_MAX_LENGTH];
     int32 spath_length = GetModuleFileNameW(NULL, spath, PATH_MAX_LENGTH);
     if (spath_length == 0) {
@@ -115,7 +115,7 @@ void relative_to_absolute(
     }
 
     wchar_t* last = spath + spath_length;
-    while (*last != L'\\' && spath_length > 0) {
+    while (*last != L'\\' && *last != L'/' && spath_length > 0) {
         --last;
         --spath_length;
     }
@@ -125,6 +125,152 @@ void relative_to_absolute(
     memcpy(path, spath, spath_length * sizeof(wchar_t));
 
     wcscpy(path + spath_length, temp);
+}
+
+inline
+bool directory_tree_create(const wchar_t* path) NO_EXCEPT
+{
+    wchar_t buffer[PATH_MAX_LENGTH];
+    relative_to_absolute(path, buffer);
+
+    // If it already exists and is a directory = success
+    DWORD attr = GetFileAttributesW(buffer);
+    if (attr != INVALID_FILE_ATTRIBUTES) {
+        return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    }
+
+    wchar_t* p = buffer;
+
+    // Skip drive letter (e.g. "C:\")
+    if (p[0] && p[1] == L':') {
+        p += 2;
+    }
+
+    // Skip UNC prefix (\\server\share\)
+    if (p[0] == L'\\' && p[1] == L'\\') {
+        p += 2;
+        while (*p && *p != L'\\') {
+            ++p; // server
+        }
+
+        if (*p) {
+            ++p;
+        }
+
+        while (*p && *p != L'\\') {
+            ++p; // share
+        }
+    }
+
+    for (; *p; ++p) {
+        if (*p == L'\\' || *p == L'/') {
+            wchar_t old = *p;
+            *p = 0;
+
+            if (*buffer) {
+                DWORD a = GetFileAttributesW(buffer);
+                if (a == INVALID_FILE_ATTRIBUTES) {
+                    if (!CreateDirectoryW(buffer, nullptr)) {
+                        if (GetLastError() != ERROR_ALREADY_EXISTS) {
+                            return false;
+                        }
+                    }
+                } else if (!(a & FILE_ATTRIBUTE_DIRECTORY)) {
+                    // exists but not a directory
+                    return false;
+                }
+            }
+
+            *p = old;
+        }
+    }
+
+    // Create final directory
+    DWORD a = GetFileAttributesW(buffer);
+    if (a == INVALID_FILE_ATTRIBUTES) {
+        if (!CreateDirectoryW(buffer, nullptr)) {
+            if (GetLastError() != ERROR_ALREADY_EXISTS) {
+                return false;
+            }
+        }
+    } else if (!(a & FILE_ATTRIBUTE_DIRECTORY)) {
+        return false;
+    }
+
+    return true;
+}
+
+inline
+bool directory_tree_create(const char* path) NO_EXCEPT
+{
+    char buffer[PATH_MAX_LENGTH];
+    relative_to_absolute(path, buffer);
+
+    // If it already exists and is a directory = success
+    DWORD attr = GetFileAttributesA(path);
+    if (attr != INVALID_FILE_ATTRIBUTES) {
+        return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    }
+
+    char* p = buffer;
+
+    // Skip drive letter (e.g. "C:\")
+    if (p[0] && p[1] == ':') {
+        p += 2;
+    }
+
+    // Skip UNC prefix (\\server\share\)
+    if (p[0] == '\\' && p[1] == '\\') {
+        p += 2;
+        while (*p && *p != '\\') {
+            ++p; // server
+        }
+
+        if (*p) {
+            ++p;
+        }
+
+        while (*p && *p != '\\') {
+            ++p; // share
+        }
+    }
+
+    for (; *p; ++p) {
+        if (*p == '\\' || *p == '/') {
+            char old = *p;
+            *p = 0;
+
+            if (*buffer) {
+                DWORD a = GetFileAttributesA(buffer);
+                if (a == INVALID_FILE_ATTRIBUTES) {
+                    if (!CreateDirectoryA(buffer, nullptr)) {
+                        if (GetLastError() != ERROR_ALREADY_EXISTS) {
+                            return false;
+                        }
+                    }
+                } else if (!(a & FILE_ATTRIBUTE_DIRECTORY)) {
+                    // exists but not a directory
+                    return false;
+                }
+            }
+
+            *p = old;
+        }
+    }
+
+    // Create final directory
+    DWORD a = GetFileAttributesA(buffer);
+    if (a == INVALID_FILE_ATTRIBUTES) {
+        if (!CreateDirectoryA(buffer, nullptr)) {
+            if (GetLastError() != ERROR_ALREADY_EXISTS) {
+                return false;
+            }
+        }
+    } else if (!(a & FILE_ATTRIBUTE_DIRECTORY)) {
+        return false;
+    }
+
+    return true;
 }
 
 FORCE_INLINE
@@ -245,7 +391,7 @@ bool file_exists(const char* path) NO_EXCEPT
 inline
 bool file_exists(const wchar_t* path) NO_EXCEPT
 {
-    //PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
 
     DWORD file_attr;
     if (*path == L'.') {
@@ -508,7 +654,7 @@ void file_read(
     RingMemory* const __restrict ring = NULL
 ) NO_EXCEPT
 {
-    //PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == L'.') {
@@ -760,9 +906,6 @@ bool file_read_line(
     return true;
 }
 
-// @todo implement
-// void file_write_handle();
-
 inline bool
 file_write(const char* __restrict path, const FileBody* __restrict file) NO_EXCEPT
 {
@@ -813,7 +956,7 @@ file_write(const char* __restrict path, const FileBody* __restrict file) NO_EXCE
 inline bool
 file_write(const wchar_t* __restrict path, const FileBody* __restrict file) NO_EXCEPT
 {
-    //PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == L'.') {
@@ -857,10 +1000,146 @@ file_write(const wchar_t* __restrict path, const FileBody* __restrict file) NO_E
     return true;
 }
 
-inline void
+inline bool
 file_copy(const char* __restrict src, const char* __restrict dst) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
+
+    char dst_full_path[PATH_MAX_LENGTH];
+    relative_to_absolute(dst, dst_full_path);
+
+    // Find last slash and check if the last path element is a file
+    // We don't want to create the file name as a directory by accident
+    char* last_slash = NULL;
+    for (char* pos = dst_full_path; *pos; ++pos) {
+        if (*pos == '\\' || *pos == '/') {
+            last_slash = pos;
+        }
+    }
+
+    // Remove . from path since the directory tree creation will otherwise create the file name as directory
+    for (char* pos = last_slash; *pos; ++pos) {
+        if (*pos == '.') {
+            *last_slash = '\0';
+            break;
+        }
+    }
+    directory_tree_create(dst_full_path);
+
+    // We re-add the previously removed .
+    *last_slash = '\\';
+
+    if (*src == '.') {
+        char src_full_path[PATH_MAX_LENGTH];
+        relative_to_absolute(src, src_full_path);
+
+        return (bool) CopyFileA((LPCSTR) src_full_path, (LPCSTR) dst_full_path, false);
+    } else {
+        return (bool) CopyFileA((LPCSTR) src, (LPCSTR) dst_full_path, false);
+    }
+}
+
+inline bool
+file_copy(const wchar_t* __restrict src, const wchar_t* __restrict dst) NO_EXCEPT
+{
+    PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
+
+    wchar_t dst_full_path[PATH_MAX_LENGTH];
+    relative_to_absolute(dst, dst_full_path);
+
+    // Find last slash and check if the last path element is a file
+    // We don't want to create the file name as a directory by accident
+    wchar_t* last_slash = NULL;
+    for (wchar_t* pos = dst_full_path; *pos; ++pos) {
+        if (*pos == L'\\' || *pos == L'/') {
+            last_slash = pos;
+        }
+    }
+
+    // Remove . from path since the directory tree creation will otherwise create the file name as directory
+    for (wchar_t* pos = last_slash; *pos; ++pos) {
+        if (*pos == L'.') {
+            *last_slash = L'\0';
+            break;
+        }
+    }
+    directory_tree_create(dst_full_path);
+    // We re-add the previously removed .
+    *last_slash = L'\\';
+
+    if (*src == L'.') {
+        wchar_t src_full_path[PATH_MAX_LENGTH];
+        relative_to_absolute(src, src_full_path);
+
+        return (bool) CopyFileW(src_full_path, dst_full_path, FALSE);
+    } else {
+        return (bool) CopyFileW(src, dst_full_path, FALSE);
+    }
+}
+
+inline bool directory_copy(
+    const wchar_t* src,
+    const wchar_t* dst
+) NO_EXCEPT
+{
+    wchar_t abs_dst[PATH_MAX_LENGTH];
+    relative_to_absolute(dst, abs_dst);
+
+    if (!directory_tree_create(abs_dst)) {
+        return false;
+    }
+
+    wchar_t abs_src[PATH_MAX_LENGTH];
+    relative_to_absolute(src, abs_src);
+
+    wchar_t search_path[MAX_PATH];
+    sprintf_fast(search_path, L"%s\\*", abs_src);
+
+    WIN32_FIND_DATAW ffd;
+    HANDLE hFind = FindFirstFileW(search_path, &ffd);
+    if (hFind == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    do {
+        if (wcscmp(ffd.cFileName, L".") == 0
+            || wcscmp(ffd.cFileName, L"..") == 0
+        ) {
+            continue;
+        }
+
+        wchar_t src_item[MAX_PATH];
+        wchar_t dst_item[MAX_PATH];
+
+        sprintf_fast(src_item, L"%s/%s", abs_src, ffd.cFileName);
+        sprintf_fast(dst_item, L"%s/%s", abs_dst, ffd.cFileName);
+
+        if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            if (!directory_copy(src_item, dst_item)) {
+                FindClose(hFind);
+                return false;
+            }
+        } else {
+            if (!file_copy(src_item, dst_item)) {
+                FindClose(hFind);
+                return false;
+            }
+        }
+
+    } while (FindNextFileW(hFind, &ffd));
+
+    FindClose(hFind);
+
+    return true;
+}
+
+inline bool
+file_move(const char* __restrict src, const char* __restrict dst) NO_EXCEPT
+{
+    PROFILE(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
+
+    // @performance we are creating an absolute path for dst potentially twice
+    directory_tree_create(dst);
 
     if (*src == '.') {
         char src_full_path[PATH_MAX_LENGTH];
@@ -870,24 +1149,27 @@ file_copy(const char* __restrict src, const char* __restrict dst) NO_EXCEPT
             char dst_full_path[PATH_MAX_LENGTH];
             relative_to_absolute(dst, dst_full_path);
 
-            CopyFileA((LPCSTR) src_full_path, (LPCSTR) dst_full_path, false);
+            return (bool) MoveFileA((LPCSTR) src_full_path, (LPCSTR) dst_full_path);
         } else {
-            CopyFileA((LPCSTR) src_full_path, (LPCSTR) dst, false);
+            return (bool) MoveFileA((LPCSTR) src_full_path, (LPCSTR) dst);
         }
     } else if (*dst == '.') {
         char dst_full_path[PATH_MAX_LENGTH];
         relative_to_absolute(dst, dst_full_path);
 
-        CopyFileA((LPCSTR) src, (LPCSTR) dst_full_path, false);
+        return (bool) MoveFileA((LPCSTR) src, (LPCSTR) dst_full_path);
     } else {
-        CopyFileA((LPCSTR) src, (LPCSTR) dst, false);
+        return (bool) MoveFileA((LPCSTR) src, (LPCSTR) dst);
     }
 }
 
-inline void
-file_copy(const wchar_t* __restrict src, const wchar_t* __restrict dst) NO_EXCEPT
+inline bool
+file_move(const wchar_t* __restrict src, const wchar_t* __restrict dst) NO_EXCEPT
 {
-    //PROFILE(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE(PROFILE_FILE_UTILS, NULL, PROFILE_FLAG_SHOULD_LOG);
+
+    // @performance we are creating an absolute path for dst potentially twice
+    directory_tree_create(dst);
 
     if (*src == L'.') {
         wchar_t src_full_path[PATH_MAX_LENGTH];
@@ -897,17 +1179,17 @@ file_copy(const wchar_t* __restrict src, const wchar_t* __restrict dst) NO_EXCEP
             wchar_t dst_full_path[PATH_MAX_LENGTH];
             relative_to_absolute(dst, dst_full_path);
 
-            CopyFileW(src_full_path, dst_full_path, FALSE);
+            return (bool) MoveFileW(src_full_path, dst_full_path);
         } else {
-            CopyFileW(src_full_path, dst, FALSE);
+            return (bool) MoveFileW(src_full_path, dst);
         }
     } else if (*dst == L'.') {
         wchar_t dst_full_path[PATH_MAX_LENGTH];
         relative_to_absolute(dst, dst_full_path);
 
-        CopyFileW(src, dst_full_path, FALSE);
+        return (bool) MoveFileW(src, dst_full_path);
     } else {
-        CopyFileW(src, dst, FALSE);
+        return (bool) MoveFileW(src, dst);
     }
 }
 
@@ -1538,7 +1820,7 @@ void iterate_directory(
 
     WIN32_FIND_DATAA find_file_data;
     char search_path[PATH_MAX_LENGTH];
-    snprintf(search_path, PATH_MAX_LENGTH, "%s\\*", full_base_path);
+    snprintf(search_path, PATH_MAX_LENGTH, "%s/*", full_base_path);
 
     HANDLE hFind = FindFirstFileA((LPCSTR) search_path, &find_file_data);
     if (hFind == INVALID_HANDLE_VALUE) {

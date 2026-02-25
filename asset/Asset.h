@@ -47,8 +47,7 @@ struct Asset {
     // e.g. textures or entity schemas (NOT entities themselves)
     uint16 reference_count;
 
-    // Actual memory address and specific asset data
-    // @question The problem with this is self is probably not even the data but an object like Audio or Video
+    // Address to the data OR the object that holds the data (e.g. Image, Audio, ...)
     byte* self;
 
     // An asset can reference up to N other assets

@@ -52,7 +52,7 @@ struct UILayout {
     uint32* ui_chroma_codes;
 
     // @question Maybe we should have an array of fonts (e.g. allow up to 3 fonts per layout?)
-    Font* font;
+    const Font* font;
 
     // Used to directly find element by name
     // The values are pointers to the UIElements

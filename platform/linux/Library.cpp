@@ -10,13 +10,15 @@
 #define COMS_PLATFORM_LINUX_LIBRARY_C
 
 #include <dlfcn.h>
-#include <string.h>
 #include <unistd.h>
 
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../../system/Library.h"
 #include "../../system/FileUtils.cpp"
+
+const wchar_t _platform_suffix[] = L"_linux";
+const wchar_t _library_extension[] = L".so";
 
 inline
 bool library_load(Library* lib)
@@ -43,7 +45,6 @@ bool library_load(Library* lib)
         usleep(100000); // 100 ms
     }
 
-    // @question we might want RTLD_NOW?
     lib->handle = dlopen(dst, RTLD_LAZY);
     if (!lib->handle) {
         LOG_1(dlerror());

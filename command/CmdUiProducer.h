@@ -12,7 +12,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemoryT.h"
 #include "../ui/UILayout.cpp"
-#include "../ui/UITheme.h"
+#include "../ui/UITheme.cpp"
 #include "AppCommand.h"
 #include "CmdGeneralProducer.h"
 

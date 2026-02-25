@@ -10,7 +10,7 @@
 #define COMS_AUDIO_C
 
 #include "../utils/StringUtils.h"
-#include "../memory/RingMemory.h"
+#include "../memory/RingMemory.cpp"
 #include "../system/FileUtils.cpp"
 
 #include "Audio.h"
@@ -47,9 +47,15 @@ int32 audio_data_size(const Audio* const audio) NO_EXCEPT
 inline
 uint32 audio_header_from_data(const byte* __restrict data, Audio* const __restrict audio) NO_EXCEPT
 {
+    if (!data) {
+        LOG_1("[WARNING] No audio data provided to load");
+        return 0;
+    }
+
     const byte* const start = data;
 
-    audio->sample_rate = SWAP_ENDIAN_LITTLE(*((uint16 *) data));
+    memcpy(&audio->sample_rate, data, sizeof(audio->sample_rate));
+    SWAP_ENDIAN_LITTLE_SELF(audio->sample_rate);
     data += sizeof(audio->sample_rate);
 
     audio->channels = (*data >> 4) & 0x0F;
@@ -70,7 +76,8 @@ uint32 audio_header_to_data(const Audio* const __restrict audio, byte* __restric
 {
     const byte* const start = data;
 
-    *((uint16 *) data) = SWAP_ENDIAN_LITTLE(audio->sample_rate);
+    const uint16 temp = SWAP_ENDIAN_LITTLE(audio->sample_rate);
+    memcpy(data, &temp, sizeof(temp));
     data += sizeof(audio->sample_rate);
 
     // Reducing data footprint through bit fiddling
@@ -84,13 +91,16 @@ uint32 audio_header_to_data(const Audio* const __restrict audio, byte* __restric
 
 uint32 audio_from_data(const byte* __restrict data, Audio* const __restrict audio) NO_EXCEPT
 {
-    LOG_3("Load audio");
+    if (!data) {
+        LOG_1("[WARNING] No audio data provided to load");
+        return 0;
+    }
+
+    LOG_3("[INFO] Load audio");
     data += audio_header_from_data(data, audio);
 
     memcpy(audio->data, data, audio->size);
     //data += audio->size;
-
-    LOG_3("Loaded audio");
 
     return audio_data_size(audio);
 }

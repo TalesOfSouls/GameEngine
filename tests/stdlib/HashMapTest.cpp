@@ -4,7 +4,7 @@
 
 static void test_hashmap_alloc() {
     HashMap hm = {0};
-    hashmap_alloc(&hm, 3, sizeof(HashEntryInt32));
+    hashmap_alloc(&hm, 3, 3, sizeof(HashEntryInt32));
 
     TEST_TRUE(hm.buf.capacity > 0);
 
@@ -15,7 +15,7 @@ static void test_hashmap_alloc() {
 
 static void test_hashmap_insert_int32() {
     HashMap hm = {0};
-    hashmap_alloc(&hm, 3, sizeof(HashEntryInt32));
+    hashmap_alloc(&hm, 3, 3, sizeof(HashEntryInt32));
 
     HashEntryInt32* entry;
 
@@ -42,7 +42,7 @@ static void test_hashmap_insert_int32() {
 
 static void test_hashmap_remove() {
     HashMap hm = {0};
-    hashmap_alloc(&hm, 3, sizeof(HashEntryInt32));
+    hashmap_alloc(&hm, 3, 3, sizeof(HashEntryInt32));
 
     HashEntryInt32* entry;
 
@@ -72,14 +72,14 @@ static void test_hashmap_dump_load() {
     ring_alloc(&ring, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
     HashMap hm_dump = {0};
-    hashmap_alloc(&hm_dump, 3, sizeof(HashEntryInt32));
+    hashmap_alloc(&hm_dump, 3, 3, sizeof(HashEntryInt32));
 
     hashmap_insert(&hm_dump, "test1", 1);
     hashmap_insert(&hm_dump, "test2", 2);
     hashmap_insert(&hm_dump, "test3", 3);
 
     HashMap hm_load = {0};
-    hashmap_alloc(&hm_load, 3, sizeof(HashEntryInt32));
+    hashmap_alloc(&hm_load, 3, 3, sizeof(HashEntryInt32));
 
     byte* out = ring_get_memory(&ring, 1024 * 1024);
 
@@ -113,17 +113,17 @@ typedef struct {
 // ------------------ Core HashMap Functions ------------------
 
 HashMapStd* hashmap_test_create(uint32 capacity) {
-    HashMapStd* map = (HashMapStd*) platform_alloc(sizeof(HashMapStd));
+    HashMapStd* map = (HashMapStd*) platform_alloc_aligned(sizeof(HashMapStd));
     map->capacity = capacity;
     map->count = 0;
-    map->entries = (HashEntryStd*) platform_alloc(capacity * sizeof(HashEntryStd));
+    map->entries = (HashEntryStd*) platform_alloc_aligned(capacity * sizeof(HashEntryStd));
     map->hash_function = NULL;
     return map;
 }
 
 void hashmap_test_free(HashMapStd* map) {
-    platform_free((void **) &map->entries);
-    platform_free((void **) &map);
+    platform_aligned_free((void **) &map->entries);
+    platform_aligned_free((void **) &map);
 }
 
 HashEntryStd* open_test_insert(HashMapStd* map, const char* key, int32 value) {
@@ -208,15 +208,15 @@ typedef struct {
 // ------------------ Core HashMap Functions ------------------
 
 ChainTestMap* chain_test_create(uint32 capacity, uint32 max_nodes) {
-    ChainTestMap* map = (ChainTestMap*) platform_alloc(sizeof(ChainTestMap));
+    ChainTestMap* map = (ChainTestMap*) platform_alloc_aligned(sizeof(ChainTestMap));
     map->capacity = capacity;
     map->max_nodes = max_nodes;
     map->count = 0;
-    map->buckets = (ChainTestNode**) platform_alloc(capacity * sizeof(ChainTestNode*));
+    map->buckets = (ChainTestNode**) platform_alloc_aligned(capacity * sizeof(ChainTestNode*));
     map->hash_function = NULL;
 
     // Pre-allocate nodes
-    map->nodes_pool = (ChainTestNode*) platform_alloc(max_nodes * sizeof(ChainTestNode));
+    map->nodes_pool = (ChainTestNode*) platform_alloc_aligned(max_nodes * sizeof(ChainTestNode));
 
     // Initialize free list
     map->free_list = &map->nodes_pool[0];
@@ -229,9 +229,9 @@ ChainTestMap* chain_test_create(uint32 capacity, uint32 max_nodes) {
 }
 
 void chain_test_free(ChainTestMap* map) {
-    platform_free((void **) &map->buckets);
-    platform_free((void **) &map->nodes_pool);
-    platform_free((void **) &map);
+    platform_aligned_free((void **) &map->buckets);
+    platform_aligned_free((void **) &map->nodes_pool);
+    platform_aligned_free((void **) &map);
 }
 
 // Grab a node from the free list
@@ -324,7 +324,7 @@ void chain_test_remove(ChainTestMap* map, const char* key) {
 
 static void _my_hashmap(MAYBE_UNUSED volatile void* val) {
     HashMap map = {0};
-    hashmap_alloc(&map, HASH_MAP_MAX_COUNT, sizeof(HashEntryInt32));
+    hashmap_alloc(&map, HASH_MAP_MAX_COUNT, HASH_MAP_MAX_COUNT, sizeof(HashEntryInt32));
     char test_key[20];
 
     size_t total = 0;
@@ -344,7 +344,7 @@ static void _my_hashmap(MAYBE_UNUSED volatile void* val) {
 
 static void _my_hashmap_2(MAYBE_UNUSED volatile void* val) {
     HashMapT<HashEntryStrT<int32>> map = {0};
-    hashmap_alloc(&map, HASH_MAP_MAX_COUNT);
+    hashmap_alloc(&map, HASH_MAP_MAX_COUNT, HASH_MAP_MAX_COUNT);
     char test_key[20];
 
     size_t total = 0;

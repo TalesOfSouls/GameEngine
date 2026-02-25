@@ -75,48 +75,47 @@ void generate_default_wav_references(const byte* data, uint32 size, Wav* const _
         #endif
     } else {
         // RIFF header
-        wav->header.file_type_bloc_id[0] = *(wav->data + 0);
-        wav->header.file_type_bloc_id[1] = *(wav->data + 1);
-        wav->header.file_type_bloc_id[2] = *(wav->data + 2);
-        wav->header.file_type_bloc_id[3] = *(wav->data + 3);
+        memcpy(wav->header.file_type_bloc_id, wav->data, 4);
         // should be (0x52, 0x49, 0x46, 0x46)
 
-        wav->header.size = *(wav->data + 4);
-        SWAP_ENDIAN_LITTLE(&wav->header.size);
+        memcpy(&wav->header.size, wav->data + 4, sizeof(wav->header.size));
+        SWAP_ENDIAN_LITTLE_SELF(wav->header.size);
         // should be file size - 8 bytes
 
-        wav->header.file_format_id[0] = *(wav->data + 8);
-        wav->header.file_format_id[1] = *(wav->data + 9);
-        wav->header.file_format_id[2] = *(wav->data + 10);
-        wav->header.file_format_id[3] = *(wav->data + 11);
+        memcpy(wav->header.file_format_id, wav->data + 8, 4);
         // should be (0x57, 0x41, 0x56, 0x45)
 
         // Data format header
-        wav->header.format_bloc_id[0] = *(wav->data + 12);
-        wav->header.format_bloc_id[1] = *(wav->data + 13);
-        wav->header.format_bloc_id[2] = *(wav->data + 14);
-        wav->header.format_bloc_id[3] = *(wav->data + 15);
+        memcpy(wav->header.format_bloc_id, wav->data + 12, 4);
         // should be (0x66, 0x6D, 0x74, 0x20)
 
-        wav->header.bloc_size = SWAP_ENDIAN_LITTLE(*((uint32 *) (wav->data + 16)));
+        memcpy(&wav->header.bloc_size, wav->data + 16, sizeof(wav->header.bloc_size));
+        SWAP_ENDIAN_LITTLE_SELF(wav->header.bloc_size);
         // should be 16
 
-        wav->header.audio_format = SWAP_ENDIAN_LITTLE(*((uint16 *) (wav->data + 20)));
-        wav->header.nbr_channels = SWAP_ENDIAN_LITTLE(*((uint16 *) (wav->data + 22)));
-        wav->header.frequency = SWAP_ENDIAN_LITTLE(*((uint32 *) (wav->data + 24)));
+        memcpy(&wav->header.audio_format, wav->data + 20, sizeof(wav->header.audio_format));
+        memcpy(&wav->header.nbr_channels, wav->data + 22, sizeof(wav->header.nbr_channels));
+        memcpy(&wav->header.frequency, wav->data + 24, sizeof(wav->header.frequency));
+        SWAP_ENDIAN_LITTLE_SELF(wav->header.audio_format);
+        SWAP_ENDIAN_LITTLE_SELF(wav->header.nbr_channels);
+        SWAP_ENDIAN_LITTLE_SELF(wav->header.frequency);
 
-        wav->header.byte_per_sec = SWAP_ENDIAN_LITTLE(*((uint32 *) (wav->data + 28)));
+        memcpy(&wav->header.byte_per_sec, wav->data + 28, sizeof(wav->header.byte_per_sec));
+        SWAP_ENDIAN_LITTLE_SELF(wav->header.byte_per_sec);
         // should be frequency * byte_per_bloc
 
-        wav->header.byte_per_bloc = SWAP_ENDIAN_LITTLE(*((uint16 *) (wav->data + 32)));
+        memcpy(&wav->header.byte_per_bloc, wav->data + 32, sizeof(wav->header.byte_per_bloc));
+        SWAP_ENDIAN_LITTLE_SELF(wav->header.byte_per_bloc);
         // should be nbr channels * bits_per_sample / 8
 
-        wav->header.bits_per_sample = SWAP_ENDIAN_LITTLE(*((uint16 *) (wav->data + 34)));
+        memcpy(&wav->header.bits_per_sample, wav->data + 34, sizeof(wav->header.bits_per_sample));
+        SWAP_ENDIAN_LITTLE_SELF(wav->header.bits_per_sample);
 
         // Sample data header
         memcpy(wav->header.data_bloc_id, wav->data + 36, 4);
 
-        wav->header.data_size = SWAP_ENDIAN_LITTLE(*((uint32 *) *(wav->data + WAV_HEADER_SIZE - sizeof(wav->header.data_bloc_id))));
+        memcpy(&wav->header.data_size, wav->data + WAV_HEADER_SIZE - sizeof(wav->header.data_bloc_id), sizeof(wav->header.data_size));
+        SWAP_ENDIAN_LITTLE_SELF(wav->header.data_size);
     }
 
     wav->sample_data = wav->data + WAV_HEADER_SIZE;

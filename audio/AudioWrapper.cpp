@@ -26,6 +26,7 @@ void audio_load(
     ApiAudioSetting* const __restrict api_setting
 ) NO_EXCEPT
 {
+    PROFILE(PROFILE_AUDIO_INIT, NULL, PROFILE_FLAG_SHOULD_LOG);
     bool success = false;
 
     // Try different audio wrappers if one fails in the following loop

@@ -11,11 +11,11 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemoryT.h"
-#include "../memory/RingMemory.h"
+#include "../memory/RingMemory.cpp"
 #include "../memory/QueueT.h"
 #include "../audio/AudioMixer.cpp"
 #include "../asset/Asset.h"
-#include "../asset/AssetManagementSystem.h"
+#include "../asset/AssetManagementSystem.cpp"
 #include "../audio/Audio.h"
 #include "AppCommand.h"
 #include "CmdAssetProducer.h"

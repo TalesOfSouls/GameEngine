@@ -78,7 +78,21 @@ void cmd_buffer_create(AppCmdBuffer* const cb, BufferMemory* const buf, int32 co
 {
     thrd_chunk_init(&cb->commands, buf, command_capacity, ASSUMED_CACHE_LINE_SIZE);
 
-    LOG_1("Created AppCmdBuffer: %n", {DATA_TYPE_UINT64, &cb->commands.capacity});
+    LOG_1("[INFO] Created AppCmdBuffer: %n", {DATA_TYPE_UINT64, &cb->commands.capacity});
+}
+
+inline
+void cmd_buffer_alloc(AppCmdBuffer* const cb, int32 command_capacity) NO_EXCEPT
+{
+    thrd_chunk_alloc(&cb->commands, command_capacity, command_capacity, ASSUMED_CACHE_LINE_SIZE);
+
+    LOG_1("[INFO] Created AppCmdBuffer: %n", {DATA_TYPE_UINT64, &cb->commands.capacity});
+}
+
+inline
+void cmd_buffer_free(AppCmdBuffer* const cb) NO_EXCEPT
+{
+    thrd_chunk_free(&cb->commands);
 }
 
 static inline

@@ -10,6 +10,7 @@
 #define COMS_GPUAPI_SOFTWARE_RENDERER_H
 
 #include "../../stdlib/Stdlib.h"
+#include "../../math/matrix/Matrix.h"
 #include "../../object/Vertex.h"
 #include "../../object/Texture.h"
 #include "../../memory/ChunkMemory.h"

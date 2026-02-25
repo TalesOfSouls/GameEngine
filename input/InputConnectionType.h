@@ -9,6 +9,8 @@
 #ifndef COMS_INPUT_CONNECTION_TYPE_H
 #define COMS_INPUT_CONNECTION_TYPE_H
 
+#include "../stdlib/Stdlib.h"
+
 // Important, since some connection protocols differ between for example USB and Bluetooth (see Playstation DualSense)
 enum InputConnectionType : byte {
     INPUT_CONNECTION_TYPE_NONE,
@@ -16,6 +18,5 @@ enum InputConnectionType : byte {
     INPUT_CONNECTION_TYPE_BLUETOOTH,
     INPUT_CONNECTION_TYPE_WIRELESS,
 };
-
 
 #endif

@@ -20,13 +20,6 @@ struct Object {
     // Defined in obj_type in the database
     uint16 type;
 
-    // We only define this general state value here because of the available padding
-    // Otherwise the space would be reserved due to padding but unused
-    // In reality we often use special object specific states if needed
-    // Sure we could reserve like 16 bytes of state information here but that would be a waste of memory in 90% of the cases
-    // @question re-check if we can change the size of members here so we can remove it
-    // int16 state;
-
     // ObjectFlag
     uint8 flag;
 

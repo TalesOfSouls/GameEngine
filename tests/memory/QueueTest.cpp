@@ -4,7 +4,7 @@
 
 static void test_queue_alloc() {
     Queue mem = {0};
-    queue_alloc(&mem, 10, 20);
+    queue_alloc(&mem, 10, 10, 20);
 
     // Every element is aligned according to the default alignment -> size >= constructor size
     TEST_EQUALS(mem.size, 256);
@@ -17,7 +17,7 @@ static void test_queue_alloc() {
 #if PERFORMANCE_TEST
 static void _my_queue(MAYBE_UNUSED volatile void* val) {
     Queue queue = {0};
-    queue_alloc(&queue, 999, sizeof(size_t));
+    queue_alloc(&queue, 999, 999, sizeof(size_t));
 
     // First insert 333 elements
     for (size_t i = 0; i < 333; ++i) {
@@ -46,7 +46,7 @@ static void _my_queue(MAYBE_UNUSED volatile void* val) {
 
 static void _my_queuet(MAYBE_UNUSED volatile void* val) {
     QueueT<size_t> queue = {0};
-    queue_alloc(&queue, 999, 8);
+    queue_alloc(&queue, 999, 999, 8);
 
     // First insert 333 elements
     for (size_t i = 0; i < 333; ++i) {

@@ -23,10 +23,20 @@ struct Heap {
     int32 (*compare) (const void*, const void*);
 };
 
-void heap_alloc(Heap* heap, uint32 element_size, uint64 capacity, int32 (*compare)(const void*, const void*)) {
+void heap_alloc(
+    Heap* heap,
+    uint32 element_size,
+    uint64 capacity, uint64 max_capacity,
+    int32 (*compare)(const void*, const void*)
+) {
     ASSERT_TRUE(element_size * capacity);
 
-    heap->elements = (byte *) platform_alloc(element_size * capacity + element_size);
+    heap->elements = (byte *) platform_alloc_aligned(
+        element_size * capacity + element_size,
+        element_size * max_capacity + element_size,
+        sizeof(size_t)
+    );
+
     if (!heap->elements) {
         return;
     }
@@ -36,8 +46,6 @@ void heap_alloc(Heap* heap, uint32 element_size, uint64 capacity, int32 (*compar
     heap->size = 0;
     heap->compare = compare;
     heap->helper_mem = heap->elements + element_size;
-
-    // @todo memset 0
 }
 
 void heap_free(Heap* heap)
@@ -46,7 +54,13 @@ void heap_free(Heap* heap)
     platform_free((void **) &heap->elements);
 }
 
-void heap_init(Heap* heap, BufferMemory* const buf, uint32 element_size, uint64 capacity, int32 (*compare)(const void*, const void*)) {
+void heap_init(
+    Heap* heap,
+    BufferMemory* const buf,
+    uint32 element_size,
+    uint64 capacity,
+    int32 (*compare)(const void*, const void*)
+) {
     ASSERT_TRUE(element_size * capacity);
 
     heap->elements = buffer_get_memory(buf, element_size * capacity, 8, true);

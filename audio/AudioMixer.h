@@ -81,5 +81,4 @@ struct AudioMixer {
     // Wait, why do we even need threading? Isn't the threading handled by the file loading
 };
 
-
 #endif

@@ -11,7 +11,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../utils/Utils.h"
-#include "RingMemory.h"
+#include "RingMemory.cpp"
 #include "BufferMemory.h"
 
 // WARNING: Structure needs to be the same as RingMemory
@@ -53,11 +53,33 @@ struct QueueEvent {
 };
 
 FORCE_INLINE
-void queue_alloc(Queue* const queue, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t)) NO_EXCEPT
+void queue_alloc(
+    Queue* const queue,
+    uint64 element_count, uint64 max_count,
+    uint32 element_size,
+    uint32 alignment = sizeof(size_t)
+) NO_EXCEPT
 {
+    ASSERT_TRUE(max_count >= element_count);
     element_size = align_up(element_size, alignment);
 
-    ring_alloc((RingMemory *) queue, element_count * element_size, alignment);
+    ring_alloc((RingMemory *) queue, element_count * element_size, max_count * element_size, alignment);
+    queue->element_size = element_size;
+}
+
+FORCE_INLINE
+void queue_alloc(
+    Queue* const queue,
+    MemoryArena* const mem,
+    uint64 element_count, uint64 max_count,
+    uint32 element_size,
+    uint32 alignment = sizeof(size_t)
+) NO_EXCEPT
+{
+    ASSERT_TRUE(max_count >= element_count);
+    element_size = align_up(element_size, alignment);
+
+    ring_alloc((RingMemory *) queue, mem, element_count * element_size, max_count * element_size, alignment);
     queue->element_size = element_size;
 }
 
@@ -90,9 +112,16 @@ void thrd_queue_locks_init(Queue* queue, uint32 element_count) NO_EXCEPT
 }
 
 inline
-void thrd_queue_alloc(Queue* queue, uint32 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
+void thrd_queue_alloc(Queue* queue, uint32 element_count, uint32 max_count, uint32 element_size, uint32 alignment = sizeof(size_t))
 {
-    queue_alloc(queue, element_count, element_size, alignment);
+    queue_alloc(queue, element_count, max_count, element_size, alignment);
+    thrd_queue_locks_init(queue, element_count);
+}
+
+inline
+void thrd_queue_alloc(Queue* queue, MemoryArena* mem, uint32 element_count, uint32 max_count, uint32 element_size, uint32 alignment = sizeof(size_t))
+{
+    queue_alloc(queue, mem, element_count, max_count, element_size, alignment);
     thrd_queue_locks_init(queue, element_count);
 }
 
@@ -116,15 +145,33 @@ void queue_free(Queue* const queue) NO_EXCEPT
     ring_free((RingMemory *) queue);
 }
 
-inline
-void thrd_queue_free(Queue* queue)
+static inline
+void thrd_queue_locks_free(Queue* const queue) NO_EXCEPT
 {
-    queue_free(queue);
-
     coms_sem_destroy(&queue->empty);
     coms_sem_destroy(&queue->full);
     mutex_destroy(&queue->mtx);
     coms_pthread_cond_destroy(&queue->cond);
+}
+
+inline
+void thrd_queue_free(Queue* queue)
+{
+    queue_free(queue);
+    thrd_queue_locks_free(queue);
+}
+
+FORCE_INLINE
+void queue_free(Queue* const queue, MemoryArena* mem) NO_EXCEPT
+{
+    ring_free((RingMemory *) queue, mem);
+}
+
+inline
+void thrd_queue_free(Queue* const queue, MemoryArena* mem)
+{
+    queue_free(queue);
+    thrd_queue_locks_free(queue);
 }
 
 FORCE_INLINE

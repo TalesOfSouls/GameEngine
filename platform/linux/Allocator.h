@@ -20,121 +20,10 @@
 
 static int32 _page_size = 0;
 
-struct linux_alloc_header {
+struct platform_alloc_header {
     size_t reserved_size;
     size_t committed_size;
 };
-
-inline
-void* platform_alloc(size_t initial_size, size_t reserve_size = ) NO_EXCEPT
-{
-    if (!reserve_size) {
-        reserve_size = initial_size;
-    }
-
-    if (!_page_size) {
-        _page_size = (int32)sysconf(_SC_PAGESIZE);
-    }
-
-    reserve_size = align_up(reserve_size + sizeof(linux_alloc_header), _page_size);
-    initial_size = align_up(initial_size + sizeof(linux_alloc_header), _page_size);
-
-    ASSERT_TRUE(initial_size <= reserve_size);
-
-    void* base = mmap(
-        NULL,
-        reserve_size,
-        PROT_NONE,
-        MAP_PRIVATE | MAP_ANONYMOUS,
-        -1,
-        0
-    );
-    ASSERT_TRUE(base != MAP_FAILED);
-
-    ASSERT_TRUE(
-        mprotect(base, initial_size, PROT_READ | PROT_WRITE) == 0
-    );
-
-    linux_alloc_header* hdr = (linux_alloc_header *) base;
-    hdr->reserved_size  = reserve_size;
-    hdr->committed_size = initial_size;
-
-    void* user_ptr = (void*)((uintptr_t)base + sizeof(linux_alloc_header));
-
-    DEBUG_MEMORY_INIT((uintptr_t)user_ptr, initial_size);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, initial_size);
-
-    return user_ptr;
-}
-
-inline
-bool platform_alloc_grow(
-    void* ptr,
-    size_t new_size
-) NO_EXCEPT
-{
-    if (!_page_size) {
-        _page_size = (int32)sysconf(_SC_PAGESIZE);
-    }
-
-    linux_alloc_header* hdr =
-        (linux_alloc_header*)((uintptr_t)ptr - sizeof(linux_alloc_header));
-
-    const size_t new_committed =
-        align_up(new_size + sizeof(linux_alloc_header), _page_size);
-
-    ASSERT_TRUE(new_committed > hdr->committed_size);
-    ASSERT_TRUE(new_committed <= hdr->reserved_size);
-
-    ASSERT_TRUE(
-        mprotect(hdr, new_committed, PROT_READ | PROT_WRITE) == 0
-    );
-
-    STATS_INCREMENT_BY(
-        DEBUG_COUNTER_MEM_ALLOC,
-        new_committed - hdr->committed_size
-    );
-
-    hdr->committed_size = new_committed;
-    return true;
-}
-
-inline
-bool platform_alloc_shrink(void* ptr, size_t new_size) NO_EXCEPT
-{
-    if (!_page_size) {
-        _page_size = (int32)sysconf(_SC_PAGESIZE);
-    }
-
-    linux_alloc_header* hdr =
-        (linux_alloc_header*)((uintptr_t)ptr - sizeof(linux_alloc_header));
-
-    const size_t new_committed =
-        align_up(new_size + sizeof(linux_alloc_header), _page_size);
-
-    ASSERT_TRUE(new_committed < hdr->committed_size);
-
-    const size_t delta = hdr->committed_size - new_committed;
-
-    ASSERT_TRUE(
-        mprotect(
-            (uint8_t*)hdr + new_committed,
-            delta,
-            PROT_NONE
-        ) == 0
-    );
-
-    madvise(
-        (uint8_t*)hdr + new_committed,
-        delta,
-        MADV_DONTNEED
-    );
-
-    hdr->committed_size = new_committed;
-    STATS_DECREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, delta);
-
-    return true;
-}
 
 inline
 void* platform_alloc_aligned(
@@ -143,6 +32,8 @@ void* platform_alloc_aligned(
     int32 alignment = sizeof(void*)
 ) NO_EXCEPT
 {
+    ASSERT_TRUE(alignment >= sizeof(void*));
+
     if (!reserve_size) {
         reserve_size = initial_size;
     }
@@ -152,12 +43,12 @@ void* platform_alloc_aligned(
     }
 
     reserve_size = align_up(
-        reserve_size + sizeof(linux_alloc_header) + alignment,
+        reserve_size + sizeof(platform_alloc_header) + sizeof(void*) + alignment,
         _page_size
     );
 
     initial_size = align_up(
-        initial_size + sizeof(linux_alloc_header) + alignment,
+        initial_size + sizeof(platform_alloc_header) + sizeof(void*) + alignment,
         _page_size
     );
 
@@ -177,40 +68,33 @@ void* platform_alloc_aligned(
         mprotect(base, initial_size, PROT_READ | PROT_WRITE) == 0
     );
 
-    linux_alloc_header* hdr = (linux_alloc_header *) base;
+    platform_alloc_header* hdr = (platform_alloc_header *) base;
     hdr->reserved_size  = reserve_size;
     hdr->committed_size = initial_size;
 
-    uintptr_t raw =
-        (uintptr_t)base + sizeof(linux_alloc_header);
+    uintptr_t raw = (uintptr_t)base + sizeof(platform_alloc_header) + sizeof(void*);
     void* aligned = (void*)align_up(raw, alignment);
+
+    ((void**)aligned)[-1] = base;
+
+    DEBUG_MEMORY_INIT((uintptr_t)aligned, initial_size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, initial_size);
 
     return aligned;
 }
 
 inline
-bool platform_alloc_aligned_grow(
-    void* aligned_ptr,
-    size_t new_size,
-    int32 alignment
-) NO_EXCEPT
+bool platform_alloc_aligned_grow(void* aligned_ptr, size_t new_user_size) NO_EXCEPT
 {
     if (!_page_size) {
         _page_size = (int32)sysconf(_SC_PAGESIZE);
     }
 
-    linux_alloc_header* hdr =
-        (linux_alloc_header*)(
-            (uintptr_t)aligned_ptr & ~((uintptr_t)_page_size - 1)
-        );
+    void* base = ((void**)aligned_ptr)[-1];
+    platform_alloc_header* hdr = (platform_alloc_header *) base;
 
-    const size_t new_committed =
-        align_up(
-            new_size +
-            sizeof(linux_alloc_header) +
-            alignment,
-            _page_size
-        );
+    // Calculate new committed size including header and alignment
+    const size_t new_committed = align_up(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
 
     ASSERT_TRUE(new_committed > hdr->committed_size);
     ASSERT_TRUE(new_committed <= hdr->reserved_size);
@@ -219,38 +103,26 @@ bool platform_alloc_aligned_grow(
         mprotect(hdr, new_committed, PROT_READ | PROT_WRITE) == 0
     );
 
-    STATS_INCREMENT_BY(
-        DEBUG_COUNTER_MEM_ALLOC,
-        new_committed - hdr->committed_size
-    );
+    DEBUG_MEMORY_INIT((uintptr_t)aligned_ptr + hdr->committed_size, new_committed - hdr->committed_size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, new_committed - hdr->committed_size);
 
     hdr->committed_size = new_committed;
+    LOG_3("[INFO] Grown aligned allocation to %n B", {DATA_TYPE_UINT64, &hdr->committed_size});
+
     return true;
 }
 
 inline
-bool platform_alloc_aligned_shrink(
-    void* aligned_ptr,
-    size_t new_size,
-    int32 alignment
-) NO_EXCEPT
+bool platform_alloc_aligned_shrink(void* aligned_ptr, size_t new_user_size) NO_EXCEPT
 {
     if (!_page_size) {
         _page_size = (int32)sysconf(_SC_PAGESIZE);
     }
 
-    linux_alloc_header* hdr =
-        (linux_alloc_header*)(
-            (uintptr_t)aligned_ptr & ~((uintptr_t)_page_size - 1)
-        );
+    void* base = ((void**)aligned_ptr)[-1];
+    platform_alloc_header* hdr = (platform_alloc_header *) base;
 
-    const size_t new_committed =
-        align_up(
-            new_size +
-            sizeof(linux_alloc_header) +
-            alignment,
-            _page_size
-        );
+    const size_t new_committed = align_up(new_user_size + sizeof(platform_alloc_header), _page_size);
 
     ASSERT_TRUE(new_committed < hdr->committed_size);
 
@@ -277,32 +149,18 @@ bool platform_alloc_aligned_shrink(
 }
 
 inline
-void platform_free(void** ptr) NO_EXCEPT
+void platform_aligned_free(void** aligned_ptr) NO_EXCEPT
 {
-    if (!ptr || !*ptr) {
+    if (!aligned_ptr || !*aligned_ptr) {
         return;
     }
 
-    linux_alloc_header* hdr = (linux_alloc_header*)((uintptr_t)(*ptr) - sizeof(linux_alloc_header));
+    // Base address stored just before aligned pointer
+    void* base = ((void**)(*aligned_ptr))[-1];
+    platform_alloc_header* hdr = (platform_alloc_header*)base;
 
-    DEBUG_MEMORY_FREE((uintptr_t)hdr);
-    munmap(hdr, hdr->reserved_size);
-
-    *ptr = NULL;
-}
-
-
-inline
-void platform_aligned_free(void** aligned_ptr) NO_EXCEPT
-{
-    if (!aligned_ptr || !*aligned_ptr) return;
-
-    linux_alloc_header* hdr = (linux_alloc_header*)(
-            (uintptr_t)(*aligned_ptr) & ~((uintptr_t)_page_size - 1)
-        );
-
-    DEBUG_MEMORY_FREE((uintptr_t)hdr);
-    munmap(hdr, hdr->reserved_size);
+    DEBUG_MEMORY_FREE((uintptr_t)*aligned_ptr);
+    munmap(base, hdr->reserved_size);
 
     *aligned_ptr = NULL;
 }
@@ -327,11 +185,11 @@ void* platform_shared_alloc(
     ASSERT_TRUE(*fd != -1);
 
     reserve_size = align_up(
-        reserve_size + sizeof(linux_alloc_header),
+        reserve_size + sizeof(platform_alloc_header),
         _page_size
     );
     initial_size = align_up(
-        initial_size + sizeof(linux_alloc_header),
+        initial_size + sizeof(platform_alloc_header),
         _page_size
     );
 
@@ -351,11 +209,11 @@ void* platform_shared_alloc(
         mprotect(base, initial_size, PROT_READ | PROT_WRITE) == 0
     );
 
-    linux_alloc_header* hdr = (linux_alloc_header *) base;
+    platform_alloc_header* hdr = (platform_alloc_header *) base;
     hdr->reserved_size  = reserve_size;
     hdr->committed_size = initial_size;
 
-    return (void*)((uintptr_t)base + sizeof(linux_alloc_header));
+    return (void*)((uintptr_t)base + sizeof(platform_alloc_header));
 }
 
 inline
@@ -368,9 +226,9 @@ bool platform_shared_alloc_grow(
         _page_size = (int32)sysconf(_SC_PAGESIZE);
     }
 
-    linux_alloc_header* hdr = (linux_alloc_header*)((uintptr_t)ptr - sizeof(linux_alloc_header));
+    platform_alloc_header* hdr = (platform_alloc_header*)((uintptr_t)ptr - sizeof(platform_alloc_header));
 
-    const size_t new_committed = align_up(new_size + sizeof(linux_alloc_header), _page_size);
+    const size_t new_committed = align_up(new_size + sizeof(platform_alloc_header), _page_size);
 
     ASSERT_TRUE(new_committed > hdr->committed_size);
     ASSERT_TRUE(new_committed <= hdr->reserved_size);
@@ -398,11 +256,11 @@ bool platform_shared_alloc_shrink(
         _page_size = (int32)sysconf(_SC_PAGESIZE);
     }
 
-    linux_alloc_header* hdr =
-        (linux_alloc_header*)((uintptr_t)ptr - sizeof(linux_alloc_header));
+    platform_alloc_header* hdr =
+        (platform_alloc_header*)((uintptr_t)ptr - sizeof(platform_alloc_header));
 
     const size_t new_committed =
-        align_up(new_size + sizeof(linux_alloc_header), _page_size);
+        align_up(new_size + sizeof(platform_alloc_header), _page_size);
 
     ASSERT_TRUE(new_committed < hdr->committed_size);
 
@@ -452,7 +310,7 @@ void platform_shared_free(int32 fd, const char* name, void** ptr) NO_EXCEPT
         return;
     }
 
-    linux_alloc_header* hdr = (linux_alloc_header*)((uintptr_t)(*ptr) - sizeof(linux_alloc_header));
+    platform_alloc_header* hdr = (platform_alloc_header*)((uintptr_t)(*ptr) - sizeof(platform_alloc_header));
 
     DEBUG_MEMORY_FREE((uintptr_t)hdr);
 

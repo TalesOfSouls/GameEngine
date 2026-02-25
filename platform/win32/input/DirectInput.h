@@ -10,7 +10,7 @@
 #define COMS_PLATFORM_WIN32_INPUT_DIRECTINPUT_H
 
 #include <dinput.h>
-#include "../../../input/Input.h"
+#include "../../../input/Input.cpp"
 #include "../../../input/ControllerInput.h"
 #include "../../../stdlib/Stdlib.h"
 

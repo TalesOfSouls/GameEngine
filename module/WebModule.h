@@ -3,7 +3,7 @@
 
 #include "../system/Library.cpp"
 #include "../log/DebugContainer.h"
-#include "../memory/RingMemory.h"
+#include "../memory/RingMemory.cpp"
 #include "../../models/ApplicationSettings.h"
 
 struct ApplicationData;

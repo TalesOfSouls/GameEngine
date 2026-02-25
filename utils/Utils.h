@@ -27,17 +27,6 @@
     #include "../architecture/x86/simd/utils/Utils.h"
 #endif
 
-struct FileBody {
-    // doesn't include null termination (same as strlen)
-    size_t size;
-
-    // If size is defined you also must allocate memory for content when reading from a file
-    // Otherwise the API expects a ring memory it can use for reserving memory
-    // Of course this means that the content is only temporarily available and will be overwritten any time
-    // If you allocate content, make sure to allocate +1 since we always add \0 at the end even in binary
-    byte* content;
-};
-
 FORCE_INLINE
 bool is_equal(const byte* __restrict region1, const byte* __restrict region2, uint64 size) NO_EXCEPT
 {

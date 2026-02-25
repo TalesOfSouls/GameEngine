@@ -2,21 +2,20 @@
 #define COMS_UI_LAYOUT_C
 
 #include "../stdlib/Stdlib.h"
-#include "../stdlib/HashMap.h"
+#include "../stdlib/HashMap.cpp"
 #include "../asset/Asset.h"
 #include "../camera/Camera.h"
 #include "../system/FileUtils.cpp"
 #include "../compiler/CompilerUtils.h"
 
 #include "UILayout.h"
-#include "UITheme.h"
+#include "UITheme.cpp"
 #include "UIElement.h"
 #include "UIElementType.h"
 #include "UIInput.h"
 #include "UILabel.h"
 #include "UIWindow.h"
 
-// @todo We should add some asserts that ensure that the respective structs at least start at a 4byte memory alignment
 // @performance We are prefetching stuff but we are not yet ensuring data is cache line aligned. We should align each UIElements, element specific data
 
 // Doesn't change the position of pos outside of the function, since lookahead
@@ -105,6 +104,8 @@ void ui_layout_assign_children(
         // Create a reference to the parent element for the child element
         UIElement* const child_element = (UIElement *) (layout->data + child_entry->value);
         child_element->parent = (uint32) ((uintptr_t) element - (uintptr_t) layout->data);
+        ASSERT_STRICT(((uintptr_t) child_element) % 4 == 0);
+        ASSERT_STRICT(((uintptr_t) child_element)->parent % 4 == 0);
 
         ++current_child_pos;
     }
@@ -170,6 +171,8 @@ void layout_from_file_txt(
 
     // Create root element
     UIElement* root = (UIElement *) element_data;
+    ASSERT_STRICT(((uintptr_t) root) % 4 == 0);
+
     hashmap_insert(&layout->hash_map, "root", (int32) (element_data - layout->data));
     ui_layout_count_direct_children(root, pos, -4);
 
@@ -201,6 +204,7 @@ void layout_from_file_txt(
 
         // Insert new element
         UIElement* const element = (UIElement *) element_data;
+        ASSERT_STRICT(((uintptr_t) element) % 4 == 0);
         hashmap_insert(&layout->hash_map, block_name, (int32) ((uintptr_t) element_data - (uintptr_t) layout->data));
 
         element->type = (UIElementType) ui_element_type_to_id(block_type);
@@ -210,6 +214,7 @@ void layout_from_file_txt(
 
         element_data += sizeof(UIElement)
             + sizeof(uint32) * element->children_count; // Children offsets come after the UIElement
+        ASSERT_STRICT(((uintptr_t) element_data) % 4 == 0);
 
         // We put the state data after this element
         element->state = (uint32) ((uintptr_t) element_data - (uintptr_t) layout->data);
@@ -253,6 +258,7 @@ void layout_from_file_txt(
 
         const HashEntryInt32* const entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name);
         UIElement* element = (UIElement *) (layout->data + entry->value);
+        ASSERT_STRICT(((uintptr_t) element) % 4 == 0);
         ui_layout_assign_children(layout, element, pos, level);
 
         // ui_layout_assign_children doesn't move the pos pointer
@@ -320,6 +326,7 @@ void ui_layout_serialize_element(
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of layout->data
     const UIElement* const element = (UIElement *) (data + entry->value);
+    ASSERT_STRICT(((uintptr_t) element) % 4 == 0);
 
     **out = element->state_flag;
     *out += sizeof(element->state_flag);
@@ -333,19 +340,23 @@ void ui_layout_serialize_element(
     **out = element->style_new;
     *out += sizeof(element->style_new);
 
-    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->parent);
+    uint32 temp32 = SWAP_ENDIAN_LITTLE(element->parent);
+    memcpy(*out, &temp32, sizeof(temp32));
     *out += sizeof(element->parent);
 
-    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->state);
+    temp32 = SWAP_ENDIAN_LITTLE(element->state);
+    memcpy(*out, &temp32, sizeof(temp32));
     *out += sizeof(element->state);
 
     // Details
-    for (int32 i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
-        *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->style_types[i]);
+    for (int i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
+        temp32 = SWAP_ENDIAN_LITTLE(element->style_types[i]);
+        memcpy(*out, &temp32, sizeof(temp32));
         *out += sizeof(element->style_types[i]);
     }
 
-    *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(element->children_count);
+    uint16 temp16 = SWAP_ENDIAN_LITTLE(element->children_count);
+    memcpy(*out, &temp16, sizeof(temp16));
     *out += sizeof(element->children_count);
 
     /* We don't save the animation state since that is always 0 in the file
@@ -353,19 +364,24 @@ void ui_layout_serialize_element(
     *out += sizeof(element->animation_state);
     */
 
-    *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(element->animation_count);
+    temp16 = SWAP_ENDIAN_LITTLE(element->animation_count);
+    memcpy(*out, &temp16, sizeof(temp16));
     *out += sizeof(element->animation_count);
 
-    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->animations);
+    temp32 = SWAP_ENDIAN_LITTLE(element->animations);
+    memcpy(*out, &temp32, sizeof(temp32));
     *out += sizeof(element->animations);
 
-    *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(element->vertex_count_max);
+    temp16 = SWAP_ENDIAN_LITTLE(element->vertex_count_max);
+    memcpy(*out, &temp16, sizeof(temp16));
     *out += sizeof(element->vertex_count_max);
 
-    *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(element->vertex_count_active);
+    temp16 = SWAP_ENDIAN_LITTLE(element->vertex_count_active);
+    memcpy(*out, &temp16, sizeof(temp16));
     *out += sizeof(element->vertex_count_active);
 
-    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->vertices_active_offset);
+    temp32 = SWAP_ENDIAN_LITTLE(element->vertices_active_offset);
+    memcpy(*out, &temp32, sizeof(temp32));
     *out += sizeof(element->vertices_active_offset);
 
     // Output dynamic length content directly after UIElement
@@ -383,8 +399,10 @@ void ui_layout_serialize_element(
 
     // Children array
     const uint32* children = (uint32 *) (element + 1);
+    ASSERT_STRICT(((uintptr_t) children) % 4 == 0);
     for (int32 i = 0; i < element->children_count; ++i) {
-        *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(children[i]);
+        temp32 = SWAP_ENDIAN_LITTLE(children[i]);
+        memcpy(*out, &temp32, sizeof(temp32));
         *out += sizeof(*children);
     }
 
@@ -395,7 +413,7 @@ void ui_layout_serialize_element(
     // When you create a layout this is should only contain the default style type
     // BUT we also support layout caching where a fully parsed layout+theme can be saved and loaded
     // This is very fast since now we don't need to build the layout based on the theme as long as the theme and window dimensions didn't change
-    for (int32 i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
+    for (int i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
         if (!element->style_types[i]) {
             continue;
         }
@@ -404,16 +422,19 @@ void ui_layout_serialize_element(
     }
 
     const UIAnimation* const animations = (UIAnimation *) (data + element->animations);
+    ASSERT_STRICT(((uintptr_t) animations) % 4 == 0);
+
     const int32 element_style_type_size = ui_element_type_size(element->type);
 
-    for (int32 i = 0; i < element->animation_count; ++i) {
+    for (int i = 0; i < element->animation_count; ++i) {
         **out = animations[i].style_old;
         *out += sizeof(animations[i].style_old);
 
         **out = animations[i].style_new;
         *out += sizeof(animations[i].style_new);
 
-        *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(animations[i].duration);
+        temp16 = SWAP_ENDIAN_LITTLE(animations[i].duration);
+        memcpy(*out, &temp16, sizeof(temp16));
         *out += sizeof(animations[i].duration);
 
         **out = animations[i].anim_type;
@@ -424,6 +445,7 @@ void ui_layout_serialize_element(
 
         // The keyframes are the element detail information (e.g. UIInput) and they are located after the respective Animation definition
         const byte* const keyframes = (byte *) (&animations[i] + 1);
+        ASSERT_STRICT(((uintptr_t) keyframes) % 4 == 0);
         for (int32 j = 0; j < animations[i].keyframe_count; ++j) {
             ui_layout_serialize_element_detail(element->type, keyframes + j * element_style_type_size, out);
         }
@@ -481,6 +503,7 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of layout->data
     UIElement* const element = (UIElement *) (data + entry->value);
+    ASSERT_STRICT(((uintptr_t) element) % 4 == 0);
 
     element->state_flag = **in;
     *in += sizeof(element->state_flag);
@@ -494,37 +517,46 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
     element->style_new = (UIStyleType) **in;
     *in += sizeof(element->style_new);
 
-    element->parent = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    memcpy(&element->parent, *in, sizeof(element->parent));
+    SWAP_ENDIAN_LITTLE_SELF(element->parent);
     *in += sizeof(element->parent);
 
-    element->state = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    memcpy(&element->state, *in, sizeof(element->state));
+    SWAP_ENDIAN_LITTLE_SELF(element->state);
     *in += sizeof(element->state);
 
     // Details
-    for (int32 i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
-        element->style_types[i] = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    for (int i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
+        memcpy(&element->style_types[i], *in, sizeof(element->style_types[i]));
+        SWAP_ENDIAN_LITTLE_SELF(element->style_types[i]);
         *in += sizeof(element->style_types[i]);
     }
 
-    element->children_count = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+    memcpy(&element->children_count, *in, sizeof(element->children_count));
+    SWAP_ENDIAN_LITTLE_SELF(element->children_count);
     *in += sizeof(element->children_count);
 
     // @question Do we really have to do that? Shouldn't the animation_state data be 0 anyways or could there be garbage values?
     memset(&element->animation_state, 0, sizeof(element->animation_state));
 
-    element->animation_count = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+    memcpy(&element->animation_count, *in, sizeof(element->animation_count));
+    SWAP_ENDIAN_LITTLE_SELF(element->animation_count);
     *in += sizeof(element->animation_count);
 
-    element->animations = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    memcpy(&element->animations, *in, sizeof(element->animations));
+    SWAP_ENDIAN_LITTLE_SELF(element->animations);
     *in += sizeof(element->animations);
 
-    element->vertex_count_max = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+    memcpy(&element->vertex_count_max, *in, sizeof(element->vertex_count_max));
+    SWAP_ENDIAN_LITTLE_SELF(element->vertex_count_max);
     *in += sizeof(element->vertex_count_max);
 
-    element->vertex_count_active = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+    memcpy(&element->vertex_count_active, *in, sizeof(element->vertex_count_active));
+    SWAP_ENDIAN_LITTLE_SELF(element->vertex_count_active);
     *in += sizeof(element->vertex_count_active);
 
-    element->vertices_active_offset = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    memcpy(&element->vertices_active_offset, *in, sizeof(element->vertices_active_offset));
+    SWAP_ENDIAN_LITTLE_SELF(element->vertices_active_offset);
     *in += sizeof(element->vertices_active_offset);
 
     // Load dynamic length content
@@ -540,8 +572,9 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
 
     // Children array
     uint32* children = (uint32 *) (element + 1);
-    for (int32 i = 0; i < element->children_count; ++i) {
-        children[i] = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    for (int i = 0; i < element->children_count; ++i) {
+        memcpy(&children[i], *in, sizeof(children[i]));
+        SWAP_ENDIAN_LITTLE_SELF(children[i]);
         *in += sizeof(*children);
     }
 
@@ -549,7 +582,7 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
     ui_layout_unserialize_element_state(element->type, data + element->state, in);
 
     // detailed element data/style_types e.g. UIInput
-    for (int32 i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
+    for (int i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
         if (!element->style_types[i]) {
             continue;
         }
@@ -558,16 +591,19 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
     }
 
     UIAnimation* animations = (UIAnimation *) (data + element->animations);
+    ASSERT_STRICT(((uintptr_t) animations) % 4 == 0);
+
     const int32 element_style_type_size = ui_element_type_size(element->type);
 
-    for (int32 i = 0; i < element->animation_count; ++i) {
+    for (int i = 0; i < element->animation_count; ++i) {
         animations[i].style_old = (UIStyleType) **in;
         *in += sizeof(animations[i].style_old);
 
         animations[i].style_new = (UIStyleType) **in;
         *in += sizeof(animations[i].style_new);
 
-        animations[i].duration = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+        memcpy(&animations[i].duration, *in, sizeof(animations[i].duration));
+        SWAP_ENDIAN_LITTLE_SELF(animations[i].duration);
         *in += sizeof(animations[i].duration);
 
         animations[i].anim_type = (AnimationEaseType) **in;
@@ -591,7 +627,7 @@ int32 layout_from_data(
     UILayout* const __restrict layout
 ) {
     PROFILE(PROFILE_LAYOUT_FROM_DATA, NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load layout");
+    LOG_1("[INFO] Load layout");
 
     const byte* in = data;
 
@@ -621,7 +657,7 @@ int32 layout_from_data(
         ui_layout_parse_element(entry, layout->data, &in);
     } chunk_iterate_end;
 
-    LOG_1("Loaded layout");
+    LOG_1("[INFO] Loaded layout");
 
     return (int32) layout->layout_size;
 }
@@ -634,7 +670,7 @@ void layout_from_theme(
     const UIThemeStyle* __restrict theme
 ) {
     PROFILE(PROFILE_LAYOUT_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load theme for layout");
+    LOG_1("[INFO] Load theme for layout");
 
     // @todo Handle animations
     // @todo Handle vertices_active offset
@@ -669,7 +705,10 @@ void layout_from_theme(
 
         // Populate default element
         UIElement* const element = (UIElement *) (layout->data + entry->value);
+        ASSERT_STRICT(((uintptr_t) element) % 4 == 0);
+
         UIAttributeGroup* const group = (UIAttributeGroup *) (theme->data + style_entry->value);
+        ASSERT_STRICT(((uintptr_t) group) % 4 == 0);
 
         // @todo Continue implementation
         switch (element->type) {
@@ -833,7 +872,7 @@ void ui_layout_update(UILayout* layout, UIElement* element) {
         }
     }
 
-    LOG_1("Loaded theme for layout");
+    LOG_1("[INFO] Loaded theme for layout");
 }
 
 // @question We might want to change the names of update/render
@@ -999,6 +1038,8 @@ UIElement* layout_get_element(const UILayout* const __restrict layout, const cha
         return NULL;
     }
 
+    ASSERT_STRICT(((uintptr_t) (layout->data + entry->value)) % 4 == 0);
+
     return (UIElement *) (layout->data + entry->value);
 }
 
@@ -1015,6 +1056,8 @@ void* layout_get_element_style(const UILayout* layout, UIElement* element, UISty
         return NULL;
     }
 
+    ASSERT_STRICT(((uintptr_t) (layout->data + element->style_types[style_type])) % 4 == 0);
+
     return layout->data + element->style_types[style_type];
 }
 
@@ -1024,6 +1067,8 @@ UIElement* layout_get_element_parent(const UILayout* layout, const UIElement* el
     if (!element) {
         return NULL;
     }
+
+    ASSERT_STRICT(((uintptr_t) (layout->data + element->parent)) % 4 == 0);
 
     return (UIElement *) (layout->data + element->parent);
 }
@@ -1036,6 +1081,9 @@ UIElement* layout_get_element_child(const UILayout* layout, const UIElement* ele
     }
 
     uint16* children = (uint16 *) (element + 1);
+
+    ASSERT_STRICT(((uintptr_t) (layout->data + children[child])) % 4 == 0);
+
     return (UIElement *) (layout->data + children[child]);
 }
 

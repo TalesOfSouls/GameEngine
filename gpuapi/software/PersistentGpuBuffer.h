@@ -21,15 +21,15 @@ struct PersistentGpuBuffer {
     // either ubo or vbo
     uint32 bo;
 
-    // actual memory range start
-    byte* data;
-
     // The respective sub-ranges. We expect a triple buffer
     // Size of the range incl. padding
     int32 range_stride;
 
     // This size is the actual data size excl. alignment overhead
     int32 range_size;
+
+    // actual memory range start
+    byte* data;
 };
 
 #endif

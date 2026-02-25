@@ -9,6 +9,8 @@
 #ifndef COMS_ASSET_TYPE_H
 #define COMS_ASSET_TYPE_H
 
+#include "../stdlib/Stdlib.h"
+
 enum AssetType : byte {
     ASSET_TYPE_GENERAL,
     ASSET_TYPE_OBJ,

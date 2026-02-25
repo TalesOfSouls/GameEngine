@@ -14,9 +14,9 @@
 #include <guiddef.h>
 #include <hidsdi.h>
 
-#include "../../../input/Input.h"
+#include "../../../input/Input.cpp"
 #include "../../../input/ControllerType.h"
-#include "../../../memory/RingMemory.h"
+#include "../../../memory/RingMemory.cpp"
 #include "controller/DualShock4.h"
 
 #include "../libs/hid.h"

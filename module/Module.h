@@ -12,12 +12,13 @@ enum ModuleType {
 };
 
 struct Module {
-    char name[128];
+    wchar_t name[64];
     int32 version;
     ModuleType type;
     bool is_active;
 
     Library lib;
+    void* table;
 };
 
 #endif

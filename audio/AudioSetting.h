@@ -10,7 +10,6 @@
 #define COMS_AUDIO_SETTING_H
 
 #include "../stdlib/Stdlib.h"
-#include "../math/matrix/Matrix.h"
 
 enum SoundApiType : byte {
     SOUND_API_TYPE_DIRECT_SOUND,
@@ -18,7 +17,6 @@ enum SoundApiType : byte {
     SOUND_API_TYPE_WASAPI,
 };
 
-// @performance the element order is probably not ideal in terms of useless padding
 struct AudioSetting {
     f32 master_volume;
 
@@ -28,6 +26,9 @@ struct AudioSetting {
 
     // This sample index is used to calculate the position in a ring buffer
     uint16 sample_index;
+
+    SoundApiType type;
+    byte latency;
 
     // bytes per bloc
     // channel count * bit
@@ -44,9 +45,6 @@ struct AudioSetting {
     // The buffer could be larger than the data to output
     uint32 sample_buffer_size;
     int16* buffer;
-
-    SoundApiType type;
-    byte latency;
 };
 
 struct AudioLocationSetting {
@@ -55,11 +53,5 @@ struct AudioLocationSetting {
     v3_f32 audio_moveto;
     f32 audio_velocity;
 };
-
-inline
-void update_audio_location_settings(AudioLocationSetting* settings) NO_EXCEPT
-{
-    vec3_normalize(&settings->audio_lookat);
-}
 
 #endif

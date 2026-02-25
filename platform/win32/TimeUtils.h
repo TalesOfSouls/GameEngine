@@ -10,11 +10,14 @@
 #define COMS_PLATFORM_WIN32_TIME_UTILS_H
 
 #include <windows.h>
-#include <time.h>
 #include "../../stdlib/Stdlib.h"
 #include "../../log/PerformanceProfiler.h"
 
-static LARGE_INTEGER _performance_frequency = {0};
+thread_local static LARGE_INTEGER _performance_frequency = []{
+    LARGE_INTEGER f;
+    QueryPerformanceFrequency(&f);
+    return f;
+}();
 
 inline
 void usleep(uint64 microseconds) NO_EXCEPT
@@ -23,10 +26,6 @@ void usleep(uint64 microseconds) NO_EXCEPT
 
     LARGE_INTEGER start, end;
     QueryPerformanceCounter(&start);
-
-    if (!_performance_frequency.QuadPart) {
-        QueryPerformanceFrequency(&_performance_frequency);
-    }
 
     const long long target = start.QuadPart
         + (microseconds * _performance_frequency.QuadPart)
@@ -81,15 +80,9 @@ uint64 time_index() NO_EXCEPT
     return counter.QuadPart;
 }
 
-// doesn't return clock time, only to return time since program start
-// -> can be used for profiling
 inline
 uint64 time_mu() NO_EXCEPT
 {
-    if (!_performance_frequency.QuadPart) {
-        QueryPerformanceFrequency(&_performance_frequency);
-    }
-
     LARGE_INTEGER counter;
     QueryPerformanceCounter(&counter);
 

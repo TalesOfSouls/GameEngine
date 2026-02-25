@@ -9,10 +9,9 @@
 #ifndef COMS_ARCHITECTURE_X86_UTILS_H
 #define COMS_ARCHITECTURE_X86_UTILS_H
 
-#include <stdlib.h>
 #include "../../../../stdlib/Stdlib.h"
 #include "../../../../compiler/CompilerUtils.h"
-#include "../../../../stdlib/Simd.h"
+#include "../../../../architecture/Intrinsics.h"
 
 // Only allowed for data >= 64 bits
 bool is_empty(const byte* region, uint64 size, int32 steps = 8)

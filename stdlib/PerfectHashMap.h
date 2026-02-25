@@ -12,7 +12,7 @@
 #include "Stdlib.h"
 #include "HashMap.h"
 #include "../hash/GeneralHash.h"
-#include "../memory/RingMemory.h"
+#include "../memory/RingMemory.cpp"
 
 typedef uint64 (*PerfectHashFunction)(const char* key, int32 seed);
 
@@ -169,10 +169,12 @@ void perfect_hashmap_alloc(PerfectHashMap* hm, int32 count, int32 element_size, 
     LOG_1("[INFO] Allocating PerfectHashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->map_count = count;
     hm->entry_size = element_size;
-    hm->hash_entries = (byte *) platform_alloc_aligned(count * element_size, count * element_size, alignment);
-
-    // @todo memset 0
-    // Do we even need this?
+    hm->hash_entries = (byte *) platform_alloc_aligned(
+        count * element_size,
+        count * element_size,
+        alignment
+    );
+    memset(hm->hash_entries, 0, count * element_size);
 }
 
 inline

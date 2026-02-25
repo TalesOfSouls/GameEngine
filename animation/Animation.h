@@ -10,7 +10,6 @@
 #ifndef COMS_ANIMATION_H
 #define COMS_ANIMATION_H
 
-#include <math.h>
 #include "../stdlib/Stdlib.h"
 
 #include "AnimationEaseType.h"

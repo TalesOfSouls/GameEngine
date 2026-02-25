@@ -459,4 +459,11 @@ enum DataType : byte {
     DATA_TYPE_STRUCT,
 };
 
+struct timespec
+{
+    time_t tv_sec;  // Seconds - >= 0
+    long   tv_nsec; // Nanoseconds - [0, 999999999]
+};
+#define _CRT_NO_TIME_T 1
+
 #endif

@@ -36,7 +36,7 @@ static int _xaudio2_lib_ref_count = 0;
 bool xaudio2_settings_load(AudioSetting* const __restrict setting, XAudio2Setting* const __restrict api_setting)
 {
     if (!pXAudio2Create || !SUCCEEDED(pXAudio2Create(&api_setting->xaudio2_handle, 0, XAUDIO2_DEFAULT_PROCESSOR))) {
-        LOG_1("Xaudio2: XAudio2Create failed");
+        LOG_1("[ERROR] Xaudio2: XAudio2Create failed");
 
         return false;
     }
@@ -49,7 +49,7 @@ bool xaudio2_settings_load(AudioSetting* const __restrict setting, XAudio2Settin
         0,
         NULL))
     ) {
-        LOG_1("Xaudio2: CreateMasteringVoice failed");
+        LOG_1("[ERROR] Xaudio2: CreateMasteringVoice failed");
 
         return false;
     }
@@ -74,7 +74,7 @@ bool xaudio2_settings_load(AudioSetting* const __restrict setting, XAudio2Settin
     */
 
     if (!SUCCEEDED(api_setting->xaudio2_handle->CreateSourceVoice(&api_setting->source_voice, &wf))) {
-        LOG_1("Xaudio2: CreateSourceVoice failed");
+        LOG_1("[ERROR] Xaudio2: CreateSourceVoice failed");
 
         return false;
     }
@@ -107,7 +107,7 @@ bool xaudio2_settings_load(AudioSetting* const __restrict setting, XAudio2Settin
 }
 
 bool xaudio2_load(AudioSetting* const __restrict setting, XAudio2Setting* const __restrict api_setting) {
-    LOG_1("Load audio API XAudio2");
+    LOG_1("[INFO] Load audio API XAudio2");
 
     if (_xaudio2_lib_ref_count) {
         xaudio2_settings_load(setting, api_setting);
@@ -222,7 +222,7 @@ void xaudio2_play_buffer(AudioSetting* __restrict setting, XAudio2Setting* __res
     );
 
     if (!SUCCEEDED(api_setting->source_voice->SubmitSourceBuffer(&api_setting->internal_buffer[idx]))) {
-        LOG_1("Xaudio2: SubmitSourceBuffer failed");
+        LOG_1("[ERROR] Xaudio2: SubmitSourceBuffer failed");
 
         return;
     }

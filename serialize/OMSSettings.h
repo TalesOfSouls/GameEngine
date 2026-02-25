@@ -137,7 +137,11 @@ char* settings_save_value(
             out += str_copy(out, (const char *) member);
         } break;
         case DATA_TYPE_CHAR_STR: {
-            str_copy_to_eol((const char *) member, out);
+            if (match[match_index].count > 1) {
+                str_copy_to_eol((const char *) member, out, match[match_index].count);
+            } else {
+                str_copy_to_eol((const char *) member, out);
+            }
         } break;
         case DATA_TYPE_WCHAR_STR: {
             char temp[256];
@@ -162,7 +166,7 @@ char* settings_save_value(
     return out;
 }
 
-void settings_save(
+size_t settings_save(
     const void* const __restrict settings_data,
     const char* __restrict in,
     char* __restrict out, size_t out_length,
@@ -215,6 +219,8 @@ void settings_save(
         out += str_copy_to_eol(line, out);
         *out++ = '\n';
     }
+
+    return (size_t) (out - start);
 }
 
 static inline
@@ -585,7 +591,11 @@ const char* settings_load_value(
             *((char *) member) = *pos;
         } break;
         case DATA_TYPE_CHAR_STR: {
-            str_copy_to_eol(pos, (char *) member, match[match_index].count);
+            if (match[match_index].count > 1) {
+                str_copy_to_eol(pos, (char *) member, match[match_index].count);
+            } else {
+                str_copy_to_eol(pos, (char *) member);
+            }
         } break;
         case DATA_TYPE_WCHAR_STR: {
             char temp[256];
@@ -658,6 +668,101 @@ void settings_load(
         // That's why we have to do it here
         str_move_to(&data, '\n');
     }
+}
+
+struct SettingsValidation {
+    const char* name;
+
+    DataType type;
+    size_t offset;
+    int32 count;
+
+    union {
+        int64 min;
+        f64 fmin;
+    };
+
+    union {
+        int64 max;
+        f64 fmax;
+    };
+};
+
+/**
+ * Basic settings validation to spot gross data corruption/invalid values
+ *
+ * @param const void*               settings_data   Settings struct cast to a void pointer
+ * @param const SettingsValidation* match           Array of validation data
+ * @param int                       match_count     Validation array size
+ *
+ * @return int Returns > 0 (1 indexed) for the first invalid value, otherwise 0 on success
+ */
+int settings_validate(
+    const void* const __restrict settings_data,
+    const SettingsValidation* const __restrict match,
+    int match_count
+) {
+    const byte* settings = (const byte *) settings_data;
+
+    for (int i = 0; i < match_count; ++i) {
+        const void* const member = (const void *) (settings + match[i].offset);
+
+        switch (match[i].type) {
+            case DATA_TYPE_INT8: {
+                if (*((int8 *) member) < match[i].min || *((int8 *) member) > match[i].max) {
+                    return i + 1;
+                }
+            } break;
+            case DATA_TYPE_INT16: {
+                if (*((int16 *) member) < match[i].min || *((int16 *) member) > match[i].max) {
+                    return i + 1;
+                }
+            } break;
+            case DATA_TYPE_INT32: {
+                if (*((int32 *) member) < match[i].min || *((int32 *) member) > match[i].max) {
+                    return i + 1;
+                }
+            } break;
+            case DATA_TYPE_INT64:  {
+                if (*((int64 *) member) < match[i].min || *((int64 *) member) > match[i].max) {
+                    return i + 1;
+                }
+            } break;
+            case DATA_TYPE_UINT8: {
+                if (*((uint8 *) member) < match[i].min || *((uint8 *) member) > match[i].max) {
+                    return i + 1;
+                }
+            } break;
+            case DATA_TYPE_UINT16: {
+                if (*((uint16 *) member) < match[i].min || *((uint16 *) member) > match[i].max) {
+                    return i + 1;
+                }
+            } break;
+            case DATA_TYPE_UINT32: {
+                if (*((uint32 *) member) < match[i].min || *((uint32 *) member) > match[i].max) {
+                    return i + 1;
+                }
+            } break;
+            case DATA_TYPE_UINT64: {
+                if (*((uint64 *) member) < (uint64) match[i].min || *((uint64 *) member) > (uint64) match[i].max) {
+                    return i + 1;
+                }
+            } break;
+            case DATA_TYPE_F32: {
+                if (*((f32 *) member) < match[i].fmin || *((f32 *) member) > match[i].fmax) {
+                    return i + 1;
+                }
+            } break;
+            case DATA_TYPE_F64: {
+                if (*((f64 *) member) < match[i].fmin || *((f64 *) member) > match[i].fmax) {
+                    return i + 1;
+                }
+            } break;
+            default: UNREACHABLE();
+        }
+    }
+
+    return 0;
 }
 
 #endif
