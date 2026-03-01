@@ -172,6 +172,7 @@ void thread_pool_alloc(
     );
 
     queue_alloc(&pool->work_queue, worker_capacity, worker_capacity, alignment);
+    DEBUG_MEMORY_NAME("Threadpool", pool->work_queue.memory);
 
     pool->thread_cnt = thread_count;
 

@@ -327,6 +327,7 @@ struct alignas(16) v4_f32 {
         #endif
     };
 };
+typedef v4_f32 quaternion;
 
 struct v2_f64 {
     union {

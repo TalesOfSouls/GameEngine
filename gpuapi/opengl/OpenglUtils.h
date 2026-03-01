@@ -558,7 +558,7 @@ void gpuapi_vertex_buffer_update(
 }
 
 FORCE_INLINE
-uint32 gpuapi_vertex_array_generate() NO_EXCEPT
+uint32 gpuapi_vertex_buffer_create() NO_EXCEPT
 {
     uint32 vao;
     glGenVertexArrays(1, &vao);

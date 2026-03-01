@@ -128,7 +128,6 @@ struct PerformanceThreadHistory {
 
 // Used to show historic values per thread unlike PerformanceStatHistory,
 // which doesn't differentiate between threads
-#define MAX_PERFORMANCE_THREAD_HISTORY 10000
 struct PerformanceProfileThread {
     atomic_32 int32 thread_id;
     int32 cpu_id;
@@ -136,10 +135,10 @@ struct PerformanceProfileThread {
 
     // WARNING: This only shows tha last tick but when rendering the rendering thread may be way slower
     // As a result you will only output every n-th tick
-    // @todo we probably want to log thread performance per frame for a chart
+    // @todo we probably want to log tick performance per frame for a chart?
     uint64 tick;
     const char* name;
-    PerformanceThreadHistory history[MAX_PERFORMANCE_THREAD_HISTORY];
+    PerformanceThreadHistory history[MAX_PERFORMANCE_STATS_HISTORY];
 };
 // How many threads do we support?
 static int32 _perf_thread_history_count = 0;
@@ -380,7 +379,7 @@ struct PerformanceProfiler {
         const int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
         atomic_increment_relaxed(&_perf_stats->perfs[pos + this->_id].counter);
 
-        // Store result
+        // Store result in global history (not thread history)
         PerformanceProfileResult temp_perf = {0};
         PerformanceProfileResult* const perf = (this->_flags & PROFILE_FLAG_STATELESS)
             ? &temp_perf
@@ -390,13 +389,13 @@ struct PerformanceProfiler {
         perf->total_cycle = this->total_cycle;
         perf->self_cycle = this->self_cycle;
 
-        // Add performance log to history
+        // Add performance log to thread history
         if (this->_flags & PROFILE_FLAG_ADD_HISTORY && _perf_thread_history_count) {
             for (int32 i = 0; i < _perf_thread_history_count; ++i) {
                 if (_perf_thread_history[i].thread_id == _thread_local_id) {
                     uint32 hist_pos = atomic_increment_wrap_relaxed(
                         &_perf_thread_history[i].pos,
-                        (uint32) MAX_PERFORMANCE_THREAD_HISTORY
+                        (uint32) MAX_PERFORMANCE_STATS_HISTORY
                     );
 
                     _perf_thread_history[i].cpu_id = _thread_cpu_id;

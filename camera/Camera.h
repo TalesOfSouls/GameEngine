@@ -17,8 +17,6 @@
 #define CAMERA_MIN_FOV  25.0f
 #define CAMERA_MAX_FOV 100.0f
 
-// @todo Please check out if we can switch to quaternions. We tried but failed.
-
 /**
  * Gpu API coordinate information
  *
@@ -64,8 +62,6 @@ struct Camera {
     f32 sensitivity;
     f32 zoom;
 
-    // @question consider to use v2_f32 with width and height value
-    // v2_f32 viewport;
     f32 viewport_width;
     f32 viewport_height;
 
@@ -74,7 +70,6 @@ struct Camera {
     f32 zfar;
     f32 aspect;
 
-    // @question Consider to replace with v16_f32 types
     // Careful, you cannot change the order of this
     // The reason is we copy all of the data to the gpu in one go in some cases
     // If we would change the order we would also change the order of the data on the gpu
@@ -83,10 +78,6 @@ struct Camera {
     // BUT that is never the case, the camera data is not using simd since we are rarely performing operations at the moment
     // If this changes in the future and we use this for cpu calculations it could make sense to change to v16_f32 and store only when uploading to gpu
     alignas(64) f32 projection[16];
-
-    // @performance Couldn't we create an optimized orth matrix for hud elements
-    //      Remember for hud elements we don't need to consider the z component when calculating x/y and width/height
-    //      Of course we still need a normal orth matrix for non-hud elements
     alignas(64) f32 orth[16];
     alignas(64) f32 view[16];
     alignas(64) Frustum frustum;

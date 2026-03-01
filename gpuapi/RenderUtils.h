@@ -358,8 +358,8 @@ v3_int32 vertex_text_create(
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_VERTEX_TEXT_CREATE);
-    int32 length = utf8_strlen(text);
-    if (length < 1) {
+    int32 length;
+    if (!text || (length = utf8_strlen(text)) < 1) {
         return {};
     }
 

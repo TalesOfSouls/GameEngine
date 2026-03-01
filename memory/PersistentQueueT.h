@@ -391,6 +391,7 @@ T* queue_enqueue(PersistentQueueT<T>* const __restrict queue, const T* __restric
 
     queue->memory[queue->head] = *data;
     T* mem = &queue->memory[queue->head];
+    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
 
     OMS_WRAPPED_INCREMENT(
         queue->head,
@@ -436,6 +437,7 @@ T* queue_enqueue_atomic(PersistentQueueT<T>* const __restrict queue, const T* __
 
     queue->memory[index] = *data;
     T* mem = &queue->memory[index];
+    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
 
     return mem;
 }
@@ -548,6 +550,8 @@ T* queue_enqueue_start(PersistentQueueT<T>* const queue) NO_EXCEPT
     if (!chunk_is_free_internal(queue->free, queue->head)) {
         return NULL;
     }
+
+    DEBUG_MEMORY_WRITE((uintptr_t) &queue->memory[queue->head], sizeof(T));
 
     return &queue->memory[queue->head];
 }
@@ -692,6 +696,7 @@ bool queue_dequeue(PersistentQueueT<T>* const __restrict queue, T* __restrict da
     }
 
     *data = queue->memory[queue->tail];
+    DEBUG_MEMORY_DELETE((uintptr_t) queue->memory[queue->tail], sizeof(T));
 
     free_index = queue->tail / (sizeof(uint_max) * 8);
     bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
@@ -840,6 +845,7 @@ void queue_dequeue_release(PersistentQueueT<T>* const queue, uint32 index) NO_EX
 
     queue->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
     queue->completed[free_index] &= ~(OMS_UINT_ONE << bit_index);
+    DEBUG_MEMORY_DELETE((uintptr_t) &queue->memory[index], sizeof(T));
 
     // This doesn't move the tail index since the tail index could be already somewhere entirely different
     // And for that reason we already moved it immediately when calling _keep()
@@ -916,6 +922,7 @@ void queue_dequeue_release_atomic(PersistentQueueT<T>* const queue, T* element) 
 
     atomic_and_release(&queue->free[free_index], ~(OMS_UINT_ONE << bit_index));
     atomic_and_release(&queue->completed[free_index], ~(OMS_UINT_ONE << bit_index));
+    DEBUG_MEMORY_DELETE((uintptr_t) element, sizeof(T));
 
     // This doesn't move the tail index since the tail index could be already somewhere entirely different
     // And for that reason we already moved it immediately when calling _keep()
@@ -981,6 +988,8 @@ void queue_dequeue_end(PersistentQueueT<T>* const queue) NO_EXCEPT
 
     queue->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
     queue->completed[free_index] &= ~(OMS_UINT_ONE << bit_index);
+
+    DEBUG_MEMORY_DELETE((uintptr_t) queue->tail, sizeof(T));
 
     OMS_WRAPPED_INCREMENT(
         queue->tail,

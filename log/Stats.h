@@ -32,6 +32,13 @@
         DEBUG_COUNTER_NETWORK_OUT_COUNT,
         DEBUG_COUNTER_NETWORK_IN_COUNT,
 
+        // Asset information
+        DEBUG_COUNTER_AUDIO_COUNT,
+
+        // Used to describe the open handles
+        DEBUG_COUNTER_FILE_HANDLE_COUNT,
+        DEBUG_COUNTER_LIB_HANDLE_COUNT,
+
         DEBUG_COUNTER_SIZE
     };
 #endif
@@ -42,6 +49,7 @@ struct StatCounterHistory {
     atomic_64 int64 stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE];
 };
 static StatCounterHistory* _stats_counter = NULL;
+static atomic_64 int64 _stats_counter_persistent[DEBUG_COUNTER_SIZE];
 static int32* _stats_counter_active = NULL;
 
 /**
@@ -103,6 +111,42 @@ void stats_decrement(int32 id, int64 by = 1) NO_EXCEPT
 }
 
 /**
+ * Increments a counter variable
+ *
+ * @param int32 id  Stats id
+ * @param int64 by  Change amount
+ *
+ * @return void
+ */
+inline HOT_CODE
+void stats_increment_persistent(int32 id, int64 by = 1) NO_EXCEPT
+{
+    if (!_stats_counter_active || !*_stats_counter_active) {
+        return;
+    }
+
+    atomic_add_relaxed(&_stats_counter_persistent[id], by);
+}
+
+/**
+ * Decrements a counter variable
+ *
+ * @param int32 id  Stats id
+ * @param int64 by  Change amount
+ *
+ * @return void
+ */
+inline HOT_CODE
+void stats_decrement_persistent(int32 id, int64 by = 1) NO_EXCEPT
+{
+    if (!_stats_counter_active || !*_stats_counter_active) {
+        return;
+    }
+
+    atomic_sub_relaxed(&_stats_counter_persistent[id], by);
+}
+
+/**
  * Sets a counter variable
  *
  * @param int32 id      Stats id
@@ -119,6 +163,24 @@ void stats_counter(int32 id, int64 value) NO_EXCEPT
 
     const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
     atomic_set_relaxed(&_stats_counter->stats[pos + id], value);
+}
+
+/**
+ * Sets a counter variable
+ *
+ * @param int32 id      Stats id
+ * @param int64 value   New value
+ *
+ * @return void
+ */
+inline HOT_CODE
+void stats_counter_persistent(int32 id, int64 value) NO_EXCEPT
+{
+    if (!_stats_counter_active || !*_stats_counter_active) {
+        return;
+    }
+
+    atomic_set_relaxed(&_stats_counter_persistent[id], value);
 }
 
 /**
@@ -195,6 +257,12 @@ void stats_log_to_file() NO_EXCEPT
 
     #define STATS_SNAPSHOT() ((void) 0)
     #define STATS_LOG_TO_FILE() ((void) 0)
+
+    #define STATS_INCREMENT_PERSISTENT(a) ((void) 0)
+    #define STATS_INCREMENT_BY_PERSISTENT(a, b) ((void) 0)
+    #define STATS_DECREMENT_PERSISTENT(a) ((void) 0)
+    #define STATS_DECREMENT_BY_PERSISTENT(a, b) ((void) 0)
+    #define STATS_COUNTER_PERSISTENT(a, b) ((void) 0)
 #else
     #define STATS_INCREMENT(a) stats_increment((a), 1)
     #define STATS_INCREMENT_BY(a, b) stats_increment((a), (b))
@@ -206,6 +274,13 @@ void stats_log_to_file() NO_EXCEPT
 
     #define STATS_SNAPSHOT() stats_snapshot()
     #define STATS_LOG_TO_FILE() stats_log_to_file()
+
+    // Persistent stats, not per frame or tick
+    #define STATS_INCREMENT_PERSISTENT(a) stats_increment_persistent((a), 1)
+    #define STATS_INCREMENT_BY_PERSISTENT(a, b) stats_increment_persistent((a), (b))
+    #define STATS_DECREMENT_PERSISTENT(a) stats_decrement_persistent((a), 1)
+    #define STATS_DECREMENT_BY_PERSISTENT(a, b) stats_decrement_persistent((a), (b))
+    #define STATS_COUNTER_PERSISTENT(a, b) stats_counter_persistent((a), (b))
 #endif
 
 #endif

@@ -52,6 +52,8 @@ struct GpuInfo {
     char name[32];
     char api_version[16];
     char shader_version[16];
+
+    // In Mb: VRAM
     uint32 vram;
 
     // Kinda similar to the cache line size on the cpu

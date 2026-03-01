@@ -17,13 +17,16 @@
     #define DEBUG_MEMORY_RANGE_MAX 500
 #endif
 
-#ifndef DEBUG_MEMORY_RANGE_RES_MAX
-    // How many reserved actions do we store?
-    #define DEBUG_MEMORY_RANGE_RES_MAX 100
+#ifndef DEBUG_MEMORY_RANGE_PERS_MAX
+    // How many persistent actions do we store?
+    // Persistent actions are "create subregion", "mark memory as in use"
+    #define DEBUG_MEMORY_RANGE_PERS_MAX 100
 #endif
 
 enum MemoryDebugType : char {
     MEMORY_DEBUG_TYPE_DELETE = -1,
+    // We use the value of the enum for calculations later on
+    // For that reason it is important that read has value 0 = no size change
     MEMORY_DEBUG_TYPE_READ = 0,
     MEMORY_DEBUG_TYPE_WRITE = 1,
 
@@ -36,7 +39,9 @@ enum MemoryDebugType : char {
 
 struct DebugMemoryRange {
     MemoryDebugType type;
+    // @performance start is not the absolute memory position but relative to the memory. we might be able to change it to int32
     uintptr_t start;
+    // @performance we aren't really using more than a couple hundred MB per range, using uint32 should be fine
     size_t size;
     uint64 time;
 
@@ -47,13 +52,20 @@ struct DebugMemoryRange {
 struct DebugMemory {
     uintptr_t start;
 
-    size_t usage;
+    int64 usage;
     size_t size;
 
+    const char* name;
+
     atomic_32 uint32 action_idx;
-    atomic_32 uint32 reserve_action_idx;
+    atomic_32 uint32 persistent_action_idx;
     alignas(8) DebugMemoryRange last_action[DEBUG_MEMORY_RANGE_MAX];
-    alignas(8) DebugMemoryRange reserve_action[DEBUG_MEMORY_RANGE_RES_MAX];
+
+    // Persistent actions are also actions that are relevant at all times
+    // Last actions on the other hand are only relevant for a certain amount of time
+    // These actions also get modified unlike the last_action which only get added or removed/overwritten
+    // For example we may mark a memory are as in use and later on mark it as no longer in use
+    alignas(8) DebugMemoryRange persistent_action[DEBUG_MEMORY_RANGE_PERS_MAX];
 };
 
 struct DebugMemoryContainer {
@@ -75,7 +87,7 @@ DebugMemory* debug_memory_find(uintptr_t start) NO_EXCEPT
 {
     for (uint32 i = 0; i < _dmc->memory_size; ++i) {
         if (_dmc->memory_stats[i].start <= start
-            && _dmc->memory_stats[i].start + _dmc->memory_stats[i].size >= start
+            && _dmc->memory_stats[i].start + _dmc->memory_stats[i].size > start
         ) {
             return &_dmc->memory_stats[i];
         }
@@ -129,6 +141,27 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
 }
 
 /**
+ * Names a memory range by a memory in the memory range
+ */
+void debug_memory_name(const char* name, void* addr) NO_EXCEPT
+{
+    if (!addr || !_dmc) {
+        return;
+    }
+
+    uintptr_t addrt = (uintptr_t) addr;
+
+    for (uint32 i = 0; i < _dmc->memory_size; ++i) {
+        if (_dmc->memory_stats[i].start <= addrt
+            && _dmc->memory_stats[i].start + _dmc->memory_stats[i].size > addrt
+        ) {
+            _dmc->memory_stats[i].name = name;
+            return;
+        }
+    }
+}
+
+/**
  * Log memory usage
  *
  * @param uintptr_t         start       Memory start
@@ -160,11 +193,8 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
     dmr->time = intrin_timestamp_counter();
     dmr->function_name = function;
 
-    if (type < 0 && mem->usage < size * -type) {
-        mem->usage = 0;
-    } else {
-        mem->usage += size * type;
-    }
+    mem->usage += size * type;
+    mem->usage = OMS_MAX((int64) 0, mem->usage);
 }
 
 /**
@@ -177,7 +207,7 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
  *
  * @return void
  */
-void debug_memory_reserve(uintptr_t start, size_t size, MemoryDebugType type, const char* function) NO_EXCEPT
+void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type, const char* function) NO_EXCEPT
 {
     if (!start || !_dmc) {
         return;
@@ -188,12 +218,13 @@ void debug_memory_reserve(uintptr_t start, size_t size, MemoryDebugType type, co
         return;
     }
 
+    // @bug we will most likely overwrite subregions in due time
     const uint32 idx = atomic_increment_wrap_relaxed(
-        &mem->reserve_action_idx,
-        (uint32) ARRAY_COUNT(mem->reserve_action)
+        &mem->persistent_action_idx,
+        (uint32) ARRAY_COUNT(mem->persistent_action)
     );
 
-    DebugMemoryRange* const dmr = &mem->reserve_action[idx];
+    DebugMemoryRange* const dmr = &mem->persistent_action[idx];
     dmr->type = type;
     dmr->start = start - mem->start;
     dmr->size = size;
@@ -220,8 +251,8 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
         return;
     }
 
-    for (int i = 0; i < ARRAY_COUNT(mem->reserve_action); ++i) {
-        DebugMemoryRange* const dmr = &mem->reserve_action[i];
+    for (int i = 0; i < ARRAY_COUNT(mem->persistent_action); ++i) {
+        DebugMemoryRange* const dmr = &mem->persistent_action[i];
         if (dmr->start == start - mem->start) {
             dmr->size = 0;
             return;
@@ -281,15 +312,17 @@ void debug_memory_reset() NO_EXCEPT
 
 #if DEBUG
     #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))
+    #define DEBUG_MEMORY_NAME(name, addr) debug_memory_name((name), (addr))
     #define DEBUG_MEMORY_READ(start, size) debug_memory_log((start), (size), MEMORY_DEBUG_TYPE_READ, __func__)
     #define DEBUG_MEMORY_WRITE(start, size) debug_memory_log((start), (size), MEMORY_DEBUG_TYPE_WRITE, __func__)
     #define DEBUG_MEMORY_DELETE(start, size) debug_memory_log((start), (size), MEMORY_DEBUG_TYPE_DELETE, __func__)
-    #define DEBUG_MEMORY_RESERVE(start, size) debug_memory_reserve((start), (size), MEMORY_DEBUG_TYPE_RESERVE, __func__)
-    #define DEBUG_MEMORY_SUBREGION(start, size) debug_memory_reserve((start), (size), MEMORY_DEBUG_TYPE_SUBREGION, __func__)
+    #define DEBUG_MEMORY_RESERVE(start, size) debug_memory_persistent((start), (size), MEMORY_DEBUG_TYPE_RESERVE, __func__)
+    #define DEBUG_MEMORY_SUBREGION(start, size) debug_memory_persistent((start), (size), MEMORY_DEBUG_TYPE_SUBREGION, __func__)
     #define DEBUG_MEMORY_FREE(start) debug_memory_free((start))
     #define DEBUG_MEMORY_RESET() debug_memory_reset()
 #else
     #define DEBUG_MEMORY_INIT(start, size) ((void) 0)
+    #define DEBUG_MEMORY_NAME(name, addr) ((void) 0)
     #define DEBUG_MEMORY_READ(start, size) ((void) 0)
     #define DEBUG_MEMORY_WRITE(start, size) ((void) 0)
     #define DEBUG_MEMORY_DELETE(start, size) ((void) 0)

@@ -28,6 +28,8 @@ bool library_dyn_load(LibraryHandle* const __restrict lib, const wchar_t* const 
         return false;
     }
 
+    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_LIB_HANDLE_COUNT);
+
     return true;
 }
 
@@ -36,6 +38,7 @@ void library_dyn_unload(LibraryHandle* const lib) NO_EXCEPT
 {
     FreeLibrary(*lib);
     *lib = NULL;
+    STATS_DECREMENT_PERSISTENT(DEBUG_COUNTER_LIB_HANDLE_COUNT);
 }
 
 inline
@@ -78,8 +81,8 @@ bool library_load(Library* const lib) NO_EXCEPT
             Sleep(100);
         }
 
-        int32 i = 0;
-        while (GetModuleHandleW((LPCWSTR) dst) && i++ < 10) {
+        int32 i = -1;
+        while (GetModuleHandleW((LPCWSTR) dst) && ++i < 10) {
             Sleep(100);
         }
     }
@@ -95,6 +98,7 @@ bool library_load(Library* const lib) NO_EXCEPT
     }
 
     lib->is_valid = true;
+    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_LIB_HANDLE_COUNT);
 
     return true;
 }
@@ -138,6 +142,7 @@ void library_unload(Library* const lib) NO_EXCEPT
     for (int c = 0; c < lib->function_count; ++c) {
         lib->functions[c] = NULL;
     }
+    STATS_DECREMENT_PERSISTENT(DEBUG_COUNTER_LIB_HANDLE_COUNT);
 }
 
 #endif

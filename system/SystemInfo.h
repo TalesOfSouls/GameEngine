@@ -33,6 +33,7 @@ struct OSInfo {
 
 struct RamInfo {
     // @question shouldn't this be uint16
+    // Memory in megabytes
     uint32 memory;
 };
 

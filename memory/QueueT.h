@@ -269,6 +269,8 @@ T* queue_enqueue(QueueT<T>* const __restrict queue, const T* __restrict data) NO
     *queue->head = *data;
     T* mem = queue->head;
 
+    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
+
     OMS_WRAPPED_INC_SE(
         queue->head,
         queue->memory,
@@ -302,6 +304,7 @@ T* queue_enqueue_atomic(QueueT<T>* const __restrict queue, const T* __restrict d
     );
 
     *mem = *data;
+    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
 
     return mem;
 }
@@ -404,6 +407,7 @@ template <typename T>
 FORCE_INLINE
 T* queue_enqueue_start(QueueT<T>* const queue) NO_EXCEPT
 {
+    DEBUG_MEMORY_WRITE((uintptr_t) queue->head, sizeof(T));
     return queue->head;
 }
 
@@ -482,6 +486,8 @@ T* thrd_queue_enqueue_start_sem_wait(QueueT<T>* const queue) NO_EXCEPT
     coms_sem_wait(&queue->empty);
     mutex_lock(&queue->mtx);
 
+    DEBUG_MEMORY_WRITE((uintptr_t) queue->head, sizeof(T));
+
     return queue->head;
 }
 
@@ -521,6 +527,8 @@ bool queue_dequeue(QueueT<T>* const __restrict queue, T* __restrict data) NO_EXC
     if (queue->head == queue->tail) {
         return false;
     }
+
+    DEBUG_MEMORY_DELETE((uintptr_t) queue->tail, sizeof(T));
 
     *data = *queue->tail;
     OMS_WRAPPED_INC_SE(
@@ -565,6 +573,7 @@ bool thrd_queue_dequeue_atomic(QueueT<T>* const __restrict queue, T* __restrict 
 
     // @bug in a queue that fills very fast this could lead to overwriting this element befor it is copied
     *data = *mem;
+    DEBUG_MEMORY_DELETE((uintptr_t) mem, sizeof(T));
 
     return true;
 }
@@ -662,6 +671,7 @@ template <typename T>
 FORCE_INLINE
 void queue_dequeue_end(QueueT<T>* const queue) NO_EXCEPT
 {
+    DEBUG_MEMORY_DELETE((uintptr_t) queue->tail, sizeof(T));
     OMS_WRAPPED_INC_SE(
         queue->tail,
         queue->memory,

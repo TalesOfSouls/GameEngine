@@ -31,6 +31,7 @@
 FORCE_INLINE
 MMFHandle file_mmf_handle(FileHandle fp) NO_EXCEPT
 {
+    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
     return CreateFileMappingA(fp, NULL, PAGE_READONLY, 0, 0, NULL);
 }
 
@@ -53,6 +54,7 @@ FORCE_INLINE
 void file_mmf_close(MMFHandle fh) NO_EXCEPT
 {
     CloseHandle(fh);
+    STATS_DECREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 }
 
 inline
@@ -1197,6 +1199,7 @@ FORCE_INLINE
 void file_close_handle(FileHandle fp) NO_EXCEPT
 {
     CloseHandle(fp);
+    STATS_DECREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 }
 
 inline
@@ -1229,6 +1232,8 @@ FileHandle file_append_handle(const char* path) NO_EXCEPT
     if (fp == INVALID_HANDLE_VALUE) {
         return NULL;
     }
+
+    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 
     return fp;
 }
@@ -1263,6 +1268,8 @@ FileHandle file_append_handle(const wchar_t* path) NO_EXCEPT
     if (fp == INVALID_HANDLE_VALUE) {
         return NULL;
     }
+
+    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 
     return fp;
 }
@@ -1371,6 +1378,8 @@ FileHandle file_read_handle(const char* path) NO_EXCEPT
         return NULL;
     }
 
+    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+
     return fp;
 }
 
@@ -1404,6 +1413,8 @@ FileHandle file_read_handle(const wchar_t* path) NO_EXCEPT
     if (fp == INVALID_HANDLE_VALUE) {
         return NULL;
     }
+
+    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 
     return fp;
 }
@@ -1439,6 +1450,8 @@ FileHandle file_read_async_handle(const char* path) NO_EXCEPT
         return NULL;
     }
 
+    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+
     return fp;
 }
 
@@ -1472,6 +1485,8 @@ FileHandle file_read_async_handle(const wchar_t* path) NO_EXCEPT
     if (fp == INVALID_HANDLE_VALUE) {
         return NULL;
     }
+
+    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 
     return fp;
 }

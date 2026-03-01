@@ -54,7 +54,7 @@ bool audio_mixer_is_active(AudioMixer* const mixer) NO_EXCEPT
 
 void audio_mixer_play(AudioMixer* const mixer, int32 id, Audio* const audio, const AudioInstance* const settings = NULL) NO_EXCEPT
 {
-    int32 index = chunk_reserve_one(&mixer->audio_instances);
+    const int32 index = chunk_reserve_one(&mixer->audio_instances);
     if (index < 0) {
         return;
     }
@@ -73,7 +73,7 @@ void audio_mixer_play(AudioMixer* const mixer, int32 id, Audio* const audio, con
 
 void audio_mixer_play(AudioMixer* const mixer, const AudioInstance* const settings) NO_EXCEPT
 {
-    int32 index = chunk_reserve_one(&mixer->audio_instances);
+    const int32 index = chunk_reserve_one(&mixer->audio_instances);
     if (index < 0) {
         return;
     }
@@ -132,14 +132,14 @@ int32 apply_speed(int16* buffer, int32 buffer_size, f32 speed) NO_EXCEPT
     }
 
     // Has to be multiple of 2 to ensure stereo is implemented correctly
-    int new_size = align_up((int) (buffer_size / speed), 2);
+    const int new_size = align_up((int) (buffer_size / speed), 2);
 
     // Speed up
     if (speed > 1.0f) {
         for (int i = 0; i < new_size; ++i) {
             // @bug What if 2 consecutive values fall onto the same int index for stereo. This would break it.
             // The problem is, even by doing this as stereo calculation we would still have the same issue just not on the current value but the next loop
-            int src_index = (int) (i * speed);
+            const int src_index = (int) (i * speed);
             buffer[i] = buffer[src_index];
         }
 
@@ -164,7 +164,7 @@ int32 apply_speed(int16* buffer, int32 buffer_size, f32 speed) NO_EXCEPT
 static inline
 void apply_echo(int16* buffer, int32 buffer_size, f32 delay, f32 feedback, int32 sample_rate) NO_EXCEPT
 {
-    int delay_samples = (int) (delay * sample_rate);
+    const int delay_samples = (int) (delay * sample_rate);
     for (int i = delay_samples; i < buffer_size; ++i) {
         buffer[i] += (int16) (buffer[i - delay_samples] * feedback);
     }
@@ -183,8 +183,8 @@ void apply_reverb(int16* buffer, int32 buffer_size, f32 intensity) NO_EXCEPT
 static inline
 void apply_cave(int16* buffer, int32 buffer_size, int32 sample_rate) NO_EXCEPT
 {
-    f32 echo_delay = 0.1f; // Echo delay in seconds
-    f32 feedback = 0.3f;  // Echo feedback level
+    const f32 echo_delay = 0.1f; // Echo delay in seconds
+    const f32 feedback = 0.3f;  // Echo feedback level
     apply_echo(buffer, buffer_size, echo_delay, feedback, sample_rate);
     apply_reverb(buffer, buffer_size, 0.4f); // Add mild reverb
 }
@@ -200,8 +200,8 @@ void apply_underwater(int16* buffer, int32 buffer_size) NO_EXCEPT
 static inline
 void apply_flanger(int16* buffer, int32 buffer_size, f32 rate, f32 depth, int32 sample_rate) NO_EXCEPT
 {
-    f32 delay_samples = depth * sample_rate;
-    f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
+    const f32 delay_samples = depth * sample_rate;
+    const f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
 
     for (int i = 0; i < buffer_size; ++i) {
         int delay = (int) (delay_samples * (0.5f + 0.5f * sinf(i * temp)));
@@ -214,8 +214,8 @@ void apply_flanger(int16* buffer, int32 buffer_size, f32 rate, f32 depth, int32 
 static inline
 void apply_tremolo(int16* buffer, int32 buffer_size, f32 rate, f32 depth, int32 sample_rate) NO_EXCEPT
 {
-    f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
-    f32 temp2 = (1.0f - depth) + depth;
+    const f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
+    const f32 temp2 = (1.0f - depth) + depth;
 
     for (int i = 0; i < buffer_size; ++i) {
         f32 mod = temp2 * (0.5f + 0.5f * sinf(i * temp));
@@ -234,9 +234,9 @@ void apply_distortion(int16* buffer, int32 buffer_size, f32 gain) NO_EXCEPT
 static inline
 void apply_chorus(int16* buffer, int32 buffer_size, f32 rate, f32 depth, int32 sample_rate) NO_EXCEPT
 {
-    f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
+    const f32 temp = OMS_TWO_PI_F32 * rate / sample_rate;
+    const int max_delay = (int) (depth * sample_rate);
 
-    int max_delay = (int) (depth * sample_rate);
     for (int i = 0; i < buffer_size; ++i) {
         int delay = (int) (max_delay * (0.5f + 0.5f * sinf(i * temp)));
         if (i >= delay) {
@@ -256,8 +256,8 @@ void apply_pitch_shift(int16* buffer, int32 buffer_size, f32 pitch_factor) NO_EX
 static inline
 void apply_granular_delay(int16* buffer, int32 buffer_size, f32 delay, f32 granularity, int32 sample_rate) NO_EXCEPT
 {
-    int delay_samples = (int) (delay * sample_rate);
-    int limit = (int) (granularity * sample_rate);
+    const int delay_samples = (int) (delay * sample_rate);
+    const int limit = (int) (granularity * sample_rate);
 
     for (int i = 0; i < buffer_size; ++i) {
         if (i % limit == 0 && i >= delay_samples) {
@@ -269,7 +269,7 @@ void apply_granular_delay(int16* buffer, int32 buffer_size, f32 delay, f32 granu
 static inline
 void apply_frequency_modulation(int16* buffer, int32 buffer_size, f32 mod_freq, f32 mod_depth, int32 sample_rate) NO_EXCEPT
 {
-    f32 temp = OMS_TWO_PI_F32 * mod_freq / sample_rate;
+    const f32 temp = OMS_TWO_PI_F32 * mod_freq / sample_rate;
     for (int i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) (buffer[i] * sinf(i * temp) * mod_depth);
     }
@@ -278,8 +278,8 @@ void apply_frequency_modulation(int16* buffer, int32 buffer_size, f32 mod_freq, 
 static inline
 void apply_stereo_panning(int16* buffer, int32 buffer_size, f32 pan) NO_EXCEPT
 {
-    f32 left_gain = 1.0f - pan;
-    f32 right_gain = pan;
+    const f32 left_gain = 1.0f - pan;
+    const f32 right_gain = pan;
 
     for (int i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) (buffer[i] * left_gain);
@@ -290,9 +290,9 @@ void apply_stereo_panning(int16* buffer, int32 buffer_size, f32 pan) NO_EXCEPT
 static inline
 void apply_highpass(int16* buffer, int32 buffer_size, f32 cutoff, int32 sample_rate) NO_EXCEPT
 {
-    f32 rc = 1.0f / (OMS_TWO_PI_F32 * cutoff);
-    f32 dt = 1.0f / sample_rate;
-    f32 alpha = rc / (rc + dt);
+    const f32 rc = 1.0f / (OMS_TWO_PI_F32 * cutoff);
+    const f32 dt = 1.0f / sample_rate;
+    const f32 alpha = rc / (rc + dt);
     f32 previous = buffer[0];
     f32 previous_output = buffer[0];
 
@@ -307,9 +307,9 @@ void apply_highpass(int16* buffer, int32 buffer_size, f32 cutoff, int32 sample_r
 static inline
 void apply_lowpass(int16* buffer, int32 buffer_size, f32 cutoff, int32 sample_rate) NO_EXCEPT
 {
-    f32 rc = 1.0f / (OMS_TWO_PI_F32 * cutoff);
-    f32 dt = 1.0f / sample_rate;
-    f32 alpha = dt / (rc + dt);
+    const f32 rc = 1.0f / (OMS_TWO_PI_F32 * cutoff);
+    const f32 dt = 1.0f / sample_rate;
+    const f32 alpha = dt / (rc + dt);
     f32 previous = buffer[0];
 
     for (int i = 1; i < buffer_size; ++i) {
@@ -420,6 +420,10 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
             continue;
         }
 
+        // @bug This could result in invalid counts during the rendering since we may render
+        //      after setting to 0 and before this loop finished
+        STATS_INCREMENT(DEBUG_COUNTER_AUDIO_COUNT);
+
         uint32 limit = limit_max;
 
         // Compute the vector from the player to the sound's origin
@@ -474,7 +478,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
 
             // Apply effects based on sound's effect type
             if (sound->effect && sound->effect != AUDIO_EFFECT_REPEAT) {
-                int32 sample_adjustment = mixer_effects_mono(mixer, sound->effect, sound_sample_index);
+                const int32 sample_adjustment = mixer_effects_mono(mixer, sound->effect, sound_sample_index);
                 sound_sample_index += sample_adjustment;
                 limit += sample_adjustment;
             }
@@ -500,7 +504,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
 
             // Apply effects based on sound's effect type
             if (sound->effect && sound->effect != AUDIO_EFFECT_REPEAT) {
-                int32 sample_adjustment = mixer_effects_stereo() / 2;;
+                const int32 sample_adjustment = mixer_effects_stereo() / 2;;
                 sound_sample_index += sample_adjustment;
                 limit += sample_adjustment;
             }

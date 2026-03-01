@@ -12,14 +12,13 @@
 #include "../stdlib/Stdlib.h"
 #include "../stdlib/GameMathTypes.h"
 #include "../math/matrix/Matrix.h"
+#include "../math/matrix/Quaternion.h"
 #include "../compiler/CompilerUtils.h"
 #include "CameraMovement.h"
 #include "../gpuapi/GpuApiType.h"
 #include "../sort/Sort.h"
 
 #include "Camera.h"
-
-// @todo Please check out if we can switch to quaternions. We tried but failed.
 
 void camera_frustum_update(Camera* const camera) NO_EXCEPT
 {
@@ -129,7 +128,7 @@ void camera_frustum_pos_update(Camera* const camera, v3_f32 old_pos) NO_EXCEPT
 static FORCE_INLINE
 void camera_init_rh_opengl(Camera* const camera) NO_EXCEPT
 {
-    camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
+    camera->orientation = { 0.0f, 0.0f, 0.0f, 1.0f };
     camera->front = {0.0f, 0.0f, -1.0f};
     camera->right = {1.0f, 0.0f, 0.0f};
     camera->up = {0.0f, 1.0f, 0.0f};
@@ -139,7 +138,7 @@ void camera_init_rh_opengl(Camera* const camera) NO_EXCEPT
 static FORCE_INLINE
 void camera_init_rh_vulkan(Camera* const camera) NO_EXCEPT
 {
-    camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
+    camera->orientation = {0.0f, 0.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, -1.0f};
     camera->right = {1.0f, 0.0f, 0.0f};
     camera->up = {0.0f, -1.0f, 0.0f};
@@ -149,7 +148,7 @@ void camera_init_rh_vulkan(Camera* const camera) NO_EXCEPT
 static FORCE_INLINE
 void camera_init_lh(Camera* const camera) NO_EXCEPT
 {
-    camera->orientation = {0.0f, 90.0f, 0.0f, 1.0f};
+    camera->orientation = {0.0f, 0.0f, 0.0f, 1.0f};
     camera->front = {0.0f, 0.0f, 1.0f};
     camera->right = {1.0f, 0.0f, 0.0f};
     camera->up = {0.0f, 1.0f, 0.0f};
@@ -159,43 +158,35 @@ void camera_init_lh(Camera* const camera) NO_EXCEPT
 static inline HOT_CODE
 void camera_vectors_update(Camera* const camera) NO_EXCEPT
 {
-    /*
-    f32 cos_ori_x = cosf(deg2rad(camera->orientation.x));
-    camera->front.x = cos_ori_x * cosf(deg2rad(camera->orientation.y));
-    camera->front.y = sinf(deg2rad(camera->orientation.x));
-    camera->front.z = cos_ori_x * sinf(deg2rad(camera->orientation.y));
-    */
+    const quaternion q = camera->orientation;
 
-    f32 cos_ori_x;
-    SINCOSF(deg2rad(camera->orientation.x), camera->front.y, cos_ori_x);
-    SINCOSF(deg2rad(camera->orientation.y), camera->front.z, camera->front.x);
-    camera->front.x *= cos_ori_x;
-    camera->front.z *= cos_ori_x;
-
-    camera->right = vec3_cross_normalized(camera->front, camera->world_up);
-    camera->up = vec3_cross_normalized(camera->right, camera->front);
+    camera->front = quat_rotate_vec3(q, { 0.0f, 0.0f, -1.0f });
+    camera->right = quat_rotate_vec3(q, { 1.0f, 0.0f,  0.0f });
+    camera->up    = quat_rotate_vec3(q, { 0.0f, 1.0f,  0.0f });
 
     vec3_normalize(&camera->front);
+    vec3_normalize(&camera->right);
+    vec3_normalize(&camera->up);
 }
 
 inline HOT_CODE
 void camera_rotate(Camera* const camera, int32 dx, int32 dy) NO_EXCEPT
 {
     camera->state_changes |= CAMERA_STATE_CHANGE_ORIENTATION;
-    camera->orientation.x += dy * camera->sensitivity;
-    camera->orientation.y -= dx * camera->sensitivity;
 
-    if (camera->orientation.x > 89.0f) {
-        camera->orientation.x = 89.0f;
-    } else if (camera->orientation.x < -89.0f) {
-        camera->orientation.x = -89.0f;
-    }
+    const f32 yaw   = -dx * camera->sensitivity;
+    const f32 pitch = -dy * camera->sensitivity;
 
-    if (camera->orientation.y > 360.0f) {
-        camera->orientation.y -= 360.0f;
-    } else if (camera->orientation.y < -360.0f) {
-        camera->orientation.y += 360.0f;
-    }
+    // yaw in world space
+    const quaternion qyaw = quat_axis_angle(camera->world_up, yaw);
+
+    // current right vector (derived from orientation)
+    const v3_f32 right = quat_rotate_vec3(camera->orientation, {1.0f, 0.0f, 0.0f});
+    const quaternion qpitch = quat_axis_angle(right, pitch);
+
+    // orientation = yaw * pitch * current
+    camera->orientation = quat_mul(qyaw, quat_mul(qpitch, camera->orientation));
+    camera->orientation = quat_normalize(camera->orientation);
 
     camera_vectors_update(camera);
 }
@@ -624,8 +615,8 @@ void
 camera_view_matrix_lh(Camera* const camera) NO_EXCEPT
 {
     const v3_f32 zaxis = camera->front;
-    const v3_f32 xaxis = vec3_cross_normalized(camera->world_up, zaxis);
-    const v3_f32 yaxis = vec3_cross(zaxis, xaxis);
+    const v3_f32 xaxis = camera->right;
+    const v3_f32 yaxis = camera->up;
 
     // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
     // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
@@ -651,8 +642,8 @@ void
 camera_view_matrix_rh_opengl(Camera* const camera) NO_EXCEPT
 {
     const v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
-    const v3_f32 xaxis = vec3_cross_normalized(zaxis, camera->world_up);
-    const v3_f32 yaxis = vec3_cross(zaxis, xaxis);
+    const v3_f32 xaxis = camera->right;
+    const v3_f32 yaxis = camera->up;
 
    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
     // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
@@ -678,8 +669,8 @@ void
 camera_view_matrix_rh_vulkan(Camera* const camera) NO_EXCEPT
 {
     const v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
-    const v3_f32 xaxis = vec3_cross_normalized(zaxis, camera->world_up);
-    const v3_f32 yaxis = vec3_cross(zaxis, xaxis);
+    const v3_f32 xaxis = camera->right;
+    const v3_f32 yaxis = camera->up;
 
    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
     // The result was that it is not faster, only if we would do 4 dot products would we see an improvement

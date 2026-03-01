@@ -119,6 +119,14 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
     }
 }
 
+// Asset archives files remain open from the _load() function
+// They need to be explicitly closed when no longer needed.
+void asset_archive_close(AssetArchive* archive) {
+    file_close_handle(archive->fd);
+    file_close_handle(archive->fd_async);
+    file_mmf_close(archive->mmf);
+}
+
 void asset_archive_load(
     AssetArchive* archive,
     const wchar_t* path,
