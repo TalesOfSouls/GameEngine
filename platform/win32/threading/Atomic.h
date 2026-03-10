@@ -30,6 +30,32 @@ typedef union { f64 f; LONG64 l; } _atomic_64f;
 // To solve this we would probably have to make some of these functions Architecture specific in addition to platform specific
 
 /**
+ * Some of the following macros are not defined on all Windows SDKs
+ * We have to implement alternatives
+ */
+#ifndef InterlockedExchangeNoFence16
+    #define InterlockedExchangeNoFence16 InterlockedExchange16
+#endif
+
+#ifndef InterlockedExchangeAcquire16
+    #define InterlockedExchangeAcquire16 InterlockedExchange16
+#endif
+
+#ifndef InterlockedExchangeAdd16
+    short __InterlockedExchangeAdd16(short* value, short increment) {
+        long old_value, new_value;
+        do {
+            old_value = *value;
+            new_value = old_value + increment;
+        } while (InterlockedCompareExchange((long*)value, new_value, old_value) != old_value);
+
+        return (short)old_value;
+    }
+    
+    #define InterlockedExchangeAdd16(value, increment) __InterlockedExchangeAdd16((value), (increment))
+#endif
+
+/**
  * We sometimes have basically the same function twice (e.g. _fetch_set_, _set_).
  * This is on purpose since the compiler may optimize the ASM by removing the fetch part
  * if it is not needed despite using the same intrinsic as long as the return value is not used.
