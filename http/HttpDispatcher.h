@@ -40,8 +40,8 @@ struct Dispatcher {
 void dispatcher_alloc(Dispatcher* dispatcher, void* app, int32 category_count, int32 func_count, BufferMemory* const buf, int32 alignment = sizeof(size_t)) {
     dispatcher->app = app;
     dispatcher->base_func_count = func_count;
-    dispatcher->functions = (ControllerFunction **) buffer_get_memory(buf, sizeof(ControllerFunction *) * category_count, alignment, true);
-    dispatcher->functions[0] = (ControllerFunction *) buffer_get_memory(buf, sizeof(ControllerFunction) * func_count, alignment, true);
+    dispatcher->functions = (ControllerFunction **) buffer_memory_get(buf, sizeof(ControllerFunction *) * category_count, alignment, true);
+    dispatcher->functions[0] = (ControllerFunction *) buffer_memory_get(buf, sizeof(ControllerFunction) * func_count, alignment, true);
 }
 
 void dispatcher_set_func(Dispatcher* dispatcher, uint32 id, ControllerFunction func) {

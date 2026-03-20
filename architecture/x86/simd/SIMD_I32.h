@@ -28,7 +28,7 @@
 #endif
 
 inline
-void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 steps = 16)
+void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -109,7 +109,7 @@ void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 
 }
 
 inline
-void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 steps = 16)
+void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -196,7 +196,7 @@ void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 step
 }
 
 inline
-void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 steps = 16)
+void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -289,7 +289,7 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
 }
 
 inline
-void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps = 16)
+void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -374,7 +374,7 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps = 1
 }
 
 inline
-void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps = 16)
+void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -453,7 +453,7 @@ void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps = 16)
 }
 
 inline
-void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 steps = 16)
+void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -534,7 +534,7 @@ void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 s
 }
 
 inline
-void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps = 16)
+void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -621,7 +621,7 @@ void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps
 }
 
 inline
-void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 steps = 16)
+void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -714,7 +714,7 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
 }
 
 void
-endian_swap(const int32* val, int32* result, int32 size, int32 steps = 16)
+endian_swap(const int32* val, int32* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) val, steps);
@@ -770,7 +770,7 @@ endian_swap(const int32* val, int32* result, int32 size, int32 steps = 16)
 }
 
 void
-endian_swap(const uint32* val, uint32* result, int32 size, int32 steps = 16)
+endian_swap(const uint32* val, uint32* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) val, steps);
@@ -825,7 +825,7 @@ endian_swap(const uint32* val, uint32* result, int32 size, int32 steps = 16)
     }
 }
 
-void endian_swap(const int16* val, int16* result, int32 size, int32 steps = 16)
+void endian_swap(const int16* val, int16* result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) val, steps);

@@ -82,7 +82,7 @@ void ring_init(
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     size = align_up(size, (size_t) alignment);
-    ring->memory = buffer_get_memory(buf, size, alignment);
+    ring->memory = buffer_memory_get(buf, size, alignment);
 
     ring->end = ring->memory + size;
     ring->head = ring->memory;
@@ -260,7 +260,7 @@ void thrd_ring_move_pointer(RingMemory* const ring, byte** pos, size_t size, int
 // @todo Implement a function called ring_grow_memory that tries to grow a memory range
 // this of course is only possible if the memory range is the last memory range returned and if the growing part still fits into the ring
 HOT_CODE
-byte* ring_get_memory(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+byte* ring_memory_get(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(size <= ring->size);
 
@@ -284,10 +284,10 @@ byte* ring_get_memory(RingMemory* const ring, size_t size, int32 alignment = siz
 }
 
 FORCE_INLINE
-byte* thrd_ring_get_memory(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+byte* thrd_ring_memory_get(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     MutexGuard _guard(&ring->lock);
-    return ring_get_memory(ring, size, alignment);
+    return ring_memory_get(ring, size, alignment);
 }
 
 byte* ring_grow_memory(RingMemory* const ring, const byte* old, size_t size_old, size_t size_new, int32 alignment = sizeof(size_t)) NO_EXCEPT
@@ -306,15 +306,15 @@ byte* ring_grow_memory(RingMemory* const ring, const byte* old, size_t size_old,
             return (byte *) old;
         } else {
             // Not enough space at the end — wrap and reset
-            // Allocate new space with ring_get_memory and copy over
-            byte* const new_block = ring_get_memory(ring, size_new, alignment);
+            // Allocate new space with ring_memory_get and copy over
+            byte* const new_block = ring_memory_get(ring, size_new, alignment);
             memcpy(new_block, old, size_old);
 
             return new_block;
         }
     } else {
         // Some other allocations happened — must allocate new block
-        byte* new_block = ring_get_memory(ring, size_new, alignment);
+        byte* new_block = ring_memory_get(ring, size_new, alignment);
         memcpy(new_block, old, size_old);
 
         return new_block;
@@ -327,9 +327,9 @@ byte* thrd_ring_grow_memory(RingMemory* const ring, const byte* old, size_t size
     return ring_grow_memory(ring, old, size_old, size_new, alignment);
 }
 
-// Same as ring_get_memory but DOESN'T move the head
+// Same as ring_memory_get but DOESN'T move the head
 HOT_CODE
-byte* ring_get_memory_nomove(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+byte* ring_memory_get_nomove(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(size <= ring->size);
 
@@ -348,10 +348,10 @@ byte* ring_get_memory_nomove(RingMemory* const ring, size_t size, int32 alignmen
 }
 
 FORCE_INLINE
-byte* thrd_ring_get_memory_nomove(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+byte* thrd_ring_memory_get_nomove(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     MutexGuard _guard(&ring->lock);
-    return ring_get_memory_nomove(ring, size, alignment);
+    return ring_memory_get_nomove(ring, size, alignment);
 }
 
 // Used if the ring only contains elements of a certain size

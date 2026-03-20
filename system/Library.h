@@ -25,7 +25,7 @@ struct Library {
     wchar_t dir[PATH_MAX_LENGTH];
     wchar_t dst[64];
 
-    #if DEBUG || INTERNAL
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
         uint64 last_load;
     #endif
 

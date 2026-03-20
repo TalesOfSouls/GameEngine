@@ -59,11 +59,9 @@ uint_max fragment_size_total(uint32 count, int32 element_size, int32 alignment =
 {
     element_size = fragment_size_element(element_size, alignment);
 
-    // @performance Can we remove the alignment * 2? This is just a shotgun method to ensure full alignment
-
     return count * element_size
         + sizeof(byte*) * count // free
-        + alignment * 2; // overhead for alignment
+        + alignof(uintptr_t) * 2; // overhead for alignment
 }
 
 inline
@@ -96,7 +94,7 @@ void fragment_alloc(
     fragment->alignment = alignment;
     fragment->free = (byte **) align_up(
         (uint_max) ((uintptr_t) (fragment->memory + count * element_size)),
-        (uint_max) alignment
+        (uint_max) alignof(uintptr_t)
     );
 
     for (int i = 0; i < count; ++i) {
@@ -136,7 +134,7 @@ void fragment_alloc(
     fragment->alignment = alignment;
     fragment->free = (byte **) align_up(
         (uint_max) ((uintptr_t) (fragment->memory + count * element_size)),
-        (uint_max) alignment
+        (uint_max) alignof(uintptr_t)
     );
 
     for (int i = 0; i < count; ++i) {
@@ -145,7 +143,7 @@ void fragment_alloc(
 }
 
 inline HOT_CODE
-byte* fragment_get_memory(FragmentMemory* const fragment) NO_EXCEPT
+byte* fragment_memory_get(FragmentMemory* const fragment) NO_EXCEPT
 {
     if (fragment->last_pos < 0) {
         return NULL;

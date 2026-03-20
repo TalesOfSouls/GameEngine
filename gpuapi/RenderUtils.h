@@ -354,10 +354,12 @@ v3_int32 vertex_text_create(
     Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     const Font* const __restrict font, const char* const __restrict text,
-    f32 size, uint32 rgba = 0
+    f32 size, MAYBE_UNUSED uint32 rgba = 0
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_VERTEX_TEXT_CREATE);
+    PSEUDO_USE(rgba);
+
     int32 length;
     if (!text || (length = utf8_strlen(text)) < 1) {
         return {};
@@ -365,9 +367,6 @@ v3_int32 vertex_text_create(
 
     const bool is_ascii = (int32) strlen(text) == length;
     const f32 scale = size / font->size;
-
-    (void) rgba; // @todo we don't have a way to change colors of text for now due to our reduce Vertex size
-    // To fix this we would have to add an additional 4 bytes for every vertex which we maybe don't want to
 
     // If we do a different alignment we need to pre-calculate the width and height
     if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
@@ -413,9 +412,12 @@ v3_int32 vertex_text_create(
 
         const f32 offset_y = dimension.y + glyph->metrics.offset_y * scale;
         offset_x += glyph->metrics.offset_x * scale;
+        rendered_width += glyph->metrics.offset_x * scale;
 
         if (character != ' ' && character != '\t') {
             // @todo We should probably inline the code here, we might be able to even optimize it then
+            // @bug we cannot pass the rgba here since the rgba overwrites the texture coordinates
+            //      we would have to add at least an additional 4 bytes to allow texture coordinates + recoloring
             idx += vertex_rect_create(
                 vertices + idx, zindex, sampler,
                 {offset_x, offset_y, glyph->metrics.width * scale, glyph->metrics.height * scale}, 0,
@@ -423,7 +425,9 @@ v3_int32 vertex_text_create(
             );
         }
 
-        offset_x += (glyph->metrics.width + glyph->metrics.advance_x) * scale;
+        const f32 add_offset = (glyph->metrics.width + glyph->metrics.advance_x) * scale;
+        offset_x += add_offset;
+        rendered_width += add_offset;
     }
 
     // @question How and where to cut off text out of view (here or somewhere else)

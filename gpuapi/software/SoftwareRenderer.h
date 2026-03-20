@@ -939,7 +939,7 @@ void soft_render(
         const int32 element_count = (int32) ((sizeof(ThrdSoftwareShaderArg) * MAX_CHUNKS + renderer->buf.chunk_size - 1)
             / renderer->buf.chunk_size);
 
-        ThrdSoftwareShaderArg* args = (ThrdSoftwareShaderArg *) chunk_get_memory(&renderer->buf, element_count);
+        ThrdSoftwareShaderArg* args = (ThrdSoftwareShaderArg *) chunk_memory_get(&renderer->buf, element_count);
 
         PoolWorker* jobs[MAX_CHUNKS];
 

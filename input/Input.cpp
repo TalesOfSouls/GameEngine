@@ -35,8 +35,8 @@ void input_init(Input* const input, uint8 count, BufferMemory* const buf) NO_EXC
 
     const size_t hotkey_size = input->hotkey_count * sizeof(Hotkey);
 
-    input->input_mapping1 = (Hotkey *) buffer_get_memory(buf, hotkey_size, sizeof(size_t));
-    input->input_mapping2 = (Hotkey *) buffer_get_memory(buf, hotkey_size, sizeof(size_t));
+    input->input_mapping1 = (Hotkey *) buffer_memory_get(buf, hotkey_size, sizeof(size_t));
+    input->input_mapping2 = (Hotkey *) buffer_memory_get(buf, hotkey_size, sizeof(size_t));
 
     // This clears both mapping1 and mapping2
     memset(input->input_mapping1, 0, hotkey_size * 2);
@@ -611,6 +611,12 @@ void input_handle_hotkeys(const Input* const input, void* data) NO_EXCEPT {
 
     // Run all input events
     for (int i = 0; i < input_event_count; ++i) {
+        if (!input_events[i]) {
+            // Hotkey is not bound to a function
+            ASSERT_TRUE(input_events[i]);
+            continue;
+        }
+
         // @bug The order of the hotkeys is not based on timing, that could potentially be an issue
         // @performance Instead of doing pointer chasing maybe we should have one index array and a reference to the event array
         // @bug we need to pass the input id but we only have the input pointer. Currently always passing 0

@@ -63,7 +63,7 @@ bool library_load(Library* const lib) NO_EXCEPT
     str_concat_new(dst, lib->dir, lib->dst);
 
     // In debug mode, we create a copy at runtime, so we can recompile & reload it
-    #if DEBUG || INTERNAL
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
         wchar_t src[PATH_MAX_LENGTH];
         const size_t dst_len = wcslen(dst);
 

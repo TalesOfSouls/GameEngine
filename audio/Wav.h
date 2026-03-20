@@ -128,7 +128,7 @@ void wav_from_data(const byte* data, uint32 size, Audio* audio, RingMemory* cons
         {}, // .header =
         NULL, // .sample_data =
         0, // .size =
-        ring_get_memory(ring, size, sizeof(size_t)) // .data =
+        ring_memory_get(ring, size, sizeof(size_t)) // .data =
     };
 
     generate_default_wav_references(data, size, &src);

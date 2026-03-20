@@ -26,7 +26,7 @@ struct OpenglVertexInputAttributeDescription {
     uint32 count;
     int32 format;
     int32 stride;
-    void* offset;
+    int32 offset;
 };
 
 inline
@@ -240,7 +240,7 @@ GLuint gpuapi_shader_make(GLenum type, const char* source) NO_EXCEPT
     GLint status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 
-    #if DEBUG || INTERNAL
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
         if (status == GL_FALSE) {
             GLint length;
             glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
@@ -293,7 +293,7 @@ GLuint gpuapi_pipeline_make(
     GLint status;
     glGetProgramiv(program, GL_LINK_STATUS, &status);
 
-    #if DEBUG || INTERNAL
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
         if (status == GL_FALSE) {
             GLint length;
             glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
@@ -333,18 +333,51 @@ void gpuapi_pipeline_use(uint32 id) NO_EXCEPT
     glUseProgram(id);
 }
 
+// Used for multi-buffering
 inline
 void gpuapi_attribute_setup(GpuAttributeType type, const OpenglVertexInputAttributeDescription* const attr) NO_EXCEPT
 {
     const int32 length = gpuapi_attribute_count(type);
+    const GLuint binding_index = 0;
+
     for (int32 i = 0; i < length; ++i) {
+        glEnableVertexAttribArray(attr[i].location);
+
+        if (attr[i].format == GL_INT) {
+            glVertexAttribIFormat(
+                attr[i].location,
+                attr[i].count,
+                attr[i].format,
+                attr[i].offset
+            );
+        } else {
+            glVertexAttribFormat(
+                attr[i].location,
+                attr[i].count,
+                attr[i].format,
+                false,
+                attr[i].offset
+            );
+        }
+
+        glVertexAttribBinding(attr[i].location, binding_index);
+    }
+}
+
+// used for relative static content
+inline
+void gpuapi_attribute_setup_static(GpuAttributeType type, const OpenglVertexInputAttributeDescription* const attr) NO_EXCEPT
+{
+    const int32 length = gpuapi_attribute_count(type);
+    for (int32 i = 0; i < length; ++i) {
+        uintptr_t offset = attr[i].offset;
         if (attr[i].format == GL_INT) {
             glVertexAttribIPointer(
                 attr[i].location,
                 attr[i].count,
                 attr[i].format,
                 attr[i].stride,
-                attr[i].offset
+                (void *) offset
             );
         } else {
             glVertexAttribPointer(
@@ -353,10 +386,23 @@ void gpuapi_attribute_setup(GpuAttributeType type, const OpenglVertexInputAttrib
                 attr[i].format,
                 false,
                 attr[i].stride,
-                attr[i].offset
+                (void *) offset
             );
         }
         glEnableVertexAttribArray(attr[i].location);
+    }
+}
+
+FORCE_INLINE
+void gpuapi_descriptor_set_layout_create(
+    Shader* const __restrict shader,
+    const OpenglDescriptorSetLayoutBinding* const __restrict bindings,
+    int32 binding_length
+) NO_EXCEPT
+{
+    for (int32 i = 0; i < binding_length; ++i) {
+        shader->descriptor_set_layout[i].binding = glGetUniformLocation(shader->id, bindings[i].name);
+        shader->descriptor_set_layout[i].name = bindings[i].name;
     }
 }
 
@@ -373,7 +419,7 @@ void gpuapi_attribute_info_create(
                 3, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3D), // .stride =
-                (void *) offsetof(Vertex3D, position) // .offset =
+                (int32) offsetof(Vertex3D, position) // .offset =
             };
 
             attr[1] = {
@@ -381,7 +427,7 @@ void gpuapi_attribute_info_create(
                 3, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3D), // .stride =
-                (void *) offsetof(Vertex3D, normal) // .offset =
+                (int32) offsetof(Vertex3D, normal) // .offset =
             };
 
             attr[2] = {
@@ -389,7 +435,7 @@ void gpuapi_attribute_info_create(
                 2, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3D), // .stride =
-                (void *) offsetof(Vertex3D, tex_coord) // .offset =
+                (int32) offsetof(Vertex3D, tex_coord) // .offset =
             };
 
             attr[3] = {
@@ -397,7 +443,7 @@ void gpuapi_attribute_info_create(
                 4, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3D), // .stride =
-                (void *) offsetof(Vertex3D, color) // .offset =
+                (int32) offsetof(Vertex3D, color) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL: {
@@ -406,7 +452,7 @@ void gpuapi_attribute_info_create(
                 3, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3DNormal), // .stride =
-                (void *) offsetof(Vertex3DNormal, position) // .offset =
+                (int32) offsetof(Vertex3DNormal, position) // .offset =
             };
 
             attr[1] = {
@@ -414,7 +460,7 @@ void gpuapi_attribute_info_create(
                 3, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3DNormal), // .stride =
-                (void *) offsetof(Vertex3DNormal, normal) // .offset =
+                (int32) offsetof(Vertex3DNormal, normal) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR: {
@@ -423,7 +469,7 @@ void gpuapi_attribute_info_create(
                 3, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3DColor), // .stride =
-                (void *) offsetof(Vertex3DColor, position) // .offset =
+                (int32) offsetof(Vertex3DColor, position) // .offset =
             };
 
             attr[1] = {
@@ -431,7 +477,7 @@ void gpuapi_attribute_info_create(
                 4, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3DColor), // .stride =
-                (void *) offsetof(Vertex3DColor, color) // .offset =
+                (int32) offsetof(Vertex3DColor, color) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR: {
@@ -440,7 +486,7 @@ void gpuapi_attribute_info_create(
                 3, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3DTextureColor), // .stride =
-                (void *) offsetof(Vertex3DTextureColor, position) // .offset =
+                (int32) offsetof(Vertex3DTextureColor, position) // .offset =
             };
 
             attr[1] = {
@@ -448,7 +494,7 @@ void gpuapi_attribute_info_create(
                 2, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3DTextureColor), // .stride =
-                (void *) offsetof(Vertex3DTextureColor, texture_color) // .offset =
+                (int32) offsetof(Vertex3DTextureColor, texture_color) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR: {
@@ -457,7 +503,7 @@ void gpuapi_attribute_info_create(
                 3, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3DSamplerTextureColor), // .stride =
-                (void *) offsetof(Vertex3DSamplerTextureColor, position) // .offset =
+                (int32) offsetof(Vertex3DSamplerTextureColor, position) // .offset =
             };
 
             attr[1] = {
@@ -465,7 +511,7 @@ void gpuapi_attribute_info_create(
                 1, // .count =
                 GL_INT, // .format =
                 sizeof(Vertex3DSamplerTextureColor), // .stride =
-                (void *) offsetof(Vertex3DSamplerTextureColor, sampler) // .offset =
+                (int32) offsetof(Vertex3DSamplerTextureColor, sampler) // .offset =
             };
 
             attr[2] = {
@@ -473,7 +519,7 @@ void gpuapi_attribute_info_create(
                 2, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex3DSamplerTextureColor), // .stride =
-                (void *) offsetof(Vertex3DSamplerTextureColor, texture_color) // .offset =
+                (int32) offsetof(Vertex3DSamplerTextureColor, texture_color) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE: {
@@ -482,7 +528,7 @@ void gpuapi_attribute_info_create(
                 2, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex2DTexture), // .stride =
-                (void *) offsetof(Vertex2DTexture, position) // .offset =
+                (int32) offsetof(Vertex2DTexture, position) // .offset =
             };
 
             attr[1] = {
@@ -490,7 +536,7 @@ void gpuapi_attribute_info_create(
                 2, // .count =
                 GL_FLOAT, // .format =
                 sizeof(Vertex2DTexture), // .stride =
-                (void *) offsetof(Vertex2DTexture, tex_coord) // .offset =
+                (int32) offsetof(Vertex2DTexture, tex_coord) // .offset =
             };
         } return;
         default:
@@ -498,17 +544,149 @@ void gpuapi_attribute_info_create(
     };
 }
 
-FORCE_INLINE
-void gpuapi_descriptor_set_layout_create(
-    Shader* const __restrict shader,
-    const OpenglDescriptorSetLayoutBinding* const __restrict bindings,
-    int32 binding_length
+// @bug This would be a nice alternative but constexpr is almost useless in c++
+//      No templates are not a good alternative to "fix" the limitation, what are people actually smoking!
+/*
+CONSTEXPR
+auto gpuapi_attribute_info_create(
+    GpuAttributeType type
 ) NO_EXCEPT
 {
-    for (int32 i = 0; i < binding_length; ++i) {
-        shader->descriptor_set_layout[i].binding = glGetUniformLocation(shader->id, bindings[i].name);
-        shader->descriptor_set_layout[i].name = bindings[i].name;
-    }
+    OpenglVertexInputAttributeDescription attr[gpuapi_attribute_count(type)];
+
+    switch (type) {
+        case GPU_ATTRIBUTE_TYPE_VERTEX_3D: {
+            attr[0] = {
+                0, // .location =
+                3, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3D), // .stride =
+                (int32) offsetof(Vertex3D, position) // .offset =
+            };
+
+            attr[1] = {
+                1, // .location =
+                3, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3D), // .stride =
+                (int32) offsetof(Vertex3D, normal) // .offset =
+            };
+
+            attr[2] = {
+                2, // .location =
+                2, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3D), // .stride =
+                (int32) offsetof(Vertex3D, tex_coord) // .offset =
+            };
+
+            attr[3] = {
+                3, // .location =
+                4, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3D), // .stride =
+                (int32) offsetof(Vertex3D, color) // .offset =
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL: {
+            attr[0] = {
+                0, // .location =
+                3, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3DNormal), // .stride =
+                (int32) offsetof(Vertex3DNormal, position) // .offset =
+            };
+
+            attr[1] = {
+                1, // .location =
+                3, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3DNormal), // .stride =
+                (int32) offsetof(Vertex3DNormal, normal) // .offset =
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR: {
+            attr[0] = {
+                0, // .location =
+                3, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3DColor), // .stride =
+                (int32) offsetof(Vertex3DColor, position) // .offset =
+            };
+
+            attr[1] = {
+                1, // .location =
+                4, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3DColor), // .stride =
+                (int32) offsetof(Vertex3DColor, color) // .offset =
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR: {
+            attr[0] = {
+                0, // .location =
+                3, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3DTextureColor), // .stride =
+                (int32) offsetof(Vertex3DTextureColor, position) // .offset =
+            };
+
+            attr[1] = {
+                1, // .location =
+                2, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3DTextureColor), // .stride =
+                (int32) offsetof(Vertex3DTextureColor, texture_color) // .offset =
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR: {
+            attr[0] = {
+                0, // .location =
+                3, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3DSamplerTextureColor), // .stride =
+                (int32) offsetof(Vertex3DSamplerTextureColor, position) // .offset =
+            };
+
+            attr[1] = {
+                1, // .location =
+                1, // .count =
+                GL_INT, // .format =
+                sizeof(Vertex3DSamplerTextureColor), // .stride =
+                (int32) offsetof(Vertex3DSamplerTextureColor, sampler) // .offset =
+            };
+
+            attr[2] = {
+                2, // .location =
+                2, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex3DSamplerTextureColor), // .stride =
+                (int32) offsetof(Vertex3DSamplerTextureColor, texture_color) // .offset =
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE: {
+            attr[0] = {
+                0, // .location =
+                2, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex2DTexture), // .stride =
+                (int32) offsetof(Vertex2DTexture, position) // .offset =
+            };
+
+            attr[1] = {
+                1, // .location =
+                2, // .count =
+                GL_FLOAT, // .format =
+                sizeof(Vertex2DTexture), // .stride =
+                (int32) offsetof(Vertex2DTexture, tex_coord) // .offset =
+            };
+        } return;
+        default:
+            UNREACHABLE();
+    };
+
+    return attr;
 }
+*/
 
 #endif

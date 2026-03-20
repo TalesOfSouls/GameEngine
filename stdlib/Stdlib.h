@@ -37,28 +37,28 @@
  *              __ARM_FEATURE_SVE, __ARM_NEON
  *
  *      Release (requires also the correct compiler arguments e.g. -O2):
- *          DEBUG_STRICT (= unoptimized + heavy logging and debug/profiling info)
- *          DEBUG (= unoptimized + logging/debug/profiling)
- *          INTERNAL (= optimized with logging/debug/profiling info)
- *          RELEASE
+ *          DEBUG_STRICT=1 (= unoptimized + heavy logging and debug/profiling info)
+ *          DEBUG=1 (= unoptimized + logging/debug/profiling)
+ *          INTERNAL=1 (= optimized with logging/debug/profiling info)
+ *          RELEASE=1
  *
  *      Log info (automatic based on release unless you want to change it):
  *          LOG_LEVEL (default >= 1, see Log.h for default behavior)
  *
  *      Rendering API:
- *          DIRECTX_12, DIRECTX_11, OPENGL, VULKAN, SOFTWARE
+ *          DIRECTX_12=1, DIRECTX_11=1, OPENGL=1, VULKAN=1, SOFTWARE=1
  *
  *      Endianess:
  *          _WIN32 (= little endian), __LITTLE_ENDIAN__ (= little endian), none (= big endian)
  *
  *      C++ version:
- *          CPP_VERSION (default = 20)
+ *          CPP_VERSION (default = 25)
  *
  *      Game stores:
- *          STEAM_STORE, EPIC_GAMES, PLAYSTATION_STORE, MICROSOFT_STORE
+ *          STEAM_STORE=1, EPIC_GAMES=1, PLAYSTATION_STORE=1, MICROSOFT_STORE=1
  *
  *      Misc.
- *          NO_STDLIB (= disables stdlib usage and uses user/compiler space implementations)
+ *          NO_STDLIB=1 (= disables stdlib usage and uses user/compiler space implementations)
  */
 #include "Defines.h"
 #include "Types.h"

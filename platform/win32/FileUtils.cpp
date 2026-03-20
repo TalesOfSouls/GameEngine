@@ -459,7 +459,7 @@ file_read(
     }
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, file->size + 1);
+        file->content = ring_memory_get(ring, file->size + 1);
     }
 
     DWORD bytes_read;
@@ -531,7 +531,7 @@ file_read(
     }
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, file->size + 1);
+        file->content = ring_memory_get(ring, file->size + 1);
     }
 
     DWORD bytes_read;
@@ -616,7 +616,7 @@ void file_read(
     const uint64 read_length = OMS_MIN(length, fsize - offset);
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, read_length + 1);
+        file->content = ring_memory_get(ring, read_length + 1);
     }
 
     // Move the file pointer to the offset position
@@ -710,7 +710,7 @@ void file_read(
     const uint64 read_length = OMS_MIN(length, fsize - offset);
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, read_length + 1);
+        file->content = ring_memory_get(ring, read_length + 1);
     }
 
     // Move the file pointer to the offset position
@@ -772,7 +772,7 @@ void file_read(
     const uint64 read_length = OMS_MIN(length, fsize - offset);
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, read_length + 1);
+        file->content = ring_memory_get(ring, read_length + 1);
     }
 
     // Move the file pointer to the offset position
@@ -1306,7 +1306,7 @@ bool file_read_async(
 
     // Allocate memory for the content
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, read_length);
+        file->content = ring_memory_get(ring, read_length);
     }
 
     if (!file->content) {

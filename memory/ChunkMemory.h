@@ -72,11 +72,9 @@ uint_max chunk_size_total(uint32 capacity, int32 element_size, int32 alignment =
 {
     element_size = chunk_size_element(element_size, alignment);
 
-    // @performance Can we remove the alignment * 2? This is just a shotgun method to ensure full alignment
-
     return capacity * element_size
         + sizeof(uint_max) * ceil_div(capacity, (uint32) (sizeof(uint_max) * 8)) // free
-        + alignment * 2; // overhead for alignment
+        + alignof(uint_max) * 2; // overhead for alignment
 }
 
 FORCE_INLINE
@@ -84,14 +82,12 @@ uint_max thrd_chunk_size_total(uint32 capacity, int32 element_size, int32 alignm
 {
     element_size = chunk_size_element(element_size, alignment);
 
-    // @performance Can we remove the alignment * 2? This is just a shotgun method to ensure full alignment
-
     const size_t array_count = ceil_div(capacity, (uint32) (sizeof(uint_max) * 8));
 
     return capacity * element_size
         + sizeof(uint_max) * array_count // free
         + sizeof(uint_max) * array_count // completeness
-        + alignment * 2; // overhead for alignment
+        + alignof(uint_max) * 2; // overhead for alignment
 }
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
@@ -120,7 +116,7 @@ void chunk_alloc(ChunkMemory* const buf, uint32 capacity, uint32 max_capacity, i
     buf->alignment = alignment;
     buf->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (buf->memory + capacity * element_size)),
-        (uint_max) alignment
+        (uint_max) alignof(uint_max)
     );
     memset((void *) buf->free, 0, sizeof(uint_max) * ceil_div(capacity, (uint32) (sizeof(uint_max) * 8)));
 
@@ -152,9 +148,8 @@ void thrd_chunk_alloc(ChunkMemory* const buf, uint32 capacity, uint32 max_capaci
 
     const size_t array_count = ceil_div(capacity, (uint32) (sizeof(uint_max) * 8));
 
-    // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignment);
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignment);
+    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(uint_max));
+    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignof(uint_max));
 
     memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
     memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
@@ -189,7 +184,7 @@ void chunk_alloc(ChunkMemory* const buf, MemoryArena* mem, uint32 capacity, uint
     buf->alignment = alignment;
     buf->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (buf->memory + capacity * element_size)),
-        (uint_max) alignment
+        (uint_max) alignof(uint_max)
     );
     memset((void *) buf->free, 0, sizeof(uint_max) * ceil_div(capacity, (uint32) (sizeof(uint_max) * 8)));
 
@@ -222,9 +217,8 @@ void thrd_chunk_alloc(ChunkMemory* const buf, MemoryArena* mem, uint32 capacity,
 
     const size_t array_count = ceil_div(capacity, (uint32) (sizeof(uint_max) * 8));
 
-    // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignment);
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignment);
+    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(uint_max));
+    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignof(uint_max));
 
     memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
     memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
@@ -251,7 +245,7 @@ void chunk_init(
 
     const uint_max size = chunk_size_total(capacity, element_size, alignment);
 
-    buf->memory = buffer_get_memory(data, size, alignment);
+    buf->memory = buffer_memory_get(data, size, alignment);
     memset(buf->memory, 0, size);
 
     buf->capacity = capacity;
@@ -259,7 +253,7 @@ void chunk_init(
     buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
-    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), (sizeof(uint_max) * 8));
+    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(uint_max));
     memset((void *) buf->free, 0, sizeof(uint_max) * ceil_div(capacity, (uint32) (sizeof(uint_max) * 8)));
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
@@ -283,7 +277,7 @@ void thrd_chunk_alloc(
     element_size = chunk_size_element(element_size, alignment);
     const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
 
-    buf->memory = buffer_get_memory(data, size);
+    buf->memory = buffer_memory_get(data, size);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -293,8 +287,8 @@ void thrd_chunk_alloc(
 
     const size_t array_count = ceil_div(capacity, (uint32) (sizeof(uint_max) * 8));
 
-    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignment);
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignment);
+    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(uint_max));
+    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignof(uint_max));
 
     memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
     memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
@@ -330,7 +324,7 @@ void chunk_init(
     buf->alignment = alignment;
     buf->free = (uint_max *) align_up(
         (uintptr_t) (buf->memory + capacity * element_size),
-        (uint_max) alignment
+        (uint_max) alignof(uint_max)
     );
     memset((void *) buf->free, 0, sizeof(uint_max) * ceil_div(capacity, (uint32) (sizeof(uint_max) * 8)));
 
@@ -365,9 +359,8 @@ void thrd_chunk_alloc(
 
     const size_t array_count = ceil_div(capacity, (uint32) (sizeof(uint_max) * 8));
 
-    // @question Could it be beneficial to have this before the element data?
-    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignment);
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignment);
+    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(uint_max));
+    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignof(uint_max));
 
     memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
     memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
@@ -416,7 +409,10 @@ void thrd_chunk_free(ChunkMemory* const buf, MemoryArena* mem) NO_EXCEPT
 FORCE_INLINE
 uint_max* chunk_find_free_array(const ChunkMemory* const buf) NO_EXCEPT
 {
-    return (uint_max *) align_up((uintptr_t) (buf->memory + buf->capacity * buf->chunk_size), (uint_max) buf->alignment);
+    return (uint_max *) align_up(
+        (uintptr_t) (buf->memory + buf->capacity * buf->chunk_size),
+        (uint_max) alignof(uint_max)
+    );
 }
 
 FORCE_INLINE
@@ -438,11 +434,13 @@ void thrd_chunk_set_unset_atomic(uint32 element, uint_max* state) NO_EXCEPT
 FORCE_INLINE FORCE_FLATTEN
 byte* chunk_get_element(const ChunkMemory* const buf, uint32 element) NO_EXCEPT
 {
-    // @question How is this even possible? Isn't an assert enough?
+    ASSERT_TRUE(element < buf->capacity);
+    /*
     if (element >= buf->capacity) {
         ASSERT_TRUE(element < buf->capacity);
         return NULL;
     }
+    */
 
     byte* const offset = buf->memory + element * buf->chunk_size;
     ASSERT_TRUE(offset);
@@ -486,7 +484,6 @@ bool thrd_chunk_is_free_atomic(const ChunkMemory* const buf, uint32 element) NO_
 
 // This is effectively the same as reserve with elements = 1 which allows for some performance improvements
 // state_count = number of maximum elements in the state array.
-// @todo change state_count to int
 HOT_CODE FORCE_FLATTEN
 int32 chunk_reserve_one(uint_max* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
 {
@@ -604,6 +601,9 @@ int32 chunk_reserve_internal(uint_max* const state, uint32 capacity, int32 last_
 {
     ASSERT_TRUE(elements > 0);
 
+    // There is some fundamental problem if this happens
+    ASSERT_TRUE(elements < capacity);
+
     if ((uint32) (last_pos + 1) >= capacity) { UNLIKELY
         last_pos = -1;
     }
@@ -712,11 +712,12 @@ int32 chunk_reserve_internal(uint_max* const state, uint32 capacity, int32 last_
 HOT_CODE FORCE_FLATTEN
 int32 chunk_reserve(ChunkMemory* const buf, uint32 elements = 1) NO_EXCEPT
 {
-    buf->last_pos = chunk_reserve_internal(buf->free, buf->capacity, buf->last_pos, elements);
+    const int32 found = chunk_reserve_internal(buf->free, buf->capacity, buf->last_pos, elements);
+    buf->last_pos = found + (elements - 1);
 
-    DEBUG_MEMORY_WRITE((uintptr_t) (buf->memory + buf->last_pos * buf->chunk_size), elements * buf->chunk_size);
+    DEBUG_MEMORY_WRITE((uintptr_t) (buf->memory + found * buf->chunk_size), elements * buf->chunk_size);
 
-    return buf->last_pos;
+    return found;
 }
 
 
@@ -919,14 +920,14 @@ int64 chunk_dump(const ChunkMemory* const buf, byte* data) NO_EXCEPT
 }
 
 inline HOT_CODE
-byte* chunk_get_memory(ChunkMemory* const buf, uint32 elements) NO_EXCEPT
+byte* chunk_memory_get(ChunkMemory* const buf, uint32 elements) NO_EXCEPT
 {
     const int32 element = chunk_reserve(buf, elements);
     return chunk_get_element(buf, element);
 }
 
 inline HOT_CODE
-byte* chunk_get_memory_one(ChunkMemory* const buf) NO_EXCEPT
+byte* chunk_memory_get_one(ChunkMemory* const buf) NO_EXCEPT
 {
     const int32 element = chunk_reserve_one(buf);
     return chunk_get_element(buf, element);

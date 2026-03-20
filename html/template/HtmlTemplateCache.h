@@ -128,7 +128,7 @@ void html_template_build_iter(const char* path, va_list args) {
 
     FileBody out = {
         .size = 0,
-        .content = ring_get_memory(ring, in.size * 2, ASSUMED_CACHE_LINE_SIZE)
+        .content = ring_memory_get(ring, in.size * 2, ASSUMED_CACHE_LINE_SIZE)
     };
 
     html_template_build(&in, &out);

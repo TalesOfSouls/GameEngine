@@ -37,7 +37,7 @@ inline
 void image_flip_vertical(RingMemory* const __restrict ring, Image* __restrict image) NO_EXCEPT
 {
     const uint32 stride = image->width * sizeof(uint32);
-    byte* temp = ring_get_memory(ring, image->pixel_count * sizeof(uint32), sizeof(size_t));
+    byte* temp = ring_memory_get(ring, image->pixel_count * sizeof(uint32), sizeof(size_t));
     memcpy(temp, image->pixels, image->pixel_count * sizeof(uint32));
 
     // Last row

@@ -42,7 +42,7 @@ const char* d3_shader_type_index(ShaderType type)
 ID3DBlob* gpuapi_shader_make(const char* type, const char* source, int32 source_size)
 {
     LOG_1("Create shader");
-    #if DEBUG || INTERNAL
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
         uint32 compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
     #else
         uint32 compileFlags = 0;

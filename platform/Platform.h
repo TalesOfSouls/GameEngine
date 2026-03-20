@@ -16,8 +16,8 @@
 /**
  * Depending on the used platform some operations could be differently optimized.
  */
-#if PLAYSTATION_6 || XBOX_ONE_S
-#elif NINTENDO_SWITCH_2
+#if (defined(PLAYSTATION_6) && PLAYSTATION_6) || (defined(XBOX_ONE_S) && XBOX_ONE_S)
+#elif defined(NINTENDO_SWITCH_2) && NINTENDO_SWITCH_2
 #else
     // Depending on the platform we may want to use different versions
     // On some platforms the other version may be faster

@@ -272,7 +272,7 @@ void file_read(
     }
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, file->size + 1);
+        file->content = ring_memory_get(ring, file->size + 1);
     }
 
     ssize_t bytes_read = read(fp, file->content, file->size);

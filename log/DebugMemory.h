@@ -194,7 +194,7 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
     dmr->function_name = function;
 
     mem->usage += size * type;
-    mem->usage = OMS_MAX((int64) 0, mem->usage);
+    mem->usage = OMS_CLAMP(mem->usage, (int64) 0, (int64) mem->size);
 }
 
 /**
@@ -310,7 +310,7 @@ void debug_memory_reset() NO_EXCEPT
     }
 }
 
-#if DEBUG
+#if defined(DEBUG) && DEBUG
     #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))
     #define DEBUG_MEMORY_NAME(name, addr) debug_memory_name((name), (addr))
     #define DEBUG_MEMORY_READ(start, size) debug_memory_log((start), (size), MEMORY_DEBUG_TYPE_READ, __func__)

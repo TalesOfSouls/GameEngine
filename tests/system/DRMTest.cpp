@@ -42,7 +42,7 @@ static void test_drm_process_scan() {
 
     RingMemory ring;
     ring_alloc(&ring, 256 * MEGABYTE, 256 * MEGABYTE);
-    byte* helper_mem = ring_get_memory(&ring, 128);
+    byte* helper_mem = ring_memory_get(&ring, 128, sizeof(size_t));
 
     drm_process_scan(
         drm_patterns, ARRAY_COUNT(drm_patterns),

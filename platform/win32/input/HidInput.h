@@ -46,7 +46,7 @@ void hid_init_controllers(Input* __restrict states, RingMemory* const ring) NO_E
 
         // First call to get required buffer size for device detail data
         pSetupDiGetDeviceInterfaceDetailW(device_info_set, &device_interface_data, NULL, 0, &required_size, NULL);
-        PSP_DEVICE_INTERFACE_DETAIL_DATA device_detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA) ring_get_memory(ring, required_size, sizeof(size_t));
+        PSP_DEVICE_INTERFACE_DETAIL_DATA device_detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA) ring_memory_get(ring, required_size, sizeof(size_t));
         device_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
         // Get device interface detail

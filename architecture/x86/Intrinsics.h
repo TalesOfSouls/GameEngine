@@ -58,7 +58,7 @@
 FORCE_INLINE
 uint64 intrin_timestamp_counter() NO_EXCEPT
 {
-    #if DEBUG || INTERNAL
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
         _mm_lfence();
     #endif
 

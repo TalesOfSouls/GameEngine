@@ -46,20 +46,20 @@ void mesh_from_file_txt(
     // @todo The temp memory reservation is bad, once the file format is really finalized we need to change this.
     //  We can't just assume these sizes
     int32 vertex_count = 0;
-    f32* vertices = (f32 *) ring_get_memory(ring, 500000 * sizeof(f32));
+    f32* vertices = (f32 *) ring_memory_get(ring, 500000 * sizeof(f32));
 
     int32 normal_count = 0;
-    f32* normals = (f32 *) ring_get_memory(ring, 500000 * sizeof(f32));
+    f32* normals = (f32 *) ring_memory_get(ring, 500000 * sizeof(f32));
 
     int32 tex_coord_count = 0;
-    f32* tex_coords = (f32 *) ring_get_memory(ring, 500000 * sizeof(f32));
+    f32* tex_coords = (f32 *) ring_memory_get(ring, 500000 * sizeof(f32));
 
     //int32 color_count = 0;
-    // f32* colors = (f32 *) ring_get_memory(ring, 500000 * sizeof(f32));
+    // f32* colors = (f32 *) ring_memory_get(ring, 500000 * sizeof(f32));
 
     int32 face_type = VERTEX_TYPE_POSITION;
     int32 face_count = 0;
-    int32* faces = (int32 *) ring_get_memory(ring, 500000 * sizeof(int32));
+    int32* faces = (int32 *) ring_memory_get(ring, 500000 * sizeof(int32));
 
     uint32 temp_color_count = 0;
 

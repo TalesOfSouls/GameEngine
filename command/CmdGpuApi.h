@@ -12,13 +12,13 @@
 #include "AppCmdBuffer.h"
 #include "AppCommand.h"
 
-#if defined(OPENGL)
+#if defined(OPENGL) && OPENGL
     #include "../gpuapi/opengl/AppCmdBuffer.h"
-#elif defined(VULKAN)
+#elif defined(VULKAN) && VULKAN
     #include "../gpuapi/vulkan/AppCmdBuffer.h"
-#elif defined(DIRECTX)
+#elif defined(DIRECTX) && DIRECTX
     #include "../gpuapi/direct3d/AppCmdBuffer.h"
-#elif defined(SOFTWARE)
+#elif defined(SOFTWARE) && SOFTWARE
     #include "../gpuapi/software/AppCmdBuffer.h"
 #else
     inline void* cmd_shader_load(AppCmdBuffer*, AppCommand*) NO_EXCEPT { return NULL; }

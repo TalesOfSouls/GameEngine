@@ -23,7 +23,7 @@
 #include "Opengl.h"
 #include "PersistentGpuBuffer.h"
 
-#if DEBUG
+#if defined(DEBUG) && DEBUG
     void gpuapi_error()
     {
         GLenum err;
@@ -94,7 +94,11 @@ void gpuapi_fence_lock(GpuFence* const fence) NO_EXCEPT
         glDeleteSync(*fence);
         *fence = 0;
     }
+}
 
+FORCE_INLINE
+void gpuapi_fence_unlock(GpuFence* const fence) NO_EXCEPT
+{
     *fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
 
@@ -118,6 +122,24 @@ bool gpuapi_fence_is_unlocked(GpuFence* const fence) NO_EXCEPT
     ASSERT_TRUE_CONST(false);
 
     return false;
+}
+
+FORCE_INLINE
+void gpuapi_fence_lock_wait(GpuFence* fence, int32 timeout = 1000000) NO_EXCEPT
+{
+    if (!(*fence)) {
+        return;
+    }
+
+    while (true) {
+        GLenum res = glClientWaitSync(*fence, GL_SYNC_FLUSH_COMMANDS_BIT, timeout);
+        if (res == GL_ALREADY_SIGNALED || res == GL_CONDITION_SATISFIED) {
+            break;
+        }
+    }
+
+    glDeleteSync(*fence);
+    *fence = 0;
 }
 
 FORCE_INLINE
@@ -443,12 +465,6 @@ uint32 gpuapi_buffer_generate_dynamic(int32 type, int32 size, const void* data) 
 inline
 void gpuapi_buffer_persistent_generate(int32 type, PersistentGpuBuffer* const buffer) NO_EXCEPT
 {
-    // @todo we need to dynamically get the alignment and pass it in
-    //      For that we need to get it once and then store it in the system info struct?
-    // glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment);
-    ASSERT_TRUE(MODULO_2(buffer->size, 256) == 0);
-    ASSERT_TRUE(MODULO_2(buffer->range_stride, 256) == 0);
-
     glGenBuffers(1, &buffer->bo);
     glBindBuffer(type, buffer->bo);
     glBufferStorage(

@@ -52,13 +52,13 @@ struct HttpRouter {
 void http_router_init(HttpRouter* router, uint32 route_count, BufferMemory* const buf, int32 alignment = sizeof(size_t)) {
     // We expect 3 path components per route
     // If more are required, we will increase the memory later
-    router->nodes = (HttpRouteNode *) buffer_get_memory(buf, route_count * 3 * sizeof(HttpRouteNode), alignment, true);
+    router->nodes = (HttpRouteNode *) buffer_memory_get(buf, route_count * 3 * sizeof(HttpRouteNode), alignment, true);
     router->node_capacity = route_count * 3;
     router->node_count = 0;
 
     // We expect at least one route detail per route
     // On average it is probably more like 1.x but if we need more we will increase as required later
-    router->route_details = (HttpRouteDetails *) buffer_get_memory(buf, route_count  * sizeof(HttpRouteDetails), alignment, true);
+    router->route_details = (HttpRouteDetails *) buffer_memory_get(buf, route_count  * sizeof(HttpRouteDetails), alignment, true);
     router->route_detail_capacity = route_count;
     router->route_detail_count = 0;
 }

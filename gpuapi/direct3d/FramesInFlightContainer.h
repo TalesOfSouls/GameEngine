@@ -16,14 +16,4 @@ struct FrameInFlight {
     ID3D12Resource* framebuffer;
 };
 
-struct FramesInFlightContainer {
-    uint32 count;
-    uint32 index;
-    ID3D12Fence* fence;
-    UINT64 fence_value;
-    HANDLE fence_event;
-
-    FrameInFlight frames[6];
-};
-
 #endif

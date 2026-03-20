@@ -26,7 +26,7 @@ void ams_create(AssetManagementSystem* const ams, BufferMemory* const buf, int32
     LOG_1("[INFO] Create AMS for %n assets", {DATA_TYPE_INT32, &count});
     hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
     ams->asset_component_count = asset_component_count;
-    ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), ASSUMED_CACHE_LINE_SIZE);
+    ams->asset_components = (AssetComponent *) buffer_memory_get(buf, asset_component_count * sizeof(AssetComponent), ASSUMED_CACHE_LINE_SIZE);
 
     //memset(ams->asset_components, 0, asset_component_count * sizeof(AssetComponent));
     memset(ams->asset_components, 0, align_up(asset_component_count * sizeof(AssetComponent), ASSUMED_CACHE_LINE_SIZE));
@@ -87,7 +87,10 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
     ac->asset_memory.last_pos = 0;
     ac->asset_memory.alignment = sizeof(size_t);
     ac->asset_memory.memory = buf;
-    ac->asset_memory.free = (uint64 *) (ac->asset_memory.memory + ac->asset_memory.chunk_size * count);
+    ac->asset_memory.free = (uint_max *) align_up(
+        (uintptr_t) (ac->asset_memory.memory + ac->asset_memory.chunk_size * count),
+        alignof(uint_max)
+    );
 
     mutex_init(&ac->mtx, NULL);
 }

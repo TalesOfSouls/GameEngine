@@ -441,7 +441,11 @@ void vulkan_descriptor_sets_create(
     int32 frames_in_flight, RingMemory* const ring
 )
 {
-    VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout *) ring_get_memory(ring, sizeof(VkDescriptorSetLayout) * frames_in_flight, ASSUMED_CACHE_LINE_SIZE);
+    VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout *) ring_memory_get(
+        ring,
+        sizeof(VkDescriptorSetLayout) * frames_in_flight,
+        ASSUMED_CACHE_LINE_SIZE
+    );
     for (int32 i = 0; i < frames_in_flight; ++i) {
         layouts[i] = descriptor_set_layout;
     }

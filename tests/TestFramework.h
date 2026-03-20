@@ -43,7 +43,7 @@ static int _test_profiling_loops = 1000;
         #include <immintrin.h>
         #include <intrin.h>
         uint64_t test_timestamp_counter() {
-            #if DEBUG || INTERNAL
+            #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
                 _mm_lfence();
             #endif
 

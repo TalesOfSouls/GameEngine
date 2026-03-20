@@ -143,6 +143,7 @@ void gpuapi_info_get(GpuInfo* info, ID3D12Device* device) {
 
     D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT addrSupport = {0};
     if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &addrSupport, sizeof(addrSupport)))) {
+        // @bug this may be wrong depending on gpu
         info->alignment = 256;
     }
 

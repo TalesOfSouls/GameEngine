@@ -14,6 +14,15 @@
 struct UIWindowState {
 };
 
+struct UIWindowTitle {
+    UIBackgroundStyle background_style;
+    UIAttributeBorder border_top;
+    UIAttributeBorder border_right;
+    UIAttributeBorder border_bottom;
+    UIAttributeBorder border_left;
+    wchar_t title[64];
+};
+
 struct UIWindow {
     UIAttributeDimension dimension;
     UIAnimation animation;
@@ -23,7 +32,10 @@ struct UIWindow {
 
     uintptr_t background;
     UIBackgroundStyle background_style;
-    UIAttributeBorder border;
+    UIAttributeBorder border_top;
+    UIAttributeBorder border_right;
+    UIAttributeBorder border_bottom;
+    UIAttributeBorder border_left;
     UIAttributeShadow shadow_outer;
     UIAttributeShadow shadow_inner;
 

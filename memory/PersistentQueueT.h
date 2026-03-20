@@ -73,8 +73,8 @@ void queue_alloc(PersistentQueueT<T>* const queue, int capacity, int max_capacit
 
     const size_t max_array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
     const size_t max_memory_size = max_capacity * sizeof(T)
-        + sizeof(uint_max) * max_array_count + sizeof(uint_max) // free
-        + sizeof(uint_max) * max_array_count + sizeof(uint_max); // complete
+        + sizeof(uint_max) * max_array_count + alignof(uint_max) // free
+        + sizeof(uint_max) * max_array_count + alignof(uint_max); // complete
 
     queue->capacity = capacity;
     queue->memory = (T *) platform_alloc_aligned(
@@ -116,8 +116,8 @@ void queue_alloc(
 
     const size_t max_array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
     const size_t max_memory_size = max_capacity * sizeof(T)
-        + sizeof(uint_max) * max_array_count + sizeof(uint_max) // free
-        + sizeof(uint_max) * max_array_count + sizeof(uint_max); // complete
+        + sizeof(uint_max) * max_array_count + alignof(uint_max) // free
+        + sizeof(uint_max) * max_array_count + alignof(uint_max); // complete
 
     queue->capacity = capacity;
     queue->memory = (T *) mem_arena_add(
@@ -131,13 +131,13 @@ void queue_alloc(
 
     queue->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (queue->memory + capacity)),
-        sizeof(uint_max)
+        alignof(uint_max)
     );
     memset(queue->free, 0, sizeof(uint_max) * array_count);
 
     queue->completed = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (queue->free + array_count)),
-        sizeof(uint_max)
+        alignof(uint_max)
     );
     memset(queue->completed, 0, sizeof(uint_max) * array_count);
 }
@@ -149,11 +149,11 @@ void queue_init(PersistentQueueT<T>* const queue, BufferMemory* const buf, int c
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
 
     queue->capacity = capacity;
-    queue->memory = (T *) buffer_get_memory(
+    queue->memory = (T *) buffer_memory_get(
         buf,
         sizeof(T) * capacity
-        + sizeof(uint_max) * array_count + sizeof(uint_max) // free
-        + sizeof(uint_max) * array_count + sizeof(uint_max), // complete
+        + sizeof(uint_max) * array_count + alignof(uint_max) // free
+        + sizeof(uint_max) * array_count + alignof(uint_max), // complete
         alignment
     );
     queue->head = 0;
@@ -161,13 +161,13 @@ void queue_init(PersistentQueueT<T>* const queue, BufferMemory* const buf, int c
 
     queue->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (queue->memory + capacity)),
-        sizeof(uint_max)
+        alignof(uint_max)
     );
     memset(queue->free, 0, sizeof(uint_max) * array_count);
 
     queue->completed = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (queue->free + array_count)),
-        sizeof(uint_max)
+        alignof(uint_max)
     );
     memset(queue->completed, 0, sizeof(uint_max) * array_count);
 }
@@ -185,13 +185,13 @@ void queue_init(PersistentQueueT<T>* const queue, byte* buf, int capacity, uint3
 
     queue->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (queue->memory + capacity)),
-        sizeof(uint_max)
+        alignof(uint_max)
     );
     memset(queue->free, 0, sizeof(uint_max) * array_count);
 
     queue->completed = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (queue->free + array_count)),
-        sizeof(uint_max)
+        alignof(uint_max)
     );
     memset(queue->completed, 0, sizeof(uint_max) * array_count);
 }

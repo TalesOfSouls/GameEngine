@@ -47,4 +47,12 @@
     #define CONSTEXPR constexpr
 #endif
 
+/**
+ * Constexpr should be possible but someone somewhere messed up.
+ * Either the constexpr implementation was bad or the referenced functions inside are not supported
+ * We use this comment to highlight and potentially improve our code once the underlying third party issues are resolved
+ * IFF they ever get resolved.
+ */
+#define CONSTEXPR_DOGSHIT
+
 #endif

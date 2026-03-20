@@ -27,7 +27,7 @@ bool library_load(Library* lib)
     str_concat_new(dst, lib->dir, lib->dst);
 
     // In debug mode, we create a copy at runtime, so we can recompile & reload it
-    #if DEBUG || INTERNAL
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
         char src[PATH_MAX_LENGTH];
         size_t dst_len = strlen(dst);
 

@@ -45,6 +45,11 @@ struct DisplayInfo {
     bool is_primary;
 };
 
+struct DriveInfo {
+    size_t total;
+    size_t free;
+};
+
 struct SystemInfo {
     uint8 gpu_count;
     uint8 display_count;
@@ -60,6 +65,7 @@ struct SystemInfo {
 
     CpuInfo cpu;
     RamInfo ram;
+    DriveInfo drive;
 
     GpuInfo gpu[3];
 

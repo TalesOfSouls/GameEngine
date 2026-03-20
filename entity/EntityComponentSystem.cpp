@@ -20,13 +20,13 @@
 #include "Entity.h"
 
 inline
-void ecs_create(EntityComponentSystem* ecs, BufferMemory* const buf, int32 entity_count, int32 component_count)
+void ecs_create(EntityComponentSystem* ecs, BufferMemory* const buf, int32 entity_type_count, int32 component_type_count)
 {
-    ecs->entity_type_count = entity_count;
-    ecs->entities = (ChunkMemory *) buffer_get_memory(buf, sizeof(ChunkMemory) * entity_count, ASSUMED_CACHE_LINE_SIZE);
+    ecs->entity_type_count = entity_type_count;
+    ecs->entities = (ChunkMemory *) buffer_memory_get(buf, sizeof(ChunkMemory) * entity_type_count, ASSUMED_CACHE_LINE_SIZE);
 
-    ecs->component_type_count = component_count;
-    ecs->components = (ChunkMemory *) buffer_get_memory(buf, sizeof(ChunkMemory) * component_count, ASSUMED_CACHE_LINE_SIZE);
+    ecs->component_type_count = component_type_count;
+    ecs->components = (ChunkMemory *) buffer_memory_get(buf, sizeof(ChunkMemory) * component_type_count, ASSUMED_CACHE_LINE_SIZE);
 }
 
 inline

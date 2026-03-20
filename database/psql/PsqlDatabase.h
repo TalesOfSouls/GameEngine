@@ -107,11 +107,11 @@ void* db_execute_prepared(
     int32 param_count,
     RingMemory* const ring
 ) {
-    char** values = (char **) ring_get_memory(ring, sizeof(char *) * param_count);
-    int32* formats = (int32 *) ring_get_memory(ring, sizeof(int32) * param_count);
-    int32* lengths = (int32 *) ring_get_memory(ring, sizeof(int32) * param_count);
+    char** values = (char **) ring_memory_get(ring, sizeof(char *) * param_count);
+    int32* formats = (int32 *) ring_memory_get(ring, sizeof(int32) * param_count);
+    int32* lengths = (int32 *) ring_memory_get(ring, sizeof(int32) * param_count);
 
-    char* local_arena = (char *) ring_get_memory(ring, 4 * KILOBYTE, ASSUMED_CACHE_LINE_SIZE, true);
+    char* local_arena = (char *) ring_memory_get(ring, 4 * KILOBYTE, ASSUMED_CACHE_LINE_SIZE, true);
     char* local_arena_end = local_arena + 4 * KILOBYTE;
 
     for (int32 i = 0; i < param_count; ++i) {
@@ -122,7 +122,7 @@ void* db_execute_prepared(
                     values[i] = local_arena;
                     local_arena += data_length;
                 } else {
-                    values[i] = (char *) ring_get_memory(ring, data_length, 4, true);
+                    values[i] = (char *) ring_memory_get(ring, data_length, 4, true);
                 }
 
                 *((int8 *) values[i]) = params[i].int8_val;
@@ -135,7 +135,7 @@ void* db_execute_prepared(
                     values[i] = local_arena;
                     local_arena += data_length;
                 } else {
-                    values[i] = (char *) ring_get_memory(ring, data_length, 4, true);
+                    values[i] = (char *) ring_memory_get(ring, data_length, 4, true);
                 }
 
                 *((int16 *) values[i]) = htons(params[i].int16_val);
@@ -148,7 +148,7 @@ void* db_execute_prepared(
                     values[i] = local_arena;
                     local_arena += data_length;
                 } else {
-                    values[i] = (char *) ring_get_memory(ring, data_length, 4, true);
+                    values[i] = (char *) ring_memory_get(ring, data_length, 4, true);
                 }
 
                 *((int32 *) values[i]) = htonl(params[i].int32_val);
@@ -161,7 +161,7 @@ void* db_execute_prepared(
                     values[i] = local_arena;
                     local_arena += data_length;
                 } else {
-                    values[i] = (char *) ring_get_memory(ring, data_length, 4, true);
+                    values[i] = (char *) ring_memory_get(ring, data_length, 4, true);
                 }
 
                 *((int64 *) htonll[i]) = htonl(params[i].int64_val);
@@ -174,7 +174,7 @@ void* db_execute_prepared(
                     values[i] = local_arena;
                     local_arena += data_length;
                 } else {
-                    values[i] = (char *) ring_get_memory(ring, data_length, 4, true);
+                    values[i] = (char *) ring_memory_get(ring, data_length, 4, true);
                 }
 
                 *((f32 *) values[i]) = params[i].f32_val;
@@ -187,7 +187,7 @@ void* db_execute_prepared(
                     values[i] = local_arena;
                     local_arena += data_length;
                 } else {
-                    values[i] = (char *) ring_get_memory(ring, data_length, 4, true);
+                    values[i] = (char *) ring_memory_get(ring, data_length, 4, true);
                 }
 
                 *((f64 *) values[i]) = params[i].f64_val;

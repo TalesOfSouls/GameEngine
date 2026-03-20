@@ -375,6 +375,23 @@ int32 utf8_to_wchar(const char* in, wchar_t* out, int32 length)
     return out_pos + 1;
 }
 
+inline
+void str_toupper(char* str) NO_EXCEPT
+{
+    while (*str != '\0') {
+        *str = (char) toupper(*str);
+        ++str;
+    }
+}
+
+inline
+void str_tolower(char* str) NO_EXCEPT
+{
+    while (*str != '\0') {
+        *str = (char) tolower(*str);
+        ++str;
+    }
+}
 
 inline CONSTEXPR
 bool str_is_alpha(const char* str) NO_EXCEPT
