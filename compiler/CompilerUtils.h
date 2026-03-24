@@ -42,9 +42,13 @@
     #define FALLTHROUGH [[fallthrough]]
     #define IF_CONSTEXPR(cond) if constexpr (cond)
     #define CONSTEXPR constexpr
+    #define CONSTEVAL consteval
+    #define CONSTINIT constinit
 #else
     #define FALLTHROUGH
-    #define CONSTEXPR constexpr
+    #define CONSTEXPR
+    #define CONSTEVAL
+    #define CONSTINIT
 #endif
 
 /**

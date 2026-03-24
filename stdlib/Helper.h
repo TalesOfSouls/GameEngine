@@ -296,7 +296,6 @@ byte* write_le(byte* p, f64 v) NO_EXCEPT
 FORCE_INLINE
 const byte* read_le(const byte* __restrict p, uint32* __restrict out) NO_EXCEPT
 {
-    // @question Why do I even need v? Just use out directly
     uint32 v;
     memcpy(&v, p, sizeof(v));
     *out = SWAP_ENDIAN_LITTLE(v);

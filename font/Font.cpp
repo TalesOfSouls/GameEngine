@@ -119,18 +119,33 @@ void font_from_file_txt(
         // In the text file we don't have to define width and height of the character, we calculate that here
         font->glyphs[glyph_index] = {
             (uint32) str_to_int(pos, &pos), // codepoint
-            {0.0f, 0.0f, str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos)},
-            {str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos)}
+            {
+                str_to_float(++pos, &pos), // width
+                str_to_float(++pos, &pos), // height
+                str_to_float(++pos, &pos), // offset_x
+                str_to_float(++pos, &pos), // offset_y
+                str_to_float(++pos, &pos) // advance_x
+            }, // metrics
+            (int32) str_to_int(++pos, &pos), // vertex count
+            {
+                { // top-left
+                    {str_to_float(++pos, &pos), str_to_float(++pos, &pos)},
+                    {str_to_float(++pos, &pos) / image_width, str_to_float(++pos, &pos) / image_height},
+                },
+                { // top-right
+                    {str_to_float(++pos, &pos), str_to_float(++pos, &pos)},
+                    {str_to_float(++pos, &pos) / image_width, str_to_float(++pos, &pos) / image_height},
+                },
+                { // bottom-left
+                    {str_to_float(++pos, &pos), str_to_float(++pos, &pos)},
+                    {str_to_float(++pos, &pos) / image_width, str_to_float(++pos, &pos) / image_height},
+                },
+                { // bottom-right
+                    {str_to_float(++pos, &pos), str_to_float(++pos, &pos)},
+                    {str_to_float(++pos, &pos) / image_width, str_to_float(++pos, &pos) / image_height}
+                }
+            }
         };
-
-        font->glyphs[glyph_index].metrics.width = font->glyphs[glyph_index].coords.end.x - font->glyphs[glyph_index].coords.start.x;
-        font->glyphs[glyph_index].metrics.height = font->glyphs[glyph_index].coords.end.y - font->glyphs[glyph_index].coords.start.y;
-
-        font->glyphs[glyph_index].coords.start.x /= image_width;
-        font->glyphs[glyph_index].coords.end.x /= image_width;
-
-        font->glyphs[glyph_index].coords.start.y /= image_height;
-        font->glyphs[glyph_index].coords.end.y /= image_height;
 
         ++glyph_index;
 
@@ -143,7 +158,6 @@ void font_from_file_txt(
 FORCE_INLINE
 int32 font_data_size(const Font* const font) NO_EXCEPT
 {
-    ASSERT_TRUE_CONST(sizeof(Glyph) == GLYPH_SIZE);
     return font->glyph_count * sizeof(Glyph)
         + sizeof(font->glyph_count)
         + sizeof(font->texture_name)
@@ -247,9 +261,12 @@ void font_invert_coordinates(Font* const font) NO_EXCEPT
 {
     // @todo Implement y-offset correction
     for (uint32 i = 0; i < font->glyph_count; ++i) {
-        const f32 temp = font->glyphs[i].coords.start.y;
-        font->glyphs[i].coords.start.y = 1.0f - font->glyphs[i].coords.end.y;
-        font->glyphs[i].coords.end.y = 1.0f - temp;
+        Glyph* const glyph = &font->glyphs[i];
+        for (int32 j = 0; j < glyph->vertex_count; ++j) {
+            const f32 temp = glyph->vertices[j].uv.y;
+            glyph->vertices[j].uv.y = 1.0f - glyph->vertices[j].uv.y;
+            glyph->vertices[j].uv.y = 1.0f - temp;
+        }
     }
 }
 

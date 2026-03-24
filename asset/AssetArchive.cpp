@@ -210,8 +210,7 @@ Asset* const asset_archive_asset_load(
     const AssetArchiveElement* const element = &archive->header.asset_element[id & 0x00FFFFFF];
 
     ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
-    byte component_id = archive->asset_type_map[element->type];
-    //AssetComponent* ac = &ams->asset_components[component_id];
+    const byte component_id = archive->asset_type_map[element->type];
 
     LOG_2(
         "[INFO] Load asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",

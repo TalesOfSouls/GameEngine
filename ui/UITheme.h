@@ -33,7 +33,7 @@ struct UIThemeStyle {
 
     // @question It feels weird that this is here, especially considering we could have multiple fonts
     // Maybe we should have an array of fonts (e.g. allow up to 3 fonts per theme?)
-    const Font* font;
+    FontSystem* font;
 };
 
 #endif

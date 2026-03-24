@@ -15,32 +15,18 @@
 
 #define MAX_STACK_FRAMES 64
 
-// @todo fix nasty fprintf usage
-// @todo should also log backtrace similar to windows version
 void signal_handler(int sig) {
-    void *stack_frames[MAX_STACK_FRAMES];
-    char **stack_symbols;
-    int num_frames;
+    void* stack_frames[MAX_STACK_FRAMES];
+    const int num_frames = backtrace(stack_frames, ARRAY_COUNT(stack_frames));
+    const char** stack_symbols = backtrace_symbols(stack_frames, num_frames);
 
-    num_frames = backtrace(stack_frames, MAX_STACK_FRAMES);
-    stack_symbols = backtrace_symbols(stack_frames, num_frames);
-
-    fprintf(stderr, "Error: signal %d:\n", sig);
-    for (int i = 0; i < num_frames; i++) {
-        fprintf(stderr, "%s\n", stack_symbols[i]);
+    LOG_1("Error: signal %d:", {DATA_TYPE_INT32, &sig});
+    for (int i = 0; i < num_frames; ++i) {
+        LOG_1("%s", {DATA_TYPE_CHAR_STR, stack_symbols[i]});
     }
 
-    FILE *file = fopen("crash_dump.log", "w");
-    if (file) {
-        fprintf(file, "Error: signal %d:\n", sig);
-        for (int i = 0; i < num_frames; i++) {
-            fprintf(file, "%s\n", stack_symbols[i]);
-        }
-        fclose(file);
-    }
-
+    LOG_TO_FILE();
     free(stack_symbols);
-
     exit(EXIT_FAILURE);
 }
 
@@ -56,20 +42,19 @@ void setup_signal_handler() {
 }
 
 void print_stack_trace() {
-    void *buffer[100]; // Array to store the return addresses
-    int num_ptrs = backtrace(buffer, 100); // Capture the stack trace
-    char **symbols = backtrace_symbols(buffer, num_ptrs); // Resolve symbols
-
+    void* buffer[100];
+    const int num_ptrs = backtrace(buffer, ARRAY_COUNT(buffer));
+    const char** symbols = backtrace_symbols(buffer, num_ptrs);
     if (symbols == NULL) {
-        perror("backtrace_symbols");
         return;
     }
 
-    printf("Stack trace:\n");
-    for (int i = 0; i < num_ptrs; i++) {
-        printf("%s\n", symbols[i]); // Print each symbol
+    LOG_1("Stack trace:");
+    for (int i = 0; i < num_ptrs; ++i) {
+        LOG_1("%s", {DATA_TYPE_CHAR_STR, symbols[i]});
     }
 
+    LOG_TO_FILE()
     free(symbols);
 }
 

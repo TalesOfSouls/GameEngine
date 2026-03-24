@@ -19,7 +19,6 @@ void sha1_transform(Sha1Context* ctx, const byte data[64], int32 steps) NO_EXCEP
     uint32 a, b, c, d, e, temp;
     alignas(64) uint32 w[80];
 
-    // @question Does it make sense to also do SIMD here?
     for (int32 i = 0; i < 16; ++i) {
         w[i] = ((uint32) data[i * 4 + 0] << 24)
             | ((uint32) data[i * 4 + 1] << 16)

@@ -547,13 +547,13 @@ int64 chunk_dump(const ChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
     // This also includes the free array
     memcpy(data, buf->memory, size);
 
-    #if !_WIN32 && !__LITTLE_ENDIAN__
+    #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
         uint_max* free_data = (uint_max *) (data + free_offset);
     #endif
 
     data += size;
 
-    #if !_WIN32 && !__LITTLE_ENDIAN__
+    #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
         // @todo replace with simd endian swap if it is faster
         for (uint32 i = 0; i < ceil_div(buf->capacity, (int32) (sizeof(uint_max) * 8)); ++i) {
             *free_data = SWAP_ENDIAN_LITTLE(*free_data);
@@ -607,7 +607,7 @@ int64 chunk_load(ChunkMemoryT<T>* const buf, const byte* data) NO_EXCEPT
 
     buf->free = (uint_max *) (((uintptr_t) buf->memory) + free_offset);
 
-    #if !_WIN32 && !__LITTLE_ENDIAN__
+    #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
         uint_max* free_data = buf->free;
         // @todo replace with simd endian swap if it is faster
         for (uint32 i = 0; i < ceil_div(buf->capacity, (int32) (sizeof(uint_max) * 8)); ++i) {

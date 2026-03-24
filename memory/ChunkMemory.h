@@ -900,19 +900,15 @@ int64 chunk_dump(const ChunkMemory* const buf, byte* data) NO_EXCEPT
     // This also includes the free array
     memcpy(data, buf->memory, buf->size);
 
-    #if !_WIN32 && !__LITTLE_ENDIAN__
+    #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
         uint_max* free_data = (uint_max *) (data + free_offset);
-    #endif
-
-    data += buf->size;
-
-    #if !_WIN32 && !__LITTLE_ENDIAN__
-        // @todo replace with simd endian swap if it is faster
         for (uint32 i = 0; i < ceil_div(buf->capacity, (uint32) (sizeof(uint_max) * 8)); ++i) {
             *free_data = SWAP_ENDIAN_LITTLE(*free_data);
             ++free_data;
         }
     #endif
+
+    data += buf->size;
 
     LOG_1("[INFO] Dumped ChunkMemory: %n B", {DATA_TYPE_UINT64, (void *) &buf->size});
 
@@ -934,11 +930,16 @@ byte* chunk_memory_get_one(ChunkMemory* const buf) NO_EXCEPT
 }
 
 inline
-int64 chunk_load(ChunkMemory* const buf, const byte* data) NO_EXCEPT
+int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0) NO_EXCEPT
 {
     LOG_1("[INFO] Loading ChunkMemory");
 
     const byte* const start = data;
+
+    const size_t initial_size = buf->size;
+    // Asset if we even have enough space
+    ASSERT_TRUE(data_size ? initial_size >= data_size : true);
+    PSEUDO_USE(data_size);
 
     data = read_le(data, &buf->capacity);
     data = read_le(data, &buf->size);
@@ -954,9 +955,8 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data) NO_EXCEPT
 
     buf->free = (uint_max *) (buf->memory + free_offset);
 
-    #if !_WIN32 && !__LITTLE_ENDIAN__
+    #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
         uint_max* free_data = buf->free;
-        // @todo replace with simd endian swap if it is faster
         for (uint32 i = 0; i < ceil_div(buf->capacity, (uint32) (sizeof(uint_max) * 8)); ++i) {
             *free_data = SWAP_ENDIAN_LITTLE(*free_data);
             ++free_data;

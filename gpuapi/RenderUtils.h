@@ -12,6 +12,8 @@
 #include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
 #include "../font/Font.cpp"
+#include "../font/FontSystem.h"
+#include "../memory/RingMemory.cpp"
 #include "../object/Vertex.h"
 #include "../ui/UIAlignment.h"
 #include "../architecture/Intrinsics.h"
@@ -105,15 +107,18 @@ int32 vertex_line_create(
     vertices[idx++] = {{v0.x, v0.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
     vertices[idx++] = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
     vertices[idx++] = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    ASSERT_STRICT(fabsf(vertices[0].position.x - vertices[1].position.x) > OMS_EPSILON_F32 || fabsf(vertices[0].position.x - vertices[2].position.x) > OMS_EPSILON_F32);
+    ASSERT_STRICT(fabsf(vertices[0].position.y - vertices[1].position.y) > OMS_EPSILON_F32 || fabsf(vertices[0].position.y - vertices[2].position.y) > OMS_EPSILON_F32);
 
     vertices[idx++] = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
     vertices[idx++] = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
     vertices[idx++] = {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    ASSERT_STRICT(fabsf(vertices[0].position.x - vertices[1].position.x) > OMS_EPSILON_F32 || fabsf(vertices[0].position.x - vertices[2].position.x) > OMS_EPSILON_F32);
+    ASSERT_STRICT(fabsf(vertices[0].position.y - vertices[1].position.y) > OMS_EPSILON_F32 || fabsf(vertices[0].position.y - vertices[2].position.y) > OMS_EPSILON_F32);
 
     return idx;
 }
 
-// @question Do we really want this to be inline? we are calling this function very often -> a lot of inlined code size
 inline
 int32 vertex_rect_create(
     Vertex3DSamplerTextureColor* const vertices, f32 zindex, int32 sampler,
@@ -261,100 +266,87 @@ int32 vertex_arc_create(
 }
 
 static
-f32 text_calculate_dimensions_height(
-    const Font* const __restrict font, const char* const __restrict text, f32 scale, int32 length
+v2_f32 text_calculate_dimensions(
+    const Glyph** const glyphs, int32 length, f32 line_height, f32 scale
 ) NO_EXCEPT
 {
-    const f32 line_height = font->line_height * scale;
+    line_height = line_height * scale;
+    f32 x = 0;
     f32 y = line_height;
 
-    // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
+    f32 offset_x = 0;
 
     for (int32 i = 0; i < length; ++i) {
-        if (text[i] == '\n') {
+        if (!glyphs[i] || glyphs[i]->codepoint == '\n') {
+            x = max_branched(x, offset_x);
             y += line_height;
+
+            offset_x = 0;
+
+            continue;
         }
+
+        offset_x += (glyphs[i]->metrics.width + glyphs[i]->metrics.offset_x + glyphs[i]->metrics.advance_x) * scale;
     }
 
-    return y;
+    return { max_branched(x, offset_x), y };
 }
 
 static
 f32 text_calculate_dimensions_width(
-    const Font* const __restrict font, const char* const __restrict text, bool is_ascii, f32 scale, int32 length
+    const Glyph** const glyphs, int32 length, f32 scale
 ) NO_EXCEPT
 {
     f32 x = 0;
     f32 offset_x = 0;
 
-    // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
-
     for (int32 i = 0; i < length; ++i) {
-        const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
-
-        if (character == '\n') {
+        if (!glyphs[i] || glyphs[i]->codepoint == '\n') {
             x = max_branched(x, offset_x);
             offset_x = 0;
 
             continue;
         }
 
-        const Glyph* const glyph = font_glyph_find(font, character);
-        if (!glyph) {
-            continue;
-        }
-
-        offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
+        offset_x += (glyphs[i]->metrics.width + glyphs[i]->metrics.offset_x + glyphs[i]->metrics.advance_x) * scale;
     }
 
     return max_branched(x, offset_x);
 }
 
 static
-v2_f32 text_calculate_dimensions(
-    const Font* const __restrict font, const char* const __restrict text, bool is_ascii, f32 scale, int32 length
+f32 text_calculate_dimensions_height(
+    const Glyph** const glyphs, int32 length, f32 line_height, f32 scale
 ) NO_EXCEPT
 {
-    const f32 line_height = font->line_height * scale;
-    f32 x = 0;
+    line_height = line_height * scale;
+    //f32 x = 0;
     f32 y = line_height;
 
-    f32 offset_x = 0;
-
-    // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
+    //f32 offset_x = 0;
 
     for (int32 i = 0; i < length; ++i) {
-        const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
-
-        if (character == '\n') {
-            x = max_branched(x, offset_x);
+        if (!glyphs[i] || glyphs[i]->codepoint == '\n') {
+            //x = max_branched(x, offset_x);
             y += line_height;
 
-            offset_x = 0;
+            //offset_x = 0;
 
-            continue;
+            //continue;
         }
 
-        const Glyph* glyph = font_glyph_find(font, character);
-        if (!glyph) {
-            continue;
-        }
-
-        offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
+        //offset_x += (glyphs[i]->metrics.width + glyphs[i]->metrics.offset_x + glyphs[i]->metrics.advance_x) * scale;
     }
 
-    return { max_branched(x, offset_x), y };
+    return y;
+    //return { max_branched(x, offset_x), y };
 }
 
-// @todo implement shadow (offset + angle + diffuse) or should this be a shader only thing? if so this would be a problem for us since we are handling text in the same shader as simple shapes
-// we might want to implement distance field font atlas
-// @todo We should be able to cut off text at an arbitrary position, not just at a line_height incremental
-// we could probably get the MIN of the glyph height and the remaining window height
 v3_int32 vertex_text_create(
     Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
-    const Font* const __restrict font, const char* const __restrict text,
-    f32 size, MAYBE_UNUSED uint32 rgba = 0
+    FontSystem* const __restrict font, const char* const __restrict text,
+    f32 size, MAYBE_UNUSED uint32 rgba, RingMemory* const __restrict ring
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_VERTEX_TEXT_CREATE);
@@ -366,26 +358,70 @@ v3_int32 vertex_text_create(
     }
 
     const bool is_ascii = (int32) strlen(text) == length;
-    const f32 scale = size / font->size;
+    const f32 scale = size / font->base.size;
+
+    const Glyph** glyphs = (const Glyph**) ring_memory_get(ring, length * sizeof(Glyph*), alignof(uintptr_t));
+    for (int32 i = 0; i < length; ++i) {
+        const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
+        if (character == '\n') {
+            glyphs[i] = NULL;
+            continue;
+        }
+
+        glyphs[i] = font_glyph_find(&font->base, character);
+        if (!glyphs[i] && font->has_extended) {
+            //glyphs[i] = hashmap_get(&font->font_map, character);
+
+            if (!glyphs[i]) {
+                const Glyph* extended_glyph = font_glyph_find(&font->extended, character);
+                if (!extended_glyph) {
+                    glyphs[i] = NULL;
+                    continue;
+                }
+
+                // @bug Not correct:
+                //      1. we need to add the value not the pointer.
+                //      2. we need to find a free spot in the texture or replace old ones
+                //      3. we need to update the uv values to the new position
+                //      4. we need to create a custom _insert function
+                //      5. we probably need a custom struct for the hash map to also contain the priority for replacing elements
+                //hashmap_insert(&font->font_map, extended_glyph->codepoint, extended_glyph);
+
+                // @bug this is wrong, we need the inserted pointer since the texture position is different
+                glyphs[i] = extended_glyph;
+
+                font->has_changes = true;
+            } else {
+                // @todo update glyph priority
+            }
+        }
+
+        if (!glyphs[i]) {
+            // @todo add unknown character glyph
+            glyphs[i] = &font->base.glyphs[0];
+        }
+    }
+
+    const f32 line_height = font->base.line_height;
 
     // If we do a different alignment we need to pre-calculate the width and height
     if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
         if ((alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER))
             && (alignment & (UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER))
         ) {
-            const v2_f32 dim = text_calculate_dimensions(font, text, is_ascii, scale, length);
+            const v2_f32 dim = text_calculate_dimensions(glyphs, length, line_height, scale);
             dimension.width = dim.width;
             dimension.height = dim.height;
         } else if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER)) {
-            dimension.width = text_calculate_dimensions_width(font, text, is_ascii, scale, length);
+            dimension.width = text_calculate_dimensions_width(glyphs, length, scale);
         } else {
-            dimension.height = text_calculate_dimensions_height(font, text, scale, length);
+            dimension.height = text_calculate_dimensions_height(glyphs, length, line_height, scale);
         }
 
         adjust_aligned_position(&dimension, alignment);
     }
 
-    const f32 line_height_scaled = font->line_height * scale;
+    const f32 line_height_scaled = line_height * scale;
 
     f32 rendered_width = 0;
     f32 rendered_height = line_height_scaled;
@@ -394,8 +430,8 @@ v3_int32 vertex_text_create(
 
     f32 offset_x = dimension.x;
     for (int32 i = 0; i < length; ++i) {
-        const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
-        if (character == '\n') {
+        const Glyph* const glyph = glyphs[i];
+        if (!glyph || glyph->codepoint == '\n') {
             rendered_height += line_height_scaled;
             rendered_width = max_branched(rendered_width, offset_x - dimension.x);
 
@@ -405,27 +441,32 @@ v3_int32 vertex_text_create(
             continue;
         }
 
-        const Glyph* glyph = font_glyph_find(font, character);
-        if (!glyph) {
-            continue;
-        }
+        const GlyphMetrics* metrics = &glyph->metrics;
+        const GlyphVertex* glyph_vertices = glyph->vertices;
 
-        const f32 offset_y = dimension.y + glyph->metrics.offset_y * scale;
-        offset_x += glyph->metrics.offset_x * scale;
-        rendered_width += glyph->metrics.offset_x * scale;
+        const f32 offset_y = dimension.y + metrics->offset_y * scale;
+        offset_x += metrics->offset_x * scale;
+        rendered_width += metrics->offset_x * scale;
 
-        if (character != ' ' && character != '\t') {
-            // @todo We should probably inline the code here, we might be able to even optimize it then
+        if (glyph->codepoint != ' ' && glyph->codepoint != '\t') {
             // @bug we cannot pass the rgba here since the rgba overwrites the texture coordinates
             //      we would have to add at least an additional 4 bytes to allow texture coordinates + recoloring
-            idx += vertex_rect_create(
-                vertices + idx, zindex, sampler,
-                {offset_x, offset_y, glyph->metrics.width * scale, glyph->metrics.height * scale}, 0,
-                0, glyph->coords.start, glyph->coords.end
-            );
+            vertices[idx++] = {{offset_x + glyph_vertices[0].pos.x * scale, offset_y + glyph_vertices[0].pos.y * scale, zindex}, sampler, glyph_vertices[0].uv};
+            vertices[idx++] = {{offset_x + glyph_vertices[1].pos.x * scale, offset_y + glyph_vertices[1].pos.y * scale, zindex}, sampler, glyph_vertices[1].uv};
+            vertices[idx++] = {{offset_x + glyph_vertices[2].pos.x * scale, offset_y + glyph_vertices[2].pos.y * scale, zindex}, sampler, glyph_vertices[2].uv};
+            ASSERT_STRICT(fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32 || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32);
+            ASSERT_STRICT(fabsf(vertices[idx - 3].position.y - vertices[idx - 2].position.y) > OMS_EPSILON_F32 || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32);
+
+            if (glyph->vertex_count > 3) {
+                vertices[idx++] = {{offset_x + glyph_vertices[1].pos.x * scale, offset_y + glyph_vertices[1].pos.y * scale, zindex}, sampler, glyph_vertices[1].uv};
+                vertices[idx++] = {{offset_x + glyph_vertices[3].pos.x * scale, offset_y + glyph_vertices[3].pos.y * scale, zindex}, sampler, glyph_vertices[3].uv};
+                vertices[idx++] = {{offset_x + glyph_vertices[2].pos.x * scale, offset_y + glyph_vertices[2].pos.y * scale, zindex}, sampler, glyph_vertices[2].uv};
+                ASSERT_STRICT(fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32 || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32);
+                ASSERT_STRICT(fabsf(vertices[idx - 3].position.y - vertices[idx - 2].position.y) > OMS_EPSILON_F32 || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32);
+            }
         }
 
-        const f32 add_offset = (glyph->metrics.width + glyph->metrics.advance_x) * scale;
+        const f32 add_offset = (metrics->width + metrics->advance_x) * scale;
         offset_x += add_offset;
         rendered_width += add_offset;
     }

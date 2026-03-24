@@ -953,14 +953,13 @@ void soft_render(
             ASSERT_TRUE(renderer->active_shader->shader_functions[i]);
 
             for (int j = 0; j < data_chunks; ++j) {
-                // @todo replace 3 with stride
                 const int extra = (j < remainder) ? 1 : 0;
                 const int data_start = j * base + OMS_MIN(j, remainder);
                 const int data_end = data_start + base + extra;
 
                 // Basically the data_count but now split up for the thread
                 // In most cases this is just the vertex count the helper thread should render
-                const int data_chunk_count = (data_end - data_start) * 3;
+                const int data_chunk_count = (data_end - data_start) * MULTI_RENDER_BUFFER;
 
                 int index_start = 0;
                 int index_chunk_size = 0;
@@ -975,7 +974,7 @@ void soft_render(
                 //      Maybe test by passing the full data to the thread
                 args[j] = {
                     renderer,
-                    data ? (void*)(((uint8 *)data) + data_start * data_size) : NULL, // @todo replace 3 with stride
+                    data ? (void*)(((uint8 *)data) + data_start * data_size) : NULL,
                     data_chunk_count,
                     data_indices ? data_indices + index_start : NULL,
                     index_chunk_size,

@@ -4,7 +4,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../stdlib/HashMap.h"
 #include "../asset/Asset.h"
-#include "../font/Font.h"
+#include "../font/FontSystem.h"
 #include "../object/Vertex.h"
 
 #define UI_LAYOUT_VERSION 1
@@ -51,8 +51,9 @@ struct UILayout {
     // Every ui element has it's own color code and with that we can identify the currently hovered one
     uint32* ui_chroma_codes;
 
-    // @question Maybe we should have an array of fonts (e.g. allow up to 3 fonts per layout?)
-    const Font* font;
+    // @question It feels weird that this is here, especially considering we could have multiple fonts
+    // Maybe we should have an array of fonts (e.g. allow up to 3 fonts per theme?)
+    FontSystem* font;
 
     // Used to directly find element by name
     // The values are pointers to the UIElements

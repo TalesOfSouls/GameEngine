@@ -486,4 +486,10 @@ struct timespec
 };
 #define _CRT_NO_TIME_T 1
 
+// Cosntexpr helper types because constexpr is dogshit
+template <unsigned N>
+struct constexpr_str {
+    char data[N]{};
+};
+
 #endif

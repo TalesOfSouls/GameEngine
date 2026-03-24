@@ -455,6 +455,7 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* const ams, byte type, const
         0, // .is_loaded =
         type, // .componentid =
         0, // .state =
+        false, // .is_persistent =
         0, // .reference_count =
         asset_data // .self =
     };

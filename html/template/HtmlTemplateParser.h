@@ -125,44 +125,53 @@ HtmlTemplateASTNode* html_template_expression_parse(const char** input, HtmlTemp
 
 HtmlTemplateASTNode* html_template_factor_parse(const char** input, HtmlTemplateToken* token_current, HtmlTemplateContextFlag context_flag, byte** memory) {
     // @performance Consider to order the token types in a smart way and perform range check here
-    // @todo use switch
-    if (token_current->type == TOKEN_INTEGER64) {
-        HtmlTemplateASTNode* node = html_template_node_create(NODE_INTEGER64, token_current, memory);
-        *token_current = html_template_token_next(input, context_flag);
+    switch (token_current->type) {
+        case TOKEN_INTEGER64: {
+            HtmlTemplateASTNode* node = html_template_node_create(NODE_INTEGER64, token_current, memory);
+            *token_current = html_template_token_next(input, context_flag);
 
-        // @todo parse string representation of int
+            // @todo parse string representation of int
 
-        return node;
-    } else if (token_current->type == TOKEN_FLOAT64) {
-        HtmlTemplateASTNode* node = html_template_node_create(NODE_FLOAT64, token_current, memory);
-        *token_current = html_template_token_next(input, context_flag);
+            return node;
+        };
+        case TOKEN_FLOAT64: {
+            HtmlTemplateASTNode* node = html_template_node_create(NODE_FLOAT64, token_current, memory);
+            *token_current = html_template_token_next(input, context_flag);
 
-        // @todo parse string representation of float
+            // @todo parse string representation of float
 
-        return node;
-    } else if (token_current->type == TOKEN_STRING) {
-        HtmlTemplateASTNode* node = html_template_node_create(NODE_STRING, token_current, memory);
-        *token_current = html_template_token_next(input, context_flag);
-        return node;
-    } else if (token_current->type == TOKEN_IDENTIFIER) {
-        HtmlTemplateASTNode* node = html_template_node_create(NODE_IDENTIFIER, token_current, memory);
-        *token_current = html_template_token_next(input, context_flag);
-        return node;
-    } else if (token_current->type == TOKEN_LPAREN) {
-        *token_current = html_template_token_next(input, context_flag); // Consume '('
-        HtmlTemplateASTNode* node = html_template_expression_parse(input, token_current, context_flag, memory);
-        *token_current = html_template_token_next(input, context_flag); // Consume ')'
-        return node;
-    } else if (token_current->type == TOKEN_LBRACK) {
-        *token_current = html_template_token_next(input, context_flag); // Consume '['
-        HtmlTemplateASTNode* node = html_template_expression_parse(input, token_current, context_flag, memory);
-        *token_current = html_template_token_next(input, context_flag); // Consume ']'
-        return node;
-    } else if (token_current->type == TOKEN_LBRACE) {
-        *token_current = html_template_token_next(input, context_flag); // Consume '{'
-        HtmlTemplateASTNode* node = html_template_expression_parse(input, token_current, context_flag, memory);
-        *token_current = html_template_token_next(input, context_flag); // Consume '}'
-        return node;
+            return node;
+        };
+        case TOKEN_STRING: {
+            HtmlTemplateASTNode* node = html_template_node_create(NODE_STRING, token_current, memory);
+            *token_current = html_template_token_next(input, context_flag);
+            return node;
+        };
+        case TOKEN_IDENTIFIER: {
+            HtmlTemplateASTNode* node = html_template_node_create(NODE_IDENTIFIER, token_current, memory);
+            *token_current = html_template_token_next(input, context_flag);
+            return node;
+        };
+        case TOKEN_LPAREN: {
+            *token_current = html_template_token_next(input, context_flag); // Consume '('
+            HtmlTemplateASTNode* node = html_template_expression_parse(input, token_current, context_flag, memory);
+            *token_current = html_template_token_next(input, context_flag); // Consume ')'
+            return node;
+        };
+        case TOKEN_LBRACK: {
+            *token_current = html_template_token_next(input, context_flag); // Consume '['
+            HtmlTemplateASTNode* node = html_template_expression_parse(input, token_current, context_flag, memory);
+            *token_current = html_template_token_next(input, context_flag); // Consume ']'
+            return node;
+        };
+        case TOKEN_LBRACE: {
+            *token_current = html_template_token_next(input, context_flag); // Consume '{'
+            HtmlTemplateASTNode* node = html_template_expression_parse(input, token_current, context_flag, memory);
+            *token_current = html_template_token_next(input, context_flag); // Consume '}'
+            return node;
+        };
+        default:
+            UNREACHABLE();
     }
 
     ASSERT_TRUE(false);

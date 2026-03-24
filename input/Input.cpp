@@ -21,7 +21,7 @@
     #include "../platform/win32/UtilsWin32.h"
 #endif
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR
 size_t input_memory_size(uint8 count) NO_EXCEPT
 {
     return count * sizeof(Hotkey) * 2;
@@ -33,13 +33,13 @@ void input_init(Input* const input, uint8 count, BufferMemory* const buf) NO_EXC
 {
     input->hotkey_count = count;
 
-    const size_t hotkey_size = input->hotkey_count * sizeof(Hotkey);
+    const size_t hotkey_size = input_memory_size(input->hotkey_count);
 
-    input->input_mapping1 = (Hotkey *) buffer_memory_get(buf, hotkey_size, sizeof(size_t));
-    input->input_mapping2 = (Hotkey *) buffer_memory_get(buf, hotkey_size, sizeof(size_t));
+    input->input_mapping1 = (Hotkey *) buffer_memory_get(buf, hotkey_size, alignof(Hotkey));
+    input->input_mapping2 = input->input_mapping1 + input->hotkey_count;
 
     // This clears both mapping1 and mapping2
-    memset(input->input_mapping1, 0, hotkey_size * 2);
+    memset(input->input_mapping1, 0, hotkey_size);
 }
 
 // Resets the mapping
@@ -47,7 +47,7 @@ void input_init(Input* const input, uint8 count, BufferMemory* const buf) NO_EXC
 FORCE_INLINE
 void input_mapping_reset(Input* const input) NO_EXCEPT {
     // This clears both mapping1 and mapping2
-    memset(input->input_mapping1, 0, input->hotkey_count * sizeof(Hotkey) * 2);
+    memset(input->input_mapping1, 0, input_memory_size(input->hotkey_count));
     memset(&input->state, 0, sizeof(input->state));
 }
 
@@ -252,11 +252,7 @@ void input_set_state(
         return;
     }
 
-    free_state->scan_code = new_key->scan_code;
-    free_state->virtual_code = new_key->virtual_code;
-    free_state->key_state = new_key->key_state;
-    free_state->value = new_key->value;
-    free_state->time = new_key->time;
+    memcpy(free_state, new_key, sizeof(*new_key));
 }
 
 // Controllers are a little bit special
@@ -317,9 +313,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
 
     // General Keys
     int32 count = 0;
-
-    // @question Shouldn't the array size be a macro?
-    InputKey keys[5];
+    InputKey keys[MAX_KEY_PRESSES];
 
     for (uint16 i = 0; i < 32; ++i) {
         if ((controller->is_analog[i] && abs(controller->button[i]) > input->deadzone)
@@ -356,6 +350,7 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
     InputKey* state_active_keys = state->active_keys;
 
     // Check if we have any active keys
+    // @performance Shouldn't I use is_empty() instead?
     if (memcmp(state_active_keys, ((byte *) state_active_keys) + 1, sizeof(*state_active_keys) - 1) == 0) {
         input_clean_state(state_active_keys);
         return;
@@ -427,6 +422,7 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
                 pos += utf8_decode(characters[i], pos);
             }
 
+            // @bug Doesn't this have to be -1?
             *pos = '\0';
 
             input_clean_state(state_active_keys);

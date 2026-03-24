@@ -51,6 +51,13 @@ void voxel_chunk_mesh_build(HashMap* const map, VoxelChunk* const chunk) NO_EXCE
     chunk->mesh.num_vertices = 0;
     chunk->mesh.num_indices = 0;
 
+    // world base (chunk origin in world coordinates)
+    const v3_f32 base = {
+        (f32) chunk->coord.x * (f32) VOXEL_CHUNK_SIZE,
+        (f32) chunk->coord.y * (f32) VOXEL_CHUNK_SIZE,
+        (f32) chunk->coord.z * (f32) VOXEL_CHUNK_SIZE
+    };
+
     // @bug This is probably using up all our stack memory once we multithread it
     VoxelMaskCell mask[VOXEL_CHUNK_SIZE * VOXEL_CHUNK_SIZE];
 
@@ -168,14 +175,6 @@ void voxel_chunk_mesh_build(HashMap* const map, VoxelChunk* const chunk) NO_EXCE
 
                     byte normal_sign = front ? 1 : -1;
                     normal_int.vec[axis] = normal_sign;
-
-                    // world base (chunk origin in world coordinates)
-                    // @question why do I even need this variable? it is only used once
-                    const v3_f32 base = {
-                        (f32) chunk->coord.x * (f32)VOXEL_CHUNK_SIZE,
-                        (f32) chunk->coord.y * (f32)VOXEL_CHUNK_SIZE,
-                        (f32) chunk->coord.z * (f32)VOXEL_CHUNK_SIZE
-                    };
 
                     // compute the 3 axes vectors for quad positioning in f32:
                     v3_f32 axisVec = {0.0f, 0.0f, 0.0f};       // offset along axis to the plane

@@ -16,7 +16,6 @@
 #define MAX_MOUSE_PRESSES 3
 
 // How many concurrent primary key/button presses can be handled?
-// @performance Can we make this 4? this way we could optimize some checks below by checking 2 hotkeys at the same time as uint32 against 0
 #define MAX_KEY_PRESSES 5
 
 // How many keys/buttons do we support for the devices

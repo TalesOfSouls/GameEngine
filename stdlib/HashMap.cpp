@@ -1088,7 +1088,6 @@ void hashmap_remove(HashMap* const hm, uint64 key) NO_EXCEPT
     }
 }
 
-// @question Shouldn't we also store the chunk size etc? Currently not done and expected to be correctly initialized.
 int64 hashmap_dump(const HashMap* const hm, byte* data, MAYBE_UNUSED int32 value_size, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {
     LOG_1("[INFO] Dump HashMap");
