@@ -9,7 +9,6 @@
 #ifndef COMS_COMPILER_COMPILER_UTILS_H
 #define COMS_COMPILER_COMPILER_UTILS_H
 
-#include "../utils/Assert.h"
 #include "../stdlib/Stdlib.h"
 
 #if _MSC_VER

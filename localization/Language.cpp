@@ -37,6 +37,7 @@ void language_from_file_txt(
     memcpy(language->data + language->count * sizeof(char *), data, len);
 
     // First element = 0
+    // @question can we use offsets instead of pointers?
     char** pos = language->lang;
     *pos++ = (char *) data;
 

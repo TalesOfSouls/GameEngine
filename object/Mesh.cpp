@@ -14,7 +14,6 @@
 #include "../system/FileUtils.cpp"
 #include "../memory/RingMemory.cpp"
 #include "../utils/StringUtils.h"
-#include "../compiler/CompilerUtils.h"
 #include "../utils/BitUtils.h"
 
 #include "Mesh.h"

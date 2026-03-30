@@ -6,7 +6,6 @@
 #include "../asset/Asset.h"
 #include "../camera/Camera.h"
 #include "../system/FileUtils.cpp"
-#include "../compiler/CompilerUtils.h"
 
 #include "UILayout.h"
 #include "UITheme.cpp"

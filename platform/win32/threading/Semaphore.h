@@ -11,7 +11,6 @@
 
 #include <windows.h>
 #include "../../../stdlib/Stdlib.h"
-#include "../../../compiler/CompilerUtils.h"
 
 typedef HANDLE sem;
 

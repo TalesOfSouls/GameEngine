@@ -10,7 +10,6 @@
 #define COMS_MEMORY_BUFFER_MEMORY_H
 
 #include "../stdlib/Stdlib.h"
-#include "../utils/Assert.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
 #include "../log/PerformanceProfiler.h"

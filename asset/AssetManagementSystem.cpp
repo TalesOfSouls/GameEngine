@@ -12,7 +12,6 @@
 #include "../stdlib/Stdlib.h"
 #include "Asset.h"
 #include "../memory/ChunkMemory.h"
-#include "../utils/Assert.h"
 #include "../utils/BitUtils.h"
 #include "../stdlib/HashMap.cpp"
 #include "../log/DebugMemory.h"

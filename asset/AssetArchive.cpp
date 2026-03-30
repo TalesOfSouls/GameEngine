@@ -25,7 +25,6 @@
 #include "../ui/UITheme.cpp"
 #include "AssetManagementSystem.cpp"
 #include "../system/FileUtils.cpp"
-#include "../compiler/CompilerUtils.h"
 #include "Asset.h"
 #include "AssetArchive.h"
 

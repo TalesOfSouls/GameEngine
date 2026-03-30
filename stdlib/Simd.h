@@ -9,9 +9,6 @@
 #ifndef COMS_STDLIB_SIMD_H
 #define COMS_STDLIB_SIMD_H
 
-#include "../utils/Assert.h"
-#include "../architecture/Intrinsics.h"
-
 /**
  * WARNING: On Windows you can compile with all SIMD features even if the target machine doesn't support them.
  *              Therefore, if you are on Windows you should always compile with "all" SIMD features

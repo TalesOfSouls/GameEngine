@@ -10,7 +10,6 @@
 #define COMS_UTILS_RANDOM_H
 
 #include "../stdlib/Stdlib.h"
-#include "../utils/Assert.h"
 #include "../utils/TimeUtils.h"
 
 thread_local uint32 _rng_state_32;

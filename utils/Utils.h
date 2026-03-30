@@ -11,7 +11,6 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
-#include "../compiler/CompilerUtils.h"
 
 #ifdef __linux__
     #include <unistd.h>

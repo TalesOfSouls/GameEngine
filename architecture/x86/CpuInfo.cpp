@@ -11,7 +11,6 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../CpuInfo.h"
-#include "../../compiler/CompilerUtils.h"
 
 #define svcntw() 0
 

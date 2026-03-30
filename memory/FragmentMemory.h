@@ -10,8 +10,6 @@
 #define COMS_MEMORY_FRAGMENT_MEMORY_H
 
 #include "../stdlib/Stdlib.h"
-#include "../utils/Assert.h"
-#include "../compiler/CompilerUtils.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
 #include "../log/PerformanceProfiler.h"
@@ -43,6 +41,7 @@ struct FragmentMemory {
     uint32 alignment;
 
     // Array that contains pointers into the free chunks
+    // @performance consider to replace pointers with 32 bit offset values instead
     byte** free;
 
     mutex lock;

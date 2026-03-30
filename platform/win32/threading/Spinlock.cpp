@@ -13,7 +13,6 @@
 #include "../../../stdlib/Stdlib.h"
 #include "../TimeUtils.h"
 #include "Spinlock.h"
-#include "../../../compiler/CompilerUtils.h"
 
 FORCE_INLINE
 void spinlock_init(spinlock32* const lock) NO_EXCEPT

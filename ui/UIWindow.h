@@ -9,18 +9,51 @@
 #include "attribute/UIAttributeDimension.h"
 #include "UIAnimation.h"
 #include "UIPanel.h"
+#include "UILabel.h"
 #include "UIStyleType.h"
 
-struct UIWindowState {
+struct UIOffset {
+    int32 element;
+    int32 type;
+
+    int32 vertices_count;
+    int32 vertices;
+
+    int32 children;
+    int32 children_count;
 };
 
-struct UIWindowTitle {
-    UIBackgroundStyle background_style;
-    UIAttributeBorder border_top;
-    UIAttributeBorder border_right;
-    UIAttributeBorder border_bottom;
-    UIAttributeBorder border_left;
-    wchar_t title[64];
+struct UILabelOffset {
+    UIOffset self;
+
+    int32 text;
+};
+
+struct UIPanelOffset {
+    UIOffset self;
+
+    int32 background;
+};
+
+struct UIBorderOffset {
+    UIOffset self;
+};
+
+struct UIWindowTitleOffset {
+    UIOffset self;
+    UIBorderOffset border[8];
+    UIPanelOffset panel;
+    UILabelOffset label;
+};
+
+struct UIWindowOffset {
+    UIOffset self;
+    UIWindowTitleOffset title;
+    UIBorderOffset border[8];
+    UIPanelOffset panel;
+};
+
+struct UIWindowState {
 };
 
 struct UIWindow {
@@ -32,10 +65,6 @@ struct UIWindow {
 
     uintptr_t background;
     UIBackgroundStyle background_style;
-    UIAttributeBorder border_top;
-    UIAttributeBorder border_right;
-    UIAttributeBorder border_bottom;
-    UIAttributeBorder border_left;
     UIAttributeShadow shadow_outer;
     UIAttributeShadow shadow_inner;
 

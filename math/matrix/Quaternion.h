@@ -10,48 +10,61 @@
 #define COMS_MATH_MATRIX_QUATERNION_H
 
 #include "../../stdlib/Stdlib.h"
-#include "../../utils/Assert.h"
-#include "../../architecture/Intrinsics.h"
 #include "Matrix.h"
 
-static inline
+inline
 quaternion quat_mul(quaternion a, quaternion b)
 {
     return {
-        a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
-        a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
-        a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w,
-        a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z
+        a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+        a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+        a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+        a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z
     };
 }
 
-static inline
+inline
 quaternion quat_normalize(quaternion q)
 {
-    const f32 len = sqrtf(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w);
+    const f32 len = sqrtf(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
     const f32 inv = 1.0f / len;
 
-    return { q.x*inv, q.y*inv, q.z*inv, q.w*inv };
+    return { q.x * inv, q.y * inv, q.z * inv, q.w * inv };
 }
 
-static inline
+inline
 quaternion quat_axis_angle(v3_f32 axis, f32 angle_rad)
 {
     const f32 s = sinf(angle_rad * 0.5f);
 
-    return { axis.x*s, axis.y*s, axis.z*s, cosf(angle_rad*0.5f) };
+    return { axis.x * s, axis.y * s, axis.z * s, cosf(angle_rad * 0.5f) };
 }
 
-static inline
+inline
 v3_f32 quat_rotate_vec3(quaternion q, v3_f32 v)
 {
+    /*
     // v' = q * (v,0) * q^-1
-    quaternion p = { v.x, v.y, v.z, 0.0f };
+    const quaternion p = { v.x, v.y, v.z, 0.0f };
     // inverse for unit quat
-    quaternion qi = { -q.x, -q.y, -q.z, q.w };
-    quaternion r = quat_mul(quat_mul(q, p), qi);
+    const quaternion qi = { -q.x, -q.y, -q.z, q.w };
+    const quaternion r = quat_mul(quat_mul(q, p), qi);
 
     return { r.x, r.y, r.z };
+    */
+
+    const v3_f32 qv = { q.x, q.y, q.z };
+
+    v3_f32 t = vec3_cross(qv, v);
+    t.x *= 2.0f;
+    t.y *= 2.0f;
+    t.z *= 2.0f;
+
+    return {
+        p.x + q.w * t.x + (qv.y * t.z - qv.z * t.y),
+        p.y + q.w * t.y + (qv.z * t.x - qv.x * t.z),
+        p.z + q.w * t.z + (qv.x * t.y - qv.y * t.x)
+    };
 }
 
 #endif

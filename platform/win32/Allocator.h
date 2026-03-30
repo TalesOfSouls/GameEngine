@@ -12,7 +12,6 @@
 #include <malloc.h>
 #include <windows.h>
 #include "../../stdlib/Stdlib.h"
-#include "../../utils/Assert.h"
 #include "../../log/DebugMemory.h"
 #include "../../log/Stats.h"
 #include "../../log/Log.h"

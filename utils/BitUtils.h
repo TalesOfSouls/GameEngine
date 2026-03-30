@@ -11,7 +11,6 @@
 
 //#include <intrin.h>
 #include "../stdlib/Stdlib.h"
-#include "../architecture/Intrinsics.h"
 
 // Usually these specific implementation R2L or L2R are only used if you are handling a specific format
 // e.g. file format or algorithm (e.g. Huffman encoding)

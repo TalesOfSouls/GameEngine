@@ -62,6 +62,7 @@
  */
 #include "Defines.h"
 #include "Types.h"
+#include "../utils/Assert.h"
 #include "../compiler/CompilerUtils.h"
 
 #include "stdlib_internal.h"

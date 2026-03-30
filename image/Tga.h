@@ -11,7 +11,6 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../utils/Utils.h"
-#include "../compiler/CompilerUtils.h"
 #include "Image.h"
 
 // See: https://en.wikipedia.org/wiki/Truevision_TGA

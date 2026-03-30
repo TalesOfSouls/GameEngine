@@ -16,7 +16,6 @@
 #include "../../../input/ControllerType.h"
 #include "../../../input/ControllerInput.h"
 #include "controller/DualShock4.h"
-#include "../../../utils/Assert.h"
 #include "../../../memory/RingMemory.cpp"
 #include <winDNS.h>
 

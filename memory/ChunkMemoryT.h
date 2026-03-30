@@ -10,9 +10,7 @@
 #define COMS_MEMORY_CHUNK_MEMORYT_H
 
 #include "../stdlib/Stdlib.h"
-#include "../utils/Assert.h"
 #include "../utils/BitUtils.h"
-#include "../compiler/CompilerUtils.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
 #include "../log/PerformanceProfiler.h"

@@ -10,7 +10,6 @@
 #define COMS__MEMORY_RING_MEMORY_C
 
 #include "../stdlib/Stdlib.h"
-#include "../utils/Assert.h"
 #include "BufferMemory.h"
 #include "MemoryArena.h"
 #include "../log/Log.h"

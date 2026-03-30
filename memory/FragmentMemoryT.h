@@ -10,8 +10,6 @@
 #define COMS_MEMORY_FRAGMENT_MEMORYT_H
 
 #include "../stdlib/Stdlib.h"
-#include "../utils/Assert.h"
-#include "../compiler/CompilerUtils.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
 #include "../log/PerformanceProfiler.h"
@@ -37,6 +35,7 @@ struct FragmentMemoryT {
     int last_pos;
 
     // Array that contains pointers into the free chunks
+    // @performance consider to replace pointers with 32 bit offset values instead
     T** free;
 
     mutex lock;

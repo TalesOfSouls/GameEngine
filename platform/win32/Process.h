@@ -4,7 +4,6 @@
 #include <windows.h>
 #include <psapi.h>
 #include "../../stdlib/Stdlib.h"
-#include "../../compiler/CompilerUtils.h"
 
 // Find all running process ids
 inline

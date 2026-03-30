@@ -18,6 +18,7 @@ struct UILabel {
     UIAttributeDimension dimension;
     byte opacity; // 1 byte alpha channel
     UIAttributeFont font;
+    char* content;
 };
 
 void ui_label_state_serialize(const UILabelState* __restrict state, byte** __restrict pos)

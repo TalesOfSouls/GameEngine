@@ -10,7 +10,6 @@
 #define COMS_THREADS_THREAD_H
 
 #include "../stdlib/Stdlib.h"
-#include "../compiler/CompilerUtils.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
 #include "Atomic.h"

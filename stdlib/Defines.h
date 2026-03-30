@@ -106,7 +106,6 @@
 #endif
 
 // This is of course CPU dependent but we need a reasonable default value
-#define CACHE_LINE_SIZE 64
 #define CACHE_PAGE_SIZE 4096
 #define CACHE_L1_SIZE 32768
 #define CACHE_L2_SIZE 262144

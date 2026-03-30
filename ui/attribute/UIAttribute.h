@@ -4,7 +4,6 @@
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../../math/Evaluator.h"
-#include "../../compiler/CompilerUtils.h"
 #include "UIAttributeType.h"
 #include "UIAttributeDimension.h"
 #include "UIAttributeFont.h"

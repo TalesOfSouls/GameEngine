@@ -201,6 +201,9 @@ struct Input {
     // @todo this should probably be somewhere else
     // @todo don't we need multiple deadzones? triggers, sticks
     int32 deadzone;
+
+    // @performance I hate having this here.
+    //      Shouldn't it be just a pointer
     char text[512];
 
     // We allow a hotkey to be mapped in two different ways = allow alternative hotkey combination

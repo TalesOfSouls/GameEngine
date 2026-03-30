@@ -16,7 +16,6 @@
 #include "../memory/RingMemory.cpp"
 #include "../object/Vertex.h"
 #include "../ui/UIAlignment.h"
-#include "../architecture/Intrinsics.h"
 
 FORCE_INLINE
 int32 vertex_degenerate_create(
@@ -107,14 +106,26 @@ int32 vertex_line_create(
     vertices[idx++] = {{v0.x, v0.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
     vertices[idx++] = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
     vertices[idx++] = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    ASSERT_STRICT(fabsf(vertices[0].position.x - vertices[1].position.x) > OMS_EPSILON_F32 || fabsf(vertices[0].position.x - vertices[2].position.x) > OMS_EPSILON_F32);
-    ASSERT_STRICT(fabsf(vertices[0].position.y - vertices[1].position.y) > OMS_EPSILON_F32 || fabsf(vertices[0].position.y - vertices[2].position.y) > OMS_EPSILON_F32);
+    ASSERT_STRICT(
+        fabsf(vertices[0].position.x - vertices[1].position.x) > OMS_EPSILON_F32
+        || fabsf(vertices[0].position.x - vertices[2].position.x) > OMS_EPSILON_F32
+    );
+    ASSERT_STRICT(
+        fabsf(vertices[0].position.y - vertices[1].position.y) > OMS_EPSILON_F32
+        || fabsf(vertices[0].position.y - vertices[2].position.y) > OMS_EPSILON_F32
+    );
 
     vertices[idx++] = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
     vertices[idx++] = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
     vertices[idx++] = {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    ASSERT_STRICT(fabsf(vertices[0].position.x - vertices[1].position.x) > OMS_EPSILON_F32 || fabsf(vertices[0].position.x - vertices[2].position.x) > OMS_EPSILON_F32);
-    ASSERT_STRICT(fabsf(vertices[0].position.y - vertices[1].position.y) > OMS_EPSILON_F32 || fabsf(vertices[0].position.y - vertices[2].position.y) > OMS_EPSILON_F32);
+    ASSERT_STRICT(
+        fabsf(vertices[0].position.x - vertices[1].position.x) > OMS_EPSILON_F32
+        || fabsf(vertices[0].position.x - vertices[2].position.x) > OMS_EPSILON_F32
+    );
+    ASSERT_STRICT(
+        fabsf(vertices[0].position.y - vertices[1].position.y) > OMS_EPSILON_F32
+        || fabsf(vertices[0].position.y - vertices[2].position.y) > OMS_EPSILON_F32
+    );
 
     return idx;
 }
@@ -127,7 +138,7 @@ int32 vertex_rect_create(
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_VERTEX_RECT_CREATE);
-    if (alignment) {
+    if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
         adjust_aligned_position(&dimension, alignment);
     }
 
@@ -164,7 +175,7 @@ int32 vertex_circle_create(
     uint32 rgba = 0, v2_f32 tex_center = {}, v2_f32 tex_edge = {}
 ) NO_EXCEPT
 {
-    if (alignment) {
+    if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
         adjust_aligned_position(&dimension, alignment);
     }
 
@@ -222,7 +233,7 @@ int32 vertex_arc_create(
     uint32 rgba = 0, v2_f32 tex_center = {}, v2_f32 tex_edge = {}
 ) NO_EXCEPT
 {
-    if (alignment) {
+    if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
         adjust_aligned_position(&dimension, alignment);
     }
 
@@ -265,6 +276,7 @@ int32 vertex_arc_create(
     return idx;
 }
 
+/* Currently not used since we work with int offsets. We might reactivate this
 static
 v2_f32 text_calculate_dimensions(
     const Glyph** const glyphs, int32 length, f32 line_height, f32 scale
@@ -340,6 +352,95 @@ f32 text_calculate_dimensions_height(
 
     return y;
     //return { max_branched(x, offset_x), y };
+}*/
+
+static
+v2_f32 text_calculate_dimensions(
+    const FontSystem* const __restrict font, const int16* const glyphs, int32 length, f32 scale
+) NO_EXCEPT
+{
+    const f32 line_height = font->base.line_height * scale;
+    f32 x = 0;
+    f32 y = line_height;
+
+    f32 offset_x = 0;
+
+    for (int32 i = 0; i < length; ++i) {
+        const Glyph* const glyph = !(glyphs[i] & 0x8000)
+            ? &font->base.glyphs[glyphs[i] & 0x7FFFu]
+            : &font->extended.glyphs[glyphs[i] & 0x7FFFu];
+
+        if (!glyph || glyph->codepoint == '\n') {
+            x = max_branched(x, offset_x);
+            y += line_height;
+
+            offset_x = 0;
+
+            continue;
+        }
+
+        offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
+    }
+
+    return { max_branched(x, offset_x), y };
+}
+
+static
+f32 text_calculate_dimensions_width(
+    const FontSystem* const __restrict font, const int16* const glyphs, int32 length, f32 scale
+) NO_EXCEPT
+{
+    f32 x = 0;
+    f32 offset_x = 0;
+
+    for (int32 i = 0; i < length; ++i) {
+        const Glyph* const glyph = !(glyphs[i] & 0x8000)
+            ? &font->base.glyphs[glyphs[i] & 0x7FFFu]
+            : &font->extended.glyphs[glyphs[i] & 0x7FFFu];
+
+        if (!glyph || glyph->codepoint == '\n') {
+            x = max_branched(x, offset_x);
+            offset_x = 0;
+
+            continue;
+        }
+
+        offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
+    }
+
+    return max_branched(x, offset_x);
+}
+
+static
+f32 text_calculate_dimensions_height(
+    const FontSystem* const __restrict font, const int16* const glyphs, int32 length, f32 scale
+) NO_EXCEPT
+{
+    const f32 line_height = font->base.line_height * scale;
+    //f32 x = 0;
+    f32 y = line_height;
+
+    //f32 offset_x = 0;
+
+    for (int32 i = 0; i < length; ++i) {
+        const Glyph* const glyph = !(glyphs[i] & 0x8000)
+            ? &font->base.glyphs[glyphs[i] & 0x7FFFu]
+            : &font->extended.glyphs[glyphs[i] & 0x7FFFu];
+
+        if (!glyph || glyph->codepoint == '\n') {
+            //x = max_branched(x, offset_x);
+            y += line_height;
+
+            //offset_x = 0;
+
+            //continue;
+        }
+
+        //offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
+    }
+
+    return y;
+    //return { max_branched(x, offset_x), y };
 }
 
 v3_int32 vertex_text_create(
@@ -357,25 +458,30 @@ v3_int32 vertex_text_create(
         return {};
     }
 
-    const bool is_ascii = (int32) strlen(text) == length;
-    const f32 scale = size / font->base.size;
+    const Font* const font_base = &font->base;
 
-    const Glyph** glyphs = (const Glyph**) ring_memory_get(ring, length * sizeof(Glyph*), alignof(uintptr_t));
+    const bool is_ascii = (int32) strlen(text) == length;
+    const f32 scale = size / font_base->size;
+
+    // We use offsets instead of pointer chasing
+    // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
+    int16* glyphs = (int16*) ring_memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
     for (int32 i = 0; i < length; ++i) {
         const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {
-            glyphs[i] = NULL;
+            // @todo change
+            glyphs[i] = 0;
             continue;
         }
 
-        glyphs[i] = font_glyph_find(&font->base, character);
-        if (!glyphs[i] && font->has_extended) {
+        glyphs[i] = font_glyph_index_find(&font->base, character);
+        if (glyphs[i] < 0 && font->has_extended) {
             //glyphs[i] = hashmap_get(&font->font_map, character);
 
-            if (!glyphs[i]) {
-                const Glyph* extended_glyph = font_glyph_find(&font->extended, character);
-                if (!extended_glyph) {
-                    glyphs[i] = NULL;
+            if (glyphs[i] < 0) {
+                const int16 extended_glyph = font_glyph_index_find(&font->extended, character);
+                if (extended_glyph < 0) {
+                    //glyphs[i] = -1;
                     continue;
                 }
 
@@ -387,8 +493,8 @@ v3_int32 vertex_text_create(
                 //      5. we probably need a custom struct for the hash map to also contain the priority for replacing elements
                 //hashmap_insert(&font->font_map, extended_glyph->codepoint, extended_glyph);
 
-                // @bug this is wrong, we need the inserted pointer since the texture position is different
-                glyphs[i] = extended_glyph;
+                // @bug this is wrong
+                glyphs[i] = (extended_glyph & 0x7FFFu) | 0x8000;
 
                 font->has_changes = true;
             } else {
@@ -396,32 +502,31 @@ v3_int32 vertex_text_create(
             }
         }
 
-        if (!glyphs[i]) {
+        if (glyphs[i] < 0) {
             // @todo add unknown character glyph
-            glyphs[i] = &font->base.glyphs[0];
+            glyphs[i] = 0;
         }
     }
 
-    const f32 line_height = font->base.line_height;
-
+    // @performance I don't like that we have to iterate the glyphs twice, do we really need this?
     // If we do a different alignment we need to pre-calculate the width and height
     if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
         if ((alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER))
             && (alignment & (UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER))
         ) {
-            const v2_f32 dim = text_calculate_dimensions(glyphs, length, line_height, scale);
+            const v2_f32 dim = text_calculate_dimensions(font, glyphs, length, scale);
             dimension.width = dim.width;
             dimension.height = dim.height;
         } else if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER)) {
-            dimension.width = text_calculate_dimensions_width(glyphs, length, scale);
+            dimension.width = text_calculate_dimensions_width(font, glyphs, length, scale);
         } else {
-            dimension.height = text_calculate_dimensions_height(glyphs, length, line_height, scale);
+            dimension.height = text_calculate_dimensions_height(font, glyphs, length, scale);
         }
 
         adjust_aligned_position(&dimension, alignment);
     }
 
-    const f32 line_height_scaled = line_height * scale;
+    const f32 line_height_scaled = font_base->line_height * scale;
 
     f32 rendered_width = 0;
     f32 rendered_height = line_height_scaled;
@@ -430,7 +535,10 @@ v3_int32 vertex_text_create(
 
     f32 offset_x = dimension.x;
     for (int32 i = 0; i < length; ++i) {
-        const Glyph* const glyph = glyphs[i];
+        const Glyph* const glyph = !(glyphs[i] & 0x8000)
+            ? &font->base.glyphs[glyphs[i] & 0x7FFFu]
+            : &font->extended.glyphs[glyphs[i] & 0x7FFFu];
+
         if (!glyph || glyph->codepoint == '\n') {
             rendered_height += line_height_scaled;
             rendered_width = max_branched(rendered_width, offset_x - dimension.x);
@@ -454,15 +562,27 @@ v3_int32 vertex_text_create(
             vertices[idx++] = {{offset_x + glyph_vertices[0].pos.x * scale, offset_y + glyph_vertices[0].pos.y * scale, zindex}, sampler, glyph_vertices[0].uv};
             vertices[idx++] = {{offset_x + glyph_vertices[1].pos.x * scale, offset_y + glyph_vertices[1].pos.y * scale, zindex}, sampler, glyph_vertices[1].uv};
             vertices[idx++] = {{offset_x + glyph_vertices[2].pos.x * scale, offset_y + glyph_vertices[2].pos.y * scale, zindex}, sampler, glyph_vertices[2].uv};
-            ASSERT_STRICT(fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32 || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32);
-            ASSERT_STRICT(fabsf(vertices[idx - 3].position.y - vertices[idx - 2].position.y) > OMS_EPSILON_F32 || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32);
+            ASSERT_STRICT(
+                fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32
+                || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32
+            );
+            ASSERT_STRICT(
+                fabsf(vertices[idx - 3].position.y - vertices[idx - 2].position.y) > OMS_EPSILON_F32
+                || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32
+            );
 
             if (glyph->vertex_count > 3) {
                 vertices[idx++] = {{offset_x + glyph_vertices[1].pos.x * scale, offset_y + glyph_vertices[1].pos.y * scale, zindex}, sampler, glyph_vertices[1].uv};
                 vertices[idx++] = {{offset_x + glyph_vertices[3].pos.x * scale, offset_y + glyph_vertices[3].pos.y * scale, zindex}, sampler, glyph_vertices[3].uv};
                 vertices[idx++] = {{offset_x + glyph_vertices[2].pos.x * scale, offset_y + glyph_vertices[2].pos.y * scale, zindex}, sampler, glyph_vertices[2].uv};
-                ASSERT_STRICT(fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32 || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32);
-                ASSERT_STRICT(fabsf(vertices[idx - 3].position.y - vertices[idx - 2].position.y) > OMS_EPSILON_F32 || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32);
+                ASSERT_STRICT(
+                    fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32
+                    || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32
+                );
+                ASSERT_STRICT(
+                    fabsf(vertices[idx - 3].position.y - vertices[idx - 2].position.y) > OMS_EPSILON_F32
+                    || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32
+                );
             }
         }
 

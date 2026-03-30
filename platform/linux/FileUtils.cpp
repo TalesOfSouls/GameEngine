@@ -20,7 +20,6 @@
 #include <fcntl.h>
 
 #include "../../stdlib/Stdlib.h"
-#include "../../utils/Assert.h"
 #include "../../utils/StringUtils.h"
 #include "../../memory/RingMemory.cpp"
 #include "../../log/PerformanceProfiler.h"

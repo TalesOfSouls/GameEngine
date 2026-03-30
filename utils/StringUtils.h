@@ -11,8 +11,6 @@
 
 #include <stdarg.h>
 #include "../stdlib/Stdlib.h"
-#include "../compiler/CompilerUtils.h"
-#include "../utils/Assert.h"
 
 FORCE_INLINE
 size_t str_length(const char* const str) NO_EXCEPT {
@@ -2366,6 +2364,10 @@ int32 sprintf_fast(T* __restrict buffer, const T* __restrict format, ...) NO_EXC
                     const int32 val = va_arg(args, int32);
                     buffer += int_to_str(val, buffer);
                 } break;
+                case T('u'): {
+                    const uint32 val = va_arg(args, uint32);
+                    buffer += int_to_str(val, buffer);
+                } break;
                 case T('l'): {
                     const int64 val = va_arg(args, int64);
                     buffer += int_to_str(val, buffer);
@@ -2508,6 +2510,10 @@ int32 sprintf_fast(T* __restrict buffer, int32 buffer_length, const T* __restric
                 } break;
                 case T('d'): {
                     const int32 val = va_arg(args, int32);
+                    buffer += offset = int_to_str(val, buffer);
+                } break;
+                case T('u'): {
+                    const uint32 val = va_arg(args, uint32);
                     buffer += offset = int_to_str(val, buffer);
                 } break;
                 case T('l'): {

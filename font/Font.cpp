@@ -50,6 +50,35 @@ const Glyph* font_glyph_find(const Font* const font, uint32 codepoint) NO_EXCEPT
     return NULL;
 }
 
+inline
+const int16 font_glyph_index_find(const Font* const font, uint32 codepoint) NO_EXCEPT
+{
+    const int16 perfect_glyph_pos = (int16) (codepoint - font->glyphs[0].codepoint);
+    const int16 limit = OMS_MIN(perfect_glyph_pos, (int16) (font->glyph_count - 1));
+
+    // We try to jump to the correct glyph based on the glyph codepoint
+    if (font->glyphs[limit].codepoint == codepoint) {
+        return limit;
+    }
+
+    // If that doesn't work we iterate the glyph list BUT only until the last possible match.
+    // Glyphs must be sorted ascending.
+    int16 low = 0;
+    int16 high = limit;
+    while (low <= high) {
+        const int16 mid = low + (high - low) / 2;
+        if (font->glyphs[mid].codepoint == codepoint) {
+            return mid;
+        } else if (font->glyphs[mid].codepoint < codepoint) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+
+    return -1;
+}
+
 void font_from_file_txt(
     Font* const font,
     const char* path,

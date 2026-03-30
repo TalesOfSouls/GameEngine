@@ -10,8 +10,6 @@
 #define COMS_ARCHITECTURE_ARM_NEON_UTILS_H
 
 #include "../../../../stdlib/Stdlib.h"
-#include "../../../../compiler/CompilerUtils.h"
-#include "../../../../architecture/Intrinsics.h"
 #include <arm_neon.h>
 
 // @question When do we want to use neon and when do we want to use sve?

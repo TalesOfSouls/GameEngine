@@ -24,14 +24,12 @@
 //#include <vector>
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
-#include "../../utils/Assert.h"
 #include "../../object/Texture.h"
 #include "../../image/Image.cpp"
 #include "../../log/Log.h"
 #include "../../log/Stats.h"
 #include "../../log/PerformanceProfiler.h"
 #include "../../memory/RingMemory.cpp"
-#include "../../compiler/CompilerUtils.h"
 #include "ShaderUtils.h"
 #include "FramesInFlightContainer.h"
 

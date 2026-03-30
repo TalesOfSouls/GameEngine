@@ -10,9 +10,6 @@
 #define COMS_MATH_MATRIX_FLOAT32_H
 
 #include "../../stdlib/Stdlib.h"
-#include "../../utils/Assert.h"
-#include "../../architecture/Intrinsics.h"
-#include "../../compiler/CompilerUtils.h"
 
 // Pass-by-value is faster in most cases
 // Why? Because the code most likely gets inlined and we then avoid the dereference.
@@ -1385,9 +1382,9 @@ void mat4_translate(f32 matrix[16], f32 dx, f32 dy, f32 dz) NO_EXCEPT
 FORCE_INLINE
 void mat4_translation(f32 matrix[16], f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
-    matrix[0] = 1.0f;   matrix[1] = 0.0f;   matrix[2] = 0.0f;   matrix[3] = dx;
-    matrix[4] = 0.0f;   matrix[5] = 1.0f;   matrix[6] = 0.0f;   matrix[7] = dy;
-    matrix[8] = 0.0f;   matrix[9] = 0.0f;   matrix[10] = 1.0f;  matrix[11] = dz;
+    matrix[0]  = 1.0f;  matrix[1] = 0.0f; matrix[2]  = 0.0f;  matrix[3] = dx;
+    matrix[4]  = 0.0f;  matrix[5] = 1.0f; matrix[6]  = 0.0f;  matrix[7] = dy;
+    matrix[8]  = 0.0f;  matrix[9] = 0.0f; matrix[10] = 1.0f; matrix[11] = dz;
     matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
 }
 

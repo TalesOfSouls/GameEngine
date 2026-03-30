@@ -16,7 +16,6 @@
 #endif
 
 #include "../../stdlib/Stdlib.h"
-#include "../../utils/Assert.h"
 #include "../../memory/RingMemory.cpp"
 #include "../../log/Stats.h"
 #include "../../log/PerformanceProfiler.h"

@@ -12,8 +12,6 @@
 // Keep includes to a minimum to avoid circular dependencies
 // Log is used in many other header files
 #include "../stdlib/Stdlib.h"
-#include "../compiler/CompilerUtils.h"
-#include "../architecture/Intrinsics.h"
 #include "../utils/StringUtils.h"
 #include "DebugMemory.h"
 

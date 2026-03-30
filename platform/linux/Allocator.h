@@ -13,7 +13,6 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include "../../stdlib/Stdlib.h"
-#include "../../utils/Assert.h"
 #include "../../log/DebugMemory.h"
 #include "../../log/Stats.h"
 #include "../../log/Log.h"

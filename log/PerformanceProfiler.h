@@ -11,8 +11,6 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
-#include "../architecture/Intrinsics.h"
-#include "../compiler/CompilerUtils.h"
 #include "../thread/ThreadDefines.h"
 #include "Log.h"
 

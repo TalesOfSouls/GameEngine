@@ -11,7 +11,6 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemory.h"
-#include "../utils/Assert.h"
 #include "../utils/BitUtils.h"
 #include "../stdlib/HashMap.h"
 #include "../log/DebugMemory.h"

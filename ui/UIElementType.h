@@ -2,7 +2,6 @@
 #define COMS_UI_ELEMENT_TYPE_H
 
 #include "../stdlib/Stdlib.h"
-#include "../compiler/CompilerUtils.h"
 #include "UIButton.h"
 #include "UISelect.h"
 #include "UIInput.h"

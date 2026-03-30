@@ -11,7 +11,6 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../../memory/RingMemory.cpp"
-#include "../../utils/Assert.h"
 #include "../../object/Texture.h"
 #include "../../image/Image.cpp"
 #include "../../utils/StringUtils.h"

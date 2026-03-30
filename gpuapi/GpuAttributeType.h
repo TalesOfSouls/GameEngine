@@ -10,7 +10,6 @@
 #define COMS_GPUAPI_ATTRIBUTE_TYPE_H
 
 #include "../stdlib/Stdlib.h"
-#include "../compiler/CompilerUtils.h"
 
 enum GpuAttributeType : byte {
     GPU_ATTRIBUTE_TYPE_VERTEX_3D,

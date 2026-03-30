@@ -12,9 +12,7 @@
 #include <windows.h>
 #include "Window.h"
 #include "../../stdlib/Stdlib.h"
-#include "../../utils/Assert.h"
 #include "../../utils/StringUtils.h"
-#include "../../compiler/CompilerUtils.h"
 
 // @question Shouldn't this function and the next one accept a parameter of what to add/remove?
 FORCE_INLINE

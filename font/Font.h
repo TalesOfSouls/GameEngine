@@ -38,6 +38,7 @@ struct Glyph {
 };
 
 struct Font {
+    // @question Consider to make 16bit int (we internally don't support more than 2^16 - 1)
     uint32 glyph_count;
     char texture_name[32];
 

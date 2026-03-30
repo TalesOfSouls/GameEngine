@@ -10,7 +10,6 @@
 #define COMS_PLATFORM_WIN32_THREADING_ATOMIC_H
 
 #include "../../../stdlib/Stdlib.h"
-#include "../../../compiler/CompilerUtils.h"
 #include <windows.h>
 
 // We need the following helper types to "cast" between float and long.
@@ -51,7 +50,7 @@ typedef union { f64 f; LONG64 l; } _atomic_64f;
 
         return (short)old_value;
     }
-    
+
     #define InterlockedExchangeAdd16(value, increment) __InterlockedExchangeAdd16((value), (increment))
 #endif
 

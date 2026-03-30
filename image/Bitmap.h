@@ -12,7 +12,6 @@
 #include "../stdlib/Stdlib.h"
 #include "../utils/Utils.h"
 #include "Image.h"
-#include "../compiler/CompilerUtils.h"
 
 // See: https://en.wikipedia.org/wiki/BMP_file_format
 // IMPORTANT: Remember that we are not using packing for the headers

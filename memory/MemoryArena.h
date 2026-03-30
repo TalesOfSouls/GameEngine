@@ -10,7 +10,6 @@
 #define COMS_MEMORY_ARENA_H
 
 #include "../stdlib/Stdlib.h"
-#include "../utils/Assert.h"
 #include "../system/Allocator.h"
 #include "../log/Stats.h"
 #include "../log/PerformanceProfiler.h"

@@ -10,7 +10,6 @@
 #define COMS_UTILS_MATH_UTILS_H
 
 #include "../stdlib/Stdlib.h"
-#include "../utils/Assert.h"
 
 // WARNING: Don't use any of these functions yet. They are too imprecise and too slow
 //          Compilers use internal intrinsics based on input value at compile time to use the fastest possible solutions

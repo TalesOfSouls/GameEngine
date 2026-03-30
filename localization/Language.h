@@ -13,6 +13,8 @@ struct Language {
 
     int32 count;
     int32 size;
+
+    // @performance Consider to use offsets instead of pointers
     char** lang;
 };
 
