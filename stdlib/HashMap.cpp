@@ -67,7 +67,7 @@ void hashmap_create(HashMap* const hm, int32 count, int32 element_size, RingMemo
 
     LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     const uint64 hm_size = chunk_size_total(count, element_size, alignment);
-    byte* const data = ring_get_memory(
+    byte* const data = ring_memory_get(
         ring,
         hm_size,
         alignment
@@ -88,7 +88,7 @@ void hashmap_create(HashMap* const hm, int32 count, int32 element_size, BufferMe
 
     LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     const uint64 hm_size = chunk_size_total(count, element_size, alignment);
-    byte* const data = buffer_get_memory(
+    byte* const data = buffer_memory_get(
         buf,
         hm_size,
         alignment
@@ -1088,7 +1088,6 @@ void hashmap_remove(HashMap* const hm, uint64 key) NO_EXCEPT
     }
 }
 
-// @question Shouldn't we also store the chunk size etc? Currently not done and expected to be correctly initialized.
 int64 hashmap_dump(const HashMap* const hm, byte* data, MAYBE_UNUSED int32 value_size, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {
     LOG_1("[INFO] Dump HashMap");

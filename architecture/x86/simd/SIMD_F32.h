@@ -28,9 +28,8 @@
 
 // @todo from down here we can optimize some of the code by NOT using the wrappers
 //      the code is self contained and we could use te intrinsic functions directly
-// @todo use __restrict
 
-void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps = 16)
+void simd_mult(const f32* __restrict a, const f32* __restrict b, f32* __restrict result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -111,7 +110,7 @@ void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps 
 }
 
 inline
-void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps = 16)
+void simd_mult(const f32* __restrict a, f32 b, f32* __restrict result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -180,7 +179,7 @@ void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps = 16)
 }
 
 inline
-void simd_div(const f32* a, f32 b, f32* result, int32 size, int32 steps = 16)
+void simd_div(const f32* __restrict a, f32 b, f32* __restrict result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);

@@ -14,7 +14,7 @@
 #include "../gpuapi/GpuInfo.h"
 
 struct MainboardInfo {
-    char vendor[32]; // @todo implement
+    char vendor[32]; // @todo implement mainboard vendor string
     char name[32];
     char serial_number[64];
 };
@@ -32,7 +32,6 @@ struct OSInfo {
 };
 
 struct RamInfo {
-    // @question shouldn't this be uint16
     // Memory in megabytes
     uint32 memory;
 };
@@ -43,6 +42,11 @@ struct DisplayInfo {
     int32 height;
     int32 hz;
     bool is_primary;
+};
+
+struct DriveInfo {
+    size_t total;
+    size_t free;
 };
 
 struct SystemInfo {
@@ -60,6 +64,7 @@ struct SystemInfo {
 
     CpuInfo cpu;
     RamInfo ram;
+    DriveInfo drive;
 
     GpuInfo gpu[3];
 

@@ -82,7 +82,7 @@ struct PerfectHashMap {
 
 PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, int32 key_count, int32 seed_tries, RingMemory* const ring)
 {
-    int32* indices = (int32 *) ring_get_memory(ring, hm->map_count * sizeof(int32), 4);
+    int32* indices = (int32 *) ring_memory_get(ring, hm->map_count * sizeof(int32), 4);
     bool is_unique = false;
 
     for (int i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
@@ -124,7 +124,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, i
 // Same code as above with the difference that we are using a fixed length key array instead of an array of pointers
 PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* __restrict keys, int32 key_count, int32 key_length, int32 seed_tries, RingMemory* const ring)
 {
-    int32* const indices = (int32 *) ring_get_memory(ring, hm->map_count * sizeof(int32), sizeof(size_t));
+    int32* const indices = (int32 *) ring_memory_get(ring, hm->map_count * sizeof(int32), sizeof(size_t));
     bool is_unique = false;
 
     for (int i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
@@ -188,7 +188,7 @@ void perfect_hashmap_create(PerfectHashMap* __restrict hm, int32 count, int32 el
     LOG_1("[INFO] Create PerfectHashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->map_count = count;
     hm->entry_size = element_size;
-    hm->hash_entries = buffer_get_memory(
+    hm->hash_entries = buffer_memory_get(
         buf,
         count * element_size,
         64, true
@@ -451,7 +451,7 @@ int64 perfect_hashmap_load(PerfectHashMap* hm, const byte* data)
 // WARNiNG: Requires the phm to be initialized already incl. element count and element size etc.
 bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 seed_tries, RingMemory* const ring)
 {
-    char** keys = (char **) ring_get_memory(ring, sizeof(char *) * hm->buf.capacity, sizeof(size_t));
+    char** keys = (char **) ring_memory_get(ring, sizeof(char *) * hm->buf.capacity, sizeof(size_t));
 
     // Find all keys
     int32 key_index = 0;

@@ -34,7 +34,7 @@ static void test_theme_to_from_data() {
     UIThemeStyle theme_load = {0};
     theme_load.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
 
-    byte* out = ring_get_memory(&ring, 1024 * 1024);
+    byte* out = ring_memory_get(&ring, 1024 * 1024);
 
     theme_to_data(&theme_dump, out);
     theme_from_data(out, &theme_load);

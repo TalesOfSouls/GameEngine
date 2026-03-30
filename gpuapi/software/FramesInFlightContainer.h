@@ -14,10 +14,4 @@
 struct FrameInFlight {
 };
 
-struct FramesInFlightContainer {
-    // @performance Can we make both uint16? I don't think because the other variables are 8 bytes values.
-    uint32 count;
-    uint32 index;
-};
-
 #endif

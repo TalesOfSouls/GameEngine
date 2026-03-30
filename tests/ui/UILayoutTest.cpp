@@ -29,7 +29,7 @@ static void test_layout_to_from_data() {
     UILayout layout_load;
     layout_load.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
 
-    byte* out = ring_get_memory(&ring, 1024 * 1024);
+    byte* out = ring_memory_get(&ring, 1024 * 1024);
 
     layout_to_data(&layout_dump, out);
     layout_from_data(out, &layout_load);

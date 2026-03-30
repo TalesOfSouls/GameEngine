@@ -511,23 +511,23 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* cons
 
     uint32 literal_length_dist_table[512];
 
-    PngHuffman* literal_length_huffman = (PngHuffman *) ring_get_memory(ring, sizeof(PngHuffman));
+    PngHuffman* literal_length_huffman = (PngHuffman *) ring_memory_get(ring, sizeof(PngHuffman));
     literal_length_huffman->max_code_length = 15;
     literal_length_huffman->count = 1 << literal_length_huffman->max_code_length;
 
-    PngHuffman* distance_huffman = (PngHuffman *) ring_get_memory(ring, sizeof(PngHuffman));
+    PngHuffman* distance_huffman = (PngHuffman *) ring_memory_get(ring, sizeof(PngHuffman));
     distance_huffman->max_code_length = 15;
     distance_huffman->count = 1 << distance_huffman->max_code_length;
 
-    PngHuffman* dictionary_huffman = (PngHuffman *) ring_get_memory(ring, sizeof(PngHuffman));
+    PngHuffman* dictionary_huffman = (PngHuffman *) ring_memory_get(ring, sizeof(PngHuffman));
     dictionary_huffman->max_code_length = 7;
     dictionary_huffman->count = 1 << dictionary_huffman->max_code_length;
 
     // We need full width * height, since we don't know how much data this IDAT actually holds
-    uint8* finalized = ring_get_memory(ring, src.ihdr.width * src.ihdr.height * bytes_per_pixel);
+    uint8* finalized = ring_memory_get(ring, src.ihdr.width * src.ihdr.height * bytes_per_pixel);
 
     // Needs some extra space
-    uint8* decompressed = ring_get_memory(ring, src.ihdr.width * src.ihdr.height * bytes_per_pixel + src.ihdr.height);
+    uint8* decompressed = ring_memory_get(ring, src.ihdr.width * src.ihdr.height * bytes_per_pixel + src.ihdr.height);
 
     uint8* palette;
     // @todo remove, we can store this information directly in the palette
@@ -561,7 +561,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* cons
         } else if (chunk.type == 'PLTE') {
             // @todo change so that the tRANS directly sets the alpha for the respective color
             //      This means we increase the palette by 1 byte per index (chunk.length/3*4)
-            palette = ring_get_memory(ring, chunk.length);
+            palette = ring_memory_get(ring, chunk.length);
             memcpy(palette, stream.pos, chunk.length);
 
             stream.pos += chunk.length + sizeof(chunk.crc);
@@ -569,7 +569,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* cons
             continue;
         } else if (chunk.type == 'tRNS') {
             // @todo remove, we can store this information directly in the palette
-            transparency.values = ring_get_memory(ring, chunk.length);
+            transparency.values = ring_memory_get(ring, chunk.length);
             memcpy(transparency.values, stream.pos, chunk.length);
 
             if (src.ihdr.color_type == 3) {

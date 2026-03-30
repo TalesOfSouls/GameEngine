@@ -463,6 +463,9 @@ static type_glUniform3i* glUniform3i;
 typedef void WINAPI type_glEnableVertexAttribArray(GLuint index);
 static type_glEnableVertexAttribArray* glEnableVertexAttribArray;
 
+typedef void WINAPI type_glVertexAttribBinding(GLuint attribindex, GLuint bindingindex);
+static type_glVertexAttribBinding* glVertexAttribBinding;
+
 typedef void WINAPI type_glDisableVertexAttribArray(GLuint index);
 static type_glDisableVertexAttribArray* glDisableVertexAttribArray;
 
@@ -483,6 +486,9 @@ static type_glGenVertexArrays* glGenVertexArrays;
 
 typedef void WINAPI type_glBindBuffer(GLenum target, GLuint buffer);
 static type_glBindBuffer* glBindBuffer;
+
+typedef void WINAPI type_glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride);
+static type_glBindVertexBuffer* glBindVertexBuffer;
 
 typedef void WINAPI type_glBindBufferBase(GLenum target, GLuint index, GLuint buffer);
 static type_glBindBufferBase* glBindBufferBase;
@@ -528,6 +534,9 @@ static type_glUnmapBuffer* glUnmapBuffer;
 
 typedef void WINAPI type_glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length);
 static type_glFlushMappedBufferRange* glFlushMappedBufferRange;
+
+typedef void WINAPI type_glFlushMappedNamedBufferRange(GLuint buffer, GLintptr offset, GLsizeiptr length);
+static type_glFlushMappedNamedBufferRange* glFlushMappedNamedBufferRange;
 
 typedef void WINAPI type_glActiveTexture(GLenum texture);
 static type_glActiveTexture* glActiveTexture;
@@ -604,6 +613,12 @@ static type_glGetBufferParameterui64vNV* glGetBufferParameterui64vNV;
 
 typedef void WINAPI type_glVertexAttribFormatNV(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride);
 static type_glVertexAttribFormatNV* glVertexAttribFormatNV;
+
+typedef void WINAPI type_glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset);
+static type_glVertexAttribFormat* glVertexAttribFormat;
+
+typedef void WINAPI type_glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset);
+static type_glVertexAttribIFormat* glVertexAttribIFormat;
 
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
@@ -843,6 +858,7 @@ void opengl_init_gl() NO_EXCEPT
     glUniform3i = (type_glUniform3i *) wglGetProcAddress("glUniform3i");
     glUniform3f = (type_glUniform3f *) wglGetProcAddress("glUniform3f");
     glEnableVertexAttribArray = (type_glEnableVertexAttribArray *) wglGetProcAddress("glEnableVertexAttribArray");
+    glVertexAttribBinding = (type_glVertexAttribBinding *) wglGetProcAddress("glVertexAttribBinding");
     glDisableVertexAttribArray = (type_glDisableVertexAttribArray *) wglGetProcAddress("glDisableVertexAttribArray");
     glGetAttribLocation = (type_glGetAttribLocation *) wglGetProcAddress("glGetAttribLocation");
     glVertexAttribPointer = (type_glVertexAttribPointer *) wglGetProcAddress("glVertexAttribPointer");
@@ -850,6 +866,7 @@ void opengl_init_gl() NO_EXCEPT
     glBindVertexArray = (type_glBindVertexArray *) wglGetProcAddress("glBindVertexArray");
     glGenVertexArrays = (type_glGenVertexArrays *) wglGetProcAddress("glGenVertexArrays");
     glBindBuffer = (type_glBindBuffer *) wglGetProcAddress("glBindBuffer");
+    glBindVertexBuffer = (type_glBindVertexBuffer *) wglGetProcAddress("glBindVertexBuffer");
     glBindBufferBase = (type_glBindBufferBase *) wglGetProcAddress("glBindBufferBase");
     glBufferSubData = (type_glBufferSubData *) wglGetProcAddress("glBufferSubData");
     glGenBuffers = (type_glGenBuffers *) wglGetProcAddress("glGenBuffers");
@@ -865,6 +882,7 @@ void opengl_init_gl() NO_EXCEPT
     glCopyBufferSubData = (type_glCopyBufferSubData *) wglGetProcAddress("glCopyBufferSubData");
     glUnmapBuffer = (type_glUnmapBuffer *) wglGetProcAddress("glUnmapBuffer");
     glFlushMappedBufferRange = (type_glFlushMappedBufferRange *) wglGetProcAddress("glFlushMappedBufferRange");
+    glFlushMappedNamedBufferRange = (type_glFlushMappedNamedBufferRange *) wglGetProcAddress("glFlushMappedNamedBufferRange");
     glActiveTexture = (type_glActiveTexture *) wglGetProcAddress("glActiveTexture");
     glDeleteProgram = (type_glDeleteProgram *) wglGetProcAddress("glDeleteProgram");
     glDeleteVertexArrays = (type_glDeleteVertexArrays *) wglGetProcAddress("glDeleteVertexArrays");
@@ -886,6 +904,8 @@ void opengl_init_gl() NO_EXCEPT
     glDrawElementsInstanced = (type_glDrawElementsInstanced *) wglGetProcAddress("glDrawElementsInstanced");
     glProgramParameteri = (type_glProgramParameteri *) wglGetProcAddress("glProgramParameteri");
     glDebugMessageCallback = (type_glDebugMessageCallback *) wglGetProcAddress("glDebugMessageCallback");
+    glVertexAttribFormat = (type_glVertexAttribFormat *) wglGetProcAddress("glVertexAttribFormat");
+    glVertexAttribIFormat = (type_glVertexAttribIFormat *) wglGetProcAddress("glVertexAttribIFormat");
 
     // Bind optional functions/extensions
     CONSTEXPR const char* optional_nvidia_ext[] = {

@@ -176,7 +176,7 @@ void thrd_buffer_reset(BufferMemory* const buf) NO_EXCEPT
 }
 
 inline HOT_CODE
-byte* buffer_get_memory(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+byte* buffer_memory_get(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(size <= buf->size);
 
@@ -197,10 +197,10 @@ byte* buffer_get_memory(BufferMemory* const buf, size_t size, int32 alignment = 
 }
 
 FORCE_INLINE
-byte* thrd_buffer_get_memory(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+byte* thrd_buffer_memory_get(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     MutexGuard _guard(&buf->lock);
-    return buffer_get_memory(buf, size, alignment);
+    return buffer_memory_get(buf, size, alignment);
 }
 
 inline

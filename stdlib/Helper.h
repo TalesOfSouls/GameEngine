@@ -53,14 +53,13 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 #define OMS_SIGN_64(x) (1LL | ((x) >> 63 << 1))
 
 template <typename T>
-FORCE_INLINE T align_up(T x, size_t align) NO_EXCEPT
+FORCE_INLINE CONSTEXPR T align_up(T x, size_t align) NO_EXCEPT
 { return (T) (((x) + ((align) - 1)) & ~((align) - 1)); }
 
 template <typename T>
-FORCE_INLINE T align_down(T x, size_t align) NO_EXCEPT
+FORCE_INLINE CONSTEXPR T align_down(T x, size_t align) NO_EXCEPT
 { return (T)((x) & ~((align) - 1)); }
 
-#define OMS_ALIGN_DOWN(x, align) ((x) & ~((align) - 1))
 #define OMS_IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
 
 #define OMS_FLAG_SET(flags, bit) ((flags) | (bit))
@@ -150,28 +149,28 @@ DEFINE_BITCAST_FUNCTION(int64, f64)
     #define SWAP_ENDIAN_BIG_SELF(val) ((void) 0)
 #endif
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR
 bool is_little_endian() NO_EXCEPT
 {
     uint32 num = 1;
     return ((int32) (*(char *) & num)) == 1;
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR_DOGSHIT
 uint16 endian_swap(uint16 val) NO_EXCEPT
 {
     //return ((val << 8) | (val >> 8));
     return SWAP_ENDIAN_16(val);
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR_DOGSHIT
 int16 endian_swap(int16 val) NO_EXCEPT
 {
     //return (int16) ((val << 8) | (val >> 8));
     return SWAP_ENDIAN_16(val);
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR_DOGSHIT
 uint32 endian_swap(uint32 val) NO_EXCEPT
 {
     /*
@@ -183,7 +182,7 @@ uint32 endian_swap(uint32 val) NO_EXCEPT
    return SWAP_ENDIAN_32(val);
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR_DOGSHIT
 int32 endian_swap(int32 val) NO_EXCEPT
 {
     /*
@@ -195,7 +194,7 @@ int32 endian_swap(int32 val) NO_EXCEPT
     return SWAP_ENDIAN_32(val);
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR_DOGSHIT
 uint64 endian_swap(uint64 val) NO_EXCEPT
 {
     /*
@@ -211,7 +210,7 @@ uint64 endian_swap(uint64 val) NO_EXCEPT
     return SWAP_ENDIAN_64(val);
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR_DOGSHIT
 int64 endian_swap(int64 val) NO_EXCEPT
 {
     /*
@@ -227,13 +226,13 @@ int64 endian_swap(int64 val) NO_EXCEPT
     return SWAP_ENDIAN_64(val);
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR_DOGSHIT
 f32 endian_swap(f32 val) NO_EXCEPT
 {
     return (f32) BITCAST(endian_swap(BITCAST(val, uint32)), f32);
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR_DOGSHIT
 f64 endian_swap(f64 val) NO_EXCEPT
 {
     return (f64) BITCAST(endian_swap(BITCAST(val, uint64)), f64);
@@ -297,7 +296,6 @@ byte* write_le(byte* p, f64 v) NO_EXCEPT
 FORCE_INLINE
 const byte* read_le(const byte* __restrict p, uint32* __restrict out) NO_EXCEPT
 {
-    // @question Why do I even need v? Just use out directly
     uint32 v;
     memcpy(&v, p, sizeof(v));
     *out = SWAP_ENDIAN_LITTLE(v);

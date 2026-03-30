@@ -18,7 +18,7 @@ struct ModuleManager {
 void module_file_parse(const char* path, Module* module, RingMemory* const ring)
 {
     FileBody file = {0};
-    file.content = ring_get_memory(ring, MEGABYTE * 1);
+    file.content = ring_memory_get(ring, MEGABYTE * 1);
     file_read(path, &file);
 
     char *rest = NULL;

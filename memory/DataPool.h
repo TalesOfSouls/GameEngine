@@ -84,7 +84,7 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 capacity, int32 chunk_s
         + sizeof(uint64) * ceil_div(capacity, 64U) // used
         + alignment * 3; // overhead for alignment
 
-    buf->memory = buffer_get_memory(data, size);
+    buf->memory = buffer_memory_get(data, size);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -159,17 +159,17 @@ int32 pool_reserve_unused(DataPool* buf, int32 start_index = 0) NO_EXCEPT
 }
 
 FORCE_INLINE
-byte* pool_get_memory(DataPool* const buf, uint32 elements) NO_EXCEPT
+byte* pool_memory_get(DataPool* const buf, uint32 elements) NO_EXCEPT
 {
     // @bug We have to mark the elements as in use
-    return chunk_get_memory((ChunkMemory *) buf, elements);
+    return chunk_memory_get((ChunkMemory *) buf, elements);
 }
 
 FORCE_INLINE
-byte* pool_get_memory_one(DataPool* const buf) NO_EXCEPT
+byte* pool_memory_get_one(DataPool* const buf) NO_EXCEPT
 {
     // @bug We have to mark the element as in use
-    return chunk_get_memory_one((ChunkMemory *) buf);
+    return chunk_memory_get_one((ChunkMemory *) buf);
 }
 
 // Release an element to be used by someone else

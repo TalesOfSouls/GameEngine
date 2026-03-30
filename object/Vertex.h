@@ -67,6 +67,13 @@ struct Vertex2DTexture {
     v2_f32 tex_coord;
 };
 
+struct Vertex2DSamplerTextureColor {
+    v2_f32 position;
+    v2_f32 tex_coord;
+    int32 sampler;
+    uint32 color;
+};
+
 struct Vertex2DColor {
     v2_f32 position;
     v4_f32 color;

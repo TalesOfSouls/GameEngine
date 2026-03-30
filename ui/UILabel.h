@@ -121,7 +121,7 @@ void ui_label_element_populate(
     }
 }
 
-int32 ui_label_element_update(UILayout* layout, UIElement* element)
+int32 ui_label_element_update(UILayout* layout, UIElement* element, RingMemory* ring)
 {
     UILabel* label = (UILabel *) (layout->data + element->style_types[element->style_new]);
     UILabelState* state = (UILabelState *) (layout->data  + element->state);
@@ -130,7 +130,8 @@ int32 ui_label_element_update(UILayout* layout, UIElement* element)
         layout->vertices_active + element->vertices_active_offset, element->zindex, -1,
         label->dimension.dimension, label->font.alignment,
         layout->font, state->content,
-        label->font.size, label->font.color
+        label->font.size, label->font.color,
+        ring
         //label->font.weight
     ).z;
 }

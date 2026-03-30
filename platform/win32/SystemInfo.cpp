@@ -13,6 +13,7 @@
 #include "../../utils/StringUtils.h"
 #include "../../system/SystemInfo.h"
 #include "../../architecture/CpuInfo.cpp"
+#include "../../hash/Sha1.h"
 
 #include <psapi.h>
 #include <winsock2.h>
@@ -46,8 +47,33 @@
 //#pragma comment(lib, "comsuppw.lib")
 #pragma comment(lib, "ntdll.lib")
 
+f64 system_cpu_benchmark(int iterations)
+{
+    LARGE_INTEGER freq, start, end;
+    QueryPerformanceFrequency(&freq);
+
+    byte buffer[1024];
+    for (size_t i = 0; i < sizeof(buffer); ++i) {
+        buffer[i] = (byte)i;
+    }
+
+    QueryPerformanceCounter(&start);
+
+    byte result[20];
+    for (int i = 0; i < iterations; ++i) {
+        sha1_hash(buffer, ARRAY_COUNT(buffer), result);
+        memcpy(buffer, result, sizeof(result));
+    }
+
+    QueryPerformanceCounter(&end);
+
+    return freq.QuadPart > 0 && !is_empty(buffer, sizeof(result))
+        ? (f64) (end.QuadPart - start.QuadPart) / freq.QuadPart
+        : 0.0;
+}
+
 FORCE_INLINE
-uint64 system_private_memory_usage()
+uint64 system_private_memory_usage() NO_EXCEPT
 {
     PROCESS_MEMORY_COUNTERS_EX pmc;
     const HANDLE process = GetCurrentProcess();
@@ -57,6 +83,39 @@ uint64 system_private_memory_usage()
     CloseHandle(process);
 
     return pmc.PrivateUsage;
+}
+
+FORCE_INLINE
+bool system_drive_space(
+    const wchar_t* drive_path,
+    size_t* total_bytes,
+    size_t* free_bytes
+) NO_EXCEPT
+{
+    ULARGE_INTEGER user_free;
+    ULARGE_INTEGER total_space;
+    ULARGE_INTEGER total_free;
+
+    BOOL result = GetDiskFreeSpaceExW(
+        drive_path,
+        &user_free,
+        &total_space,
+        &total_free
+    );
+
+    if (!result) {
+        return false;
+    }
+
+    if (total_bytes) {
+        *total_bytes = total_space.QuadPart;
+    }
+
+    if (free_bytes) {
+        *free_bytes = total_free.QuadPart;
+    }
+
+    return true;
 }
 
 #include <winternl.h>
@@ -77,12 +136,12 @@ void system_cpu_usage(f32* const __restrict usage, int32 core_count, RingMemory*
         return;
     };
 
-    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p1 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) ring_get_memory(
+    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p1 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) ring_memory_get(
         ring,
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * core_count,
         sizeof(size_t)
     );
-    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p2 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) ring_get_memory(
+    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p2 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) ring_memory_get(
         ring,
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * core_count,
         sizeof(size_t)
@@ -305,7 +364,7 @@ int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* rin
     }
 
     if (ring) {
-        adapter_address = (PIP_ADAPTER_ADDRESSES) ring_get_memory(ring, sizeof(*adapter_address), sizeof(size_t));
+        adapter_address = (PIP_ADAPTER_ADDRESSES) ring_memory_get(ring, sizeof(*adapter_address), sizeof(size_t));
     } else {
         adapter_address = (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
     }

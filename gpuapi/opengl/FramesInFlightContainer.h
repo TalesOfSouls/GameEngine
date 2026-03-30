@@ -17,22 +17,14 @@ struct FrameInFlight {
     uint32 renderbuffer;
     Texture* texture;
 
+    GpuFence fence;
+
     // msaa data
     uint32 framebuffer_msaa;
     uint32 colorbuffer_msaa;
     uint32 depthbuffer_msaa;
     Texture* texture_msaa;
-};
 
-
-struct FramesInFlightContainer {
-    // @performance Can we make both uint16? I don't think because the other variables are 8 bytes values.
-    uint32 count;
-    uint32 index;
-
-    GpuFence framebuffer_sync;
-
-    FrameInFlight frames[6];
 };
 
 #endif

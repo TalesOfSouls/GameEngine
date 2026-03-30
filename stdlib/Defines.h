@@ -117,4 +117,75 @@
     #define CPP_VERSION 25
 #endif
 
+#ifndef DEBUG
+    #define DEBUG 0
+#endif
+
+#ifndef DEBUG_STRICT
+    #define DEBUG_STRICT 0
+#endif
+
+#ifndef INTERNAL
+    #define INTERNAL 0
+#endif
+
+#ifndef RELEASE
+    #define RELEASE 0
+#endif
+
+#ifndef DEBUG
+    #define DEBUG 0
+#endif
+
+#ifndef DIRECTX_12
+    #define DIRECTX_12 0
+#endif
+
+#ifndef DIRECTX_11
+    #define DIRECTX_11 0
+#endif
+
+#if DIRECTX_11 || DIRECTX_12
+    #ifdef DIRECTX
+        #undef DIRECTX
+    #endif
+    #define DIRECTX 1
+#endif
+
+#ifndef OPENGL
+    #define OPENGL 0
+#endif
+
+#ifndef VULKAN
+    #define VULKAN 0
+#endif
+
+#ifndef SOFTWARE
+    #define SOFTWARE 0
+#endif
+
+#ifndef EPIC_GAMES
+    #define EPIC_GAMES 0
+#endif
+
+#ifndef PLAYSTATION_STORE
+    #define PLAYSTATION_STORE 0
+#endif
+
+#ifndef MICROSOFT_STORE
+    #define MICROSOFT_STORE 0
+#endif
+
+#ifndef DIRECT_SOUND
+    #define DIRECT_SOUND 0
+#endif
+
+#ifndef XAUDIO2
+    #define XAUDIO2 0
+#endif
+
+#ifndef WASAPI
+    #define WASAPI 0
+#endif
+
 #endif

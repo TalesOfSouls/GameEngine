@@ -203,12 +203,31 @@ struct v2_int32 {
     };
 };
 
+struct v2_uint32 {
+    union {
+        struct { uint32 x, y; };
+        struct { uint32 width, height; };
+        struct { uint32 min, max; };
+
+        uint32 vec[2];
+    };
+};
+
 struct v3_int32 {
     union {
         struct { int32 x, y, z; };
         struct { int32 r, g, b; };
 
         int32 vec[3];
+    };
+};
+
+struct v3_uint32 {
+    union {
+        struct { uint32 x, y, z; };
+        struct { uint32 r, g, b; };
+
+        uint32 vec[3];
     };
 };
 
@@ -466,5 +485,11 @@ struct timespec
     long   tv_nsec; // Nanoseconds - [0, 999999999]
 };
 #define _CRT_NO_TIME_T 1
+
+// Cosntexpr helper types because constexpr is dogshit
+template <unsigned N>
+struct constexpr_str {
+    char data[N]{};
+};
 
 #endif

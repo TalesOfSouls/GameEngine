@@ -4,9 +4,11 @@
 #include "../../stdlib/Stdlib.h"
 
 struct UIAttributeBorder {
-    // 4 bits per side
-    uint16 thickness;
+    uint32 thickness;
     uint32 color;
+
+    uint32 texture;
+    v2_f32 tex_coord[4];
 };
 
 inline

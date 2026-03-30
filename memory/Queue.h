@@ -239,7 +239,7 @@ bool queue_is_full_atomic(Queue* const queue) NO_EXCEPT
 inline
 byte* queue_enqueue(Queue* const __restrict queue, const byte* __restrict data) NO_EXCEPT
 {
-    byte* mem = ring_get_memory((RingMemory *) queue, queue->element_size, queue->alignment);
+    byte* mem = ring_memory_get((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
 
     return mem;
@@ -258,7 +258,7 @@ void thrd_queue_enqueue(Queue* __restrict queue, const byte* __restrict data) NO
 inline
 byte* queue_enqueue_atomic(Queue* const __restrict queue, const byte* __restrict data) NO_EXCEPT
 {
-    byte* mem = ring_get_memory_atomic((RingMemory *) queue, queue->element_size, queue->alignment);
+    byte* mem = ring_memory_get_atomic((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
 
     return mem;
@@ -348,7 +348,7 @@ void thrd_queue_enqueue_unique_wait(Queue* __restrict queue, const byte* __restr
 FORCE_INLINE
 byte* queue_enqueue_start(Queue* const queue) NO_EXCEPT
 {
-    return ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
+    return ring_memory_get_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 
 FORCE_INLINE
@@ -358,7 +358,7 @@ byte* queue_enqueue_start_safe(Queue* const queue) NO_EXCEPT
         return NULL;
     }
 
-    return ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
+    return ring_memory_get_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 
 inline

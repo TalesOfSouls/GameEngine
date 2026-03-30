@@ -68,10 +68,10 @@ void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity,
     LOG_1("[INFO] Allocating ChunkMemoryT");
 
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
-    const size_t memory_size = capacity * sizeof(T) + sizeof(uint_max) * array_count + sizeof(uint_max);
+    const size_t memory_size = capacity * sizeof(T) + sizeof(uint_max) * array_count + alignof(uint_max);
 
     const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
-    const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(uint_max) * max_array_count + sizeof(uint_max);
+    const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(uint_max) * max_array_count + alignof(uint_max);
 
     buf->memory = (T *) platform_alloc_aligned(
         memory_size,
@@ -83,7 +83,7 @@ void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity,
     buf->last_pos = -1;
     buf->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (buf->memory + capacity)),
-        sizeof(uint_max)
+        alignof(uint_max)
     );
     memset(buf->free, 0, sizeof(uint_max) * array_count);
 }
@@ -121,9 +121,9 @@ void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capa
     buf->last_pos = -1;
     buf->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (buf->memory + capacity)),
-        (uint_max) sizeof(uint_max)
+        (uint_max) alignof(uint_max)
     );
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), sizeof(uint_max));
+    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignof(uint_max));
 
     memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
     memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
@@ -146,10 +146,10 @@ void chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* mem, int32 capacity, i
     LOG_1("[INFO] Allocating ChunkMemoryT");
 
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
-    const size_t memory_size = capacity * sizeof(T) + sizeof(uint_max) * array_count + sizeof(uint_max);
+    const size_t memory_size = capacity * sizeof(T) + sizeof(uint_max) * array_count + alignof(uint_max);
 
     const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
-    const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(uint_max) * max_array_count + sizeof(uint_max);
+    const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(uint_max) * max_array_count + alignof(uint_max);
 
     MemoryArena* arena = mem_arena_add(
         mem,
@@ -163,7 +163,7 @@ void chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* mem, int32 capacity, i
     buf->last_pos = -1;
     buf->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (buf->memory + capacity)),
-        sizeof(uint_max)
+        alignof(uint_max)
     );
     memset(buf->free, 0, sizeof(uint_max) * array_count);
 }
@@ -203,9 +203,9 @@ void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* mem, int32 capaci
     buf->last_pos = -1;
     buf->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (buf->memory + capacity)),
-        (uint_max) sizeof(uint_max)
+        (uint_max) alignof(uint_max)
     );
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), sizeof(uint_max));
+    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignof(uint_max));
 
     memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
     memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
@@ -233,13 +233,13 @@ void chunk_init(
         + sizeof(uint_max) * array_count
         + sizeof(uint_max);
 
-    buf->memory = (T *) buffer_get_memory(data, size, alignment);
+    buf->memory = (T *) buffer_memory_get(data, size, alignment);
 
     buf->capacity = capacity;
     buf->last_pos = -1;
     buf->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (buf->memory + capacity)),
-        (uint_max) sizeof(uint_max)
+        (uint_max) alignof(uint_max)
     );
     memset(buf->free, 0, sizeof(uint_max) * array_count);
 
@@ -264,15 +264,15 @@ void thrd_chunk_init(
         + sizeof(uint_max) * array_count
         + sizeof(uint_max) * 2;
 
-    buf->memory = (T *) buffer_get_memory(data, size, alignment);
+    buf->memory = (T *) buffer_memory_get(data, size, alignment);
 
     buf->capacity = capacity;
     buf->last_pos = -1;
     buf->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (buf->memory + capacity)),
-        (uint_max) sizeof(uint_max)
+        (uint_max) alignof(uint_max)
     );
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), (uint_max) sizeof(uint_max));
+    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), (uint_max) alignof(uint_max));
 
     memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
     memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
@@ -297,7 +297,8 @@ void chunk_init(
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
     const size_t size = capacity * sizeof(T)
         + sizeof(uint_max) * array_count
-        + sizeof(uint_max);
+        + alignment
+        + alignof(uint_max);
 
     buf->memory = (T *) align_up((uintptr_t) data, alignment);
 
@@ -305,7 +306,7 @@ void chunk_init(
     buf->last_pos = -1;
     buf->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (buf->memory + capacity)),
-        (uint_max) sizeof(uint_max)
+        (uint_max) alignof(uint_max)
     );
     memset(buf->free, 0, sizeof(uint_max) * array_count);
 
@@ -336,9 +337,9 @@ void thrd_chunk_init(
     buf->last_pos = -1;
     buf->free = (uint_max *) align_up(
         (uint_max) ((uintptr_t) (buf->memory + capacity)),
-        (uint_max) sizeof(uint_max)
+        (uint_max) alignof(uint_max)
     );
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), (uint_max) sizeof(uint_max));
+    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), (uint_max) alignof(uint_max));
 
     memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
     memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
@@ -400,7 +401,7 @@ uint_max* chunk_find_free_array(const ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     return (uint_max *) align_up(
         (uintptr_t) (buf->memory + buf->capacity),
-        (uint_max) sizeof(uint_max)
+        (uint_max) alignof(uint_max)
     );
 }
 
@@ -460,11 +461,12 @@ template <typename T>
 FORCE_INLINE
 int32 chunk_reserve(ChunkMemoryT<T>* const buf, uint32 elements = 1) NO_EXCEPT
 {
-    buf->last_pos = chunk_reserve_internal(buf->free, buf->capacity, buf->last_pos, elements);
+    const int32 found = chunk_reserve_internal(buf->free, buf->capacity, buf->last_pos, elements);
+    buf->last_pos = found + (elements - 1);
 
-    DEBUG_MEMORY_WRITE((uintptr_t) &buf->memory[buf->last_pos], elements * sizeof(T));
+    DEBUG_MEMORY_WRITE((uintptr_t) &buf->memory[found], elements * sizeof(T));
 
-    return buf->last_pos;
+    return found;
 }
 
 template <typename T>
@@ -545,13 +547,13 @@ int64 chunk_dump(const ChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
     // This also includes the free array
     memcpy(data, buf->memory, size);
 
-    #if !_WIN32 && !__LITTLE_ENDIAN__
+    #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
         uint_max* free_data = (uint_max *) (data + free_offset);
     #endif
 
     data += size;
 
-    #if !_WIN32 && !__LITTLE_ENDIAN__
+    #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
         // @todo replace with simd endian swap if it is faster
         for (uint32 i = 0; i < ceil_div(buf->capacity, (int32) (sizeof(uint_max) * 8)); ++i) {
             *free_data = SWAP_ENDIAN_LITTLE(*free_data);
@@ -566,7 +568,7 @@ int64 chunk_dump(const ChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-byte* chunk_get_memory(ChunkMemoryT<T>* const buf, uint32 elements) NO_EXCEPT
+byte* chunk_memory_get(ChunkMemoryT<T>* const buf, uint32 elements) NO_EXCEPT
 {
     const int32 element = chunk_reserve(buf, elements);
 
@@ -575,7 +577,7 @@ byte* chunk_get_memory(ChunkMemoryT<T>* const buf, uint32 elements) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-byte* chunk_get_memory_one(ChunkMemoryT<T>* const buf) NO_EXCEPT
+byte* chunk_memory_get_one(ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     const int32 element = chunk_reserve_one(buf);
 
@@ -605,7 +607,7 @@ int64 chunk_load(ChunkMemoryT<T>* const buf, const byte* data) NO_EXCEPT
 
     buf->free = (uint_max *) (((uintptr_t) buf->memory) + free_offset);
 
-    #if !_WIN32 && !__LITTLE_ENDIAN__
+    #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
         uint_max* free_data = buf->free;
         // @todo replace with simd endian swap if it is faster
         for (uint32 i = 0; i < ceil_div(buf->capacity, (int32) (sizeof(uint_max) * 8)); ++i) {

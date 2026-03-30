@@ -85,7 +85,11 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
         symbol->MaxNameLen = MAX_SYM_NAME;
 
         if (pSymFromAddr(process, address, NULL, symbol)) {
-            LOG_1("Function: %s - Address: %l", {DATA_TYPE_CHAR_STR, symbol->Name}, {DATA_TYPE_INT64, &symbol->Address});
+            LOG_1(
+                "Function: %s - Address: %l",
+                {DATA_TYPE_CHAR_STR, symbol->Name},
+                {DATA_TYPE_INT64, &symbol->Address}
+            );
         } else {
             LOG_1("Function: (unknown) - Address: %l", {DATA_TYPE_INT64, &address});
         }
@@ -96,7 +100,11 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
         if (pSymGetLineFromAddr64(process, address, &displacement, &line)) {
-            LOG_1("    File: %s, Line: %l", {DATA_TYPE_CHAR_STR, line.FileName}, {DATA_TYPE_INT64, &line.LineNumber});
+            LOG_1(
+                "    File: %s, Line: %l",
+                {DATA_TYPE_CHAR_STR, line.FileName},
+                {DATA_TYPE_INT64, &line.LineNumber}
+            );
         } else {
             LOG_1("    File: (unknown), Line: (unknown)");
         }
@@ -134,7 +142,7 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
     stack_frame.AddrStack.Offset = context->Rsp;
     stack_frame.AddrStack.Mode = AddrModeFlat;
 
-    printf("Stack trace:\n");
+    LOG_1("Stack trace:");
 
     while (pStackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
         pSymFunctionTableAccess64, pSymGetModuleBase64, NULL)
@@ -148,9 +156,13 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
         symbol->MaxNameLen = MAX_SYM_NAME;
 
         if (pSymFromAddr(process, address, NULL, symbol)) {
-            printf("Function: %s - Address: 0x%llx\n", symbol->Name, symbol->Address);
+            LOG_1(
+                "Function: %s - Address: 0x%l\n",
+                {DATA_TYPE_CHAR_STR, symbol->Name},
+                {DATA_TYPE_INT64, &symbol->Address}
+            );
         } else {
-            printf("Function: (unknown) - Address: 0x%llx\n", address);
+            LOG_1("Function: (unknown) - Address: 0x%l\n", {DATA_TYPE_INT64, &address});
         }
 
         // Resolve file and line number
@@ -159,12 +171,17 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
         if (pSymGetLineFromAddr64(process, address, &displacement, &line)) {
-            printf("    File: %s, Line: %lu\n", line.FileName, line.LineNumber);
+            LOG_1(
+                "    File: %s, Line: %l",
+                {DATA_TYPE_CHAR_STR, line.FileName},
+                {DATA_TYPE_INT64, &line.LineNumber}
+            );
         } else {
-            printf("    File: (unknown), Line: (unknown)\n");
+            LOG_1("    File: (unknown), Line: (unknown)\n");
         }
     }
 
+    LOG_TO_FILE();
     pSymCleanup(process);
 }
 

@@ -263,7 +263,7 @@ int32 theme_from_data(
     UIThemeStyle* __restrict theme
 ) {
     PROFILE(PROFILE_THEME_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("Load theme");
+    LOG_1("[INFO] Load theme");
 
     const byte* in = data;
 

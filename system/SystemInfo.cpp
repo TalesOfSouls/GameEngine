@@ -53,6 +53,10 @@ void system_info_render(char* buf, const SystemInfo* const info) NO_EXCEPT
         "\n"
         "Features: %l\n"
         "\n"
+        "Drive:\n"
+        "==============\n"
+        "Total %l Free %l\n"
+        "\n"
         "GPU:\n"
         "==============\n"
         "Name: %s\n" "VRAM: %d\n"
@@ -83,6 +87,7 @@ void system_info_render(char* buf, const SystemInfo* const info) NO_EXCEPT
         info->cpu.cache[2].size, (uint32) info->cpu.cache[2].line_size,
         info->cpu.cache[3].size, (uint32) info->cpu.cache[3].line_size,
         info->cpu.features,
+        info->drive.total, info->drive.free,
         info->gpu[0].name, info->gpu[0].vram,
         info->gpu_count < 2 ? "" : info->gpu[1].name, info->gpu_count < 2 ? 0 : info->gpu[1].vram,
         info->gpu_count < 3 ? "" : info->gpu[2].name, info->gpu_count < 3 ? 0 : info->gpu[2].vram,
@@ -107,6 +112,22 @@ void system_info_get(SystemInfo* const info) NO_EXCEPT
     info->display_count = (uint8) display_info_get(info->display, ARRAY_COUNT(info->display));
     info->language = system_language_code();
     info->country = system_country_code();
+
+    wchar_t path[MAX_PATH];
+    self_path(path);
+
+    // @bug only works on windows
+    wchar_t* temp = path;
+    while (*temp != L':' && *temp) {
+        ++temp;
+    }
+
+    if (*temp == L':') {
+        temp[1] = L'\\';
+        temp[2] = L'\\';
+        temp[3] = L'\0';
+        system_drive_space(path, &info->drive.total, &info->drive.free);
+    }
 }
 
 #endif

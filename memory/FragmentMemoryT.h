@@ -57,8 +57,8 @@ void fragment_alloc(
 
     LOG_1("[INFO] Allocating FragmentMemoryT");
 
-    const size_t memory_size = sizeof(T) * capacity + capacity * sizeof(T*) + alignment;
-    const size_t max_memory_size = sizeof(T) * max_capacity + max_capacity * sizeof(T*) + alignment;
+    const size_t memory_size = sizeof(T) * capacity + capacity * sizeof(T*) + alignof(uintptr_t);
+    const size_t max_memory_size = sizeof(T) * max_capacity + max_capacity * sizeof(T*) + alignof(uintptr_t);
 
     fragment->memory = (T *) platform_alloc_aligned(
         memory_size,
@@ -70,7 +70,7 @@ void fragment_alloc(
     fragment->last_pos = capacity - 1;
     fragment->free = (T **) align_up(
         (uint_max) ((uintptr_t) (fragment->memory + capacity)),
-        (uint_max) alignment
+        (uint_max) alignof(uintptr_t)
     );
 
     for (int i = 0; i < capacity; ++i) {
@@ -94,8 +94,8 @@ void fragment_alloc(
 
     LOG_1("[INFO] Allocating FragmentMemoryT");
 
-    const size_t memory_size = sizeof(T) * capacity + capacity * sizeof(T*) + alignment;
-    const size_t max_memory_size = sizeof(T) * max_capacity + max_capacity * sizeof(T*) + alignment;
+    const size_t memory_size = sizeof(T) * capacity + capacity * sizeof(T*) + alignof(uintptr_t);
+    const size_t max_memory_size = sizeof(T) * max_capacity + max_capacity * sizeof(T*) + alignof(uintptr_t);
 
     MemoryArena* arena = mem_arena_add(
         mem,
@@ -109,7 +109,7 @@ void fragment_alloc(
     fragment->last_pos = capacity - 1;
     fragment->free = (T **) align_up(
         (uint_max) ((uintptr_t) (fragment->memory + capacity)),
-        (uint_max) alignment
+        (uint_max) alignof(uintptr_t)
     );
 
     for (int i = 0; i < capacity; ++i) {
@@ -119,7 +119,7 @@ void fragment_alloc(
 
 template <typename T>
 inline HOT_CODE
-T* fragment_get_memory(FragmentMemoryT<T>* const fragment) NO_EXCEPT
+T* fragment_memory_get(FragmentMemoryT<T>* const fragment) NO_EXCEPT
 {
     if (fragment->last_pos < 0) {
         return NULL;

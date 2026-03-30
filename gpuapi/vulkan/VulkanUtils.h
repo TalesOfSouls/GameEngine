@@ -35,7 +35,7 @@
 #include "ShaderUtils.h"
 #include "FramesInFlightContainer.h"
 
-#if DEBUG
+#if defined(DEBUG) && DEBUG
     #define ASSERT_GPU_API() ((void) 0)
     #define ASSERT_GPU_API_CALL(x)                                                   \
         do {                                                                    \
@@ -96,7 +96,7 @@ int32 vulkan_check_validation_layer_support(const char** validation_layers, uint
     uint32 layer_count;
     vkEnumerateInstanceLayerProperties(&layer_count, NULL);
 
-    VkLayerProperties* available_layers = (VkLayerProperties *) ring_get_memory(ring, layer_count * sizeof(VkLayerProperties));
+    VkLayerProperties* available_layers = (VkLayerProperties *) ring_memory_get(ring, layer_count * sizeof(VkLayerProperties));
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
 
     for (uint32 i = 0; i < validation_layer_count; ++i) {
@@ -121,7 +121,7 @@ int32 vulkan_check_extension_support(const char** extensions, uint32 extension_c
     uint32 ext_count;
     vkEnumerateInstanceExtensionProperties(NULL, &ext_count, NULL);
 
-    VkExtensionProperties* available_extensions = (VkExtensionProperties *) ring_get_memory(ring, ext_count * sizeof(VkExtensionProperties));
+    VkExtensionProperties* available_extensions = (VkExtensionProperties *) ring_memory_get(ring, ext_count * sizeof(VkExtensionProperties));
     vkEnumerateInstanceExtensionProperties(NULL, &ext_count, available_extensions);
 
     for (uint32 i = 0; i < extension_count; ++i) {
@@ -261,7 +261,7 @@ bool vulkan_device_supports_extensions(VkPhysicalDevice device, const char** dev
     uint32 extension_count;
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, NULL);
 
-    VkExtensionProperties* available_extensions = (VkExtensionProperties *) ring_get_memory(ring, extension_count * sizeof(VkExtensionProperties));
+    VkExtensionProperties* available_extensions = (VkExtensionProperties *) ring_memory_get(ring, extension_count * sizeof(VkExtensionProperties));
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, available_extensions);
 
     for (uint32 i = 0; i < device_extension_count; ++i) {
@@ -287,7 +287,7 @@ void vulkan_available_layers(RingMemory* const ring) {
     uint32 layer_count;
     vkEnumerateInstanceLayerProperties(&layer_count, NULL);
 
-    VkLayerProperties* available_layers = (VkLayerProperties *) ring_get_memory(ring, layer_count * sizeof(VkLayerProperties));
+    VkLayerProperties* available_layers = (VkLayerProperties *) ring_memory_get(ring, layer_count * sizeof(VkLayerProperties));
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
 }
 
@@ -297,7 +297,7 @@ void vulkan_available_extensions(RingMemory* const ring) {
     uint32 extension_count;
     vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
 
-    VkExtensionProperties* available_extensions = (VkExtensionProperties *) ring_get_memory(ring, extension_count * sizeof(VkExtensionProperties));
+    VkExtensionProperties* available_extensions = (VkExtensionProperties *) ring_memory_get(ring, extension_count * sizeof(VkExtensionProperties));
     vkEnumerateInstanceExtensionProperties(NULL, &extension_count, available_extensions);
 }
 
@@ -307,7 +307,7 @@ VulkanQueueFamilyIndices vulkan_find_queue_families(VkPhysicalDevice physical_de
     uint32 queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, NULL);
 
-    VkQueueFamilyProperties* queue_families = (VkQueueFamilyProperties *) ring_get_memory(ring, (queue_family_count + 1) * sizeof(VkQueueFamilyProperties));
+    VkQueueFamilyProperties* queue_families = (VkQueueFamilyProperties *) ring_memory_get(ring, (queue_family_count + 1) * sizeof(VkQueueFamilyProperties));
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_families);
 
     for (uint32 i = 0; i < queue_family_count; ++i) {
@@ -346,14 +346,14 @@ VulkanSwapChainSupportDetails vulkan_query_swap_chain_support(VkPhysicalDevice p
     vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &details.format_size, NULL);
 
     if (details.format_size) {
-        details.formats = (VkSurfaceFormatKHR *) ring_get_memory(ring, (details.format_size + 1) * sizeof(VkSurfaceFormatKHR));
+        details.formats = (VkSurfaceFormatKHR *) ring_memory_get(ring, (details.format_size + 1) * sizeof(VkSurfaceFormatKHR));
         vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &details.format_size, details.formats);
     }
 
     vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &details.present_mode_size, NULL);
 
     if (details.present_mode_size) {
-        details.present_modes = (VkPresentModeKHR *) ring_get_memory(ring, (details.present_mode_size + 1) * sizeof(VkPresentModeKHR));
+        details.present_modes = (VkPresentModeKHR *) ring_memory_get(ring, (details.present_mode_size + 1) * sizeof(VkPresentModeKHR));
         vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &details.present_mode_size, details.present_modes);
     }
 
@@ -385,7 +385,7 @@ void gpuapi_pick_physical_device(
     uint32 device_count;
     vkEnumeratePhysicalDevices(instance, &device_count, NULL);
 
-    VkPhysicalDevice* devices = (VkPhysicalDevice *) ring_get_memory(ring, device_count * sizeof(VkPhysicalDevice));
+    VkPhysicalDevice* devices = (VkPhysicalDevice *) ring_memory_get(ring, device_count * sizeof(VkPhysicalDevice));
     vkEnumeratePhysicalDevices(instance, &device_count, devices);
 
     for (uint32 i = 0; i < device_count; ++i) {
@@ -410,7 +410,7 @@ void gpuapi_create_logical_device(
 
     // @question Here and in many other places we use the heap, why?
     //          Shouldn't it be much better to use the stack for such small structs?
-    //VkDeviceQueueCreateInfo* queue_create_infos = (VkDeviceQueueCreateInfo *) ring_get_memory(ring, 2 * sizeof(VkDeviceQueueCreateInfo), sizeof(size_t));
+    //VkDeviceQueueCreateInfo* queue_create_infos = (VkDeviceQueueCreateInfo *) ring_memory_get(ring, 2 * sizeof(VkDeviceQueueCreateInfo), sizeof(size_t));
     //memset(queue_create_infos, 0, 2 * sizeof(VkDeviceQueueCreateInfo));
 
     VkDeviceQueueCreateInfo queue_create_infos[2] = {};
@@ -717,7 +717,7 @@ void gpuapi_command_buffer_create(VkDevice device, VkCommandPool command_pool, V
 }
 
 void vulkan_sync_objects_create(
-    VkDevice device, FramesInFlightContainer* frames_in_flight,
+    VkDevice device, uint32 frames_in_flight_count,
     VkSemaphore* image_available_semaphores,
     VkSemaphore* render_finished_semaphores,
     VkFence* fences
@@ -731,7 +731,7 @@ void vulkan_sync_objects_create(
     fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     VkResult result;
-    for (uint32 i = 0; i < frames_in_flight->count; ++i) {
+    for (uint32 i = 0; i < frames_in_flight_count; ++i) {
         if ((result = vkCreateSemaphore(device, &semaphore_info, NULL, &image_available_semaphores[i])) != VK_SUCCESS
             || (result = vkCreateSemaphore(device, &semaphore_info, NULL, &render_finished_semaphores[i])) != VK_SUCCESS
             || (result = vkCreateFence(device, &fence_info, NULL, &fences[i])) != VK_SUCCESS

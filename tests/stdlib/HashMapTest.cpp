@@ -81,7 +81,7 @@ static void test_hashmap_dump_load() {
     HashMap hm_load = {0};
     hashmap_alloc(&hm_load, 3, 3, sizeof(HashEntryInt32));
 
-    byte* out = ring_get_memory(&ring, 1024 * 1024);
+    byte* out = ring_memory_get(&ring, 1024 * 1024, sizeof(size_t));
 
     int64 dump_size = hashmap_dump(&hm_dump, out, MEMBER_SIZEOF(HashEntryInt32, value));
     int64 load_size = hashmap_load(&hm_load, out, MEMBER_SIZEOF(HashEntryInt32, value));

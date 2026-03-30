@@ -838,7 +838,7 @@ void ui_layout_update(UILayout* layout, UIElement* element) {
                     ui_input_element_update(layout, element);
                 } break;
             case UI_ELEMENT_TYPE_LABEL: {
-                    ui_label_element_update(layout, element);
+                    ui_label_element_update(layout, element, NULL);
                 } break;
             case UI_ELEMENT_TYPE_TEXT: {
 

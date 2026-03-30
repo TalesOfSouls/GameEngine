@@ -43,15 +43,15 @@ size_t poisson_disk_bridson(
     const int32 grid_h = (int32) ceil(height / cell_size);
     const size_t grid_size = (size_t) grid_w * (size_t) grid_h;
 
-    int32* grid = (int32*) ring_get_memory(ring, grid_size * sizeof(int32), sizeof(size_t));
+    int32* grid = (int32*) ring_memory_get(ring, grid_size * sizeof(int32), sizeof(size_t));
     for (size_t i = 0; i < grid_size; ++i) {
         grid[i] = -1;
     }
 
     size_t cap = points_size; //poisson_disk_bridson_points(width, height, r);
 
-    v2_f64* points = (v2_f64 *) ring_get_memory(ring, cap * sizeof(v2_f64));
-    int32* active = (int32 *) ring_get_memory(ring, cap * sizeof(int32));
+    v2_f64* points = (v2_f64 *) ring_memory_get(ring, cap * sizeof(v2_f64));
+    int32* active = (int32 *) ring_memory_get(ring, cap * sizeof(int32));
     memset(active, 0, cap * sizeof(int32));
 
     size_t points_count = 0;
@@ -221,14 +221,14 @@ size_t poisson_disk_bridson_importance(
     const int32 grid_h = (int32) ceil(height / cell_size);
     const size_t grid_size = (size_t) grid_w * (size_t) grid_h;
 
-    int32* grid = (int32*) ring_get_memory(ring, grid_size * sizeof(int32), sizeof(size_t));
+    int32* grid = (int32*) ring_memory_get(ring, grid_size * sizeof(int32), sizeof(size_t));
     if (!grid) return 0;
     for (size_t i = 0; i < grid_size; ++i) grid[i] = -1;
 
     size_t cap = (size_t) points_size;
 
     v2_f64* points = out_points; /* already provided by caller */
-    int32* active = (int32*) ring_get_memory(ring, cap * sizeof(int32), sizeof(int32));
+    int32* active = (int32*) ring_memory_get(ring, cap * sizeof(int32), sizeof(int32));
     if (!active) return 0;
     memset(active, 0, cap * sizeof(int32));
 

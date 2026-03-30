@@ -23,7 +23,7 @@
 // #include "../../../EngineDependencies/directx/d3dx12.h"
 #include "FramesInFlightContainer.h"
 
-#if DEBUG
+#if defined(DEBUG) && DEBUG
     #define ASSERT_GPU_API() ((void) 0)
 #else
     #define ASSERT_GPU_API() ((void) 0)
@@ -422,7 +422,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
     uint64 required_size = 0;
     uint64 mem_size = (uint64) (sizeof(D3D12_PLACED_SUBRESOURCE_FOOTPRINT) + sizeof(uint32) + sizeof(uint64)) * number_of_resources;
 
-    D3D12_PLACED_SUBRESOURCE_FOOTPRINT* layouts = (D3D12_PLACED_SUBRESOURCE_FOOTPRINT *) ring_get_memory(ring, mem_size, ASSUMED_CACHE_LINE_SIZE);
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT* layouts = (D3D12_PLACED_SUBRESOURCE_FOOTPRINT *) ring_memory_get(ring, mem_size, ASSUMED_CACHE_LINE_SIZE);
     uint64* row_size = (uint64 *) (layouts + number_of_resources);
     uint32* row_num = (uint32 *) (row_size + number_of_resources);
 

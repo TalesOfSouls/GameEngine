@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-#if DEBUG
+#if defined(DEBUG) && DEBUG
     #define ASSERT_TRUE(a) if (!(a)) {      \
         /* cppcheck-suppress nullPointer */ \
         *(volatile int *)0 = 0;             \
@@ -51,7 +51,7 @@
     #define ASSERT_MEM_ZERO(ptr, size) ((void)0)
 #endif
 
-#if DEBUG_STRICT
+#if defined(DEBUG) && DEBUG && defined(DEBUG_STRICT) && DEBUG_STRICT
     // This macro is only used during strict debugging
     // Strict debugging is a mode that performs a lot of assertions
     // This slows down the application by a lot and is therefore not applicable for normal debugging

@@ -818,25 +818,25 @@ bool aabb_intersects_frustum(
     return true;
 }
 
-#if defined(OPENGL)
+#if defined(OPENGL) && OPENGL
     #define camera_projection_matrix(camera) camera_projection_matrix_rh_opengl((camera))
     #define camera_orth_matrix(camera) camera_orth_matrix_rh_opengl((camera))
     #define camera_ui_matrix(camera) camera_ui_matrix_rh_opengl((camera))
     #define camera_view_matrix(camera) camera_view_matrix_rh_opengl((camera))
     #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
-#elif defined(VULKAN)
+#elif defined(VULKAN) && VULKAN
     #define camera_projection_matrix(camera) camera_projection_matrix_rh_vulkan((camera))
     #define camera_orth_matrix(camera) camera_orth_matrix_rh_vulkan((camera))
     #define camera_ui_matrix(camera) camera_ui_matrix_rh_vulkan((camera))
     #define camera_view_matrix(camera) camera_view_matrix_rh_vulkan((camera))
     #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
-#elif defined(DIRECTX)
+#elif defined(DIRECTX) && DIRECTX
     #define camera_projection_matrix(camera) camera_projection_matrix_lh((camera))
     #define camera_orth_matrix(camera) camera_orth_matrix_lh((camera))
     #define camera_ui_matrix(camera) camera_ui_matrix_lh((camera))
     #define camera_view_matrix(camera) camera_view_matrix_lh((camera))
     #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_lh((camera), (translation))
-#elif defined(SOFTWARE)
+#elif defined(SOFTWARE) && SOFTWARE
     #if _WIN32
         #define camera_projection_matrix(camera) camera_projection_matrix_rh_opengl((camera))
         #define camera_orth_matrix(camera) camera_orth_matrix_rh_software((camera))

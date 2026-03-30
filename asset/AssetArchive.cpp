@@ -88,10 +88,16 @@ void asset_archive_header_load(
         header->asset_count * header->asset_dependency_count, // everything is 4 bytes -> easy to swap
         steps
     );
+
+    size_t total = 0;
+    for (uint32 i = 0; i < header->asset_count; ++i) {
+        size_t uncompressed = header->asset_element[i].uncompressed;
+        total += uncompressed;
+    }
 }
 
 FORCE_INLINE
-AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int32 id) NO_EXCEPT
+const AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int32 id) NO_EXCEPT
 {
     return &archive->header.asset_element[id];
 }
@@ -155,7 +161,7 @@ void asset_archive_load(
     file.size = sizeof(AssetArchiveHeader);
 
     // Find header size
-    file.content = ring_get_memory(ring, file.size, sizeof(size_t));
+    file.content = ring_memory_get(ring, file.size, sizeof(size_t));
     file_read(archive->fd, &file, 0, file.size);
     file.size = asset_archive_header_size(archive, file.content);
 
@@ -167,7 +173,7 @@ void asset_archive_load(
     file_seek(archive->fd, 0);
 
     // Read entire header
-    file.content = ring_get_memory(ring, file.size, sizeof(size_t));
+    file.content = ring_memory_get(ring, file.size, sizeof(size_t));
     file_read(archive->fd, &file, 0, file.size);
     asset_archive_header_load(&archive->header, file.content, steps);
 
@@ -204,12 +210,15 @@ Asset* const asset_archive_asset_load(
     const AssetArchiveElement* const element = &archive->header.asset_element[id & 0x00FFFFFF];
 
     ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
-    byte component_id = archive->asset_type_map[element->type];
-    //AssetComponent* ac = &ams->asset_components[component_id];
+    const byte component_id = archive->asset_type_map[element->type];
 
     LOG_2(
         "[INFO] Load asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
-        {DATA_TYPE_UINT64, &id}, {DATA_TYPE_UINT32, &element->type}, {DATA_TYPE_UINT8, &component_id}, {DATA_TYPE_UINT32, &element->length}, {DATA_TYPE_UINT32, &element->uncompressed}
+        {DATA_TYPE_UINT64, &id},
+        {DATA_TYPE_UINT32, &element->type},
+        {DATA_TYPE_UINT8, &component_id},
+        {DATA_TYPE_UINT32, &element->length},
+        {DATA_TYPE_UINT32, &element->uncompressed}
     );
 
     // Check if asset already exists
@@ -270,7 +279,7 @@ Asset* const asset_archive_asset_load(
                 asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
                 asset->ram_size = asset->vram_size + sizeof(Texture);
 
-                #if defined(OPENGL) || defined(VULKAN)
+                #if (defined(OPENGL) && OPENGL) || (defined(VULKAN) && VULKAN)
                     // If opengl, we always flip
                     if (!(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)) {
                         image_flip_vertical(ring, &texture->image);
@@ -320,7 +329,11 @@ Asset* const asset_archive_asset_load(
 
     LOG_2(
         "[INFO] Loaded asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
-        {DATA_TYPE_UINT64, &id}, {DATA_TYPE_UINT32, &element->type}, {DATA_TYPE_UINT8, &component_id}, {DATA_TYPE_UINT32, &element->length}, {DATA_TYPE_UINT32, &element->uncompressed}
+        {DATA_TYPE_UINT64, &id},
+        {DATA_TYPE_UINT32, &element->type},
+        {DATA_TYPE_UINT8, &component_id},
+        {DATA_TYPE_UINT32, &element->length},
+        {DATA_TYPE_UINT32, &element->uncompressed}
     );
 
     // @performance maybe do in worker threads? This just feels very slow

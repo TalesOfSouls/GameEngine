@@ -31,9 +31,6 @@ enum ThreadPoolState : int32 {
 
 struct ThreadPool {
     // This is not a threaded queue since we want to handle the mutex in here, not in the queue for finer control
-    // @question Currently we overwrite jobs in a certain amount of time, should we create a cache that remains until manually deleted
-    //          Currently we might overwrite a job result before we check it
-    //          We probably need to use ChunkMemory combined with a queue
     PersistentQueueT<PoolWorker> work_queue;
 
     // @performance Could it make more sense to use a spinlock for the thread pool?
@@ -105,10 +102,10 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
             work = queue_dequeue_keep(&pool->work_queue);
         }
 
-        // @Note Why are we using atomic operations for some of the stuff below?
-        //      This only makes sense if the work/job pointer is shared across multiple threads
-        //      If it is only stored in the thread itself and the calling thread we don't need atomics
-        //      As a result we are now avoiding the use of atomics in some cases (see commented code)
+        // @question Why are we using atomic operations for some of the stuff below?
+        //          This only makes sense if the work/job pointer is shared across multiple threads
+        //          If it is only stored in the thread itself and the calling thread we don't need atomics
+        //          As a result we are now avoiding the use of atomics in some cases (see commented code)
 
         // When the worker functions of the thread pool get woken up it is possible that the work is already dequeued
         // by another thread -> we need to check if the work is actually valid

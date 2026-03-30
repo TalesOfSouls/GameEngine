@@ -42,7 +42,7 @@ void thread_stop(Worker* worker) NO_EXCEPT
     STATS_DECREMENT(DEBUG_COUNTER_THREAD);
 }
 
-#if DEBUG || INTERNAL
+#if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
     // This information is usually only needed in debug and internal builds
     #define THREAD_CURRENT_ID(a) a = thread_current_id()
     #define THREAD_CPU_ID(a) a = thread_cpu_id()

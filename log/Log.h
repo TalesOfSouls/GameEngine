@@ -28,15 +28,15 @@
     // 2 = internal logging
     // 3 = debug logging
     // 4 = most verbose (probably has significant performance impacts)
-    #if DEBUG
-        #if DEBUG_STRICT
+    #if defined(DEBUG) && DEBUG
+        #if defined(DEBUG_STRICT) && DEBUG_STRICT
             #define LOG_LEVEL 4
         #else
             #define LOG_LEVEL 3
         #endif
-    #elif INTERNAL
+    #elif defined(INTERNAL) && INTERNAL
         #define LOG_LEVEL 2
-    #elif RELEASE
+    #elif defined(RELEASE) && RELEASE
         #define LOG_LEVEL 1
     #else
         #define LOG_LEVEL 0
@@ -281,7 +281,7 @@ struct LogDataArray{
  * @return byte*
  */
 static inline HOT_CODE
-byte* log_get_memory() NO_EXCEPT
+byte* log_memory_get() NO_EXCEPT
 {
     if (_log_memory->pos + MAX_LOG_LENGTH > _log_memory->size) {
         _log_memory->pos = 0;
@@ -407,7 +407,7 @@ void log(
     }
 
     while (len > 0) {
-        LogMessage* const msg = (LogMessage *) log_get_memory();
+        LogMessage* const msg = (LogMessage *) log_memory_get();
 
         // Dump to file
         msg->file = file;
@@ -427,7 +427,7 @@ void log(
         str += message_length;
         len -= MAX_LOG_LENGTH - sizeof(LogMessage);
 
-        #if DEBUG || VERBOSE
+        #if defined(DEBUG) && DEBUG || VERBOSE
             // In debug mode we always output the log message to the debug console
             log_to_terminal(msg->time, msg->message);
         #endif
@@ -473,7 +473,7 @@ void log(
     if (data.data[0].type == DATA_TYPE_BYTE_ARRAY) {
         // If length is larger than buffer directly log to file
         const int32 total_len = *((int32 *) data.data[0].value);
-        #if DEBUG || VERBOSE
+        #if defined(DEBUG) && DEBUG || VERBOSE
             // In debug mode we always output the log message to the debug console
             log_to_terminal(log_sys_time(), format);
         #endif
@@ -487,7 +487,7 @@ void log(
         return;
     }
 
-    LogMessage* const msg = (LogMessage *) log_get_memory();
+    LogMessage* const msg = (LogMessage *) log_memory_get();
     msg->file = file;
     msg->function = function;
     msg->line = line;
@@ -547,7 +547,7 @@ void log(
         }
     }
 
-    #if DEBUG || VERBOSE
+    #if defined(DEBUG) && DEBUG || VERBOSE
         // In debug mode we always output the log message to the debug console
         log_to_terminal(msg->time, msg->message);
     #endif

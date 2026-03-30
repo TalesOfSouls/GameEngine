@@ -375,6 +375,23 @@ int32 utf8_to_wchar(const char* in, wchar_t* out, int32 length)
     return out_pos + 1;
 }
 
+inline
+void str_toupper(char* str) NO_EXCEPT
+{
+    while (*str != '\0') {
+        *str = (char) toupper(*str);
+        ++str;
+    }
+}
+
+inline
+void str_tolower(char* str) NO_EXCEPT
+{
+    while (*str != '\0') {
+        *str = (char) tolower(*str);
+        ++str;
+    }
+}
 
 inline CONSTEXPR
 bool str_is_alpha(const char* str) NO_EXCEPT
@@ -792,6 +809,34 @@ int32 int_to_hex(T number, char* str) NO_EXCEPT
 
     return i;
 }
+
+template <unsigned N, typename T>
+CONSTEVAL constexpr_str<N> int_to_hex(T number)
+{
+    constexpr_str<N> result{};
+    unsigned long long n = (unsigned long long)number;
+
+    int i = -1;
+
+    do {
+        unsigned char digit = n & 0xF;
+        result.data[++i] = HEX_TABLE[digit];
+        n >>= 4;
+    } while (n > 0);
+
+    result.data[++i] = '\0';
+
+    for (int j = 0, k = i - 1; j < k; ++j, --k) {
+        char tmp = result.data[j];
+        result.data[j] = result.data[k];
+        result.data[k] = tmp;
+    }
+
+    return result;
+}
+#define CONSTINIT_INT_TO_HEX(name, value, length)                       \
+    static CONSTEXPR auto name##_obj = int_to_hex<(length)>((value));   \
+    CONSTEXPR const char* name = name##_obj.data;
 
 inline CONSTEXPR
 int64 hex_to_int(const char* hex) NO_EXCEPT

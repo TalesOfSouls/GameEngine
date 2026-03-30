@@ -41,7 +41,12 @@ struct Asset {
     // Which asset component is used
     byte component_id;
 
+    // @question Check what data we store in here, I forgot.
+    //          Then create a comment
     byte state;
+
+    // Should never be removed (even if last_access does not get updated)
+    bool is_persistent;
 
     // Counts the references to this asset
     // e.g. textures or entity schemas (NOT entities themselves)
