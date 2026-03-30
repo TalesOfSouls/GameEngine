@@ -257,4 +257,6 @@ int64 thrd_buffer_load(BufferMemory* const buf, const byte* data) NO_EXCEPT
     return buffer_load(buf, data);
 }
 
+#define BUFFER_ELEMENT_GET(buf, struct_val) buffer_memory_get(buf, sizeof((struct_val)), alignof((struct_val)))
+
 #endif
