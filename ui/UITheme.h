@@ -3,6 +3,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../stdlib/HashMap.h"
+#include "../font/FontSystem.h"
 #include "../font/Font.h"
 
 #define UI_THEME_VERSION 1

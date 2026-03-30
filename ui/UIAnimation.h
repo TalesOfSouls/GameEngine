@@ -3,6 +3,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../animation/AnimationEaseType.h"
+#include "UIStyleType.h"
 
 struct UIAnimationState {
     // When did the animation start?
