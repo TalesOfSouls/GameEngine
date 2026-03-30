@@ -9,6 +9,9 @@
 #ifndef COMS_PLATFORM_WIN32_FILE_UTILS_H
 #define COMS_PLATFORM_WIN32_FILE_UTILS_H
 
+#include "../../stdlib/Stdlib.h"
+#include <windows.h>
+
 typedef HANDLE FileHandle;
 typedef HANDLE MMFHandle;
 typedef OVERLAPPED file_overlapped;
