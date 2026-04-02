@@ -16,6 +16,15 @@ struct UIOffset {
     int32 element;
     int32 type;
 
+    // We sometimes need to reference parent elements because we need information from them
+    // e.g. A window title text (label) is part of a title panel, which is in turn part of a window
+    //      We need to recursively find the parent element which the anchor position 
+    //      to calculate the position of this (child) element: 
+    //      Example: window.x + title.x + label.x = 10 + 5 + 0
+    //              Yes, in this example the title bar is offset to the window (unusual but possible) 
+    int32 parent_offset;
+    int32 parent_type;
+
     int32 vertices_count;
     int32 vertices;
 

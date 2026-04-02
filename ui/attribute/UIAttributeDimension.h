@@ -28,7 +28,8 @@ struct UIAttributeDimension {
     // @see UIAlign
     byte alignment;
 
-    v4_f32 dimension;
+    v2_f32 pos;
+    v2_f32 dimension;
 
     /*
     // We commented this out since we will try to work around it for now by simply reloading the UI,
