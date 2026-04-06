@@ -825,6 +825,8 @@ void ui_layout_update(UILayout* layout, UIElement* element) {
         && (element->state_flag & UI_ELEMENT_STATE_CHANGED)
         && (element->state_flag & UI_ELEMENT_STATE_ANIMATION)
     ) {
+        PSEUDO_USE(layout);
+
         // @todo Even if an animation is ongoing we might not want to update if the last step is < n ms ago
         switch (element->type) {
             case UI_ELEMENT_TYPE_BUTTON: {
@@ -834,10 +836,10 @@ void ui_layout_update(UILayout* layout, UIElement* element) {
 
                 } break;
             case UI_ELEMENT_TYPE_INPUT: {
-                    ui_input_element_update(layout, element);
+                    //ui_input_element_update(layout, element);
                 } break;
             case UI_ELEMENT_TYPE_LABEL: {
-                    ui_label_element_update(layout, element, NULL);
+                    //ui_label_element_update(layout, element, NULL);
                 } break;
             case UI_ELEMENT_TYPE_TEXT: {
 

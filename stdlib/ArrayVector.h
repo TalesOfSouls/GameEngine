@@ -14,19 +14,22 @@
 template<typename T>
 struct ArrayVector {
     int size;
+    int max_size;
     int count;
     T* elements;
 };
 
 template<typename T>
-void array_vector_alloc(ArrayVector<T>* vec, int size, int alignment = sizeof(size_t)) NO_EXCEPT
+FORCE_INLINE
+void array_vector_alloc(ArrayVector<T>* vec, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
-    vec->size = size;
-    vec->elements = (T *) platform_alloc_aligned(size * sizeof(T), size * sizeof(T), alignment);
+    vec->size = capacity;
+    vec->max_size = max_capacity;
+    vec->elements = (T *) platform_alloc_aligned(capacity * sizeof(T), max_capacity * sizeof(T), alignment);
 }
 
 template<typename T>
-inline
+FORCE_INLINE
 void array_vector_free(ArrayVector<T>* vec) NO_EXCEPT
 {
     platform_aligned_free(&vec->elements);
@@ -35,18 +38,17 @@ void array_vector_free(ArrayVector<T>* vec) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-int array_vector_insert(ArrayVector<T>* vec, T element) NO_EXCEPT
+void array_vector_init(ArrayVector<T>* vec, BufferMemory* buf, int capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
-    if (vec->size <= vec->count) {
-        return -1;
-    }
+    vec->size = capacity;
+    vec->elements = (T *) buffer_memory_get(buf, capacity, alignment);
+}
 
-    int index = vec->count;
-    vec->elements[index] = element;
-
-    ++vec->count;
-
-    return index;
+template<typename T>
+FORCE_INLINE
+void array_vector_insert(ArrayVector<T>* vec, T element) NO_EXCEPT
+{
+    vec->elements[vec->count++] = element;
 }
 
 template<typename T>

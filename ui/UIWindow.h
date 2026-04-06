@@ -18,10 +18,10 @@ struct UIOffset {
 
     // We sometimes need to reference parent elements because we need information from them
     // e.g. A window title text (label) is part of a title panel, which is in turn part of a window
-    //      We need to recursively find the parent element which the anchor position 
-    //      to calculate the position of this (child) element: 
+    //      We need to recursively find the parent element which the anchor position
+    //      to calculate the position of this (child) element:
     //      Example: window.x + title.x + label.x = 10 + 5 + 0
-    //              Yes, in this example the title bar is offset to the window (unusual but possible) 
+    //              Yes, in this example the title bar is offset to the window (unusual but possible)
     int32 parent_offset;
     int32 parent_type;
 
@@ -116,6 +116,12 @@ void ui_window_element_populate(
     const UIAttributeGroup* const __restrict  group,
     UIWindow* const __restrict window
 ) {
+    PSEUDO_USE(layout);
+    PSEUDO_USE(element);
+    PSEUDO_USE(group);
+    PSEUDO_USE(window);
+
+    /*
     v4_f32 parent_dimension = {0};
     if (element->parent) {
         UIElement* parent = (UIElement *) (layout->data + element->parent);
@@ -157,6 +163,7 @@ void ui_window_element_populate(
                 } break;
         }
     }
+    */
 }
 
 #endif

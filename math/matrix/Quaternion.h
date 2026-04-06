@@ -61,9 +61,9 @@ v3_f32 quat_rotate_vec3(quaternion q, v3_f32 v)
     t.z *= 2.0f;
 
     return {
-        p.x + q.w * t.x + (qv.y * t.z - qv.z * t.y),
-        p.y + q.w * t.y + (qv.z * t.x - qv.x * t.z),
-        p.z + q.w * t.z + (qv.x * t.y - qv.y * t.x)
+        v.x + q.w * t.x + (qv.y * t.z - qv.z * t.y),
+        v.y + q.w * t.y + (qv.z * t.x - qv.x * t.z),
+        v.z + q.w * t.z + (qv.x * t.y - qv.y * t.x)
     };
 }
 

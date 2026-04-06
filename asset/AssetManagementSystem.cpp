@@ -25,10 +25,10 @@ void ams_create(AssetManagementSystem* const ams, BufferMemory* const buf, int32
     LOG_1("[INFO] Create AMS for %n assets", {DATA_TYPE_INT32, &count});
     hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
     ams->asset_component_count = asset_component_count;
-    ams->asset_components = (AssetComponent *) buffer_memory_get(buf, asset_component_count * sizeof(AssetComponent), ASSUMED_CACHE_LINE_SIZE);
+    ams->asset_components = (AssetComponent *) buffer_memory_get(buf, asset_component_count * sizeof(AssetComponent), alignof(AssetComponent));
 
     //memset(ams->asset_components, 0, asset_component_count * sizeof(AssetComponent));
-    memset(ams->asset_components, 0, align_up(asset_component_count * sizeof(AssetComponent), ASSUMED_CACHE_LINE_SIZE));
+    memset(ams->asset_components, 0, align_up(asset_component_count * sizeof(AssetComponent), alignof(AssetComponent)));
 }
 
 // Different AMS components can have different chunk sizes

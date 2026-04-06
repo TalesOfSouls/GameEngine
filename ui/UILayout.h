@@ -132,6 +132,26 @@ struct UILayout {
     // This information then can be used to check if it still needs to be updated
     // in the respective gpu buffer
     uint64 gpu_updated[15];
+
+    // Testing
+    // @question Consider to replace this with its own data type ArrayVector
+    int16 ui_offset_root_length;
+    int16 ui_offset_root_pos;
+    // This array links into the ui_offset_buffer
+    int32* ui_offset_root;
+
+    BufferMemory ui_offset_buffer;
+    BufferMemory ui_element_buffer;
+
+    // Stores all of the vertex data (even for different states e.g. hover, ...)
+    size_t ui_vertex_total_length;
+    size_t ui_vertex_total_pos;
+    Vertex3DSamplerTextureColor* ui_vertex_total;
+
+    // Stores the current version
+    size_t ui_vertex_cache_length;
+    size_t ui_vertex_cache_pos;
+    Vertex3DSamplerTextureColor* ui_vertex_cache;
 };
 
 #endif

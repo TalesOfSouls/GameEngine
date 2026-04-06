@@ -24,7 +24,7 @@
 
     #define INITIALIZER
 
-    #define PSEUDO_USE(a) ((void) (0))
+    #define PSEUDO_USE(a) ((void) (a))
 #else
     #define LIKELY
     #define UNLIKELY

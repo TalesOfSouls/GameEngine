@@ -53,6 +53,15 @@ struct PersistentQueueT {
     sem full;
 };
 
+FORCE_INLINE CONSTEXPR
+size_t queue_persistent_size(size_t type_size, int max_capacity) NO_EXCEPT
+{
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
+    return max_capacity * type_size
+        + sizeof(uint_max) * max_array_count + alignof(uint_max) // free
+        + sizeof(uint_max) * max_array_count + alignof(uint_max); // complete
+}
+
 template <typename T>
 FORCE_INLINE
 void queue_alloc(PersistentQueueT<T>* const queue, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
@@ -69,7 +78,7 @@ void queue_alloc(PersistentQueueT<T>* const queue, int capacity, int max_capacit
     + sizeof(uint_max) * array_count + sizeof(uint_max) // free
     + sizeof(uint_max) * array_count + sizeof(uint_max); // complete
 
-    const size_t max_array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
     const size_t max_memory_size = max_capacity * sizeof(T)
         + sizeof(uint_max) * max_array_count + alignof(uint_max) // free
         + sizeof(uint_max) * max_array_count + alignof(uint_max); // complete
@@ -112,7 +121,7 @@ void queue_alloc(
     + sizeof(uint_max) * array_count + sizeof(uint_max) // free
     + sizeof(uint_max) * array_count + sizeof(uint_max); // complete
 
-    const size_t max_array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
     const size_t max_memory_size = max_capacity * sizeof(T)
         + sizeof(uint_max) * max_array_count + alignof(uint_max) // free
         + sizeof(uint_max) * max_array_count + alignof(uint_max); // complete

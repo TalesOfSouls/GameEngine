@@ -53,6 +53,16 @@ struct ChunkMemoryT {
     mutex lock;
 };
 
+CONSTEXPR FORCE_INLINE
+size_t chunk_size(size_t type_size, int max_capacity) NO_EXCEPT
+{
+    const size_t array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
+
+    return max_capacity * type_size
+        + sizeof(uint_max) * array_count
+        + sizeof(uint_max);
+}
+
 // INFO: A chunk count of 2^n is recommended for maximum performance
 template <typename T>
 inline

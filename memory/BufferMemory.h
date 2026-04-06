@@ -203,6 +203,29 @@ byte* thrd_buffer_memory_get(BufferMemory* const buf, size_t size, int32 alignme
 }
 
 inline
+void buffer_init(
+    BufferMemory* const buf,
+    BufferMemory* const data,
+    size_t size,
+    int32 alignment = sizeof(size_t)
+) NO_EXCEPT
+{
+    ASSERT_TRUE(size);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    buf->memory = buffer_memory_get(data, size, alignment);
+
+    buf->end = buf->memory + size;
+    buf->head = buf->memory;
+    buf->size = size;
+    buf->alignment = alignment;
+
+    memset(buf->memory, 0, buf->size);
+
+    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
+}
+
+inline
 int64 buffer_dump(const BufferMemory* const buf, byte* data) NO_EXCEPT
 {
     const byte* const start = data;
@@ -256,6 +279,6 @@ int64 thrd_buffer_load(BufferMemory* const buf, const byte* data) NO_EXCEPT
     return buffer_load(buf, data);
 }
 
-#define BUFFER_ELEMENT_GET(buf, struct_val) buffer_memory_get(buf, sizeof((struct_val)), alignof((struct_val)))
+#define BUFFER_ELEMENT_GET(buf, struct_val) buffer_memory_get(buf, sizeof(struct_val), alignof(struct_val))
 
 #endif

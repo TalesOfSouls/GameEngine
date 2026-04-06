@@ -32,6 +32,16 @@
     #define ASSUMED_CACHE_LINE_SIZE 64
 #endif
 
+#ifndef ASSUMED_CACHE_PAGE_SIZE
+    // In some places it is not really feasible to use runtime page size
+    // By using this macro we can at least define a semi sensible value,
+    // which we can modify during compilation for different platforms
+    #define ASSUMED_CACHE_PAGE_SIZE 4096
+#endif
+
+#define NETWORK_IPV4_MTU 576
+#define NETWORK_IPV6_MTU 1280
+
 // PI
 #define OMS_PI_F32 3.14159265358979323846f
 #define OMS_PI_OVER_TWO_F32 (OMS_PI_F32 / 2.0f)

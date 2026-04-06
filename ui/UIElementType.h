@@ -16,6 +16,7 @@
 #include "UITab.h"
 #include "UICursor.h"
 #include "UICustom.h"
+#include "UIElement.h"
 
 CONSTEXPR
 int32 ui_element_type_size(UIElementType e)

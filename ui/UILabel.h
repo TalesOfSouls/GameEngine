@@ -2,11 +2,12 @@
 #define COMS_UI_LABEL_H
 
 #include "../stdlib/Stdlib.h"
+#include "attribute/UIAttribute.h"
 #include "attribute/UIAttributeFont.h"
 #include "attribute/UIAttributeDimension.h"
 #include "UIStyleType.h"
 #include "UIElement.h"
-#include "UITheme.cpp"
+//#include "UITheme.cpp"
 #include "UILayout.h"
 #include "../object/Vertex.h"
 
@@ -18,7 +19,7 @@ struct UILabel {
     UIAttributeDimension dimension;
     byte opacity; // 1 byte alpha channel
     UIAttributeFont font;
-    char* content;
+    wchar_t* content;
 };
 
 void ui_label_state_serialize(const UILabelState* __restrict state, byte** __restrict pos)
@@ -57,6 +58,11 @@ void ui_label_element_populate(
     const UIAttributeGroup* __restrict  group,
     UILabel* __restrict label
 ) {
+    (void *) layout;
+    (void *) element;
+    (void *) group;
+    (void *) label;
+    /*
     v4_f32 parent_dimension = {0};
     if (element->parent) {
         UIElement* parent = element->parent ? (UIElement *) (layout->data + element->parent) : NULL;
@@ -66,8 +72,8 @@ void ui_label_element_populate(
         //      The reason for these misses are, that often only 1-2 style_types exist per element
         switch (parent->type) {
             case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-                    UIWindow* parent_window = (UIWindow *) (layout->data + parent->style_types[UI_STYLE_TYPE_ACTIVE]);
-                    parent_dimension = parent_window->dimension.dimension;
+                    //UIWindow* parent_window = (UIWindow *) (layout->data + parent->style_types[UI_STYLE_TYPE_ACTIVE]);
+                    //parent_dimension = parent_window->dimension.dimension;
                 } break;
             case UI_ELEMENT_TYPE_VIEW_PANEL: {
                     UIPanel* parent_window = (UIPanel *) (layout->data + parent->style_types[UI_STYLE_TYPE_ACTIVE]);
@@ -120,8 +126,10 @@ void ui_label_element_populate(
                 } break;
         }
     }
+        */
 }
 
+/*
 int32 ui_label_element_update(UILayout* layout, UIElement* element, RingMemory* ring)
 {
     UILabel* label = (UILabel *) (layout->data + element->style_types[element->style_new]);
@@ -136,5 +144,6 @@ int32 ui_label_element_update(UILayout* layout, UIElement* element, RingMemory* 
         //label->font.weight
     ).z;
 }
+    */
 
 #endif

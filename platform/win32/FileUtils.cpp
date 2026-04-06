@@ -27,6 +27,10 @@
 //  2. save data location
 //  3. download location
 
+// @bug We use RingMemory to load data from the file system.
+//      That is horrible because the content could be immediately overwritten
+//      We should use a BufferMemory instead
+
 FORCE_INLINE
 MMFHandle file_mmf_handle(FileHandle fp) NO_EXCEPT
 {

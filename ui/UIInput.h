@@ -149,6 +149,11 @@ void ui_input_element_populate(
     const UIAttributeGroup* __restrict  group,
     UIInput* __restrict input
 ) {
+    PSEUDO_USE(layout);
+    PSEUDO_USE(element);
+    PSEUDO_USE(group);
+    PSEUDO_USE(input);
+    /*
     v4_f32 parent_dimension = {0};
     if (element->parent) {
         UIElement* parent = element->parent ? (UIElement *) (layout->data + element->parent) : NULL;
@@ -191,10 +196,14 @@ void ui_input_element_populate(
                 } break;
         }
     }
+    */
 }
 
 int32 ui_input_element_update(UILayout* layout, UIElement* element)
 {
+    PSEUDO_USE(layout);
+    PSEUDO_USE(element);
+    /*
     UIInput* input = (UIInput *) (layout->data + element->style_types[element->style_new]);
     //UIInputState* state = (UIInputState *) (layout->data + element->state);
 
@@ -251,6 +260,8 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
     element->vertex_count_active = (uint16) idx;
 
     return idx;
+    */
+   return 0;
 }
 
 #endif

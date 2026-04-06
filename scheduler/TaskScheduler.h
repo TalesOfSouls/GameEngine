@@ -48,19 +48,19 @@ void scheduler_alloc(TaskScheduler* const scheduler, int32 count) NO_EXCEPT
 FORCE_INLINE
 void thrd_scheduler_alloc(TaskScheduler* const scheduler, int32 count) NO_EXCEPT
 {
-    thrd_queue_alloc(&scheduler->tasks, count, count);
+    thrd_queue_alloc(&scheduler->tasks, count, count, ASSUMED_CACHE_LINE_SIZE);
 }
 
 FORCE_INLINE
-void scheduler_create(TaskScheduler* const scheduler, int32 count, BufferMemory* const buf) NO_EXCEPT
+void scheduler_init(TaskScheduler* const scheduler, BufferMemory* const buf, int32 count) NO_EXCEPT
 {
     queue_init(&scheduler->tasks, buf, count);
 }
 
 FORCE_INLINE
-void thrd_scheduler_create(TaskScheduler* const scheduler, int32 count, BufferMemory* const buf) NO_EXCEPT
+void thrd_scheduler_init(TaskScheduler* const scheduler, BufferMemory* const buf, int32 count) NO_EXCEPT
 {
-    thrd_queue_init(&scheduler->tasks, buf, count);
+    thrd_queue_init(&scheduler->tasks, buf, count, ASSUMED_CACHE_LINE_SIZE);
 }
 
 FORCE_INLINE
