@@ -144,13 +144,13 @@ struct UILayout {
     BufferMemory ui_element_buffer;
 
     // Stores all of the vertex data (even for different states e.g. hover, ...)
-    size_t ui_vertex_total_length;
-    size_t ui_vertex_total_pos;
+    int32 ui_vertex_total_length;
+    int32 ui_vertex_total_pos;
     Vertex3DSamplerTextureColor* ui_vertex_total;
 
     // Stores the current version
-    size_t ui_vertex_cache_length;
-    size_t ui_vertex_cache_pos;
+    int32 ui_vertex_cache_length;
+    int32 ui_vertex_cache_pos;
     Vertex3DSamplerTextureColor* ui_vertex_cache;
 };
 

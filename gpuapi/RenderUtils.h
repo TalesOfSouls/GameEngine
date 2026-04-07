@@ -443,70 +443,19 @@ f32 text_calculate_dimensions_height(
     //return { max_branched(x, offset_x), y };
 }
 
+static
 v3_int32 vertex_text_create(
     Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
-    FontSystem* const __restrict font, const char* const __restrict text,
-    f32 size, MAYBE_UNUSED uint32 rgba, RingMemory* const __restrict ring
+    FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length,
+    f32 size, MAYBE_UNUSED uint32 rgba
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_VERTEX_TEXT_CREATE);
     PSEUDO_USE(rgba);
 
-    int32 length;
-    if (!text || (length = utf8_strlen(text)) < 1) {
-        return {};
-    }
-
     const Font* const font_base = &font->base;
-
-    const bool is_ascii = (int32) strlen(text) == length;
     const f32 scale = size / font_base->size;
-
-    // We use offsets instead of pointer chasing
-    // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* glyphs = (int16*) ring_memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
-    for (int32 i = 0; i < length; ++i) {
-        const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
-        if (character == '\n') {
-            // @todo change
-            glyphs[i] = 0;
-            continue;
-        }
-
-        glyphs[i] = font_glyph_index_find(&font->base, character);
-        if (glyphs[i] < 0 && font->has_extended) {
-            //glyphs[i] = hashmap_get(&font->font_map, character);
-
-            if (glyphs[i] < 0) {
-                const int16 extended_glyph = font_glyph_index_find(&font->extended, character);
-                if (extended_glyph < 0) {
-                    //glyphs[i] = -1;
-                    continue;
-                }
-
-                // @bug Not correct:
-                //      1. we need to add the value not the pointer.
-                //      2. we need to find a free spot in the texture or replace old ones
-                //      3. we need to update the uv values to the new position
-                //      4. we need to create a custom _insert function
-                //      5. we probably need a custom struct for the hash map to also contain the priority for replacing elements
-                //hashmap_insert(&font->font_map, extended_glyph->codepoint, extended_glyph);
-
-                // @bug this is wrong
-                glyphs[i] = (extended_glyph & 0x7FFFu) | 0x8000;
-
-                font->has_changes = true;
-            } else {
-                // @todo update glyph priority
-            }
-        }
-
-        if (glyphs[i] < 0) {
-            // @todo add unknown character glyph
-            glyphs[i] = 0;
-        }
-    }
 
     // @performance I don't like that we have to iterate the glyphs twice, do we really need this?
     // If we do a different alignment we need to pre-calculate the width and height
@@ -598,6 +547,145 @@ v3_int32 vertex_text_create(
     // @todo implement line alignment, currently only total alignment is considered
 
     return {(int32) rendered_width, (int32) rendered_height, idx};
+}
+
+// @todo It is stupid that we effectively have the same function twice and the only difference is how we calculate int32 character
+v3_int32 vertex_text_create(
+    Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
+    v4_f32 dimension, byte alignment,
+    FontSystem* const __restrict font, const wchar_t* const __restrict text,
+    f32 size, MAYBE_UNUSED uint32 rgba, RingMemory* const __restrict ring
+) NO_EXCEPT
+{
+    PROFILE(PROFILE_VERTEX_TEXT_CREATE);
+    PSEUDO_USE(rgba);
+
+    size_t length;
+    if (!text || (length = wcslen(text)) < 1) {
+        return {};
+    }
+
+    // We use offsets instead of pointer chasing
+    // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
+    int16* glyphs = (int16*) ring_memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
+    for (int32 i = 0; i < length; ++i) {
+        const int32 character = text[i];
+        if (character == '\n') {
+            // @todo change
+            glyphs[i] = 0;
+            continue;
+        }
+
+        glyphs[i] = font_glyph_index_find(&font->base, character);
+        if (glyphs[i] < 0 && font->has_extended) {
+            //glyphs[i] = hashmap_get(&font->font_map, character);
+
+            if (glyphs[i] < 0) {
+                const int16 extended_glyph = font_glyph_index_find(&font->extended, character);
+                if (extended_glyph < 0) {
+                    //glyphs[i] = -1;
+                    continue;
+                }
+
+                // @bug Not correct:
+                //      1. we need to add the value not the pointer.
+                //      2. we need to find a free spot in the texture or replace old ones
+                //      3. we need to update the uv values to the new position
+                //      4. we need to create a custom _insert function
+                //      5. we probably need a custom struct for the hash map to also contain the priority for replacing elements
+                //hashmap_insert(&font->font_map, extended_glyph->codepoint, extended_glyph);
+
+                // @bug this is wrong
+                glyphs[i] = (extended_glyph & 0x7FFFu) | 0x8000;
+
+                font->has_changes = true;
+            } else {
+                // @todo update glyph priority
+            }
+        }
+
+        if (glyphs[i] < 0) {
+            // @todo add unknown character glyph
+            glyphs[i] = 0;
+        }
+    }
+
+    return vertex_text_create(
+        vertices, zindex, sampler,
+        dimension, alignment,
+        font, glyphs, (int32) length,
+        size, rgba
+    );
+}
+
+v3_int32 vertex_text_create(
+    Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
+    v4_f32 dimension, byte alignment,
+    FontSystem* const __restrict font, const char* const __restrict text,
+    f32 size, MAYBE_UNUSED uint32 rgba, RingMemory* const __restrict ring
+) NO_EXCEPT
+{
+    PROFILE(PROFILE_VERTEX_TEXT_CREATE);
+    PSEUDO_USE(rgba);
+
+    int32 length;
+    if (!text || (length = utf8_strlen(text)) < 1) {
+        return {};
+    }
+
+    const bool is_ascii = (int32) strlen(text) == length;
+
+    // We use offsets instead of pointer chasing
+    // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
+    int16* glyphs = (int16*) ring_memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
+    for (int32 i = 0; i < length; ++i) {
+        const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
+        if (character == '\n') {
+            // @todo change
+            glyphs[i] = 0;
+            continue;
+        }
+
+        glyphs[i] = font_glyph_index_find(&font->base, character);
+        if (glyphs[i] < 0 && font->has_extended) {
+            //glyphs[i] = hashmap_get(&font->font_map, character);
+
+            if (glyphs[i] < 0) {
+                const int16 extended_glyph = font_glyph_index_find(&font->extended, character);
+                if (extended_glyph < 0) {
+                    //glyphs[i] = -1;
+                    continue;
+                }
+
+                // @bug Not correct:
+                //      1. we need to add the value not the pointer.
+                //      2. we need to find a free spot in the texture or replace old ones
+                //      3. we need to update the uv values to the new position
+                //      4. we need to create a custom _insert function
+                //      5. we probably need a custom struct for the hash map to also contain the priority for replacing elements
+                //hashmap_insert(&font->font_map, extended_glyph->codepoint, extended_glyph);
+
+                // @bug this is wrong
+                glyphs[i] = (extended_glyph & 0x7FFFu) | 0x8000;
+
+                font->has_changes = true;
+            } else {
+                // @todo update glyph priority
+            }
+        }
+
+        if (glyphs[i] < 0) {
+            // @todo add unknown character glyph
+            glyphs[i] = 0;
+        }
+    }
+
+    return vertex_text_create(
+        vertices, zindex, sampler,
+        dimension, alignment,
+        font, glyphs, length,
+        size, rgba
+    );
 }
 
 #endif
