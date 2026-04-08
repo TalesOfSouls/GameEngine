@@ -22,7 +22,6 @@
  * This also goes for SPSC vs. SPMC, MPMC, ...
  * This of course puts more mental load on the programmer but makes this queue very powerful
  */
-// @performance Are we losing a lot of performance by using atomic_ (= volatile) in single threaded use cases
 template <typename T>
 struct QueueT {
     T* memory;

@@ -15,7 +15,6 @@
 #include "BufferMemory.h"
 
 // WARNING: Structure needs to be the same as RingMemory
-// @performance Are we losing a lot of performance by using atomic_ (= volatile) in single threaded use cases
 struct Queue {
     byte* memory;
     byte* end;
@@ -57,13 +56,14 @@ void queue_alloc(
     Queue* const queue,
     uint64 element_count, uint64 max_count,
     uint32 element_size,
-    uint32 alignment = sizeof(size_t)
+    uint32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
     ASSERT_TRUE(max_count >= element_count);
     element_size = align_up(element_size, alignment);
 
-    ring_alloc((RingMemory *) queue, element_count * element_size, max_count * element_size, alignment);
+    ring_alloc((RingMemory *) queue, element_count * element_size, max_count * element_size, start_alignment);
     queue->element_size = element_size;
 }
 
@@ -73,31 +73,46 @@ void queue_alloc(
     MemoryArena* const mem,
     uint64 element_count, uint64 max_count,
     uint32 element_size,
-    uint32 alignment = sizeof(size_t)
+    uint32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
     ASSERT_TRUE(max_count >= element_count);
     element_size = align_up(element_size, alignment);
 
-    ring_alloc((RingMemory *) queue, mem, element_count * element_size, max_count * element_size, alignment);
+    ring_alloc((RingMemory *) queue, mem, element_count * element_size, max_count * element_size, start_alignment);
     queue->element_size = element_size;
 }
 
 FORCE_INLINE
-void queue_init(Queue* const queue, BufferMemory* const buf, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t)) NO_EXCEPT
+void queue_init(
+    Queue* const queue,
+    BufferMemory* const buf,
+    uint64 element_count,
+    uint32 element_size,
+    uint32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
     element_size = align_up(element_size, alignment);
 
-    ring_init((RingMemory *) queue, buf, element_count * element_size, alignment);
+    ring_init((RingMemory *) queue, buf, element_count * element_size, start_alignment);
     queue->element_size = element_size;
 }
 
 FORCE_INLINE
-void queue_init(Queue* const queue, byte* buf, uint64 element_count, uint32 element_size, uint32 alignment = sizeof(size_t)) NO_EXCEPT
+void queue_init(
+    Queue* const queue,
+    byte* buf,
+    uint64 element_count,
+    uint32 element_size,
+    uint32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
     element_size = align_up(element_size, alignment);
 
-    ring_init((RingMemory *) queue, buf, element_count * element_size, alignment);
+    ring_init((RingMemory *) queue, buf, element_count * element_size, start_alignment);
     queue->element_size = element_size;
 }
 
@@ -112,30 +127,59 @@ void thrd_queue_locks_init(Queue* queue, uint32 element_count) NO_EXCEPT
 }
 
 inline
-void thrd_queue_alloc(Queue* queue, uint32 element_count, uint32 max_count, uint32 element_size, uint32 alignment = sizeof(size_t))
+void thrd_queue_alloc(
+    Queue* queue,
+    uint32 element_count,
+    uint32 max_count,
+    uint32 element_size,
+    uint32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
-    queue_alloc(queue, element_count, max_count, element_size, alignment);
+    queue_alloc(queue, element_count, max_count, element_size, alignment, start_alignment);
     thrd_queue_locks_init(queue, element_count);
 }
 
 inline
-void thrd_queue_alloc(Queue* queue, MemoryArena* mem, uint32 element_count, uint32 max_count, uint32 element_size, uint32 alignment = sizeof(size_t))
+void thrd_queue_alloc(
+    Queue* queue,
+    MemoryArena* mem,
+    uint32 element_count,
+    uint32 max_count,
+    uint32 element_size,
+    uint32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
-    queue_alloc(queue, mem, element_count, max_count, element_size, alignment);
+    queue_alloc(queue, mem, element_count, max_count, element_size, alignment, start_alignment);
     thrd_queue_locks_init(queue, element_count);
 }
 
 inline
-void thrd_queue_init(Queue* queue, BufferMemory* const buf, uint32 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
+void thrd_queue_init(
+    Queue* queue,
+    BufferMemory* const buf,
+    uint32 element_count,
+    uint32 element_size,
+    uint32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
-    queue_init(queue, buf, element_count, element_size, alignment);
+    queue_init(queue, buf, element_count, element_size, alignment, start_alignment);
     thrd_queue_locks_init(queue, element_count);
 }
 
 inline
-void thrd_queue_init(Queue* queue, byte* buf, uint32 element_count, uint32 element_size, uint32 alignment = sizeof(size_t))
+void thrd_queue_init(
+    Queue* queue,
+    byte* buf,
+    uint32 element_count,
+    uint32 element_size,
+    uint32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
-    queue_init(queue, buf, element_count, element_size, alignment);
+    queue_init(queue, buf, element_count, element_size, alignment, start_alignment);
     thrd_queue_locks_init(queue, element_count);
 }
 

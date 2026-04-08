@@ -69,7 +69,8 @@ void fragment_alloc(
     uint32 count,
     uint32 max_count,
     int32 element_size,
-    int32 alignment = sizeof(size_t)
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -84,7 +85,7 @@ void fragment_alloc(
     const uint_max size = fragment_size_total(count, element_size, alignment);
     const uint_max max_size = fragment_size_total(max_count, element_size, alignment);
 
-    fragment->memory = (byte *) platform_alloc_aligned(size, max_size, alignment);
+    fragment->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
 
     fragment->count = count;
     fragment->size = size;
@@ -108,7 +109,8 @@ void fragment_alloc(
     uint32 count,
     uint32 max_count,
     int32 element_size,
-    int32 alignment = sizeof(size_t)
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -123,7 +125,7 @@ void fragment_alloc(
     const uint_max size = fragment_size_total(count, element_size, alignment);
     const uint_max max_size = fragment_size_total(max_count, element_size, alignment);
 
-    MemoryArena* arena = mem_arena_add(mem, size, max_size, alignment);
+    MemoryArena* arena = mem_arena_add(mem, size, max_size, start_alignment);
     fragment->memory = (byte *) arena->memory;
 
     fragment->count = count;

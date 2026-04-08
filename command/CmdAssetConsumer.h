@@ -24,8 +24,12 @@ Asset* cmd_asset_load(
 ) NO_EXCEPT
 {
     const int32 asset_id = cmd->asset_body.asset_id;
-    const int32 archive_id = (asset_id >> 24) & 0xFF;
-    return asset_archive_asset_load(&asset_archives[archive_id], asset_id, ams, ring);
+    return asset_archive_asset_load(
+        &asset_archives[(asset_id >> 24) & 0xFF],
+        asset_id,
+        ams,
+        ring
+    );
 }
 
 FORCE_INLINE
@@ -36,8 +40,12 @@ Asset* cmd_asset_load_sync(
     int32 asset_id
 ) NO_EXCEPT
 {
-    const int32 archive_id = (asset_id >> 24) & 0xFF;
-    return asset_archive_asset_load(&asset_archives[archive_id], asset_id, ams, ring);
+    return asset_archive_asset_load(
+        &asset_archives[(asset_id >> 24) & 0xFF],
+        asset_id,
+        ams,
+        ring
+    );
 }
 
 #endif

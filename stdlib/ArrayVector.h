@@ -13,9 +13,9 @@
 
 template<typename T>
 struct ArrayVector {
-    int size;
-    int max_size;
-    int count;
+    int32 capacity;
+    int32 max_capacity;
+    int32 count;
     T* elements;
 };
 
@@ -23,8 +23,8 @@ template<typename T>
 FORCE_INLINE
 void array_vector_alloc(ArrayVector<T>* vec, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
-    vec->size = capacity;
-    vec->max_size = max_capacity;
+    vec->capacity = capacity;
+    vec->max_capacity = max_capacity;
     vec->elements = (T *) platform_alloc_aligned(capacity * sizeof(T), max_capacity * sizeof(T), alignment);
 }
 
@@ -33,14 +33,14 @@ FORCE_INLINE
 void array_vector_free(ArrayVector<T>* vec) NO_EXCEPT
 {
     platform_aligned_free(&vec->elements);
-    vec->size = 0;
+    vec->capacity = 0;
 }
 
 template<typename T>
 FORCE_INLINE
 void array_vector_init(ArrayVector<T>* vec, BufferMemory* buf, int capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
-    vec->size = capacity;
+    vec->capacity = capacity;
     vec->elements = (T *) buffer_memory_get(buf, capacity, alignment);
 }
 
@@ -53,65 +53,83 @@ void array_vector_insert(ArrayVector<T>* vec, T element) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
+void array_vector_insert(ArrayVector<T>* vec, T* element) NO_EXCEPT
+{
+    memcpy(vec->elements + vec->count, element, sizeof(T));
+    ++vec->count;
+}
+
+template<typename T>
+FORCE_INLINE
+void array_vector_insert(ArrayVector<T>* vec, T* element, int count) NO_EXCEPT
+{
+    memcpy(vec->elements + vec->count, element, count * sizeof(T));
+    vec->count += count;
+}
+
+template<typename T>
+FORCE_INLINE
+bool array_vector_insert_safe(ArrayVector<T>* vec, T element) NO_EXCEPT
+{
+    if (vec->count >= vec->capacity) {
+        return false;
+    }
+
+    vec->elements[vec->count++] = element;
+
+    return true;
+}
+
+template<typename T>
+FORCE_INLINE
+bool array_vector_insert_safe(ArrayVector<T>* vec, T* element) NO_EXCEPT
+{
+    if (vec->count >= vec->capacity) {
+        return false;
+    }
+
+    memcpy(vec->elements + vec->count, element, sizeof(T));
+    ++vec->count;
+
+    return true;
+}
+
+template<typename T>
+FORCE_INLINE
+bool array_vector_insert_safe(ArrayVector<T>* vec, T* element, int count) NO_EXCEPT
+{
+    if (vec->count >= vec->capacity) {
+        return false;
+    }
+
+    memcpy(vec->elements + vec->count, element, count * sizeof(T));
+    vec->count += count;
+
+    return true;
+}
+
+template<typename T>
+FORCE_INLINE
 T array_vector_get(ArrayVector<T>* vec, int index) NO_EXCEPT
 {
     return vec->elements[index];
 }
 
+template<typename T>
+FORCE_INLINE
+void array_vector_reset(ArrayVector<T>* vec) NO_EXCEPT
+{
+    vec->count = 0;;
+}
+
 #define array_vector_iterate_start(vec, element_ptr) {   \
-    for (int _i; i < vec->count; ++_i) {                 \
+    for (int _i = 0; _i < vec.count; ++_i) {                 \
+        element_ptr = vec.elements + _i;
+
+#define array_vector_iterate_ptr_start(vec, element_ptr) {   \
+    for (int _i = 0; _i < vec->count; ++_i) {                 \
         element_ptr = vec->elements + _i;
 
 #define array_vector_iterate_end }}
-
-/*
-struct ArrayVector {
-    int size;
-    int count;
-    int element_size;
-    byte* elements;
-};
-
-void array_vector_alloc(ArrayVector* vec, int element_size, int size, int alignment = sizeof(size_t)) NO_EXCEPT
-{
-    vec->size = size;
-    vec->element_size = element_size;
-    vec->elements = (byte *) platform_alloc_aligned(size * element_size, size * element_size, alignment);
-}
-
-inline
-void array_vector_free(ArrayVector* vec) NO_EXCEPT
-{
-    platform_aligned_free(&vec->elements);
-    vec->size = 0;
-}
-
-FORCE_INLINE
-int array_vector_insert(ArrayVector* __restrict vec, void* __restrict element) NO_EXCEPT
-{
-    if (vec->size <= vec->count) {
-        return -1;
-    }
-
-    memcpy(vec->elements + vec->element_size * vec->count, element, vec->element_size);
-
-    int index = vec->count;
-    ++vec->count;
-
-    return index;
-}
-
-FORCE_INLINE
-byte* array_vector_get(ArrayVector* vec, int index) NO_EXCEPT
-{
-    return vec->elements + index * vec->element_size;
-}
-
-#define array_vector_iterate_start(vec, element_ptr) {   \
-    for (int _i; i < vec->count; ++_i) {                 \
-        element_ptr = vec->elements + vec->element_size * _i;
-
-#define array_vector_iterate_end }}
-*/
 
 #endif

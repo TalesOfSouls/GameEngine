@@ -93,8 +93,7 @@ Asset* cmd_texture_load_sync(
 
     // Load asset if not loaded
     if (!asset) {
-        const int32 archive_id = (asset_id >> 24) & 0xFF;
-        asset = asset_archive_asset_load(&asset_archives[archive_id], asset_id, ams, ring);
+        asset = asset_archive_asset_load(&asset_archives[(asset_id >> 24) & 0xFF], asset_id, ams, ring);
     }
 
     // Setup basic texture

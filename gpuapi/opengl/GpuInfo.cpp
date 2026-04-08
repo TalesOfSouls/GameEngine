@@ -106,19 +106,19 @@ void gpuapi_info_get(GpuInfo* info) {
     const char* shader_version = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
 
     if (vendor) {
-        str_copy(info->vendor, vendor, sizeof(info->vendor) - 1);
+        strcpy(info->vendor, vendor);
     }
 
     if (renderer) {
-        str_copy(info->name, renderer, sizeof(info->name) - 1);
+        strcpy(info->name, renderer);
     }
 
     if (version) {
-        str_copy(info->api_version, version, sizeof(info->api_version) - 1);
+        strcpy(info->api_version, version);
     }
 
     if (shader_version) {
-        str_copy(info->shader_version, shader_version, sizeof(info->shader_version) - 1);
+        strcpy(info->shader_version, shader_version);
     }
 
     GLint vramKB = 0;

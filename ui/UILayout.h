@@ -3,6 +3,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../stdlib/HashMap.h"
+#include "../stdlib/ArrayVector.h"
 #include "../asset/Asset.h"
 #include "../font/FontSystem.h"
 #include "../object/Vertex.h"
@@ -135,23 +136,26 @@ struct UILayout {
 
     // Testing
     // @question Consider to replace this with its own data type ArrayVector
-    int16 ui_offset_root_length;
-    int16 ui_offset_root_pos;
+    //int16 ui_offset_root_length;
+    //int16 ui_offset_root_pos;
     // This array links into the ui_offset_buffer
-    int32* ui_offset_root;
+    //int32* ui_offset_root;
+    ArrayVector<int32> ui_offset_root;
 
     BufferMemory ui_offset_buffer;
     BufferMemory ui_element_buffer;
 
     // Stores all of the vertex data (even for different states e.g. hover, ...)
-    int32 ui_vertex_total_length;
-    int32 ui_vertex_total_pos;
-    Vertex3DSamplerTextureColor* ui_vertex_total;
+    //int32 ui_vertex_total_length;
+    //int32 ui_vertex_total_pos;
+    //Vertex3DSamplerTextureColor* ui_vertex_total;
+    ArrayVector<Vertex3DSamplerTextureColor> ui_vertex_total;
 
     // Stores the current version
-    int32 ui_vertex_cache_length;
-    int32 ui_vertex_cache_pos;
-    Vertex3DSamplerTextureColor* ui_vertex_cache;
+    //int32 ui_vertex_cache_length;
+    //int32 ui_vertex_cache_pos;
+    //Vertex3DSamplerTextureColor* ui_vertex_cache;
+    ArrayVector<Vertex3DSamplerTextureColor> ui_vertex_cache;
 };
 
 #endif

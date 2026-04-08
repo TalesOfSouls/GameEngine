@@ -302,9 +302,6 @@ byte* log_memory_get() NO_EXCEPT
  * @param const void*   data    Data to log
  * @param size_t        size    Data size to log
  *
- * @performance This should only be called async to avoid blocking (e.g. render loop)
- *              Careful this this function is not thread safe
- *
  * @return void
  */
 void log_to_file(const void* const data, size_t size) NO_EXCEPT
@@ -481,6 +478,7 @@ void log(
         //      The raw data doesn't fulfill \0 and probably also doesn't fulfill MAX_LOG_LENGTH
 
         log_to_file(format, total_len);
+        _log_memory->pos = 0;
 
         return;
     }

@@ -26,8 +26,6 @@ struct HashEntryT {
     V value;
 };
 
-// @performance This hash map implementation is approx. 25% faster than the none-template version in debug build
-//              However, the optimized build has similar performance albite a little bit faster
 template <typename T>
 struct HashMapT {
     // Contains the actual data of the hash map (sometimes)

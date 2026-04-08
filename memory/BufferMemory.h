@@ -30,7 +30,13 @@ struct BufferMemory {
 };
 
 inline
-void buffer_alloc(BufferMemory* const buf, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void buffer_alloc(
+    BufferMemory* const buf,
+    size_t size,
+    size_t max_size,
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
     PROFILE(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(size);
@@ -41,7 +47,7 @@ void buffer_alloc(BufferMemory* const buf, size_t size, size_t max_size, int32 a
     max_size = align_up(max_size, ASSUMED_CACHE_LINE_SIZE);
     LOG_1("[INFO] Allocating BufferMemory: %n B", {DATA_TYPE_UINT64, &size});
 
-    buf->memory = (byte *) platform_alloc_aligned(size, max_size, alignment);
+    buf->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
 
     buf->end = buf->memory + size;
     buf->head = buf->memory;
@@ -54,14 +60,27 @@ void buffer_alloc(BufferMemory* const buf, size_t size, size_t max_size, int32 a
 }
 
 FORCE_INLINE
-void thrd_buffer_alloc(BufferMemory* const buf, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void thrd_buffer_alloc(
+    BufferMemory* const buf,
+    size_t size,
+    size_t max_size,
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
-    buffer_alloc(buf, size, max_size, alignment);
+    buffer_alloc(buf, size, max_size, alignment, start_alignment);
     mutex_init(&buf->lock, NULL);
 }
 
 inline
-void buffer_alloc(BufferMemory* const buf, MemoryArena* mem, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void buffer_alloc(
+    BufferMemory* const buf,
+    MemoryArena* mem,
+    size_t size,
+    size_t max_size,
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
     PROFILE(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(size);
@@ -76,7 +95,7 @@ void buffer_alloc(BufferMemory* const buf, MemoryArena* mem, size_t size, size_t
         mem,
         size,
         max_size,
-        alignment
+        start_alignment
     );
     buf->memory = arena->memory;
 
@@ -91,9 +110,16 @@ void buffer_alloc(BufferMemory* const buf, MemoryArena* mem, size_t size, size_t
 }
 
 FORCE_INLINE
-void thrd_buffer_alloc(BufferMemory* const buf, MemoryArena* mem, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void thrd_buffer_alloc(
+    BufferMemory* const buf,
+    MemoryArena* mem,
+    size_t size,
+    size_t max_size,
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
-    buffer_alloc(buf, mem, size, max_size, alignment);
+    buffer_alloc(buf, mem, size, max_size, alignment, start_alignment);
     mutex_init(&buf->lock, NULL);
 }
 
@@ -133,14 +159,14 @@ void buffer_init(
     BufferMemory* const buf,
     byte* const data,
     size_t size,
-    int32 alignment = sizeof(size_t)
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
     ASSERT_TRUE(size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    // @bug what if an alignment is defined?
-    buf->memory = data;
+    buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
 
     buf->end = buf->memory + size;
     buf->head = buf->memory;
@@ -153,9 +179,15 @@ void buffer_init(
 }
 
 FORCE_INLINE
-void thrd_buffer_init(BufferMemory* const buf, byte* data, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void thrd_buffer_init(
+    BufferMemory* const buf,
+    byte* data,
+    size_t size,
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
-    buffer_init(buf, data, size, alignment);
+    buffer_init(buf, data, size, alignment, start_alignment);
     mutex_init(&buf->lock, NULL);
 }
 
@@ -207,13 +239,14 @@ void buffer_init(
     BufferMemory* const buf,
     BufferMemory* const data,
     size_t size,
-    int32 alignment = sizeof(size_t)
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
     ASSERT_TRUE(size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    buf->memory = buffer_memory_get(data, size, alignment);
+    buf->memory = buffer_memory_get(data, size, start_alignment);
 
     buf->end = buf->memory + size;
     buf->head = buf->memory;

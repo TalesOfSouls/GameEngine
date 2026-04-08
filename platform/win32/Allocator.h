@@ -42,8 +42,14 @@ void* platform_alloc_aligned(
         _page_size = si.dwPageSize;
     }
 
-    initial_size = align_up(initial_size + sizeof(platform_alloc_header) + sizeof(void*) + alignment, _page_size);
-    reserve_size = align_up(reserve_size + sizeof(platform_alloc_header) + sizeof(void*) + alignment, _page_size);
+    initial_size = align_up(
+        initial_size + sizeof(platform_alloc_header) + sizeof(void*) + alignment,
+        _page_size
+    );
+    reserve_size = align_up(
+        reserve_size + sizeof(platform_alloc_header) + sizeof(void*) + alignment,
+        _page_size
+    );
 
     ASSERT_TRUE(initial_size <= reserve_size);
 

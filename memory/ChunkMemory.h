@@ -34,7 +34,6 @@
  * Carefull, both examples have alternative use cases which may require variable sized elements
  * WARNING: Changing this struct has effects on other data structures
  */
-// @performance Are we losing a lot of performance by using atomic_ (= volatile) in single threaded use cases
 struct ChunkMemory {
     byte* memory;
 
@@ -89,9 +88,15 @@ uint_max thrd_chunk_size_total(uint32 capacity, int32 element_size, int32 alignm
 }
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
-// @performance Do we maybe want to define both the element alignment and memory start alignment (e.g. 64 byte = cache line alignment for the memory)
 inline
-void chunk_alloc(ChunkMemory* const buf, uint32 capacity, uint32 max_capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void chunk_alloc(
+    ChunkMemory* const buf,
+    uint32 capacity,
+    uint32 max_capacity,
+    int32 element_size,
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
@@ -105,7 +110,7 @@ void chunk_alloc(ChunkMemory* const buf, uint32 capacity, uint32 max_capacity, i
     const uint_max size = chunk_size_total(capacity, element_size, alignment);
     const uint_max max_size = chunk_size_total(max_capacity, element_size, alignment);
 
-    buf->memory = (byte *) platform_alloc_aligned(size, max_size, alignment);
+    buf->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -122,7 +127,14 @@ void chunk_alloc(ChunkMemory* const buf, uint32 capacity, uint32 max_capacity, i
 }
 
 inline
-void thrd_chunk_alloc(ChunkMemory* const buf, uint32 capacity, uint32 max_capacity, int32 element_size, int32 alignment = 32)
+void thrd_chunk_alloc(
+    ChunkMemory* const buf,
+    uint32 capacity,
+    uint32 max_capacity,
+    int32 element_size,
+    int32 alignment = 32,
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(capacity);
@@ -136,7 +148,7 @@ void thrd_chunk_alloc(ChunkMemory* const buf, uint32 capacity, uint32 max_capaci
     const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
     const uint_max max_size = thrd_chunk_size_total(max_capacity, element_size, alignment);
 
-    buf->memory = (byte *) platform_alloc_aligned(size, max_size, alignment);
+    buf->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -158,7 +170,15 @@ void thrd_chunk_alloc(ChunkMemory* const buf, uint32 capacity, uint32 max_capaci
 }
 
 inline
-void chunk_alloc(ChunkMemory* const buf, MemoryArena* mem, uint32 capacity, uint32 max_capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void chunk_alloc(
+    ChunkMemory* const buf,
+    MemoryArena* mem,
+    uint32 capacity,
+    uint32 max_capacity,
+    int32 element_size,
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
@@ -172,7 +192,7 @@ void chunk_alloc(ChunkMemory* const buf, MemoryArena* mem, uint32 capacity, uint
     const uint_max size = chunk_size_total(capacity, element_size, alignment);
     const uint_max max_size = chunk_size_total(max_capacity, element_size, alignment);
 
-    MemoryArena* arena = mem_arena_add(mem, size, max_size, alignment);
+    MemoryArena* arena = mem_arena_add(mem, size, max_size, start_alignment);
     buf->memory = (byte *) arena->memory;
 
     buf->capacity = capacity;
@@ -190,7 +210,15 @@ void chunk_alloc(ChunkMemory* const buf, MemoryArena* mem, uint32 capacity, uint
 }
 
 inline
-void thrd_chunk_alloc(ChunkMemory* const buf, MemoryArena* mem, uint32 capacity, uint32 max_capacity, int32 element_size, int32 alignment = 32)
+void thrd_chunk_alloc(
+    ChunkMemory* const buf,
+    MemoryArena* mem,
+    uint32 capacity,
+    uint32 max_capacity,
+    int32 element_size,
+    int32 alignment = 32,
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
 {
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(capacity);
@@ -204,7 +232,7 @@ void thrd_chunk_alloc(ChunkMemory* const buf, MemoryArena* mem, uint32 capacity,
     const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
     const uint_max max_size = thrd_chunk_size_total(max_capacity, element_size, alignment);
 
-    MemoryArena* arena = mem_arena_add(mem, size, max_size, alignment);
+    MemoryArena* arena = mem_arena_add(mem, size, max_size, start_alignment);
     buf->memory = (byte *) arena->memory;
 
     buf->capacity = capacity;
@@ -232,7 +260,8 @@ void chunk_init(
     BufferMemory* const data,
     uint32 capacity,
     int32 element_size,
-    int32 alignment = sizeof(size_t)
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
     ASSERT_TRUE(element_size);
@@ -243,7 +272,7 @@ void chunk_init(
 
     const uint_max size = chunk_size_total(capacity, element_size, alignment);
 
-    buf->memory = buffer_memory_get(data, size, alignment);
+    buf->memory = buffer_memory_get(data, size, start_alignment);
     memset(buf->memory, 0, size);
 
     buf->capacity = capacity;
@@ -263,7 +292,8 @@ void thrd_chunk_alloc(
     BufferMemory* const data,
     uint32 capacity,
     int32 element_size,
-    int32 alignment = sizeof(size_t)
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 )
 {
     ASSERT_TRUE(element_size);
@@ -275,7 +305,7 @@ void thrd_chunk_alloc(
     element_size = chunk_size_element(element_size, alignment);
     const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
 
-    buf->memory = buffer_memory_get(data, size);
+    buf->memory = buffer_memory_get(data, size, start_alignment);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -302,7 +332,8 @@ void chunk_init(
     byte* const data,
     uint32 capacity,
     int32 element_size,
-    int32 alignment = sizeof(size_t)
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
     ASSERT_TRUE(element_size);
@@ -313,7 +344,7 @@ void chunk_init(
 
     const uint_max size = chunk_size_total(capacity, element_size, alignment);
 
-    buf->memory = (byte *) align_up((uintptr_t) data, alignment);
+    buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -335,7 +366,8 @@ void thrd_chunk_alloc(
     byte* const data,
     uint32 capacity,
     int32 element_size,
-    int32 alignment = sizeof(size_t)
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
     ASSERT_TRUE(element_size);
@@ -347,7 +379,7 @@ void thrd_chunk_alloc(
     element_size = chunk_size_element(element_size, alignment);
     const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
 
-    buf->memory = data;
+    buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -973,7 +1005,7 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
     uint32 bit_index = 0;                                                                       \
                                                                                                 \
     /* Iterate the chunk memory */                                                              \
-    for (; chunk_id < (buf)->capacity; ++chunk_id) {                                               \
+    for (; chunk_id < (buf)->capacity; ++chunk_id) {                                            \
         /* Check if asset is defined */                                                         \
         if (!(buf)->free[free_index]) {                                                         \
             /* Skip various elements */                                                         \

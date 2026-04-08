@@ -170,9 +170,6 @@ struct HashEntryKeyInt64 {
 
 typedef uint64 (*HashMapHashFunction)(const void* data);
 
-// @performance This hash map implementation is approx. 15-25% slower than a "normal" chained hash map
-//  We still keep it for now because the slow part (the chunk_reserve) could potentially be improved
-//  However, a optimized build makes this hashmap equally fast or even faster? Are we sure?
 struct HashMap {
     // Contains the actual data of the hash map (sometimes)
     // Careful, some hash map implementations don't store the value in here but an offset for use in another array
