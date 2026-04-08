@@ -16,6 +16,7 @@ struct PersistentGpuBuffer {
     uint32 index;
 
     // Size of the buffer incl. additional alignment data
+    // This just informs us about the total memory allocated on the GPU
     int32 size;
 
     // either ubo or vbo
@@ -23,9 +24,11 @@ struct PersistentGpuBuffer {
 
     // The respective sub-ranges. We expect a triple buffer
     // Size of the range incl. padding
+    // We need to know this information to jump to the correct sub-buffer when flushing to the GPU
     int32 range_stride;
 
     // This size is the actual data size excl. alignment overhead
+    // We need this information to know how much data we have to flush to the GPU
     int32 range_size;
 
     // actual memory range start

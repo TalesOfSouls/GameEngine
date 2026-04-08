@@ -166,32 +166,6 @@ void wireframe_mode(bool on) NO_EXCEPT
     glPolygonMode(GL_FRONT_AND_BACK, on ? GL_LINE : GL_FILL);
 }
 
-struct OpenglInfo {
-    char* renderer;
-    int32 major;
-    int32 minor;
-};
-
-inline
-void opengl_info(OpenglInfo* const info) NO_EXCEPT
-{
-    info->renderer = (char *) glGetString(GL_RENDERER);
-    info->major = 1;
-    info->minor = 0;
-
-    char* version = (char *) glGetString(GL_VERSION);
-
-    for (char *at = version; *at; ++at) {
-        if (*at == '.') {
-            info->major = (int32) str_to_int(version);
-
-            ++at;
-            info->minor = (int32) str_to_int(at);
-            break;
-        }
-    }
-}
-
 // @todo rename to gpuapi_*
 inline
 uint32 gpuapi_texture_data_type(uint32 texture_data_type) NO_EXCEPT
