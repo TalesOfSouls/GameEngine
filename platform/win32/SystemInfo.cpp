@@ -593,12 +593,15 @@ int32 gpu_info_get(GpuInfo*const  info, int32 limit = 3) {
 inline
 int32 display_info_get(DisplayInfo* const info, int32 limit = 4) {
     DISPLAY_DEVICEW device;
-    DEVMODEW mode;
+    DEVMODEW mode = {0};
 
     device.cb = sizeof(DISPLAY_DEVICEW);
 
     int32 i = 0;
-    while (EnumDisplayDevicesW(NULL, i, &device, 0) && i < limit) {
+    int32 j = 0;
+
+    // We limit the display detection to a maximum of 100
+    while (EnumDisplayDevicesW(NULL, j, &device, 0) && i < limit && ++j < 100) {
         mode.dmSize = sizeof(mode);
 
         if (EnumDisplaySettingsW(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {

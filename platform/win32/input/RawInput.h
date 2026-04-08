@@ -26,14 +26,29 @@ bool rawinput_extract_vid_pid(
 ) {
     const wchar_t* vid = wcsstr(device_name, L"VID_");
     const wchar_t* pid = wcsstr(device_name, L"PID_");
+    if (vid && pid) {
+        memcpy(out_id, vid, 8 * sizeof(wchar_t));
+        out_id[8] = L'&';
+        memcpy(out_id + 9, pid, 8 * sizeof(wchar_t));
 
-    if (!vid || !pid) {
+        return true;
+    }
+
+    // We need this code below since some peripheral devices get converted to mouse/keyboard devices
+    // Such converted devices don't have VID/PID
+    // Examples could be attachable keyboards for tables
+    const wchar_t* id = wcschr(device_name, L'{');
+    if (!id) {
         return false;
     }
 
-    memcpy(out_id, vid, 8 * sizeof(wchar_t));
-    out_id[8] = L'&';
-    memcpy(out_id + 9, pid, 8 * sizeof(wchar_t));
+    ++id;
+
+    int32 len = 0;
+    while (*id != L'}' && *id != L'\0' && len < 32) {
+        out_id[len++] = *id;
+        ++id;
+    }
 
     return true;
 }
