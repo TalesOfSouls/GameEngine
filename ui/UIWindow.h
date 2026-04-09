@@ -25,7 +25,10 @@ struct UIOffset {
     int32 parent_offset;
     int32 parent_type;
 
+    // How many vertices do we have in this element
     int32 vertices_count;
+
+    // Where do the vertices for this element start in the vertex buffer
     int32 vertices;
 
     int32 children;
