@@ -142,4 +142,26 @@ void gpuapi_info_get(GpuInfo* info) {
     ASSERT_GPU_API();
 }
 
+void gpu_info_render(char* buf, const GpuInfo* const info) NO_EXCEPT
+{
+    sprintf_fast(
+        buf, 
+        4096, 
+        "Name: %s\n"
+        "Vendor: %s\n"
+        "API Version: %s\n"
+        "Shader Version: %s\n"
+        "Alignment: %d\n"
+        "VRAM: %d\n"
+        "Features: %d\n",
+        info->name,
+        info->vendor,
+        info->api_version,
+        info->shader_version,
+        info->alignment,
+        info->vram,
+        info->features
+    );
+}
+
 #endif

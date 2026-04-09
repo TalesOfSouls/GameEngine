@@ -20,31 +20,13 @@ enum GpuAttributeType : byte {
     GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE
 };
 
-inline CONSTEXPR
-int32 gpuapi_attribute_count(GpuAttributeType type)
-{
-    switch (type) {
-        case GPU_ATTRIBUTE_TYPE_VERTEX_3D: {
-            return 4;
-        };
-        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL: {
-            return 2;
-        };
-        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR: {
-            return 2;
-        };
-        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR: {
-            return 2;
-        };
-        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR: {
-            return 3;
-        };
-        case GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE: {
-            return 2;
-        };
-        default:
-            UNREACHABLE();
-    };
-}
+const CONSTEXPR int32 _GPUAPI_ATTRIBUTE_COUNT[] = {
+    4, // GPU_ATTRIBUTE_TYPE_VERTEX_3D
+    2, // GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL
+    2, // GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR
+    2, // GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR
+    3, // GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR
+    2  // GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE
+};
 
 #endif

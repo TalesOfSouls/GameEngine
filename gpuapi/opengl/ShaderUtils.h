@@ -337,7 +337,7 @@ void gpuapi_pipeline_use(uint32 id) NO_EXCEPT
 inline
 void gpuapi_attribute_setup(GpuAttributeType type, const OpenglVertexInputAttributeDescription* const attr) NO_EXCEPT
 {
-    const int32 length = gpuapi_attribute_count(type);
+    const int32 length = _GPUAPI_ATTRIBUTE_COUNT[type];
     const GLuint binding_index = 0;
 
     for (int32 i = 0; i < length; ++i) {
@@ -368,7 +368,7 @@ void gpuapi_attribute_setup(GpuAttributeType type, const OpenglVertexInputAttrib
 inline
 void gpuapi_attribute_setup_static(GpuAttributeType type, const OpenglVertexInputAttributeDescription* const attr) NO_EXCEPT
 {
-    const int32 length = gpuapi_attribute_count(type);
+    const int32 length = _GPUAPI_ATTRIBUTE_COUNT[type];
     for (int32 i = 0; i < length; ++i) {
         uintptr_t offset = attr[i].offset;
         if (attr[i].format == GL_INT) {
@@ -407,145 +407,6 @@ void gpuapi_descriptor_set_layout_create(
     }
 }
 
-/*
-CONSTEXPR
-void gpuapi_attribute_info_create(
-    GpuAttributeType type,
-    OpenglVertexInputAttributeDescription* const attr
-) NO_EXCEPT
-{
-    switch (type) {
-        case GPU_ATTRIBUTE_TYPE_VERTEX_3D: {
-            attr[0] = {
-                0, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3D), // .stride =
-                (int32) offsetof(Vertex3D, position) // .offset =
-            };
-
-            attr[1] = {
-                1, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3D), // .stride =
-                (int32) offsetof(Vertex3D, normal) // .offset =
-            };
-
-            attr[2] = {
-                2, // .location =
-                2, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3D), // .stride =
-                (int32) offsetof(Vertex3D, tex_coord) // .offset =
-            };
-
-            attr[3] = {
-                3, // .location =
-                4, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3D), // .stride =
-                (int32) offsetof(Vertex3D, color) // .offset =
-            };
-        } return;
-        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL: {
-            attr[0] = {
-                0, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DNormal), // .stride =
-                (int32) offsetof(Vertex3DNormal, position) // .offset =
-            };
-
-            attr[1] = {
-                1, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DNormal), // .stride =
-                (int32) offsetof(Vertex3DNormal, normal) // .offset =
-            };
-        } return;
-        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR: {
-            attr[0] = {
-                0, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DColor), // .stride =
-                (int32) offsetof(Vertex3DColor, position) // .offset =
-            };
-
-            attr[1] = {
-                1, // .location =
-                4, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DColor), // .stride =
-                (int32) offsetof(Vertex3DColor, color) // .offset =
-            };
-        } return;
-        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR: {
-            attr[0] = {
-                0, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DTextureColor), // .stride =
-                (int32) offsetof(Vertex3DTextureColor, position) // .offset =
-            };
-
-            attr[1] = {
-                1, // .location =
-                2, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DTextureColor), // .stride =
-                (int32) offsetof(Vertex3DTextureColor, texture_color) // .offset =
-            };
-        } return;
-        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR: {
-            attr[0] = {
-                0, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DSamplerTextureColor), // .stride =
-                (int32) offsetof(Vertex3DSamplerTextureColor, position) // .offset =
-            };
-
-            attr[1] = {
-                1, // .location =
-                1, // .count =
-                GL_INT, // .format =
-                sizeof(Vertex3DSamplerTextureColor), // .stride =
-                (int32) offsetof(Vertex3DSamplerTextureColor, sampler) // .offset =
-            };
-
-            attr[2] = {
-                2, // .location =
-                2, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DSamplerTextureColor), // .stride =
-                (int32) offsetof(Vertex3DSamplerTextureColor, texture_color) // .offset =
-            };
-        } return;
-        case GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE: {
-            attr[0] = {
-                0, // .location =
-                2, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex2DTexture), // .stride =
-                (int32) offsetof(Vertex2DTexture, position) // .offset =
-            };
-
-            attr[1] = {
-                1, // .location =
-                2, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex2DTexture), // .stride =
-                (int32) offsetof(Vertex2DTexture, tex_coord) // .offset =
-            };
-        } return;
-        default:
-            UNREACHABLE();
-    };
-}*/
-
 template <unsigned N>
 struct OpenglVertexInputAttributeDescriptionArray
 {
@@ -556,7 +417,7 @@ template<GpuAttributeType T>
 CONSTEXPR
 auto gpuapi_attribute_info_create() NO_EXCEPT
 {
-    OpenglVertexInputAttributeDescriptionArray<gpuapi_attribute_count(T)> attr = {};
+    OpenglVertexInputAttributeDescriptionArray<_GPUAPI_ATTRIBUTE_COUNT[T]> attr = {};
 
     switch (T) {
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D: {

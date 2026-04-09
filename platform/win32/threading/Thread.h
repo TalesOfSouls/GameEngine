@@ -49,13 +49,22 @@ int32 coms_pthread_create(
 FORCE_INLINE
 int32 coms_pthread_join(coms_pthread_t thread, void**) NO_EXCEPT
 {
-    THREAD_LOG_DELETE((int32) GetThreadId(thread.h));
-
     WaitForSingleObject(thread.h, INFINITE);
     CloseHandle(thread.h);
     THREAD_LOG_DELETE(thread.id);
 
     return 0;
+}
+
+FORCE_INLINE
+bool coms_pthread_running(coms_pthread_t thread) NO_EXCEPT
+{
+    DWORD result = WaitForSingleObject(thread.h, 0);
+    if (result == WAIT_TIMEOUT) {
+        return true;
+    }
+
+    return false;
 }
 
 FORCE_INLINE

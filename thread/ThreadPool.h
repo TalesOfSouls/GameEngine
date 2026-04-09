@@ -19,7 +19,7 @@
 #include "../log/DebugContainer.h"
 #include "../utils/RandomUtils.h"
 
-enum ThreadPoolState : int32 {
+enum ThreadPoolState : int16 {
     THREAD_POOL_STATE_CANCELING = -1,
     THREAD_POOL_STATE_COMPLETED = 0,
     THREAD_POOL_STATE_WAITING = 1,
@@ -43,11 +43,17 @@ struct ThreadPool {
     atomic_32 int32 working_cnt;
     atomic_32 int32 thread_cnt;
 
+    // This is where we store the handles IFF we are using
+    // none-detached threads
+    coms_pthread_t* thread_handles;
+
+    // @question what is the difference between thread_cnt and size?
     int32 size;
 
     // @question Why are we using atomics if we are using mutex at the same time?
     //          I think because the mutex is actually intended for the queue.
     ThreadPoolState state;
+    bool is_detached;
     atomic_32 uint32 id_counter;
 
     DebugContainer* debug_container;
@@ -61,6 +67,8 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     THREAD_CURRENT_ID(_thread_local_id);
     THREAD_CPU_ID(_thread_cpu_id);
     ThreadPool* const pool = (ThreadPool *) arg;
+
+    atomic_increment_release(&pool->thread_cnt);
 
     if (pool->debug_container) {
         _log_fp = pool->debug_container->log_fp;
@@ -171,7 +179,13 @@ void thread_pool_alloc(
     queue_alloc(&pool->work_queue, worker_capacity, worker_capacity, alignment);
     DEBUG_MEMORY_NAME("Threadpool", pool->work_queue.memory);
 
-    pool->thread_cnt = thread_count;
+    if (!pool->is_detached) {
+        pool->thread_handles = (coms_pthread_t *) platform_alloc_aligned(
+            sizeof(coms_pthread_t) * thread_count, 
+            sizeof(coms_pthread_t) * thread_count, 
+            alignof(coms_pthread_t)
+        );
+    }
 
     // @todo switch from pool mutex and pool cond to threadjob mutex/cond
     //      thread_pool_wait etc. should just iterate over all mutexes
@@ -185,7 +199,12 @@ void thread_pool_alloc(
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
         coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
         THREAD_LOG_NAME(thread.id, "pool");
-        coms_pthread_detach(thread);
+
+        if (pool->is_detached) {
+            coms_pthread_detach(thread);
+        } else {
+            pool->thread_handles[pool->size] = thread;
+        }
     }
 
     LOG_2(
@@ -211,7 +230,9 @@ void thread_pool_create(
 
     queue_init(&pool->work_queue, buf, worker_capacity, alignment);
 
-    pool->thread_cnt = thread_count;
+    if (!pool->is_detached) {
+        pool->thread_handles = (coms_pthread_t *) buffer_memory_get(buf, sizeof(coms_pthread_t) * thread_count, alignof(coms_pthread_t));
+    }
 
     // @todo switch from pool mutex and pool cond to threadjob mutex/cond
     //      thread_pool_wait etc. should just iterate over all mutexes
@@ -226,7 +247,12 @@ void thread_pool_create(
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
         coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
         THREAD_LOG_NAME(thread.id, "pool");
-        coms_pthread_detach(thread);
+
+        if (pool->is_detached) {
+            coms_pthread_detach(thread);
+        } else {
+            pool->thread_handles[pool->size] = thread;
+        }
     }
 
     LOG_2(
@@ -253,8 +279,12 @@ void thread_pool_destroy(ThreadPool* const pool) NO_EXCEPT
     // This sets the queue to empty
     atomic_set_release(&pool->work_queue.tail, pool->work_queue.head);
 
-    // This sets the state to "shutdown"
-    pool->state = THREAD_POOL_STATE_WAITING;
+    {
+        MutexGuard _guard(&pool->work_mutex);
+
+        // This sets the state to "shutdown"
+        pool->state = THREAD_POOL_STATE_WAITING;
+    }
 
     coms_pthread_cond_broadcast(&pool->work_cond);
     thread_pool_wait(pool);
@@ -265,6 +295,45 @@ void thread_pool_destroy(ThreadPool* const pool) NO_EXCEPT
 
     // This sets the state to "down"
     pool->state = THREAD_POOL_STATE_COMPLETED;
+
+    for (int i = 0; i < pool->size; ++i) {
+        coms_pthread_join(pool->thread_handles[i]);
+    }
+}
+
+// Checks if the thread pool is running as it is supposed to
+// Currently this means we are checking if all threads are still "active"
+// Active means that we can use them for work/tasks
+inline
+bool thread_pool_healthy(const ThreadPool* const pool) NO_EXCEPT
+{
+    if (atomic_get_acquire(&pool->thread_cnt) != pool->size) {
+        return false;
+    }
+
+    if (!pool->is_detached) {
+        for (int i = 0; i < pool->size; ++i) {
+            if (!coms_pthread_running(pool->thread_handles[i])) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+// Tries to fix threads that are no longer running but should be running
+inline
+void thread_pool_fix(ThreadPool* const pool) NO_EXCEPT {
+    // We cannot fix a thread pool that uses detached threads
+    ASSERT_TRUE(!pool->is_detached);
+
+    for (int i = 0; i < pool->size; ++i) {
+        if (!coms_pthread_running(pool->thread_handles[i])) {
+            coms_pthread_create(&pool->thread_handles[i], NULL, thread_pool_worker, pool);
+            THREAD_LOG_NAME(thread.id, "pool");
+        }
+    }
 }
 
 PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) NO_EXCEPT
@@ -348,6 +417,7 @@ void thread_pool_add_work_end(ThreadPool* const pool) NO_EXCEPT
     mutex_unlock(&pool->work_mutex);
 }
 
+// This joins the work not the actual threads in the thread pool
 // We are not marking jobs const since it may change during the joining process (e.g. the state)
 inline
 bool thread_pool_join(PoolWorker* jobs, int32 count, uint64 sleep_time = 0, uint64 max_sleep = 0) NO_EXCEPT
@@ -386,6 +456,7 @@ bool thread_pool_join(PoolWorker* jobs, int32 count, uint64 sleep_time = 0, uint
     return completed_mask == all_done_mask;
 }
 
+// This joins the work not the actual threads in the thread pool
 inline
 bool thread_pool_join(
     const PoolWorker* const* const jobs, int32 count,
