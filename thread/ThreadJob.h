@@ -56,10 +56,17 @@ struct PoolWorker {
 
 /**
  * Worker for a normal thread
+ * @todo Rename to ThreadWorker
  */
 struct Worker {
     atomic_32 int32 state;
     coms_pthread_t thread;
+    void* arg;
+};
+
+struct ThreadParameter {
+    Worker worker;
+    ThreadJobFunc routine;
     void* arg;
 };
 

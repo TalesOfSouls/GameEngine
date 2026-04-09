@@ -1012,6 +1012,7 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
             /* @performance Consider to only check 1 byte instead of 8 */                       \
             /* There are probably even better ways by using compiler intrinsics if available */ \
             bit_index += (sizeof(uint_max) * 8 - 1); /* +64 - 1 since the loop also increases by 1 */                   \
+            chunk_id += (sizeof(uint_max) * 8 - 1); \
         } else if ((buf)->free[free_index] & (OMS_UINT_ONE << bit_index))
 
 // INTERNAL: Not intended for use by any programmer

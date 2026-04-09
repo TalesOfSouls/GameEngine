@@ -162,6 +162,17 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     return (THREAD_RETURN_BODY) NULL;
 }
 
+static FORCE_INLINE CONSTEXPR
+size_t thread_pool_size(
+    int32 thread_count,
+    int worker_capacity
+) NO_EXCEPT
+{
+    return queue_persistent_size(sizeof(PoolWorker), worker_capacity)
+        + sizeof(coms_pthread_t) * thread_count
+        + alignof(coms_pthread_t);
+}
+
 void thread_pool_alloc(
     ThreadPool* const pool,
     int32 thread_count,
@@ -176,15 +187,23 @@ void thread_pool_alloc(
         {DATA_TYPE_INT32, &worker_capacity}
     );
 
-    queue_alloc(&pool->work_queue, worker_capacity, worker_capacity, alignment);
+    const size_t queue_size = queue_persistent_size(sizeof(PoolWorker), worker_capacity);
+    byte* buf = (byte *) platform_alloc_aligned(
+        queue_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t),
+        queue_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t),
+        alignment
+    );
+    queue_init(&pool->work_queue, buf, worker_capacity, alignment);
+
     DEBUG_MEMORY_NAME("Threadpool", pool->work_queue.memory);
 
     if (!pool->is_detached) {
-        pool->thread_handles = (coms_pthread_t *) platform_alloc_aligned(
-            sizeof(coms_pthread_t) * thread_count, 
-            sizeof(coms_pthread_t) * thread_count, 
+        pool->thread_handles = (coms_pthread_t *) align_up(
+            (uintptr_t) (buf + queue_size),
             alignof(coms_pthread_t)
         );
+
+        memset(pool->thread_handles, 0, sizeof(coms_pthread_t) * thread_count);
     }
 
     // @todo switch from pool mutex and pool cond to threadjob mutex/cond
@@ -213,7 +232,7 @@ void thread_pool_alloc(
     );
 }
 
-void thread_pool_create(
+void thread_pool_init(
     ThreadPool* const pool,
     BufferMemory* const buf,
     int32 thread_count,
@@ -231,7 +250,11 @@ void thread_pool_create(
     queue_init(&pool->work_queue, buf, worker_capacity, alignment);
 
     if (!pool->is_detached) {
-        pool->thread_handles = (coms_pthread_t *) buffer_memory_get(buf, sizeof(coms_pthread_t) * thread_count, alignof(coms_pthread_t));
+        pool->thread_handles = (coms_pthread_t *) buffer_memory_get(
+            buf,
+            sizeof(coms_pthread_t) * thread_count,
+            alignof(coms_pthread_t)
+        );
     }
 
     // @todo switch from pool mutex and pool cond to threadjob mutex/cond
@@ -297,7 +320,7 @@ void thread_pool_destroy(ThreadPool* const pool) NO_EXCEPT
     pool->state = THREAD_POOL_STATE_COMPLETED;
 
     for (int i = 0; i < pool->size; ++i) {
-        coms_pthread_join(pool->thread_handles[i]);
+        coms_pthread_join(pool->thread_handles[i], NULL);
     }
 }
 
@@ -331,7 +354,7 @@ void thread_pool_fix(ThreadPool* const pool) NO_EXCEPT {
     for (int i = 0; i < pool->size; ++i) {
         if (!coms_pthread_running(pool->thread_handles[i])) {
             coms_pthread_create(&pool->thread_handles[i], NULL, thread_pool_worker, pool);
-            THREAD_LOG_NAME(thread.id, "pool");
+            THREAD_LOG_NAME(pool->thread_handles[i].id, "pool");
         }
     }
 }

@@ -239,7 +239,7 @@ VkPipeline gpuapi_pipeline_make(
     VkVertexInputBindingDescription binding_description;
     vulkan_vertex_binding_description(sizeof(Vertex3DSamplerTextureColor), &binding_description);
 
-    VkVertexInputAttributeDescription input_attribute_description[gpuapi_attribute_count(GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR)];
+    VkVertexInputAttributeDescription input_attribute_description[_GPUAPI_ATTRIBUTE_COUNT[GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR]];
     gpuapi_attribute_info_create(GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR, input_attribute_description);
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {

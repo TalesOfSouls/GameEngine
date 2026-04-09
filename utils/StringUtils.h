@@ -2598,6 +2598,10 @@ void sprintf_fast_iter(char* __restrict buffer, const char* __restrict format, .
                     const int32 val = va_arg(args, int32);
                     buffer += int_to_str(val, buffer);
                 } break;
+                case 'u': {
+                    const uint32 val = va_arg(args, uint32);
+                    buffer += int_to_str(val, buffer);
+                } break;
                 case 'l': {
                     const int64 val = va_arg(args, int64);
                     buffer += int_to_str(val, buffer);
