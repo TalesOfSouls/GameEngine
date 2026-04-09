@@ -20,6 +20,8 @@ uint64 gpu_info_features() {
         features |= GPU_FEATURE_BINDLESS_TEXTURE;
     }
 
+    ASSERT_GPU_API();
+
     if (gl_has_extension("GL_ARB_sparse_texture")) {
         features |= GPU_FEATURE_SPARSE_TEXTURE;
     }
@@ -120,13 +122,15 @@ void gpuapi_info_get(GpuInfo* info) {
     if (shader_version) {
         strcpy(info->shader_version, shader_version);
     }
-
+    
     GLint vramKB = 0;
-    glGetIntegerv(0x9048 /*GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX*/, &vramKB);
-    if (vramKB == 0) {
+    if (gl_has_extension("GL_NVX_gpu_memory_info")) {
+        glGetIntegerv(0x9048 /*GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX*/, &vramKB);
+    } else if (gl_has_extension("GL_ATI_meminfo")) {
         glGetIntegerv(0x9167 /*GL_TEXTURE_FREE_MEMORY_ATI*/, &vramKB);
     }
 
+    // @question What do we do if vramKB is still 0?
     info->vram = (uint32_t) (vramKB / 1024);
 
     GLint align = 0;
@@ -134,6 +138,8 @@ void gpuapi_info_get(GpuInfo* info) {
     info->alignment = (uint32_t) align;
 
     info->features = gpu_info_features();
+
+    ASSERT_GPU_API();
 }
 
 #endif
