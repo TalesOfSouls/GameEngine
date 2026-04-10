@@ -104,7 +104,7 @@ uint32 rawinput_kbm_init(
 
                 wchar_t device_id[32] = {0};
                 if (!rawinput_extract_vid_pid(device_name, device_id)) {
-                    ASSERT_TRUE(false);
+                    ASSERT_THROW();
 
                     continue;
                 }
@@ -154,7 +154,7 @@ uint32 rawinput_kbm_init(
 
                 wchar_t device_id[32] = {0};
                 if (!rawinput_extract_vid_pid(device_name, device_id)) {
-                    ASSERT_TRUE(false);
+                    ASSERT_THROW();
 
                     continue;
                 }
@@ -211,7 +211,7 @@ uint32 rawinput_kbm_init(
 
         if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 2, sizeof(RAWINPUTDEVICE))) {
             LOG_1("[WARNING] Couldn't register keyboard raw input device");
-            ASSERT_TRUE(false);
+            ASSERT_THROW();
         }
     }
 
@@ -291,7 +291,7 @@ uint32 rawinput_init_controllers(
 
                     if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
                         LOG_1("[WARNING] Couldn't register gamepad raw input device");
-                        ASSERT_TRUE(false);
+                        ASSERT_THROW();
                     }
                 } else if (rdi.hid.usUsage == 0x04) {
                     if (states[controller_found].controller.handle != NULL) {
@@ -311,7 +311,7 @@ uint32 rawinput_init_controllers(
 
                     if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
                         LOG_1("[WARNING] Couldn't register joystick raw input device");
-                        ASSERT_TRUE(false);
+                        ASSERT_THROW();
                     }
                 }
             } break;

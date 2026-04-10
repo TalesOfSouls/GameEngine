@@ -22,7 +22,7 @@
 #define EXPORT_LIB extern "C" __attribute__((visibility("default")))
 
 #if defined(DEBUG) && DEBUG
-    #define UNREACHABLE() ASSERT_TRUE(false); __builtin_unreachable()
+    #define UNREACHABLE() ASSERT_THROW(); __builtin_unreachable()
 #else
     #define UNREACHABLE() __builtin_unreachable()
 #endif

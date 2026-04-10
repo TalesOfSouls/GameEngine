@@ -756,7 +756,7 @@ void file_read(
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
         file->content = NULL;
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return;
     }
@@ -766,7 +766,7 @@ void file_read(
     if (offset >= fsize) {
         file->size = 0;
         file->content = NULL;
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return;
     }
@@ -784,7 +784,7 @@ void file_read(
         li.QuadPart = offset;
         if (SetFilePointerEx(fp, li, NULL, FILE_BEGIN) == 0) {
             file->content = NULL;
-            ASSERT_TRUE(false);
+            ASSERT_THROW();
 
             return;
         }
@@ -793,7 +793,7 @@ void file_read(
     DWORD bytes_read;
     if (!ReadFile(fp, file->content, (uint32) read_length, &bytes_read, NULL)) {
         file->content = NULL;
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return;
     }
@@ -1289,7 +1289,7 @@ bool file_read_async(
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
         file->content = NULL;
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return false;
     }
@@ -1299,7 +1299,7 @@ bool file_read_async(
     if (offset >= fsize) {
         file->size = 0;
         file->content = NULL;
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return false;
     }
@@ -1313,7 +1313,7 @@ bool file_read_async(
     }
 
     if (!file->content) {
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return false;
     }
@@ -1330,7 +1330,7 @@ bool file_read_async(
         if (error != ERROR_IO_PENDING) {
             free(file->content);
             file->content = NULL;
-            ASSERT_TRUE(false);
+            ASSERT_THROW();
 
             return false;
         }
@@ -1546,14 +1546,14 @@ file_append(FileHandle fp, const char* file) NO_EXCEPT
     PROFILE(PROFILE_FILE_UTILS, file, PROFILE_FLAG_SHOULD_LOG);
 
     if (fp == INVALID_HANDLE_VALUE) {
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
         return false;
     }
 
     DWORD written;
     const DWORD length = (DWORD) strlen(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
         return false;
     }
 
@@ -1568,13 +1568,13 @@ file_append(FileHandle fp, const char* file, size_t length) NO_EXCEPT
     PROFILE(PROFILE_FILE_UTILS, file, PROFILE_FLAG_SHOULD_LOG);
 
     if (fp == INVALID_HANDLE_VALUE) {
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
         return false;
     }
 
     DWORD written;
     if (!WriteFile(fp, file, (uint32) length, &written, NULL)) {
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
         return false;
     }
 

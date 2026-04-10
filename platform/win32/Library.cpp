@@ -90,7 +90,7 @@ bool library_load(Library* const lib) NO_EXCEPT
     lib->handle = LoadLibraryW((LPCWSTR) dst);
     if (!lib->handle) {
         lib->is_valid = false;
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         LOG_1("[ERROR] Couldn't load library %s", {DATA_TYPE_CHAR_STR, (void *) dst});
 
@@ -112,7 +112,7 @@ bool library_bind_functions(Library* const lib) NO_EXCEPT
         if (function) {
             lib->functions[c] = function;
         } else {
-            ASSERT_TRUE(false);
+            ASSERT_THROW();
             lib->is_valid = false;
 
             LOG_1("[ERROR] Couldn't load library function %s", {DATA_TYPE_CHAR_STR, (void *) lib->function_names[c]});

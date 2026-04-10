@@ -25,7 +25,7 @@
 #define EXPORT_LIB extern "C" __declspec(dllexport)
 
 #ifdef DEBUG
-    #define UNREACHABLE() ASSERT_TRUE(false); __assume(0)
+    #define UNREACHABLE() ASSERT_THROW(); __assume(0)
 #else
     #define UNREACHABLE() __assume(0)
 #endif

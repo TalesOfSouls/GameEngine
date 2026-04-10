@@ -251,7 +251,7 @@ GLuint gpuapi_shader_make(GLenum type, const char* source) NO_EXCEPT
             glGetShaderInfoLog(shader, length, NULL, info);
             LOG_1(info);
 
-            ASSERT_TRUE(false);
+            ASSERT_THROW();
         }
     #endif
 
@@ -304,7 +304,7 @@ GLuint gpuapi_pipeline_make(
             glGetProgramInfoLog(program, length, NULL, info);
             LOG_1(info);
 
-            ASSERT_TRUE(false);
+            ASSERT_THROW();
         }
     #endif
 

@@ -426,7 +426,7 @@ void png_filter_reconstruct(uint32 width, uint32 height, uint32 color_type, cons
                     }
                 } break;
             default: {
-                ASSERT_TRUE(false);
+                ASSERT_THROW();
             }
         }
 
@@ -442,7 +442,7 @@ void generate_default_png_references(const FileBody* file, Png* png)
 
     if (png->size < PNG_IHDR_SIZE + PNG_HEADER_SIZE) {
         // This shouldn't happen
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
         return;
     }
 
@@ -475,7 +475,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* cons
         || src.ihdr.interlace != 0
     ) {
         // We don't support this type of png (see comment below)
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         /*
         Color   Allowed     Interpretation
@@ -646,7 +646,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* cons
             stream.pos += len;
         } else if (BTYPE == 3) {
             // Invalid BTYPE / reserved
-            ASSERT_TRUE(false);
+            ASSERT_THROW();
 
             return false;
         } else {

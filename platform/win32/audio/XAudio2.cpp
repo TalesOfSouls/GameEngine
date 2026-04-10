@@ -135,10 +135,6 @@ inline
 void xaudio2_play(XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->source_voice);
-    /*if (!api_setting->source_voice) {
-        return;
-    }*/
-
     api_setting->source_voice->Start(0, XAUDIO2_COMMIT_NOW);
 }
 
@@ -146,10 +142,6 @@ inline
 void xaudio2_stop(XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->source_voice);
-    /*if (!api_setting->source_voice) {
-        return;
-    }*/
-
     api_setting->source_voice->Stop(0, XAUDIO2_COMMIT_NOW);
 }
 

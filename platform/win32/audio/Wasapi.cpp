@@ -152,10 +152,6 @@ inline
 void wasapi_play(WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->wasapi_handle);
-    /*if (!api_setting->wasapi_handle) {
-        return;
-    }*/
-
     api_setting->wasapi_handle->Start();
 }
 
@@ -163,10 +159,6 @@ inline
 void wasapi_stop(WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->wasapi_handle);
-    /*if (!api_setting->wasapi_handle) {
-        return;
-    }*/
-
     api_setting->wasapi_handle->Stop();
 }
 

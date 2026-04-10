@@ -18,7 +18,7 @@ UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
 {
     HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&theme->hash_map, group_name);
     if (!entry) {
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
         return NULL;
     }
 

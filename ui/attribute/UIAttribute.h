@@ -197,7 +197,7 @@ int32 ui_attribute_type_to_id(const char* attribute_name)
         return UI_ATTRIBUTE_TYPE_VERTEX_COUNT;
     }
 
-    ASSERT_TRUE(false);
+    ASSERT_THROW();
 
     return -1;
 }

@@ -371,7 +371,7 @@ PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) 
     PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start_safe(&pool->work_queue);
 
     if (!temp_job) {
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return NULL;
     }

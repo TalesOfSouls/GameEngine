@@ -609,7 +609,7 @@ void input_handle_hotkeys(const Input* const input, void* data) NO_EXCEPT {
     for (int i = 0; i < input_event_count; ++i) {
         if (!input_events[i]) {
             // Hotkey is not bound to a function
-            ASSERT_TRUE(input_events[i]);
+            ASSERT_THROW();
             continue;
         }
 

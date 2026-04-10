@@ -174,7 +174,7 @@ HtmlTemplateASTNode* html_template_factor_parse(const char** input, HtmlTemplate
             UNREACHABLE();
     }
 
-    ASSERT_TRUE(false);
+    ASSERT_THROW();
 
     return NULL;
 }

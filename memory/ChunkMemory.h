@@ -465,12 +465,6 @@ FORCE_INLINE FORCE_FLATTEN
 byte* chunk_get_element(const ChunkMemory* const buf, uint32 element) NO_EXCEPT
 {
     ASSERT_TRUE(element < buf->capacity);
-    /*
-    if (element >= buf->capacity) {
-        ASSERT_TRUE(element < buf->capacity);
-        return NULL;
-    }
-    */
 
     byte* const offset = buf->memory + element * buf->chunk_size;
     ASSERT_TRUE(offset);

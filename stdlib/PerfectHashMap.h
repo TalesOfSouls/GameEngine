@@ -115,7 +115,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, i
         }
     }
 
-    ASSERT_TRUE(false);
+    ASSERT_THROW();
     LOG_1("[ERROR] Couldn't create perfect hashmap");
 
     return NULL;
@@ -157,7 +157,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* __restri
         }
     }
 
-    ASSERT_TRUE(false);
+    ASSERT_THROW();
     LOG_1("[INFO] Couldn't create perfect hashmap");
 
     return NULL;

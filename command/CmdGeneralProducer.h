@@ -23,7 +23,7 @@ void thrd_cmd_insert(ChunkMemoryT<AppCommand>* const __restrict cb, AppCommand* 
     MutexGuard _guard(&cb->lock);
     const int32 index = chunk_reserve_one(cb);
     if (index < 0) {
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return;
     }

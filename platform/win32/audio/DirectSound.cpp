@@ -149,10 +149,6 @@ inline
 void direct_sound_play(AudioSetting*, DirectSoundSetting* const __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->secondary_buffer);
-    /*if (!api_setting->secondary_buffer) {
-        return;
-    }*/
-
     api_setting->secondary_buffer->Play(0, 0, DSBPLAY_LOOPING);
 }
 
@@ -160,10 +156,6 @@ inline
 void direct_sound_stop(AudioSetting*, DirectSoundSetting* const __restrict api_setting) NO_EXCEPT
 {
     ASSERT_TRUE(api_setting->secondary_buffer);
-    /*if (!api_setting->secondary_buffer) {
-        return;
-    }*/
-
     api_setting->secondary_buffer->Stop();
 }
 

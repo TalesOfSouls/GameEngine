@@ -45,10 +45,16 @@
         }                                      \
     } while (0)
 
+    // Used to force a throw in debug builds
+    #define ASSERT_THROW() {      \
+        /* cppcheck-suppress nullPointer */ \
+        *(volatile int *)0 = 0;             \
+    }
 #else
     #define ASSERT_TRUE(a) ((void)0)
     #define ASSERT_TRUE_CONST(a) ((void)0)
     #define ASSERT_MEM_ZERO(ptr, size) ((void)0)
+    #define ASSERT_THROW() ((void)0)
 #endif
 
 #if defined(DEBUG) && DEBUG && defined(DEBUG_STRICT) && DEBUG_STRICT

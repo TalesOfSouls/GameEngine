@@ -404,7 +404,7 @@ Asset* ams_reserve_asset(AssetManagementSystem* const ams, byte type, const char
 
     const int32 free_data = chunk_reserve(&ac->asset_memory, elements);
     if (free_data < 0) {
-        ASSERT_TRUE(free_data >= 0);
+        ASSERT_THROW();
         return NULL;
     }
 
@@ -529,7 +529,7 @@ Asset* ams_insert_asset(AssetManagementSystem* const ams, Asset* const asset_tem
 
     const int32 free_data = chunk_reserve(&ac->asset_memory, asset_temp->size);
     if (free_data < 0) {
-        ASSERT_TRUE(free_data >= 0);
+        ASSERT_THROW();
         return NULL;
     }
 
@@ -556,7 +556,7 @@ Asset* thrd_ams_insert_asset(AssetManagementSystem* const ams, Asset* const asse
     MutexGuard _guard(&ams->asset_components[asset_temp->component_id].mtx);
     const int32 free_data = chunk_reserve(&ac->asset_memory, asset_temp->size);
     if (free_data < 0) {
-        ASSERT_TRUE(free_data >= 0);
+        ASSERT_THROW();
         _guard.unlock();
 
         return NULL;

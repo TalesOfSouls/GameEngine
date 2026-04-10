@@ -76,7 +76,7 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
     }
 
     LOG_1(message);
-    ASSERT_TRUE(false);
+    ASSERT_THROW();
 }
 
 FORCE_INLINE

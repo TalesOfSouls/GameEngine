@@ -76,7 +76,7 @@ VkShaderModule gpuapi_shader_make(VkDevice device, const char* source, int32 sou
 
     if (result != VK_SUCCESS) {
         LOG_1("Vulkan vkCreateShaderModule: %d", {DATA_TYPE_INT32, (int32 *) &result});
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return VK_NULL_HANDLE;
     }
@@ -335,7 +335,7 @@ VkPipeline gpuapi_pipeline_make(
     VkResult result;
     if ((result = vkCreatePipelineLayout(device, &pipeline_info_layout, NULL, pipeline_layout)) != VK_SUCCESS) {
         LOG_1("Vulkan vkCreatePipelineLayout: %d", {DATA_TYPE_INT32, (int32 *) &result});
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return NULL;
     }
@@ -363,7 +363,7 @@ VkPipeline gpuapi_pipeline_make(
 
     if ((result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info, NULL, pipeline)) != VK_SUCCESS) {
         LOG_1("Vulkan vkCreateGraphicsPipelines: %d", {DATA_TYPE_INT32, (int32 *) &result});
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return NULL;
     }
@@ -397,7 +397,7 @@ void gpuapi_descriptor_set_layout_create(
     VkResult result;
     if ((result = vkCreateDescriptorSetLayout(device, &layout_info, NULL, descriptor_set_layout)) != VK_SUCCESS) {
         LOG_1("Vulkan vkCreateDescriptorSetLayout: %d", {DATA_TYPE_INT32, (int32 *) &result});
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
     }
 }
 
@@ -428,7 +428,7 @@ void vulkan_descriptor_pool_create(
     VkResult result;
     if ((result = vkCreateDescriptorPool(device, &poolInfo, NULL, descriptor_pool)) != VK_SUCCESS) {
         LOG_1("Vulkan vkCreateDescriptorPool: %d", {DATA_TYPE_INT32, (int32 *) &result});
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
     }
 }
 
@@ -461,7 +461,7 @@ void vulkan_descriptor_sets_create(
     VkResult result;
     if ((result = vkAllocateDescriptorSets(device, &alloc_info, descriptor_sets)) != VK_SUCCESS) {
         LOG_1("Vulkan vkAllocateDescriptorSets: %d", {DATA_TYPE_INT32, (int32 *) &result});
-        ASSERT_TRUE(false);
+        ASSERT_THROW();
 
         return;
     }

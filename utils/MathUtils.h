@@ -28,7 +28,7 @@ f64 factorial(int32 n) NO_EXCEPT
 inline
 f32 rsqrt_approx(f32 a) NO_EXCEPT
 {
-    ASSERT_TRUE(a >= 0);
+    ASSERT_TRUE(a >= 0.0);
 
     // Initial guess using magic number (Quake III hack)
     f32 x = a;
@@ -47,7 +47,7 @@ f32 rsqrt_approx(f32 a) NO_EXCEPT
 inline
 f64 rsqrt_approx(f64 a) NO_EXCEPT
 {
-    ASSERT_TRUE(a >= 0);
+    ASSERT_TRUE(a >= 0.0);
 
     // Initial guess using magic number (Quake III hack)
     f64 x = a;

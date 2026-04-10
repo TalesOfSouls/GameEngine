@@ -22,6 +22,7 @@
 
 // Gets the size of a struct member
 #define MEMBER_SIZEOF(type, member) (sizeof(((type *)0)->member))
+#define MEMBER_ARRAY_COUNT(type, member) ARRAY_COUNT(((type *)0)->member)
 
 #define MEMORY_OFFSET(a, b) (size_t) ((uintptr_t) a - (uintptr_t) b)
 #define MEMORY_ELEMENT_ZERO(ptr) memset(ptr, 0, sizeof(*ptr))
@@ -32,8 +33,6 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 }
 
 #define ARRAY_COUNT_MEMBER(type, member) array_count_helper(((type*)0)->member)
-// This doesn't always result in CONSTEXPR
-//#define ARRAY_COUNT_MEMBER(type, member) (sizeof(((type *) 0)->member) / sizeof(((type *) 0)->member[0]))
 
 // Math operations
 // Only useful if n is a variable BUT you as programmer know the form of the value
