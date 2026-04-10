@@ -13,10 +13,11 @@
 #include "../memory/PersistentQueueT.h"
 #include "../memory/BufferMemory.h"
 #include "../log/DebugMemory.h"
+#include "../log/PerformanceProfiler.h"
+#include "../log/DebugContainer.h"
 #include "Thread.h"
 #include "Atomic.h"
 #include "ThreadJob.h"
-#include "../log/DebugContainer.h"
 #include "../utils/RandomUtils.h"
 
 enum ThreadPoolState : int16 {

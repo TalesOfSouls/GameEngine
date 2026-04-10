@@ -27,18 +27,16 @@ enum PoolWorkerState : int32 {
  */
 struct PoolWorker {
     // @performance We could reduce the size of id and state down to u16
-    //              However, that wouldn't change the size of the struct due to alignment
-    //              Maybe this will become useful later if we add more members to the struct
+    //              Due to alignments this wouldn't have any effect currently
     atomic_32 uint32 id;
     atomic_32 PoolWorkerState state;
 
     // After running the task it is automatically removed from the thread queue
     bool automatic_release;
 
-    ThreadPoolJobFunc func;
-
-    // Callback for when the job completes
-    ThreadPoolJobFunc callback;
+    // This can be used either to describe the actual size if arg is a string/byte array,
+    // or we can use it to describe the array length if arg is an array
+    int32 arg_size;
 
     // If we have different arg data you must use a wrapper struct that can hold the other data
     // The queue allows to store fixed data larger than PoolWorker by providing the the element size
@@ -46,9 +44,10 @@ struct PoolWorker {
     // thread_pool_add_work() automatically adds sizeof(PoolWorker) + 128 to the queue
     void* arg;
 
-    // This can be used either to describe the actual size if arg is a string/byte array,
-    // or we can use it to describe the array length if arg is an array
-    int32 arg_size;
+    ThreadPoolJobFunc func;
+
+    // Callback for when the job completes
+    ThreadPoolJobFunc callback;
 
     // Pointer to memory to be used by the thread worker
     void* mem;

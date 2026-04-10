@@ -12,6 +12,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
 #include "../thread/ThreadDefines.h"
+#include "../utils/StringUtils.h"
 #include "Log.h"
 
 #ifndef PERFORMANCE_PROFILE_STATS

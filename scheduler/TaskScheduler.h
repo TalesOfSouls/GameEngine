@@ -152,12 +152,14 @@ void thrd_scheduler_run(TaskScheduler* const scheduler, uint64 current_time) NO_
         task->time = current_time;
 
         const PoolWorker job = {
-            0,
-            POOL_WORKER_STATE_WAITING,
-            true,
-            task->task_func,
-            scheduler_cleanup_callback,
-            task
+            0, // .id = 
+            POOL_WORKER_STATE_WAITING, // .state =
+            true, // .atomic_release =
+            0, // .arg_size = 
+            task, // .arg =
+            task->task_func, // .func =
+            scheduler_cleanup_callback, // .callback =
+            NULL // .mem =
         };
         thread_pool_add_work(scheduler->pool, &job);
     }
