@@ -23,7 +23,7 @@
 #include "ThreadJob.h"
 
 FORCE_INLINE
-int32 thread_create(Worker* worker, ThreadJobFunc routine, void* arg) NO_EXCEPT
+int32 thread_create(ThreadWorker* worker, ThreadJobFunc routine, void* arg) NO_EXCEPT
 {
     LOG_1("[INFO] Thread starting");
     STATS_INCREMENT(DEBUG_COUNTER_THREAD);
@@ -32,7 +32,7 @@ int32 thread_create(Worker* worker, ThreadJobFunc routine, void* arg) NO_EXCEPT
 }
 
 FORCE_INLINE
-void thread_stop(Worker* worker) NO_EXCEPT
+void thread_stop(ThreadWorker* worker) NO_EXCEPT
 {
     atomic_set_release(&worker->state, 0);
     coms_pthread_join(worker->thread, NULL);
