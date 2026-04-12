@@ -50,6 +50,8 @@ struct AssetArchiveHeader {
 
 struct AssetArchive {
     AssetArchiveHeader header;
+
+    size_t data_size;
     byte* data; // owner of the data
 
     FileHandle fd;

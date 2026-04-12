@@ -11,11 +11,13 @@
 
 #include "../stdlib/Stdlib.h"
 
-#define IMAGE_SETTING_PIXEL_BGR       0b10000000 // 0 = rgba, 1 = bgra
-#define IMAGE_SETTING_BOTTOM_TO_TOP   0b01000000 // 0 = ttb, 1 = btt
-#define IMAGE_SETTING_COLOR_MODE_SRGB 0b00100000 // 0 = rgb, 1 = srgb
-#define IMAGE_SETTING_CHANNEL_4_SIZE  0b00010000 // 0 = 1 byte, 1 = 4 byte (usually float)
-#define IMAGE_SETTING_CHANNEL_COUNT   0b00001111
+enum ImageSettingType : uint8 {
+    IMAGE_SETTING_PIXEL_BGR = 0b10000000, // 0 = rgba, 1 = bgra
+    IMAGE_SETTING_BOTTOM_TO_TOP = 0b01000000, // 0 = ttb, 1 = btt
+    IMAGE_SETTING_COLOR_MODE_SRGB = 0b00100000, // 0 = rgb, 1 = srgb
+    IMAGE_SETTING_CHANNEL_4_SIZE = 0b00010000, // 0 = 1 byte, 1 = 4 byte (usually float)
+    IMAGE_SETTING_CHANNEL_COUNT = 0b00001111
+};
 
 // This struct also functions as a setting on how to load the image data
 //      has_alpha is defined it forces an alpha channel even for bitmaps
@@ -27,6 +29,8 @@ struct Image {
     uint32 height;
     uint32 pixel_count;
 
+    // ImageSettingType doesn't define the setting but where the setting can be found
+    // To get the actual setting simply image_settings & IMAGE_SETTING_CHANNEL_COUNT
     byte image_settings;
 
     byte* pixels; // owner of data

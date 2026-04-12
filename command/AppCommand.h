@@ -71,13 +71,14 @@ struct CmdTextureBody {
 struct CmdLayoutBody {
     UIThemeStyle* general_theme;
 
-    UILayout* layout;
     wchar_t layout_path[64];
-
-    UIThemeStyle* theme;
     wchar_t theme_path[64];
 
     SceneInfo* scene_info;
+
+    GpuApiType gpu_api_type;
+
+    RingMemory* ring;
 };
 
 // Another name for this concept is event queue and the command below is a generic event

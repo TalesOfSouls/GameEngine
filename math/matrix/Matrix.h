@@ -1543,10 +1543,7 @@ v3_f32 vec3_normal(
         c.z - a.z
     };
 
-    v3_f32 normal = vec3_cross(edge1, edge2);
-    vec3_normalize(&normal);
-
-    return normal;
+    return vec3_cross_normalized(edge1, edge2);
 }
 
 FORCE_INLINE

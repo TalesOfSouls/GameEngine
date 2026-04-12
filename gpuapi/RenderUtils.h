@@ -130,7 +130,7 @@ int32 vertex_line_create(
     return idx;
 }
 
-inline
+inline HOT_CODE
 int32 vertex_rect_create(
     Vertex3DSamplerTextureColor* const vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
@@ -227,9 +227,9 @@ int32 vertex_arc_create(
     f32 zindex, int32 sampler,
     v4_f32 dimension,
     byte alignment,
-    int32 segments,              // number of subdivisions (should be >= 3)
-    f32 start_angle,             // radians — where the arc starts
-    f32 arc_angle,               // radians — how wide the arc is (e.g. OMS_PI_F32 for semicircle)
+    int32 segments,  // number of subdivisions (should be >= 3)
+    f32 start_angle, // radians where the arc starts
+    f32 arc_angle,   // radians how wide the arc is (e.g. OMS_PI_F32 for semicircle)
     uint32 rgba = 0, v2_f32 tex_center = {}, v2_f32 tex_edge = {}
 ) NO_EXCEPT
 {
@@ -276,84 +276,6 @@ int32 vertex_arc_create(
     return idx;
 }
 
-/* Currently not used since we work with int offsets. We might reactivate this
-static
-v2_f32 text_calculate_dimensions(
-    const Glyph** const glyphs, int32 length, f32 line_height, f32 scale
-) NO_EXCEPT
-{
-    line_height = line_height * scale;
-    f32 x = 0;
-    f32 y = line_height;
-
-    f32 offset_x = 0;
-
-    for (int32 i = 0; i < length; ++i) {
-        if (!glyphs[i] || glyphs[i]->codepoint == '\n') {
-            x = max_branched(x, offset_x);
-            y += line_height;
-
-            offset_x = 0;
-
-            continue;
-        }
-
-        offset_x += (glyphs[i]->metrics.width + glyphs[i]->metrics.offset_x + glyphs[i]->metrics.advance_x) * scale;
-    }
-
-    return { max_branched(x, offset_x), y };
-}
-
-static
-f32 text_calculate_dimensions_width(
-    const Glyph** const glyphs, int32 length, f32 scale
-) NO_EXCEPT
-{
-    f32 x = 0;
-    f32 offset_x = 0;
-
-    for (int32 i = 0; i < length; ++i) {
-        if (!glyphs[i] || glyphs[i]->codepoint == '\n') {
-            x = max_branched(x, offset_x);
-            offset_x = 0;
-
-            continue;
-        }
-
-        offset_x += (glyphs[i]->metrics.width + glyphs[i]->metrics.offset_x + glyphs[i]->metrics.advance_x) * scale;
-    }
-
-    return max_branched(x, offset_x);
-}
-
-static
-f32 text_calculate_dimensions_height(
-    const Glyph** const glyphs, int32 length, f32 line_height, f32 scale
-) NO_EXCEPT
-{
-    line_height = line_height * scale;
-    //f32 x = 0;
-    f32 y = line_height;
-
-    //f32 offset_x = 0;
-
-    for (int32 i = 0; i < length; ++i) {
-        if (!glyphs[i] || glyphs[i]->codepoint == '\n') {
-            //x = max_branched(x, offset_x);
-            y += line_height;
-
-            //offset_x = 0;
-
-            //continue;
-        }
-
-        //offset_x += (glyphs[i]->metrics.width + glyphs[i]->metrics.offset_x + glyphs[i]->metrics.advance_x) * scale;
-    }
-
-    return y;
-    //return { max_branched(x, offset_x), y };
-}*/
-
 static
 v2_f32 text_calculate_dimensions(
     const FontSystem* const __restrict font, const int16* const glyphs, int32 length, f32 scale
@@ -365,10 +287,13 @@ v2_f32 text_calculate_dimensions(
 
     f32 offset_x = 0;
 
+    const Glyph* const base_glyphs = font->base.glyphs;
+    const Glyph* const extended_glyphs = font->base.glyphs;
+
     for (int32 i = 0; i < length; ++i) {
         const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &font->base.glyphs[glyphs[i] & 0x7FFFu]
-            : &font->extended.glyphs[glyphs[i] & 0x7FFFu];
+            ? &base_glyphs[glyphs[i] & 0x7FFFu]
+            : &extended_glyphs[glyphs[i] & 0x7FFFu];
 
         if (!glyph || glyph->codepoint == '\n') {
             x = max_branched(x, offset_x);
@@ -393,10 +318,13 @@ f32 text_calculate_dimensions_width(
     f32 x = 0;
     f32 offset_x = 0;
 
+    const Glyph* const base_glyphs = font->base.glyphs;
+    const Glyph* const extended_glyphs = font->base.glyphs;
+
     for (int32 i = 0; i < length; ++i) {
         const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &font->base.glyphs[glyphs[i] & 0x7FFFu]
-            : &font->extended.glyphs[glyphs[i] & 0x7FFFu];
+            ? &base_glyphs[glyphs[i] & 0x7FFFu]
+            : &extended_glyphs[glyphs[i] & 0x7FFFu];
 
         if (!glyph || glyph->codepoint == '\n') {
             x = max_branched(x, offset_x);
@@ -422,10 +350,13 @@ f32 text_calculate_dimensions_height(
 
     //f32 offset_x = 0;
 
+    const Glyph* const base_glyphs = font->base.glyphs;
+    const Glyph* const extended_glyphs = font->base.glyphs;
+
     for (int32 i = 0; i < length; ++i) {
         const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &font->base.glyphs[glyphs[i] & 0x7FFFu]
-            : &font->extended.glyphs[glyphs[i] & 0x7FFFu];
+            ? &base_glyphs[glyphs[i] & 0x7FFFu]
+            : &extended_glyphs[glyphs[i] & 0x7FFFu];
 
         if (!glyph || glyph->codepoint == '\n') {
             //x = max_branched(x, offset_x);
@@ -443,7 +374,7 @@ f32 text_calculate_dimensions_height(
     //return { max_branched(x, offset_x), y };
 }
 
-static
+static HOT_CODE
 v3_int32 vertex_text_create(
     Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
@@ -481,12 +412,15 @@ v3_int32 vertex_text_create(
     f32 rendered_height = line_height_scaled;
 
     int32 idx = 0;
-
     f32 offset_x = dimension.x;
+
+    const Glyph* const base_glyphs = font->base.glyphs;
+    const Glyph* const extended_glyphs = font->base.glyphs;
+
     for (int32 i = 0; i < length; ++i) {
         const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &font->base.glyphs[glyphs[i] & 0x7FFFu]
-            : &font->extended.glyphs[glyphs[i] & 0x7FFFu];
+            ? &base_glyphs[glyphs[i] & 0x7FFFu]
+            : &extended_glyphs[glyphs[i] & 0x7FFFu];
 
         if (!glyph || glyph->codepoint == '\n') {
             rendered_height += line_height_scaled;
@@ -498,8 +432,8 @@ v3_int32 vertex_text_create(
             continue;
         }
 
-        const GlyphMetrics* metrics = &glyph->metrics;
-        const GlyphVertex* glyph_vertices = glyph->vertices;
+        const GlyphMetrics* const metrics = &glyph->metrics;
+        const GlyphVertex* const glyph_vertices = glyph->vertices;
 
         const f32 offset_y = dimension.y + metrics->offset_y * scale;
         offset_x += metrics->offset_x * scale;
@@ -550,6 +484,7 @@ v3_int32 vertex_text_create(
 }
 
 // @todo It is stupid that we effectively have the same function twice and the only difference is how we calculate int32 character
+HOT_CODE
 v3_int32 vertex_text_create(
     Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
@@ -567,7 +502,7 @@ v3_int32 vertex_text_create(
 
     // We use offsets instead of pointer chasing
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* glyphs = (int16*) ring_memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
+    int16* const glyphs = (int16*) ring_memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
     for (int32 i = 0; i < length; ++i) {
         const int32 character = text[i];
         if (character == '\n') {
@@ -618,6 +553,7 @@ v3_int32 vertex_text_create(
     );
 }
 
+HOT_CODE
 v3_int32 vertex_text_create(
     Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
@@ -637,7 +573,7 @@ v3_int32 vertex_text_create(
 
     // We use offsets instead of pointer chasing
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* glyphs = (int16*) ring_memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
+    int16* const glyphs = (int16*) ring_memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
     for (int32 i = 0; i < length; ++i) {
         const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {

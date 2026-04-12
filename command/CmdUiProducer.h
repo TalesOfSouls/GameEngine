@@ -19,10 +19,12 @@
 inline
 void thrd_cmd_ui_load(
     ChunkMemoryT<AppCommand>* const cb,
-    UILayout* const __restrict layout, const wchar_t* const __restrict layout_path,
+    const wchar_t* const __restrict layout_path,
+    const wchar_t* const __restrict theme_path,
     UIThemeStyle* const __restrict general_theme,
-    UIThemeStyle* const __restrict theme, const wchar_t* const __restrict theme_path,
     SceneInfo* const scene_info,
+    GpuApiType gpu_api_type,
+    RingMemory* const ring,
     AppCommandFunction callback
 ) NO_EXCEPT
 {
@@ -30,15 +32,14 @@ void thrd_cmd_ui_load(
     cmd.type = CMD_UI_LOAD;
     cmd.callback = callback;
 
-    cmd.layout_body.layout = layout;
     wcscpy(cmd.layout_body.layout_path, layout_path);
-
-    cmd.layout_body.theme = theme;
     wcscpy(cmd.layout_body.theme_path, theme_path);
 
     cmd.layout_body.general_theme = general_theme;
 
     cmd.layout_body.scene_info = scene_info;
+    cmd.layout_body.gpu_api_type = gpu_api_type;
+    cmd.layout_body.ring = ring;
 
     thrd_cmd_insert(cb, &cmd);
 }

@@ -111,9 +111,9 @@ UILayout* cmd_ui_load(
 {
     return cmd_ui_load_sync(
         ring,
-        cmd->layout_body.layout, cmd->layout_body.layout_path,
+        &cmd->layout_body.scene_info->ui_layout, cmd->layout_body.layout_path,
         cmd->layout_body.general_theme,
-        cmd->layout_body.theme, cmd->layout_body.theme_path,
+        &cmd->layout_body.scene_info->ui_theme, cmd->layout_body.theme_path,
         camera
     );
 }

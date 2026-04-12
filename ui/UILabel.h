@@ -19,6 +19,7 @@ struct UILabel {
     UIAttributeDimension dimension;
     byte opacity; // 1 byte alpha channel
     UIAttributeFont font;
+    int32 max_content_length;
     wchar_t* content;
 };
 

@@ -161,9 +161,7 @@ int32 utf8_get_char_at(const char* in, int32 index) NO_EXCEPT
         const int32 bytes_consumed = utf8_decode(in, &codepoint);
         if (bytes_consumed < 0) {
             return -1;
-        }
-
-        if (i == index) {
+        } else if (i == index) {
             return codepoint;
         }
 
@@ -227,7 +225,6 @@ void wchar_to_char(wchar_t* str) NO_EXCEPT
             }
         }
     }
-
 
     *dest = '\0';
 }
@@ -1865,6 +1862,7 @@ void str_move_to(const wchar_t** str, wchar_t delim) NO_EXCEPT
 
     const size_t wchar_t_bits = sizeof(wchar_t) * 8;
     size_t delim_mask = 0;
+
     for (size_t i = 0; i < sizeof(size_t) / sizeof(wchar_t); ++i) {
         delim_mask |= (size_t)delim << (i * wchar_t_bits);
     }

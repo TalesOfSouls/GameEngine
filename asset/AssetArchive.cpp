@@ -28,7 +28,8 @@
 #include "Asset.h"
 #include "AssetArchive.h"
 
-// Calculates how large the header memory has to be to hold all its information
+// Calculates how much data I have to read from the archive file to completely parse the header
+// This includes all the data itself
 static inline
 int32 asset_archive_header_size(
     const AssetArchive* const __restrict archive,
@@ -43,8 +44,6 @@ int32 asset_archive_header_size(
     int32 asset_dependency_count;
     read_le(data, &asset_dependency_count);
 
-    //data += sizeof(archive->header.asset_dependency_count);
-
     ASSERT_TRUE(asset_count + asset_dependency_count < 100000);
 
     return sizeof(archive->header.version)
@@ -54,9 +53,42 @@ int32 asset_archive_header_size(
         + asset_dependency_count * sizeof(int32);
 }
 
+// Calculates how much data I have to read from the archive file to completely parse the header
+inline
+void asset_archive_info_size(
+    const wchar_t* path,
+    AssetArchiveHeader* const __restrict header
+) NO_EXCEPT
+{
+    FileHandle fd = file_read_handle(path);
+    if (!fd) {
+        return;
+    }
+
+    const CONSTEXPR size_t header_info_size = sizeof(AssetArchiveHeader)
+        + MEMBER_SIZEOF(AssetArchiveHeader, version)
+        + MEMBER_SIZEOF(AssetArchiveHeader, asset_count)
+        + MEMBER_SIZEOF(AssetArchiveHeader, asset_dependency_count);
+
+    byte temp_buffer[header_info_size];
+
+    FileBody file = {0};
+
+    // We only want to read the header at first
+    file.size = header_info_size;
+    file.content = temp_buffer;
+    file_read(fd, &file, 0, file.size);
+
+    const byte* data = file.content;
+    data = read_le(data, &header->version);
+    data = read_le(data, &header->asset_count);
+    data = read_le(data, &header->asset_dependency_count);
+}
+
 static inline
 void asset_archive_header_load(
     AssetArchiveHeader* const __restrict header,
+    size_t header_size,
     const byte* __restrict data,
     MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
@@ -64,6 +96,12 @@ void asset_archive_header_load(
     data = read_le(data, &header->version);
     data = read_le(data, &header->asset_count);
     data = read_le(data, &header->asset_dependency_count);
+
+    ASSERT_TRUE(
+        header->asset_count * sizeof(AssetArchiveElement)
+        + header->asset_dependency_count * sizeof(int32)
+        <= header_size
+    );
 
     memcpy(header->asset_element, data, header->asset_count * sizeof(AssetArchiveElement));
     data += header->asset_count * sizeof(AssetArchiveElement);
@@ -77,7 +115,10 @@ void asset_archive_header_load(
     PSEUDO_USE(steps);
 
     if (header->asset_dependency_count) {
-        header->asset_dependencies = (int32 *) ((byte *) header->asset_element + header->asset_count * sizeof(AssetArchiveElement));
+        header->asset_dependencies = (int32 *) (
+            (byte *) header->asset_element
+            + header->asset_count * sizeof(AssetArchiveElement)
+        );
     }
 
     memcpy(header->asset_dependencies, data, header->asset_dependency_count * sizeof(int32));
@@ -126,6 +167,7 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
 
 // Asset archives files remain open from the _load() function
 // They need to be explicitly closed when no longer needed.
+inline
 void asset_archive_close(AssetArchive* archive) {
     file_close_handle(archive->fd);
     file_close_handle(archive->fd_async);
@@ -157,7 +199,10 @@ void asset_archive_load(
     FileBody file = {0};
 
     // We only want to read the header at first
-    file.size = sizeof(AssetArchiveHeader);
+    file.size = sizeof(AssetArchiveHeader)
+        + MEMBER_SIZEOF(AssetArchiveHeader, version)
+        + MEMBER_SIZEOF(AssetArchiveHeader, asset_count)
+        + MEMBER_SIZEOF(AssetArchiveHeader, asset_dependency_count);
 
     // Find header size
     file.content = ring_memory_get(ring, file.size, sizeof(size_t));
@@ -174,7 +219,7 @@ void asset_archive_load(
     // Read entire header
     file.content = ring_memory_get(ring, file.size, sizeof(size_t));
     file_read(archive->fd, &file, 0, file.size);
-    asset_archive_header_load(&archive->header, file.content, steps);
+    asset_archive_header_load(&archive->header, archive->data_size, file.content, steps);
 
     LOG_1(
         "[INFO] Loaded AssetArchive %s with %d assets",
