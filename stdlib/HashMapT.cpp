@@ -10,6 +10,7 @@
 #define COMS_STDLIB_HASH_MAPT_C
 
 #include "HashMap.cpp"
+#include "HashMapT.h"
 #include "../memory/ChunkMemoryT.h"
 
 template <typename T>
@@ -77,7 +78,7 @@ T* hashmap_insert(HashMapT<T>* const __restrict hm, const char* __restrict key, 
 
     // Ensure key length
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
-    str_copy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
@@ -114,7 +115,7 @@ T* hashmap_reserve(HashMapT<T>* const __restrict hm, const char* __restrict key)
 
     // Ensure key length
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
-    str_copy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->next = 0;
@@ -157,7 +158,7 @@ T* hashmap_get_reserve(HashMapT<T>* const __restrict hm, const char* __restrict 
     entry = (T *) chunk_get_element(&hm->buf, new_index);
     entry->value = (byte *) entry + sizeof(T);
 
-    str_copy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     return entry;

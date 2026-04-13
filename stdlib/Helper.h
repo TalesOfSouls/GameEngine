@@ -13,10 +13,6 @@
 #include "Types.h"
 #include "../compiler/CompilerUtils.h"
 
-/**
- * @question Consider to pull out some of the helper sections (e.g. create MathHelper.h, TemplateHelper)
- */
-
 // Counts the elements in an array IFF its size is defined at compile time
 #define ARRAY_COUNT(a) ((a) == NULL ? 0 : (sizeof(a) / sizeof((a)[0])))
 

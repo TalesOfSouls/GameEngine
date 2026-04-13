@@ -1,6 +1,6 @@
 #include "../TestFramework.h"
-#include "../../stdlib/HashMap.h"
-#include "../../stdlib/HashMapT.h"
+#include "../../stdlib/HashMap.cpp"
+#include "../../stdlib/HashMapT.cpp"
 
 static void test_hashmap_alloc() {
     HashMap hm = {0};
@@ -69,7 +69,7 @@ static void test_hashmap_remove() {
 
 static void test_hashmap_dump_load() {
     RingMemory ring;
-    ring_alloc(&ring, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
+    ring_alloc(&ring, 10 * MEGABYTE, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
     HashMap hm_dump = {0};
     hashmap_alloc(&hm_dump, 3, 3, sizeof(HashEntryInt32));
@@ -137,7 +137,7 @@ HashEntryStd* open_test_insert(HashMapStd* map, const char* key, int32 value) {
         HashEntryStd* entry = &map->entries[probe];
 
         if (entry->used == 0 || entry->used == -1) {
-            str_copy(entry->key, key, MAX_TEST_KEY_LENGTH - 1);
+            strncpy(entry->key, key, MAX_TEST_KEY_LENGTH - 1);
             entry->key[MAX_TEST_KEY_LENGTH - 1] = '\0';
             entry->value = value;
             entry->used = 1;
@@ -272,7 +272,7 @@ ChainTestNode* chain_test_insert(ChainTestMap* map, const char* key, int32 value
     ChainTestNode* new_node = chain_test_allocate_node(map);
     if (!new_node) return NULL; // Pool exhausted
 
-    str_copy(new_node->key, key, MAX_TEST_KEY_LENGTH - 1);
+    strncpy(new_node->key, key, MAX_TEST_KEY_LENGTH - 1);
     new_node->key[MAX_TEST_KEY_LENGTH - 1] = '\0';
     new_node->value = value;
     new_node->next = map->buckets[index];

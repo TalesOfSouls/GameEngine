@@ -212,14 +212,12 @@ static void test_asset_archive() {
     // 2. Load asset archive file
     /////////////////////////////////////////////////
 
-    BufferMemory buf;
-    buffer_alloc(&buf, 16 * MEGABYTE, 16 * MEGABYTE);
-
     RingMemory ring;
     ring_alloc(&ring, 16 * MEGABYTE, 16 * MEGABYTE);
 
     AssetArchive archive;
-    asset_archive_load(&archive, L"temp.asset", &buf, &ring);
+    archive.data = ring_memory_get(&ring, 8 * MEGABYTE);
+    asset_archive_load(&archive, L"temp.asset", &ring);
 
     /////////////////////////////////////////////////
     // 3. Test asset archive file
@@ -236,7 +234,6 @@ static void test_asset_archive() {
 
     // Cleanup
     ring_free(&ring);
-    buffer_free(&buf);
     file_delete(L"temp.asset");
 }
 

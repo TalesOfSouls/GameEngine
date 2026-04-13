@@ -157,7 +157,7 @@ inline double test_duration_time(int64_t start)
         QueryPerformanceFrequency(&_test_performance_frequency);
     }
 
-    return (double)(test_start_time() - start) / frequency.QuadPart;
+    return (double)(test_start_time() - start) / _test_performance_frequency.QuadPart;
 }
 
 inline double test_measure_func_time_ns(
@@ -177,7 +177,7 @@ inline double test_measure_func_time_ns(
     }
 
     QueryPerformanceCounter(&end);
-    return (double)(end.QuadPart - start.QuadPart) * 1e9 / frequency.QuadPart;
+    return (double)(end.QuadPart - start.QuadPart) * 1e9 / _test_performance_frequency.QuadPart;
 }
 
 inline void TEST_INIT(int test_count)

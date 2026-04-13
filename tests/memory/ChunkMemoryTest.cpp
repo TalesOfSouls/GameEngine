@@ -3,7 +3,7 @@
 
 static void test_chunk_alloc() {
     ChunkMemory mem = {0};
-    chunk_alloc(&mem, 10, 10);
+    chunk_alloc(&mem, 10, 10, 10);
 
     TEST_TRUE(memcmp(mem.memory, mem.memory + 1, 10 * 10) == 0);
     TEST_EQUALS(*mem.free, 0);
@@ -15,7 +15,7 @@ static void test_chunk_alloc() {
 
 static void test_chunk_id_from_memory() {
     ChunkMemory mem = {0};
-    chunk_alloc(&mem, 10, 10);
+    chunk_alloc(&mem, 10, 10, 10);
 
     TEST_EQUALS(chunk_id_from_memory(mem.memory, mem.memory, mem.chunk_size), 0);
     TEST_EQUALS(chunk_id_from_memory(mem.memory, mem.memory + 16, mem.chunk_size), 1);
@@ -28,7 +28,7 @@ static void test_chunk_id_from_memory() {
 
 static void test_chunk_get_element() {
     ChunkMemory mem = {0};
-    chunk_alloc(&mem, 10, 10);
+    chunk_alloc(&mem, 10, 10, 10);
 
     TEST_EQUALS(chunk_get_element(&mem, 2), mem.memory + 32);
 
@@ -37,7 +37,7 @@ static void test_chunk_get_element() {
 
 static void test_chunk_reserve_one() {
     ChunkMemory mem = {0};
-    chunk_alloc(&mem, 10, 10);
+    chunk_alloc(&mem, 10, 10, 10);
 
     TEST_EQUALS(chunk_reserve_one(&mem), 0);
     TEST_EQUALS(chunk_reserve_one(&mem), 1);
@@ -49,7 +49,7 @@ static void test_chunk_reserve_one() {
 
 static void test_chunk_reserve() {
     ChunkMemory mem = {0};
-    chunk_alloc(&mem, 10, 10);
+    chunk_alloc(&mem, 10, 10, 10);
 
     TEST_EQUALS(chunk_reserve(&mem, 1), 0);
     TEST_EQUALS(chunk_reserve(&mem, 1), 1);
@@ -66,7 +66,7 @@ static void test_chunk_reserve() {
 
 static void test_chunk_free_elements() {
     ChunkMemory mem = {0};
-    chunk_alloc(&mem, 10, 10);
+    chunk_alloc(&mem, 10, 10, 10);
 
     TEST_EQUALS(chunk_reserve(&mem, 3), 0);
 
@@ -87,7 +87,7 @@ static void test_chunk_free_elements() {
 // To ensure there is no logical error we test memory wrapping specifically
 static void test_chunk_reserve_wrapping() {
     ChunkMemory mem = {0};
-    chunk_alloc(&mem, 10, 10);
+    chunk_alloc(&mem, 10, 10, 10);
 
     mem.last_pos = 7;
     TEST_EQUALS(chunk_reserve(&mem, 5), 0);
@@ -99,7 +99,7 @@ static void test_chunk_reserve_wrapping() {
 // To ensure there is no logical error we test the last element specifically
 static void test_chunk_reserve_last_element() {
     ChunkMemory mem = {0};
-    chunk_alloc(&mem, 10, 10);
+    chunk_alloc(&mem, 10, 10, 10);
 
     // Get last element when the last_pos is the previous element
     mem.last_pos = 8;
@@ -115,7 +115,7 @@ static void test_chunk_reserve_last_element() {
 
 static void test_chunk_dump_load() {
     ChunkMemory mem = {0};
-    chunk_alloc(&mem, 10, 10);
+    chunk_alloc(&mem, 10, 10, 10);
 
     uint32* a = (uint32 *) chunk_get_element(&mem, chunk_reserve_one(&mem));
     uint32* b = (uint32 *) chunk_get_element(&mem, chunk_reserve_one(&mem));
@@ -127,7 +127,7 @@ static void test_chunk_dump_load() {
     chunk_dump(&mem, test_out);
 
     ChunkMemory mem2 = {0};
-    chunk_alloc(&mem2, 10, 10);
+    chunk_alloc(&mem2, 10, 10, 10);
     chunk_load(&mem2, test_out);
 
     const uint32* c = (uint32 *) chunk_get_element(&mem2, 0);
@@ -144,7 +144,7 @@ static void test_chunk_dump_load() {
 #if !DEBUG
     static void test_chunk_reserve_full() {
         ChunkMemory mem = {0};
-        chunk_alloc(&mem, 10, 10);
+        chunk_alloc(&mem, 10, 10, 10);
         mem.free[0] = 0xFFFFFFFFFFFFFFFF;
 
         TEST_EQUALS(chunk_reserve(&mem, 1), -1);
@@ -152,7 +152,7 @@ static void test_chunk_dump_load() {
 
     static void test_chunk_reserve_invalid_size() {
         ChunkMemory mem = {0};
-        chunk_alloc(&mem, 10, 10);
+        chunk_alloc(&mem, 10, 10, 10);
 
         TEST_EQUALS(chunk_reserve(&mem, 11), -1);
 

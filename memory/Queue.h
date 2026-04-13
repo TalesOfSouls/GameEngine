@@ -11,6 +11,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../utils/Utils.h"
+#include "../thread/Atomic.h"
 #include "RingMemory.cpp"
 #include "BufferMemory.h"
 
@@ -214,7 +215,7 @@ void queue_free(Queue* const queue, MemoryArena* mem) NO_EXCEPT
 inline
 void thrd_queue_free(Queue* const queue, MemoryArena* mem)
 {
-    queue_free(queue);
+    queue_free(queue, mem);
     thrd_queue_locks_free(queue);
 }
 
@@ -227,7 +228,7 @@ bool queue_is_empty(const Queue* const queue) NO_EXCEPT
 FORCE_INLINE
 bool queue_is_empty_atomic(const Queue* const queue) NO_EXCEPT
 {
-    return atomic_get_relaxed(&queue->head) == atomic_get_relaxed(&queue->tail);
+    return atomic_get_relaxed((void **) &queue->head) == atomic_get_relaxed((void **) &queue->tail);
 }
 
 FORCE_INLINE
@@ -246,19 +247,13 @@ void queue_set_empty(Queue* const queue) NO_EXCEPT
 FORCE_INLINE
 void queue_set_empty_atomic(Queue* const queue) NO_EXCEPT
 {
-    atomic_set_relaxed(&queue->head, queue->tail);
+    atomic_set_relaxed((void **) &queue->head, (void *) queue->tail);
 }
 
 static inline
 bool queue_has_space(Queue* const queue) NO_EXCEPT
 {
     return ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment);
-}
-
-static inline
-bool queue_has_space_atomic(Queue* const queue) NO_EXCEPT
-{
-    return ring_commit_safe_atomic((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 
 FORCE_INLINE
@@ -271,13 +266,7 @@ inline
 bool thrd_queue_is_full(Queue* queue) NO_EXCEPT
 {
     MutexGuard _guard(&queue->mtx);
-    return !queue_has_space();
-}
-
-FORCE_INLINE
-bool queue_is_full_atomic(Queue* const queue) NO_EXCEPT
-{
-    return !queue_has_space_atomic(queue);
+    return !queue_has_space(queue);
 }
 
 inline
@@ -297,15 +286,6 @@ void thrd_queue_enqueue(Queue* __restrict queue, const byte* __restrict data) NO
     queue_enqueue(queue, data);
 
     coms_pthread_cond_signal(&queue->cond);
-}
-
-inline
-byte* queue_enqueue_atomic(Queue* const __restrict queue, const byte* __restrict data) NO_EXCEPT
-{
-    byte* mem = ring_memory_get_atomic((RingMemory *) queue, queue->element_size, queue->alignment);
-    memcpy(mem, data, queue->element_size);
-
-    return mem;
 }
 
 inline
@@ -341,7 +321,7 @@ void queue_enqueue_unique(Queue* const queue, const byte* data) NO_EXCEPT
         ring_move_pointer((RingMemory *) queue, &tail, queue->element_size, queue->alignment);
     }
 
-    if (!queue_has_space((RingMemory *) queue, queue->element_size, queue->alignment)) {
+    if (!queue_has_space(queue)) {
         return;
     }
 
@@ -380,7 +360,7 @@ void thrd_queue_enqueue_unique_wait(Queue* __restrict queue, const byte* __restr
         ring_move_pointer((RingMemory *) queue, &tail, queue->element_size, queue->alignment);
     }
 
-    while (!queue_has_space((RingMemory *) queue)) {
+    while (!queue_has_space(queue)) {
         coms_pthread_cond_wait(&queue->cond, &queue->mtx);
     }
 
@@ -482,7 +462,7 @@ void thrd_queue_enqueue_end_wait(Queue* queue) NO_EXCEPT
     queue_enqueue_end(queue);
 
     coms_pthread_cond_signal(&queue->cond);
-    muted_unlock(&queue->mtx);
+    mutex_unlock(&queue->mtx);
 }
 
 FORCE_INLINE

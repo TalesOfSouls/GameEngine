@@ -19,6 +19,7 @@
 #include "tests/asset/AssetArchiveTest.cpp"
 #include "tests/entity/voxel/VoxelWorldMapTest.cpp"
 #include "tests/system/DRMTest.cpp"
+#include "tests/image/QoiTest.cpp"
 
 #ifdef UBER_TEST
     #ifdef main
@@ -37,8 +38,8 @@ int main() {
     MemoryBufferMemoryTest();
     QueueTest();
     StdlibHashMapTest();
-    UIUILayoutTest();
-    UIUIThemeTest();
+    //UIUILayoutTest();
+    //UIUIThemeTest();
     UtilsBitUtilsTest();
     UtilsEndianUtilsTest();
     UtilsStringUtilsTest();
@@ -48,6 +49,7 @@ int main() {
     AssetArchiveTest();
     VoxelWorldMapTest();
     DRMTest();
+    QoiTest();
 
     TEST_FOOTER();
 

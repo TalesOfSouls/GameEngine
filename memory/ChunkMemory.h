@@ -451,6 +451,12 @@ uint32 chunk_id_from_memory(uintptr_t memory, uintptr_t pos, size_t chunk_size) 
     return (uint32) ((pos - memory) / chunk_size);
 }
 
+FORCE_INLINE
+uint32 chunk_id_from_memory(void* memory, void* pos, size_t chunk_size) NO_EXCEPT
+{
+    return (uint32) (((uintptr_t)pos - (uintptr_t)memory) / chunk_size);
+}
+
 inline
 void thrd_chunk_set_unset_atomic(uint32 element, uint_max* state) NO_EXCEPT
 {

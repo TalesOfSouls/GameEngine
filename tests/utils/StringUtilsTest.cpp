@@ -57,26 +57,26 @@ static void test_str_is_integer()
 
 static void test_str_is_alpha()
 {
-    TEST_FALSE(str_is_alpha('2'));
-    TEST_TRUE(str_is_alpha('s'));
-    TEST_TRUE(str_is_alpha('D'));
-    TEST_FALSE(str_is_alpha('-'));
+    TEST_FALSE(__internal_isalpha('2'));
+    TEST_TRUE(__internal_isalpha('s'));
+    TEST_TRUE(__internal_isalpha('D'));
+    TEST_FALSE(__internal_isalpha('-'));
 }
 
 static void test_str_is_num()
 {
-    TEST_TRUE(str_is_num('2'));
-    TEST_FALSE(str_is_num('s'));
-    TEST_FALSE(str_is_num('D'));
-    TEST_FALSE(str_is_num('-'));
+    TEST_TRUE(__internal_isdigit('2'));
+    TEST_FALSE(__internal_isdigit('s'));
+    TEST_FALSE(__internal_isdigit('D'));
+    TEST_FALSE(__internal_isdigit('-'));
 }
 
 static void test_str_is_alphanum()
 {
-    TEST_TRUE(str_is_alphanum('2'));
-    TEST_TRUE(str_is_alphanum('s'));
-    TEST_TRUE(str_is_alphanum('D'));
-    TEST_FALSE(str_is_alphanum('-'));
+    TEST_TRUE(__internal_isalnum('2'));
+    TEST_TRUE(__internal_isalnum('s'));
+    TEST_TRUE(__internal_isalnum('D'));
+    TEST_FALSE(__internal_isalnum('-'));
 }
 
 static void test_str_move_past()
@@ -124,7 +124,7 @@ static void test_strlen()
 
 static void test_str_length_wchar()
 {
-    TEST_EQUALS(strlen(L"2asdf dw"), 8);
+    TEST_EQUALS(wcslen(L"2asdf dw"), 8);
 }
 
 static void test_str_contains()
@@ -164,13 +164,13 @@ static void test_str_contains_wchar()
 static void test_strcmp()
 {
     TEST_EQUALS(strcmp("2asdf dw", "2asdf dw"), 0);
-    TEST_NOT_EQUALS(strcmp("2asdf dw", "2asdf"), 0);
+    TEST_NOT_EQUALS(__internal_strcmp("2asdf dw", "2asdf"), 0);
 }
 
 static void test_strcmp_wchar()
 {
-    TEST_EQUALS(strcmp(L"2asdf dw", L"2asdf dw"), 0);
-    TEST_NOT_EQUALS(strcmp(L"2asdf dw", L"2asdf"), 0);
+    TEST_EQUALS(wcscmp(L"2asdf dw", L"2asdf dw"), 0);
+    TEST_NOT_EQUALS(__internal_wcscmp(L"2asdf dw", L"2asdf"), 0);
 }
 
 #if PERFORMANCE_TEST
@@ -184,19 +184,19 @@ static void _strlen(volatile void* val) {
     *res += (int64) strlen(buffer);
 }
 
-static void _strlen(volatile void* val) {
+static void _strlen_internal(volatile void* val) {
     volatile int64* res = (volatile int64 *) val;
 
     char buffer[32];
     memcpy(buffer, "This %d is a %s with %f values", sizeof("This %d is a %s with %f values"));
     buffer[30] = (byte) *res;
 
-    *res += (int64) strlen(buffer);
+    *res += (int64) __internal_strlen(buffer);
 }
 
 static void test_str_length_performance() {
-    COMPARE_FUNCTION_TEST_TIME(_str_length, _strlen, 5.0);
-    COMPARE_FUNCTION_TEST_CYCLE(_str_length, _strlen, 5.0);
+    COMPARE_FUNCTION_TEST_TIME(_strlen_internal, _strlen, 5.0);
+    COMPARE_FUNCTION_TEST_CYCLE(_strlen_internal, _strlen, 5.0);
 }
 #endif
 
@@ -207,7 +207,7 @@ static void _str_is_alphanum(volatile void* val) {
 
     int32 a = 0;
     for (int32 i = 0; i < 1000; ++i) {
-        a += str_is_alphanum((byte) rand());
+        a += __internal_isalnum((char) rand());
     }
 
     *res |= (bool) a;
@@ -219,7 +219,7 @@ static void _isalnum(volatile void* val) {
 
     int32 a = 0;
     for (int32 i = 0; i < 1000; ++i) {
-        a += isalnum((byte) rand());
+        a += isalnum((char) rand());
     }
 
     *res |= (bool) a;
@@ -280,7 +280,7 @@ int main() {
 
     TEST_RUN(test_utf8_encode);
     TEST_RUN(test_utf8_decode);
-    TEST_RUN(test_utf8_str_length);
+    TEST_RUN(test_utf8_strlen);
     TEST_RUN(test_str_is_float);
     TEST_RUN(test_str_is_integer);
     TEST_RUN(test_sprintf_fast);
@@ -291,7 +291,7 @@ int main() {
     TEST_RUN(test_str_move_past);
     TEST_RUN(test_str_move_to);
     TEST_RUN(test_str_move_to_pos);
-    TEST_RUN(test_str_length);
+    TEST_RUN(test_strlen);
     TEST_RUN(test_str_contains);
     TEST_RUN(test_strcmp);
     TEST_RUN(test_str_is_empty);
