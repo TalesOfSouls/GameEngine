@@ -54,7 +54,8 @@ static void test_qoi() {
 
     TEST_TRUE(memcmp(image2.pixels, rgba, sizeof(rgba)) == 0);
 
-        for (int i = 0; i < sizeof(rgba); i++) {
+    /*
+    for (int i = 0; i < sizeof(rgba); i++) {
         if (i % 12 == 0) {
             printf("\n");
         }
@@ -75,6 +76,7 @@ static void test_qoi() {
         printf("%02X ", (unsigned int) rgba[i]);
     }
     printf("\n");
+    */
 }
 
 #ifdef UBER_TEST
