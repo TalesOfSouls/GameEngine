@@ -21,7 +21,7 @@ static void test_qoi() {
         0x00, 0xFF, 0x00, 0xFF,
         0x00, 0x00, 0xFF, 0xFF,
 
-        0x00, 0x00, 0x00, 0x00,
+        0xFF, 0xFF, 0xFF, 0x00,
         0x00, 0x00, 0x00, 0xFF,
         0xFF, 0xFF, 0xFF, 0xFF,
 
@@ -30,7 +30,7 @@ static void test_qoi() {
         0xA8, 0x2C, 0xE2, 0xFF
     };
 
-    TEST_TRUE(memcmp(data, rgba, sizeof(rgba)) == 0);
+    TEST_EQUALS(memcmp(data, rgba, sizeof(rgba)), 0);
 
     unsigned char rgba_encoded[128];
     Image image = {
@@ -53,6 +53,28 @@ static void test_qoi() {
     qoi_decode(rgba_encoded, &image2);
 
     TEST_TRUE(memcmp(image2.pixels, rgba, sizeof(rgba)) == 0);
+
+        for (int i = 0; i < sizeof(rgba); i++) {
+        if (i % 12 == 0) {
+            printf("\n");
+        }
+        if (i % 4 == 0) {
+            printf(" - ");
+        }
+        printf("%02X ", (unsigned int) image2.pixels[i]);
+    }
+    printf("\n");
+
+    for (int i = 0; i < sizeof(rgba); i++) {
+        if (i % 12 == 0) {
+            printf("\n");
+        }
+        if (i % 4 == 0) {
+            printf(" - ");
+        }
+        printf("%02X ", (unsigned int) rgba[i]);
+    }
+    printf("\n");
 }
 
 #ifdef UBER_TEST

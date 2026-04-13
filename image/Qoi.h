@@ -204,7 +204,6 @@ int32 qoi_decode_4(const byte* data, Image* image) NO_EXCEPT
 		if (run > 0) {
 			--run;
 		} else {
-            OP_RGBA_GOTO:
 			const byte b1 = *data++;
 
 			if (b1 == QOI_OP_RGB) {
@@ -212,8 +211,10 @@ int32 qoi_decode_4(const byte* data, Image* image) NO_EXCEPT
 				px.g = *data++;
 				px.b = *data++;
             } else if (b1 == QOI_OP_RGBA) {
+				px.r = *data++;
+				px.g = *data++;
+				px.b = *data++;
 				px.a = *data++;
-				goto OP_RGBA_GOTO;
 			} else if ((b1 & QOI_MASK_2) == QOI_OP_LUMA222) {
 				const byte vg = (b1 & 3) - 2;
 				px.r += vg - 2 + ((b1 >> 4) & 3);
