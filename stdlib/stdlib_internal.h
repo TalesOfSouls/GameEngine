@@ -929,13 +929,13 @@ bool __internal_isdigit(char str) NO_EXCEPT
 FORCE_INLINE CONSTEXPR
 bool __internal_isalpha(char str) NO_EXCEPT
 {
-    return STR_IS_ALPHANUM_LOOKUP_TABLE[(byte) str];
+    return STR_IS_ALPHA_LOOKUP_TABLE[(byte) str];
 }
 
 FORCE_INLINE CONSTEXPR
 bool __internal_isalnum(char str) NO_EXCEPT
 {
-    return STR_IS_ALPHA_LOOKUP_TABLE[(byte) str];
+    return STR_IS_ALPHANUM_LOOKUP_TABLE[(byte) str];
 }
 
 #endif

@@ -1,7 +1,8 @@
 #define UBER_TEST 1
-#define PERFORMANCE_TEST 1
+#define PERFORMANCE_TEST 0
 
 #include "stdlib/Stdlib.h"
+#include "utils/RandomUtils.h"
 //#include "math/EvaluatorTest.cpp"
 #include "tests/memory/ChunkMemoryTest.cpp"
 #include "tests/memory/RingMemoryTest.cpp"
