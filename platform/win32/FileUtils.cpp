@@ -830,15 +830,15 @@ uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UI
         }
     }
 
-    const DWORD chunk_size = 64 * 1024;
-    BYTE buffer[chunk_size];
+    const DWORD size_chunk = 64 * 1024;
+    BYTE buffer[size_chunk];
     DWORD bytes_read = 0;
     uint64 total_read = 0;
     uint64 line_count = 0;
 
     while (total_read < read_length) {
-        DWORD to_read = (DWORD)((read_length - total_read) > chunk_size
-            ? chunk_size
+        DWORD to_read = (DWORD)((read_length - total_read) > size_chunk
+            ? size_chunk
             : (read_length - total_read)
         );
 

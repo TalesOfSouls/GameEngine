@@ -10,7 +10,7 @@
 #define COMS_APP_COMMAND_FONT_CONSUMER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/QueueT.h"
+#include "../memory/QueueT.cpp"
 #include "../font/Font.cpp"
 #include "../asset/Asset.h"
 #include "../asset/AssetArchive.cpp"

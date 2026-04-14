@@ -86,7 +86,7 @@ struct alignas(8) PerformanceProfileResult {
 };
 
 // If we call PROFILE_SNAPSHOT after every frame this number is the same as the amount frames can store
-#define MAX_PERFORMANCE_STATS_HISTORY 1000
+#define MAX_PERFORMANCE_STATS_HISTORY 100
 struct PerformanceStatHistory {
     atomic_32 int32 pos;
     // This contains all stats usually per frame in a 1D array
@@ -265,10 +265,11 @@ void performance_log_to_file() NO_EXCEPT
 
     MAYBE_UNUSED const int32 count = PROFILE_SIZE;
     LOG_1("[BEGIN] Performance log (count %d)", {DATA_TYPE_INT32, &count});
+    PSEUDO_USE(count);
 
     MAYBE_UNUSED const int32 size = sizeof(*_perf_stats);
-
     LOG_1((const char *) _perf_stats, {DATA_TYPE_BYTE_ARRAY, (void *) &size});
+    PSEUDO_USE(size);
 
     LOG_1("[END] Performance log");
 }
@@ -290,6 +291,7 @@ void performance_log_to_file_formatted() NO_EXCEPT
 
     MAYBE_UNUSED const int32 count = PROFILE_SIZE;
     LOG_1("[BEGIN] Performance log (count %d)", {DATA_TYPE_INT32, &count});
+    PSEUDO_USE(count);
 
     const int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
 
@@ -304,6 +306,7 @@ void performance_log_to_file_formatted() NO_EXCEPT
             );
 
             LOG_1((const char *) line, {DATA_TYPE_BYTE_ARRAY, (void *) &length});
+            PSEUDO_USE(length);
         }
     }
 

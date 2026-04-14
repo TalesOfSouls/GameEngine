@@ -144,7 +144,7 @@ void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capa
 // INFO: A chunk count of 2^n is recommended for maximum performance
 template <typename T>
 inline
-void chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
@@ -178,7 +178,7 @@ void chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* mem, int32 capacity, i
 
 template <typename T>
 inline
-void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
@@ -303,7 +303,7 @@ void chunk_init(
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
-    const size_t size = capacity * sizeof(T)
+    MAYBE_UNUSED const size_t size = capacity * sizeof(T)
         + sizeof(uint_max) * array_count
         + alignment
         + alignof(uint_max);
@@ -319,6 +319,7 @@ void chunk_init(
     memset(buf->free, 0, sizeof(uint_max) * array_count);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
+    PSEUDO_USE(size);
 }
 
 template <typename T>
@@ -334,7 +335,7 @@ void thrd_chunk_init(
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
-    const size_t size = capacity * sizeof(T)
+    MAYBE_UNUSED const size_t size = capacity * sizeof(T)
         + sizeof(uint_max) * array_count
         + sizeof(uint_max) * array_count
         + sizeof(uint_max) * 2;
@@ -355,6 +356,7 @@ void thrd_chunk_init(
     mutex_init(&buf->lock, NULL);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
+    PSEUDO_USE(size);
 }
 
 template <typename T>
@@ -385,7 +387,7 @@ void thrd_chunk_free(ChunkMemoryT<T>* const buf) NO_EXCEPT
 
 template <typename T>
 inline
-void chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* mem) NO_EXCEPT
+void chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* const mem) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, sizeof(T) * buf->capacity + sizeof(uint_max) * ceil_div(buf->capacity, (sizeof(uint_max) * 8)));
 
@@ -397,7 +399,7 @@ void chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* mem) NO_EXCEPT
 
 template <typename T>
 inline
-void thrd_chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* mem) NO_EXCEPT
+void thrd_chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* const mem) NO_EXCEPT
 {
     chunk_free(buf, mem);
     mutex_destroy(&buf->lock);

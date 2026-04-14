@@ -90,8 +90,8 @@ uint16 packet_udp_calculate_checksum(uint16* buf, int32 count) {
 inline
 uint16 packet_udp_create_raw(
     byte* __restrict packet,
-    in6_addr* __restrict ipv6_src, uint16 port_src,
-    in6_addr* __restrict ipv6_dst, uint16 port_dst,
+    const in6_addr* __restrict ipv6_src, uint16 port_src,
+    const in6_addr* __restrict ipv6_dst, uint16 port_dst,
     uint16 flow,
     const byte* __restrict data, uint16 data_length
 ) {

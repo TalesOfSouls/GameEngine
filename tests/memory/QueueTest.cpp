@@ -1,6 +1,6 @@
 #include "../TestFramework.h"
-#include "../../memory/Queue.h"
-#include "../../memory/QueueT.h"
+#include "../../memory/Queue.cpp"
+#include "../../memory/QueueT.cpp"
 
 static void test_queue_alloc() {
     Queue mem = {0};

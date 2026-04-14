@@ -53,7 +53,7 @@ void array_vector_insert(ArrayVector<T>* vec, T element) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void array_vector_insert(ArrayVector<T>* vec, T* element) NO_EXCEPT
+void array_vector_insert(ArrayVector<T>* __restrict vec, const T* __restrict element) NO_EXCEPT
 {
     memcpy(vec->elements + vec->count, element, sizeof(T));
     ++vec->count;
@@ -61,7 +61,7 @@ void array_vector_insert(ArrayVector<T>* vec, T* element) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void array_vector_insert(ArrayVector<T>* vec, T* element, int count) NO_EXCEPT
+void array_vector_insert(ArrayVector<T>* __restrict vec, const T* __restrict element, int count) NO_EXCEPT
 {
     memcpy(vec->elements + vec->count, element, count * sizeof(T));
     vec->count += count;
@@ -82,7 +82,7 @@ bool array_vector_insert_safe(ArrayVector<T>* vec, T element) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-bool array_vector_insert_safe(ArrayVector<T>* vec, T* element) NO_EXCEPT
+bool array_vector_insert_safe(ArrayVector<T>* __restrict vec, const T* __restrict element) NO_EXCEPT
 {
     if (vec->count >= vec->capacity) {
         return false;
@@ -96,7 +96,7 @@ bool array_vector_insert_safe(ArrayVector<T>* vec, T* element) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-bool array_vector_insert_safe(ArrayVector<T>* vec, T* element, int count) NO_EXCEPT
+bool array_vector_insert_safe(ArrayVector<T>* __restrict vec, const T* __restrict element, int count) NO_EXCEPT
 {
     if (vec->count >= vec->capacity) {
         return false;

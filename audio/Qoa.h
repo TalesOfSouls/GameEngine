@@ -428,7 +428,7 @@ uint32 qoa_decode(const byte* data, Audio* audio)
 		uint32 frame_samples;
 		// @performance We can probably replace this with a type case assignment if p % 4 == 0
 		memcpy(&frame_samples, data + p, sizeof(frame_samples));
-		frame_samples = SWAP_ENDIAN_LITTLE(frame_samples);
+		SWAP_ENDIAN_LITTLE_SELF(frame_samples);
 
 		const uint32 out_bytes = frame_samples * audio->channels * sizeof(int16);
 		const uint32 consumed = qoa_decode_frame(data + p, audio->channels, lms, (int16*)sample_ptr);

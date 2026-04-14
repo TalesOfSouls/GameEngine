@@ -427,12 +427,11 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
         uint32 limit = limit_max;
 
         // Compute the vector from the player to the sound's origin
-        v3_f32 to_sound = {0};
         f32 total_attenuation = 1.0f;
         const bool has_origin = !is_empty((byte *) &sound->origin.audio_location, sizeof(sound->origin.audio_location));
 
         if (has_location && has_origin) {
-            to_sound = vec3_sub(sound->origin.audio_location, mixer->camera.audio_location);
+            v3_f32 to_sound = vec3_sub(sound->origin.audio_location, mixer->camera.audio_location);
 
             const f32 distance = vec3_length(to_sound);
             if (distance) {

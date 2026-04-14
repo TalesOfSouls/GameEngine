@@ -409,13 +409,13 @@ struct v4_f64 {
 };
 
 // @todo We cannot use FORCE_INLINE because CompilerUtils depends on this file -> circular dependency
-inline v2_f32 to_v2_f32(v2_int32 vec) { return {(f32) vec.x, (f32) vec.y}; }
-inline v3_f32 to_v3_f32(v3_int32 vec) { return {(f32) vec.x, (f32) vec.y, (f32) vec.z}; }
-inline v4_f32 to_v4_f32(v4_int32 vec) { return {(f32) vec.x, (f32) vec.y, (f32) vec.z, (f32) vec.w}; }
+inline v2_f32 to_v2_f32(const v2_int32& vec) { return {(f32) vec.x, (f32) vec.y}; }
+inline v3_f32 to_v3_f32(const v3_int32& vec) { return {(f32) vec.x, (f32) vec.y, (f32) vec.z}; }
+inline v4_f32 to_v4_f32(const v4_int32& vec) { return {(f32) vec.x, (f32) vec.y, (f32) vec.z, (f32) vec.w}; }
 
-inline v2_int32 to_v2_int32(v2_f32 vec) { return {(int32) vec.x, (int32) vec.y}; }
-inline v3_int32 to_v3_int32(v3_f32 vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z}; }
-inline v4_int32 to_v4_int32(v4_f32 vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z, (int32) vec.w}; }
+inline v2_int32 to_v2_int32(const v2_f32& vec) { return {(int32) vec.x, (int32) vec.y}; }
+inline v3_int32 to_v3_int32(const v3_f32& vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z}; }
+inline v4_int32 to_v4_int32(const v4_f32& vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z, (int32) vec.w}; }
 
 // Data type helpers
 enum DataType : byte {

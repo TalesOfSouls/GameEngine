@@ -108,7 +108,7 @@ void camera_frustum_update(Camera* const camera) NO_EXCEPT
 // In some cases we only need to update the frustum based on position updates
 // This allows us to simply make shifts to the original frustum positions
 inline
-void camera_frustum_pos_update(Camera* const camera, v3_f32 old_pos) NO_EXCEPT
+void camera_frustum_pos_update(Camera* const camera, const v3_f32& old_pos) NO_EXCEPT
 {
     const v3_f32 delta = {
         camera->location.x - old_pos.x,

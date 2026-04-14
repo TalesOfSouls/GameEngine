@@ -182,7 +182,7 @@ void voxel_chunk_set(VoxelChunk* chunk, int32 x, int32 y, int32 z, Voxel v) NO_E
 inline
 void voxel_chunk_vertex_push(
     VoxelChunk* const __restrict chunk,
-    v3_f32 coord,
+    const v3_f32& coord,
     v3_byte normal,
     const VoxelFace* const __restrict face
 ) NO_EXCEPT

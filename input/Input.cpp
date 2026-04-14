@@ -315,7 +315,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     int32 count = 0;
     InputKey keys[MAX_KEY_PRESSES];
 
-    for (uint16 i = 0; i < 32; ++i) {
+    for (uint16 i = 0; i < CONTROLLER_BUTTON_SIZE; ++i) {
         if ((controller->is_analog[i] && abs(controller->button[i]) > input->deadzone)
             || (!controller->is_analog[i] && controller->button[i] != 0)
         ) {

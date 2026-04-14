@@ -10,7 +10,7 @@
 #define COMS_APP_COMMAND_TEXTURE_CONSUMER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/QueueT.h"
+#include "../memory/QueueT.cpp"
 #include "../asset/Asset.h"
 #include "../asset/AssetArchive.cpp"
 #include "../asset/AssetManagementSystem.cpp"

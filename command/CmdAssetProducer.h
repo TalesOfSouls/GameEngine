@@ -10,7 +10,7 @@
 #define COMS_APP_COMMAND_ASSET_PRODUCER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/QueueT.h"
+#include "../memory/QueueT.cpp"
 #include "AppCommand.h"
 
 // This doesn't load the asset directly but tells (most likely) a worker thread to load an asset

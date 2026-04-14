@@ -76,7 +76,7 @@ Entity* ecs_reserve_entity(EntityComponentSystem* ecs, uint32 entity_type)
     return entity;
 }
 
-Entity* ecs_insert_entity(EntityComponentSystem* ecs, Entity* entity_temp, int32 entity_type)
+Entity* ecs_insert_entity(EntityComponentSystem* __restrict ecs, const Entity* __restrict entity_temp, int32 entity_type)
 {
     ChunkMemory* mem = &ecs->entities[entity_type];
     int32 free_entity = chunk_reserve_one(mem);

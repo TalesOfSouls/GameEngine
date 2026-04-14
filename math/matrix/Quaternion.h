@@ -13,7 +13,7 @@
 #include "Matrix.h"
 
 inline
-quaternion quat_mul(quaternion a, quaternion b)
+quaternion quat_mul(const quaternion& a, const quaternion& b)
 {
     return {
         a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
@@ -24,7 +24,7 @@ quaternion quat_mul(quaternion a, quaternion b)
 }
 
 inline
-quaternion quat_normalize(quaternion q)
+quaternion quat_normalize(const quaternion& q)
 {
     const f32 len = sqrtf(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
     const f32 inv = 1.0f / len;
@@ -33,7 +33,7 @@ quaternion quat_normalize(quaternion q)
 }
 
 inline
-quaternion quat_axis_angle(v3_f32 axis, f32 angle_rad)
+quaternion quat_axis_angle(const v3_f32& axis, f32 angle_rad)
 {
     const f32 s = sinf(angle_rad * 0.5f);
 
@@ -41,7 +41,7 @@ quaternion quat_axis_angle(v3_f32 axis, f32 angle_rad)
 }
 
 inline
-v3_f32 quat_rotate_vec3(quaternion q, v3_f32 v)
+v3_f32 quat_rotate_vec3(const quaternion& q, const v3_f32& v)
 {
     /*
     // v' = q * (v,0) * q^-1

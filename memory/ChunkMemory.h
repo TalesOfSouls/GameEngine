@@ -585,7 +585,9 @@ int32 thrd_chunk_reserve_one_atomic(uint_max* state, uint32 state_count, int32 s
             uint_max inverted = ~current_free;
 
             int32 j = 0; // We will only try 3 times to avoid infinite or long loops
-            while (j < 3 && (bit_index = compiler_find_first_bit_r2l(inverted)) >= 0) {
+            while (j < 3) {
+                // We don't have to test bit_index >= 0 since we already tested current_free != OMS_UINT_MAX
+                bit_index = compiler_find_first_bit_r2l(inverted);
                 uint32 id = free_index * (sizeof(uint_max) * 8) + bit_index;
                 if (id >= state_count) {
                     free_index = 0;
@@ -966,10 +968,11 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
 
     const byte* const start = data;
 
-    const size_t initial_size = buf->size;
+    MAYBE_UNUSED const size_t initial_size = buf->size;
     // Asset if we even have enough space
     ASSERT_TRUE(data_size ? initial_size >= data_size : true);
     PSEUDO_USE(data_size);
+    PSEUDO_USE(initial_size);
 
     data = read_le(data, &buf->capacity);
     data = read_le(data, &buf->size);

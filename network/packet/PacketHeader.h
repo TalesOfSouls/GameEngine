@@ -67,7 +67,7 @@ void packet_create_destination_addr(sockaddr_in6* dest_addr, const char* ipv6, u
 }
 
 inline
-void packet_create_destination_addr(sockaddr_in6* dest_addr, in6_addr* ipv6, uint16 port)
+void packet_create_destination_addr(sockaddr_in6* __restrict dest_addr, const in6_addr* const __restrict ipv6, uint16 port)
 {
     dest_addr->sin6_family = AF_INET6;
     dest_addr->sin6_port = SWAP_ENDIAN_BIG(port);

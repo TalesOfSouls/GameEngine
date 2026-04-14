@@ -39,7 +39,7 @@ Voxel voxel_world_map_get(
         return {0, 0};
     }
 
-    VoxelChunk* chunk = (VoxelChunk *) entry->value;
+    const VoxelChunk* const chunk = (VoxelChunk *) entry->value;
 
     return voxel_chunk_get(chunk, x, y, z);
 }
@@ -126,7 +126,7 @@ void voxel_chunk_mesh_build(HashMap* const map, VoxelChunk* const chunk) NO_EXCE
             // Greedy merge rectangles in the mask
             for (int32 j = 0; j < VOXEL_CHUNK_SIZE;) {
                 for (int32 i = 0; i < VOXEL_CHUNK_SIZE;) {
-                    VoxelMaskCell* cell = &mask[j * VOXEL_CHUNK_SIZE + i];
+                    const VoxelMaskCell* const cell = &mask[j * VOXEL_CHUNK_SIZE + i];
                     if (!cell->is_filled) {
                         ++i;
                         continue;
@@ -137,7 +137,7 @@ void voxel_chunk_mesh_build(HashMap* const map, VoxelChunk* const chunk) NO_EXCE
                     // compute width
                     int32 width = 1;
                     while (i + width < VOXEL_CHUNK_SIZE) {
-                        VoxelMaskCell* next = &mask[j * VOXEL_CHUNK_SIZE + (i + width)];
+                        const VoxelMaskCell* const next = &mask[j * VOXEL_CHUNK_SIZE + (i + width)];
                         if (!next->is_filled) break;
                         if (memcmp(&next->face, &face, sizeof(VoxelFace)) != 0) break;
                         ++width;
@@ -148,7 +148,7 @@ void voxel_chunk_mesh_build(HashMap* const map, VoxelChunk* const chunk) NO_EXCE
                     bool height_done = false;
                     while (j + height < VOXEL_CHUNK_SIZE && !height_done) {
                         for (int32 k = 0; k < width; ++k) {
-                            VoxelMaskCell* check = &mask[(j + height) * VOXEL_CHUNK_SIZE + (i + k)];
+                            const VoxelMaskCell* const check = &mask[(j + height) * VOXEL_CHUNK_SIZE + (i + k)];
                             if (!check->is_filled || memcmp(&check->face, &face, sizeof(VoxelFace)) != 0) {
                                 height_done = true;
                                 break;
@@ -352,7 +352,7 @@ void voxel_draw_array_build(VoxelWorld* const vw, const Camera* const camera) NO
 // @todo implement logic somewhere that loads the new chunks (e.g. from database, file etc)
 //      this may happen in here or outside
 static inline
-void voxel_world_update_pos(VoxelWorld* const vw, v3_int32 pos) NO_EXCEPT
+void voxel_world_update_pos(VoxelWorld* const vw, const v3_int32& pos) NO_EXCEPT
 {
     // After a position update we have to reset the octree
     octree_create(&vw->oct_new, pos, vw->chunks.capacity * VOXEL_CHUNK_SIZE);
@@ -479,7 +479,7 @@ void voxel_world_voxel_set(VoxelWorld* vw, int32 world_x, int32 world_y, int32 w
 
 // voxel_coord inside the chunk
 FORCE_INLINE
-void voxel_world_voxel_set(VoxelWorld* vw, v3_int32 chunk_coord, v3_int32 voxel_coord, Voxel v) NO_EXCEPT
+void voxel_world_voxel_set(VoxelWorld* vw, const v3_int32& chunk_coord, const v3_int32& voxel_coord, Voxel v) NO_EXCEPT
 {
     VoxelChunk* chunk = voxel_world_chunk_get_or_create(vw, chunk_coord.x, chunk_coord.y, chunk_coord.z);
     voxel_chunk_set(chunk, voxel_coord.x, voxel_coord.y, voxel_coord.z, v);
@@ -488,7 +488,7 @@ void voxel_world_voxel_set(VoxelWorld* vw, v3_int32 chunk_coord, v3_int32 voxel_
 // max_depth represents the distance in chunks
 // @bug using depth for this is bad because of how it is calculated 8^n. I think defining the max amount of visible chunks as input is much better
 inline
-void voxel_world_alloc(VoxelWorld* const vw, v3_int32 pos, int chunk_count) NO_EXCEPT
+void voxel_world_alloc(VoxelWorld* const vw, const v3_int32& pos, int chunk_count) NO_EXCEPT
 {
     const int node_count = chunk_count * 8;
 

@@ -67,7 +67,7 @@ OctNode* octnode_child_create(Octree* const tree) NO_EXCEPT
 }
 
 static inline
-int32 octree_child_index_from_coord(v3_int32 anchor, v3_int32 coord) NO_EXCEPT
+int32 octree_child_index_from_coord(const v3_int32& anchor, const v3_int32& coord) NO_EXCEPT
 {
     // We'll decide which side of the anchor the chunk lies on in each axis
     int32 index = 0;
@@ -88,8 +88,8 @@ int32 octree_child_index_from_coord(v3_int32 anchor, v3_int32 coord) NO_EXCEPT
 
 static inline
 AABB_int32 octnode_child_aabb_compute(
-    AABB_int32 parent,
-    v3_int32 parent_center,
+    const AABB_int32& parent,
+    const v3_int32& parent_center,
     int32 child_index
 ) NO_EXCEPT
 {
@@ -121,8 +121,8 @@ AABB_int32 octnode_child_aabb_compute(
 
 static inline
 v3_int32 octnode_child_anchor_compute(
-    v3_int32 parent_min,
-    v3_int32 center,
+    const v3_int32& parent_min,
+    const v3_int32& center,
     int32 child_index
 ) NO_EXCEPT
 {
@@ -146,7 +146,7 @@ v3_int32 octnode_child_anchor_compute(
 // This inserts a voxel into the tree
 // If we have a parent, we can skip some iterations
 static inline
-void octnode_insert(Octree* const tree, const void* data, v3_int32 node_coord, OctNode* const parent = NULL) NO_EXCEPT
+void octnode_insert(Octree* const tree, const void* data, const v3_int32& node_coord, OctNode* const parent = NULL) NO_EXCEPT
 {
     OctNode* node = parent ? parent : tree->root;
     while (!node->is_leaf) {
@@ -193,7 +193,7 @@ bool octnode_remove_recursive(OctNode* const node) NO_EXCEPT
 }
 
 static inline
-bool octnode_has_data_recalculate(OctNode* const node) NO_EXCEPT
+bool octnode_has_data_recalculate(const OctNode* const node) NO_EXCEPT
 {
     if (node->data) {
         return true;
@@ -211,7 +211,7 @@ bool octnode_has_data_recalculate(OctNode* const node) NO_EXCEPT
 }
 
 static inline
-bool octnode_remove_recursive(OctNode* const node, v3_int32 coord) NO_EXCEPT
+bool octnode_remove_recursive(OctNode* const node, const v3_int32& coord) NO_EXCEPT
 {
     // Is leaf -> has to be a match
     if (node->is_leaf) {
@@ -254,7 +254,7 @@ bool octnode_remove_recursive(OctNode* const node, v3_int32 coord) NO_EXCEPT
 
 // Same as version without data, it just validates if the data pointer matches as additional check
 static inline
-bool octnode_remove_recursive(OctNode* const node, const void* const data, v3_int32 data_coord) NO_EXCEPT
+bool octnode_remove_recursive(OctNode* const node, const void* const data, const v3_int32& data_coord) NO_EXCEPT
 {
     // Is leaf -> has to be a match
     if (node->is_leaf) {
@@ -305,20 +305,20 @@ bool octnode_remove_recursive(OctNode* const node, const void* const data, v3_in
 
 // Removes node if coord and data match
 FORCE_INLINE
-void octnode_remove(Octree* tree, const void* data, v3_int32 data_coord) NO_EXCEPT
+void octnode_remove(Octree* tree, const void* data, const v3_int32& data_coord) NO_EXCEPT
 {
     octnode_remove_recursive(tree->root, data, data_coord);
 }
 
 // Removes node if coord matches
 FORCE_INLINE
-void octnode_remove(Octree* tree, v3_int32 coord) NO_EXCEPT
+void octnode_remove(Octree* tree, const v3_int32& coord) NO_EXCEPT
 {
     octnode_remove_recursive(tree->root, coord);
 }
 
 static inline
-void octree_create(Octree* const tree, v3_int32 anchor, int root_dimension) NO_EXCEPT
+void octree_create(Octree* const tree, const v3_int32& anchor, int root_dimension) NO_EXCEPT
 {
     OctNode* root = tree->root;
 

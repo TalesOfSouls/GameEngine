@@ -487,7 +487,7 @@ v3_int32 vertex_text_create(
 HOT_CODE
 v3_int32 vertex_text_create(
     Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
-    v4_f32 dimension, byte alignment,
+    const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const wchar_t* const __restrict text,
     f32 size, MAYBE_UNUSED uint32 rgba, RingMemory* const __restrict ring
 ) NO_EXCEPT
@@ -515,7 +515,7 @@ v3_int32 vertex_text_create(
         if (glyphs[i] < 0 && font->has_extended) {
             //glyphs[i] = hashmap_get(&font->font_map, character);
 
-            if (glyphs[i] < 0) {
+            //if (glyphs[i] < 0) {
                 const int16 extended_glyph = font_glyph_index_find(&font->extended, character);
                 if (extended_glyph < 0) {
                     //glyphs[i] = -1;
@@ -534,9 +534,9 @@ v3_int32 vertex_text_create(
                 glyphs[i] = (extended_glyph & 0x7FFFu) | 0x8000;
 
                 font->has_changes = true;
-            } else {
+            //} else {
                 // @todo update glyph priority
-            }
+            //}
         }
 
         if (glyphs[i] < 0) {
@@ -556,7 +556,7 @@ v3_int32 vertex_text_create(
 HOT_CODE
 v3_int32 vertex_text_create(
     Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
-    v4_f32 dimension, byte alignment,
+    const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const char* const __restrict text,
     f32 size, MAYBE_UNUSED uint32 rgba, RingMemory* const __restrict ring
 ) NO_EXCEPT
@@ -586,7 +586,7 @@ v3_int32 vertex_text_create(
         if (glyphs[i] < 0 && font->has_extended) {
             //glyphs[i] = hashmap_get(&font->font_map, character);
 
-            if (glyphs[i] < 0) {
+            //if (glyphs[i] < 0) {
                 const int16 extended_glyph = font_glyph_index_find(&font->extended, character);
                 if (extended_glyph < 0) {
                     //glyphs[i] = -1;
@@ -605,9 +605,9 @@ v3_int32 vertex_text_create(
                 glyphs[i] = (extended_glyph & 0x7FFFu) | 0x8000;
 
                 font->has_changes = true;
-            } else {
+            //} else {
                 // @todo update glyph priority
-            }
+            //}
         }
 
         if (glyphs[i] < 0) {

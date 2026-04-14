@@ -380,9 +380,9 @@ bool file_write(const char* __restrict path, const FileBody* __restrict file) {
 
 FileHandle file_read_handle(const char* path) {
     FileHandle fd;
-    char full_path[PATH_MAX_LENGTH];
 
     if (*path == '.') {
+        char full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
         fd = open(full_path, O_RDONLY);
     } else {
@@ -424,7 +424,7 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
         return;
     }
 
-    struct dirent *entry;
+    const dirent* entry;
     while ((entry = readdir(dir)) != NULL) {
         if (entry->d_name[0] == '.'
             && (entry->d_name[1] == '\0'

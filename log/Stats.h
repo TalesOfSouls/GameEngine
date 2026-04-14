@@ -43,7 +43,7 @@
     };
 #endif
 
-#define MAX_STATS_COUNTER_HISTORY 1000
+#define MAX_STATS_COUNTER_HISTORY 100
 struct StatCounterHistory {
     atomic_32 int32 pos;
     atomic_64 int64 stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE];
@@ -237,8 +237,10 @@ void stats_log_to_file() NO_EXCEPT
 
     MAYBE_UNUSED size_t count = DEBUG_COUNTER_SIZE;
     LOG_1("[BEGIN] Stats log (count %d)", {DATA_TYPE_INT32, &count});
+    PSEUDO_USE(count);
 
     MAYBE_UNUSED int32 size = sizeof(*_stats_counter);
+    PSEUDO_USE(size);
 
     // Technically this isn't logging to a file, only if the end of the log buffer is reached
     LOG_1((const char *) _stats_counter, {DATA_TYPE_BYTE_ARRAY, &size});

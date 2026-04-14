@@ -14,7 +14,7 @@
 #include "../../object/Vertex.h"
 #include "../../object/Texture.h"
 #include "../../memory/ChunkMemory.h"
-#include "../../thread/ThreadPool.h"
+#include "../../thread/ThreadPool.cpp"
 #include "SoftwareDescriptorSetLayoutBinding.h"
 #include "Shader.h"
 #include "../anti_aliasing/AntiAliasingType.h"
@@ -987,7 +987,7 @@ void soft_render(
                     POOL_WORKER_STATE_WAITING, // .state =
                     false, // .atomic_release =
                     0, // .arg_size =
-                    &args[j], // .arg = 
+                    &args[j], // .arg =
                     thrd_soft_shader, // .func =
                     NULL, // .callback =
                     NULL // .mem =

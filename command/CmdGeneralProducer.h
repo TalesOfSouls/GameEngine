@@ -11,13 +11,13 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemoryT.h"
-#include "../memory/QueueT.h"
+#include "../memory/QueueT.cpp"
 #include "../thread/ThreadDefines.h"
 #include "AppCommand.h"
 
 // General purpose cmd command enqueue
 inline
-void thrd_cmd_insert(ChunkMemoryT<AppCommand>* const __restrict cb, AppCommand* const __restrict cmd_temp) NO_EXCEPT
+void thrd_cmd_insert(ChunkMemoryT<AppCommand>* const __restrict cb, const AppCommand* const __restrict cmd_temp) NO_EXCEPT
 {
     // @performance Consider to replace with atomic operations
     MutexGuard _guard(&cb->lock);

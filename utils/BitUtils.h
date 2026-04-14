@@ -493,6 +493,7 @@ void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps = 16
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) val, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
+    PSEUDO_USE(steps);
 
     #ifdef __AVX2__
         if (steps >= 8) {
@@ -510,6 +511,7 @@ void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps = 16
             }
 
             steps = 1;
+            PSEUDO_USE(steps);
         }
     #endif
 

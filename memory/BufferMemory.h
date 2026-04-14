@@ -75,7 +75,7 @@ void thrd_buffer_alloc(
 inline
 void buffer_alloc(
     BufferMemory* const buf,
-    MemoryArena* mem,
+    MemoryArena* const mem,
     size_t size,
     size_t max_size,
     int32 alignment = sizeof(size_t),
@@ -112,7 +112,7 @@ void buffer_alloc(
 FORCE_INLINE
 void thrd_buffer_alloc(
     BufferMemory* const buf,
-    MemoryArena* mem,
+    MemoryArena* const mem,
     size_t size,
     size_t max_size,
     int32 alignment = sizeof(size_t),
@@ -140,7 +140,7 @@ void thrd_buffer_free(BufferMemory* const buf) NO_EXCEPT
 }
 
 inline
-void buffer_free(BufferMemory* const buf, MemoryArena* mem) NO_EXCEPT
+void buffer_free(BufferMemory* const buf, MemoryArena* const mem) NO_EXCEPT
 {
     mem_arena_remove(mem, buf->memory);
     buf->size = 0;
@@ -148,7 +148,7 @@ void buffer_free(BufferMemory* const buf, MemoryArena* mem) NO_EXCEPT
 }
 
 FORCE_INLINE
-void thrd_buffer_free(BufferMemory* const buf, MemoryArena* mem) NO_EXCEPT
+void thrd_buffer_free(BufferMemory* const buf, MemoryArena* const mem) NO_EXCEPT
 {
     buffer_free(buf, mem);
     mutex_destroy(&buf->lock);

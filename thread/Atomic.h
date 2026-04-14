@@ -45,10 +45,8 @@ inline
 T atomic_increment_wrap_relaxed(T* value, T threshold) NO_EXCEPT
 {
     T old = atomic_get_relaxed(value);
-    T next;
-
     while (true) {
-        next = old + 1;
+        T next = old + 1;
         if (next >= threshold) {
             next = 0;
         }
@@ -74,10 +72,8 @@ inline
 T atomic_increment_wrap_acquire(T* value, T threshold) NO_EXCEPT
 {
     T old = atomic_get_acquire(value);
-    T next;
-
     while (true) {
-        next = old + 1;
+        T next = old + 1;
         if (next >= threshold) {
             next = 0;
         }
@@ -103,10 +99,8 @@ inline
 T atomic_increment_wrap_release(T* value, T threshold) NO_EXCEPT
 {
     T old = atomic_get_release(value);
-    T next;
-
     while (true) {
-        next = old + 1;
+        T next = old + 1;
         if (next >= threshold) {
             next = 0;
         }
@@ -132,10 +126,8 @@ inline
 T atomic_increment_wrap_acquire_release(T* value, T threshold) NO_EXCEPT
 {
     T old = atomic_get_acquire_release(value);
-    T next;
-
     while (true) {
-        next = old + 1;
+        T next = old + 1;
         if (next >= threshold) {
             next = 0;
         }
@@ -160,10 +152,8 @@ inline
 uint64 atomic_increment_wrap_acquire_release(uint64* value, uint64 threshold) NO_EXCEPT
 {
     uint64 old = atomic_get_acquire_release(value);
-    uint64 next;
-
     while (true) {
-        next = old + 1;
+        uint64 next = old + 1;
         if (next >= threshold) {
             next = 0;
         }
@@ -186,13 +176,11 @@ uint64 atomic_increment_wrap_acquire_release(uint64* value, uint64 threshold) NO
 
 template <typename T>
 inline
-T* atomic_fetch_increment_wrap_relaxed(T** value, T* start, T* end) NO_EXCEPT
+T* atomic_fetch_increment_wrap_relaxed(T** value, T* start, const T* end) NO_EXCEPT
 {
     T* old = (T *) atomic_get_relaxed((void **) value);
-    T* next;
-
     while (true) {
-        next = old + 1;
+        T* next = old + 1;
         if (next >= end) {
             next = start;
         }
@@ -215,13 +203,11 @@ T* atomic_fetch_increment_wrap_relaxed(T** value, T* start, T* end) NO_EXCEPT
 
 template <typename T>
 inline
-T* atomic_fetch_increment_wrap_acquire(T** value, T* start, T* end) NO_EXCEPT
+T* atomic_fetch_increment_wrap_acquire(T** value, T* start, const T* end) NO_EXCEPT
 {
     T* old = (T *) atomic_get_acquire((void **) value);
-    T* next;
-
     while (true) {
-        next = old + 1;
+        T* next = old + 1;
         if (next >= end) {
             next = start;
         }
@@ -244,13 +230,11 @@ T* atomic_fetch_increment_wrap_acquire(T** value, T* start, T* end) NO_EXCEPT
 
 template <typename T>
 inline
-T* atomic_fetch_increment_wrap_release(T** value, T* start, T* end) NO_EXCEPT
+T* atomic_fetch_increment_wrap_release(T** value, T* start, const T* end) NO_EXCEPT
 {
     T* old = (T *) atomic_get_release((void **) value);
-    T* next;
-
     while (true) {
-        next = old + 1;
+        T* next = old + 1;
         if (next >= end) {
             next = start;
         }
@@ -273,13 +257,11 @@ T* atomic_fetch_increment_wrap_release(T** value, T* start, T* end) NO_EXCEPT
 
 template <typename T>
 inline
-T* atomic_fetch_increment_wrap_acquire_release(T** value, T* start, T* end) NO_EXCEPT
+T* atomic_fetch_increment_wrap_acquire_release(T** value, T* start, const T* end) NO_EXCEPT
 {
     T* old = (T *) atomic_get_acquire_release((void **) value);
-    T* next;
-
     while (true) {
-        next = old + 1;
+        T* next = old + 1;
         if (next >= end) {
             next = start;
         }
@@ -305,10 +287,8 @@ inline
 T atomic_fetch_increment_wrap_acquire(T* value, T start, T end) NO_EXCEPT
 {
     T old = atomic_get_acquire(value);
-    T next;
-
     while (true) {
-        next = old + 1;
+        T next = old + 1;
         if (next >= end) {
             next = start;
         }
@@ -334,10 +314,8 @@ inline
 T atomic_fetch_increment_wrap_release(T* value, T start, T end) NO_EXCEPT
 {
     T old = atomic_get_release(value);
-    T next;
-
     while (true) {
-        next = old + 1;
+        T next = old + 1;
         if (next >= end) {
             next = start;
         }
@@ -363,10 +341,8 @@ inline
 T atomic_fetch_increment_wrap_acquire_release(T* value, T start, T end) NO_EXCEPT
 {
     T old = atomic_get_acquire_release(value);
-    T next;
-
     while (true) {
-        next = old + 1;
+        T next = old + 1;
         if (next >= end) {
             next = start;
         }

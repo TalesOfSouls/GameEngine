@@ -83,11 +83,12 @@ void intrin_prefetch(void* memory, size_t size, int32_t steps = 16) NO_EXCEPT
     byte* start = (byte*)memory;
     byte* end = start + size;
     steps = intrin_validate_steps(start, steps);
+    PSEUDO_USE(steps);
 
     #ifdef __AVX512F__
         if (steps >= 16) {
             __m512i* p0 = (__m512i*)start;
-            __m512i* p1 = (__m512i*)end;
+            const __m512i* p1 = (__m512i*)end;
 
             for (const __m512i* p = p0; p < p1; ++p) {
                 _sink512 = *p;
@@ -100,7 +101,7 @@ void intrin_prefetch(void* memory, size_t size, int32_t steps = 16) NO_EXCEPT
     #ifdef __AVX2__
         if (steps >= 8) {
             __m256i* p0 = (__m256i*)start;
-            __m256i* p1 = (__m256i*)end;
+            const __m256i* p1 = (__m256i*)end;
 
             for (const __m256i* p = p0; p < p1; ++p) {
                 _sink256 = *p;
@@ -113,7 +114,7 @@ void intrin_prefetch(void* memory, size_t size, int32_t steps = 16) NO_EXCEPT
     #ifdef __SSE4_2__
         if (steps >= 4) {
             __m128i* p0 = (__m128i*)start;
-            __m128i* p1 = (__m128i*)end;
+            const __m128i* p1 = (__m128i*)end;
 
             for (const __m128i* p = p0; p < p1; ++p) {
                 _sink128 = *p;
@@ -123,8 +124,8 @@ void intrin_prefetch(void* memory, size_t size, int32_t steps = 16) NO_EXCEPT
         }
     #endif
 
-    size_t* p0 = (size_t*)start;
-    size_t* p1 = (size_t*)end;
+    const size_t* p0 = (size_t*)start;
+    const size_t* const p1 = (size_t*)end;
     for (const volatile size_t* p = p0; p < p1; ++p) {
         _sink_scalar = *p;
     }
@@ -137,6 +138,7 @@ void intrin_swap_memory(void* const __restrict a, void* const __restrict b, size
     byte* q = (byte*)b;
     steps = intrin_validate_steps((const byte *) a, steps);
     steps = intrin_validate_steps((const byte *) b, steps);
+    PSEUDO_USE(steps);
 
     #ifdef __AVX512F__
         if (steps >= 16) {

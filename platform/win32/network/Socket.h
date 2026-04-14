@@ -78,9 +78,9 @@ bool network_has_ipv6_address() NO_EXCEPT {
         return false;
     }
 
-    IP_ADAPTER_ADDRESSES* adapter = addresses;
+    const IP_ADAPTER_ADDRESSES* adapter = addresses;
     while (adapter) {
-        IP_ADAPTER_UNICAST_ADDRESS *ua = adapter->FirstUnicastAddress;
+        const IP_ADAPTER_UNICAST_ADDRESS *ua = adapter->FirstUnicastAddress;
 
         while (ua) {
             if (ua->Address.lpSockaddr->sa_family == AF_INET6) {
@@ -111,7 +111,7 @@ bool network_has_ipv6_default_route() NO_EXCEPT {
     bool found = false;
 
     for (ULONG i = 0; i < table->NumEntries; i++) {
-        MIB_IPFORWARD_ROW2 *row = &table->Table[i];
+        const MIB_IPFORWARD_ROW2* row = &table->Table[i];
 
         // DestinationPrefix = ::
         if (row->DestinationPrefix.PrefixLength == 0) {

@@ -39,12 +39,12 @@ void usleep(uint64 microseconds) NO_EXCEPT
 inline
 uint64 system_time() NO_EXCEPT
 {
-    SYSTEMTIME system_time;
+    SYSTEMTIME sys_time;
     FILETIME file_time;
     ULARGE_INTEGER li;
 
-    GetLocalTime(&system_time);
-    SystemTimeToFileTime(&system_time, &file_time);
+    GetLocalTime(&sys_time);
+    SystemTimeToFileTime(&sys_time, &file_time);
 
     // Convert FILETIME to a 64-bit integer
     li.LowPart = file_time.dwLowDateTime;
@@ -56,12 +56,12 @@ uint64 system_time() NO_EXCEPT
 inline
 uint64 system_time_utc() NO_EXCEPT
 {
-    SYSTEMTIME system_time;
+    SYSTEMTIME sys_time;
     FILETIME file_time;
     ULARGE_INTEGER li;
 
-    GetSystemTime(&system_time);
-    SystemTimeToFileTime(&system_time, &file_time);
+    GetSystemTime(&sys_time);
+    SystemTimeToFileTime(&sys_time, &file_time);
 
     // Convert FILETIME to a 64-bit integer
     li.LowPart = file_time.dwLowDateTime;

@@ -10,7 +10,7 @@
 #define COMS_COMMAND_BUFFER_PRODUCER_FILE_C
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/QueueT.h"
+#include "../memory/QueueT.cpp"
 #include "../system/FileUtils.cpp"
 #include "AppCommand.h"
 

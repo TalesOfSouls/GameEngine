@@ -43,6 +43,7 @@ static void test_asset_archive() {
 
     // Find the file id
     MAYBE_UNUSED int32 toc_id = atoi((char *) toc.content);
+    PSEUDO_USE(toc_id);
     while (*toc.content != '\n') {
         ++toc.content;
         --toc.size;
@@ -83,7 +84,7 @@ static void test_asset_archive() {
     byte* pos = toc.content;
     while (*pos != '\0') {
         // Get the file path for the asset (stored in the toc)
-        char* file_path = (char *) pos;
+        const char* file_path = (char *) pos;
         str_move_to((const char **) &pos, '\n');
         if (*pos == '\n') {
             if (*(pos - 1) == '\r') {
@@ -111,7 +112,7 @@ static void test_asset_archive() {
         ++temp_asset_count;
 
         // We need this to later on calculate the written size to the asset archive
-        byte* element_start = archive_body;
+        const byte* element_start = archive_body;
 
         // The raw data size (usefull, when loading the asset so we can reserve the correct size immediately)
         uint32 uncompressed_length = 0;
@@ -184,7 +185,7 @@ static void test_asset_archive() {
 
     // Now we update some header information as mentioned in the beginning
     *asset_count = SWAP_ENDIAN_LITTLE(temp_asset_count);
-    *asset_dependency_count = SWAP_ENDIAN_LITTLE(*asset_dependency_count);
+    SWAP_ENDIAN_LITTLE_SELF(*asset_dependency_count);
 
     // Calculate header size
     output_header.size = archive_header - output_header.content;

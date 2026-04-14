@@ -28,8 +28,8 @@
 // These values are used as bit flags to hint32 if a "key" is a keyboard/primary or mouse/secondary input
 // When adding a keybind the "key" can only be uint8 but we expand it to an int and set the first bit accordingly
 #define INPUT_MOUSE_PREFIX 0
-#define INPUT_KEYBOARD_PREFIX 1 << 13
-#define INPUT_CONTROLLER_PREFIX 1 << 14
+#define INPUT_KEYBOARD_PREFIX 1U << 13
+#define INPUT_CONTROLLER_PREFIX 1U << 14
 
 enum InputType : byte {
     INPUT_TYPE_NONE = 0,

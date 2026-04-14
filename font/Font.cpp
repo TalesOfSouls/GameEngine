@@ -264,7 +264,7 @@ int32 font_to_data(
 
     // The glyphs are naturally tightly packed -> we can just store the memory
     memcpy(pos, font->glyphs, font->glyph_count * sizeof(Glyph));
-    pos += font->glyph_count * sizeof(Glyph);
+    //pos += font->glyph_count * sizeof(Glyph);
 
     const int32 size = font_data_size(font);
 

@@ -47,7 +47,6 @@ struct coms_pthread_t {
 #define futex_wake(futex, n) syscall(SYS_futex, futex, FUTEX_WAKE, n, NULL, NULL, 0)
 
 #define mutex_init(a, b) ((void) 0)
-#define mutex_init(a, b, c) ((void) 0)
 #define mutex_destroy(a, b) ((void) 0)
 
 #define mutex_lock(mutex) { \

@@ -82,7 +82,7 @@ void asset_archive_info_size(
     const byte* data = file.content;
     data = read_le(data, &header->version);
     data = read_le(data, &header->asset_count);
-    data = read_le(data, &header->asset_dependency_count);
+    read_le(data, &header->asset_dependency_count);
 }
 
 static inline
@@ -129,11 +129,13 @@ void asset_archive_header_load(
         steps
     );
 
+    /*
     size_t total = 0;
     for (uint32 i = 0; i < header->asset_count; ++i) {
         size_t uncompressed = header->asset_element[i].uncompressed;
         total += uncompressed;
     }
+    */
 }
 
 FORCE_INLINE

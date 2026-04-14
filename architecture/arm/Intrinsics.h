@@ -106,7 +106,7 @@
     {
         void* const end = ((char *) memory) + size;
         size_t* p0 = (size_t *) memory;
-        size_t* p1 = (size_t *) end;
+        const size_t* p1 = (size_t *) end;
         for (const volatile size_t* p = p0; p < p1; ++p) {
             _sink128 = *p;
         }
@@ -119,7 +119,7 @@
     {
         void* const end = ((char *) memory) + size;
         size_t* p0 = (size_t *) memory;
-        size_t* p1 = (size_t *) end;
+        const size_t* p1 = (size_t *) end;
         for (const volatile size_t* p = p0; p < p1; ++p) {
             _sink256 = *p;
         }
@@ -132,7 +132,7 @@
     {
         void* const end = ((char *) memory) + size;
         size_t* p0 = (size_t *) memory;
-        size_t* p1 = (size_t *) end;
+        const size_t* p1 = (size_t *) end;
         for (const volatile size_t* p = p0; p < p1; ++p) {
             _sink512 = *p;
         }

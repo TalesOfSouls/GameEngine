@@ -22,7 +22,7 @@ static void test_voxel_world_map() {
     voxel_world_chunk_update(&vw);
 
     v3_int32 chunk_coord = {0, 0, 0};
-    VoxelChunk* chunk_inserted = voxel_world_chunk_get(&vw.map, chunk_coord.x, chunk_coord.y, chunk_coord.z);
+    const VoxelChunk* chunk_inserted = voxel_world_chunk_get(&vw.map, chunk_coord.x, chunk_coord.y, chunk_coord.z);
     TEST_EQUALS(chunk_inserted->coord.x, chunk_coord.x);
     TEST_EQUALS(chunk_inserted->coord.y, chunk_coord.y);
     TEST_EQUALS(chunk_inserted->coord.z, chunk_coord.z);

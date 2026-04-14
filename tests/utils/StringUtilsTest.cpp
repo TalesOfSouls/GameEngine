@@ -30,7 +30,7 @@ static void test_utf8_decode()
 
 static void test_utf8_strlen()
 {
-    char in[] = "Foo © bar 𝌆 baz ☃ qux";
+    const char in[] = "Foo © bar 𝌆 baz ☃ qux";
     TEST_EQUALS(utf8_strlen(in), 21);
 }
 

@@ -1001,7 +1001,7 @@ HashEntryStrKeyInt64* hashmap_insert(HashMap* const __restrict hm, uint64 key, c
 
     entry->key = key;
 
-    strncpy(entry->value, value, HASH_MAP_MAX_KEY_LENGTH);
+    strncpy(entry->value, value, sizeof(entry->value) - 1);
     entry->value[sizeof(entry->value) - 1] = '\0';
     entry->next = 0;
 

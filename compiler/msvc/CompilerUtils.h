@@ -56,8 +56,9 @@ int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT
 {
     ASSERT_STRICT(mask);
 
+    // index is 0-indexed
     unsigned long index;
-    return _BitScanForward64(&index, mask) ? index : -1;
+    return _BitScanForward64(&index, mask) > 0 ? (int) index : -1;
 }
 
 FORCE_INLINE
@@ -65,8 +66,9 @@ int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT
 {
     ASSERT_STRICT(mask);
 
+    // index is 0-indexed
     unsigned long index;
-    return _BitScanForward(&index, mask) ? index : -1;
+    return _BitScanForward(&index, mask) > 0 ? (int) index : -1;
 }
 
 FORCE_INLINE
@@ -74,8 +76,9 @@ int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT
 {
     ASSERT_STRICT(mask);
 
+    // index is 0-indexed
     unsigned long index;
-    return _BitScanReverse64(&index, mask) ? index : -1;
+    return _BitScanReverse64(&index, mask) > 0 ? (int) index : -1;
 }
 
 FORCE_INLINE
@@ -83,8 +86,9 @@ int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT
 {
     ASSERT_STRICT(mask);
 
+    // index is 0-indexed
     unsigned long index;
-    return _BitScanReverse(&index, mask) ? index : -1;
+    return _BitScanReverse(&index, mask) > 0 ? (int) index : -1;
 }
 
 FORCE_INLINE
@@ -101,6 +105,7 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_E
 FORCE_INLINE
 uint32 compiler_div_pow2(uint32 a, uint32 b) NO_EXCEPT
 {
+    // index is 0-indexed
     unsigned long index;
     _BitScanForward(&index, b);
 
@@ -112,6 +117,7 @@ uint32 compiler_div_pow2(uint32 a, uint32 b) NO_EXCEPT
 FORCE_INLINE
 size_t compiler_div_pow2(size_t a, size_t b) NO_EXCEPT
 {
+    // index is 0-indexed
     unsigned long index;
     _BitScanForward64(&index, b);
 
@@ -134,6 +140,7 @@ uint16 compiler_div_pow2(uint16 a, uint16 b) NO_EXCEPT
 FORCE_INLINE
 size_t compiler_div_pow2(size_t a, uint32 b) NO_EXCEPT
 {
+    // index is 0-indexed
     unsigned long index;
     _BitScanForward(&index, b);
 
@@ -156,6 +163,7 @@ uint16 compiler_div_pow2(uint16 a, uint32 b) NO_EXCEPT
 FORCE_INLINE
 uint32 compiler_div_pow2(uint32 a, int32 b) NO_EXCEPT
 {
+    // index is 0-indexed
     unsigned long index;
     _BitScanForward(&index, b);
 
@@ -167,6 +175,7 @@ uint32 compiler_div_pow2(uint32 a, int32 b) NO_EXCEPT
 FORCE_INLINE
 int32 compiler_div_pow2(int32 a, int32 b) NO_EXCEPT
 {
+    // index is 0-indexed
     unsigned long index;
     _BitScanForward(&index, b);
 
@@ -189,6 +198,7 @@ uint16 compiler_div_pow2(uint16 a, int16 b) NO_EXCEPT
 FORCE_INLINE
 size_t compiler_div_pow2(size_t a, int32 b) NO_EXCEPT
 {
+    // index is 0-indexed
     unsigned long index;
     _BitScanForward(&index, b);
 

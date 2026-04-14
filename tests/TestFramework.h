@@ -470,7 +470,7 @@ inline void compare_function_test_cycle_impl(
         func1((volatile void *) &a);
     }
     uint64_t end = test_timestamp_counter();
-    uint64_t cycles_func1 = end - start;
+    const uint64_t cycles_func1 = end - start;
 
     /* Measure func2 */
     start = test_timestamp_counter();
@@ -478,7 +478,7 @@ inline void compare_function_test_cycle_impl(
         func2((volatile void *) &b);
     }
     end = test_timestamp_counter();
-    uint64_t cycles_func2 = end - start;
+    const uint64_t cycles_func2 = end - start;
 
     /* Calculate percentage difference */
     double percent_diff = 100.0 * ((double) cycles_func1 - (double) cycles_func2) / (double) cycles_func2;
@@ -507,18 +507,19 @@ inline void test_function_test_cycle_impl(
     int64_t para = 0;
 
     /* Measure func */
-    uint64_t start = test_timestamp_counter();
+    const uint64_t start = test_timestamp_counter();
     for (int i = 0; i < profiling_loops; ++i) {
         func((volatile void *) &para);
     }
-    uint64_t end = test_timestamp_counter();
-    uint64_t cycles_func = end - start;
-
-    /* Calculate percentage difference */
-    double percent_diff = 100.0 * (cycles_func - cycles) / cycles;
+    const uint64_t end = test_timestamp_counter();
+    const uint64_t cycles_func = end - start;
 
     if (cycles_func >= cycles) {
         ++_test_global_assert_error_count;
+
+        /* Calculate percentage difference */
+        double percent_diff = 100.0 * (cycles_func - cycles) / cycles;
+
         snprintf(
             _test_log[_test_assert_error_count++], 1024,
             "%4i: %.2f%% (%s: %" PRIu64 " cycles)",

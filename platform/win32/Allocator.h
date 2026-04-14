@@ -56,8 +56,9 @@ void* platform_alloc_aligned(
     void* base = VirtualAlloc(NULL, reserve_size, MEM_RESERVE, PAGE_READWRITE);
     ASSERT_TRUE(base);
 
-    void* committed = VirtualAlloc(base, initial_size, MEM_COMMIT, PAGE_READWRITE);
+    const void* const committed = VirtualAlloc(base, initial_size, MEM_COMMIT, PAGE_READWRITE);
     ASSERT_TRUE(committed == base);
+    PSEUDO_USE(committed);
 
     platform_alloc_header* hdr = (platform_alloc_header *) base;
     hdr->reserved_size  = reserve_size;
@@ -91,7 +92,7 @@ bool platform_alloc_aligned_grow(void* aligned_ptr, size_t new_user_size) NO_EXC
     ASSERT_TRUE(new_committed <= hdr->reserved_size);
 
     // Commit the new pages
-    void* result = VirtualAlloc(
+    const void* const result = VirtualAlloc(
         (uint8_t*)base + hdr->committed_size,
         new_committed - hdr->committed_size,
         MEM_COMMIT,
@@ -216,7 +217,7 @@ bool platform_shared_alloc_grow(void* shm_ptr, size_t new_user_size) NO_EXCEPT
     ASSERT_TRUE(new_committed > hdr->committed_size);
     ASSERT_TRUE(new_committed <= hdr->reserved_size);
 
-    void* result = VirtualAlloc(
+    const void* const result = VirtualAlloc(
         (uint8_t*)base_hdr + hdr->committed_size,
         new_committed - hdr->committed_size,
         MEM_COMMIT,

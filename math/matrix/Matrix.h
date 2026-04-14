@@ -253,7 +253,7 @@ T vec3_add(T a, T b) NO_EXCEPT
 }
 
 FORCE_INLINE
-v3_f32 operator+(v3_f32 a, v3_f32 b) NO_EXCEPT
+v3_f32 operator+(const v3_f32& a, const v3_f32& b) NO_EXCEPT
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
@@ -284,7 +284,7 @@ T vec3_sub(T a, T b) NO_EXCEPT
 }
 
 FORCE_INLINE
-v3_f32 operator-(v3_f32 a, v3_f32 b) NO_EXCEPT
+v3_f32 operator-(const v3_f32& a, const v3_f32& b) NO_EXCEPT
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z};
 }
@@ -325,13 +325,13 @@ void vec3_mul(T* const vec, f32 s) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-T vec3_mul(T vec, f32 s) NO_EXCEPT
+T vec3_mul(const T& vec, f32 s) NO_EXCEPT
 {
     return {vec.x * s, vec.y * s, vec.z * s};
 }
 
 FORCE_INLINE
-v3_f32 operator*(v3_f32 vec, f32 s) NO_EXCEPT
+v3_f32 operator*(const v3_f32& vec, f32 s) NO_EXCEPT
 {
     return {vec.x * s, vec.y * s, vec.z * s};
 }
@@ -439,7 +439,7 @@ f32 vec4_length(const T* const vec) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-f32 vec4_length(T vec) NO_EXCEPT
+f32 vec4_length(const T& vec) NO_EXCEPT
 {
     return intrin_sqrt_f32(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z + vec->w * vec->w);
 }
@@ -465,7 +465,7 @@ auto vec4_sum(const T* const vec) NO_EXCEPT -> decltype(vec->x)
 
 template<typename T>
 FORCE_INLINE
-auto vec4_sum(T vec) NO_EXCEPT -> decltype(vec.x)
+auto vec4_sum(const T& vec) NO_EXCEPT -> decltype(vec.x)
 {
     return vec.x + vec.y + vec.z + vec.w;
 }
@@ -483,13 +483,13 @@ void vec4_add(T* const __restrict vec, const T* const a, const T* const b) NO_EX
 
 template<typename T>
 FORCE_INLINE
-T vec4_add(T a, T b) NO_EXCEPT
+T vec4_add(const T& a, const T& b) NO_EXCEPT
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
 }
 
 FORCE_INLINE
-v4_f32 operator+(v4_f32 a, v4_f32 b) NO_EXCEPT
+v4_f32 operator+(const v4_f32& a, const v4_f32& b) NO_EXCEPT
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
 }
@@ -516,13 +516,13 @@ void vec4_sub(T* const __restrict vec, const T* const __restrict a, const T* con
 
 template<typename T>
 FORCE_INLINE
-T vec4_sub(T a, T b) NO_EXCEPT
+T vec4_sub(const T& a, const T& b) NO_EXCEPT
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
 }
 
 FORCE_INLINE
-v4_f32 operator-(v4_f32 a, v4_f32 b) NO_EXCEPT
+v4_f32 operator-(const v4_f32& a, const v4_f32& b) NO_EXCEPT
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
 }
@@ -559,13 +559,13 @@ void vec4_mul(T* const vec, f32 s) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-T vec4_mul(T vec, f32 s) NO_EXCEPT
+T vec4_mul(const T& vec, f32 s) NO_EXCEPT
 {
     return {vec.x * s, vec.y * s, vec.z * s, vec.w * s};
 }
 
 FORCE_INLINE
-v4_f32 operator*(v4_f32 vec, f32 s) NO_EXCEPT
+v4_f32 operator*(const v4_f32& vec, f32 s) NO_EXCEPT
 {
     return {vec.x * s, vec.y * s, vec.z * s, vec.w * s};
 }
@@ -1528,7 +1528,7 @@ void vec3_normal(
 
 inline
 v3_f32 vec3_normal(
-    v3_f32 a, v3_f32 b, v3_f32 c
+    const v3_f32& a, const v3_f32& b, const v3_f32& c
 ) NO_EXCEPT
 {
     // Calculate two edges of the triangle
@@ -1559,7 +1559,7 @@ void vec3_barycenter(
 
 FORCE_INLINE
 v3_f32 vec3_barycenter(
-    v3_f32 a, v3_f32 b, v3_f32 c
+    const v3_f32& a, const v3_f32& b, const v3_f32& c
 ) NO_EXCEPT
 {
     return {
@@ -1590,7 +1590,7 @@ v4_f32 vec4_load(f32 a[4], MAYBE_UNUSED int32 steps = 4) {
 }
 
 inline
-v4_f32 vec4_store(v4_f32 vec, MAYBE_UNUSED int32 steps = 4) {
+v4_f32 vec4_store(const v4_f32& vec, MAYBE_UNUSED int32 steps = 4) {
     #if defined(__SSE4_2__)
         if (steps >= 4) {
             alignas(16) v4_f32 result;

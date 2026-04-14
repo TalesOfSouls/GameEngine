@@ -12,7 +12,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemoryT.h"
 #include "../memory/RingMemory.cpp"
-#include "../memory/QueueT.h"
+#include "../memory/QueueT.cpp"
 #include "../audio/AudioMixer.cpp"
 #include "../asset/Asset.h"
 #include "../asset/AssetManagementSystem.cpp"
