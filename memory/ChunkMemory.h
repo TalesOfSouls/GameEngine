@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_MEMORY_CHUNK_MEMORY_H
 #define COMS_MEMORY_CHUNK_MEMORY_H
 
@@ -1003,39 +1004,39 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
 
 // @performance Is _BitScanForward faster?
 // @performance We could probably even reduce the number of iterations by only iterating until popcount is reached?
-#define chunk_iterate_start(buf, chunk_id) {                                                    \
-    uint32 free_index = 0;                                                                      \
-    uint32 bit_index = 0;                                                                       \
-                                                                                                \
-    /* Iterate the chunk memory */                                                              \
-    for (; chunk_id < (buf)->capacity; ++chunk_id) {                                            \
-        /* Check if asset is defined */                                                         \
-        if (!(buf)->free[free_index]) {                                                         \
-            /* Skip various elements */                                                         \
-            /* @performance Consider to only check 1 byte instead of 8 */                       \
-            /* There are probably even better ways by using compiler intrinsics if available */ \
-            bit_index += (sizeof(uint_max) * 8 - 1); /* +64 - 1 since the loop also increases by 1 */                   \
-            chunk_id += (sizeof(uint_max) * 8 - 1); \
+#define chunk_iterate_start(buf, chunk_id) {                                                          \
+    uint32 free_index = 0;                                                                            \
+    uint32 bit_index = 0;                                                                             \
+                                                                                                      \
+    /* Iterate the chunk memory */                                                                    \
+    for (; chunk_id < (buf)->capacity; ++chunk_id) {                                                  \
+        /* Check if asset is defined */                                                               \
+        if (!(buf)->free[free_index]) {                                                               \
+            /* Skip various elements */                                                               \
+            /* @performance Consider to only check 1 byte instead of 8 */                             \
+            /* There are probably even better ways by using compiler intrinsics if available */       \
+            bit_index += (sizeof(uint_max) * 8 - 1); /* +64 - 1 since the loop also increases by 1 */ \
+            chunk_id += (sizeof(uint_max) * 8 - 1);                                                   \
         } else if ((buf)->free[free_index] & (OMS_UINT_ONE << bit_index))
 
 // INTERNAL: Not intended for use by any programmer
-#define chunk_iterate_end_internal { \
-        ++bit_index;                 \
-        if (bit_index > (sizeof(uint_max) * 8 - 1)) {        \
-            bit_index = 0;           \
-            ++free_index;            \
-        }                            \
+#define chunk_iterate_end_internal {                  \
+        ++bit_index;                                  \
+        if (bit_index > (sizeof(uint_max) * 8 - 1)) { \
+            bit_index = 0;                            \
+            ++free_index;                             \
+        }                                             \
     }
 
 // This is needed because if bit_index can be larger than 127 we need to skip multiple free_index
 // But even for less than 127 we still may have to change the bit_index to a value != 0
 // bit_index = 0 is only allowed for a 1 skip or (sizeof(uint_max) * 8) skip (as used in chunk_iterate_end_internal)
 // INTERNAL: Not intended for use by any programmer
-#define chunk_iterate_end_internal_n(n) {  \
-        if (bit_index > (sizeof(uint_max) * 8 - 1)) {               \
-            bit_index %= (sizeof(uint_max) * 8);                \
-            free_index += ((n) / (sizeof(uint_max) * 8));         \
-        }                                   \
+#define chunk_iterate_end_internal_n(n) {                 \
+        if (bit_index > (sizeof(uint_max) * 8 - 1)) {     \
+            bit_index %= (sizeof(uint_max) * 8);          \
+            free_index += ((n) / (sizeof(uint_max) * 8)); \
+        }                                                 \
     }
 
 // Breaks out of the iteration (uses break, like you would use in a normal loop)
@@ -1047,8 +1048,8 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
 // This is the fix to the skip from chunk_iterate_small_skip.
 // Use only when actually needed.
 // If the skip is guaranteed by the algorithm to be <=elements use chunk_iterate_small_skip
-#define chunk_iterate_continue_n(n) { \
-        bit_index += (n); \
+#define chunk_iterate_continue_n(n) {            \
+        bit_index += (n);                        \
     } chunk_iterate_end_internal_n((n)) continue
 
 // Ends the for loop from chunk_iterate_start

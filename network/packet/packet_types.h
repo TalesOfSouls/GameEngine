@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_NETWORK_PACKET_TYPES_H
 #define COMS_NETWORK_PACKET_TYPES_H
 

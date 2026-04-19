@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_FONT_SYSTEM_H
 #define COMS_FONT_SYSTEM_H
 

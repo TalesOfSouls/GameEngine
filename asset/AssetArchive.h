@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_ASSET_ARCHIVE_H
 #define COMS_ASSET_ARCHIVE_H
 
@@ -30,6 +31,9 @@ struct AssetArchiveElement {
     uint32 uncompressed;
 
     // actual index for asset_dependencies
+    // These values link into the "global"/archive dependency list
+    // We store all dependencies in a continuous array
+    // but for a single element of course we only need a small subsection
     // @question sometimes dependencies are in different files, this might be better as an id?
     uint32 dependency_start;
     uint32 dependency_count;
@@ -42,12 +46,24 @@ struct AssetArchiveHeader {
     int32 version;
 
     uint32 asset_count;
+
+    // How many total dependencies are defined in this archive
     uint32 asset_dependency_count;
 
     AssetArchiveElement* asset_element; // is not the owner of the data
-    int32* asset_dependencies; // is not the owner of the data
+
+    // The individual elements link into this array
+    uint32* asset_dependencies; // is not the owner of the data
 };
 
+/**
+ * Asset file structure:
+ *      AssetArchiveHeader
+ *          Scalar values
+ *      AssetArchiveElement array
+ *      Asset_dependency array
+ *      Asset data
+ */
 struct AssetArchive {
     AssetArchiveHeader header;
 

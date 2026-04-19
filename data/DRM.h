@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_DATA_ANTI_CHEAT
 #define COMS_DATA_ANTI_CHEAT
 

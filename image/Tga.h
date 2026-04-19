@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_IMAGE_TGA_H
 #define COMS_IMAGE_TGA_H
 
@@ -72,6 +73,25 @@ void generate_default_tga_references(const FileBody* file, Tga* tga) NO_EXCEPT
     tga->pixels = file->content + TGA_HEADER_SIZE
         + tga->header.id_length // can be 0
         + tga->header.color_map_length * (tga->header.color_map_bits / 8); // can be 0
+}
+
+void image_header_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
+{
+    // @performance We are generating the struct and then filling the data.
+    //      There is some assignment/copy overhead
+    Tga src = {0};
+    generate_default_tga_references(src_data, &src);
+
+    image->width = src.header.width;
+    image->height = src.header.height;
+    image->pixel_count = image->width * image->height;
+
+    const uint32 pixel_bytes = src.header.bits_per_pixel / 8;
+    const byte alpha_offset = pixel_bytes > 3;
+
+    image->image_settings |= (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT) == 0
+        ? pixel_bytes
+        : image->image_settings & IMAGE_SETTING_CHANNEL_COUNT;
 }
 
 void image_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT

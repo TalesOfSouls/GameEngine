@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_GPUAPI_OPENGL_DESCRIPTOR_SET_LAYOUT_BINDING_H
 #define COMS_GPUAPI_OPENGL_DESCRIPTOR_SET_LAYOUT_BINDING_H
 

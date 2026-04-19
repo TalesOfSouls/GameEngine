@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_MODULE_WEB_H
 #define COMS_MODULE_WEB_H
 

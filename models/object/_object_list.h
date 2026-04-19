@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_MODELS_OBJECT_LIST_H
 #define COMS_MODELS_OBJECT_LIST_H
 

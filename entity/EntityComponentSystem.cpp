@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_ENTITY_COMPONENT_SYSTEM_C
 #define COMS_ENTITY_COMPONENT_SYSTEM_C
 

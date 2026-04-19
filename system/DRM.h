@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_SYSTEM_DRM_H
 #define COMS_SYSTEM_DRM_H
 

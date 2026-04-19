@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_GPUAPI_OPENGL_GPU_INFO_C
 #define COMS_GPUAPI_OPENGL_GPU_INFO_C
 
@@ -122,7 +123,7 @@ void gpuapi_info_get(GpuInfo* info) {
     if (shader_version) {
         strcpy(info->shader_version, shader_version);
     }
-    
+
     GLint vramKB = 0;
     if (gl_has_extension("GL_NVX_gpu_memory_info")) {
         glGetIntegerv(0x9048 /*GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX*/, &vramKB);
@@ -145,8 +146,8 @@ void gpuapi_info_get(GpuInfo* info) {
 void gpu_info_render(char* buf, const GpuInfo* const info) NO_EXCEPT
 {
     sprintf_fast(
-        buf, 
-        4096, 
+        buf,
+        4096,
         "Name: %s\n"
         "Vendor: %s\n"
         "API Version: %s\n"

@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_IMAGE_C
 #define COMS_IMAGE_C
 
@@ -17,6 +18,30 @@
 #include "Tga.h"
 #include "Bitmap.h"
 #include "Png.h"
+
+// Only loads the important image header data without having to parse the entire file
+inline
+void image_header_from_file(Image* __restrict image, const char* __restrict path, RingMemory* const __restrict ring) NO_EXCEPT
+{
+    FileBody file = {0};
+
+    if (str_ends_with(path, ".png")) {
+        file.size = 64;
+        file.content = ring_memory_get(ring, file.size, alignof(size_t));
+        file_read(path, &file);
+        image_header_png_generate(&file, image, ring);
+    } else if (str_ends_with(path, ".tga")) {
+        file.size = 32;
+        file.content = ring_memory_get(ring, file.size, alignof(size_t));
+        file_read(path, &file);
+        image_header_tga_generate(&file, image);
+    } else if (str_ends_with(path, ".bmp")) {
+        file.size = 1024;
+        file.content = ring_memory_get(ring, file.size, alignof(size_t));
+        file_read(path, &file);
+        image_header_bmp_generate(&file, image);
+    }
+}
 
 inline
 void image_from_file(Image* __restrict image, const char* __restrict path, RingMemory* const __restrict ring) NO_EXCEPT

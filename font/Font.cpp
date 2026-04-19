@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_FONT_C
 #define COMS_FONT_C
 
@@ -13,7 +14,7 @@
  * @todo The font atlas letters could be minimized by using one channel each. This allows us to reduce the font atlas size by a factor of 3
  */
 
-inline
+FORCE_INLINE
 void font_init(Font* const font, byte* data, int count) NO_EXCEPT
 {
     font->glyphs = (Glyph *) data;
@@ -102,6 +103,10 @@ void font_from_file_txt(
     while (*pos != '\0') {
         // Parsing general data
         int32 i = 0;
+        while (*pos == '\n') {
+            ++pos;
+        }
+
         while (*pos != '\0' && *pos != ' ' && *pos != ':' && *pos != '\n' && i < 31) {
             block_name[i] = *pos;
             ++pos;
@@ -109,6 +114,10 @@ void font_from_file_txt(
         }
 
         block_name[i] = '\0';
+
+        if (*pos != ':') {
+            break;
+        }
 
         // Go to value
         while (*pos == ' ' || *pos == '\t' || *pos == ':') {
@@ -132,6 +141,9 @@ void font_from_file_txt(
         } else if (strcmp(block_name, "glyph_count") == 0) {
             // glyph_count has to be the last general element
             font->glyph_count = (uint32) str_to_int(pos, &pos);
+
+            // @bug it's a little bit of a bad design to force the order here
+            //      this requires glyph_count to be the last element before the content starts
             break;
         }
 
@@ -285,6 +297,8 @@ f32 font_line_height(const Font* const font, f32 size) NO_EXCEPT
     return font->line_height * size / font->size;
 }
 
+// Required depending on the 3D api.
+// Some use top-down, some bottom-up coordinates
 FORCE_INLINE
 void font_invert_coordinates(Font* const font) NO_EXCEPT
 {
@@ -292,9 +306,7 @@ void font_invert_coordinates(Font* const font) NO_EXCEPT
     for (uint32 i = 0; i < font->glyph_count; ++i) {
         Glyph* const glyph = &font->glyphs[i];
         for (int32 j = 0; j < glyph->vertex_count; ++j) {
-            const f32 temp = glyph->vertices[j].uv.y;
             glyph->vertices[j].uv.y = 1.0f - glyph->vertices[j].uv.y;
-            glyph->vertices[j].uv.y = 1.0f - temp;
         }
     }
 }

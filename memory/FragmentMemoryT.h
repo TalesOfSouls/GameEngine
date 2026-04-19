@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_MEMORY_FRAGMENT_MEMORYT_H
 #define COMS_MEMORY_FRAGMENT_MEMORYT_H
 

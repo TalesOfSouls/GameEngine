@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_ENCRYPTION_CEASAR_H
 #define COMS_ENCRYPTION_CEASAR_H
 

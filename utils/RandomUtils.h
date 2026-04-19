@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_UTILS_RANDOM_H
 #define COMS_UTILS_RANDOM_H
 

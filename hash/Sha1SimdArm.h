@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_HASH_SHA1_SIMD_ARM_H
 #define COMS_HASH_SHA1_SIMD_ARM_H
 

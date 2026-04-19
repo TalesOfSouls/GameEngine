@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_MODELS_ITEM_MOB_LEVEL_STATS_H
 #define COMS_MODELS_ITEM_MOB_LEVEL_STATS_H
 

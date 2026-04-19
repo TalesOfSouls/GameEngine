@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_ASSET_ARCHIVE_C
 #define COMS_ASSET_ARCHIVE_C
 
@@ -40,10 +41,12 @@ int32 asset_archive_header_size(
 
     int32 asset_count;
     data = read_le(data, &asset_count);
+    ASSERT_TRUE(asset_count > 0);
 
     int32 asset_dependency_count;
     read_le(data, &asset_dependency_count);
 
+    // @bug Sometimes (1 in 30) this assert fails, I HAVE NO IDEA WHY
     ASSERT_TRUE(asset_count + asset_dependency_count < 100000);
 
     return sizeof(archive->header.version)
@@ -119,15 +122,15 @@ void asset_archive_header_load(
             (byte *) header->asset_element
             + header->asset_count * sizeof(AssetArchiveElement)
         );
-    }
 
-    memcpy(header->asset_dependencies, data, header->asset_dependency_count * sizeof(int32));
-    SWAP_ENDIAN_LITTLE_SIMD(
-        (int32 *) header->asset_dependencies,
-        (int32 *) header->asset_dependencies,
-        header->asset_count * header->asset_dependency_count, // everything is 4 bytes -> easy to swap
-        steps
-    );
+        memcpy(header->asset_dependencies, data, header->asset_dependency_count * sizeof(int32));
+        SWAP_ENDIAN_LITTLE_SIMD(
+            (int32 *) header->asset_dependencies,
+            (int32 *) header->asset_dependencies,
+            header->asset_count * header->asset_dependency_count, // everything is 4 bytes -> easy to swap
+            steps
+        );
+    }
 
     /*
     size_t total = 0;
@@ -189,11 +192,13 @@ void asset_archive_load(
 
     archive->fd = file_read_handle(path);
     if (!archive->fd) {
+        ASSERT_THROW();
         return;
     }
 
     archive->fd_async = file_read_async_handle(path);
     if (!archive->fd_async) {
+        ASSERT_THROW();
         return;
     }
     archive->mmf = file_mmf_handle(archive->fd_async);
@@ -208,7 +213,63 @@ void asset_archive_load(
 
     // Find header size
     file.content = ring_memory_get(ring, file.size, sizeof(size_t));
-    file_read(archive->fd, &file, 0, file.size);
+    // @bug We only inlined this for easier debugging, revert once solved
+    //file_read(archive->fd, &file, 0, file.size);
+
+        FileHandle fp = archive->fd;
+        FileBody* tfile = &file;
+        uint64 offset = 0;
+        uint64 length = file.size;
+
+        LARGE_INTEGER size;
+        if (!GetFileSizeEx(fp, &size)) {
+            tfile->content = NULL;
+            ASSERT_THROW();
+
+            return;
+        }
+
+        // Ensure the offset and length do not exceed the tfile size
+        const uint64 fsize = size.QuadPart;
+        if (offset >= fsize) {
+            tfile->size = 0;
+            tfile->content = NULL;
+            ASSERT_THROW();
+
+            return;
+        }
+
+        // Adjust the length to read so that it does not exceed the tfile size
+        const uint64 read_length = OMS_MIN(length, fsize - offset);
+
+        if (ring != NULL) {
+            tfile->content = ring_memory_get(ring, read_length + 1);
+        }
+
+        // Move the tfile pointer to the offset position
+        LARGE_INTEGER li;
+        li.QuadPart = offset;
+        if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
+            tfile->content = NULL;
+            ASSERT_THROW();
+
+            return;
+        }
+
+        DWORD bytes_read;
+        if (!ReadFile(fp, tfile->content, (uint32) read_length, &bytes_read, NULL)) {
+            tfile->content = NULL;
+            ASSERT_THROW();
+
+            return;
+        }
+
+        ASSERT_TRUE(bytes_read <= 2147483648);
+
+        tfile->content[bytes_read] = '\0';
+        tfile->size = bytes_read;
+
+
     file.size = asset_archive_header_size(archive, file.content);
 
     // WARNING archive->data needs to be already allocated
@@ -313,6 +374,9 @@ Asset* const asset_archive_asset_load(
 
         file_async_wait(archive->fd_async, &file.ov, true);
         switch (element->type) {
+            case ASSET_TYPE_TEXTURE_ATLAS: {
+                // @todo implement
+            } break;
             case ASSET_TYPE_IMAGE: {
                 // @todo Do we really want to store textures in the asset management system or only images?
                 // If it is only images then we need to somehow also manage textures

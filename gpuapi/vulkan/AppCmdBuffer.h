@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_GPUAPI_VULKAN_APP_CMD_BUFFER_H
 #define COMS_GPUAPI_VULKAN_APP_CMD_BUFFER_H
 

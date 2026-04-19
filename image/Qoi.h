@@ -7,6 +7,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_IMAGE_QOI_H
 #define COMS_IMAGE_QOI_H
 

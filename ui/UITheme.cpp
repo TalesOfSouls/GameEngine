@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_UI_THEME_C
 #define COMS_UI_THEME_C
 

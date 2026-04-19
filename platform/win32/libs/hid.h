@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_PLATFORM_WIN32_LIB_HID_H
 #define COMS_PLATFORM_WIN32_LIB_HID_H
 

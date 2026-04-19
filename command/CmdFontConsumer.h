@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_APP_COMMAND_FONT_CONSUMER_H
 #define COMS_APP_COMMAND_FONT_CONSUMER_H
 
@@ -40,6 +41,19 @@ Asset* cmd_internal_font_create(
     ) {
         font_invert_coordinates(font);
     }
+
+    // @bug this is not possible since we don't have the required function parameters
+    //      Even if we would want an async load cmd_texture_load_async
+    /*
+    cmd_texture_load_async
+    cmd_texture_load_sync(
+        asset_archives,
+        ams,
+        ring,
+        gpu_api_type,
+        asset->references[0]
+    );
+    */
 
     return asset;
 }
@@ -109,7 +123,13 @@ Asset* cmd_font_load_sync(
         font_invert_coordinates(font);
     }
 
-    // @question What about also loading the font atlas
+    cmd_texture_load_sync(
+        asset_archives,
+        ams,
+        ring,
+        gpu_api_type,
+        asset->references[0]
+    );
 
     return asset;
 }

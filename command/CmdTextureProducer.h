@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_COMMAND_BUFFER_TEXTURE_PRODUCER_H
 #define COMS_COMMAND_BUFFER_TEXTURE_PRODUCER_H
 
@@ -23,6 +24,20 @@ void thrd_cmd_texture_load(
     AppCommand cmd;
     cmd.callback = NULL;
     cmd.type = CMD_TEXTURE_LOAD;
+    cmd.texture_body.asset.asset_id = asset_id;
+
+    thrd_cmd_insert(cb, &cmd);
+}
+
+inline
+void thrd_cmd_texture_atlas_load(
+    ChunkMemoryT<AppCommand>* const cb,
+    int32 asset_id
+) NO_EXCEPT
+{
+    AppCommand cmd;
+    cmd.callback = NULL;
+    cmd.type = CMD_TEXTURE_ATLAS_LOAD;
     cmd.texture_body.asset.asset_id = asset_id;
 
     thrd_cmd_insert(cb, &cmd);

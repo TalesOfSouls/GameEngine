@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_UI_LANGUAGE_C
 #define COMS_UI_LANGUAGE_C
 

@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_SOUND_DIRECT_SOUND_H
 #define COMS_SOUND_DIRECT_SOUND_H
 

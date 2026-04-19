@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_MODELS_MOB_PRIMARY_STATS_POINTS_C
 #define COMS_MODELS_MOB_PRIMARY_STATS_POINTS_C
 

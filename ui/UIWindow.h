@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_UI_WINDOW_H
 #define COMS_UI_WINDOW_H
 
@@ -323,12 +324,17 @@ UIWindowOffset* ui_window_create(UILayout* layout, uint32 component_flags) {
     return window;
 }
 
+FORCE_INLINE
+void* ui_get_element(UILayout* const layout, int32 offset) {
+    return layout->ui_element_buffer.memory + offset;
+}
+
 int32 cache_vertices(
     UILabelOffset* offset_data,
     UILayout* const layout, f32 zindex,
     RingMemory* const __restrict ring
 ) {
-    int32 idx = 0;
+    int32 idx = layout->ui_vertex_cache.count;
 
     FontSystem* const font = layout->font;
     UILabel* label = (UILabel*) (layout->ui_element_buffer.memory + offset_data->self.element);
@@ -357,7 +363,7 @@ int32 cache_vertices(
     UIOffset* parent = &offset_data->self;
 
     // Iterate all parents to get window position
-    // 1111 is just a placeholder for the window type id
+    // 1 is just a placeholder for the window type id
     while (parent && parent->type != 1) {
         if (!parent->parent_offset) {
             parent = NULL;
@@ -424,8 +430,18 @@ int32 cache_vertices(
     }
 
     for (int32 i = 0; i < ARRAY_COUNT(offset_data->border); ++i) {
-        if (offset_data->border[i].self.element) {
-            // @todo implement border
+        if (i == 0 && offset_data->border[i].self.element) {
+            // @todo this should be in the UIAttributeBorder file?
+            UIAttributeBorder* border = (UIAttributeBorder*) (layout->ui_element_buffer.memory + offset_data->border[i].self.element);
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y + 19, zindex}, 2, {border->tex_coord[0].x, border->tex_coord[0].y}});
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x + 27, window->dimension.pos.y + 19, zindex}, 2, {border->tex_coord[1].x, border->tex_coord[1].y}});
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {border->tex_coord[3].x, border->tex_coord[3].y}});
+
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x + 27, window->dimension.pos.y +19, zindex}, 2, {border->tex_coord[1].x, border->tex_coord[1].y}});
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x + 27, window->dimension.pos.y, zindex}, 2, {border->tex_coord[2].x, border->tex_coord[2].y}});
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {border->tex_coord[3].x, border->tex_coord[3].y}});
+
+            vertex_count += 6;
         }
     }
 

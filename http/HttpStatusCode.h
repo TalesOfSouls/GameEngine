@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_JINGGA_HTTP_STATUS_CODE_H
 #define COMS_JINGGA_HTTP_STATUS_CODE_H
 

@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_STDLIB_ARRAY_VECTOR_H
 #define COMS_STDLIB_ARRAY_VECTOR_H
 

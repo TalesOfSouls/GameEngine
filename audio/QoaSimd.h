@@ -7,6 +7,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_AUDIO_QOA_H
 #define COMS_AUDIO_QOA_H
 

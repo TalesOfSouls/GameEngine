@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_PLATFORM_LINUX_THREADING_THREAD_H
 #define COMS_PLATFORM_LINUX_THREADING_THREAD_H
 

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_MODELS_SKILL_H
 #define COMS_MODELS_SKILL_H
 

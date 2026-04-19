@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_APP_COMMAND_CONSUMER_H
 #define COMS_APP_COMMAND_CONSUMER_H
 
@@ -125,6 +126,15 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
             } break;
         case CMD_FILE_LOAD: {
                 cmd_file_load(cb->mem_vol, cmd);
+            } break;
+        case CMD_TEXTURE_ATLAS_LOAD: {
+                completed = cmd_texture_atlas_load_async(
+                    cb->assets_to_load,
+                    cb->ams,
+                    cb->mem_vol,
+                    cb->gpu_api_type,
+                    cmd
+                ) != NULL;
             } break;
         case CMD_TEXTURE_LOAD: {
                 completed = cmd_texture_load_async(

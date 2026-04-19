@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_MEMORY_BUFFER_MEMORY_H
 #define COMS_MEMORY_BUFFER_MEMORY_H
 

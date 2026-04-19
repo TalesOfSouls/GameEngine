@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_UI_LAYOUT_C
 #define COMS_UI_LAYOUT_C
 

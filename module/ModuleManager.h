@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_MODULE_MANAGER_H
 #define COMS_MODULE_MANAGER_H
 

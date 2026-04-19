@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_UI_PANEL_H
 #define COMS_UI_PANEL_H
 

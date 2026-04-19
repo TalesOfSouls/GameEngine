@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_SCHEDULER_C
 #define COMS_SCHEDULER_C
 

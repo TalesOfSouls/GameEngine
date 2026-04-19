@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_ARCHITECTURE_ARM_NEON_UTILS_H
 #define COMS_ARCHITECTURE_ARM_NEON_UTILS_H
 

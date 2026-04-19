@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_MODELS_ITEM_XP_H
 #define COMS_MODELS_ITEM_XP_H
 

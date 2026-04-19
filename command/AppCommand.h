@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_COMMAND_H
 #define COMS_COMMAND_H
 
@@ -24,6 +25,7 @@ enum AppCommandType : uint8 {
     CMD_FONT_LOAD,
     CMD_INTERNAL_FONT_CREATE,
     CMD_TEXTURE_LOAD,
+    CMD_TEXTURE_ATLAS_LOAD,
     CMD_INTERNAL_TEXTURE_CREATE,
     CMD_AUDIO_PLAY,
     CMD_INTERNAL_AUDIO_ENQUEUE,

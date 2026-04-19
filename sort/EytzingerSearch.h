@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_SORT_EYTZINGER_SEARCH_H
 #define COMS_SORT_EYTZINGER_SEARCH_H
 

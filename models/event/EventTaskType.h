@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_QUEST_EVENT_TASK_TYPE_H
 #define COMS_QUEST_EVENT_TASK_TYPE_H
 

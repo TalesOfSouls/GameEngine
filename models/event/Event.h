@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_EVENT_H
 #define COMS_EVENT_H
 

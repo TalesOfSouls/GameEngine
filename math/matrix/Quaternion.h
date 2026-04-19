@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_MATH_MATRIX_QUATERNION_H
 #define COMS_MATH_MATRIX_QUATERNION_H
 

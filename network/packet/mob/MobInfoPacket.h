@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_NETWORK_PACKET_MOB_INFO_H
 #define COMS_NETWORK_PACKET_MOB_INFO_H
 

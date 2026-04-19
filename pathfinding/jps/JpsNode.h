@@ -7,6 +7,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_PATHFINDING_JPS_NODE_H
 #define COMS_PATHFINDING_JPS_NODE_H
 

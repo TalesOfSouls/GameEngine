@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_GPUAPI_SOFTWARE_WIN32_SOFTWARE_RENDERER_C
 #define COMS_GPUAPI_SOFTWARE_WIN32_SOFTWARE_RENDERER_C
 

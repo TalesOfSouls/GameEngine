@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_PLATFORM_WIN32_WMI_DYN_H
 #define COMS_PLATFORM_WIN32_WMI_DYN_H
 

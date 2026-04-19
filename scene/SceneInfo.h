@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_SCENE_INFO_H
 #define COMS_SCENE_INFO_H
 

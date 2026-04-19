@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_PLATFORM_WIN32_PROCESS
 #define COMS_PLATFORM_WIN32_PROCESS
 

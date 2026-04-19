@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_APP_COMMAND_AUDIO_CONSUMER_H
 #define COMS_APP_COMMAND_AUDIO_CONSUMER_H
 

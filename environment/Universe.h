@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_ENVIRONMENT_UNIVERSE_H
 #define COMS_ENVIRONMENT_UNIVERSE_H
 

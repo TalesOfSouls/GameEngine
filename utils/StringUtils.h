@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_UTILS_STRING_UTILS_H
 #define COMS_UTILS_STRING_UTILS_H
 
@@ -2134,6 +2135,8 @@ f32 str_to_float(const char* str, const char** pos = NULL) NO_EXCEPT
 
     // Set end pointer
     if (pos) {
+        // Alternatively we could also calculate the offset and move the pointer
+        // This line below might get flagged in analyzers for assigning a const char* to char*
         *pos = (char *) p;
     }
 

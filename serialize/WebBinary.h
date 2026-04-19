@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_SERIALICE_WEB_BINARY
 #define COMS_SERIALICE_WEB_BINARY
 

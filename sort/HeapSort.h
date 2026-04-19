@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_SORT_HEAP_SORT_H
 #define COMS_SORT_HEAP_SORT_H
 

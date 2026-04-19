@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_PLATFORM_LINUX_TIME_UTILS_H
 #define COMS_PLATFORM_LINUX_TIME_UTILS_H
 

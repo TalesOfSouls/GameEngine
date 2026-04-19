@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_LOG_PERFORMANCE_PROFILER_H
 #define COMS_LOG_PERFORMANCE_PROFILER_H
 

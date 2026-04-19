@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS__MEMORY_RING_MEMORY_C
 #define COMS__MEMORY_RING_MEMORY_C
 

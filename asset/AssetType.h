@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_ASSET_TYPE_H
 #define COMS_ASSET_TYPE_H
 
@@ -17,6 +18,7 @@ enum AssetType : byte {
     ASSET_TYPE_AUDIO,
     ASSET_TYPE_LANGUAGE,
     ASSET_TYPE_FONT,
+    ASSET_TYPE_TEXTURE_ATLAS,
     ASSET_TYPE_THEME,
     ASSET_TYPE_IMAGE,
     ASSET_TYPE_SIZE

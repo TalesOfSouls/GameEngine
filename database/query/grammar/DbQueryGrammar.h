@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_DATABASE_QUERY_GRAMMAR_H
 #define COMS_DATABASE_QUERY_GRAMMAR_H
 

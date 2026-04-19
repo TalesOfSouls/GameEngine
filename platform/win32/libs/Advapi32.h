@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_PLATFORM_WIN32_LIB_ADVAPI32_H
 #define COMS_PLATFORM_WIN32_LIB_ADVAPI32_H
 

@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_MODELS_SKILL_AOE_SHAPE_H
 #define COMS_MODELS_SKILL_AOE_SHAPE_H
 

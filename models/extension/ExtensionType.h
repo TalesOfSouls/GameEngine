@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_EXTENSION_TYPE_H
 #define COMS_EXTENSION_TYPE_H
 

@@ -457,6 +457,55 @@ void generate_default_png_references(const FileBody* file, Png* png)
     SWAP_ENDIAN_BIG_SELF(png->ihdr.crc);
 }
 
+bool image_header_png_generate(const FileBody* src_data, Image* image)
+{
+    // @performance We are generating the struct and then filling the data.
+    //      There is some asignment/copy overhead
+    Png src = {0};
+    generate_default_png_references(src_data, &src);
+
+    // @todo Support color_type == 3
+    if (src.ihdr.bit_depth != 8
+        || (src.ihdr.color_type != 6 && src.ihdr.color_type != 2)
+        || src.ihdr.compression != 0
+        || src.ihdr.filter != 0
+        || src.ihdr.interlace != 0
+    ) {
+        // We don't support this type of png (see comment below)
+        ASSERT_THROW();
+
+        /*
+        Color   Allowed     Interpretation
+        Type    Bit Depths
+
+        0       1,2,4,8,16  Each pixel is a grayscale sample.
+        2       8,16        Each pixel is an R,G,B triple.
+        3       1,2,4,8     Each pixel is a palette index, a PLTE chunk must appear.
+        4       8,16        Each pixel is a grayscale sample, followed by an alpha sample.
+        6       8,16        Each pixel is an R,G,B triple, followed by an alpha sample.
+        */
+
+        return false;
+    }
+
+    iamge->width = src.ihdr.width;
+    iamge->height = src.ihdr.height;
+    image->pixel_count = image->width * image->height;
+
+    uint32 bytes_per_pixel;
+    if (src.ihdr.color_type == 6) {
+        bytes_per_pixel = 4;
+    } else if (src.ihdr.color_type == 2) {
+        bytes_per_pixel = 3;
+    } else if (src.ihdr.color_type == 3) {
+        bytes_per_pixel = 1;
+    } else {
+        return false;
+    }
+
+    image->image_settings |= bytes_per_pixel;
+}
+
 // @performance Profile: BITS_GET_16_R2L(SWAP_ENDIAN_BIG((uint16) *stream.pos)) vs BITS_GET_16_R2L(BYTES_MERGE_2_R2L())
 // Below you will often see code like BITS_GET_16_R2L(BYTES_MERGE_2_R2L()) OR BITS_GET_16_R2L(SWAP_ENDIAN_BIG())
 // Both do th same, they retrieve bits WHILE considering the endianness

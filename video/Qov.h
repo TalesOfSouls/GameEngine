@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_IMAGE_QOI_H
 #define COMS_IMAGE_QOI_H
 

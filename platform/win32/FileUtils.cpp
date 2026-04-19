@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_PLATFORM_WIN32_FILE_UTILS_C
 #define COMS_PLATFORM_WIN32_FILE_UTILS_C
 
@@ -465,6 +466,14 @@ file_read(
         file->content = ring_memory_get(ring, file->size + 1);
     }
 
+    LARGE_INTEGER li;
+    li.QuadPart = 0;
+
+    if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
+        ASSERT_THROW();
+        return;
+    }
+
     DWORD bytes_read;
     if (!ReadFile(fp, file->content, (uint32) file->size, &bytes_read, NULL)) {
         CloseHandle(fp);
@@ -535,6 +544,14 @@ file_read(
 
     if (ring != NULL) {
         file->content = ring_memory_get(ring, file->size + 1);
+    }
+
+    LARGE_INTEGER li;
+    li.QuadPart = 0;
+
+    if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
+        ASSERT_THROW();
+        return;
     }
 
     DWORD bytes_read;
@@ -625,9 +642,11 @@ void file_read(
     // Move the file pointer to the offset position
     LARGE_INTEGER li;
     li.QuadPart = offset;
-    if (SetFilePointerEx(fp, li, NULL, FILE_BEGIN) == 0) {
+    if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
         CloseHandle(fp);
         file->content = NULL;
+
+        ASSERT_THROW();
 
         return;
     }
@@ -719,9 +738,11 @@ void file_read(
     // Move the file pointer to the offset position
     LARGE_INTEGER li;
     li.QuadPart = offset;
-    if (SetFilePointerEx(fp, li, NULL, FILE_BEGIN) == 0) {
+    if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
         CloseHandle(fp);
         file->content = NULL;
+
+        ASSERT_THROW();
 
         return;
     }
@@ -779,15 +800,13 @@ void file_read(
     }
 
     // Move the file pointer to the offset position
-    if (offset) {
-        LARGE_INTEGER li;
-        li.QuadPart = offset;
-        if (SetFilePointerEx(fp, li, NULL, FILE_BEGIN) == 0) {
-            file->content = NULL;
-            ASSERT_THROW();
+    LARGE_INTEGER li;
+    li.QuadPart = offset;
+    if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
+        file->content = NULL;
+        ASSERT_THROW();
 
-            return;
-        }
+        return;
     }
 
     DWORD bytes_read;
@@ -822,12 +841,12 @@ uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UI
     const uint64 read_length = OMS_MIN(length, fsize - offset);
 
     // Move file pointer
-    if (offset) {
-        LARGE_INTEGER li;
-        li.QuadPart = offset;
-        if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
-            return 0;
-        }
+    LARGE_INTEGER li;
+    li.QuadPart = offset;
+    if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
+        ASSERT_THROW();
+
+        return 0;
     }
 
     const DWORD size_chunk = 64 * 1024;
@@ -869,8 +888,15 @@ bool file_read_line(
         *internal_pos = internal_buffer;
     }
 
-    size_t line_filled = 0;
+    LARGE_INTEGER li;
+    li.QuadPart = 0;
 
+    if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
+        ASSERT_THROW();
+        return false;
+    }
+
+    size_t line_filled = 0;
     while (line_filled < buffer_size - 1) {
         // Refill the internal buffer if empty
         if (*internal_pos == internal_buffer + *internal_buffer_size) {

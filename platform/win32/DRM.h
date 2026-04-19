@@ -1,3 +1,4 @@
+#pragma once
 #ifndef COMS_PLATFORM_WIN32_DRM
 #define COMS_PLATFORM_WIN32_DRM
 

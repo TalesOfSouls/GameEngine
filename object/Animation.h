@@ -6,6 +6,7 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
+#pragma once
 #ifndef COMS_OBJECT_ANIMATION_H
 #define COMS_OBJECT_ANIMATION_H
 
