@@ -114,6 +114,29 @@ Asset* cmd_texture_load_sync(
 }
 
 static inline
+Asset* cmd_internal_texture_atlas_create(
+    AssetManagementSystem* const __restrict ams,
+    RingMemory* const __restrict ring,
+    GpuApiType gpu_api_type,
+    AppCommand* const __restrict cmd
+) NO_EXCEPT
+{
+    char id_str[9];
+    int_to_hex(cmd->texture_body.asset.asset_id, id_str);
+
+    Asset* const asset = thrd_ams_get_asset_wait(ams, id_str);
+    if (!asset) {
+        return NULL;
+    }
+
+    Texture* const texture = (Texture *) asset->self;
+    
+    cmd_texture_load_sync();
+
+    return asset;
+}
+
+static inline
 Asset* cmd_texture_atlas_load_async(
     QueueT<int32>* const __restrict assets_to_load,
     AssetManagementSystem* const __restrict ams,
