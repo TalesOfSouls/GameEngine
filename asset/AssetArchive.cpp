@@ -24,10 +24,10 @@
 #include "../font/Font.cpp"
 #include "../localization/Language.cpp"
 #include "../ui/UITheme.cpp"
-#include "AssetManagementSystem.cpp"
-#include "../system/FileUtils.cpp"
 #include "Asset.h"
 #include "AssetArchive.h"
+#include "AssetManagementSystem.cpp"
+#include "../system/FileUtils.cpp"
 
 // Calculates how much data I have to read from the archive file to completely parse the header
 // This includes all the data itself
@@ -118,7 +118,7 @@ void asset_archive_header_load(
     PSEUDO_USE(steps);
 
     if (header->asset_dependency_count) {
-        header->asset_dependencies = (int32 *) (
+        header->asset_dependencies = (uint32 *) (
             (byte *) header->asset_element
             + header->asset_count * sizeof(AssetArchiveElement)
         );

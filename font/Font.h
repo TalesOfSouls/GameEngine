@@ -3,6 +3,7 @@
 #define COMS_FONT_H
 
 #include "../stdlib/Stdlib.h"
+#include "../object/Texture.h"
 
 /**
  * @todo The font atlas should have a pixel perfect representation at the smallest possible font size. Currently it's not pixel perfect nor the smallest possible size

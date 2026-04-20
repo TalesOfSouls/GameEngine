@@ -16,7 +16,7 @@
 #include "TextureAtlas.h"
 
 void atlas_from_file_txt(
-    TextureAtlasTxt* const atlas,
+    TextureAtlas* const atlas,
     const char* path,
     RingMemory* const ring
 ) NO_EXCEPT
@@ -125,7 +125,7 @@ void atlas_from_file_txt(
         atlas->elements[element_idx].uv_count = 0;
         atlas->elements[element_idx].uv = &uv_coord[uv_coord_idx];
 
-        str_move_to('\n');
+        str_move_to(&pos, '\n');
         ++pos;
 
         if (*pos == '\0') {
@@ -133,7 +133,7 @@ void atlas_from_file_txt(
         }
 
         // Iterate through all of the coordinates
-        while (*pos != '\0' && *pos != '\n' && *pos != '#' && isnum(*pos)) {
+        while (*pos != '\0' && *pos != '\n' && *pos != '#' && isdigit(*pos)) {
             atlas->elements[element_idx].uv[atlas->elements[element_idx].uv_count] = {
                 str_to_float(pos, &pos) / image_width,
                 str_to_float(++pos, &pos) / image_height
@@ -154,11 +154,18 @@ int32 atlas_data_size(const TextureAtlas* const atlas) NO_EXCEPT
         uv_size += sizeof(v2_f32) * atlas->elements[i].uv_count;
     }
 
-    return atlas->element_count * sizeof(int32) // the data itself doesn't store a pointer
+    return (int32) (atlas->element_count * sizeof(int32) // the data itself doesn't store a pointer
         + sizeof(atlas->element_count)
-        + uv_size;
+        + uv_size);
 }
 
+/**
+ * File structure
+ *
+ *      TextureAtlas (excl. pointers)
+ *      TextureAtlasElement[]
+ *          v2_f32[]
+ */
 inline
 int32 atlas_from_data(
     const byte* const data,
@@ -166,6 +173,9 @@ int32 atlas_from_data(
     MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
 {
+
+
+    return 0;
 }
 
 int32 atlas_to_data(
@@ -174,6 +184,7 @@ int32 atlas_to_data(
     MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
 {
+    return 0;
 }
 
 // Required depending on the 3D api.

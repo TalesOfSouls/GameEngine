@@ -21,65 +21,57 @@
 
 static inline
 Asset* cmd_internal_font_create(
-    AssetManagementSystem* const __restrict ams,
-    GpuApiType gpu_api_type,
+    AppCmdBuffer* cb,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
     char id_str[9];
     int_to_hex(cmd->font_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(ams, id_str);
+    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, id_str);
     if (!asset) {
         return asset;
     }
 
     Font* const font = (Font *) asset->self;
-    if (gpu_api_type == GPU_API_TYPE_OPENGL
-        || gpu_api_type == GPU_API_TYPE_VULKAN
-        || gpu_api_type == GPU_API_TYPE_SOFTWARE
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
+        || cb->gpu_api_type == GPU_API_TYPE_VULKAN
+        || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
     ) {
         font_invert_coordinates(font);
     }
 
-    // @bug this is not possible since we don't have the required function parameters
-    //      Even if we would want an async load cmd_texture_load_async
-    /*
-    cmd_texture_load_async
     cmd_texture_load_sync(
-        asset_archives,
-        ams,
-        ring,
-        gpu_api_type,
+        cb->asset_archives,
+        cb->ams,
+        cb->mem_vol,
+        cb->gpu_api_type,
         asset->references[0]
     );
-    */
 
     return asset;
 }
 
 static inline
 Asset* cmd_font_load_async(
-    QueueT<int32>* const __restrict assets_to_load,
-    AssetManagementSystem* const __restrict ams,
-    GpuApiType gpu_api_type,
+    AppCmdBuffer* cb,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
     char id_str[9];
     int_to_hex(cmd->font_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(ams, id_str);
+    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, id_str);
     if (asset) {
         //@performance The function call below also loads the asset again. That is unnecessary in this specific case
         //          Maybe we can pass the asset?
-        cmd_internal_font_create(ams, gpu_api_type, cmd);
+        cmd_internal_font_create(cb, cmd);
     } else {
         AppCommand asset_cmd = {0};
         asset_cmd.type = CMD_ASSET_ENQUEUE;
         asset_cmd.asset_body.asset_id = cmd->font_body.asset.asset_id;
 
-        cmd_asset_load_enqueue(assets_to_load, &asset_cmd);
+        cmd_asset_load_enqueue(cb->assets_to_load, &asset_cmd);
     }
 
     return asset;

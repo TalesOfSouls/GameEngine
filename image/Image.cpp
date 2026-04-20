@@ -29,7 +29,7 @@ void image_header_from_file(Image* __restrict image, const char* __restrict path
         file.size = 64;
         file.content = ring_memory_get(ring, file.size, alignof(size_t));
         file_read(path, &file);
-        image_header_png_generate(&file, image, ring);
+        image_header_png_generate(&file, image);
     } else if (str_ends_with(path, ".tga")) {
         file.size = 32;
         file.content = ring_memory_get(ring, file.size, alignof(size_t));
@@ -50,7 +50,7 @@ void image_from_file(Image* __restrict image, const char* __restrict path, RingM
     file_read(path, &file, ring);
 
     if (str_ends_with(path, ".png")) {
-        image_png_generate(&file, image, ring);
+        //image_png_generate(&file, image, ring);
     } else if (str_ends_with(path, ".tga")) {
         image_tga_generate(&file, image);
     } else if (str_ends_with(path, ".bmp")) {

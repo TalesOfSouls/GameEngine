@@ -14,7 +14,7 @@
 
 struct TextureAtlasElement {
     int32 uv_count;
-    v2_f32* uv;
+    int32 uv_start;
 };
 
 struct TextureAtlas {
@@ -22,7 +22,10 @@ struct TextureAtlas {
     Texture* texture;
 
     int32 element_count;
+    int32 uv_count;
+
     TextureAtlasElement* elements;
+    v2_f32* uv;
 };
 
 #endif

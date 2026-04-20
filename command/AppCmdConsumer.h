@@ -128,13 +128,7 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                 cmd_file_load(cb->mem_vol, cmd);
             } break;
         case CMD_TEXTURE_ATLAS_LOAD: {
-                completed = cmd_texture_atlas_load_async(
-                    cb->assets_to_load,
-                    cb->ams,
-                    cb->mem_vol,
-                    cb->gpu_api_type,
-                    cmd
-                ) != NULL;
+                completed = cmd_texture_atlas_load_async(cb, cmd) != NULL;
             } break;
         case CMD_TEXTURE_LOAD: {
                 completed = cmd_texture_load_async(
@@ -154,15 +148,10 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                 );
             } break;
         case CMD_FONT_LOAD: {
-                completed = cmd_font_load_async(
-                    cb->assets_to_load,
-                    cb->ams,
-                    cb->gpu_api_type,
-                    cmd
-                ) != NULL;
+                completed = cmd_font_load_async(cb, cmd) != NULL;
             } break;
         case CMD_INTERNAL_FONT_CREATE: {
-                cmd_internal_font_create(cb->ams, cb->gpu_api_type, cmd);
+                cmd_internal_font_create(cb, cmd);
             } break;
         case CMD_AUDIO_PLAY: {
                 completed = cmd_audio_play_async(cb->assets_to_load, cb->ams, cb->mixer, cmd) != NULL;

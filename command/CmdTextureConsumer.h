@@ -14,6 +14,7 @@
 #include "../memory/QueueT.cpp"
 #include "../asset/Asset.h"
 #include "../asset/AssetArchive.cpp"
+#include "../object/TextureAtlas.cpp"
 #include "../asset/AssetManagementSystem.cpp"
 #include "../gpuapi/GpuApiType.h"
 #include "AppCommand.h"
@@ -115,48 +116,50 @@ Asset* cmd_texture_load_sync(
 
 static inline
 Asset* cmd_internal_texture_atlas_create(
-    AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
-    GpuApiType gpu_api_type,
+    AppCmdBuffer* cb,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
     char id_str[9];
     int_to_hex(cmd->texture_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(ams, id_str);
+    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, id_str);
     if (!asset) {
         return NULL;
     }
 
-    Texture* const texture = (Texture *) asset->self;
-    
-    cmd_texture_load_sync();
+    Asset* texture_asset = cmd_texture_load_sync(
+        cb->asset_archives,
+        cb->ams,
+        cb->mem_vol,
+        cb->gpu_api_type,
+        asset->references[0]
+    );
+
+    TextureAtlas* const atlas = (Texture *) asset->self;
+    atlas->texture = (TextureAtlas*) texture_asset->self;
 
     return asset;
 }
 
 static inline
 Asset* cmd_texture_atlas_load_async(
-    QueueT<int32>* const __restrict assets_to_load,
-    AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
-    GpuApiType gpu_api_type,
+    AppCmdBuffer* cb,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
     char id_str[9];
     int_to_hex(cmd->texture_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(ams, id_str);
+    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, id_str);
     if (asset) {
-        cmd_internal_texture_atlas_create(ams, ring, gpu_api_type, cmd);
+        cmd_internal_texture_atlas_create(cb, cmd);
     } else {
         AppCommand asset_cmd = {0};
         asset_cmd.type = CMD_ASSET_ENQUEUE;
         asset_cmd.asset_body.asset_id = cmd->texture_body.asset.asset_id;
 
-        cmd_asset_load_enqueue(assets_to_load, cmd);
+        cmd_asset_load_enqueue(cb->assets_to_load, cmd);
     }
 
     return asset;
