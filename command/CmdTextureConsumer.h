@@ -162,21 +162,16 @@ Asset* cmd_texture_atlas_load_sync(
         asset = asset_archive_asset_load(&asset_archives[(asset_id >> 24) & 0xFF], asset_id, ams, ring);
     }
 
-    // @todo implement
-    cmd_texture_load_sync();
+    Asset* texture_asset = cmd_texture_load_sync(
+        asset_archives,
+        ams,
+        ring,
+        gpu_api_type,
+        asset->references[0]
+    );
 
-    // Setup basic texture
-    Texture* const texture = (Texture *) asset->self;
-    if ((gpu_api_type == GPU_API_TYPE_OPENGL
-        || gpu_api_type == GPU_API_TYPE_VULKAN
-        || gpu_api_type == GPU_API_TYPE_SOFTWARE
-    )
-        && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
-    ) {
-        image_flip_vertical(ring, &texture->image);
-    }
-
-    // @question What about texture upload?
+    TextureAtlas* atlas = (TextureAtlas*) asset->self;
+    atlas->texture = (TextureAtlas*) texture_asset->self;
 
     return asset;
 }
