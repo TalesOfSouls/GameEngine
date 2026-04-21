@@ -18,6 +18,7 @@
 #include "../asset/AssetManagementSystem.cpp"
 #include "../gpuapi/GpuApiType.h"
 #include "AppCommand.h"
+#include "CmdTextureConsumer.h"
 
 static inline
 Asset* cmd_internal_font_create(
@@ -41,13 +42,15 @@ Asset* cmd_internal_font_create(
         font_invert_coordinates(font);
     }
 
-    cmd_texture_load_sync(
+    Asset* font_texture = cmd_texture_load_sync(
         cb->asset_archives,
         cb->ams,
         cb->mem_vol,
         cb->gpu_api_type,
         asset->references[0]
     );
+
+    font->texture = (Texture *) font_texture->self;
 
     return asset;
 }
@@ -115,13 +118,15 @@ Asset* cmd_font_load_sync(
         font_invert_coordinates(font);
     }
 
-    cmd_texture_load_sync(
+    Asset* font_texture = cmd_texture_load_sync(
         asset_archives,
         ams,
         ring,
         gpu_api_type,
         asset->references[0]
     );
+
+    font->texture = (Texture *) font_texture->self;
 
     return asset;
 }

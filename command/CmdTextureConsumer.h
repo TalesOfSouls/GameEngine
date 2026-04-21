@@ -128,7 +128,7 @@ Asset* cmd_internal_texture_atlas_create(
         return NULL;
     }
 
-    Asset* texture_asset = cmd_texture_load_sync(
+    Asset* const texture_asset = cmd_texture_load_sync(
         cb->asset_archives,
         cb->ams,
         cb->mem_vol,
@@ -136,8 +136,8 @@ Asset* cmd_internal_texture_atlas_create(
         asset->references[0]
     );
 
-    TextureAtlas* const atlas = (Texture *) asset->self;
-    atlas->texture = (TextureAtlas*) texture_asset->self;
+    TextureAtlas* const atlas = (TextureAtlas *) asset->self;
+    atlas->texture = (Texture*) texture_asset->self;
 
     return asset;
 }
@@ -197,7 +197,7 @@ Asset* cmd_texture_atlas_load_sync(
     );
 
     TextureAtlas* atlas = (TextureAtlas*) asset->self;
-    atlas->texture = (TextureAtlas*) texture_asset->self;
+    atlas->texture = (Texture*) texture_asset->self;
 
     return asset;
 }

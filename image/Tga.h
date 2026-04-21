@@ -87,7 +87,7 @@ void image_header_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
     image->pixel_count = image->width * image->height;
 
     const uint32 pixel_bytes = src.header.bits_per_pixel / 8;
-    const byte alpha_offset = pixel_bytes > 3;
+    //const byte alpha_offset = pixel_bytes > 3;
 
     image->image_settings |= (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT) == 0
         ? pixel_bytes

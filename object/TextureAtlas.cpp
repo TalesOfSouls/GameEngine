@@ -118,7 +118,7 @@ void atlas_from_file_txt(
         // Iterate through all of the coordinates
         while (*pos != '\0' && *pos != '\n' && *pos != '#' && isdigit(*pos)) {
             atlas->uv[
-                atlas->elements[atlas->element_count].uv_start 
+                atlas->elements[atlas->element_count].uv_start
                 + atlas->elements[atlas->element_count].uv_count
             ] = {
                 str_to_float(pos, &pos) / image_width,
@@ -177,7 +177,7 @@ int32 atlas_from_data(
     PSEUDO_USE(steps);
 
     atlas->uv = (v2_f32 *) align_up(
-        (uintptr_t) atlas->elements + sizeof(TextureAtlasElement) * atlas->element_count, 
+        (uintptr_t) atlas->elements + sizeof(TextureAtlasElement) * atlas->element_count,
         alignof(v2_f32)
     );
 
@@ -231,7 +231,7 @@ int32 atlas_to_data(
 FORCE_INLINE
 void atlas_invert_coordinates(TextureAtlas* const atlas) NO_EXCEPT
 {
-    for (uint32 i = 0; i < atlas->uv_count; ++i) {
+    for (int32 i = 0; i < atlas->uv_count; ++i) {
         atlas->uv[i].y = 1.0f - atlas->uv[i].y;
     }
 }
