@@ -18,6 +18,7 @@ struct TextureAtlasElement {
 };
 
 struct TextureAtlas {
+    // The data before the elements can be considered header data
     char texture_name[32];
     Texture* texture;
 

@@ -206,6 +206,8 @@ int32 font_data_size(const Font* const font) NO_EXCEPT
         + sizeof(font->line_height);
 }
 
+// font->glyphs is often assigned a memory size equals to the binary file size
+// this wastes some bytes due to header data but this way we can avoid pre-parsing the data to find the exact required data
 inline
 int32 font_from_data(
     const byte* const data,
@@ -223,9 +225,7 @@ int32 font_from_data(
     const byte* pos = data;
 
     // Read count
-    memcpy(&font->glyph_count, pos, sizeof(font->glyph_count));
-    SWAP_ENDIAN_LITTLE_SELF(font->glyph_count);
-    pos += sizeof(font->glyph_count);
+    pos = read_le(pos, &font->glyph_count);
 
     // Read texture name
     memcpy(font->texture_name, pos, ARRAY_COUNT(font->texture_name) * sizeof(char));
@@ -242,7 +242,7 @@ int32 font_from_data(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) font->glyphs,
         (int32 *) font->glyphs,
-        font->glyph_count * sizeof(Glyph) / 4, // everything in here is 4 bytes -> easy to swap
+        (font->glyph_count * sizeof(Glyph)) / 4, // everything in here is 4 bytes -> easy to swap
         steps
     );
     PSEUDO_USE(steps);
@@ -266,13 +266,8 @@ int32 font_to_data(
     memcpy(pos, font->texture_name, ARRAY_COUNT(font->texture_name) * sizeof(char));
     pos += ARRAY_COUNT(font->texture_name) * sizeof(char);
 
-    // Font size
-    memcpy(pos, &font->size, sizeof(font->size));
-    pos += sizeof(font->size);
-
-    // Line height
-    memcpy(pos, &font->line_height, sizeof(font->line_height));
-    pos += sizeof(font->line_height);
+    pos = write_le(pos, font->size);
+    pos = write_le(pos, font->line_height);
 
     // The glyphs are naturally tightly packed -> we can just store the memory
     memcpy(pos, font->glyphs, font->glyph_count * sizeof(Glyph));

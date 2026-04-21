@@ -32,6 +32,8 @@ void atlas_from_file_txt(
     int32 image_width = 0;
     int32 image_height = 0;
 
+    atlas->element_count = 0;
+    atlas->uv_count = 0;
     char* texture_pos = atlas->texture_name;
 
     // Font header
@@ -79,31 +81,14 @@ void atlas_from_file_txt(
         while (*pos != '\0' && *pos++ != '\n') {};
     }
 
-    // Pre-parsing counts to figure out how many elements we have
-    atlas->element_count = 0;
-    const char* body_pos = pos;
-    while (*body_pos != '\0') {
-        if (*body_pos++ == '#') {
-            ++atlas->element_count;
-        }
-    }
-
-    if (!atlas->element_count) {
-        ASSERT_THROW();
-        return;
-    }
-
-    int32 element_idx = 0;
-    TextureAtlasElement* element_memory = (TextureAtlasElement*) ring_memory_get(
+    atlas->elements = (TextureAtlasElement*) ring_memory_get(
         ring,
         sizeof(TextureAtlasElement) * atlas->element_count,
         alignof(TextureAtlasElement)
     );
-    atlas->elements = element_memory;
 
     // This is a global index since all uv are stored in a global array
-    int32 uv_coord_idx = 0;
-    v2_f32* uv_coord = (v2_f32*) ring_memory_get(
+    atlas->uv = (v2_f32*) ring_memory_get(
         ring,
         1 * MEGABYTE,
         alignof(v2_f32)
@@ -120,10 +105,8 @@ void atlas_from_file_txt(
             break;
         }
 
-        ASSERT_TRUE((uintptr_t) &uv_coord[uv_coord_idx] - (uintptr_t) uv_coord < 1 * MEGABYTE);
-
-        atlas->elements[element_idx].uv_count = 0;
-        atlas->elements[element_idx].uv = &uv_coord[uv_coord_idx];
+        atlas->elements[atlas->element_count].uv_count = 0;
+        atlas->elements[atlas->element_count].uv_start = atlas->element_count;
 
         str_move_to(&pos, '\n');
         ++pos;
@@ -134,29 +117,30 @@ void atlas_from_file_txt(
 
         // Iterate through all of the coordinates
         while (*pos != '\0' && *pos != '\n' && *pos != '#' && isdigit(*pos)) {
-            atlas->elements[element_idx].uv[atlas->elements[element_idx].uv_count] = {
+            atlas->uv[
+                atlas->elements[atlas->element_count].uv_start 
+                + atlas->elements[atlas->element_count].uv_count
+            ] = {
                 str_to_float(pos, &pos) / image_width,
                 str_to_float(++pos, &pos) / image_height
             };
-            ++atlas->elements[element_idx].uv_count;
+
+            ++atlas->elements[atlas->element_count].uv_count;
+            ++atlas->uv_count;
         }
 
-        uv_coord_idx += atlas->elements[element_idx].uv_count;
-        ++element_idx;
+        ++atlas->element_count;
     }
 }
 
 FORCE_INLINE
 int32 atlas_data_size(const TextureAtlas* const atlas) NO_EXCEPT
 {
-    size_t uv_size = 0;
-    for (int32 i = 0; i < atlas->element_count; ++i) {
-        uv_size += sizeof(v2_f32) * atlas->elements[i].uv_count;
-    }
-
-    return (int32) (atlas->element_count * sizeof(int32) // the data itself doesn't store a pointer
-        + sizeof(atlas->element_count)
-        + uv_size);
+    return (int32) (sizeof(atlas->element_count)
+        + sizeof(atlas->uv_count)
+        + sizeof(TextureAtlasElement) * atlas->element_count
+        + sizeof(v2_f32) * atlas->uv_count
+    );
 }
 
 /**
@@ -166,25 +150,80 @@ int32 atlas_data_size(const TextureAtlas* const atlas) NO_EXCEPT
  *      TextureAtlasElement[]
  *          v2_f32[]
  */
+// atlas->elements is often assigned a memory size equals to the binary file size
+// this wastes some bytes due to header data but this way we can avoid pre-parsing the data to find the exact required data
+// atlas->uv is then assigned in this function once we know how much space we need for elements
 inline
 int32 atlas_from_data(
-    const byte* const data,
+    const byte* data,
     TextureAtlas* const atlas,
     MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
 {
+    // @question do we want to store and load the texture name? We do this for fonts
 
+    data = read_le(data, &atlas->element_count);
+    data = read_le(data, &atlas->uv_count);
 
-    return 0;
+    memcpy(atlas->elements, data, sizeof(TextureAtlasElement) * atlas->element_count);
+    data += sizeof(TextureAtlasElement) * atlas->element_count;
+
+    SWAP_ENDIAN_LITTLE_SIMD(
+        (int32 *) atlas->elements,
+        (int32 *) atlas->elements,
+        (atlas->element_count * sizeof(TextureAtlasElement)) / 4, // everything in here is 4 bytes -> easy to swap
+        steps
+    );
+    PSEUDO_USE(steps);
+
+    atlas->uv = (v2_f32 *) align_up(
+        (uintptr_t) atlas->elements + sizeof(TextureAtlasElement) * atlas->element_count, 
+        alignof(v2_f32)
+    );
+
+    SWAP_ENDIAN_LITTLE_SIMD(
+        (int32 *) atlas->uv,
+        (int32 *) atlas->uv,
+        (atlas->uv_count * sizeof(v2_f32)) / 4, // everything in here is 4 bytes -> easy to swap
+        steps
+    );
+    PSEUDO_USE(steps);
+
+    return atlas_data_size(atlas);
 }
 
 int32 atlas_to_data(
     const TextureAtlas* const atlas,
-    byte* const data,
+    byte* data,
     MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
 {
-    return 0;
+    const byte* start = data;
+
+    data = write_le(data, atlas->element_count);
+    data = write_le(data, atlas->uv_count);
+
+    memcpy(data, atlas->elements, sizeof(TextureAtlasElement) * atlas->element_count);
+    SWAP_ENDIAN_LITTLE_SIMD(
+        (int32 *) data,
+        (int32 *) data,
+        (sizeof(TextureAtlasElement) * atlas->element_count) / 4, // everything in here is 4 bytes -> easy to swap
+        steps
+    );
+    PSEUDO_USE(steps);
+    data += sizeof(TextureAtlasElement) * atlas->element_count;
+
+    memcpy(data, atlas->uv, sizeof(v2_f32) * atlas->uv_count);
+    SWAP_ENDIAN_LITTLE_SIMD(
+        (int32 *) data,
+        (int32 *) data,
+        (sizeof(v2_f32) * atlas->uv_count) / 4, // everything in here is 4 bytes -> easy to swap
+        steps
+    );
+    PSEUDO_USE(steps);
+    data += sizeof(v2_f32) * atlas->uv_count;
+
+    return (int32) ((uintptr_t) data - (uintptr_t) start);
 }
 
 // Required depending on the 3D api.
@@ -192,11 +231,8 @@ int32 atlas_to_data(
 FORCE_INLINE
 void atlas_invert_coordinates(TextureAtlas* const atlas) NO_EXCEPT
 {
-    for (uint32 i = 0; i < atlas->element_count; ++i) {
-        TextureAtlasElement* const element = &atlas->elements[i];
-        for (int32 j = 0; j < element->uv_count; ++j) {
-            element->uv[j].y = 1.0f - element->uv[j].y;
-        }
+    for (uint32 i = 0; i < atlas->uv_count; ++i) {
+        atlas->uv[i].y = 1.0f - atlas->uv[i].y;
     }
 }
 

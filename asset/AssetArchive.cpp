@@ -19,6 +19,7 @@
 #include "../image/Qoi.h"
 #include "../object/Mesh.cpp"
 #include "../object/Texture.h"
+#include "../object/TextureAtlas.cpp"
 #include "../audio/Audio.cpp"
 #include "../audio/Qoa.h"
 #include "../font/Font.cpp"
@@ -112,7 +113,7 @@ void asset_archive_header_load(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) header->asset_element,
         (int32 *) header->asset_element,
-        header->asset_count * sizeof(AssetArchiveElement) / 4, // everything is 4 bytes -> easy to swap
+        (header->asset_count * sizeof(AssetArchiveElement)) / 4, // everything is 4 bytes -> easy to swap
         steps
     );
     PSEUDO_USE(steps);
@@ -159,6 +160,8 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
             return sizeof(Font);
         case ASSET_TYPE_IMAGE:
             return sizeof(Image);
+        case ASSET_TYPE_TEXTURE_ATLAS:
+            return sizeof(TextureAtlas);
         case ASSET_TYPE_OBJ:
             return sizeof(Mesh);
         case ASSET_TYPE_LANGUAGE:
@@ -367,6 +370,10 @@ Asset* const asset_archive_asset_load(
 
         // This happens while the file system loads the data
         // The important part is to reserve the uncompressed file size, not the compressed one
+        // @performance I think we are wasting space here
+        //              e.g. check TextureAtlas, Font, ...
+        //              The reason for this is we don't calculate the exact required size to avoid a pre-parsing of the file
+        //              On the other hand would pre-parsing really be that bad?
         asset = thrd_ams_reserve_asset(ams, (byte) component_id, id_str, element->uncompressed + asset_type_size(element->type));
         asset->official_id = id;
 
@@ -375,7 +382,10 @@ Asset* const asset_archive_asset_load(
         file_async_wait(archive->fd_async, &file.ov, true);
         switch (element->type) {
             case ASSET_TYPE_TEXTURE_ATLAS: {
-                // @todo implement
+                TextureAtlas* const atlas = (TextureAtlas *) asset->self;
+                atlas->elements = (TextureAtlasElement *) (atlas + 1);
+
+                atlas_from_data(file.content, atlas);
             } break;
             case ASSET_TYPE_IMAGE: {
                 // @todo Do we really want to store textures in the asset management system or only images?
