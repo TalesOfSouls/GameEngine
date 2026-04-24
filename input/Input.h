@@ -13,9 +13,6 @@
 #include "../stdlib/Stdlib.h"
 #include "InputConnectionType.h"
 
-// How many concurrent mouse/secondary input device presses to we recognize
-#define MAX_MOUSE_PRESSES 3
-
 // How many concurrent primary key/button presses can be handled?
 #define MAX_KEY_PRESSES 5
 
