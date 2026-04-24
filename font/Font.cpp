@@ -102,12 +102,10 @@ void font_from_file_txt(
     // Font header
     while (*pos != '\0') {
         // Parsing general data
-        int32 i = 0;
-        while (*pos == '\n') {
-            ++pos;
-        }
+        pos = str_skip_eol(pos);
 
-        while (*pos != '\0' && *pos != ' ' && *pos != ':' && *pos != '\n' && i < 31) {
+        int32 i = 0;
+        while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && i < 31) {
             block_name[i] = *pos;
             ++pos;
             ++i;
@@ -119,13 +117,13 @@ void font_from_file_txt(
             break;
         }
 
-        // Go to value
+        // Go to
         while (*pos == ' ' || *pos == '\t' || *pos == ':') {
             ++pos;
         }
 
         if (strcmp(block_name, "texture") == 0) {
-            while (*pos != '\n') {
+            while (!is_eol(pos)) {
                 *texture_pos++ = *pos++;
             }
 
@@ -148,7 +146,7 @@ void font_from_file_txt(
         }
 
         // Go to next line
-        while (*pos != '\0' && *pos++ != '\n') {};
+        pos = str_skip_line(pos);
     }
 
     int32 glyph_index = 0;
@@ -190,9 +188,7 @@ void font_from_file_txt(
 
         ++glyph_index;
 
-        // Go to next line
-        while (*pos != '\n' && *pos != '\0') { ++pos; };
-        ++pos;
+        pos = str_skip_line(pos);
     }
 }
 
@@ -226,6 +222,7 @@ int32 font_from_data(
 
     // Read count
     pos = read_le(pos, &font->glyph_count);
+    ASSERT_TRUE(font->glyph_count > 0 && font->glyph_count < 8192);
 
     // Read texture name
     memcpy(font->texture_name, pos, ARRAY_COUNT(font->texture_name) * sizeof(char));
@@ -259,8 +256,7 @@ int32 font_to_data(
     byte* pos = data;
 
     // Glyph count
-    *((uint32 *) pos) = font->glyph_count;
-    pos += sizeof(font->glyph_count);
+    pos = write_le(pos, font->glyph_count);
 
     // Texture name
     memcpy(pos, font->texture_name, ARRAY_COUNT(font->texture_name) * sizeof(char));

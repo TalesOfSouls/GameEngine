@@ -52,10 +52,7 @@ void generate_default_tga_references(const FileBody* file, Tga* tga) NO_EXCEPT
     tga->size = (uint32) file->size;
     tga->data = file->content;
 
-    if (tga->size < TGA_HEADER_SIZE) {
-        // This shouldn't happen
-        return;
-    }
+    ASSERT_TRUE(tga->size >= TGA_HEADER_SIZE);
 
     tga->header.id_length = file->content[0];
     tga->header.color_map_type = file->content[1];

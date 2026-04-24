@@ -1998,6 +1998,16 @@ void str_skip_empty(const char** str) NO_EXCEPT
 }
 
 FORCE_INLINE
+char* str_skip_empty(const char* str) NO_EXCEPT
+{
+    while (*str == ' ' || *str == '\t' || *str == '\n' || *str == '\r')  {
+        ++str;
+    }
+
+    return (char *) str;
+}
+
+FORCE_INLINE
 void str_skip_eol(const char** str) NO_EXCEPT
 {
     while (**str == '\n' || **str == '\r')  {
@@ -2006,11 +2016,51 @@ void str_skip_eol(const char** str) NO_EXCEPT
 }
 
 FORCE_INLINE
+char* str_skip_eol(const char* str) NO_EXCEPT
+{
+    while (*str == '\n' || *str == '\r')  {
+        ++str;
+    }
+
+    return (char *) str;
+}
+
+FORCE_INLINE
 void str_skip_non_empty(const char** str) NO_EXCEPT
 {
     while (**str != ' ' && **str != '\t' && **str != '\n' && **str != '\0')  {
         ++(*str);
     }
+}
+
+FORCE_INLINE
+char* str_skip_non_empty(const char* str) NO_EXCEPT
+{
+    while (*str != ' ' && *str != '\t' && *str != '\n' && *str != '\0')  {
+        ++str;
+    }
+
+    return (char *) str;
+}
+
+FORCE_INLINE
+void str_skip_line(const char** __restrict str) {
+    while (**str != '\0' && **str != '\n') { ++(*str); };
+
+    if (**str == '\n') {
+        ++(*str);
+    }
+}
+
+FORCE_INLINE
+char* str_skip_line(const char* __restrict str) {
+    while (*str != '\0' && *str != '\n') { ++str; };
+
+    if (*str == '\n') {
+        ++str;
+    }
+
+    return (char *) str;
 }
 
 inline

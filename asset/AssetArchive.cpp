@@ -30,6 +30,11 @@
 #include "AssetManagementSystem.cpp"
 #include "../system/FileUtils.cpp"
 
+/**
+ * We store the archive id in the asset id (1 byte)
+ */
+#define ARCHIVE_ID_FROM_ASSET_ID(id) ((id) >> 24) & 0xFF
+
 // Calculates how much data I have to read from the archive file to completely parse the header
 // This includes all the data itself
 static inline
@@ -456,10 +461,20 @@ Asset* const asset_archive_asset_load(
         {DATA_TYPE_UINT32, &element->uncompressed}
     );
 
-    // @performance maybe do in worker threads? This just feels very slow
-    // @bug dependencies might be stored in different archives?
-    for (uint32 i = 0; i < element->dependency_count; ++i) {
-        asset_archive_asset_load(archive, id, ams, ring);
+    if (element->dependency_count) {
+        asset->reference_count = (uint16) element->dependency_count;
+        memcpy(
+            asset->references,
+            &archive->header.asset_dependencies[element->dependency_start],
+            sizeof(uint32)
+        );
+
+        // @performance maybe do in worker threads? This just feels very slow
+        // @bug dependencies might be stored in different archives?
+        // @question Do we even want to do it here or is this the job of something else like the AppCmdBuffer
+        for (uint32 i = 0; i < element->dependency_count; ++i) {
+            asset_archive_asset_load(archive, id, ams, ring);
+        }
     }
 
     return asset;

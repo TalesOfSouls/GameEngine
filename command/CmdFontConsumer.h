@@ -66,7 +66,8 @@ Asset* cmd_font_load_async(
 
     Asset* const asset = thrd_ams_get_asset_wait(cb->ams, id_str);
     if (asset) {
-        //@performance The function call below also loads the asset again. That is unnecessary in this specific case
+        //@performance The function call below also loads the asset again.
+        //          That is unnecessary in this specific case
         //          Maybe we can pass the asset?
         cmd_internal_font_create(cb, cmd);
     } else {
@@ -102,7 +103,7 @@ Asset* cmd_font_load_sync(
     // Load asset if not loaded
     if (!asset) {
         asset = asset_archive_asset_load(
-            &asset_archives[(asset_id >> 24) & 0xFF],
+            &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
             asset_id,
             ams,
             ring

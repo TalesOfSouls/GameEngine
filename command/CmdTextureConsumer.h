@@ -95,7 +95,12 @@ Asset* cmd_texture_load_sync(
 
     // Load asset if not loaded
     if (!asset) {
-        asset = asset_archive_asset_load(&asset_archives[(asset_id >> 24) & 0xFF], asset_id, ams, ring);
+        asset = asset_archive_asset_load(
+            &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
+            asset_id,
+            ams,
+            ring
+        );
     }
 
     // Setup basic texture
@@ -185,7 +190,12 @@ Asset* cmd_texture_atlas_load_sync(
 
     // Load asset if not loaded
     if (!asset) {
-        asset = asset_archive_asset_load(&asset_archives[(asset_id >> 24) & 0xFF], asset_id, ams, ring);
+        asset = asset_archive_asset_load(
+            &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
+            asset_id,
+            ams,
+            ring
+        );
     }
 
     Asset* texture_asset = cmd_texture_load_sync(

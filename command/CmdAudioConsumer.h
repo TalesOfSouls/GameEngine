@@ -91,7 +91,7 @@ Asset* cmd_audio_play(
     // Load asset if not loaded
     if (!asset) {
         asset = asset_archive_asset_load(
-            &asset_archives[(asset_id >> 24) & 0xFF],
+            &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
             asset_id,
             ams,
             ring

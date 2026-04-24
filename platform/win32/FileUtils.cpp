@@ -447,6 +447,7 @@ file_read(
 
     if (fp == INVALID_HANDLE_VALUE) {
         file->size = 0;
+        ASSERT_THROW();
         return;
     }
 
@@ -455,6 +456,7 @@ file_read(
         if (!GetFileSizeEx(fp, &size)) {
             CloseHandle(fp);
             file->content = NULL;
+            ASSERT_THROW();
 
             return;
         }
@@ -478,6 +480,7 @@ file_read(
     if (!ReadFile(fp, file->content, (uint32) file->size, &bytes_read, NULL)) {
         CloseHandle(fp);
         file->content = NULL;
+        ASSERT_THROW();
 
         return;
     }
@@ -527,6 +530,7 @@ file_read(
 
     if (fp == INVALID_HANDLE_VALUE) {
         file->size = 0;
+        ASSERT_THROW();
         return;
     }
 
@@ -535,6 +539,7 @@ file_read(
         if (!GetFileSizeEx(fp, &size)) {
             CloseHandle(fp);
             file->content = NULL;
+            ASSERT_THROW();
 
             return;
         }
@@ -558,6 +563,7 @@ file_read(
     if (!ReadFile(fp, file->content, (uint32) file->size, &bytes_read, NULL)) {
         CloseHandle(fp);
         file->content = NULL;
+        ASSERT_THROW();
 
         return;
     }
@@ -610,6 +616,7 @@ void file_read(
 
     if (fp == INVALID_HANDLE_VALUE) {
         file->size = 0;
+        ASSERT_THROW();
 
         return;
     }
@@ -618,6 +625,7 @@ void file_read(
     if (!GetFileSizeEx(fp, &size)) {
         CloseHandle(fp);
         file->content = NULL;
+        ASSERT_THROW();
 
         return;
     }
@@ -628,6 +636,7 @@ void file_read(
         file->size = 0;
         file->content = NULL;
         CloseHandle(fp);
+        ASSERT_THROW();
 
         return;
     }
@@ -655,6 +664,7 @@ void file_read(
     if (!ReadFile(fp, file->content, (uint32) read_length, &bytes_read, NULL)) {
         CloseHandle(fp);
         file->content = NULL;
+        ASSERT_THROW();
 
         return;
     }
@@ -706,6 +716,7 @@ void file_read(
 
     if (fp == INVALID_HANDLE_VALUE) {
         file->size = 0;
+        ASSERT_THROW();
 
         return;
     }
@@ -714,6 +725,7 @@ void file_read(
     if (!GetFileSizeEx(fp, &size)) {
         CloseHandle(fp);
         file->content = NULL;
+        ASSERT_THROW();
 
         return;
     }
@@ -724,6 +736,7 @@ void file_read(
         file->size = 0;
         file->content = NULL;
         CloseHandle(fp);
+        ASSERT_THROW();
 
         return;
     }
@@ -751,6 +764,7 @@ void file_read(
     if (!ReadFile(fp, file->content, (uint32) read_length, &bytes_read, NULL)) {
         CloseHandle(fp);
         file->content = NULL;
+        ASSERT_THROW();
 
         return;
     }
@@ -967,6 +981,7 @@ file_write(const char* __restrict path, const FileBody* __restrict file) NO_EXCE
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return false;
     }
 
@@ -1014,6 +1029,7 @@ file_write(const wchar_t* __restrict path, const FileBody* __restrict file) NO_E
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return false;
     }
 
@@ -1129,6 +1145,7 @@ inline bool directory_copy(
     WIN32_FIND_DATAW ffd;
     HANDLE hFind = FindFirstFileW(search_path, &ffd);
     if (hFind == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return false;
     }
 
@@ -1259,6 +1276,7 @@ FileHandle file_append_handle(const char* path) NO_EXCEPT
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return NULL;
     }
 
@@ -1295,6 +1313,7 @@ FileHandle file_append_handle(const wchar_t* path) NO_EXCEPT
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return NULL;
     }
 
@@ -1404,6 +1423,7 @@ FileHandle file_read_handle(const char* path) NO_EXCEPT
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return NULL;
     }
 
@@ -1440,6 +1460,7 @@ FileHandle file_read_handle(const wchar_t* path) NO_EXCEPT
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return NULL;
     }
 
@@ -1476,6 +1497,7 @@ FileHandle file_read_async_handle(const char* path) NO_EXCEPT
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return NULL;
     }
 
@@ -1512,6 +1534,7 @@ FileHandle file_read_async_handle(const wchar_t* path) NO_EXCEPT
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return NULL;
     }
 
@@ -1549,6 +1572,7 @@ bool file_append(const char* __restrict path, const char* __restrict file) NO_EX
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return false;
     }
 
@@ -1639,6 +1663,7 @@ file_append(const char* __restrict path, const FileBody* __restrict file) NO_EXC
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return false;
     }
 
@@ -1685,6 +1710,7 @@ bool file_append(const wchar_t* __restrict path, const wchar_t* __restrict file)
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return false;
     }
 
@@ -1732,6 +1758,7 @@ file_append(const wchar_t* __restrict path, const FileBody* __restrict file) NO_
     }
 
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_THROW();
         return false;
     }
 
@@ -1869,6 +1896,7 @@ void iterate_directory(
     HANDLE hFind = FindFirstFileA((LPCSTR) search_path, &find_file_data);
     if (hFind == INVALID_HANDLE_VALUE) {
         va_end(args);
+        ASSERT_THROW();
 
         return;
     }

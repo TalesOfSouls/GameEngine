@@ -55,7 +55,7 @@ void* cmd_shader_load_sync(
         Asset* shader_asset = thrd_ams_get_asset_wait(ams, asset_id);
         if (!shader_asset) {
             shader_asset = asset_archive_asset_load(
-                &asset_archives[(shader_ids[i] >> 24) & 0xFF],
+                &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(shader_ids[i])],
                 shader_ids[i],
                 ams,
                 ring

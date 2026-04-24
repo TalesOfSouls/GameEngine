@@ -39,12 +39,10 @@ void atlas_from_file_txt(
     // Font header
     while (*pos != '\0') {
         // Parsing general data
-        int32 i = 0;
-        while (*pos == '\n') {
-            ++pos;
-        }
+        pos = str_skip_eol(pos);
 
-        while (*pos != '\0' && *pos != ' ' && *pos != ':' && *pos != '\n' && *pos != '#' && i < 31) {
+        int32 i = 0;
+        while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && *pos != '#' && i < 31) {
             block_name[i] = *pos;
             ++pos;
             ++i;
@@ -62,7 +60,7 @@ void atlas_from_file_txt(
         }
 
         if (strcmp(block_name, "texture") == 0) {
-            while (*pos != '\n') {
+            while (!is_eol(pos)) {
                 *texture_pos++ = *pos++;
             }
 
@@ -77,8 +75,7 @@ void atlas_from_file_txt(
             break;
         }
 
-        // Go to next line
-        while (*pos != '\0' && *pos++ != '\n') {};
+        pos = str_skip_line(pos);
     }
 
     atlas->elements = (TextureAtlasElement*) ring_memory_get(
@@ -164,6 +161,9 @@ int32 atlas_from_data(
 
     data = read_le(data, &atlas->element_count);
     data = read_le(data, &atlas->uv_count);
+
+    ASSERT_TRUE(atlas->element_count > 0);
+    ASSERT_TRUE(atlas->uv_count > 0);
 
     memcpy(atlas->elements, data, sizeof(TextureAtlasElement) * atlas->element_count);
     data += sizeof(TextureAtlasElement) * atlas->element_count;

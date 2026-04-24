@@ -233,7 +233,6 @@ bool queue_is_full_atomic(QueueT<T>* const queue) NO_EXCEPT
     return !queue_has_space_atomic(queue);
 }
 
-// @todo implement enqueue with pass by value
 template <typename T>
 inline
 T* queue_enqueue(QueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
@@ -252,11 +251,38 @@ T* queue_enqueue(QueueT<T>* const __restrict queue, const T* __restrict data) NO
     return mem;
 }
 
+template <typename T>
+inline
+T* queue_enqueue(QueueT<T>* const __restrict queue, T data) NO_EXCEPT
+{
+    *queue->head = data;
+    T* mem = queue->head;
+
+    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
+
+    OMS_WRAPPED_INC_SE(
+        queue->head,
+        queue->memory,
+        queue->memory + queue->capacity
+    );
+
+    return mem;
+}
+
 // Conditional Lock
-// @todo implement enqueue with pass by value
 template <typename T>
 inline
 void thrd_queue_enqueue(QueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->mtx);
+    queue_enqueue(queue, data);
+
+    coms_pthread_cond_signal(&queue->cond);
+}
+
+template <typename T>
+inline
+void thrd_queue_enqueue(QueueT<T>* __restrict queue, T data) NO_EXCEPT
 {
     MutexGuard _guard(&queue->mtx);
     queue_enqueue(queue, data);
@@ -281,7 +307,6 @@ T* queue_enqueue_atomic(QueueT<T>* const __restrict queue, const T* __restrict d
     return mem;
 }
 
-// @todo implement enqueue with pass by value
 template <typename T>
 inline
 T* queue_enqueue_safe(QueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
@@ -296,6 +321,29 @@ T* queue_enqueue_safe(QueueT<T>* const __restrict queue, const T* __restrict dat
 template <typename T>
 inline
 T* thrd_queue_enqueue_safe(QueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->mtx);
+    if(!queue_has_space(queue)) {
+        return NULL;
+    }
+
+    return queue_enqueue(queue, data);
+}
+
+template <typename T>
+inline
+T* queue_enqueue_safe(QueueT<T>* const __restrict queue, T data) NO_EXCEPT
+{
+    if(!queue_has_space(queue)) {
+        return NULL;
+    }
+
+    return queue_enqueue(queue, data);
+}
+
+template <typename T>
+inline
+T* thrd_queue_enqueue_safe(QueueT<T>* const __restrict queue, T data) NO_EXCEPT
 {
     MutexGuard _guard(&queue->mtx);
     if(!queue_has_space(queue)) {
@@ -397,6 +445,19 @@ T* queue_enqueue_start_safe(const QueueT<T>* const queue) NO_EXCEPT
 template <typename T>
 inline
 void thrd_queue_enqueue_wait(QueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->mtx);
+
+    while (!queue_enqueue_safe(queue, data)) {
+        coms_pthread_cond_wait(&queue->cond, &queue->mtx);
+    }
+
+    coms_pthread_cond_signal(&queue->cond);
+}
+
+template <typename T>
+inline
+void thrd_queue_enqueue_wait(QueueT<T>* __restrict queue, T data) NO_EXCEPT
 {
     MutexGuard _guard(&queue->mtx);
 

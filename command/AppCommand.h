@@ -14,6 +14,7 @@
 #include "../ui/UILayout.h"
 #include "../ui/UITheme.h"
 #include "../scene/SceneInfo.h"
+#include "../asset/AssetManagementSystem.h"
 
 // WARNING: INTERNAL types are only intended for internal use (not by other programmers/systems)
 //          Currently the INTERNAL command type is never used at least not in terms of the normal command pool iteration
@@ -71,6 +72,8 @@ struct CmdTextureBody {
 };
 
 struct CmdLayoutBody {
+    AssetManagementSystem* ams;
+
     UIThemeStyle* general_theme;
 
     wchar_t layout_path[64];

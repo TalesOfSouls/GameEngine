@@ -31,9 +31,11 @@ struct Asset {
 
     uint32 last_access;
 
+    // Describes how many chunks in the asset management system it occupies
     // Usually 1 but in some cases an ams may hold entities of variable chunk length
     // For textures for example a 128x128 is of size 1 but 256x256 is of size 4
     // Needs to be uint16 since we need more than 2^8 for very large textures (4K/8K textures)
+    // @todo consider to rename to chunk_count as it describes how many chunks it occupies
     uint16 size;
 
     // @performance Maybe if we would set the IS_LOADED_STATE in the enum as the highest bit we could use the state variable and check it with >=

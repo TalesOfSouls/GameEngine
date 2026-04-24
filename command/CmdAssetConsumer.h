@@ -26,7 +26,7 @@ Asset* cmd_asset_load(
 {
     const int32 asset_id = cmd->asset_body.asset_id;
     return asset_archive_asset_load(
-        &asset_archives[(asset_id >> 24) & 0xFF],
+        &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
         asset_id,
         ams,
         ring
@@ -42,7 +42,7 @@ Asset* cmd_asset_load_sync(
 ) NO_EXCEPT
 {
     return asset_archive_asset_load(
-        &asset_archives[(asset_id >> 24) & 0xFF],
+        &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
         asset_id,
         ams,
         ring
