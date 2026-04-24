@@ -325,73 +325,73 @@ int32 mixer_effects_mono(AudioMixer* mixer, uint64 effect, int32 samples) NO_EXC
     int32 sound_sample_index = 0;
 
     if (effect & AUDIO_EFFECT_ECHO) {
-        apply_echo(mixer->buffer_temp, samples * 2, 0.2f, 0.4f, mixer->settings.sample_rate);
+        apply_echo(mixer->buffer_temp, samples * AUDIO_CHANNELS, 0.2f, 0.4f, mixer->settings.sample_rate);
     }
 
     if (effect & AUDIO_EFFECT_REVERB) {
-        apply_reverb(mixer->buffer_temp, samples * 2, 0.3f);
+        apply_reverb(mixer->buffer_temp, samples * AUDIO_CHANNELS, 0.3f);
     }
 
     if (effect & AUDIO_EFFECT_UNDERWATER) {
-        apply_underwater(mixer->buffer_temp, samples * 2);
+        apply_underwater(mixer->buffer_temp, samples * AUDIO_CHANNELS);
     }
 
     if (effect & AUDIO_EFFECT_CAVE) {
-        apply_cave(mixer->buffer_temp, samples * 2, mixer->settings.sample_rate);
+        apply_cave(mixer->buffer_temp, samples * AUDIO_CHANNELS, mixer->settings.sample_rate);
     }
 
     if (effect & AUDIO_EFFECT_LOWPASS) {
-        apply_lowpass(mixer->buffer_temp, samples * 2, 500.0f, mixer->settings.sample_rate); // Cutoff frequency 500
+        apply_lowpass(mixer->buffer_temp, samples * AUDIO_CHANNELS, 500.0f, mixer->settings.sample_rate); // Cutoff frequency 500
     }
 
     if (effect & AUDIO_EFFECT_HIGHPASS) {
-        apply_highpass(mixer->buffer_temp, samples * 2, 2000.0f, mixer->settings.sample_rate); // Cutoff frequency 2 kHz
+        apply_highpass(mixer->buffer_temp, samples * AUDIO_CHANNELS, 2000.0f, mixer->settings.sample_rate); // Cutoff frequency 2 kHz
     }
 
     if (effect & AUDIO_EFFECT_FLANGER) {
-        apply_flanger(mixer->buffer_temp, samples * 2, 0.25f, 0.005f, mixer->settings.sample_rate);
+        apply_flanger(mixer->buffer_temp, samples * AUDIO_CHANNELS, 0.25f, 0.005f, mixer->settings.sample_rate);
     }
 
     if (effect & AUDIO_EFFECT_TREMOLO) {
-        apply_tremolo(mixer->buffer_temp, samples * 2, 5.0f, 0.8f, mixer->settings.sample_rate);
+        apply_tremolo(mixer->buffer_temp, samples * AUDIO_CHANNELS, 5.0f, 0.8f, mixer->settings.sample_rate);
     }
 
     if (effect & AUDIO_EFFECT_DISTORTION) {
-        apply_distortion(mixer->buffer_temp, samples * 2, 10.0f);
+        apply_distortion(mixer->buffer_temp, samples * AUDIO_CHANNELS, 10.0f);
     }
 
     if (effect & AUDIO_EFFECT_CHORUS) {
-        apply_chorus(mixer->buffer_temp, samples * 2, 0.25f, 0.005f, mixer->settings.sample_rate);
+        apply_chorus(mixer->buffer_temp, samples * AUDIO_CHANNELS, 0.25f, 0.005f, mixer->settings.sample_rate);
     }
 
     if (effect & AUDIO_EFFECT_PITCH_SHIFT) {
-        apply_pitch_shift(mixer->buffer_temp, samples * 2, 1.2f); // Slight pitch increase
+        apply_pitch_shift(mixer->buffer_temp, samples * AUDIO_CHANNELS, 1.2f); // Slight pitch increase
     }
 
     if (effect & AUDIO_EFFECT_GRANULAR_DELAY) {
-        apply_granular_delay(mixer->buffer_temp, samples * 2, 0.1f, 0.2f, mixer->settings.sample_rate);
+        apply_granular_delay(mixer->buffer_temp, samples * AUDIO_CHANNELS, 0.1f, 0.2f, mixer->settings.sample_rate);
     }
 
     if (effect & AUDIO_EFFECT_FM) {
-        apply_frequency_modulation(mixer->buffer_temp, samples * 2, 2.0f, 0.5f, mixer->settings.sample_rate);
+        apply_frequency_modulation(mixer->buffer_temp, samples * AUDIO_CHANNELS, 2.0f, 0.5f, mixer->settings.sample_rate);
     }
 
     if (effect & AUDIO_EFFECT_STEREO_PANNING) {
-        apply_stereo_panning(mixer->buffer_temp, samples * 2, 0.5f);
+        apply_stereo_panning(mixer->buffer_temp, samples * AUDIO_CHANNELS, 0.5f);
     }
 
     /*
     if (effect & AUDIO_EFFECT_EASE_IN) {
-        apply_ease_in(mixer->buffer_temp, samples * 2, 0.5f);
+        apply_ease_in(mixer->buffer_temp, samples * AUDIO_CHANNELS, 0.5f);
     }
 
     if (effect & AUDIO_EFFECT_EASE_IN) {
-        apply_ease_out(mixer->buffer_temp, samples * 2, 0.5f);
+        apply_ease_out(mixer->buffer_temp, samples * AUDIO_CHANNELS, 0.5f);
     }
     */
 
     if (effect & AUDIO_EFFECT_SPEED) {
-        sound_sample_index += apply_speed(mixer->buffer_temp, samples * 2, 1.0f);
+        sound_sample_index += apply_speed(mixer->buffer_temp, samples * AUDIO_CHANNELS, 1.0f);
     }
 
     return sound_sample_index;
@@ -493,8 +493,8 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
                     sound_sample_index = 0;
                 }
 
-                mixer->buffer_temp[j * 2] = (int16) (audio_data[sound_sample_index * 2] * volume_scale * total_attenuation);
-                mixer->buffer_temp[j * 2 + 1] = (int16) (audio_data[sound_sample_index * 2 + 1] * volume_scale * total_attenuation);
+                mixer->buffer_temp[j * AUDIO_CHANNELS] = (int16) (audio_data[sound_sample_index * AUDIO_CHANNELS] * volume_scale * total_attenuation);
+                mixer->buffer_temp[j * AUDIO_CHANNELS + 1] = (int16) (audio_data[sound_sample_index * AUDIO_CHANNELS + 1] * volume_scale * total_attenuation);
 
                 ++sound_sample_index;
 
@@ -517,11 +517,11 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
         if (sound->channels == 1) {
             // We turn it stereo here
             for (uint32 j = 0; j < limit; ++j) {
-                mixer->settings.buffer[j * 2] += mixer->buffer_temp[j];
-                mixer->settings.buffer[j * 2 + 1] += mixer->buffer_temp[j];
+                mixer->settings.buffer[j * AUDIO_CHANNELS] += mixer->buffer_temp[j];
+                mixer->settings.buffer[j * AUDIO_CHANNELS + 1] += mixer->buffer_temp[j];
             }
         } else {
-            for (uint32 j = 0; j < limit * 2; ++j) {
+            for (uint32 j = 0; j < limit * AUDIO_CHANNELS; ++j) {
                 mixer->settings.buffer[j] += mixer->buffer_temp[j];
             }
         }
