@@ -307,7 +307,8 @@ Asset* const asset_archive_asset_load(
     const AssetArchive* const archive,
     int32 id,
     AssetManagementSystem* const ams,
-    RingMemory* const ring
+    RingMemory* const ring,
+    bool load_dependencies = true
 ) NO_EXCEPT
 {
     // Create a string representation from the asset id
@@ -470,10 +471,11 @@ Asset* const asset_archive_asset_load(
         );
 
         // @performance maybe do in worker threads? This just feels very slow
-        // @bug dependencies might be stored in different archives?
         // @question Do we even want to do it here or is this the job of something else like the AppCmdBuffer
-        for (uint32 i = 0; i < element->dependency_count; ++i) {
-            asset_archive_asset_load(archive, id, ams, ring);
+        if (load_dependencies) {
+            for (uint32 i = 0; i < element->dependency_count; ++i) {
+                asset_archive_asset_load(archive, asset->references[i], ams, ring);
+            }
         }
     }
 

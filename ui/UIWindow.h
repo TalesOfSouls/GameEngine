@@ -251,6 +251,7 @@ void ui_window_title_add(UILayout* layout, UIWindowOffset* window, uint32 compon
         memcpy(title_label->content, title, sizeof(title));
 
         window->title.label.self.element = (int32) MEMORY_OFFSET(title_label, layout->ui_element_buffer.memory);
+        window->title.label.self.parent_offset = (int32) MEMORY_OFFSET(&window->title.label, &window->title);
 
         if (!first_element) {
             first_element = title_label;
@@ -319,7 +320,7 @@ UIWindowOffset* ui_window_create(UILayout* layout, uint32 component_flags) {
     // Main - Panel
     UIPanel* main_panel = (UIPanel*) BUFFER_ELEMENT_GET(&layout->ui_element_buffer, UIPanel);
     MEMORY_ELEMENT_ZERO(main_panel);
-    window->title.panel.self.element = (int32) MEMORY_OFFSET(main_panel, layout->ui_element_buffer.memory);
+    window->panel.self.element = (int32) MEMORY_OFFSET(main_panel, layout->ui_element_buffer.memory);
 
     return window;
 }
@@ -327,6 +328,19 @@ UIWindowOffset* ui_window_create(UILayout* layout, uint32 component_flags) {
 FORCE_INLINE
 void* ui_get_element(UILayout* const layout, int32 offset) {
     return layout->ui_element_buffer.memory + offset;
+}
+
+const UIOffset* ui_parent_offset_by_type(const UIOffset* base, int32 type) NO_EXCEPT
+{
+    while (base && base->type != type) {
+        if (!base->parent_offset) {
+            return NULL;
+        }
+
+        base = (UIOffset*) (((uintptr_t) base) - base->parent_offset);
+    }
+
+    return base;
 }
 
 int32 cache_vertices(
@@ -339,9 +353,13 @@ int32 cache_vertices(
     FontSystem* const font = layout->font;
     UILabel* label = (UILabel*) (layout->ui_element_buffer.memory + offset_data->self.element);
 
+    const UIOffset* parent = ui_parent_offset_by_type(&offset_data->self, 1);
+    UIWindow* window = (UIWindow *) (layout->ui_element_buffer.memory + parent->element);
+    const f32 font_size = 11.0f / font->base.size;
+
     v3_int32 text_dim = vertex_text_create(
         layout->ui_vertex_cache.elements + idx, zindex, 1,
-        {1024.0f, 512.0f, 0.0f, 0.0f}, UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM,
+        {window->dimension.pos.x, window->dimension.pos.y - font->base.line_height * font_size, 0.0f, 0.0f}, UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM,
         font, label->content, 11.0f, 0xFFFFFFFF,
         ring
     );
@@ -353,6 +371,440 @@ int32 cache_vertices(
     return idx;
 }
 
+void cache_border_vertices(
+    ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache, f32 zindex, GpuApiType gpu_api_type,
+    v2_f32* anchor_pos, v2_f32* anchor_dim, UIBorderOffset* border_offset,
+    byte* element_base
+)
+{
+    if (border_offset[UI_BORDER_T].self.element) {
+        UIAttributeBorder* border = (UIAttributeBorder*) (element_base + border_offset[UI_BORDER_T].self.element);
+        // @todo x coordinate needs to be offset by tl corner width and length needs to be reduced by tl and tr width
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[0]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[2]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+    }
+
+    if (border_offset[UI_BORDER_R].self.element) {
+        UIAttributeBorder* border = (UIAttributeBorder*) (element_base + border_offset[UI_BORDER_R].self.element);
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width - border->dimension.width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[0]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width - border->dimension.width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[2]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width - border->dimension.width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+    }
+
+    if (border_offset[UI_BORDER_B].self.element) {
+        UIAttributeBorder* border = (UIAttributeBorder*) (element_base + border_offset[UI_BORDER_B].self.element);
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height + border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[0]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height + border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height + border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[2]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+    }
+
+    if (border_offset[UI_BORDER_L].self.element) {
+        UIAttributeBorder* border = (UIAttributeBorder*) (element_base + border_offset[UI_BORDER_L].self.element);
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[0]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x + border->dimension.width,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x + border->dimension.width,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x + border->dimension.width,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[2]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+    }
+
+    zindex = camera_step_closer(gpu_api_type, zindex);
+
+    if (border_offset[UI_BORDER_TL].self.element) {
+        UIAttributeBorder* border = (UIAttributeBorder*) (element_base + border_offset[UI_BORDER_TL].self.element);
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[0]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x + border->dimension.width,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x + border->dimension.width,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x + border->dimension.width,
+                anchor_pos->y + border->pos.y - border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[2]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+    }
+
+    if (border_offset[UI_BORDER_TR].self.element) {
+        UIAttributeBorder* border = (UIAttributeBorder*) (element_base + border_offset[UI_BORDER_TR].self.element);
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width - border->dimension.width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[0]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width - border->dimension.width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[2]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width - border->dimension.width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+    }
+
+    if (border_offset[UI_BORDER_BR].self.element) {
+        UIAttributeBorder* border = (UIAttributeBorder*) (element_base + border_offset[UI_BORDER_BR].self.element);
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width - border->dimension.width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height + border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[0]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height + border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width - border->dimension.width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height + border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[2]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_dim->width - border->dimension.width + anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+    }
+
+    if (border_offset[UI_BORDER_BL].self.element) {
+        UIAttributeBorder* border = (UIAttributeBorder*) (element_base + border_offset[UI_BORDER_BL].self.element);
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y + border->pos.y - anchor_dim->height + border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[0]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x + border->dimension.width,
+                anchor_pos->y + border->pos.y - anchor_dim->height + border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y - anchor_dim->height + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x + border->dimension.width,
+                anchor_pos->y + border->pos.y - anchor_dim->height + border->dimension.height,
+                zindex
+            },
+            2, border->tex_coord[1]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x + border->dimension.width,
+                anchor_pos->y - anchor_dim->height + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[2]
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                anchor_pos->x + border->pos.x,
+                anchor_pos->y - anchor_dim->height + border->pos.y,
+                zindex
+            },
+            2, border->tex_coord[3]
+        });
+    }
+}
+
 int32 cache_vertices(
     UIWindowTitleOffset* offset_data, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
@@ -360,40 +812,78 @@ int32 cache_vertices(
 ) {
     int32 vertex_count = 0;
 
-    UIOffset* parent = &offset_data->self;
-
-    // Iterate all parents to get window position
-    // 1 is just a placeholder for the window type id
-    while (parent && parent->type != 1) {
-        if (!parent->parent_offset) {
-            parent = NULL;
-            break;
-        }
-
-        parent = (UIOffset*) (((uintptr_t) offset_data) - parent->parent_offset);
-    }
-
+    const UIOffset* parent = ui_parent_offset_by_type(&offset_data->self, 1);
     UIWindow* window = (UIWindow *) (layout->ui_element_buffer.memory + parent->element);
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
 
+    v2_f32 title_dim = {window->dimension.dimension.width, 0.0f};
+
     // @todo the title needs access to the parent (window)
     if (offset_data->panel.self.element) {
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
+        UIPanel* title_panel = (UIPanel *) (layout->ui_element_buffer.memory + offset_data->panel.self.element);
 
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
+        // @performance We should also only go in here if the panel has a color or image
+        v2_f32 color = {0};
+        if (title_panel->background_style.color) {
+            color.x = -1.0f;
+            color.y = BITCAST(title_panel->background_style.color, f32);
+        }
+
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x,
+                window->dimension.pos.y,
+                zindex
+            }, -1, color
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x + window->dimension.dimension.width,
+                window->dimension.pos.y,
+                zindex
+            }, -1, color
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x,
+                window->dimension.pos.y - title_panel->dimension.dimension.height,
+                zindex
+            }, -1, color
+        });
+
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x + window->dimension.dimension.width,
+                window->dimension.pos.y,
+                zindex
+            }, -1, color
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x + window->dimension.dimension.width,
+                window->dimension.pos.y - title_panel->dimension.dimension.height,
+                zindex
+            }, -1, color
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x,
+                window->dimension.pos.y - title_panel->dimension.dimension.height,
+                zindex
+            }, -1, color
+        });
+
+        zindex = camera_step_closer(gpu_api_type, zindex);
+        title_dim.height = title_panel->dimension.dimension.height;
 
         vertex_count += 6;
     }
 
-    for (int32 i = 0; i < ARRAY_COUNT(offset_data->border); ++i) {
-        if (offset_data->border[i].self.element) {
-            // @todo implement border
-        }
-    }
+    cache_border_vertices(
+        vertex_cache, zindex, gpu_api_type,
+        &window->dimension.pos, &title_dim, offset_data->border,
+        layout->ui_element_buffer.memory
+    );
 
     // @question Do I also need to check for empty text here?
     if (offset_data->label.self.element) {
@@ -418,32 +908,80 @@ int32 cache_vertices(
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
 
     if (offset_data->panel.self.element) {
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
+        UIPanel* panel = (UIPanel *) (layout->ui_element_buffer.memory + offset_data->panel.self.element);
 
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
-        array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {}});
+        // @performance We should also only go in here if the panel has a color or image
+        v2_f32 color = {0};
+        if (panel->background_style.color) {
+            color.x = -1.0f;
+            color.y = BITCAST(panel->background_style.color, f32);
+        }
+
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x,
+                window->dimension.pos.y,
+                zindex
+            }, -1, color
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x + window->dimension.dimension.width,
+                window->dimension.pos.y,
+                zindex
+            }, -1, color
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x,
+                window->dimension.pos.y - window->dimension.dimension.height,
+                zindex
+            }, -1, color
+        });
+
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x + window->dimension.dimension.width,
+                window->dimension.pos.y,
+                zindex
+            }, -1, color
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x + window->dimension.dimension.width,
+                window->dimension.pos.y - window->dimension.dimension.height,
+                zindex
+            }, -1, color
+        });
+        array_vector_insert(vertex_cache, {
+            {
+                window->dimension.pos.x,
+                window->dimension.pos.y - window->dimension.dimension.height,
+                zindex
+            }, -1, color
+        });
 
         vertex_count += 6;
     }
 
+    /*
     for (int32 i = 0; i < ARRAY_COUNT(offset_data->border); ++i) {
         if (i == 0 && offset_data->border[i].self.element) {
             // @todo this should be in the UIAttributeBorder file?
+            // @todo the offsets are wrong
             UIAttributeBorder* border = (UIAttributeBorder*) (layout->ui_element_buffer.memory + offset_data->border[i].self.element);
-            array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y + 19, zindex}, 2, {border->tex_coord[0].x, border->tex_coord[0].y}});
-            array_vector_insert(vertex_cache, {{window->dimension.pos.x + 27, window->dimension.pos.y + 19, zindex}, 2, {border->tex_coord[1].x, border->tex_coord[1].y}});
-            array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {border->tex_coord[3].x, border->tex_coord[3].y}});
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y + 19, zindex}, 2, border->tex_coord[0]});
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x + 27, window->dimension.pos.y + 19, zindex}, 2, border->tex_coord[1]});
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, border->tex_coord[3]});
 
-            array_vector_insert(vertex_cache, {{window->dimension.pos.x + 27, window->dimension.pos.y +19, zindex}, 2, {border->tex_coord[1].x, border->tex_coord[1].y}});
-            array_vector_insert(vertex_cache, {{window->dimension.pos.x + 27, window->dimension.pos.y, zindex}, 2, {border->tex_coord[2].x, border->tex_coord[2].y}});
-            array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, {border->tex_coord[3].x, border->tex_coord[3].y}});
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x + 27, window->dimension.pos.y +19, zindex}, 2, border->tex_coord[1]});
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x + 27, window->dimension.pos.y, zindex}, 2, border->tex_coord[2]});
+            array_vector_insert(vertex_cache, {{window->dimension.pos.x, window->dimension.pos.y, zindex}, 2, border->tex_coord[3]});
 
             vertex_count += 6;
         }
     }
+    */
 
     if (offset_data->title.self.element) {
         vertex_count += cache_vertices(

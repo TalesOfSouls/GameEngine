@@ -41,11 +41,13 @@ struct Glyph {
 
 struct Font {
     // The data before the glyphs can be considered header data
-    
-    // @question Consider to make 16bit int (we internally don't support more than 2^16 - 1)
-    uint32 glyph_count;
+
+    // @performance I hate that this is here
     char texture_name[32];
     Texture* texture;
+
+    // @question Consider to make 16bit int (we internally don't support more than 2^16 - 1)
+    uint32 glyph_count;
 
     int32 sampler;
 

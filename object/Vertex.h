@@ -20,6 +20,18 @@ struct Vertex4DSamplerTextureColor {
     v2_f32 texture_color;
 };
 
+struct VertexUI {
+    v2_f32 position;
+    v2_f32 uv;
+    int32 sampler;
+
+    // e.g. color and outline color
+    uint32 idata[2];
+
+    // e.g. outline width
+    f32 fdata[2];
+};
+
 struct Vertex3D {
     v3_f32 position;
     v3_f32 normal;

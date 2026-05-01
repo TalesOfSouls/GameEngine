@@ -14,11 +14,14 @@
 
 struct TextureAtlasElement {
     int32 uv_count;
+
+    // Offset into "uv" in the TextureAtlas struct
     int32 uv_start;
 };
 
 struct TextureAtlas {
     // The data before the elements can be considered header data
+    // @performance I hate that this is here
     char texture_name[32];
     Texture* texture;
 

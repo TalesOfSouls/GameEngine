@@ -4,11 +4,26 @@
 
 #include "../../stdlib/Stdlib.h"
 
+enum UIBorderType {
+    UI_BORDER_TL,
+    UI_BORDER_T,
+    UI_BORDER_TR,
+    UI_BORDER_R,
+    UI_BORDER_BR,
+    UI_BORDER_B,
+    UI_BORDER_BL,
+    UI_BORDER_L,
+};
+
 struct UIAttributeBorder {
     uint32 thickness;
     uint32 color;
 
     uint32 texture;
+    // position is a offset to its natural position
+    v2_f32 pos;
+    v2_f32 dimension;
+
     v2_f32 tex_coord[4];
 };
 

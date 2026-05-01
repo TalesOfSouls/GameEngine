@@ -14,6 +14,136 @@
 #include "../utils/StringUtils.h"
 #include "../image/Image.cpp"
 #include "TextureAtlas.h"
+#include "../memory/RingMemory.cpp"
+
+char* atlas_enum_from_file_txt(
+    const char* path,
+    RingMemory* const ring
+) NO_EXCEPT
+{
+    FileBody file = {0};
+    file_read(path, &file, ring);
+    ASSERT_TRUE(file.size);
+
+    const char* pos = (char *) file.content;
+
+    char* output = (char *) ring_memory_get(ring, 1 * MEGABYTE, alignof(size_t));
+    memset(output, 0, 1 * MEGABYTE);
+
+    char block_name[32];
+    char texture_name[MAX_PATH];
+
+    char* texture_pos = texture_name;
+
+    while (*pos != '\0') {
+        // Parsing general data
+        pos = str_skip_eol(pos);
+
+        int32 i = 0;
+        while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && *pos != '#' && i < ARRAY_COUNT(block_name) - 1) {
+            block_name[i] = *pos;
+            ++pos;
+            ++i;
+        }
+
+        block_name[i] = '\0';
+
+        if (*pos != ':') {
+            break;
+        }
+
+        // Go to value
+        while (*pos == ' ' || *pos == '\t' || *pos == ':') {
+            ++pos;
+        }
+
+        if (strcmp(block_name, "texture") == 0) {
+            while (!is_eol(pos)) {
+                *texture_pos++ = *pos++;
+            }
+
+            *texture_pos++ = '\0';
+
+            break;
+        }
+
+        pos = str_skip_line(pos);
+    }
+
+    char* last_slash = strrchr(texture_name, '/');
+    if (!last_slash) {
+        last_slash = strrchr(texture_name, '\\');
+    }
+    ++last_slash;
+
+    char namespace_name[32];
+    char enum_name[32];
+    int32 i = 0;
+    for (; last_slash[i] != '.'; ++i) {
+        namespace_name[i] = (char) toupper(last_slash[i]);
+        enum_name[i] = (char) tolower(last_slash[i]);
+    }
+
+    enum_name[0] = (char) toupper(enum_name[0]);
+    namespace_name[i] = '\0';
+    enum_name[i] = '\0';
+
+    sprintf((char *) output,
+        "/**\n"
+        " * Jingga\n"
+        " *\n"
+        " * @copyright Jingga\n"
+        " * @license    License 2.0\n"
+        " * @version   1.0.0\n"
+        " * @link      https://jingga.app\n"
+        " */\n"
+        "#ifndef TOS_%s\n"
+        "#define TOS_%s\n"
+        "\n"
+        "enum AtlasIds%s : int32 {\n",
+        namespace_name,
+        namespace_name,
+        enum_name
+    );
+
+    while (*pos != '\0') {
+        // Go to next element
+        while (*pos != '#' && *pos != '\0') {
+            ++pos;
+        }
+
+        if (*pos != '#') {
+            break;
+        }
+
+        // Skip #
+        ++pos;
+
+        char enum_value_name[64] = {0};
+        char* enum_pos = enum_value_name;
+        while (*pos != '\0' && !is_eol(pos) && *pos != '#') {
+            *enum_pos = (char) toupper(*pos);
+            ++enum_pos;
+            ++pos;
+        }
+
+        // @performance It is horrible performance to call strlen every time on the entire output data
+        sprintf(
+            (char *) output + strlen((char *) output),
+            "    AT_ID_%s,\n",
+            enum_value_name
+        );
+
+        pos = str_skip_line(pos);
+    }
+
+    sprintf((char *) output + strlen((char *) output),
+        "};\n\n"
+        "#endif\n"
+    );
+
+    return output;
+}
 
 void atlas_from_file_txt(
     TextureAtlas* const atlas,
@@ -42,7 +172,7 @@ void atlas_from_file_txt(
         pos = str_skip_eol(pos);
 
         int32 i = 0;
-        while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && *pos != '#' && i < 31) {
+        while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && *pos != '#' && i < ARRAY_COUNT(block_name) - 1) {
             block_name[i] = *pos;
             ++pos;
             ++i;
@@ -80,7 +210,7 @@ void atlas_from_file_txt(
 
     atlas->elements = (TextureAtlasElement*) ring_memory_get(
         ring,
-        sizeof(TextureAtlasElement) * atlas->element_count,
+        10 * MEGABYTE,
         alignof(TextureAtlasElement)
     );
 
@@ -103,7 +233,7 @@ void atlas_from_file_txt(
         }
 
         atlas->elements[atlas->element_count].uv_count = 0;
-        atlas->elements[atlas->element_count].uv_start = atlas->element_count;
+        atlas->elements[atlas->element_count].uv_start = atlas->uv_count;
 
         str_move_to(&pos, '\n');
         ++pos;
@@ -114,16 +244,14 @@ void atlas_from_file_txt(
 
         // Iterate through all of the coordinates
         while (*pos != '\0' && *pos != '\n' && *pos != '#' && isdigit(*pos)) {
-            atlas->uv[
-                atlas->elements[atlas->element_count].uv_start
-                + atlas->elements[atlas->element_count].uv_count
-            ] = {
+            atlas->uv[atlas->uv_count++] = {
                 str_to_float(pos, &pos) / image_width,
                 str_to_float(++pos, &pos) / image_height
             };
 
             ++atlas->elements[atlas->element_count].uv_count;
-            ++atlas->uv_count;
+
+            pos = str_skip_line(pos);
         }
 
         ++atlas->element_count;
@@ -180,6 +308,7 @@ int32 atlas_from_data(
         (uintptr_t) atlas->elements + sizeof(TextureAtlasElement) * atlas->element_count,
         alignof(v2_f32)
     );
+    memcpy(atlas->uv, data, sizeof(TextureAtlasElement) * atlas->uv_count);
 
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) atlas->uv,
@@ -213,6 +342,8 @@ int32 atlas_to_data(
     PSEUDO_USE(steps);
     data += sizeof(TextureAtlasElement) * atlas->element_count;
 
+    // @bug we are storing floats into the data and to the file system
+    //      depending on the compiler floats are not consistent across platforms
     memcpy(data, atlas->uv, sizeof(v2_f32) * atlas->uv_count);
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) data,

@@ -144,6 +144,13 @@ Asset* cmd_internal_texture_atlas_create(
     TextureAtlas* const atlas = (TextureAtlas *) asset->self;
     atlas->texture = (Texture*) texture_asset->self;
 
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
+        || cb->gpu_api_type == GPU_API_TYPE_VULKAN
+        || cb->gpu_api_type == GPU_API_TYPE_SOFTWARE
+    ) {
+        atlas_invert_coordinates(atlas);
+    }
+
     return asset;
 }
 
@@ -208,6 +215,13 @@ Asset* cmd_texture_atlas_load_sync(
 
     TextureAtlas* atlas = (TextureAtlas*) asset->self;
     atlas->texture = (Texture*) texture_asset->self;
+
+    if (gpu_api_type == GPU_API_TYPE_OPENGL
+        || gpu_api_type == GPU_API_TYPE_VULKAN
+        || gpu_api_type == GPU_API_TYPE_SOFTWARE
+    ) {
+        atlas_invert_coordinates(atlas);
+    }
 
     return asset;
 }

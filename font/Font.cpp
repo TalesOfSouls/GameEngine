@@ -105,7 +105,7 @@ void font_from_file_txt(
         pos = str_skip_eol(pos);
 
         int32 i = 0;
-        while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && i < 31) {
+        while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && i < ARRAY_COUNT(block_name) - 1) {
             block_name[i] = *pos;
             ++pos;
             ++i;
@@ -266,6 +266,8 @@ int32 font_to_data(
     pos = write_le(pos, font->line_height);
 
     // The glyphs are naturally tightly packed -> we can just store the memory
+    // @bug we are storing floats into the data and to the file system
+    //      depending on the compiler floats are not consistent across platforms
     memcpy(pos, font->glyphs, font->glyph_count * sizeof(Glyph));
     //pos += font->glyph_count * sizeof(Glyph);
 
