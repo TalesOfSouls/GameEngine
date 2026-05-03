@@ -220,7 +220,7 @@ void asset_archive_load(
         + MEMBER_SIZEOF(AssetArchiveHeader, asset_dependency_count);
 
     // Find header size
-    file.content = ring_memory_get(ring, file.size, sizeof(size_t));
+    file.content = memory_get(ring, file.size, sizeof(size_t));
     // @bug We only inlined this for easier debugging, revert once solved
     //file_read(archive->fd, &file, 0, file.size);
 
@@ -251,7 +251,7 @@ void asset_archive_load(
         const uint64 read_length = OMS_MIN(length, fsize - offset);
 
         if (ring != NULL) {
-            tfile->content = ring_memory_get(ring, read_length + 1);
+            tfile->content = memory_get(ring, read_length + 1);
         }
 
         // Move the tfile pointer to the offset position
@@ -288,7 +288,7 @@ void asset_archive_load(
     file_seek(archive->fd, 0);
 
     // Read entire header
-    file.content = ring_memory_get(ring, file.size, sizeof(size_t));
+    file.content = memory_get(ring, file.size, sizeof(size_t));
     file_read(archive->fd, &file, 0, file.size);
     asset_archive_header_load(&archive->header, archive->data_size, file.content, steps);
 

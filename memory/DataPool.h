@@ -11,7 +11,7 @@
 #define COMS_MEMORY_DATA_POOL_H
 
 #include "../stdlib/Stdlib.h"
-#include "ChunkMemory.h"
+#include "ChunkMemory.cpp"
 
 // WARNING: Structure needs to be the same as ChunkMemory
 // Opposite to the ChunkMemory we can see if someone currently has a pointer to the data
@@ -85,7 +85,7 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 capacity, int32 chunk_s
         + sizeof(uint64) * ceil_div(capacity, 64U) // used
         + alignment * 3; // overhead for alignment
 
-    buf->memory = buffer_memory_get(data, size);
+    buf->memory = memory_get(data, size);
 
     buf->capacity = capacity;
     buf->size = size;

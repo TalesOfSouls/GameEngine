@@ -11,7 +11,7 @@
 #define COMS_ENTITY_COMPONENT_SYSTEM_C
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemory.h"
+#include "../memory/ChunkMemory.cpp"
 #include "../utils/BitUtils.h"
 #include "../stdlib/HashMap.h"
 #include "../log/DebugMemory.h"
@@ -23,10 +23,10 @@ inline
 void ecs_create(EntityComponentSystem* ecs, BufferMemory* const buf, int32 entity_type_count, int32 component_type_count)
 {
     ecs->entity_type_count = entity_type_count;
-    ecs->entities = (ChunkMemory *) buffer_memory_get(buf, sizeof(ChunkMemory) * entity_type_count, ASSUMED_CACHE_LINE_SIZE);
+    ecs->entities = (ChunkMemory *) memory_get(buf, sizeof(ChunkMemory) * entity_type_count, ASSUMED_CACHE_LINE_SIZE);
 
     ecs->component_type_count = component_type_count;
-    ecs->components = (ChunkMemory *) buffer_memory_get(buf, sizeof(ChunkMemory) * component_type_count, ASSUMED_CACHE_LINE_SIZE);
+    ecs->components = (ChunkMemory *) memory_get(buf, sizeof(ChunkMemory) * component_type_count, ASSUMED_CACHE_LINE_SIZE);
 }
 
 inline

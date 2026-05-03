@@ -55,7 +55,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../log/Log.h"
 #include "../thread/ThreadDefines.h"
-#include "../memory/ChunkMemory.h"
+#include "../memory/ChunkMemory.cpp"
 
 #include "AppCmdBuffer.h"
 

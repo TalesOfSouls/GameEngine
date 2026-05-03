@@ -64,7 +64,7 @@ void heap_init(
 ) {
     ASSERT_TRUE(element_size * capacity);
 
-    heap->elements = buffer_memory_get(buf, element_size * capacity, 8, true);
+    heap->elements = memory_get(buf, element_size * capacity, 8, true);
     if (!heap->elements) {
         return;
     }

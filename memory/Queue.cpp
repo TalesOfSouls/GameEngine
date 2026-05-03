@@ -237,7 +237,7 @@ bool thrd_queue_is_full(Queue* queue) NO_EXCEPT
 inline
 byte* queue_enqueue(Queue* const __restrict queue, const byte* __restrict data) NO_EXCEPT
 {
-    byte* mem = ring_memory_get((RingMemory *) queue, queue->element_size, queue->alignment);
+    byte* mem = memory_get((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
 
     return mem;

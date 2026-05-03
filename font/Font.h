@@ -24,19 +24,11 @@ struct GlyphMetrics {
     f32 advance_x; // Horizontal advance after drawing the glyph
 };
 
-struct GlyphVertex {
-    v2_f32 pos;
-    v2_f32 uv;
-};
-
 struct Glyph {
     uint32 codepoint;
     GlyphMetrics metrics;
-    int32 vertex_count;
-    // We use either a quad or a triangle
-    // Triangles are used for characters that can be efficiently represented by one
-    // e.g. 7, A, V, v, L, T, r, <, >, /, \, ... (maybe even F, P, i, ?)
-    GlyphVertex vertices[4];
+    v2_f32 uv_start;
+    v2_f32 uv_end;
 };
 
 struct Font {

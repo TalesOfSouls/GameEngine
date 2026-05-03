@@ -19,7 +19,7 @@
 #include "../system/Allocator.h"
 #include "DatabaseConnection.h"
 #include "Database.h"
-#include "../memory/ChunkMemory.h"
+#include "../memory/ChunkMemory.cpp"
 
 struct DatabasePool {
     // How many connections does this pool support?

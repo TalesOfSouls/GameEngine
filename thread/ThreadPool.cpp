@@ -204,7 +204,7 @@ void thread_pool_init(
     queue_init(&pool->work_queue, buf, worker_capacity, alignment);
 
     if (!pool->is_detached) {
-        pool->thread_handles = (coms_pthread_t *) buffer_memory_get(
+        pool->thread_handles = (coms_pthread_t *) memory_get(
             buf,
             sizeof(coms_pthread_t) * thread_count,
             alignof(coms_pthread_t)

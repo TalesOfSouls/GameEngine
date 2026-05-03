@@ -36,7 +36,7 @@ void input_init(Input* const input, uint8 count, BufferMemory* const buf) NO_EXC
 
     const size_t hotkey_size = input_memory_size(input->hotkey_count);
 
-    input->input_mapping1 = (Hotkey *) buffer_memory_get(buf, hotkey_size, alignof(Hotkey));
+    input->input_mapping1 = (Hotkey *) memory_get(buf, hotkey_size, alignof(Hotkey));
     input->input_mapping2 = input->input_mapping1 + input->hotkey_count;
 
     // This clears both mapping1 and mapping2

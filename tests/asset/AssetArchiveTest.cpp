@@ -217,7 +217,7 @@ static void test_asset_archive() {
     ring_alloc(&ring, 16 * MEGABYTE, 16 * MEGABYTE);
 
     AssetArchive archive;
-    archive.data = ring_memory_get(&ring, 8 * MEGABYTE);
+    archive.data = memory_get(&ring, 8 * MEGABYTE);
     asset_archive_load(&archive, L"temp.asset", &ring);
 
     /////////////////////////////////////////////////

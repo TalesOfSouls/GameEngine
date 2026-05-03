@@ -14,7 +14,7 @@
 #include "../../math/matrix/Matrix.h"
 #include "../../object/Vertex.h"
 #include "../../object/Texture.h"
-#include "../../memory/ChunkMemory.h"
+#include "../../memory/ChunkMemory.cpp"
 #include "../../thread/ThreadPool.cpp"
 #include "SoftwareDescriptorSetLayoutBinding.h"
 #include "Shader.h"

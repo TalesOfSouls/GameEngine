@@ -14,13 +14,23 @@
 #include "../stdlib/Stdlib.h"
 
 FORCE_INLINE
-size_t str_length(const char* const str) NO_EXCEPT {
+size_t str_length(const char* str) NO_EXCEPT {
     return strlen(str);
 }
 
 FORCE_INLINE
-size_t str_length(const wchar_t* const str) NO_EXCEPT {
+size_t str_length(const wchar_t* str) NO_EXCEPT {
     return wcslen(str);
+}
+
+FORCE_INLINE
+char* str_right(const char* str, char c) NO_EXCEPT {
+    return (char *) strrchr(str, c);
+}
+
+FORCE_INLINE
+wchar_t* str_right(const wchar_t* str, wchar_t c) NO_EXCEPT {
+    return (wchar_t *) wcsrchr(str, c);
 }
 
 inline
@@ -1995,6 +2005,16 @@ void str_skip_empty(const char** str) NO_EXCEPT
     while (**str == ' ' || **str == '\t' || **str == '\n' || **str == '\r')  {
         ++(*str);
     }
+}
+
+FORCE_INLINE
+char* str_skip_empty(char* str) NO_EXCEPT
+{
+    while (*str == ' ' || *str == '\t' || *str == '\n' || *str == '\r')  {
+        ++str;
+    }
+
+    return (char *) str;
 }
 
 FORCE_INLINE

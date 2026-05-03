@@ -42,7 +42,7 @@ FORCE_INLINE
 void array_vector_init(ArrayVector<T>* vec, BufferMemory* buf, int capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
     vec->capacity = capacity;
-    vec->elements = (T *) buffer_memory_get(buf, capacity, alignment);
+    vec->elements = (T *) memory_get(buf, capacity, alignment);
 }
 
 template<typename T>

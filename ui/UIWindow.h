@@ -247,7 +247,7 @@ void ui_window_title_add(UILayout* layout, UIWindowOffset* window, uint32 compon
         window->title.label.self.element = (int32) MEMORY_OFFSET(title_label, layout->ui_element_buffer.memory);
 
         const wchar_t title[] = L"Title";
-        title_label->content = (wchar_t*) buffer_memory_get(&layout->ui_element_buffer, sizeof(title), alignof(wchar_t));
+        title_label->content = (wchar_t*) memory_get(&layout->ui_element_buffer, sizeof(title), alignof(wchar_t));
         memcpy(title_label->content, title, sizeof(title));
 
         window->title.label.self.element = (int32) MEMORY_OFFSET(title_label, layout->ui_element_buffer.memory);

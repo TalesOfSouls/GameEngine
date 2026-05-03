@@ -115,7 +115,7 @@ void queue_init(PersistentQueueT<T>* const queue, BufferMemory* const buf, int c
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
 
     queue->capacity = capacity;
-    queue->memory = (T *) buffer_memory_get(
+    queue->memory = (T *) memory_get(
         buf,
         sizeof(T) * capacity
         + sizeof(uint_max) * array_count + alignof(uint_max) // free

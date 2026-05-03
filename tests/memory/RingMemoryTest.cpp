@@ -15,11 +15,11 @@ static void test_ring_alloc() {
     TEST_EQUALS(mem.memory, NULL);
 }
 
-static void test_ring_memory_get() {
+static void test_memory_get() {
     RingMemory mem = {0};
     ring_alloc(&mem, 50, 50);
 
-    TEST_EQUALS(ring_memory_get(&mem, 20), mem.memory);
+    TEST_EQUALS(memory_get(&mem, 20), mem.memory);
     TEST_EQUALS(mem.head, mem.memory + 24);
 
     ring_free(&mem);
@@ -29,7 +29,7 @@ static void test_ring_calculate_position() {
     RingMemory mem = {0};
     ring_alloc(&mem, 50, 50);
 
-    ring_memory_get(&mem, 20);
+    memory_get(&mem, 20);
     TEST_EQUALS(ring_calculate_position(&mem, 20), mem.memory + 24);
 
     ring_free(&mem);
@@ -39,7 +39,7 @@ static void test_ring_reset() {
     RingMemory mem = {0};
     ring_alloc(&mem, 50, 50);
 
-    ring_memory_get(&mem, 20);
+    memory_get(&mem, 20);
     TEST_NOT_EQUALS(mem.head, mem.memory);
 
     ring_reset(&mem);
@@ -72,7 +72,7 @@ static void test_ring_commit_safe() {
     RingMemory mem = {0};
     ring_alloc(&mem, 50, 50);
 
-    ring_memory_get(&mem, 24, 1);
+    memory_get(&mem, 24, 1);
 
     TEST_TRUE(ring_commit_safe(&mem, 24));
 

@@ -27,17 +27,17 @@ char* atlas_enum_from_file_txt(
 
     const char* pos = (char *) file.content;
 
-    char* output = (char *) ring_memory_get(ring, 1 * MEGABYTE, alignof(size_t));
+    char* output = (char *) memory_get(ring, 1 * MEGABYTE, alignof(size_t));
     memset(output, 0, 1 * MEGABYTE);
 
     char block_name[32];
-    char texture_name[MAX_PATH];
+    char texture_name[PATH_MAX_LENGTH];
 
     char* texture_pos = texture_name;
 
     while (*pos != '\0') {
         // Parsing general data
-        pos = str_skip_eol(pos);
+        pos = str_skip_empty(pos);
 
         int32 i = 0;
         while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && *pos != '#' && i < ARRAY_COUNT(block_name) - 1) {
@@ -208,14 +208,14 @@ void atlas_from_file_txt(
         pos = str_skip_line(pos);
     }
 
-    atlas->elements = (TextureAtlasElement*) ring_memory_get(
+    atlas->elements = (TextureAtlasElement*) memory_get(
         ring,
         10 * MEGABYTE,
         alignof(TextureAtlasElement)
     );
 
     // This is a global index since all uv are stored in a global array
-    atlas->uv = (v2_f32*) ring_memory_get(
+    atlas->uv = (v2_f32*) memory_get(
         ring,
         1 * MEGABYTE,
         alignof(v2_f32)

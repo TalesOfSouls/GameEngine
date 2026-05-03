@@ -20,7 +20,7 @@
 #include "HttpHeader.h"
 #include "header/HttpHeaderKey.h"
 #include "../network/SocketConnection.h"
-#include "../memory/ThreadedChunkMemory.h"
+#include "../memory/ThreadedChunkMemory.cpp"
 
 enum HttpRequestState : byte {
     HTTP_REQUEST_STATE_NONE = 1 << 0,

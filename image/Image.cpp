@@ -21,23 +21,23 @@
 
 // Only loads the important image header data without having to parse the entire file
 inline
-void image_header_from_file(Image* __restrict image, const char* __restrict path, RingMemory* const __restrict ring) NO_EXCEPT
+void image_header_from_file(Image* __restrict image, const char* __restrict path) NO_EXCEPT
 {
-    FileBody file = {0};
+    byte buffer[1024];
+
+    FileBody file;
+    file.content = buffer;
 
     if (str_ends_with(path, ".png")) {
         file.size = 64;
-        file.content = ring_memory_get(ring, file.size, alignof(size_t));
         file_read(path, &file);
         image_header_png_generate(&file, image);
     } else if (str_ends_with(path, ".tga")) {
         file.size = 32;
-        file.content = ring_memory_get(ring, file.size, alignof(size_t));
         file_read(path, &file);
         image_header_tga_generate(&file, image);
     } else if (str_ends_with(path, ".bmp")) {
         file.size = 1024;
-        file.content = ring_memory_get(ring, file.size, alignof(size_t));
         file_read(path, &file);
         image_header_bmp_generate(&file, image);
     }
@@ -62,7 +62,7 @@ inline
 void image_flip_vertical(RingMemory* const __restrict ring, Image* __restrict image) NO_EXCEPT
 {
     const uint32 stride = image->width * sizeof(uint32);
-    byte* temp = ring_memory_get(ring, image->pixel_count * sizeof(uint32), sizeof(size_t));
+    byte* temp = memory_get(ring, image->pixel_count * sizeof(uint32), sizeof(size_t));
     memcpy(temp, image->pixels, image->pixel_count * sizeof(uint32));
 
     // Last row
@@ -149,6 +149,36 @@ uint32 image_to_data(const Image* __restrict image, byte* __restrict data) NO_EX
     pos += image_size;
 
     return (int32) (pos - data);
+}
+
+void image_blit(const Image* src, const Image* dst, int offset_x, int offset_y) {
+    for (uint32 y = 0; y < src->height; ++y) {
+        const uint32 dst_y = y + offset_y;
+        if (dst_y >= dst->height) {
+            continue;
+        }
+
+        for (uint32 x = 0; x < src->width; ++x) {
+            const uint32 dst_x = x + offset_x;
+            if (dst_x >= dst->width) {
+                continue;
+            }
+
+            const int dst_index = (dst_y * dst->width + dst_x) * 4;
+            const int src_index = (y * src->width + x) * 4;
+
+            byte* d = &dst->pixels[dst_index];
+            const byte* s = &src->pixels[src_index];
+
+            // Simple alpha blending
+            float alpha = s[3] / 255.0f;
+
+            d[0] = (byte)(s[0] * alpha + d[0] * (1 - alpha));
+            d[1] = (byte)(s[1] * alpha + d[1] * (1 - alpha));
+            d[2] = (byte)(s[2] * alpha + d[2] * (1 - alpha));
+            d[3] = (byte)(255 * (alpha + (d[3] / 255.0f) * (1 - alpha)));
+        }
+    }
 }
 
 #endif

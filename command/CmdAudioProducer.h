@@ -11,7 +11,7 @@
 #define COMS_COMMAND_BUFFER_AUDIO_PRODUCER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemoryT.h"
+#include "../memory/ChunkMemoryT.cpp"
 #include "AppCommand.h"
 #include "CmdGeneralProducer.h"
 

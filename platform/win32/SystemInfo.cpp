@@ -137,12 +137,12 @@ void system_cpu_usage(f32* const __restrict usage, int32 core_count, RingMemory*
         return;
     };
 
-    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p1 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) ring_memory_get(
+    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p1 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) memory_get(
         ring,
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * core_count,
         sizeof(size_t)
     );
-    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p2 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) ring_memory_get(
+    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p2 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) memory_get(
         ring,
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * core_count,
         sizeof(size_t)
@@ -365,7 +365,7 @@ int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* rin
     }
 
     if (ring) {
-        adapter_address = (PIP_ADAPTER_ADDRESSES) ring_memory_get(ring, sizeof(*adapter_address), sizeof(size_t));
+        adapter_address = (PIP_ADAPTER_ADDRESSES) memory_get(ring, sizeof(*adapter_address), sizeof(size_t));
     } else {
         adapter_address = (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
     }

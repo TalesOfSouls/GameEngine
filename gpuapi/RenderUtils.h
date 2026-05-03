@@ -434,8 +434,6 @@ v3_int32 vertex_text_create(
         }
 
         const GlyphMetrics* const metrics = &glyph->metrics;
-        const GlyphVertex* const glyph_vertices = glyph->vertices;
-
         const f32 offset_y = dimension.y + metrics->offset_y * scale;
         offset_x += metrics->offset_x * scale;
         rendered_width += metrics->offset_x * scale;
@@ -443,9 +441,16 @@ v3_int32 vertex_text_create(
         if (glyph->codepoint != ' ' && glyph->codepoint != '\t') {
             // @bug we cannot pass the rgba here since the rgba overwrites the texture coordinates
             //      we would have to add at least an additional 4 bytes to allow texture coordinates + recoloring
-            vertices[idx++] = {{offset_x + glyph_vertices[0].pos.x * scale, offset_y + glyph_vertices[0].pos.y * scale, zindex}, sampler, glyph_vertices[0].uv};
-            vertices[idx++] = {{offset_x + glyph_vertices[1].pos.x * scale, offset_y + glyph_vertices[1].pos.y * scale, zindex}, sampler, glyph_vertices[1].uv};
-            vertices[idx++] = {{offset_x + glyph_vertices[2].pos.x * scale, offset_y + glyph_vertices[2].pos.y * scale, zindex}, sampler, glyph_vertices[2].uv};
+
+            // @performance We might want to cache the vertex data per glyph
+            //              Then we only need to multiply the x/y coordinates with the scale factor
+            //              But are we even saving anything? We would increase the memory and therefore reduce cache locality
+            const f32 x_end_scaled = offset_x + metrics->width * scale;
+            const f32 y_end_scaled = offset_y + metrics->height * scale;
+
+            vertices[idx++] = {{offset_x, y_end_scaled, zindex}, sampler, glyph->uv_start};
+            vertices[idx++] = {{x_end_scaled, y_end_scaled, zindex}, sampler, {glyph->uv_end.x, glyph->uv_start.y}};
+            vertices[idx++] = {{offset_x, offset_y, zindex}, sampler, {glyph->uv_start.x, glyph->uv_end.y}};
             ASSERT_STRICT(
                 fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32
                 || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32
@@ -455,19 +460,17 @@ v3_int32 vertex_text_create(
                 || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32
             );
 
-            if (glyph->vertex_count > 3) {
-                vertices[idx++] = {{offset_x + glyph_vertices[1].pos.x * scale, offset_y + glyph_vertices[1].pos.y * scale, zindex}, sampler, glyph_vertices[1].uv};
-                vertices[idx++] = {{offset_x + glyph_vertices[3].pos.x * scale, offset_y + glyph_vertices[3].pos.y * scale, zindex}, sampler, glyph_vertices[3].uv};
-                vertices[idx++] = {{offset_x + glyph_vertices[2].pos.x * scale, offset_y + glyph_vertices[2].pos.y * scale, zindex}, sampler, glyph_vertices[2].uv};
-                ASSERT_STRICT(
-                    fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32
-                    || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32
-                );
-                ASSERT_STRICT(
-                    fabsf(vertices[idx - 3].position.y - vertices[idx - 2].position.y) > OMS_EPSILON_F32
-                    || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32
-                );
-            }
+            vertices[idx++] = {{x_end_scaled, y_end_scaled, zindex}, sampler, {glyph->uv_end.x, glyph->uv_start.y}};
+            vertices[idx++] = {{x_end_scaled, offset_y, zindex}, sampler, glyph->uv_end};
+            vertices[idx++] = {{offset_x, offset_y, zindex}, sampler, {glyph->uv_start.x, glyph->uv_end.y}};
+            ASSERT_STRICT(
+                fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32
+                || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32
+            );
+            ASSERT_STRICT(
+                fabsf(vertices[idx - 3].position.y - vertices[idx - 2].position.y) > OMS_EPSILON_F32
+                || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32
+            );
         }
 
         const f32 add_offset = (metrics->width + metrics->advance_x) * scale;
@@ -503,7 +506,7 @@ v3_int32 vertex_text_create(
 
     // We use offsets instead of pointer chasing
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* const glyphs = (int16*) ring_memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
+    int16* const glyphs = (int16*) memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
     for (int32 i = 0; i < length; ++i) {
         const int32 character = text[i];
         if (character == '\n') {
@@ -574,7 +577,7 @@ v3_int32 vertex_text_create(
 
     // We use offsets instead of pointer chasing
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* const glyphs = (int16*) ring_memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
+    int16* const glyphs = (int16*) memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
     for (int32 i = 0; i < length; ++i) {
         const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {

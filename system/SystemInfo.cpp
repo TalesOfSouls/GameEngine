@@ -114,7 +114,7 @@ void system_info_get(SystemInfo* const info) NO_EXCEPT
     info->language = system_language_code();
     info->country = system_country_code();
 
-    wchar_t path[MAX_PATH];
+    wchar_t path[PATH_MAX_LENGTH];
     self_path(path);
 
     // @bug only works on windows

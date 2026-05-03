@@ -15,11 +15,11 @@ static void test_buffer_alloc() {
     TEST_EQUALS(mem.memory, NULL);
 }
 
-static void test_buffer_memory_get() {
+static void test_memory_get() {
     BufferMemory mem = {0};
     buffer_alloc(&mem, 50, 50);
 
-    TEST_EQUALS(buffer_memory_get(&mem, 20), mem.memory);
+    TEST_EQUALS(memory_get(&mem, 20), mem.memory);
     TEST_EQUALS(mem.head, mem.memory + 24);
 
     buffer_free(&mem);
@@ -29,7 +29,7 @@ static void test_buffer_reset() {
     BufferMemory mem = {0};
     buffer_alloc(&mem, 50, 50);
 
-    buffer_memory_get(&mem, 20);
+    memory_get(&mem, 20);
     TEST_NOT_EQUALS(mem.head, mem.memory);
 
     buffer_reset(&mem);

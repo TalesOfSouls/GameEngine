@@ -11,7 +11,7 @@
 #define COMS_APP_COMMAND_AUDIO_CONSUMER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemoryT.h"
+#include "../memory/ChunkMemoryT.cpp"
 #include "../memory/RingMemory.cpp"
 #include "../memory/QueueT.cpp"
 #include "../audio/AudioMixer.cpp"

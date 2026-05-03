@@ -11,7 +11,7 @@
 #define COMS_COMMAND_BUFFER_GENERAL_PRODUCER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemoryT.h"
+#include "../memory/ChunkMemoryT.cpp"
 #include "../memory/QueueT.cpp"
 #include "../thread/ThreadDefines.h"
 #include "AppCommand.h"

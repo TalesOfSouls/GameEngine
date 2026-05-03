@@ -12,7 +12,7 @@
 
 #include "HashMap.cpp"
 #include "HashMapT.h"
-#include "../memory/ChunkMemoryT.h"
+#include "../memory/ChunkMemoryT.cpp"
 
 template <typename T>
 FORCE_INLINE

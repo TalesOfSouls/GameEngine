@@ -12,7 +12,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "Asset.h"
-#include "../memory/ChunkMemory.h"
+#include "../memory/ChunkMemory.cpp"
 #include "../utils/BitUtils.h"
 #include "../stdlib/HashMap.cpp"
 #include "../log/DebugMemory.h"
@@ -26,7 +26,7 @@ void ams_create(AssetManagementSystem* const ams, BufferMemory* const buf, int32
     LOG_1("[INFO] Create AMS for %n assets", {DATA_TYPE_INT32, &count});
     hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
     ams->asset_component_count = asset_component_count;
-    ams->asset_components = (AssetComponent *) buffer_memory_get(buf, asset_component_count * sizeof(AssetComponent), alignof(AssetComponent));
+    ams->asset_components = (AssetComponent *) memory_get(buf, asset_component_count * sizeof(AssetComponent), alignof(AssetComponent));
 
     //memset(ams->asset_components, 0, asset_component_count * sizeof(AssetComponent));
     memset(ams->asset_components, 0, align_up(asset_component_count * sizeof(AssetComponent), alignof(AssetComponent)));

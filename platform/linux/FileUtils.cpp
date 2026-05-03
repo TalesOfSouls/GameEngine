@@ -23,6 +23,7 @@
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../../memory/RingMemory.cpp"
+#include "../../memory/BufferMemory.cpp"
 #include "../../log/PerformanceProfiler.h"
 
 #ifndef PATH_MAX_LENGTH
@@ -226,11 +227,12 @@ bool file_copy(const char* __restrict src, const char* __restrict dst) {
     return success;
 }
 
+template <typename T>
 inline
 void file_read(
     const char* __restrict path,
     FileBody* __restrict file,
-    RingMemory* const __restrict ring = NULL
+    T* const __restrict mem = NULL
 ) {
     PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
@@ -271,8 +273,8 @@ void file_read(
         file->size = file_stat.st_size;
     }
 
-    if (ring != NULL) {
-        file->content = ring_memory_get(ring, file->size + 1);
+    if (mem != NULL) {
+        file->content = memory_get(mem, file->size + 1);
     }
 
     ssize_t bytes_read = read(fp, file->content, file->size);

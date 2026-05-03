@@ -11,7 +11,7 @@ static void test_qoi() {
     int h;
     int n;
 
-    char path[MAX_PATH];
+    char path[PATH_MAX_LENGTH];
     relative_to_absolute("./../../cOMS/tests/image/test_src.png", path);
 
     unsigned char* data = stbi_load(path, &w, &h, &n, 4);

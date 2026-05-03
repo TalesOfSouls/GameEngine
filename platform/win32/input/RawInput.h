@@ -66,7 +66,7 @@ uint32 rawinput_kbm_init(
         return 0;
     }
 
-    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_memory_get(
+    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) memory_get(
         ring,
         sizeof(RAWINPUTDEVICELIST) * device_count,
         alignof(RAWINPUTDEVICELIST)
@@ -232,7 +232,7 @@ uint32 rawinput_init_controllers(
         return 0;
     }
 
-    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_memory_get(
+    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) memory_get(
         ring,
         sizeof(RAWINPUTDEVICELIST) * device_count,
         alignof(RAWINPUTDEVICELIST)
@@ -528,7 +528,7 @@ void input_raw_handle(
 
     // @todo pull out, we only need to register this memory once
     //      Maybe even put it into the general memory pool
-    LPBYTE lpb = (BYTE *) ring_memory_get(ring, db_size * sizeof(BYTE), sizeof(size_t));
+    LPBYTE lpb = (BYTE *) memory_get(ring, db_size * sizeof(BYTE), sizeof(size_t));
     uint32 size = GetRawInputData((HRAWINPUT) lParam, RID_INPUT, lpb, &db_size, sizeof(RAWINPUTHEADER));
 
     if (db_size != size) {
@@ -555,7 +555,7 @@ int16 input_raw_handle_buffered(
     // Max input messages (e.g. 16)
     cb_size *= max_inputs;
 
-    PRAWINPUT raw_input = (PRAWINPUT) ring_memory_get(ring, cb_size, sizeof(size_t));
+    PRAWINPUT raw_input = (PRAWINPUT) memory_get(ring, cb_size, sizeof(size_t));
 
     int16 input_count = 0;
 
