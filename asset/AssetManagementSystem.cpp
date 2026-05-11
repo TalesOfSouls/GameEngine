@@ -427,7 +427,11 @@ Asset* ams_reserve_asset(AssetManagementSystem* const ams, byte type, const char
 }
 
 inline
-Asset* thrd_ams_reserve_asset(AssetManagementSystem* const ams, byte type, const char* name, uint32 size, uint32 overhead = 0) NO_EXCEPT
+Asset* thrd_ams_reserve_asset(
+    AssetManagementSystem* const ams,
+    byte type, const char* name,
+    uint32 size, uint32 overhead = 0
+) NO_EXCEPT
 {
     AssetComponent* const ac = &ams->asset_components[type];
     const uint16 elements = ams_calculate_chunks(ac, size, overhead);

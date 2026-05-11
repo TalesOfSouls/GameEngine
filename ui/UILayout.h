@@ -62,19 +62,6 @@ struct UILayout {
     // @todo Should be a perfect hash map
     HashMap hash_map;
 
-    // UI data
-    // Only the size of the fixed layout, doesn't include the theme specific data
-    // This is needed to know where we can add theme specific data into the data memory area
-    uint32 layout_size;
-
-    // Total used size (hard limited to 4 GB)
-    // Most likely the theme has some additional free data available
-    // This is because we might want to dynamically grow the theme
-    uint32 data_size;
-
-    // This is how much we actually use in the theme
-    uint32 used_data_size;
-
     // Holds the ui elements
     // The structure of the data is as follows:
     //      1. HashMap data (points to 2.a.)
@@ -89,50 +76,29 @@ struct UILayout {
     // WARNING: This memory is shared between different layouts
     //      1. When we load a new layout we assign a temp memory buffer to this pointer
     //      2. Once we are ready to switch the scene we copy the temporary memory into this data pointer
+    uint32 data_size;
     byte* data; // Owner of the actual data
 
     // @todo replace bools with bit field
     //      Or completely remove because we have gpu_updated which defines the state per widget
     //      At that point we also no longer differentiate between static and dynamic content
 
-    // Changes on a as needed basis
-    uint32 vertex_count_static;
-    bool static_content_changed;
-
-    // Changes every frame
-    uint32 vertex_count_dynamic;
-    bool dynamic_content_changed;
-
     // Contains both static and dynamic content
     // @todo The vertices shouldn't be an Asset, it's more like a ECS, maybe it's not even in RAM and only in VRAM?!
     // One of the reasons for this being an asset is also that it is easy to log ram/vram usage but that can be fixed
     Asset* ui_asset;
 
-    // Total count of the ui_asset vertices
-    uint32 vertex_count_max;
-
     // @question Should we maybe also hold the font atlas asset here?
 
-    // Cache for elements to be used for rendering
-    // This is very similar to the currently rendered UI output but may have some empty space between elements
-    // The reason for this is that some elements may need different vertex counts for different states (e.g. input field)
-    // WARNING: This memory is shared between different layouts
-    uint32 active_vertex_count;
-
-    // Currently this is a separate memory area than the data above
-    // @question Do we want to make this part of the data above?
-    Vertex3DSamplerTextureColor* vertices_active;
-
-    // Used during the initialization so that every element knows where we currently are during the setup process
-    uint32 active_vertex_offset;
-
     // Bitfield array defining which ui widgets are visible
+    // @performance is this still used?
     uint64 visible[5];
 
     // Bitfield array defining where the data is already stored on the gpu
     // Assuming a triple buffer = 3 bits per widget define where it lives
     // This information then can be used to check if it still needs to be updated
     // in the respective gpu buffer
+    // @performance is this still used?
     uint64 gpu_updated[15];
 
     // Testing
@@ -157,6 +123,7 @@ struct UILayout {
     //int32 ui_vertex_cache_pos;
     //Vertex3DSamplerTextureColor* ui_vertex_cache;
     ArrayVector<Vertex3DSamplerTextureColor> ui_vertex_cache;
+    ArrayVector<int32> ui_index_cache;
 };
 
 #endif

@@ -35,6 +35,7 @@ void array_vector_free(ArrayVector<T>* vec) NO_EXCEPT
 {
     platform_aligned_free(&vec->elements);
     vec->capacity = 0;
+    vec->max_capacity = 0;
 }
 
 template<typename T>
@@ -42,7 +43,8 @@ FORCE_INLINE
 void array_vector_init(ArrayVector<T>* vec, BufferMemory* buf, int capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
     vec->capacity = capacity;
-    vec->elements = (T *) memory_get(buf, capacity, alignment);
+    vec->max_capacity = capacity;
+    vec->elements = (T *) memory_get(buf, capacity * sizeof(T), alignment);
 }
 
 template<typename T>

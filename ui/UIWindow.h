@@ -343,13 +343,11 @@ const UIOffset* ui_parent_offset_by_type(const UIOffset* base, int32 type) NO_EX
     return base;
 }
 
-int32 cache_vertices(
+void cache_vertices(
     UILabelOffset* offset_data,
     UILayout* const layout, f32 zindex,
     RingMemory* const __restrict ring
 ) {
-    int32 idx = layout->ui_vertex_cache.count;
-
     FontSystem* const font = layout->font;
     UILabel* label = (UILabel*) (layout->ui_element_buffer.memory + offset_data->self.element);
 
@@ -358,17 +356,11 @@ int32 cache_vertices(
     const f32 font_size = 11.0f / font->base.size;
 
     v3_int32 text_dim = vertex_text_create(
-        layout->ui_vertex_cache.elements + idx, zindex, 1,
+        &layout->ui_vertex_cache, &layout->ui_index_cache, zindex, 1,
         {window->dimension.pos.x, window->dimension.pos.y - font->base.line_height * font_size, 0.0f, 0.0f}, UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM,
         font, label->content, 11.0f, 0xFFFFFFFF,
         ring
     );
-
-    layout->ui_vertex_cache.count += text_dim.z;
-
-    idx += text_dim.z;
-
-    return idx;
 }
 
 void cache_border_vertices(
@@ -805,13 +797,11 @@ void cache_border_vertices(
     }
 }
 
-int32 cache_vertices(
+void cache_vertices(
     UIWindowTitleOffset* offset_data, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
     RingMemory* const __restrict ring
 ) {
-    int32 vertex_count = 0;
-
     const UIOffset* parent = ui_parent_offset_by_type(&offset_data->self, 1);
     UIWindow* window = (UIWindow *) (layout->ui_element_buffer.memory + parent->element);
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
@@ -875,8 +865,6 @@ int32 cache_vertices(
 
         zindex = camera_step_closer(gpu_api_type, zindex);
         title_dim.height = title_panel->dimension.dimension.height;
-
-        vertex_count += 6;
     }
 
     cache_border_vertices(
@@ -887,23 +875,19 @@ int32 cache_vertices(
 
     // @question Do I also need to check for empty text here?
     if (offset_data->label.self.element) {
-        vertex_count += cache_vertices(
+        cache_vertices(
             &offset_data->label,
             layout, camera_step_closer(gpu_api_type, zindex),
             ring
         );
     }
-
-    return vertex_count;
 }
 
-int32 cache_vertices(
+void cache_vertices(
     UIWindowOffset* offset_data, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
     RingMemory* const __restrict ring
 ) NO_EXCEPT {
-    int32 vertex_count = 0;
-
     UIWindow* window = (UIWindow*) (layout->ui_element_buffer.memory + offset_data->self.element);
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
 
@@ -960,8 +944,6 @@ int32 cache_vertices(
                 zindex
             }, -1, color
         });
-
-        vertex_count += 6;
     }
 
     /*
@@ -984,7 +966,7 @@ int32 cache_vertices(
     */
 
     if (offset_data->title.self.element) {
-        vertex_count += cache_vertices(
+        cache_vertices(
             &offset_data->title, gpu_api_type,
             layout, camera_step_closer(gpu_api_type, zindex),
             ring
@@ -992,8 +974,6 @@ int32 cache_vertices(
     }
 
     // @todo cache window buttons
-
-    return vertex_count;
 }
 
 void ui_cache(

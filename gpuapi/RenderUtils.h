@@ -15,12 +15,13 @@
 #include "../font/Font.cpp"
 #include "../font/FontSystem.h"
 #include "../memory/RingMemory.cpp"
+#include "../stdlib/ArrayVector.h"
 #include "../object/Vertex.h"
 #include "../ui/UIAlignment.h"
 
 FORCE_INLINE
-int32 vertex_degenerate_create(
-    Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex,
+void vertex_degenerate_create(
+    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, f32 zindex,
     f32 x, f32 y
 ) NO_EXCEPT
 {
@@ -28,10 +29,8 @@ int32 vertex_degenerate_create(
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
     //          The easiest way is to just define a "degenerate" starting point
-    vertices[0] = {{vertices[-1].position.x, vertices[-1].position.y, zindex}, -1, {}};
-    vertices[1] = {{x, y, zindex}, -1, {}};
-
-    return 2;
+    array_vector_insert(vertices, {{vertices->elements[vertices->count - 1].position.x, vertices->elements[vertices->count - 1].position.y, zindex}, -1, {}});
+    array_vector_insert(vertices, {{x, y, zindex}, -1, {}});
 }
 
 static inline
@@ -74,8 +73,8 @@ void adjust_aligned_position(
 }
 
 inline
-int32 vertex_line_create(
-    Vertex3DSamplerTextureColor* const vertices, f32 zindex,
+void vertex_line_create(
+    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex,
     v2_f32 start, v2_f32 end, f32 thickness,
     uint32 rgba = 0
 ) NO_EXCEPT
@@ -102,38 +101,23 @@ int32 vertex_line_create(
     const v2_f32 v2 = { end.x   - hx, end.y   - hy };
     const v2_f32 v3 = { end.x   + hx, end.y   + hy };
 
-    int32 idx = 0;
+    array_vector_insert(indices, vertices->count);
+    array_vector_insert(indices, vertices->count + 1);
+    array_vector_insert(indices, vertices->count + 3);
 
-    vertices[idx++] = {{v0.x, v0.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    ASSERT_STRICT(
-        fabsf(vertices[0].position.x - vertices[1].position.x) > OMS_EPSILON_F32
-        || fabsf(vertices[0].position.x - vertices[2].position.x) > OMS_EPSILON_F32
-    );
-    ASSERT_STRICT(
-        fabsf(vertices[0].position.y - vertices[1].position.y) > OMS_EPSILON_F32
-        || fabsf(vertices[0].position.y - vertices[2].position.y) > OMS_EPSILON_F32
-    );
+    array_vector_insert(indices, vertices->count + 1);
+    array_vector_insert(indices, vertices->count + 2);
+    array_vector_insert(indices, vertices->count + 3);
 
-    vertices[idx++] = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
-    ASSERT_STRICT(
-        fabsf(vertices[0].position.x - vertices[1].position.x) > OMS_EPSILON_F32
-        || fabsf(vertices[0].position.x - vertices[2].position.x) > OMS_EPSILON_F32
-    );
-    ASSERT_STRICT(
-        fabsf(vertices[0].position.y - vertices[1].position.y) > OMS_EPSILON_F32
-        || fabsf(vertices[0].position.y - vertices[2].position.y) > OMS_EPSILON_F32
-    );
-
-    return idx;
+    array_vector_insert(vertices, {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}); // tl
+    array_vector_insert(vertices, {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}); // tr
+    array_vector_insert(vertices, {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}); // br
+    array_vector_insert(vertices, {{v0.x, v0.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}); // bl
 }
 
 inline HOT_CODE
-int32 vertex_rect_create(
-    Vertex3DSamplerTextureColor* const vertices, f32 zindex, int32 sampler,
+void vertex_rect_create(
+    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     uint32 rgba = 0, v2_f32 tex1 = {}, v2_f32 tex2 = {}
 ) NO_EXCEPT
@@ -153,22 +137,24 @@ int32 vertex_rect_create(
 
     const f32 y_height = dimension.y + dimension.height;
     const f32 x_width = dimension.x + dimension.width;
-    int32 idx = 0;
 
-    vertices[idx++] = {{dimension.x, dimension.y, zindex}, sampler, tex1};
-    vertices[idx++] = {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}};
-    vertices[idx++] = {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}};
+    array_vector_insert(indices, vertices->count);
+    array_vector_insert(indices, vertices->count + 1);
+    array_vector_insert(indices, vertices->count + 3);
 
-    vertices[idx++] = {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}};
-    vertices[idx++] = {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}};
-    vertices[idx++] = {{x_width, y_height, zindex}, sampler, tex2};
+    array_vector_insert(indices, vertices->count + 1);
+    array_vector_insert(indices, vertices->count + 2);
+    array_vector_insert(indices, vertices->count + 3);
 
-    return idx;
+    array_vector_insert(vertices, {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}}); // tl
+    array_vector_insert(vertices, {{x_width, y_height, zindex}, sampler, tex2}); // tr
+    array_vector_insert(vertices, {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}}); // br
+    array_vector_insert(vertices, {{dimension.x, dimension.y, zindex}, sampler, tex1}); // bl
 }
 
 inline
-int32 vertex_circle_create(
-    Vertex3DSamplerTextureColor* const vertices,
+void vertex_circle_create(
+    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices,
     f32 zindex, int32 sampler,
     v4_f32 dimension,
     byte alignment,
@@ -194,9 +180,10 @@ int32 vertex_circle_create(
     const f32 rx = dimension.width * 0.5f;
     const f32 ry = dimension.height * 0.5f;
 
-    int32 idx = 0;
-
     // Generate a triangle fan: center + pairs of edge vertices
+
+    int32 center_index = vertices->count;
+    array_vector_insert(vertices, {{cx, cy, zindex}, sampler, tex_center});
 
     // @performance For sure this is vectorizable (SIMD)
     for (int i = 0; i < segments; ++i) {
@@ -213,18 +200,20 @@ int32 vertex_circle_create(
         const f32 x1 = cx + c * rx;
         const f32 y1 = cy + s * ry;
 
-        // center
-        vertices[idx++] = {{cx, cy, zindex}, sampler, tex_center};
-        vertices[idx++] = {{x0, y0, zindex}, sampler, tex_edge};
-        vertices[idx++] = {{x1, y1, zindex}, sampler, tex_edge};
-    }
+        array_vector_insert(indices, center_index);
+        array_vector_insert(indices, vertices->count);
+        array_vector_insert(indices, vertices->count + 1);
 
-    return idx;
+        // @performance Isn't one of the points on the circle arcs a duplicate same as the center
+        //              We fixed it for the center but not for the previous circle arc point
+        array_vector_insert(vertices, {{x0, y0, zindex}, sampler, tex_edge});
+        array_vector_insert(vertices, {{x1, y1, zindex}, sampler, tex_edge});
+    }
 }
 
 inline
-int32 vertex_arc_create(
-    Vertex3DSamplerTextureColor* const vertices,
+void vertex_arc_create(
+    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices,
     f32 zindex, int32 sampler,
     v4_f32 dimension,
     byte alignment,
@@ -252,7 +241,8 @@ int32 vertex_arc_create(
     const f32 rx = dimension.width * 0.5f;
     const f32 ry = dimension.height * 0.5f;
 
-    int32 idx = 0;
+    int32 center_index = vertices->count;
+    array_vector_insert(vertices, {{cx, cy, zindex}, sampler, tex_center});
 
     // Generate a triangle fan over the arc
     for (int32 i = 0; i < segments; ++i) {
@@ -269,12 +259,15 @@ int32 vertex_arc_create(
         const f32 x1 = cx + c * rx;
         const f32 y1 = cy + s * ry;
 
-        vertices[idx++] = {{cx, cy, zindex}, sampler, tex_center};
-        vertices[idx++] = {{x0, y0, zindex}, sampler, tex_edge};
-        vertices[idx++] = {{x1, y1, zindex}, sampler, tex_edge};
-    }
+        array_vector_insert(indices, center_index);
+        array_vector_insert(indices, vertices->count);
+        array_vector_insert(indices, vertices->count + 1);
 
-    return idx;
+        // @performance Isn't one of the points on the circle arcs a duplicate same as the center
+        //              We fixed it for the center but not for the previous circle arc point
+        array_vector_insert(vertices, {{x0, y0, zindex}, sampler, tex_edge});
+        array_vector_insert(vertices, {{x1, y1, zindex}, sampler, tex_edge});
+    }
 }
 
 static
@@ -377,7 +370,7 @@ f32 text_calculate_dimensions_height(
 
 static HOT_CODE
 v3_int32 vertex_text_create(
-    Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length,
     f32 size, MAYBE_UNUSED uint32 rgba
@@ -448,29 +441,18 @@ v3_int32 vertex_text_create(
             const f32 x_end_scaled = offset_x + metrics->width * scale;
             const f32 y_end_scaled = offset_y + metrics->height * scale;
 
-            vertices[idx++] = {{offset_x, y_end_scaled, zindex}, sampler, glyph->uv_start};
-            vertices[idx++] = {{x_end_scaled, y_end_scaled, zindex}, sampler, {glyph->uv_end.x, glyph->uv_start.y}};
-            vertices[idx++] = {{offset_x, offset_y, zindex}, sampler, {glyph->uv_start.x, glyph->uv_end.y}};
-            ASSERT_STRICT(
-                fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32
-                || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32
-            );
-            ASSERT_STRICT(
-                fabsf(vertices[idx - 3].position.y - vertices[idx - 2].position.y) > OMS_EPSILON_F32
-                || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32
-            );
+            array_vector_insert(indices, vertices->count);
+            array_vector_insert(indices, vertices->count + 1);
+            array_vector_insert(indices, vertices->count + 3);
 
-            vertices[idx++] = {{x_end_scaled, y_end_scaled, zindex}, sampler, {glyph->uv_end.x, glyph->uv_start.y}};
-            vertices[idx++] = {{x_end_scaled, offset_y, zindex}, sampler, glyph->uv_end};
-            vertices[idx++] = {{offset_x, offset_y, zindex}, sampler, {glyph->uv_start.x, glyph->uv_end.y}};
-            ASSERT_STRICT(
-                fabsf(vertices[idx - 3].position.x - vertices[idx - 2].position.x) > OMS_EPSILON_F32
-                || fabsf(vertices[idx - 3].position.x - vertices[idx - 1].position.x) > OMS_EPSILON_F32
-            );
-            ASSERT_STRICT(
-                fabsf(vertices[idx - 3].position.y - vertices[idx - 2].position.y) > OMS_EPSILON_F32
-                || fabsf(vertices[idx - 3].position.y - vertices[idx - 1].position.y) > OMS_EPSILON_F32
-            );
+            array_vector_insert(indices, vertices->count + 1);
+            array_vector_insert(indices, vertices->count + 2);
+            array_vector_insert(indices, vertices->count + 3);
+
+            array_vector_insert(vertices, {{offset_x, y_end_scaled, zindex}, sampler, glyph->uv_start}); // tl
+            array_vector_insert(vertices, {{x_end_scaled, y_end_scaled, zindex}, sampler, {glyph->uv_end.x, glyph->uv_start.y}}); // tr
+            array_vector_insert(vertices, {{x_end_scaled, offset_y, zindex}, sampler, glyph->uv_end}); // br
+            array_vector_insert(vertices, {{offset_x, offset_y, zindex}, sampler, {glyph->uv_start.x, glyph->uv_end.y}}); // bl
         }
 
         const f32 add_offset = (metrics->width + metrics->advance_x) * scale;
@@ -490,7 +472,7 @@ v3_int32 vertex_text_create(
 // @todo It is stupid that we effectively have the same function twice and the only difference is how we calculate int32 character
 HOT_CODE
 v3_int32 vertex_text_create(
-    Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
     const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const wchar_t* const __restrict text,
     f32 size, MAYBE_UNUSED uint32 rgba, RingMemory* const __restrict ring
@@ -550,7 +532,7 @@ v3_int32 vertex_text_create(
     }
 
     return vertex_text_create(
-        vertices, zindex, sampler,
+        vertices, indices, zindex, sampler,
         dimension, alignment,
         font, glyphs, (int32) length,
         size, rgba
@@ -559,7 +541,7 @@ v3_int32 vertex_text_create(
 
 HOT_CODE
 v3_int32 vertex_text_create(
-    Vertex3DSamplerTextureColor* const __restrict vertices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
     const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const char* const __restrict text,
     f32 size, MAYBE_UNUSED uint32 rgba, RingMemory* const __restrict ring
@@ -621,7 +603,7 @@ v3_int32 vertex_text_create(
     }
 
     return vertex_text_create(
-        vertices, zindex, sampler,
+        vertices, indices, zindex, sampler,
         dimension, alignment,
         font, glyphs, length,
         size, rgba

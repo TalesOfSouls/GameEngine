@@ -293,10 +293,7 @@ void layout_from_file_txt(
         root_children[child++] = (uint32) ((HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name))->value;
     }
 
-    layout->layout_size = (uint32) (element_data - layout->data);
-
-    // They are the same until we add theme specific information
-    layout->used_data_size = layout->layout_size;
+    layout->data_size = (uint32) (element_data - layout->data);
 }
 
 static
@@ -460,7 +457,7 @@ int32 layout_to_data(
     byte* out = data;
 
     out = write_le(out, UI_LAYOUT_VERSION);
-    out = write_le(out, layout->layout_size);
+    out = write_le(out, layout->data_size);
 
     // We don't save the used_data_size because that depends on the respective theme
 
@@ -563,7 +560,7 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
     // Some of the content belongs directly after the element but some of it belongs at very specific offsets
     // The reason for that is that the offsets are stored e.g. in element->state
     // The memory is fragmented since a lot of the information is split up in different files (layout file and theme file)
-    // Therefor, we cannot create a nice memory layout when loading a layout+theme
+    // Therefore, we cannot create a nice memory layout when loading a layout+theme
     //
     // @question Can we optimize the memory layout to a less fragmented version?
     //      One solution could be to combine layout file and theme file. In that case we always know the correct element count
@@ -633,9 +630,7 @@ int32 layout_from_data(
 
     int32 version;
     in = read_le(in, &version);
-    in = read_le(in, &layout->layout_size);
-
-    layout->used_data_size = layout->layout_size;
+    in = read_le(in, &layout->data_size);
 
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
@@ -659,7 +654,7 @@ int32 layout_from_data(
 
     LOG_1("[INFO] Loaded layout");
 
-    return (int32) layout->layout_size;
+    return (int32) layout->data_size;
 }
 
 // @performance Implement a way to only load a specific element and all its children
@@ -680,9 +675,9 @@ void layout_from_theme(
 
     // Current position where we can add the different sub elements (e.g. :hover, :active, ...)
     // We make sure that the offset is a multiple of 8 bytes for better alignment
-    uint32 dynamic_pos = align_up(layout->layout_size, 8);
+    uint32 dynamic_pos = align_up(layout->data_size, 8);
 
-    // @bug Don't we have to overwrite the layout->data after layout_size to 0, to avoid bugs?
+    // @bug Don't we have to overwrite the layout->data after data_size to 0, to avoid bugs?
     // This could be especially true when loading another theme
 
     // We first need to handle the default element -> iterate all elements but only handle the default style
@@ -816,9 +811,6 @@ void layout_from_theme(
             } break;
         }
     } chunk_iterate_end;
-
-    // @bug I think this is wrong, I think we are missing some dynamic data ()
-    layout->used_data_size = layout->layout_size + dynamic_pos;
 }
 
 void ui_layout_update(UILayout* layout, UIElement* element) {
@@ -931,11 +923,11 @@ uint32 ui_layout_render_dfs(
     if (element->vertex_count_active && element->category == category) {
         memcpy(
             vertices,
-            layout->vertices_active + element->vertices_active_offset,
-            sizeof(*vertices) * element->vertex_count_active
+            layout->ui_vertex_cache.elements,
+            sizeof(*vertices) * layout->ui_vertex_cache.count
         );
-        vertices += element->vertex_count_active;
-        vertex_count += element->vertex_count_active;
+        vertices += layout->ui_vertex_cache.count;
+        vertex_count += layout->ui_vertex_cache.count;
     }
 
     if (element->children_count) {
@@ -987,12 +979,12 @@ uint32 ui_layout_update_render_dfs(
 
         memcpy(
             vertices,
-            layout->vertices_active + element->vertices_active_offset,
-            sizeof(*vertices) * element->vertex_count_active
+            layout->ui_vertex_cache.elements,
+            sizeof(*vertices) * layout->ui_vertex_cache.count
         );
 
-        vertices += element->vertex_count_active;
-        vertex_count += element->vertex_count_active;
+        vertices += layout->ui_vertex_cache.count;
+        vertex_count += layout->ui_vertex_cache.count;
     }
 
     if (element->children_count) {

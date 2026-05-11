@@ -23,6 +23,16 @@
 #include "Opengl.h"
 #include "PersistentGpuBuffer.h"
 
+void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, const GLchar* message, const void*)
+{
+    if (severity < GL_DEBUG_SEVERITY_LOW) {
+        return;
+    }
+
+    LOG_1(message);
+    ASSERT_THROW();
+}
+
 #if defined(DEBUG) && DEBUG
     void gpuapi_error()
     {
@@ -33,7 +43,7 @@
                     LOG_1("[ERROR] Opengl invalid enumeration parameter");
                     break;
                 }
-                case GL_INVALID_VALUE: {
+                case GL_INVALID_VALUE: { // 1281
                     LOG_1("[ERROR] Opengl invalid parameter");
                     break;
                 }
@@ -66,19 +76,22 @@
     }
 
     #define ASSERT_GPU_API() gpuapi_error()
+    #define ENABLE_DEBUG_GPU_API() { \
+        glEnable(GL_DEBUG_OUTPUT); \
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); \
+        glDebugMessageCallback(opengl_debug_callback, NULL); \
+    }
+    #define LABEL_GPU_API(ref, type, name) glObjectLabel(type, ref, -1, name)
+    #define LABEL_PTR_GPU_API(ref, name) glObjectPtrLabel(ref, -1, name)
+    #define MARKER_GPU_API(name) glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, name)
+    #define MARKER_GPU_API_END() glPopDebugGroup()
 #else
     #define ASSERT_GPU_API() ((void) 0)
+    #define ENABLE_DEBUG_GPU_API() ((void) 0)
+    #define LABEL_GPU_API() ((void) 0)
+    #define LABEL_PTR_GPU_API() ((void) 0)
 #endif
 
-void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, const GLchar* message, const void*)
-{
-    if (severity < GL_DEBUG_SEVERITY_LOW) {
-        return;
-    }
-
-    LOG_1(message);
-    ASSERT_THROW();
-}
 
 FORCE_INLINE
 GpuFence gpuapi_fence_create() NO_EXCEPT

@@ -621,6 +621,18 @@ static type_glVertexAttribFormat* glVertexAttribFormat;
 typedef void WINAPI type_glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset);
 static type_glVertexAttribIFormat* glVertexAttribIFormat;
 
+typedef void WINAPI type_glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar* label);
+static type_glObjectLabel* glObjectLabel;
+
+typedef void WINAPI type_glObjectPtrLabel(void* identifier, GLsizei length, const GLchar* label);
+static type_glObjectPtrLabel* glObjectPtrLabel;
+
+typedef void WINAPI type_glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar * message);
+static type_glPushDebugGroup* glPushDebugGroup;
+
+typedef void WINAPI type_glPopDebugGroup();
+static type_glPopDebugGroup* glPopDebugGroup;
+
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
 #define WGL_CONTEXT_LAYER_PLANE_ARB 0x2093
@@ -691,7 +703,7 @@ void set_pixel_format(HDC const hdc, int32 multisampling = 0) NO_EXCEPT
             WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, GL_TRUE,
             multisampling > 0 ? WGL_SAMPLE_BUFFERS_ARB : 0, (int32) (multisampling > 0),
             WGL_SAMPLES_ARB, multisampling, // MSAA
-            0,
+            0, // This signals the end of the attr_list
         };
 
         wglChoosePixelFormatARB(hdc, attr_list, 0, 1, &suggested_pixel_format_idx, &extended_pick);
@@ -907,6 +919,10 @@ void opengl_init_gl() NO_EXCEPT
     glDebugMessageCallback = (type_glDebugMessageCallback *) wglGetProcAddress("glDebugMessageCallback");
     glVertexAttribFormat = (type_glVertexAttribFormat *) wglGetProcAddress("glVertexAttribFormat");
     glVertexAttribIFormat = (type_glVertexAttribIFormat *) wglGetProcAddress("glVertexAttribIFormat");
+    glObjectLabel = (type_glObjectLabel *) wglGetProcAddress("glObjectLabel");
+    glObjectPtrLabel = (type_glObjectPtrLabel *) wglGetProcAddress("glObjectPtrLabel");
+    glPushDebugGroup = (type_glPushDebugGroup *) wglGetProcAddress("glPushDebugGroup");
+    glPopDebugGroup = (type_glPopDebugGroup *) wglGetProcAddress("glPopDebugGroup");
 
     // Bind optional functions/extensions
     CONSTEXPR const char* optional_nvidia_ext[] = {

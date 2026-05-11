@@ -34,10 +34,18 @@ struct Mesh {
     uint32 vertex_count; // can mean only position or combination of position, normal, tex, ...
     f32* vertices;
 
+    // Indices to create triangles
+    uint32 index_count; // can mean only position or combination of position, normal, tex, ...
+    uint32* indices;
+
     // @todo this only works if you have sub meshes e.g. one for body, one for hat, one for weapon etc.
     uint32 vertex_ref;
     uint32 vao;
+
+    // used for vertex arrays
     uint32 vbo;
+
+    // used for index arrays
     uint32 ebo;
 
     uint32 material_count;

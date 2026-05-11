@@ -219,8 +219,8 @@ void asset_archive_load(
         + MEMBER_SIZEOF(AssetArchiveHeader, asset_count)
         + MEMBER_SIZEOF(AssetArchiveHeader, asset_dependency_count);
 
-    // Find header size
-    file.content = memory_get(ring, file.size, sizeof(size_t));
+    // Find header size (+ 1 to later store \0)
+    file.content = memory_get(ring, file.size + 1, sizeof(size_t));
     // @bug We only inlined this for easier debugging, revert once solved
     //file_read(archive->fd, &file, 0, file.size);
 
@@ -276,6 +276,8 @@ void asset_archive_load(
 
         tfile->content[bytes_read] = '\0';
         tfile->size = bytes_read;
+
+        ASSERT_TRUE(tfile->content[44] == '\0');
 
 
     file.size = asset_archive_header_size(archive, file.content);
