@@ -12,6 +12,11 @@
 
 #include "../stdlib/Stdlib.h"
 
+/**
+ * This is a dangerous memory system since we could easily run out of bounds
+ * The memory overflow needs to be entirely handled by the developer
+ */
+
 inline
 byte* memory_get(byte** data, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {

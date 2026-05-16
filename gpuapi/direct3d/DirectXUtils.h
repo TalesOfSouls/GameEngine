@@ -16,7 +16,6 @@
 #include <dxgi1_6.h>
 #include <d3dcommon.h>
 #include "../../../cOMS/log/Log.h"
-#include "../../../cOMS/memory/RingMemory.cpp"
 #include "../../../cOMS/object/Texture.h"
 #include "../../../cOMS/image/Image.cpp"
 // #include "../../../EngineDependencies/directx/d3d12.h"
@@ -319,8 +318,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
     ID3D12Resource** texture_resource,
     int32 descriptor_offset,
     ID3D12DescriptorHeap* srv_heap,
-    const Texture* texture,
-    RingMemory* const ring
+    const Texture* texture
 ) {
     DXGI_FORMAT texture_format = gpuapi_texture_format(texture->image.image_settings);
 
@@ -416,15 +414,15 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
         }
     };
 
-    uint32 number_of_resources = ARRAY_COUNT(texture_data);
+    const uint32 number_of_resources = ARRAY_COUNT(texture_data);
     uint32 first_subresource = 0;
     uint64 intermediate_offset = 0;
     uint64 required_size = 0;
-    uint64 mem_size = (uint64) (sizeof(D3D12_PLACED_SUBRESOURCE_FOOTPRINT) + sizeof(uint32) + sizeof(uint64)) * number_of_resources;
 
-    D3D12_PLACED_SUBRESOURCE_FOOTPRINT* layouts = (D3D12_PLACED_SUBRESOURCE_FOOTPRINT *) memory_get(ring, mem_size, ASSUMED_CACHE_LINE_SIZE);
-    uint64* row_size = (uint64 *) (layouts + number_of_resources);
-    uint32* row_num = (uint32 *) (row_size + number_of_resources);
+    ASSERT_TRUE_CONST(number_of_resources < 16);
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT layouts[16];
+    uint64 row_size[16];
+    uint32 row_num[16];
 
     device_temp->GetCopyableFootprints(&destination_info, first_subresource, number_of_resources, intermediate_offset, layouts, row_num, row_size, &required_size);
     device_temp->Release();

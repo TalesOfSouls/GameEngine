@@ -231,7 +231,7 @@ struct PerformanceThreadProfiler {
         this->start_cycle = intrin_timestamp_counter();
     }
 
-    HOT_CODE
+    HOT_CODE inline
     ~PerformanceThreadProfiler() NO_EXCEPT
     {
         if (!this->is_active) {

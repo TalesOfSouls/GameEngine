@@ -83,7 +83,7 @@ struct CmdLayoutBody {
 
     GpuApiType gpu_api_type;
 
-    RingMemory* ring;
+    ChunkMemory* mem;
 };
 
 // Another name for this concept is event queue and the command below is a generic event

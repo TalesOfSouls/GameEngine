@@ -3,7 +3,7 @@
 #define COMS_FONT_C
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/BufferMemory.h"
+#include "../memory/RingMemory.cpp"
 #include "../utils/Utils.h"
 #include "../utils/BitUtils.h"
 #include "../system/FileUtils.cpp"

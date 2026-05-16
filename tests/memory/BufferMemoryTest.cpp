@@ -1,5 +1,5 @@
 #include "../TestFramework.h"
-#include "../../memory/BufferMemory.h"
+#include "../../memory/BufferMemory.cpp"
 
 static void test_buffer_alloc() {
     BufferMemory mem = {0};

@@ -28,7 +28,7 @@ void* cmd_shader_load(AppCmdBuffer*, AppCommand*) NO_EXCEPT
 void* cmd_shader_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
+    ChunkMemory* const __restrict mem,
     Shader* const __restrict shader,
     const int32* __restrict shader_ids
 ) NO_EXCEPT
@@ -52,11 +52,12 @@ void* cmd_shader_load_sync(
         int_to_hex(shader_ids[i], asset_id);
         Asset* shader_asset = thrd_ams_get_asset_wait(ams, asset_id);
         if (!shader_asset) {
+            // @performance It would be faster to reserve like X-MB of data and pass a byte buffer instead of mem=ChunkMemory
             shader_asset = asset_archive_asset_load(
                 &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(shader_ids[i])],
                 shader_ids[i],
                 ams,
-                ring
+                mem
             );
         }
 

@@ -51,7 +51,8 @@ struct PoolWorker {
     ThreadPoolJobFunc callback;
 
     // Pointer to memory to be used by the thread worker
-    void* mem;
+    size_t mem_size;
+    byte* mem;
 };
 
 /**

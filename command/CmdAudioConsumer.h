@@ -12,7 +12,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemoryT.cpp"
-#include "../memory/RingMemory.cpp"
+#include "../memory/ChunkMemory.cpp"
 #include "../memory/QueueT.cpp"
 #include "../audio/AudioMixer.cpp"
 #include "../asset/Asset.h"
@@ -78,7 +78,7 @@ Asset* cmd_audio_play(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
     AudioMixer* const __restrict mixer,
-    RingMemory* const __restrict ring,
+    ChunkMemory* const __restrict mem,
     int32 asset_id
 ) NO_EXCEPT
 {
@@ -94,7 +94,7 @@ Asset* cmd_audio_play(
             &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
             asset_id,
             ams,
-            ring
+            mem
         );
     }
 

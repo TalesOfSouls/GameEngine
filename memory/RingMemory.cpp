@@ -11,7 +11,7 @@
 #define COMS__MEMORY_RING_MEMORY_C
 
 #include "../stdlib/Stdlib.h"
-#include "BufferMemory.h"
+#include "BufferMemory.cpp"
 #include "MemoryArena.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
@@ -279,6 +279,7 @@ byte* memory_get(RingMemory* const ring, size_t size, int32 alignment = sizeof(s
     ring->head += size;
 
     ASSERT_TRUE(offset);
+    STATS_MAX_PERSISTENT(DEBUG_COUNTER_RING_MAX_REQUEST, size);
 
     return offset;
 }

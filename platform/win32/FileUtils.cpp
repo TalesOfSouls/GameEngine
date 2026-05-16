@@ -18,7 +18,8 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../../memory/RingMemory.cpp"
-#include "../../memory/BufferMemory.h"
+#include "../../memory/ChunkMemory.cpp"
+#include "../../memory/BufferMemory.cpp"
 #include "../../memory/PointerMemory.h"
 #include "../../log/Stats.h"
 #include "../../utils/StringUtils.h"
@@ -256,7 +257,7 @@ template <typename C>
 inline size_t
 file_size(const C* path) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
 
     // @performance Profile against fseek strategy
     FileHandle fp;
@@ -1046,7 +1047,7 @@ bool file_read_async(
     }
 
     // Ensure the offset and length do not exceed the file size
-    uint64 fsize = size.QuadPart;
+    const uint64 fsize = size.QuadPart;
     if (offset >= fsize) {
         file->size = 0;
         file->content = NULL;
@@ -1056,11 +1057,11 @@ bool file_read_async(
     }
 
     // Adjust the length to read so that it does not exceed the file size
-    uint64 read_length = OMS_MIN(length, fsize - offset);
+    const uint64 read_length = OMS_MIN(length, fsize - offset);
 
     // Allocate memory for the content
     if (mem != NULL) {
-        file->content = memory_get((T*) mem, read_length);
+        file->content = memory_get((T*) mem, read_length + 1);
     }
 
     if (!file->content) {
@@ -1087,6 +1088,68 @@ bool file_read_async(
         }
     }
 
+    file->content[read_length] = '\0';
+    file->size = read_length;
+
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, read_length);
+
+    return true;
+}
+
+inline
+bool file_read_async(
+    FileHandle fp,
+    FileBodyAsync* __restrict file,
+    uint64 offset = 0,
+    uint64 length = MAX_UINT64
+) NO_EXCEPT
+{
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(fp, &size)) {
+        file->content = NULL;
+        ASSERT_THROW();
+
+        return false;
+    }
+
+    // Ensure the offset and length do not exceed the file size
+    const uint64 fsize = size.QuadPart;
+    if (offset >= fsize) {
+        file->size = 0;
+        file->content = NULL;
+        ASSERT_THROW();
+
+        return false;
+    }
+
+    // Adjust the length to read so that it does not exceed the file size
+    const uint64 read_length = OMS_MIN(length, fsize - offset);
+
+    if (!file->content) {
+        ASSERT_THROW();
+
+        return false;
+    }
+
+    file->ov.Offset = (DWORD)(offset & 0xFFFFFFFF);
+    file->ov.OffsetHigh = (DWORD)(offset >> 32);
+
+    // Auto-reset event
+    file->ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+    DWORD bytes_read = 0;
+    if (!ReadFile(fp, file->content, (DWORD) read_length, &bytes_read, &file->ov)) {
+        DWORD error = GetLastError();
+        if (error != ERROR_IO_PENDING) {
+            free(file->content);
+            file->content = NULL;
+            ASSERT_THROW();
+
+            return false;
+        }
+    }
+
+    file->content[read_length] = '\0';
     file->size = read_length;
 
     STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, read_length);

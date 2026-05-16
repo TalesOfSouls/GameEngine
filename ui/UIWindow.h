@@ -346,7 +346,7 @@ const UIOffset* ui_parent_offset_by_type(const UIOffset* base, int32 type) NO_EX
 void cache_vertices(
     UILabelOffset* offset_data,
     UILayout* const layout, f32 zindex,
-    RingMemory* const __restrict ring
+    byte* const __restrict mem
 ) {
     FontSystem* const font = layout->font;
     UILabel* label = (UILabel*) (layout->ui_element_buffer.memory + offset_data->self.element);
@@ -359,7 +359,7 @@ void cache_vertices(
         &layout->ui_vertex_cache, &layout->ui_index_cache, zindex, 1,
         {window->dimension.pos.x, window->dimension.pos.y - font->base.line_height * font_size, 0.0f, 0.0f}, UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM,
         font, label->content, 11.0f, 0xFFFFFFFF,
-        ring
+        mem
     );
 }
 
@@ -800,7 +800,7 @@ void cache_border_vertices(
 void cache_vertices(
     UIWindowTitleOffset* offset_data, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
-    RingMemory* const __restrict ring
+    byte* const __restrict mem
 ) {
     const UIOffset* parent = ui_parent_offset_by_type(&offset_data->self, 1);
     UIWindow* window = (UIWindow *) (layout->ui_element_buffer.memory + parent->element);
@@ -878,7 +878,7 @@ void cache_vertices(
         cache_vertices(
             &offset_data->label,
             layout, camera_step_closer(gpu_api_type, zindex),
-            ring
+            mem
         );
     }
 }
@@ -886,7 +886,7 @@ void cache_vertices(
 void cache_vertices(
     UIWindowOffset* offset_data, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
-    RingMemory* const __restrict ring
+    byte* const __restrict mem
 ) NO_EXCEPT {
     UIWindow* window = (UIWindow*) (layout->ui_element_buffer.memory + offset_data->self.element);
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
@@ -969,7 +969,7 @@ void cache_vertices(
         cache_vertices(
             &offset_data->title, gpu_api_type,
             layout, camera_step_closer(gpu_api_type, zindex),
-            ring
+            mem
         );
     }
 
@@ -979,7 +979,7 @@ void cache_vertices(
 void ui_cache(
     GpuApiType gpu_api_type,
     UILayout* const layout,
-    RingMemory* const __restrict ring
+    byte* const __restrict mem
 ) NO_EXCEPT
 {
     // @todo Reset only during testing:
@@ -1007,7 +1007,7 @@ void ui_cache(
                 cache_vertices(
                     test_window_offset, gpu_api_type,
                     layout, 10.0f, // @todo fix actual value
-                    ring
+                    mem
                 );
                 test_window_offset->self.vertices_count = layout->ui_vertex_cache.count - test_window_offset->self.vertices;
 

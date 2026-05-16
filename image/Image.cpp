@@ -58,6 +58,8 @@ void image_from_file(Image* __restrict image, const char* __restrict path, RingM
     }
 }
 
+/*
+@performance This version is faster BUT requires more memory since we have to store the entire image twice in memory
 inline
 void image_flip_vertical(RingMemory* const __restrict ring, Image* __restrict image) NO_EXCEPT
 {
@@ -70,6 +72,36 @@ void image_flip_vertical(RingMemory* const __restrict ring, Image* __restrict im
 
     for (uint32 y = 0; y < image->height; ++y) {
         memcpy(image->pixels + y * stride, end - y * stride, stride);
+    }
+
+    image->image_settings ^= IMAGE_SETTING_BOTTOM_TO_TOP;
+}
+*/
+
+void image_flip_vertical(Image* __restrict image) NO_EXCEPT
+{
+    constexpr size_t TEMP_SIZE = 8 * KILOBYTE;
+    alignas(size_t) byte temp[TEMP_SIZE];
+
+    const size_t stride = image->width * sizeof(uint32);
+
+    for (uint32 y = 0; y < image->height / 2; ++y) {
+        byte* top = image->pixels + y * stride;
+        byte* bottom = image->pixels + (image->height - 1 - y) * stride;
+
+        size_t remaining = stride;
+        size_t offset = 0;
+
+        while (remaining > 0) {
+            const size_t chunk = (remaining > TEMP_SIZE) ? TEMP_SIZE : remaining;
+
+            memcpy(temp, top + offset, chunk);
+            memcpy(top + offset, bottom + offset, chunk);
+            memcpy(bottom + offset, temp, chunk);
+
+            offset += chunk;
+            remaining -= chunk;
+        }
     }
 
     image->image_settings ^= IMAGE_SETTING_BOTTOM_TO_TOP;

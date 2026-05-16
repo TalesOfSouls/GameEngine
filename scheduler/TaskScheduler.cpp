@@ -133,6 +133,7 @@ void thrd_scheduler_run(TaskScheduler* const scheduler, uint64 current_time) NO_
             task, // .arg =
             task->task_func, // .func =
             scheduler_cleanup_callback, // .callback =
+            0, // .mem_size =
             NULL // .mem =
         };
         thread_pool_add_work(scheduler->pool, &job);

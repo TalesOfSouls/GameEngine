@@ -14,7 +14,7 @@
 #include "../utils/StringUtils.h"
 #include "../font/Font.cpp"
 #include "../font/FontSystem.h"
-#include "../memory/RingMemory.cpp"
+#include "../memory/PointerMemory.h"
 #include "../stdlib/ArrayVector.h"
 #include "../object/Vertex.h"
 #include "../ui/UIAlignment.h"
@@ -470,12 +470,13 @@ v3_int32 vertex_text_create(
 }
 
 // @todo It is stupid that we effectively have the same function twice and the only difference is how we calculate int32 character
+template <typename T>
 HOT_CODE
 v3_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
     const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const wchar_t* const __restrict text,
-    f32 size, MAYBE_UNUSED uint32 rgba, RingMemory* const __restrict ring
+    f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_VERTEX_TEXT_CREATE);
@@ -486,9 +487,11 @@ v3_int32 vertex_text_create(
         return {};
     }
 
+    // Try to find all the necessary glyphs
     // We use offsets instead of pointer chasing
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* const glyphs = (int16*) memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
+    int16* const glyphs = (int16*) memory_get(mem, length * sizeof(int16), alignof(uintptr_t));
+    //alignas(alignof(size_t)) int16 glyphs[10000];
     for (int32 i = 0; i < length; ++i) {
         const int32 character = text[i];
         if (character == '\n') {
@@ -539,12 +542,13 @@ v3_int32 vertex_text_create(
     );
 }
 
+template <typename T>
 HOT_CODE
 v3_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
     const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const char* const __restrict text,
-    f32 size, MAYBE_UNUSED uint32 rgba, RingMemory* const __restrict ring
+    f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_VERTEX_TEXT_CREATE);
@@ -557,9 +561,10 @@ v3_int32 vertex_text_create(
 
     const bool is_ascii = (int32) strlen(text) == length;
 
+    // Try to find all the necessary glyphs
     // We use offsets instead of pointer chasing
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* const glyphs = (int16*) memory_get(ring, length * sizeof(int16), alignof(uintptr_t));
+    int16* const glyphs = (int16*) memory_get(mem, length * sizeof(int16), alignof(uintptr_t));
     for (int32 i = 0; i < length; ++i) {
         const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {

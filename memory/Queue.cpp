@@ -14,7 +14,7 @@
 #include "../utils/Utils.h"
 #include "../thread/Atomic.h"
 #include "RingMemory.cpp"
-#include "BufferMemory.h"
+#include "BufferMemory.cpp"
 #include "Queue.h"
 
 FORCE_INLINE

@@ -12,7 +12,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/PersistentQueueT.h"
-#include "../memory/BufferMemory.h"
+#include "../memory/ChunkMemory.h"
 #include "../log/DebugMemory.h"
 #include "../log/PerformanceProfiler.h"
 #include "../log/DebugContainer.h"
@@ -59,6 +59,11 @@ struct ThreadPool {
     atomic_32 uint32 id_counter;
 
     DebugContainer* debug_container;
+
+    // From this memory we distribute memory to all the worker threads
+    // The distributed memory depends on the requirements of the respective job
+    // This means we redistribute memory on a job basis
+    ChunkMemory thrd_mem;
 };
 
 #endif

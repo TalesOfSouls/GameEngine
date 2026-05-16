@@ -12,11 +12,13 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemoryT.h"
+#include "../memory/ChunkMemory.cpp"
 #include "../ui/UILayout.cpp"
 #include "../ui/UITheme.cpp"
 #include "AppCommand.h"
 #include "CmdGeneralProducer.h"
 
+// @question Why are we passing all this data instead of just cb?
 inline
 void thrd_cmd_ui_load(
     ChunkMemoryT<AppCommand>* const __restrict cb,
@@ -26,7 +28,7 @@ void thrd_cmd_ui_load(
     UIThemeStyle* const __restrict general_theme,
     SceneInfo* const scene_info,
     GpuApiType gpu_api_type,
-    RingMemory* const __restrict ring,
+    ChunkMemory* const __restrict mem,
     AppCommandFunction callback
 ) NO_EXCEPT
 {
@@ -43,7 +45,7 @@ void thrd_cmd_ui_load(
 
     cmd.layout_body.scene_info = scene_info;
     cmd.layout_body.gpu_api_type = gpu_api_type;
-    cmd.layout_body.ring = ring;
+    cmd.layout_body.mem = mem;
 
     thrd_cmd_insert(cb, &cmd);
 }

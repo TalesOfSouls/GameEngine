@@ -16,7 +16,6 @@
 #include <d3dcompiler.h>
 
 #include "../../stdlib/Stdlib.h"
-#include "../../memory/RingMemory.cpp"
 #include "../../log/Log.h"
 #include "../../log/Stats.h"
 #include "../../log/PerformanceProfiler.h"

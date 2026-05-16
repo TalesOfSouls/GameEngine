@@ -991,6 +991,7 @@ void soft_render(
                     &args[j], // .arg =
                     thrd_soft_shader, // .func =
                     NULL, // .callback =
+                    0, // .mem_size =
                     NULL // .mem =
                 };
 

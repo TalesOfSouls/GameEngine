@@ -39,6 +39,19 @@
         DEBUG_COUNTER_FILE_HANDLE_COUNT,
         DEBUG_COUNTER_LIB_HANDLE_COUNT,
 
+        //////////////////////////////////////////
+        // Mostly used for persistent logs
+        //////////////////////////////////////////
+
+        DEBUG_COUNTER_RAM_BYTES,
+        DEBUG_COUNTER_VRAM_BYTES,
+
+        // Used to find the largest individual memory request
+        // This can be important to determine the max required size for a ring/buffer memory
+        DEBUG_COUNTER_RING_MAX_REQUEST,
+        DEBUG_COUNTER_BUFFER_MAX_REQUEST,
+        DEBUG_COUNTER_BUFFER_MAX_USAGE,
+
         DEBUG_COUNTER_SIZE
     };
 #endif
@@ -49,7 +62,7 @@ struct StatCounterHistory {
     atomic_64 int64 stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE];
 };
 static StatCounterHistory* _stats_counter = NULL;
-static atomic_64 int64 _stats_counter_persistent[DEBUG_COUNTER_SIZE];
+static atomic_64 int64* _stats_counter_persistent = NULL;
 static int32* _stats_counter_active = NULL;
 
 /**
@@ -144,6 +157,44 @@ void stats_decrement_persistent(int32 id, int64 by = 1) NO_EXCEPT
     }
 
     atomic_sub_relaxed(&_stats_counter_persistent[id], by);
+}
+
+/**
+ * Logs the maximum value
+ *
+ * @param int32 id  Stats id
+ * @param int64 value  Max value
+ *
+ * @return void
+ */
+inline HOT_CODE
+void stats_max_persistent(int32 id, int64 value) NO_EXCEPT
+{
+    if (!_stats_counter_active || !*_stats_counter_active) {
+        return;
+    }
+
+    const int64 old = atomic_get_acquire(&_stats_counter_persistent[id]);
+    atomic_set_relaxed(&_stats_counter_persistent[id], OMS_MAX(old, value));
+}
+
+/**
+ * Logs the minimum value
+ *
+ * @param int32 id  Stats id
+ * @param int64 value  Min value
+ *
+ * @return void
+ */
+inline HOT_CODE
+void stats_min_persistent(int32 id, int64 value) NO_EXCEPT
+{
+    if (!_stats_counter_active || !*_stats_counter_active) {
+        return;
+    }
+
+    const int64 old = atomic_get_acquire(&_stats_counter_persistent[id]);
+    atomic_set_relaxed(&_stats_counter_persistent[id], OMS_MIN(old, value));
 }
 
 /**
@@ -282,7 +333,11 @@ void stats_log_to_file() NO_EXCEPT
     #define STATS_INCREMENT_BY_PERSISTENT(a, b) stats_increment_persistent((a), (b))
     #define STATS_DECREMENT_PERSISTENT(a) stats_decrement_persistent((a), 1)
     #define STATS_DECREMENT_BY_PERSISTENT(a, b) stats_decrement_persistent((a), (b))
+
     #define STATS_COUNTER_PERSISTENT(a, b) stats_counter_persistent((a), (b))
+
+     #define STATS_MAX_PERSISTENT(a, b) stats_max_persistent((a), (b))
+     #define STATS_MIN_PERSISTENT(a, b) stats_min_persistent((a), (b))
 #endif
 
 #endif

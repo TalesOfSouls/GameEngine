@@ -24,6 +24,7 @@
 #include "../../utils/StringUtils.h"
 #include "../../memory/RingMemory.cpp"
 #include "../../memory/BufferMemory.cpp"
+#include "../../memory/ChunkMemory.cpp"
 #include "../../log/PerformanceProfiler.h"
 
 #ifndef PATH_MAX_LENGTH

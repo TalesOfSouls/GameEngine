@@ -32,6 +32,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
         _perf_active = pool->debug_container->perf_active;
         _stats_counter_active = pool->debug_container->stats_counter_active;
         _stats_counter = pool->debug_container->stats_counter;
+        _stats_counter_persistent = pool->debug_container->stats_counter_persistent;
 
         // @question Why do we even need to to this?
         *_perf_active = *pool->debug_container->perf_active;
@@ -83,7 +84,14 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
         {
             PROFILE(PROFILE_THREADPOOL_WORK, NULL, PROFILE_FLAG_ADD_HISTORY);
             STATS_INCREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
-            work->func(work);
+            if (work->mem_size) {
+                // @performance For longer tasks this is fine but for jobs running really quick, this is slow
+                // @bug we need to wait if we don't have enough memory available
+                THRD_CHUNK_STACK_MEMORY(&pool->thrd_mem, &work->mem, work->mem_size);
+                work->func(work);
+            } else {
+                work->func(work);
+            }
             STATS_DECREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
         }
         LOG_3("[INFO] ThreadPool worker ended");

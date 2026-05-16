@@ -19,6 +19,8 @@
 #include "MemoryArena.h"
 
 /**
+ * Stores pointers to available memory chunks in an array
+ *
  * Similar to the ChunkMemory but:
  * Benefits
  *      * Much faster at finding free memory chunks

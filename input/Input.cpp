@@ -13,7 +13,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../utils/BitUtils.h"
 #include "../utils/StringUtils.h"
-#include "../memory/BufferMemory.h"
+#include "../memory/BufferMemory.cpp"
 #include "ControllerInput.h"
 #include "InputConnectionType.h"
 #include "Input.h"
@@ -611,6 +611,11 @@ void input_handle_hotkeys(const Input* const input, void* data) NO_EXCEPT {
         if (!input_events[i]) {
             // Hotkey is not bound to a function
             ASSERT_THROW();
+
+            // This does NOT mean a hotkey that the user unbound
+            // Tt means a hotkey is not assigned a function
+            // Which doesn't make sense because it would mean the hotkey exists but never does anything.
+            LOG_1("Found a hotkey that is not bound to a function.");
             continue;
         }
 

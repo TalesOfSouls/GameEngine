@@ -45,7 +45,7 @@ Asset* cmd_internal_font_create(
     Asset* font_texture = cmd_texture_load_sync(
         cb->asset_archives,
         cb->ams,
-        cb->mem_vol,
+        cb->mem,
         cb->gpu_api_type,
         asset->references[0]
     );
@@ -85,7 +85,7 @@ inline
 Asset* cmd_font_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
+    ChunkMemory* const __restrict mem,
     GpuApiType gpu_api_type,
     int32 asset_id
 ) NO_EXCEPT
@@ -106,7 +106,7 @@ Asset* cmd_font_load_sync(
             &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
             asset_id,
             ams,
-            ring
+            mem
         );
     }
 
@@ -122,7 +122,7 @@ Asset* cmd_font_load_sync(
     Asset* font_texture = cmd_texture_load_sync(
         asset_archives,
         ams,
-        ring,
+        mem,
         gpu_api_type,
         asset->references[0]
     );

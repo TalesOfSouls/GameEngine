@@ -13,8 +13,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
 #include "../utils/Utils.h"
-#include "../memory/RingMemory.cpp"
-#include "../memory/BufferMemory.h"
+#include "../memory/ChunkMemory.cpp"
 #include "../image/Image.cpp"
 #include "../image/Qoi.h"
 #include "../object/Mesh.cpp"
@@ -181,7 +180,7 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
 // Asset archives files remain open from the _load() function
 // They need to be explicitly closed when no longer needed.
 inline
-void asset_archive_close(AssetArchive* archive) {
+void asset_archive_close(AssetArchive* const archive) {
     file_close_handle(archive->fd);
     file_close_handle(archive->fd_async);
     file_mmf_close(archive->mmf);
@@ -190,7 +189,7 @@ void asset_archive_close(AssetArchive* archive) {
 void asset_archive_load(
     AssetArchive* archive,
     const wchar_t* path,
-    RingMemory* const ring,
+    BufferMemory* const mem,
     int32 steps = 8
 ) NO_EXCEPT
 {
@@ -219,8 +218,10 @@ void asset_archive_load(
         + MEMBER_SIZEOF(AssetArchiveHeader, asset_count)
         + MEMBER_SIZEOF(AssetArchiveHeader, asset_dependency_count);
 
+    BUFFER_STACK_MEMORY_START(mem);
     // Find header size (+ 1 to later store \0)
-    file.content = memory_get(ring, file.size + 1, sizeof(size_t));
+    file.content = memory_get(mem, file.size + 1, alignof(size_t));
+
     // @bug We only inlined this for easier debugging, revert once solved
     //file_read(archive->fd, &file, 0, file.size);
 
@@ -249,10 +250,6 @@ void asset_archive_load(
 
         // Adjust the length to read so that it does not exceed the tfile size
         const uint64 read_length = OMS_MIN(length, fsize - offset);
-
-        if (ring != NULL) {
-            tfile->content = memory_get(ring, read_length + 1);
-        }
 
         // Move the tfile pointer to the offset position
         LARGE_INTEGER li;
@@ -290,7 +287,7 @@ void asset_archive_load(
     file_seek(archive->fd, 0);
 
     // Read entire header
-    file.content = memory_get(ring, file.size, sizeof(size_t));
+    file.content = memory_get(mem, file.size, sizeof(size_t));
     file_read(archive->fd, &file, 0, file.size);
     asset_archive_header_load(&archive->header, archive->data_size, file.content, steps);
 
@@ -309,7 +306,7 @@ Asset* const asset_archive_asset_load(
     const AssetArchive* const archive,
     int32 id,
     AssetManagementSystem* const ams,
-    RingMemory* const ring,
+    ChunkMemory* const mem,
     bool load_dependencies = true
 ) NO_EXCEPT
 {
@@ -328,6 +325,7 @@ Asset* const asset_archive_asset_load(
     const AssetArchiveElement* const element = &archive->header.asset_element[id & 0x00FFFFFF];
 
     ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
+    ASSERT_TRUE(element->uncompressed > 0);
     const byte component_id = archive->asset_type_map[element->type];
 
     LOG_2(
@@ -372,9 +370,16 @@ Asset* const asset_archive_asset_load(
         // 3. The big benefit of mmf would be that we can avoid one memcpy and directly load the data into the object
         // 4. Of course the disadvantage would be to no longer have async loading
 
+        // @performance Currently loading the data into a temp buffer is universally working
+        //              However, some data types could be directly loaded into the final memory
+        //              This would avoid a memcpy
+        //              Although, I assume all formats have some form of compression which would make that statement false
         // We are reading into temp memory since we have to perform transformations on the data
         FileBodyAsync file = {0};
-        file_read_async(archive->fd_async, &file, element->start, element->length, ring);
+        // @performance I don't like using chunk stack memory here, it is very slow since it well...
+        //              it uses chunks AND is threaded
+        THRD_CHUNK_STACK_MEMORY(mem, &file.content, element->length + 1);
+        file_read_async(archive->fd_async, &file, element->start, element->length);
 
         // This happens while the file system loads the data
         // The important part is to reserve the uncompressed file size, not the compressed one
@@ -410,7 +415,7 @@ Asset* const asset_archive_asset_load(
                 #if (defined(OPENGL) && OPENGL) || (defined(VULKAN) && VULKAN)
                     // If opengl, we always flip
                     if (!(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)) {
-                        image_flip_vertical(ring, &texture->image);
+                        image_flip_vertical(&texture->image);
                     }
                 #endif
             } break;
@@ -476,7 +481,7 @@ Asset* const asset_archive_asset_load(
         // @question Do we even want to do it here or is this the job of something else like the AppCmdBuffer
         if (load_dependencies) {
             for (uint32 i = 0; i < element->dependency_count; ++i) {
-                asset_archive_asset_load(archive, asset->references[i], ams, ring);
+                asset_archive_asset_load(archive, asset->references[i], ams, mem);
             }
         }
     }

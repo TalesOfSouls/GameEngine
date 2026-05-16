@@ -17,7 +17,7 @@
 #include "../../../input/ControllerType.h"
 #include "../../../input/ControllerInput.h"
 #include "controller/DualShock4.h"
-#include "../../../memory/RingMemory.cpp"
+#include "../../../memory/BufferMemory.cpp"
 #include <winDNS.h>
 
 static inline
@@ -57,7 +57,7 @@ bool rawinput_extract_vid_pid(
 uint32 rawinput_kbm_init(
     HWND hwnd,
     Input* __restrict states,
-    RingMemory* const __restrict ring
+    BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
     uint32 device_count;
@@ -66,8 +66,10 @@ uint32 rawinput_kbm_init(
         return 0;
     }
 
-    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) memory_get(
-        ring,
+    PRAWINPUTDEVICELIST pRawInputDeviceList;
+    BUFFER_STACK_MEMORY(
+        mem,
+        (byte **) &pRawInputDeviceList,
         sizeof(RAWINPUTDEVICELIST) * device_count,
         alignof(RAWINPUTDEVICELIST)
     );
@@ -519,7 +521,7 @@ int16 input_raw_handle(
 void input_raw_handle(
     LPARAM lParam,
     Input* __restrict states, int32 state_count,
-    RingMemory* const __restrict ring,
+    BufferMemory* const __restrict mem,
     uint64 time
 ) NO_EXCEPT
 {
@@ -528,8 +530,11 @@ void input_raw_handle(
 
     // @todo pull out, we only need to register this memory once
     //      Maybe even put it into the general memory pool
-    LPBYTE lpb = (BYTE *) memory_get(ring, db_size * sizeof(BYTE), sizeof(size_t));
+    LPBYTE lpb;
+    BUFFER_STACK_MEMORY(mem, (byte **) &lpb, db_size * sizeof(BYTE), alignof(size_t));
+
     uint32 size = GetRawInputData((HRAWINPUT) lParam, RID_INPUT, lpb, &db_size, sizeof(RAWINPUTHEADER));
+    // @todo Log large data size, e.g. very high poll rate
 
     if (db_size != size) {
         return;
@@ -542,7 +547,7 @@ void input_raw_handle(
 int16 input_raw_handle_buffered(
     int32 max_inputs,
     Input* __restrict states, int32 state_count,
-    RingMemory* const __restrict ring,
+    BufferMemory* const __restrict mem,
     uint64 time
 ) NO_EXCEPT
 {
@@ -555,7 +560,10 @@ int16 input_raw_handle_buffered(
     // Max input messages (e.g. 16)
     cb_size *= max_inputs;
 
-    PRAWINPUT raw_input = (PRAWINPUT) memory_get(ring, cb_size, sizeof(size_t));
+    // @todo Log large data size, e.g. very high poll rate
+
+    PRAWINPUT raw_input;
+    BUFFER_STACK_MEMORY(mem, (byte **) &raw_input, cb_size, alignof(size_t));
 
     int16 input_count = 0;
 

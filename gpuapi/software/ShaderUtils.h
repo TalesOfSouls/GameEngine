@@ -11,8 +11,6 @@
 #define COMS_GPUAPI_SOFTWARE_SHADER_UTILS_H
 
 #include "../../stdlib/Stdlib.h"
-#include "../../memory/RingMemory.cpp"
-#include "../../memory/BufferMemory.h"
 #include "Shader.h"
 #include "../ShaderType.h"
 #include "../GpuAttributeType.h"

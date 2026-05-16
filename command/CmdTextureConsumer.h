@@ -12,6 +12,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/QueueT.cpp"
+#include "../memory/ChunkMemory.h"
 #include "../asset/Asset.h"
 #include "../asset/AssetArchive.cpp"
 #include "../object/TextureAtlas.cpp"
@@ -23,7 +24,6 @@
 static inline
 Asset* cmd_internal_texture_create(
     AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
     GpuApiType gpu_api_type,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
@@ -43,7 +43,7 @@ Asset* cmd_internal_texture_create(
     )
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
-        image_flip_vertical(ring, &texture->image);
+        image_flip_vertical(&texture->image);
     }
 
     return asset;
@@ -53,7 +53,6 @@ static inline
 Asset* cmd_texture_load_async(
     QueueT<int32>* const __restrict assets_to_load,
     AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
     GpuApiType gpu_api_type,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
@@ -63,7 +62,7 @@ Asset* cmd_texture_load_async(
 
     Asset* const asset = thrd_ams_get_asset_wait(ams, id_str);
     if (asset) {
-        cmd_internal_texture_create(ams, ring, gpu_api_type, cmd);
+        cmd_internal_texture_create(ams, gpu_api_type, cmd);
     } else {
         AppCommand asset_cmd = {0};
         asset_cmd.type = CMD_ASSET_ENQUEUE;
@@ -79,7 +78,7 @@ inline
 Asset* cmd_texture_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
+    ChunkMemory* const __restrict mem,
     GpuApiType gpu_api_type,
     int32 asset_id
 ) NO_EXCEPT
@@ -99,7 +98,7 @@ Asset* cmd_texture_load_sync(
             &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
             asset_id,
             ams,
-            ring
+            mem
         );
     }
 
@@ -111,7 +110,7 @@ Asset* cmd_texture_load_sync(
     )
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
-        image_flip_vertical(ring, &texture->image);
+        image_flip_vertical(&texture->image);
     }
 
     // @question What about texture upload?
@@ -136,7 +135,7 @@ Asset* cmd_internal_texture_atlas_create(
     Asset* const texture_asset = cmd_texture_load_sync(
         cb->asset_archives,
         cb->ams,
-        cb->mem_vol,
+        cb->mem,
         cb->gpu_api_type,
         asset->references[0]
     );
@@ -181,7 +180,7 @@ inline
 Asset* cmd_texture_atlas_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
+    ChunkMemory* const __restrict mem,
     GpuApiType gpu_api_type,
     int32 asset_id
 ) NO_EXCEPT
@@ -201,14 +200,14 @@ Asset* cmd_texture_atlas_load_sync(
             &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
             asset_id,
             ams,
-            ring
+            mem
         );
     }
 
     Asset* texture_asset = cmd_texture_load_sync(
         asset_archives,
         ams,
-        ring,
+        mem,
         gpu_api_type,
         asset->references[0]
     );

@@ -37,18 +37,18 @@ struct file_suffix_array<wchar_t>
 
 #include "../hash/Sha1.h"
 
-template <typename T>
+template <typename C, typename T>
 inline
-bool file_write_secure(const T* const path, FileBody* const file, RingMemory* const ring) NO_EXCEPT
+bool file_write_secure(const C* const path, FileBody* const file, T* const mem) NO_EXCEPT
 {
-    T temp_path[PATH_MAX_LENGTH];
+    C temp_path[PATH_MAX_LENGTH];
     const size_t path_len = str_length(path);
 
     memcpy(temp_path, path, path_len * sizeof(T));
     memcpy(
         temp_path + path_len,
-        file_suffix_array<T>::value,
-        sizeof(file_suffix_array<T>::value)
+        file_suffix_array<C>::value,
+        sizeof(file_suffix_array<C>::value)
     );
 
     file_write(temp_path, file);
@@ -57,7 +57,7 @@ bool file_write_secure(const T* const path, FileBody* const file, RingMemory* co
     sha1_hash(file->content, file->size, mem_hash);
 
     FileBody* temp_file = {0};
-    file_read(temp_path, temp_file, ring);
+    file_read(temp_path, temp_file, mem);
 
     byte temp_hash[20];
     sha1_hash(file->content, file->size, temp_hash);

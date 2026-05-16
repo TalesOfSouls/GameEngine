@@ -11,7 +11,6 @@
 #define COMS_GPUAPI_OPENGL_UTILS_H
 
 #include "../../stdlib/Stdlib.h"
-#include "../../memory/RingMemory.cpp"
 #include "../../object/Texture.h"
 #include "../../image/Image.cpp"
 #include "../../utils/StringUtils.h"
@@ -251,6 +250,10 @@ void gpuapi_texture_to_gpu(const Texture* const texture, int32 mipmap_level = 0)
         DEBUG_COUNTER_GPU_UPLOAD,
         texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings)
     );
+    STATS_INCREMENT_BY_PERSISTENT(
+        DEBUG_COUNTER_VRAM_BYTES,
+        texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings)
+    );
 }
 
 FORCE_INLINE
@@ -430,6 +433,7 @@ uint32 gpuapi_buffer_generate(int32 type, int32 size, const void* data) NO_EXCEP
     glBufferData(type, size, data, GL_STATIC_DRAW);
 
     STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY_PERSISTENT(DEBUG_COUNTER_VRAM_BYTES, size);
 
     return bo;
 }
@@ -444,6 +448,7 @@ uint32 gpuapi_buffer_generate_dynamic(int32 type, int32 size, const void* data) 
     glBufferData(type, size, data, GL_DYNAMIC_DRAW);
 
     STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY_PERSISTENT(DEBUG_COUNTER_VRAM_BYTES, size);
 
     return bo;
 }
@@ -468,6 +473,7 @@ void gpuapi_buffer_persistent_generate(int32 type, PersistentGpuBuffer* const bu
     ASSERT_TRUE(buffer->data);
 
     STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
+    STATS_INCREMENT_BY_PERSISTENT(DEBUG_COUNTER_VRAM_BYTES, buffer->size);
 }
 
 FORCE_INLINE

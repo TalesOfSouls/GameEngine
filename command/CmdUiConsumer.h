@@ -23,7 +23,7 @@
 
 inline
 UILayout* cmd_layout_load_sync(
-    RingMemory* const __restrict ring,
+    BufferMemory* const __restrict mem,
     UILayout* const __restrict layout, const wchar_t* const __restrict layout_path
 ) NO_EXCEPT
 {
@@ -31,7 +31,8 @@ UILayout* cmd_layout_load_sync(
     LOG_1("[INFO] Load layout");
 
     FileBody layout_file = {0};
-    file_read(layout_path, &layout_file, ring);
+    BUFFER_STACK_MEMORY_START(mem);
+    file_read(layout_path, &layout_file, mem);
 
     if (!layout_file.content) {
         LOG_1("[WARNING] Failed loading layout");
@@ -46,7 +47,7 @@ UILayout* cmd_layout_load_sync(
 // @question Why does this not need the screen dimension but layout does
 inline
 UIThemeStyle* cmd_theme_load_sync(
-    RingMemory* const __restrict ring,
+    BufferMemory* const __restrict mem,
     UIThemeStyle* const __restrict theme, const wchar_t* const __restrict theme_path
 ) NO_EXCEPT
 {
@@ -54,7 +55,8 @@ UIThemeStyle* cmd_theme_load_sync(
     LOG_1("[INFO] Load theme");
 
     FileBody theme_file = {0};
-    file_read(theme_path, &theme_file, ring);
+    BUFFER_STACK_MEMORY_START(mem);
+    file_read(theme_path, &theme_file, mem);
     theme_from_data(theme_file.content, theme);
 
     return theme;
@@ -71,7 +73,7 @@ void cmd_layout_populate_sync(
 // @question Do we really want the camera here or is a v2_uint16 sufficient?
 inline
 UILayout* cmd_ui_load_sync(
-    RingMemory* const __restrict ring,
+    BufferMemory* const __restrict mem,
     UILayout* const __restrict layout, const wchar_t* const __restrict layout_path,
     UIThemeStyle* const __restrict general_theme,
     UIThemeStyle* const __restrict theme, const wchar_t* const __restrict theme_path,
@@ -81,7 +83,7 @@ UILayout* cmd_ui_load_sync(
     PROFILE(PROFILE_CMD_UI_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Load ui");
 
-    if (!cmd_layout_load_sync(ring, layout, layout_path)) {
+    if (!cmd_layout_load_sync(mem, layout, layout_path)) {
         // We have to make sure that at least the font is set
         layout->font = general_theme->font;
 
@@ -89,7 +91,7 @@ UILayout* cmd_ui_load_sync(
     }
 
     cmd_layout_populate_sync(layout, general_theme);
-    cmd_theme_load_sync(ring, theme, theme_path);
+    cmd_theme_load_sync(mem, theme, theme_path);
     cmd_layout_populate_sync(layout, theme);
 
     UIElement* const root = layout_get_element(layout, "root");
@@ -105,13 +107,21 @@ UILayout* cmd_ui_load_sync(
 // @question Do we really want the camera here or is a v2_uint16 sufficient?
 static inline
 UILayout* cmd_ui_load(
-    RingMemory* const __restrict ring,
+    ChunkMemory* const __restrict mem,
     Camera* const __restrict camera,
     const AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
+    // @performance I don't like using ChunkMemory here, we only need like 8 MB or even less.
+    //              We should have a BufferMemory for stuff like this
+    byte* temp;
+    THRD_CHUNK_STACK_MEMORY(mem, &temp, 16 * MEGABYTE);
+
+    BufferMemory buf;
+    buffer_init(&buf, temp, 16 * MEGABYTE, 8);
+
     return cmd_ui_load_sync(
-        ring,
+        &buf,
         &cmd->layout_body.scene_info->ui_layout, cmd->layout_body.layout_path,
         cmd->layout_body.general_theme,
         &cmd->layout_body.scene_info->ui_theme, cmd->layout_body.theme_path,

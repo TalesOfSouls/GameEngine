@@ -13,14 +13,14 @@
 #include "../stdlib/Stdlib.h"
 #include "../asset/AssetArchive.cpp"
 #include "../asset/AssetManagementSystem.cpp"
-#include "../memory/RingMemory.cpp"
+#include "../memory/ChunkMemory.cpp"
 #include "AppCommand.h"
 
 static inline
 Asset* cmd_asset_load(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
+    ChunkMemory* const __restrict mem,
     const AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
@@ -29,7 +29,7 @@ Asset* cmd_asset_load(
         &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
         asset_id,
         ams,
-        ring
+        mem
     );
 }
 
@@ -37,7 +37,7 @@ FORCE_INLINE
 Asset* cmd_asset_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
+    ChunkMemory* const __restrict mem,
     int32 asset_id
 ) NO_EXCEPT
 {
@@ -45,7 +45,7 @@ Asset* cmd_asset_load_sync(
         &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
         asset_id,
         ams,
-        ring
+        mem
     );
 }
 

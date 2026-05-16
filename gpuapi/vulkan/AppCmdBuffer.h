@@ -25,7 +25,7 @@ void* cmd_shader_load(AppCmdBuffer*, AppCommand*) {
 void* cmd_shader_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    RingMemory* const __restrict ring,
+    ChunkMemory* const __restrict mem,
     Shader* const __restrict shader,
     const int32* __restrict shader_ids,
     VkDevice device,
@@ -58,7 +58,7 @@ void* cmd_shader_load_sync(
                 &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(shader_ids[i])],
                 shader_ids[i],
                 ams,
-                ring
+                mem
             );
         }
 

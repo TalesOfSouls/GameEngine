@@ -17,13 +17,13 @@
 
 #include "../../../input/Input.cpp"
 #include "../../../input/ControllerType.h"
-#include "../../../memory/RingMemory.cpp"
+#include "../../../memory/BufferMemory.cpp"
 #include "controller/DualShock4.h"
 
 #include "../libs/hid.h"
 #include "../libs/setupapi.h"
 
-void hid_init_controllers(Input* __restrict states, RingMemory* const ring) NO_EXCEPT
+void hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_EXCEPT
 {
     // Get the GUID for HID devices
     GUID hid_guid;
@@ -41,17 +41,43 @@ void hid_init_controllers(Input* __restrict states, RingMemory* const ring) NO_E
     DWORD device_index = 0;
     int32 controller_found = 0;
 
-    while (pSetupDiEnumDeviceInterfaces(device_info_set, NULL, &hid_guid, device_index, &device_interface_data)) {
+    while (pSetupDiEnumDeviceInterfaces(
+        device_info_set,
+        NULL,
+        &hid_guid,
+        device_index,
+        &device_interface_data)
+    ) {
         ++device_index;
         DWORD required_size = 0;
 
         // First call to get required buffer size for device detail data
-        pSetupDiGetDeviceInterfaceDetailW(device_info_set, &device_interface_data, NULL, 0, &required_size, NULL);
-        PSP_DEVICE_INTERFACE_DETAIL_DATA device_detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA) memory_get(ring, required_size, sizeof(size_t));
+        pSetupDiGetDeviceInterfaceDetailW(
+            device_info_set,
+            &device_interface_data,
+            NULL,
+            0,
+            &required_size,
+            NULL
+        );
+
+        PSP_DEVICE_INTERFACE_DETAIL_DATA device_detail_data;
+        BUFFER_STACK_MEMORY(
+            mem,
+            (byte **) &device_detail_data,
+            (size_t) required_size,
+            alignof(SP_DEVICE_INTERFACE_DETAIL_DATA)
+        );
         device_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
         // Get device interface detail
-        if (!pSetupDiGetDeviceInterfaceDetailW(device_info_set, &device_interface_data, device_detail_data, required_size, NULL, NULL)) {
+        if (!pSetupDiGetDeviceInterfaceDetailW(
+            device_info_set,
+            &device_interface_data,
+            device_detail_data,
+            required_size,
+            NULL, NULL)
+        ) {
             continue;
         }
 

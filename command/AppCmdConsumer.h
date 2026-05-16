@@ -122,10 +122,10 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                 cmd_asset_load_enqueue(cb->assets_to_load, cmd);
             } break;
         case CMD_ASSET_LOAD: {
-                cmd_asset_load(cb->asset_archives, cb->ams, cb->mem_vol, cmd);
+                cmd_asset_load(cb->asset_archives, cb->ams, cb->mem, cmd);
             } break;
         case CMD_FILE_LOAD: {
-                cmd_file_load(cb->mem_vol, cmd);
+                cmd_file_load(cb->mem, cmd);
             } break;
         case CMD_TEXTURE_ATLAS_LOAD: {
                 completed = cmd_texture_atlas_load_async(cb, cmd) != NULL;
@@ -134,7 +134,6 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                 completed = cmd_texture_load_async(
                     cb->assets_to_load,
                     cb->ams,
-                    cb->mem_vol,
                     cb->gpu_api_type,
                     cmd
                 ) != NULL;
@@ -142,7 +141,6 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
         case CMD_INTERNAL_TEXTURE_CREATE: {
                 cmd_internal_texture_create(
                     cb->ams,
-                    cb->mem_vol,
                     cb->gpu_api_type,
                     cmd
                 );
@@ -164,7 +162,7 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                 completed = cmd_shader_load(cb, cmd) != NULL;
             } break;
         case CMD_UI_LOAD: {
-                cmd_ui_load(cb->mem_vol, cb->camera, cmd);
+                cmd_ui_load(cb->mem, cb->camera, cmd);
             } break;
         default: {
             UNREACHABLE();

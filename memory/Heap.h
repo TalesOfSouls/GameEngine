@@ -12,7 +12,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../log/DebugMemory.h"
-#include "BufferMemory.h"
+#include "BufferMemory.cpp"
 #include "../system/Allocator.h"
 
 struct Heap {

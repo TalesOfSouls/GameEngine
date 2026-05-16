@@ -239,7 +239,13 @@ void drm_process_scan(
         list[i].scanned = true;
         if (hProcess) {
             // @question Maybe we should pass the decrypted_pattern?
-            list[i].code_detected = drm_memory_scan(hProcess, patterns, pattern_count, helper_memory, helper_memory_size);
+            list[i].code_detected = drm_memory_scan(
+                hProcess,
+                patterns,
+                pattern_count,
+                helper_memory,
+                helper_memory_size
+            );
 
             CloseHandle(hProcess);
         }

@@ -13,7 +13,7 @@
 #include "Stdlib.h"
 #include "../hash/GeneralHash.h"
 #include "../memory/RingMemory.cpp"
-#include "../memory/BufferMemory.h"
+#include "../memory/BufferMemory.cpp"
 #include "../memory/ChunkMemory.cpp"
 #include "../utils/StringUtils.h"
 #include "../system/Allocator.h"

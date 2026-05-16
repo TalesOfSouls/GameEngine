@@ -13,7 +13,7 @@
 #include "ChunkMemoryT.h"
 #include "../utils/BitUtils.h"
 #include "ChunkMemory.cpp"
-#include "BufferMemory.h"
+#include "BufferMemory.cpp"
 #include "../system/Allocator.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"

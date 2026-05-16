@@ -19,7 +19,7 @@
 #include "../thread/ThreadDefines.h"
 #include "../system/Allocator.h"
 #include "MemoryArena.h"
-#include "BufferMemory.h"
+#include "BufferMemory.cpp"
 #include "ChunkMemory.h"
 #include "../thread/Thread.h"
 #include "../thread/Semaphore.h"

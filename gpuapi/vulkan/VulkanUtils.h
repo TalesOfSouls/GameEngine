@@ -30,7 +30,7 @@
 #include "../../log/Log.h"
 #include "../../log/Stats.h"
 #include "../../log/PerformanceProfiler.h"
-#include "../../memory/RingMemory.cpp"
+#include "../../memory/BufferMemory.cpp"
 #include "ShaderUtils.h"
 #include "FramesInFlightContainer.h"
 
@@ -91,11 +91,15 @@ void change_viewport(
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 }
 
-int32 vulkan_check_validation_layer_support(const char** validation_layers, uint32 validation_layer_count, RingMemory* const ring) {
+int32 vulkan_check_validation_layer_support(
+    const char** validation_layers, uint32 validation_layer_count,
+    BufferMemory* const mem
+) {
     uint32 layer_count;
     vkEnumerateInstanceLayerProperties(&layer_count, NULL);
 
-    VkLayerProperties* available_layers = (VkLayerProperties *) memory_get(ring, layer_count * sizeof(VkLayerProperties));
+    VkLayerProperties* available_layers;
+    BUFFER_STACK_MEMORY(mem, (byte **) &available_layers, layer_count * sizeof(VkLayerProperties), alignof(VkLayerProperties));
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
 
     for (uint32 i = 0; i < validation_layer_count; ++i) {
@@ -116,11 +120,15 @@ int32 vulkan_check_validation_layer_support(const char** validation_layers, uint
     return 0;
 }
 
-int32 vulkan_check_extension_support(const char** extensions, uint32 extension_count, RingMemory* const ring) {
+int32 vulkan_check_extension_support(
+    const char** extensions, uint32 extension_count,
+    BufferMemory* const mem
+) {
     uint32 ext_count;
     vkEnumerateInstanceExtensionProperties(NULL, &ext_count, NULL);
 
-    VkExtensionProperties* available_extensions = (VkExtensionProperties *) memory_get(ring, ext_count * sizeof(VkExtensionProperties));
+    VkExtensionProperties* available_extensions;
+    BUFFER_STACK_MEMORY(mem, (byte **) &available_extensions, ext_count * sizeof(VkExtensionProperties), alignof(VkExtensionProperties));
     vkEnumerateInstanceExtensionProperties(NULL, &ext_count, available_extensions);
 
     for (uint32 i = 0; i < extension_count; ++i) {
@@ -178,11 +186,11 @@ void gpuapi_debug_messenger_setup(VkInstance instance, VkDebugUtilsMessengerEXT*
 void vulkan_instance_create(
     VkInstance* instance, const char** extensions, uint32 extension_count,
     const char** validation_layers = NULL, uint32 validation_layer_count = 0,
-    RingMemory* const ring = NULL
+    BufferMemory* const mem = NULL
 ) {
     int32 err;
     if (validation_layer_count
-        && (err = vulkan_check_validation_layer_support(validation_layers, validation_layer_count, ring))
+        && (err = vulkan_check_validation_layer_support(validation_layers, validation_layer_count, mem))
     ) {
         LOG_1("Vulkan validation_layer missing: %d", {DATA_TYPE_CHAR_STR, (void *) validation_layers[-err - 1]});
         ASSERT_THROW();
@@ -191,7 +199,7 @@ void vulkan_instance_create(
     }
 
     if (extension_count
-        && (err = vulkan_check_extension_support(extensions, extension_count, ring))
+        && (err = vulkan_check_extension_support(extensions, extension_count, mem))
     ) {
         LOG_1("Vulkan extension missing: %d", {DATA_TYPE_CHAR_STR, (void *) extensions[-err - 1]});
         ASSERT_THROW();
@@ -256,11 +264,12 @@ void vulkan_surface_create(VkInstance instance, VkSurfaceKHR* const surface, Win
     #endif
 }
 
-bool vulkan_device_supports_extensions(VkPhysicalDevice device, const char** device_extensions, uint32 device_extension_count, RingMemory* const ring) {
+bool vulkan_device_supports_extensions(VkPhysicalDevice device, const char** device_extensions, uint32 device_extension_count, BufferMemory* const mem) {
     uint32 extension_count;
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, NULL);
 
-    VkExtensionProperties* available_extensions = (VkExtensionProperties *) memory_get(ring, extension_count * sizeof(VkExtensionProperties));
+    VkExtensionProperties* available_extensions;
+    BUFFER_STACK_MEMORY(mem, (byte **) &available_extensions, extension_count * sizeof(VkExtensionProperties), alignof(VkExtensionProperties));
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, available_extensions);
 
     for (uint32 i = 0; i < device_extension_count; ++i) {
@@ -282,31 +291,37 @@ bool vulkan_device_supports_extensions(VkPhysicalDevice device, const char** dev
 
 // @todo Allow to fill array
 inline
-void vulkan_available_layers(RingMemory* const ring) {
+void vulkan_available_layers(BufferMemory* const mem) {
     uint32 layer_count;
     vkEnumerateInstanceLayerProperties(&layer_count, NULL);
 
-    VkLayerProperties* available_layers = (VkLayerProperties *) memory_get(ring, layer_count * sizeof(VkLayerProperties));
+    VkLayerProperties* available_layers;
+    BUFFER_STACK_MEMORY(mem, (byte **) &available_layers, layer_count * sizeof(VkLayerProperties), alignof(VkLayerProperties));
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
 }
 
 // @todo Allow to fill array
 inline
-void vulkan_available_extensions(RingMemory* const ring) {
+void vulkan_available_extensions(BufferMemory* const mem) {
     uint32 extension_count;
     vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
 
-    VkExtensionProperties* available_extensions = (VkExtensionProperties *) memory_get(ring, extension_count * sizeof(VkExtensionProperties));
+    VkExtensionProperties* available_extensions;
+    BUFFER_STACK_MEMORY(mem, (byte **) &available_extensions, extension_count * sizeof(VkExtensionProperties), alignof(VkExtensionProperties));
     vkEnumerateInstanceExtensionProperties(NULL, &extension_count, available_extensions);
 }
 
-VulkanQueueFamilyIndices vulkan_find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR surface, RingMemory* const ring)
+VulkanQueueFamilyIndices vulkan_find_queue_families(
+    VkPhysicalDevice physical_device, VkSurfaceKHR surface,
+    BufferMemory* const mem
+)
 {
     VulkanQueueFamilyIndices indices = { -1, -1 };
     uint32 queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, NULL);
 
-    VkQueueFamilyProperties* queue_families = (VkQueueFamilyProperties *) memory_get(ring, (queue_family_count + 1) * sizeof(VkQueueFamilyProperties));
+    VkQueueFamilyProperties* queue_families;
+    BUFFER_STACK_MEMORY(mem, (byte **) &queue_families, (queue_family_count + 1) * sizeof(VkQueueFamilyProperties), alignof(VkQueueFamilyProperties));
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_families);
 
     for (uint32 i = 0; i < queue_family_count; ++i) {
@@ -337,22 +352,24 @@ VulkanQueueFamilyIndices vulkan_find_queue_families(VkPhysicalDevice physical_de
 }
 
 // WARNING: Since we use a RingMemory for the data, we need to copy it if we want it to be persistent
-VulkanSwapChainSupportDetails vulkan_query_swap_chain_support(VkPhysicalDevice physical_device, VkSurfaceKHR surface, RingMemory* const ring)
+VulkanSwapChainSupportDetails vulkan_query_swap_chain_support(VkPhysicalDevice physical_device, VkSurfaceKHR surface, BufferMemory* const mem)
 {
     VulkanSwapChainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &details.capabilities);
 
     vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &details.format_size, NULL);
 
+    BUFFER_STACK_MEMORY_START(mem);
+
     if (details.format_size) {
-        details.formats = (VkSurfaceFormatKHR *) memory_get(ring, (details.format_size + 1) * sizeof(VkSurfaceFormatKHR));
+        details.formats = (VkSurfaceFormatKHR *) memory_get(mem, (details.format_size + 1) * sizeof(VkSurfaceFormatKHR), alignof(VkSurfaceFormatKHR));
         vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &details.format_size, details.formats);
     }
 
     vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &details.present_mode_size, NULL);
 
     if (details.present_mode_size) {
-        details.present_modes = (VkPresentModeKHR *) memory_get(ring, (details.present_mode_size + 1) * sizeof(VkPresentModeKHR));
+        details.present_modes = (VkPresentModeKHR *) memory_get(mem, (details.present_mode_size + 1) * sizeof(VkPresentModeKHR), alignof(VkPresentModeKHR));
         vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &details.present_mode_size, details.present_modes);
     }
 
@@ -360,14 +377,14 @@ VulkanSwapChainSupportDetails vulkan_query_swap_chain_support(VkPhysicalDevice p
 }
 
 inline
-bool vulkan_is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR surface, const char** device_extensions, uint32 device_extension_count, RingMemory* const ring)
+bool vulkan_is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR surface, const char** device_extensions, uint32 device_extension_count, BufferMemory* const mem)
 {
-    VulkanQueueFamilyIndices indices = vulkan_find_queue_families(physical_device, surface, ring);
-    bool extensions_supported = vulkan_device_supports_extensions(physical_device, device_extensions, device_extension_count, ring);
+    VulkanQueueFamilyIndices indices = vulkan_find_queue_families(physical_device, surface, mem);
+    bool extensions_supported = vulkan_device_supports_extensions(physical_device, device_extensions, device_extension_count, mem);
 
     bool swap_chain_adequate = false;
     if (extensions_supported) {
-        VulkanSwapChainSupportDetails swap_chain_support = vulkan_query_swap_chain_support(physical_device, surface, ring);
+        VulkanSwapChainSupportDetails swap_chain_support = vulkan_query_swap_chain_support(physical_device, surface, mem);
         swap_chain_adequate = swap_chain_support.format_size && swap_chain_support.present_modes;
     }
 
@@ -379,16 +396,17 @@ bool vulkan_is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR su
 inline
 void gpuapi_pick_physical_device(
     VkInstance instance, VkSurfaceKHR surface, VkPhysicalDevice* physical_device,
-    const char** device_extensions, uint32 device_extension_count, RingMemory* const ring
+    const char** device_extensions, uint32 device_extension_count, BufferMemory* const mem
 ) {
     uint32 device_count;
     vkEnumeratePhysicalDevices(instance, &device_count, NULL);
 
-    VkPhysicalDevice* devices = (VkPhysicalDevice *) memory_get(ring, device_count * sizeof(VkPhysicalDevice));
+    VkPhysicalDevice* devices;
+    BUFFER_STACK_MEMORY(mem, (byte **) &devices, device_count * sizeof(VkPhysicalDevice), alignof(VkPhysicalDevice));
     vkEnumeratePhysicalDevices(instance, &device_count, devices);
 
     for (uint32 i = 0; i < device_count; ++i) {
-        if (vulkan_is_device_suitable(devices[i], surface, device_extensions, device_extension_count, ring)) {
+        if (vulkan_is_device_suitable(devices[i], surface, device_extensions, device_extension_count, mem)) {
             // @question Do we really have to do a memcpy or could we just assign? Isn't VkPhysicalDevice just a pointer internally?
             memcpy(physical_device, &devices[i], sizeof(VkPhysicalDevice));
             return;
@@ -403,9 +421,9 @@ void gpuapi_create_logical_device(
     VkSurfaceKHR surface, VkDevice* device, VkPhysicalDevice physical_device,
     VkQueue* graphics_queue, VkQueue* present_queue,
     const char** device_extensions, uint32 device_extension_count,
-    const char** validation_layers, uint32 validation_layer_count, RingMemory* const ring
+    const char** validation_layers, uint32 validation_layer_count, BufferMemory* const mem
 ) {
-    VulkanQueueFamilyIndices indices = vulkan_find_queue_families(physical_device, surface, ring);
+    VulkanQueueFamilyIndices indices = vulkan_find_queue_families(physical_device, surface, mem);
 
     // @question Here and in many other places we use the heap, why?
     //          Shouldn't it be much better to use the stack for such small structs?
@@ -462,9 +480,9 @@ void gpuapi_create_logical_device(
 void gpuapi_swapchain_create(
     VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface,
     VkSwapchainKHR* swapchain, VkFormat* swapchain_image_format, VkExtent2D* swapchain_extent,
-    Window* const window, RingMemory* const ring
+    Window* const window, BufferMemory* const mem
 ) {
-    VulkanSwapChainSupportDetails swap_chain_support = vulkan_query_swap_chain_support(physical_device, surface, ring);
+    VulkanSwapChainSupportDetails swap_chain_support = vulkan_query_swap_chain_support(physical_device, surface, mem);
 
     VkSurfaceFormatKHR* surface_format = &swap_chain_support.formats[0];
     for (uint32 i = 0; i < swap_chain_support.format_size; ++i) {
@@ -518,7 +536,7 @@ void gpuapi_swapchain_create(
     create_info.imageArrayLayers = 1;
     create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    VulkanQueueFamilyIndices indices = vulkan_find_queue_families(physical_device, surface, ring);
+    VulkanQueueFamilyIndices indices = vulkan_find_queue_families(physical_device, surface, mem);
 
     if (indices.graphics_family != indices.present_family) {
         create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -684,9 +702,9 @@ void vulkan_framebuffer_create(
 
 void vulkan_command_pool_create(
     VkDevice device, VkCommandPool* command_pool,
-    VkPhysicalDevice physical_device, VkSurfaceKHR surface, RingMemory* const ring
+    VkPhysicalDevice physical_device, VkSurfaceKHR surface, BufferMemory* const mem
 ) {
-    VulkanQueueFamilyIndices queue_family_indices = vulkan_find_queue_families(physical_device, surface, ring);
+    VulkanQueueFamilyIndices queue_family_indices = vulkan_find_queue_families(physical_device, surface, mem);
 
     VkCommandPoolCreateInfo pool_info = {0};
     pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

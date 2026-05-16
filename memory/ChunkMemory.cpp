@@ -16,7 +16,7 @@
 #include "../log/Stats.h"
 #include "../log/PerformanceProfiler.h"
 #include "../log/DebugMemory.h"
-#include "BufferMemory.h"
+#include "BufferMemory.cpp"
 #include "../system/Allocator.h"
 
 FORCE_INLINE
@@ -810,6 +810,13 @@ void chunk_free_elements(ChunkMemory* const buf, uint32 element, uint32 element_
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size * element_count);
 }
 
+FORCE_INLINE
+void thrd_chunk_free_elements(ChunkMemory* const buf, uint32 element, uint32 element_count = 1) NO_EXCEPT
+{
+    MutexGuard _guard(&buf->lock);
+    chunk_free_elements((ChunkMemory *) buf, element, element_count);
+}
+
 inline
 void thrd_chunk_free_elements_atomic_internal(uint_max* const state, uint_max element, uint32 element_count = 1) NO_EXCEPT
 {
@@ -920,6 +927,77 @@ byte* memory_get(ChunkMemory* const buf, size_t size) NO_EXCEPT
 {
     return chunk_memory_get(buf, (uint32) ((size + buf->chunk_size - 1) / buf->chunk_size));
 }
+
+inline HOT_CODE
+byte* thrd_chunk_memory_get(ChunkMemory* const buf, uint32 elements) NO_EXCEPT
+{
+    MutexGuard _guard(&buf->lock);
+    return chunk_memory_get(buf, elements);
+}
+
+inline HOT_CODE
+byte* thrd_memory_get(ChunkMemory* const buf, size_t size) NO_EXCEPT
+{
+    MutexGuard _guard(&buf->lock);
+    return memory_get(buf, size);
+}
+
+/**
+ * This allows us to use the chunk memory similar to a stack which automatically cleans itself up after leaving scope
+ */
+struct ChunkStackMemory {
+    ChunkMemory* buffer;
+    uint32 element;
+    uint32 count;
+
+    HOT_CODE inline
+    explicit ChunkStackMemory(
+        ChunkMemory* buf,
+        byte** mem,
+        size_t size
+    ) NO_EXCEPT
+    {
+        this->count = (uint32) ((size + buf->chunk_size - 1) / buf->chunk_size);
+        this->element = chunk_reserve(buf, this->count);
+        this->buffer = buf;
+
+        *mem = chunk_get_element(buf, this->element);
+    }
+
+    HOT_CODE inline
+    ~ChunkStackMemory() NO_EXCEPT
+    {
+        chunk_free_elements(this->buffer, this->element, this->count);
+    }
+};
+#define CHUNK_STACK_MEMORY(buf, mem, size) ChunkStackMemory __chunk_stack_##__func__##_##__LINE__((buf), (mem), (size))
+
+struct ThrdChunkStackMemory {
+    ChunkMemory* buffer;
+    uint32 element;
+    uint32 count;
+
+    HOT_CODE inline
+    explicit ThrdChunkStackMemory(
+        ChunkMemory* buf,
+        byte** mem,
+        size_t size
+    ) NO_EXCEPT
+    {
+        this->count = (uint32) ((size + buf->chunk_size - 1) / buf->chunk_size);
+        this->element = thrd_chunk_reserve(buf, this->count);
+        this->buffer = buf;
+
+        *mem = chunk_get_element(buf, this->element);
+    }
+
+    HOT_CODE inline
+    ~ThrdChunkStackMemory() NO_EXCEPT
+    {
+        thrd_chunk_free_elements(this->buffer, this->element, this->count);
+    }
+};
+#define THRD_CHUNK_STACK_MEMORY(buf, mem, size) ThrdChunkStackMemory __thrd_chunk_stack_##__func__##_##__LINE__((buf), (mem), (size))
 
 inline HOT_CODE
 byte* chunk_memory_get_one(ChunkMemory* const buf) NO_EXCEPT

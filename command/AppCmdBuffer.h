@@ -12,7 +12,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemoryT.h"
-#include "../memory/RingMemory.cpp"
+#include "../memory/ChunkMemory.h"
 #include "../audio/AudioMixer.h"
 #include "../asset/AssetArchive.h"
 #include "../gpuapi/GpuApiType.h"
@@ -36,7 +36,7 @@ struct AppCmdBuffer {
     //      Especially the file_read function currently doesn't use a multi threaded ring usage
     //      We probably need thrd_file_read. I don't like it a file_read overload would be nicer for ThreadedRingMemory,
     //      but we discarded ThreadedRingMemory and put it in the normal RingMemory.
-    RingMemory* mem_vol;
+    ChunkMemory* mem;
     AssetManagementSystem* ams;
     AssetArchive* asset_archives;
     QueueT<int32>* assets_to_load;
