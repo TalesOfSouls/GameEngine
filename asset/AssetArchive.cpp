@@ -31,11 +31,27 @@
 
 /**
  * We store the archive id in the asset id (1 byte)
+ * This macro simplifies reading that archive id from the asset id
  */
-#define ARCHIVE_ID_FROM_ASSET_ID(id) ((id) >> 24) & 0xFF
+#define ARCHIVE_ID_FROM_ASSET_ID(asset_id) (((asset_id) >> 24) & 0xFF)
 
-// Calculates how much data I have to read from the archive file to completely parse the header
-// This includes all the data itself
+/**
+ * We store the archive id in the asset id (1 byte)
+ * This macro simplifies reading the raw asset id without the archive id
+ */
+#define ASSET_RAW_ID_FROM_ID(asset_id) ((asset_id) & 0x00FFFFFF)
+
+/**
+ * Builds the asset id from the raw asset id and the archive id into one combined id
+ */
+#define ASSET_ID_FROM_ARCHIVE_AND_ASSET(raw_asset_id, archive_id) ((raw_asset_id) | ((archive_id) << 24))
+
+/**
+ * Calculates the header size.
+ * In other words how much data you have to read from the archive file to completely parse the header
+ * This includes all the data incl. the dependency array per element
+ * Based on this information you can then navigate the archive file to find your assets
+ */
 static inline
 int32 asset_archive_header_size(
     const AssetArchive* const __restrict archive,
@@ -59,38 +75,6 @@ int32 asset_archive_header_size(
         + sizeof(archive->header.asset_dependency_count)
         + asset_count * sizeof(AssetArchiveElement)
         + asset_dependency_count * sizeof(int32);
-}
-
-// Calculates how much data I have to read from the archive file to completely parse the header
-inline
-void asset_archive_info_size(
-    const wchar_t* path,
-    AssetArchiveHeader* const __restrict header
-) NO_EXCEPT
-{
-    FileHandle fd = file_read_handle(path);
-    if (!fd) {
-        return;
-    }
-
-    const CONSTEXPR size_t header_info_size = sizeof(AssetArchiveHeader)
-        + MEMBER_SIZEOF(AssetArchiveHeader, version)
-        + MEMBER_SIZEOF(AssetArchiveHeader, asset_count)
-        + MEMBER_SIZEOF(AssetArchiveHeader, asset_dependency_count);
-
-    byte temp_buffer[header_info_size];
-
-    FileBody file = {0};
-
-    // We only want to read the header at first
-    file.size = header_info_size;
-    file.content = temp_buffer;
-    file_read(fd, &file, 0, file.size);
-
-    const byte* data = file.content;
-    data = read_le(data, &header->version);
-    data = read_le(data, &header->asset_count);
-    read_le(data, &header->asset_dependency_count);
 }
 
 static inline
@@ -136,14 +120,6 @@ void asset_archive_header_load(
             steps
         );
     }
-
-    /*
-    size_t total = 0;
-    for (uint32 i = 0; i < header->asset_count; ++i) {
-        size_t uncompressed = header->asset_element[i].uncompressed;
-        total += uncompressed;
-    }
-    */
 }
 
 FORCE_INLINE
@@ -177,8 +153,14 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
     }
 }
 
-// Asset archives files remain open from the _load() function
-// They need to be explicitly closed when no longer needed.
+/**
+ * Asset archives files remain open from the _load() function
+ * They need to be explicitly closed when no longer needed.
+ *
+ * @param AssetArchive* archive Archive
+ *
+ * @return void
+ */
 inline
 void asset_archive_close(AssetArchive* const archive) {
     file_close_handle(archive->fd);
@@ -322,17 +304,15 @@ Asset* const asset_archive_asset_load(
     // @todo add calculation from element->type to ams index. Probably requires an app specific conversion function
 
     // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
-    const AssetArchiveElement* const element = &archive->header.asset_element[id & 0x00FFFFFF];
+    const AssetArchiveElement* const element = &archive->header.asset_element[ASSET_RAW_ID_FROM_ID(id)];
 
     ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
     ASSERT_TRUE(element->uncompressed > 0);
-    const byte component_id = archive->asset_type_map[element->type];
 
     LOG_2(
-        "[INFO] Load asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
+        "[INFO] Load asset %d from archive %d with %n B compressed and %n B uncompressed",
         {DATA_TYPE_UINT64, &id},
         {DATA_TYPE_UINT32, &element->type},
-        {DATA_TYPE_UINT8, &component_id},
         {DATA_TYPE_UINT32, &element->length},
         {DATA_TYPE_UINT32, &element->uncompressed}
     );
@@ -352,7 +332,10 @@ Asset* const asset_archive_asset_load(
     // A solution could be a function called thrd_ams_get_reserve_wait() that reserves, if not available
     // However, that function would have to lock the ams during that entire time
     if (element->type == ASSET_TYPE_GENERAL) {
-        asset = thrd_ams_reserve_asset(ams, (byte) component_id, id_str, element->uncompressed);
+        /**
+         * General asset types have a general compression and don't need specific loading logic
+         */
+        asset = thrd_ams_reserve_asset(ams, id_str, element->uncompressed);
         asset->official_id = id;
         asset->ram_size = element->uncompressed;
 
@@ -364,6 +347,11 @@ Asset* const asset_archive_asset_load(
         // We are directly reading into the correct destination
         file_read(archive->fd, &file, element->start, element->length);
     } else {
+        /**
+         * All other types have asset specific loading
+         * This determins how the data is loaded, decompressed and possibly stored into objects
+         */
+
         // @performance In this case we may want to check if memory mapped regions are better.
         // 1. I don't think they work together with async loading
         // 2. Profile which one is faster
@@ -387,7 +375,7 @@ Asset* const asset_archive_asset_load(
         //              e.g. check TextureAtlas, Font, ...
         //              The reason for this is we don't calculate the exact required size to avoid a pre-parsing of the file
         //              On the other hand would pre-parsing really be that bad?
-        asset = thrd_ams_reserve_asset(ams, (byte) component_id, id_str, element->uncompressed + asset_type_size(element->type));
+        asset = thrd_ams_reserve_asset(ams, id_str, element->uncompressed + asset_type_size(element->type));
         asset->official_id = id;
 
         asset->state |= ASSET_STATE_IN_RAM;
@@ -461,10 +449,9 @@ Asset* const asset_archive_asset_load(
     thrd_ams_set_loaded(asset);
 
     LOG_2(
-        "[INFO] Loaded asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
+        "[INFO] Loaded asset %d from archive %d with %n B compressed and %n B uncompressed",
         {DATA_TYPE_UINT64, &id},
         {DATA_TYPE_UINT32, &element->type},
-        {DATA_TYPE_UINT8, &component_id},
         {DATA_TYPE_UINT32, &element->length},
         {DATA_TYPE_UINT32, &element->uncompressed}
     );

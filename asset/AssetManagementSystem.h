@@ -16,6 +16,7 @@
 #include "../thread/ThreadDefines.h"
 
 enum AssetManagementType {
+    AMS_TYPE_VERY_SMALL,
     AMS_TYPE_SMALL,
     AMS_TYPE_MEDIUM,
     AMS_TYPE_LARGE,

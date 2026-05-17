@@ -37,4 +37,13 @@ const uint32 default_colors_256[256] = {
 // @todo Implement (extends the default_colors_256 -> both together form 1024 colors)
 const uint32 default_colors_768[768] = {0};
 
+#define COLOR_WHITE_RGBA 0xFFFFFFFF
+#define COLOR_RED_RGBA 0xFF0000FF
+#define COLOR_GREEN_RGBA 0x00FF00FF
+#define COLOR_BLUE_RGBA 0x0000FFFF
+#define COLOR_BLACK_RGBA 0x000000FF
+#define COLOR_YELLOW_RGBA 0xFFFF00FF
+#define COLOR_PURPLE_RGBA 0xFF00FFFF
+#define COLOR_CYAN_RGBA 0x00FFFFFF
+
 #endif

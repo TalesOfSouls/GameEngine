@@ -455,6 +455,9 @@ void thrd_queue_enqueue_wait(QueueT<T>* __restrict queue, const T* __restrict da
     coms_pthread_cond_signal(&queue->cond);
 }
 
+/**
+ * Enqueues data into a queue and waits until the enqueue was successful
+ */
 template <typename T>
 inline
 void thrd_queue_enqueue_wait(QueueT<T>* __restrict queue, T data) NO_EXCEPT

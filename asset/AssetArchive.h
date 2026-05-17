@@ -77,11 +77,6 @@ struct AssetArchive {
     // @performance We still need to implement the loading with this and then profile it to see if it is faster.
     // If not remove
     MMFHandle mmf;
-
-    // This is used to tell the asset archive in which AssetManagementSystem (AMS) which asset type is located.
-    // Remember, many AMS only contain one asset type (e.g. image, audio, ...)
-    // The reason for that is that different asset types need different chunk sizes
-    byte asset_type_map[ASSET_TYPE_SIZE];
 };
 
 #endif

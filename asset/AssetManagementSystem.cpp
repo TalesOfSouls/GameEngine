@@ -398,8 +398,48 @@ void thrd_ams_remove_asset(AssetManagementSystem* const ams, const char* name, A
 
 // @todo implement defragment command to optimize memory layout since the memory layout will become fragmented over time
 
-Asset* ams_reserve_asset(AssetManagementSystem* const ams, byte type, const char* name, uint32 size, uint32 overhead = 0) NO_EXCEPT
+/**
+ * Finds the best component match based on requested size
+ */
+static inline
+byte ams_component_find_type(const AssetManagementSystem* const ams, uint32 size, uint32 overhead)
 {
+    const f32 required_size = (f32) (size + overhead);
+
+    byte type = 0;
+
+    for (int i = 1; i < AMS_TYPE_SIZE; ++i) {
+        // How often does the previous components chunk size fit into this larger chunk size
+        const f32 multiple_increase = (f32) ams->asset_components[i].asset_memory.chunk_size
+            / (f32) ams->asset_components[i - 1].asset_memory.chunk_size;
+
+        const f32 chunk_size = (f32) ams->asset_components[i].asset_memory.chunk_size;
+
+        // @todo we should also check if there is still room available in this component
+        //      or one step further how much of the total chunks this one would occupy and if it is > 20% go to next component
+        // 1. Does the required size still not fit into one chunk than this new component is better anyways
+        // 2. If it does fit in we ensure that the wasted memory is less than the previous multiple increase
+        if (required_size / chunk_size >= 1.0f
+            || multiple_increase * ams->asset_components[i - 1].asset_memory.chunk_size >= (1.0f - (required_size / chunk_size)) * chunk_size
+        ) {
+            type = (byte) i;
+        } else {
+            // @todo fix this if/else we shouldn't have both we should negate the if and return type;
+            return type;
+        }
+    }
+
+    return type;
+}
+
+Asset* ams_reserve_asset(
+    AssetManagementSystem* const ams,
+    const char* name,
+    uint32 size, uint32 overhead = 0
+) NO_EXCEPT
+{
+    const byte type = ams_component_find_type(ams, size, overhead);
+
     AssetComponent* const ac = &ams->asset_components[type];
     const uint16 elements = ams_calculate_chunks(ac, size, overhead);
 
@@ -429,10 +469,12 @@ Asset* ams_reserve_asset(AssetManagementSystem* const ams, byte type, const char
 inline
 Asset* thrd_ams_reserve_asset(
     AssetManagementSystem* const ams,
-    byte type, const char* name,
+    const char* name,
     uint32 size, uint32 overhead = 0
 ) NO_EXCEPT
 {
+    const byte type = ams_component_find_type(ams, size, overhead);
+
     AssetComponent* const ac = &ams->asset_components[type];
     const uint16 elements = ams_calculate_chunks(ac, size, overhead);
 

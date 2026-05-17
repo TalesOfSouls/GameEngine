@@ -315,7 +315,11 @@ void stats_log_to_file() NO_EXCEPT
     #define STATS_INCREMENT_BY_PERSISTENT(a, b) ((void) 0)
     #define STATS_DECREMENT_PERSISTENT(a) ((void) 0)
     #define STATS_DECREMENT_BY_PERSISTENT(a, b) ((void) 0)
+
     #define STATS_COUNTER_PERSISTENT(a, b) ((void) 0)
+
+    #define STATS_MAX_PERSISTENT(a, b) ((void) 0)
+    #define STATS_MIN_PERSISTENT(a, b) ((void) 0)
 #else
     #define STATS_INCREMENT(a) stats_increment((a), 1)
     #define STATS_INCREMENT_BY(a, b) stats_increment((a), (b))
