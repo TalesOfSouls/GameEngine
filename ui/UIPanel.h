@@ -5,13 +5,15 @@
 #include "../stdlib/Stdlib.h"
 #include "attribute/UIAttributeDimension.h"
 #include "attribute/UIAttributeBackground.h"
+#include "UICore.h"
+
 
 struct UIPanelState {
 };
 
 struct UIPanel {
+    UICore core;
     UIAttributeBackground background_style;
-    UIAttributeDimension dimension;
     // @todo also needs color and texture
 };
 

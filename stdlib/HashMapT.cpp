@@ -15,7 +15,7 @@
 #include "../memory/ChunkMemoryT.cpp"
 
 template <typename T>
-FORCE_INLINE
+inline
 void hashmap_alloc(HashMapT<T>* const hm, int32 capacity, int32 max_capacity, int32 alignment = 32) NO_EXCEPT
 {
     // This ensures 4 byte alignment
@@ -35,7 +35,7 @@ void hashmap_free(HashMapT<T>* const hm) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
+inline
 void hashmap_alloc(HashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int32 max_capacity, int32 alignment = 32) NO_EXCEPT
 {
     // This ensures 4 byte alignment
@@ -47,11 +47,34 @@ void hashmap_alloc(HashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int3
     chunk_alloc(&hm->buf, mem, capacity, max_capacity, alignment);
 }
 
+// Alignment 32 so we can get 2 elements per cache line
+template <typename T>
+inline
+void hashmap_create(HashMapT<T>* const hm, int32 count, byte* const buf, int32 alignment = 32) NO_EXCEPT
+{
+    LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
+    hm->hash_function = hash_djb2;
+    chunk_init(&hm->buf, buf, count, alignment);
+
+    ASSERT_MEM_ZERO(
+        hm->buf.memory,
+        count * sizeof(T)
+        + ceil_div(count, (int32) sizeof(uint_max) * 8) * sizeof(hm->buf.free)
+    );
+}
+
 template <typename T>
 FORCE_INLINE
 void hashmap_free(HashMapT<T>* const hm, MemoryArena* mem) NO_EXCEPT
 {
     chunk_free(&hm->buf, mem);
+}
+
+template <typename T>
+FORCE_INLINE
+int64 hashmap_size(const HashMapT<T>* const hm) NO_EXCEPT
+{
+    return hm->buf.capacity * sizeof(T);
 }
 
 template <typename T, typename V>
@@ -167,7 +190,7 @@ T* hashmap_get_reserve(HashMapT<T>* const __restrict hm, const char* __restrict 
 
 template <typename T>
 inline
-T* hashmap_get_entry(HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
+T* hashmap_get_entry(const HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
     if (chunk_is_free(&hm->buf, index)) {
@@ -300,6 +323,14 @@ void hashmap_remove(HashMapT<T>* const hm, K key) NO_EXCEPT
     }
 }
 
+/**
+ * Binary representation:
+ *
+ * 00 01 02 03 = capacity
+ * 04 05 06 07 = last_pos
+ * 08 09 0A 0B = free_offset
+ * 0C .. .. .. = hash map data
+ */
 template <typename T>
 int64 hashmap_dump(const HashMapT<T>* const hm, byte* data, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {
@@ -309,7 +340,8 @@ int64 hashmap_dump(const HashMapT<T>* const hm, byte* data, MAYBE_UNUSED int32 s
     // Dump Chunk memory
     data += chunk_dump(&hm->buf, data);
 
-    // @todo change endian of hashmap next "pointer" and values?
+    // @bug change endian of hashmap next "pointer" and values?
+    // Since we just dump the chunk memory we may have different endian between the saving and the loading system
 
     PSEUDO_USE(steps);
 
@@ -326,7 +358,8 @@ int64 hashmap_load(HashMapT<T>* const hm, const byte* data, MAYBE_UNUSED int32 s
     // Load chunk memory
     data += chunk_load(&hm->buf, data);
 
-    // @todo change endian of hashmap next "pointer" and values?
+    // @bug change endian of hashmap next "pointer" and values?
+    // Since we just dump the chunk memory we may have different endian between the saving and the loading system
 
     PSEUDO_USE(steps);
 

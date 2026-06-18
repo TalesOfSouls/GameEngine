@@ -21,6 +21,7 @@
 #include "../thread/Semaphore.h"
 #include "../system/Allocator.h"
 #include "../thread/Thread.h"
+#include "../thread/ThreadHelper.cpp"
 
 #include "RingMemory.h"
 

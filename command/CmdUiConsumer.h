@@ -46,9 +46,9 @@ UILayout* cmd_layout_load_sync(
 
 // @question Why does this not need the screen dimension but layout does
 inline
-UIThemeStyle* cmd_theme_load_sync(
+UITheme* cmd_theme_load_sync(
     BufferMemory* const __restrict mem,
-    UIThemeStyle* const __restrict theme, const wchar_t* const __restrict theme_path
+    UITheme* const __restrict theme, const wchar_t* const __restrict theme_path
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -64,7 +64,7 @@ UIThemeStyle* cmd_theme_load_sync(
 
 FORCE_INLINE
 void cmd_layout_populate_sync(
-    UILayout* layout, const UIThemeStyle* theme
+    UILayout* layout, const UITheme* theme
 ) NO_EXCEPT
 {
     layout_from_theme(layout, theme);
@@ -75,9 +75,9 @@ inline
 UILayout* cmd_ui_load_sync(
     BufferMemory* const __restrict mem,
     UILayout* const __restrict layout, const wchar_t* const __restrict layout_path,
-    UIThemeStyle* const __restrict general_theme,
-    UIThemeStyle* const __restrict theme, const wchar_t* const __restrict theme_path,
-    const Camera* const __restrict camera
+    UITheme* const __restrict general_theme,
+    UITheme* const __restrict theme, const wchar_t* const __restrict theme_path,
+    const Camera* const __restrict
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_CMD_UI_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -90,16 +90,8 @@ UILayout* cmd_ui_load_sync(
         return NULL;
     }
 
-    cmd_layout_populate_sync(layout, general_theme);
     cmd_theme_load_sync(mem, theme, theme_path);
-    cmd_layout_populate_sync(layout, theme);
-
-    UIElement* const root = layout_get_element(layout, "root");
-    UIWindow* const default_style = (UIWindow *) layout_get_element_style(layout, root, UI_STYLE_TYPE_DEFAULT);
-    if (default_style) {
-        default_style->dimension.dimension.width = camera->viewport_width;
-        default_style->dimension.dimension.height = camera->viewport_height;
-    }
+    layout_from_theme(layout, theme, true);
 
     return layout;
 }

@@ -39,7 +39,7 @@ struct file_suffix_array<wchar_t>
 
 template <typename C, typename T>
 inline
-bool file_write_secure(const C* const path, FileBody* const file, T* const mem) NO_EXCEPT
+bool file_write_secure(const C* const path, const FileBody* const file, T* const mem) NO_EXCEPT
 {
     C temp_path[PATH_MAX_LENGTH];
     const size_t path_len = str_length(path);
@@ -140,7 +140,7 @@ void filename(const C* path, C* out) NO_EXCEPT
 
 template <typename C>
 inline
-C* filename(const C* path) NO_EXCEPT
+C* filename(C* path) NO_EXCEPT
 {
     C* start = str_right(path, (C) '/');
     if (!start) {

@@ -13,7 +13,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemoryT.cpp"
 #include "../memory/QueueT.cpp"
-#include "../thread/ThreadDefines.h"
+#include "../thread/ThreadHelper.cpp"
 #include "AppCommand.h"
 
 // General purpose cmd command enqueue

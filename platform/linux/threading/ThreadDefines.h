@@ -15,6 +15,7 @@
 
 #include "../../../stdlib/Stdlib.h"
 #include "../../../thread/Atomic.h"
+#include "../../../log/PerformanceProfiler.h"
 #include <linux/futex.h>
 #include <sys/syscall.h>
 

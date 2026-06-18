@@ -182,7 +182,7 @@ void vertex_circle_create(
 
     // Generate a triangle fan: center + pairs of edge vertices
 
-    int32 center_index = vertices->count;
+    const int32 center_index = vertices->count;
     array_vector_insert(vertices, {{cx, cy, zindex}, sampler, tex_center});
 
     // @performance For sure this is vectorizable (SIMD)
@@ -241,7 +241,7 @@ void vertex_arc_create(
     const f32 rx = dimension.width * 0.5f;
     const f32 ry = dimension.height * 0.5f;
 
-    int32 center_index = vertices->count;
+    const int32 center_index = vertices->count;
     array_vector_insert(vertices, {{cx, cy, zindex}, sampler, tex_center});
 
     // Generate a triangle fan over the arc
@@ -278,18 +278,14 @@ v2_f32 text_calculate_dimensions(
     const f32 line_height = font->base.line_height * scale;
     f32 x = 0;
     f32 y = line_height;
-
     f32 offset_x = 0;
 
     const Glyph* const base_glyphs = font->base.glyphs;
     const Glyph* const extended_glyphs = font->base.glyphs;
 
-    for (int32 i = 0; i < length; ++i) {
-        const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &base_glyphs[glyphs[i] & 0x7FFFu]
-            : &extended_glyphs[glyphs[i] & 0x7FFFu];
-
-        if (!glyph || glyph->codepoint == '\n') {
+    for (int i = 0; i < length; ++i) {
+        if (glyphs[i] == font->newline_id) {
+            // @performance calculating a new x after a line break seems wrong
             x = max_branched(x, offset_x);
             y += line_height;
 
@@ -297,6 +293,10 @@ v2_f32 text_calculate_dimensions(
 
             continue;
         }
+
+        const Glyph* const glyph = !(glyphs[i] & 0x8000)
+            ? &base_glyphs[glyphs[i]]
+            : &extended_glyphs[abs(glyphs[i])];
 
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
@@ -315,17 +315,18 @@ f32 text_calculate_dimensions_width(
     const Glyph* const base_glyphs = font->base.glyphs;
     const Glyph* const extended_glyphs = font->base.glyphs;
 
-    for (int32 i = 0; i < length; ++i) {
-        const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &base_glyphs[glyphs[i] & 0x7FFFu]
-            : &extended_glyphs[glyphs[i] & 0x7FFFu];
-
-        if (!glyph || glyph->codepoint == '\n') {
+    for (int i = 0; i < length; ++i) {
+        if (glyphs[i] == font->newline_id) {
+            // @performance calculating a new x after a new line feels wrong
             x = max_branched(x, offset_x);
             offset_x = 0;
 
             continue;
         }
+
+        const Glyph* const glyph = !(glyphs[i] & 0x8000)
+            ? &base_glyphs[glyphs[i]]
+            : &extended_glyphs[abs(glyphs[i])];
 
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
@@ -339,36 +340,19 @@ f32 text_calculate_dimensions_height(
 ) NO_EXCEPT
 {
     const f32 line_height = font->base.line_height * scale;
-    //f32 x = 0;
     f32 y = line_height;
 
-    //f32 offset_x = 0;
-
-    const Glyph* const base_glyphs = font->base.glyphs;
-    const Glyph* const extended_glyphs = font->base.glyphs;
-
-    for (int32 i = 0; i < length; ++i) {
-        const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &base_glyphs[glyphs[i] & 0x7FFFu]
-            : &extended_glyphs[glyphs[i] & 0x7FFFu];
-
-        if (!glyph || glyph->codepoint == '\n') {
-            //x = max_branched(x, offset_x);
+    // Now we just count how often that newline character exists
+    for (int i = 0; i < length; ++i) {
+        if (glyphs[i] == font->newline_id) {
             y += line_height;
-
-            //offset_x = 0;
-
-            //continue;
         }
-
-        //offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
 
     return y;
-    //return { max_branched(x, offset_x), y };
 }
 
-static HOT_CODE
+HOT_CODE
 v3_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
@@ -412,11 +396,7 @@ v3_int32 vertex_text_create(
     const Glyph* const extended_glyphs = font->base.glyphs;
 
     for (int32 i = 0; i < length; ++i) {
-        const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &base_glyphs[glyphs[i] & 0x7FFFu]
-            : &extended_glyphs[glyphs[i] & 0x7FFFu];
-
-        if (!glyph || glyph->codepoint == '\n') {
+        if (glyphs[i] == font->newline_id) {
             rendered_height += line_height_scaled;
             rendered_width = max_branched(rendered_width, offset_x - dimension.x);
 
@@ -425,6 +405,10 @@ v3_int32 vertex_text_create(
 
             continue;
         }
+
+        const Glyph* const glyph = !(glyphs[i] & 0x8000)
+            ? &base_glyphs[glyphs[i]]
+            : &extended_glyphs[abs(glyphs[i])];
 
         const GlyphMetrics* const metrics = &glyph->metrics;
         const f32 offset_y = dimension.y + metrics->offset_y * scale;
@@ -494,9 +478,11 @@ v3_int32 vertex_text_create(
     //alignas(alignof(size_t)) int16 glyphs[10000];
     for (int32 i = 0; i < length; ++i) {
         const int32 character = text[i];
+
+        // @question Do I even want to handle this in a special way?
+        //          This is no longer required if we force \n to be part of the glyph file
         if (character == '\n') {
-            // @todo change
-            glyphs[i] = 0;
+            glyphs[i] = font->newline_id;
             continue;
         }
 
@@ -519,8 +505,7 @@ v3_int32 vertex_text_create(
                 //      5. we probably need a custom struct for the hash map to also contain the priority for replacing elements
                 //hashmap_insert(&font->font_map, extended_glyph->codepoint, extended_glyph);
 
-                // @bug this is wrong
-                glyphs[i] = (extended_glyph & 0x7FFFu) | 0x8000;
+                glyphs[i] = extended_glyph | 0x8000;
 
                 font->has_changes = true;
             //} else {
@@ -567,12 +552,17 @@ v3_int32 vertex_text_create(
     int16* const glyphs = (int16*) memory_get(mem, length * sizeof(int16), alignof(uintptr_t));
     for (int32 i = 0; i < length; ++i) {
         const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
+
+        // @question Do I even want to handle this in a special way?
+        //          This is no longer required if we force \n to be part of the glyph file
         if (character == '\n') {
-            // @todo change
-            glyphs[i] = 0;
+            glyphs[i] = font->newline_id;
             continue;
         }
 
+        // @performance Do I really want to use an index array instead of a pointer array?
+        //              Indices are smaller (4x) but require an additional if statement to decide between base and extended later on
+        //              Pointers are larger but no additional if required
         glyphs[i] = font_glyph_index_find(&font->base, character);
         if (glyphs[i] < 0 && font->has_extended) {
             //glyphs[i] = hashmap_get(&font->font_map, character);
@@ -592,8 +582,7 @@ v3_int32 vertex_text_create(
                 //      5. we probably need a custom struct for the hash map to also contain the priority for replacing elements
                 //hashmap_insert(&font->font_map, extended_glyph->codepoint, extended_glyph);
 
-                // @bug this is wrong
-                glyphs[i] = (extended_glyph & 0x7FFFu) | 0x8000;
+                glyphs[i] = extended_glyph | 0x8000;
 
                 font->has_changes = true;
             //} else {
@@ -602,7 +591,7 @@ v3_int32 vertex_text_create(
         }
 
         if (glyphs[i] < 0) {
-            // @todo add unknown character glyph
+            // @todo add unknown character glyph, conflicts with \n
             glyphs[i] = 0;
         }
     }

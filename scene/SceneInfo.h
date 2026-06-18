@@ -15,7 +15,7 @@ struct SceneInfo {
 
     // This is scene specific theme data
     // We also have global theme data, which is not defined in here
-    UIThemeStyle ui_theme;
+    UITheme ui_theme;
 };
 
 #endif

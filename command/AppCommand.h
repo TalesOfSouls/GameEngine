@@ -72,9 +72,10 @@ struct CmdTextureBody {
 };
 
 struct CmdLayoutBody {
+    void* app;
     AssetManagementSystem* ams;
 
-    UIThemeStyle* general_theme;
+    UITheme* general_theme;
 
     wchar_t layout_path[64];
     wchar_t theme_path[64];

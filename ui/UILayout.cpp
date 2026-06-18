@@ -3,112 +3,326 @@
 #define COMS_UI_LAYOUT_C
 
 #include "../stdlib/Stdlib.h"
-#include "../stdlib/HashMap.cpp"
+#include "../stdlib/HashMapT.cpp"
 #include "../asset/Asset.h"
 #include "../camera/Camera.h"
 #include "../system/FileUtils.cpp"
 
+#include "UIUber.h"
+#include "UICore.h"
 #include "UILayout.h"
 #include "UITheme.cpp"
-#include "UIElement.h"
-#include "UIElementType.h"
+#include "UIElementType.cpp"
 #include "UIInput.h"
-#include "UILabel.h"
-#include "UIWindow.h"
+#include "UILabel.cpp"
+#include "UIWindow.cpp"
 
-// @performance We are prefetching stuff but we are not yet ensuring data is cache line aligned. We should align each UIElements, element specific data
+#define UI_LAYOUT_MAX_CLASS_NAME_LENGTH 32
 
-// Doesn't change the position of pos outside of the function, since lookahead
-static
-void ui_layout_count_direct_children(
-    UIElement* const __restrict element,
-    const char* __restrict pos,
-    int32 parent_level
-) NO_EXCEPT
-{
-    // Find amount of child elements
-    // We have to perform a lookahead since this determins the size of our children array
-    uint16 direct_child_elements = 0;
+// Global token for element ID (must be globally unique)
+#define LAYOUT_ELEMENT_ID_TOKEN '#'
 
-    int32 level;
-    while (*pos != '\0') {
-        level = 0;
-        while (is_whitespace(*pos)) {
-            ++pos;
-            ++level;
-        }
+// Global token for element skeleton definition (must be unique),
+// e.g. define window skeleton once and reuse
+#define LAYOUT_ELEMENT_SKELETON_TOKEN '@'
 
-        if (level > parent_level + 4) {
-            // This element is a childrens child and not a direct child
-            str_move_past(&pos, '\n');
+// Reference a child element (unique in that element)
+// e.g. window_close_button (exists once in the element but multiple times in the scene)
+#define LAYOUT_ELEMENT_CHILD_TOKEN '$'
 
-            continue;
-        } else if (level <= parent_level) {
-            // We are no longer inside of element
-            str_move_past(&pos, '\n');
+FORCE_INLINE
+UICore* ui_get_element(UILayout* const layout, int32 offset) {
+    return (UICore *) (layout->ui_element_buffer.memory + offset);
+}
 
-            break;
-        } else if (is_eol(pos)) {
-            pos += is_eol(pos);
-            continue;
-        }
+FORCE_INLINE
+UIOffset* ui_get_offset(UILayout* const layout, int32 index) {
+    return (UIOffset *) (layout->ui_offset_buffer.memory + index);
+}
 
-        str_move_past(&pos, '\n');
-
-        ++direct_child_elements;
+FORCE_INLINE
+UIOffset* ui_get_offset(UILayout* const layout, const char* name) {
+    const HashEntryStrT<int32>* entry = hashmap_get_entry(&layout->hash_map, name);
+    if (!entry) {
+        return NULL;
     }
 
-    element->children_count = direct_child_elements;
+    return (UIOffset *) (layout->ui_offset_buffer.memory + entry->value);
+}
+
+FORCE_INLINE
+UIOffset* ui_get_offset(UILayout* const layout, SimpleString<const char> str) {
+    char name[64];
+    ASSERT_TRUE(ARRAY_COUNT(name) > str.length);
+
+    memcpy(name, str.str, str.length);
+    name[str.length] = '\0';
+
+    return ui_get_offset(layout, name);
 }
 
 static
-void ui_layout_assign_children(
-    UILayout* const __restrict layout,
-    UIElement* const __restrict element,
-    const char* __restrict pos,
-    int32 parent_level
-) NO_EXCEPT {
-    int32 current_child_pos = 0;
-
-    char block_name[HASH_MAP_MAX_KEY_LENGTH];
-
-    while (*pos != '\0') {
-        int32 level = 0;
-        while (is_whitespace(*pos)) {
-            ++pos;
-            ++level;
+UILabelOffset* ui_element_create(UILayout* const __restrict layout, const UIUber* const __restrict uber, UIElementType type) NO_EXCEPT
+{
+    switch (type) {
+        case UI_ELEMENT_TYPE_CURSOR : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_LABEL: {
+                return ui_label_create(
+                    layout,
+                    uber->pattern_length,
+                    uber->content_length
+                );
+            };
+        default: {
+            UNREACHABLE();
         }
-
-        if (level > parent_level + 4) {
-            // This element is a childrens child and not a direct child
-            str_move_past(&pos, '\n');
-
-            continue;
-        } else if (level <= parent_level) {
-            // We are no longer inside of element
-            str_move_past(&pos, '\n');
-
-            break;
-        }
-
-        str_copy_move_until(block_name, &pos, ":");
-        str_move_past(&pos, '\n');
-
-        // Children array (located after the UIElement)
-        uint32* children = (uint32 *) (element + 1);
-
-        // Set child offset
-        const HashEntryInt32* const child_entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name);
-        children[current_child_pos] = (uint32) child_entry->value;
-
-        // Create a reference to the parent element for the child element
-        UIElement* const child_element = (UIElement *) (layout->data + child_entry->value);
-        child_element->parent = (uint32) ((uintptr_t) element - (uintptr_t) layout->data);
-        ASSERT_STRICT(((uintptr_t) child_element) % 4 == 0);
-        ASSERT_STRICT(((uintptr_t) child_element)->parent % 4 == 0);
-
-        ++current_child_pos;
     }
+}
+
+/**
+ * A label can never have children -> return NULL
+ */
+FORCE_INLINE
+UIOffset* ui_child_offset_from_name(UIOffset*, SimpleString<const char>&) NO_EXCEPT
+{
+    return NULL;
+}
+
+/**
+ * Check if this line is a UI element
+ */
+static FORCE_INLINE
+bool ui_layout_is_element(const char* pos) {
+    str_skip_whitespace(&pos);
+    // # = element id
+    // @ = general element definition
+    return *pos == LAYOUT_ELEMENT_ID_TOKEN
+        || *pos == LAYOUT_ELEMENT_SKELETON_TOKEN
+        || *pos == LAYOUT_ELEMENT_CHILD_TOKEN;
+}
+
+const char* ui_layout_element_parse(
+    UILayout* __restrict layout,
+    const char* __restrict pos,
+    UIOffset* parent = NULL
+)
+{
+    const char* start = pos;
+    str_skip_whitespace(&pos);
+    const int32 self_indent = (int32) (pos - start);
+
+    if (*pos != LAYOUT_ELEMENT_ID_TOKEN
+        && *pos != LAYOUT_ELEMENT_SKELETON_TOKEN
+        && *pos != LAYOUT_ELEMENT_CHILD_TOKEN
+    ) {
+        ASSERT_THROW();
+        LOG_1("Couldn't find element");
+
+        return str_skip_line(pos);
+    }
+
+    char element_name[HASH_MAP_MAX_KEY_LENGTH];
+    int i = 0;
+    while (isalnum(*pos) && i < ARRAY_COUNT(element_name) - 1) {
+        element_name[i++] = *pos++;
+    }
+    element_name[i] = '\0';
+
+    str_skip_line(&pos);
+
+    // find element type
+    // WARNING: The type MUST be specified right after the element id
+    const char* type;
+    {
+        str_skip_whitespace(&pos);
+        if (strncmp(pos, "type:", sizeof("type:") - 1) != 0) {
+            ASSERT_THROW();
+            LOG_1("Couldn't find element type");
+
+            return str_skip_line(pos);
+        }
+
+        pos += sizeof("type:") - 1;
+        str_skip_empty(&pos);
+
+        type = pos;
+        str_move_to(&pos, " \r\n");
+        str_skip_line(&pos);
+    }
+
+    UIElementType type_id = (UIElementType) ui_element_type_to_id(type);
+
+    // Parse element values
+    SimpleString<const char> class_name = {0};
+
+    // Defines this elements child name in the parent (e.g. title_label in the UITitle)
+    SimpleString<const char> child_name = {0};
+    const UIOffset* inherit_offset = NULL;
+    UIUber uber = {0};
+
+    // We iterate as long as new element components show up or in other words until the next line would be another element
+    while (*pos && !ui_layout_is_element(pos)) {
+        str_skip_whitespace(&pos);
+
+        const char* value_type = pos;
+        str_move_past(&pos, ':');
+        str_skip_whitespace(&pos);
+
+        // We use a uber element that can hold all possible value types
+        // We sacrifice some memory for simpler handling
+        // Alternatively we would either have to:
+        //      Write element type specific parsing which can repeat some parts between elements
+        //      or, create some array which we then search e.g. struct {char[32], union { int32, f32, bool, ...}}[16];
+        //          This is much smaller but probably slower since we would have to search that array every time and do a strcmp
+        //          @performance Maybe test/profile that approach in the future, it shouldn't be that hard to test
+        if (strncmp(value_type, "class", sizeof("class") - 1) == 0) {
+            class_name.str = pos;
+            str_move_to(&pos, " \r\n");
+            class_name.length = (int32) (pos - class_name.str);
+        } else if (strncmp(value_type, "inherit", sizeof("inherit") - 1) == 0) {
+            SimpleString<const char> inherit_name;
+
+            inherit_name.str = pos;
+            str_move_to(&pos, " \r\n");
+            inherit_name.length = (int32) (pos - inherit_name.str);
+
+            inherit_offset = ui_get_offset(layout, inherit_name);
+        } else if (strncmp(value_type, "child", sizeof("child") - 1) == 0) {
+            child_name.str = pos;
+            str_move_to(&pos, " \r\n");
+            child_name.length = (int32) (pos - child_name.str);
+        } else if (strncmp(value_type, "pattern_length", sizeof("pattern_length") - 1) == 0) {
+            uber.pattern_length = (int32) str_to_int(pos, &pos);
+        } else if (strncmp(value_type, "pattern", sizeof("pattern") - 1) == 0) {
+            // @bug How to write wchar_t in a text file when everything else is ascii?
+            uber.pattern.str = (const wchar_t *) pos;
+            str_move_to(&pos, "\r\n");
+            uber.pattern.length = (int32) ((uintptr_t) pos - (uintptr_t) uber.pattern.str);
+        } else if (strncmp(value_type, "content_length", sizeof("content_length") - 1) == 0) {
+            // @bug How to write wchar_t in a text file when everything else is ascii?
+            uber.content.str = (const wchar_t *) pos;
+            str_move_to(&pos, "\r\n");
+            uber.content.length = (int32) ((uintptr_t) pos - (uintptr_t) uber.content.str);
+        }
+
+        str_skip_line(&pos);
+    }
+
+    UIOffset* offset = NULL;
+    if (!child_name.length || !parent) {
+        // If it is a standalone element, we need to add a new offset and element to their respective arrays/vectors
+        // (ui_offset_buffer and ui_element_buffer)
+        // We also need to add the offset to the root vector ui_offset_root
+        // We can be a standalone element with or without parent e.g.
+        //      A window element is always a standalone
+        //      A label could be standalone or not e.g.
+        //          the title label is not standalone and a "fixed" part of the UIWindow element,
+        //          but a label on a panel is not standalone, it is a dynamic child of UIPanel
+
+        // @performance This is actually slow if we have inherit_offset because:
+        //              First we create the element, then we potentially overwrite it again with inherit data
+        //              It would be better to call a ui_label_reserve where we then copy over all the element data and some of the offset data
+        offset = (UIOffset *) ui_element_create(layout, &uber, type_id);
+    } else {
+        ASSERT_TRUE(parent);
+
+        // This element is a fixed/static child element defined in a parent (e.g. label in UITitle)
+        offset = ui_child_offset_from_name(parent, child_name);
+    }
+
+    // General inheritance handling
+    if (inherit_offset) {
+        offset->children_count = inherit_offset->children_count;
+
+        // @todo update children offset array
+        //offset->children = ...
+    }
+
+    // Do element specific setup
+    switch (type_id) {
+        case UI_ELEMENT_TYPE_CURSOR: {
+
+            } break;
+        case UI_ELEMENT_TYPE_VIEW_WINDOW: {
+
+            } break;
+        case UI_ELEMENT_TYPE_LABEL: {
+                UILabel* element = (UILabel*) ui_get_element(layout, offset->element);
+
+                // Create the inherit data if we inherit from something
+                if (inherit_offset) {
+                    const UILabel* inherit_element = (UILabel *) ui_get_element(layout, inherit_offset->element);
+                    memcpy(element, inherit_element, sizeof(UILabel));
+
+                    // @todo Also copy over child offsets + elements
+                }
+
+                // Set element data directly defined for this element
+                {
+                    if (uber.pattern_length) {
+                        memcpy(element->pattern, uber.pattern.str, uber.pattern.length);
+                    }
+
+                    if (uber.pattern_length) {
+                        memcpy(element->content, uber.content.str, uber.content.length);
+                    }
+                }
+            } break;
+        default: {
+            UNREACHABLE();
+        }
+    }
+
+    // @todo We need to handle skeleton references e.g.
+    //      #my_element
+    //          inherit: my_skeleton
+    //          @my_skeleton_title
+    //              opacity: 0
+    //      In this case we don't want to create a new element but modify the existing element from the skeleton
+
+    // Create new element in hash map + add class name to element if available
+    // We need to load the style for every state change directly from the theme
+    // For that we need the class name
+    // Alternatively we could've created an element multiple times = once per state
+    // This might have been fine for most situations since we don't have that many states.
+    // However, animations completely break that approach
+    // Therefore we decided to load it live from the theme which however is handled in a different state change function
+    if (class_name.length) {
+        ASSERT_TRUE(class_name.length < UI_LAYOUT_MAX_CLASS_NAME_LENGTH);
+        UICore* const core = ui_get_element(layout, offset->element);
+        core->class_name = (char*) memory_get(
+            &layout->ui_element_buffer,
+            sizeof(char) * UI_LAYOUT_MAX_CLASS_NAME_LENGTH,
+            alignof(size_t)
+        );
+        str_copy(core->class_name, class_name);
+    }
+
+    hashmap_insert(&layout->hash_map, element_name, (int32) MEMORY_OFFSET(offset, layout->ui_offset_buffer.memory));
+
+    // We skip useless empty lines
+    str_skip_eol(pos);
+
+    // handle all child elements
+    if (ui_layout_is_element(pos)) {
+        // Figure out if next element is a child by checking the indention
+        const char* pos_temp = pos;
+        str_skip_whitespace(&pos_temp);
+        int32 child_indent = (int32) (pos_temp - pos);
+
+        while (self_indent < child_indent) {
+            pos = ui_layout_element_parse(layout, pos, offset);
+
+            // Figure out if next element is a child by checking the indention
+            pos_temp = pos;
+            str_skip_whitespace(&pos_temp);
+            child_indent = (int32) (pos_temp - pos);
+        }
+    }
+
+    return pos;
 }
 
 // WARNING: theme needs to have memory already reserved and assigned to data
@@ -123,328 +337,47 @@ void layout_from_file_txt(
 
     const char* pos = (char *) file.content;
 
-    // move past the "version" string
-    pos += 8;
+    // skip version
+    str_skip_line(&pos);
 
-    // Use version for different handling
-    /*MAYBE_UNUSED int32 version = (int32) */str_to_int(pos, &pos); ++pos;
+    // skip all empty lines
+    str_skip_empty(&pos);
 
-    // 1. Iteration: We have to find how many elements are defined in the layout file.
-    // Therefore we have to do an initial iteration
-    // We start at 1 since we always have a root element
-    int32 temp_element_count = 1;
+    // 1. Iteration: Find the element count
+    ////////////////////////////////////////////////////////////
+    int32 temp_element_count = 0;
     while (*pos != '\0') {
-        // Skip all white spaces
-        str_skip_empty(&pos);
-        if (*pos == '\0') {
-            break;
+        str_skip_whitespace(&pos);
+        if (*pos == '#') {
+            ++temp_element_count;
         }
 
-        ++temp_element_count;
-
-        // Go to the next line
-        str_move_past(&pos, '\n');
+        str_skip_line(&pos);
     }
 
     // 2. Iteration: Fill HashMap
-    // @performance This is probably horrible since we are not using a perfect hashing function (1 hash -> 1 index)
-    //      I wouldn't be surprised if we have a 50% hash overlap (2 hashes -> 1 index)
+    ////////////////////////////////////////////////////////////
+    // @performance we reserve * 2 memory to avoid too many hash collisions... urgh
     hashmap_create(
         &layout->hash_map,
-        temp_element_count,
-        sizeof(HashEntryInt32),
+        temp_element_count * 2,
         layout->data,
-        align_up((int32) sizeof(HashEntryInt32), 32)
+        align_up((int32) sizeof(HashEntryStrT<int32>), 32)
     );
-    const int64 hm_size = hashmap_size(&layout->hash_map);
+    ASSERT_TRUE(layout->data_size >= hashmap_size(&layout->hash_map));
 
     pos = (char *) file.content;
 
     // move past version string
     str_move_past(&pos, '\n');
 
-    char block_name[HASH_MAP_MAX_KEY_LENGTH];
-    char block_type[32];
-
-    // We store the UIElement and associated data after the hashmap
-    byte* element_data = layout->data + hm_size;
-
-    // Create root element
-    UIElement* root = (UIElement *) element_data;
-    ASSERT_STRICT(((uintptr_t) root) % 4 == 0);
-
-    hashmap_insert(&layout->hash_map, "root", (int32) (element_data - layout->data));
-    ui_layout_count_direct_children(root, pos, -4);
-
-    // NOTE: The root element cannot have any animations or vertices
-    element_data += sizeof(UIElement) + sizeof(uint32) * root->children_count;
+    // skip all empty lines
+    str_skip_empty(&pos);
 
     while (*pos != '\0') {
-        while (is_eol(pos)) {
-            pos += is_eol(pos);
-        }
-
-        int32 level = 0;
-        while (is_whitespace(*pos))  {
-            ++pos;
-            ++level;
-        }
-
-        if (is_eol(pos) || *pos == '\0') {
-            continue;
-        }
-
-        str_copy_move_until(block_name, &pos, ":"); ++pos;
-        str_copy_move_until(block_type, &pos, " \r\n");
-        str_move_past(&pos, '\n');
-
-        if (strlen(block_name) + 1 > HASH_MAP_MAX_KEY_LENGTH) {
-            LOG_1("Identifier %s too long", {DATA_TYPE_CHAR_STR, block_name});
-        }
-
-        // Insert new element
-        UIElement* const element = (UIElement *) element_data;
-        ASSERT_STRICT(((uintptr_t) element) % 4 == 0);
-        hashmap_insert(&layout->hash_map, block_name, (int32) ((uintptr_t) element_data - (uintptr_t) layout->data));
-
-        element->type = (UIElementType) ui_element_type_to_id(block_type);
-
-        // The children array is dynamic in size and comes directly after the UIElement
-        ui_layout_count_direct_children(element, pos, level);
-
-        element_data += sizeof(UIElement)
-            + sizeof(uint32) * element->children_count; // Children offsets come after the UIElement
-        ASSERT_STRICT(((uintptr_t) element_data) % 4 == 0);
-
-        // We put the state data after this element
-        element->state = (uint32) ((uintptr_t) element_data - (uintptr_t) layout->data);
-        element_data += ui_element_state_size(element->type);
-
-        // We put the active element data after this element
-        element->style_types[UI_STYLE_TYPE_ACTIVE] = (uint32) ((uintptr_t) element_data - (uintptr_t) layout->data);
-        // @performance We should probably make sure the data is nicely aligned here
-        element_data += ui_element_type_size(element->type);
-
-        // We put the default element data after this element
-        // Depending on the theme we will have also additional styles (e.g. :active, :hidden, ...)
-        element->style_types[UI_STYLE_TYPE_DEFAULT] = (uint32) ((uintptr_t) element_data - (uintptr_t) layout->data);
-        // @performance We should probably make sure the data is nicely aligned here
-        element_data += ui_element_type_size(element->type);
-    }
-
-    // 3. Iteration: Create child references
-    pos = (char *) file.content;
-
-    // move past version string
-    str_move_past(&pos, '\n');
-
-    while (*pos != '\0') {
-        while (is_eol(pos)) {
-            pos += is_eol(pos);
-        }
-
-        int32 level = 0;
-        while (is_whitespace(*pos))  {
-            ++pos;
-            ++level;
-        }
-
-        if (is_eol(pos) || *pos == '\0') {
-            continue;
-        }
-
-        str_copy_move_until(block_name, &pos, ":");
-        str_move_past(&pos, '\n');
-
-        const HashEntryInt32* const entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name);
-        UIElement* element = (UIElement *) (layout->data + entry->value);
-        ASSERT_STRICT(((uintptr_t) element) % 4 == 0);
-        ui_layout_assign_children(layout, element, pos, level);
-
-        // ui_layout_assign_children doesn't move the pos pointer
-        str_move_past(&pos, '\n');
-    }
-
-    // 4. Iteration: Create root child references
-    pos = (char *) file.content;
-
-    // move past version string
-    str_move_past(&pos, '\n');
-
-    uint32* root_children = (uint32 *) (root + 1);
-
-    int32 child = 0;
-    while (*pos != '\0') {
-        while (is_eol(pos)) {
-            pos += is_eol(pos);
-        }
-
-        if (is_whitespace(*pos)) {
-            str_move_past(&pos, '\n');
-            continue;
-        }
-
-        if (is_eol(pos) || *pos == '\0') {
-            continue;
-        }
-
-        str_copy_move_until(block_name, &pos, ":");
-        str_move_past(&pos, '\n');
-        root_children[child++] = (uint32) ((HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, block_name))->value;
-    }
-
-    layout->data_size = (uint32) (element_data - layout->data);
-}
-
-static
-void ui_layout_serialize_element_state(UIElementType type, const void* __restrict state, byte** __restrict pos) {
-    switch (type) {
-        case UI_ELEMENT_TYPE_INPUT: {
-            ui_input_state_serialize((UIInputState *) state, pos);
-        } break;
-    }
-}
-
-static
-void ui_layout_serialize_element_detail(UIElementType type, const void* __restrict details, byte** __restrict pos) {
-    switch (type) {
-        case UI_ELEMENT_TYPE_INPUT: {
-            ui_input_element_serialize((UIInput *) details, pos);
-        } break;
-    }
-}
-
-static
-void ui_layout_serialize_element(
-    const HashEntryInt32* const entry,
-    byte* data,
-    byte** out
-) {
-    // @performance Are we sure the data is nicely aligned?
-    // Probably depends on the from_txt function and the start of layout->data
-    const UIElement* const element = (UIElement *) (data + entry->value);
-    ASSERT_STRICT(((uintptr_t) element) % 4 == 0);
-
-    **out = element->state_flag;
-    *out += sizeof(element->state_flag);
-
-    **out = element->type;
-    *out += sizeof(element->type);
-
-    **out = element->style_old;
-    *out += sizeof(element->style_old);
-
-    **out = element->style_new;
-    *out += sizeof(element->style_new);
-
-    uint32 temp32 = SWAP_ENDIAN_LITTLE(element->parent);
-    memcpy(*out, &temp32, sizeof(temp32));
-    *out += sizeof(element->parent);
-
-    temp32 = SWAP_ENDIAN_LITTLE(element->state);
-    memcpy(*out, &temp32, sizeof(temp32));
-    *out += sizeof(element->state);
-
-    // Details
-    for (int i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
-        temp32 = SWAP_ENDIAN_LITTLE(element->style_types[i]);
-        memcpy(*out, &temp32, sizeof(temp32));
-        *out += sizeof(element->style_types[i]);
-    }
-
-    uint16 temp16 = SWAP_ENDIAN_LITTLE(element->children_count);
-    memcpy(*out, &temp16, sizeof(temp16));
-    *out += sizeof(element->children_count);
-
-    /* We don't save the animation state since that is always 0 in the file
-    memset(*out, 0, sizeof(element->animation_state));
-    *out += sizeof(element->animation_state);
-    */
-
-    temp16 = SWAP_ENDIAN_LITTLE(element->animation_count);
-    memcpy(*out, &temp16, sizeof(temp16));
-    *out += sizeof(element->animation_count);
-
-    temp32 = SWAP_ENDIAN_LITTLE(element->animations);
-    memcpy(*out, &temp32, sizeof(temp32));
-    *out += sizeof(element->animations);
-
-    temp16 = SWAP_ENDIAN_LITTLE(element->vertex_count_max);
-    memcpy(*out, &temp16, sizeof(temp16));
-    *out += sizeof(element->vertex_count_max);
-
-    temp16 = SWAP_ENDIAN_LITTLE(element->vertex_count_active);
-    memcpy(*out, &temp16, sizeof(temp16));
-    *out += sizeof(element->vertex_count_active);
-
-    temp32 = SWAP_ENDIAN_LITTLE(element->vertices_active_offset);
-    memcpy(*out, &temp32, sizeof(temp32));
-    *out += sizeof(element->vertices_active_offset);
-
-    // Output dynamic length content directly after UIElement
-    //
-    // WARNING: The data ordering in our output data is not necessarily the same as in memory ESPECIALLY for animations
-    //          However, we can simply reconstruct the memory order by reversing the logic
-    //
-    // @todo We could optimize the memory layout of our data 9e.g. ->style_types, children, ... to be more packed
-    //  At this point we may have this data available now (if we save a cached version = layout+theme)
-    //  Obviously, this won't have an effect on the current run-tim but would make the memory layout nicer on the next load
-    //  It would be kind of a self-optimizing ui layout system :).
-    //  Of course, updating the reference values (uint32) will be challenging since the file out will still not be the same as the offset due to alignment and padding
-    //  We would probably need a helper_offset value that gets passed around also as parameter of this function
-    //////////////////////////////////////
-
-    // Children array
-    const uint32* children = (uint32 *) (element + 1);
-    ASSERT_STRICT(((uintptr_t) children) % 4 == 0);
-    for (int32 i = 0; i < element->children_count; ++i) {
-        temp32 = SWAP_ENDIAN_LITTLE(children[i]);
-        memcpy(*out, &temp32, sizeof(temp32));
-        *out += sizeof(*children);
-    }
-
-    // State element data e.g. UIInputState
-    ui_layout_serialize_element_state(element->type, data + element->state, out);
-
-    // detailed element data/style_types e.g. UIInput
-    // When you create a layout this is should only contain the default style type
-    // BUT we also support layout caching where a fully parsed layout+theme can be saved and loaded
-    // This is very fast since now we don't need to build the layout based on the theme as long as the theme and window dimensions didn't change
-    for (int i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
-        if (!element->style_types[i]) {
-            continue;
-        }
-
-        ui_layout_serialize_element_detail(element->type, data + element->style_types[i], out);
-    }
-
-    const UIAnimation* const animations = (UIAnimation *) (data + element->animations);
-    ASSERT_STRICT(((uintptr_t) animations) % 4 == 0);
-
-    const int32 element_style_type_size = ui_element_type_size(element->type);
-
-    for (int i = 0; i < element->animation_count; ++i) {
-        **out = animations[i].style_old;
-        *out += sizeof(animations[i].style_old);
-
-        **out = animations[i].style_new;
-        *out += sizeof(animations[i].style_new);
-
-        temp16 = SWAP_ENDIAN_LITTLE(animations[i].duration);
-        memcpy(*out, &temp16, sizeof(temp16));
-        *out += sizeof(animations[i].duration);
-
-        **out = animations[i].anim_type;
-        *out += sizeof(animations[i].anim_type);
-
-        **out = animations[i].keyframe_count;
-        *out += sizeof(animations[i].keyframe_count);
-
-        // The keyframes are the element detail information (e.g. UIInput) and they are located after the respective Animation definition
-        const byte* const keyframes = (byte *) (&animations[i] + 1);
-        ASSERT_STRICT(((uintptr_t) keyframes) % 4 == 0);
-        for (int32 j = 0; j < animations[i].keyframe_count; ++j) {
-            ui_layout_serialize_element_detail(element->type, keyframes + j * element_style_type_size, out);
+        str_skip_eol(&pos);
+        if (*pos == '#') {
+            pos = ui_layout_element_parse(layout, pos, NULL);
         }
     }
 }
@@ -457,164 +390,26 @@ int32 layout_to_data(
     byte* out = data;
 
     out = write_le(out, UI_LAYOUT_VERSION);
-    out = write_le(out, layout->data_size);
 
     // We don't save the used_data_size because that depends on the respective theme
 
-    // hashmap
     out += hashmap_dump(&layout->hash_map, out, MEMBER_SIZEOF(HashEntryInt32, value));
 
-    // UIElement data
-    uint32 chunk_id = 0;
-    chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
-        const HashEntryInt32* const entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
-        ui_layout_serialize_element(entry, layout->data, &out);
-    } chunk_iterate_end;
+    out = write_le(out, layout->ui_offset_root.count);
+    memcpy(out, layout->ui_offset_root.elements, layout->ui_offset_root.count);
+    out += sizeof(int32) * layout->ui_offset_root.count;
+
+    out = write_le(out, (int32) (layout->ui_offset_buffer.head - layout->ui_offset_buffer.memory));
+    memcpy(out, layout->ui_offset_buffer.memory, layout->ui_offset_buffer.head - layout->ui_offset_buffer.memory);
+    out += layout->ui_offset_buffer.head - layout->ui_offset_buffer.memory;
+
+    out = write_le(out, (int32) (layout->ui_element_buffer.head - layout->ui_element_buffer.memory));
+    memcpy(out, layout->ui_element_buffer.memory, layout->ui_element_buffer.head - layout->ui_element_buffer.memory);
+    out += layout->ui_element_buffer.head - layout->ui_element_buffer.memory;
 
     LOG_1("Saved layout");
 
     return (int32) (out - data);
-}
-
-static
-void ui_layout_unserialize_element_state(UIElementType type, void* __restrict state, const byte** __restrict pos) {
-    switch (type) {
-        case UI_ELEMENT_TYPE_INPUT: {
-            ui_input_state_unserialize((UIInputState *) state, pos);
-        } break;
-    }
-}
-
-static
-void ui_layout_unserialize_element_detail(UIElementType type, void* __restrict details, const byte** __restrict pos) {
-    switch (type) {
-        case UI_ELEMENT_TYPE_INPUT: {
-            ui_input_element_unserialize((UIInput *) details, pos);
-        } break;
-    }
-}
-
-static
-void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
-{
-    // @performance Are we sure the data is nicely aligned?
-    // Probably depends on the from_txt function and the start of layout->data
-    UIElement* const element = (UIElement *) (data + entry->value);
-    ASSERT_STRICT(((uintptr_t) element) % 4 == 0);
-
-    element->state_flag = **in;
-    *in += sizeof(element->state_flag);
-
-    element->type = (UIElementType) **in;
-    *in += sizeof(element->type);
-
-    element->style_old = (UIStyleType) **in;
-    *in += sizeof(element->style_old);
-
-    element->style_new = (UIStyleType) **in;
-    *in += sizeof(element->style_new);
-
-    memcpy(&element->parent, *in, sizeof(element->parent));
-    SWAP_ENDIAN_LITTLE_SELF(element->parent);
-    *in += sizeof(element->parent);
-
-    memcpy(&element->state, *in, sizeof(element->state));
-    SWAP_ENDIAN_LITTLE_SELF(element->state);
-    *in += sizeof(element->state);
-
-    // Details
-    for (int i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
-        memcpy(&element->style_types[i], *in, sizeof(element->style_types[i]));
-        SWAP_ENDIAN_LITTLE_SELF(element->style_types[i]);
-        *in += sizeof(element->style_types[i]);
-    }
-
-    memcpy(&element->children_count, *in, sizeof(element->children_count));
-    SWAP_ENDIAN_LITTLE_SELF(element->children_count);
-    *in += sizeof(element->children_count);
-
-    // @question Do we really have to do that? Shouldn't the animation_state data be 0 anyways or could there be garbage values?
-    memset(&element->animation_state, 0, sizeof(element->animation_state));
-
-    memcpy(&element->animation_count, *in, sizeof(element->animation_count));
-    SWAP_ENDIAN_LITTLE_SELF(element->animation_count);
-    *in += sizeof(element->animation_count);
-
-    memcpy(&element->animations, *in, sizeof(element->animations));
-    SWAP_ENDIAN_LITTLE_SELF(element->animations);
-    *in += sizeof(element->animations);
-
-    memcpy(&element->vertex_count_max, *in, sizeof(element->vertex_count_max));
-    SWAP_ENDIAN_LITTLE_SELF(element->vertex_count_max);
-    *in += sizeof(element->vertex_count_max);
-
-    memcpy(&element->vertex_count_active, *in, sizeof(element->vertex_count_active));
-    SWAP_ENDIAN_LITTLE_SELF(element->vertex_count_active);
-    *in += sizeof(element->vertex_count_active);
-
-    memcpy(&element->vertices_active_offset, *in, sizeof(element->vertices_active_offset));
-    SWAP_ENDIAN_LITTLE_SELF(element->vertices_active_offset);
-    *in += sizeof(element->vertices_active_offset);
-
-    // Load dynamic length content
-    // Some of the content belongs directly after the element but some of it belongs at very specific offsets
-    // The reason for that is that the offsets are stored e.g. in element->state
-    // The memory is fragmented since a lot of the information is split up in different files (layout file and theme file)
-    // Therefore, we cannot create a nice memory layout when loading a layout+theme
-    //
-    // @question Can we optimize the memory layout to a less fragmented version?
-    //      One solution could be to combine layout file and theme file. In that case we always know the correct element count
-    //      Or see the serialization function for more comments
-    //////////////////////////////////////
-
-    // Children array
-    uint32* children = (uint32 *) (element + 1);
-    for (int i = 0; i < element->children_count; ++i) {
-        memcpy(&children[i], *in, sizeof(children[i]));
-        SWAP_ENDIAN_LITTLE_SELF(children[i]);
-        *in += sizeof(*children);
-    }
-
-    // State element data e.g. UIInputState
-    ui_layout_unserialize_element_state(element->type, data + element->state, in);
-
-    // detailed element data/style_types e.g. UIInput
-    for (int i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
-        if (!element->style_types[i]) {
-            continue;
-        }
-
-        ui_layout_unserialize_element_detail(element->type, data + element->style_types[i], in);
-    }
-
-    UIAnimation* animations = (UIAnimation *) (data + element->animations);
-    ASSERT_STRICT(((uintptr_t) animations) % 4 == 0);
-
-    const int32 element_style_type_size = ui_element_type_size(element->type);
-
-    for (int i = 0; i < element->animation_count; ++i) {
-        animations[i].style_old = (UIStyleType) **in;
-        *in += sizeof(animations[i].style_old);
-
-        animations[i].style_new = (UIStyleType) **in;
-        *in += sizeof(animations[i].style_new);
-
-        memcpy(&animations[i].duration, *in, sizeof(animations[i].duration));
-        SWAP_ENDIAN_LITTLE_SELF(animations[i].duration);
-        *in += sizeof(animations[i].duration);
-
-        animations[i].anim_type = (AnimationEaseType) **in;
-        *in += sizeof(animations[i].anim_type);
-
-        animations[i].keyframe_count = **in;
-        *in += sizeof(animations[i].keyframe_count);
-
-        // The keyframes are the element detail information (e.g. UIInput) and they are located after the respective Animation definition
-        byte* keyframes = (byte *) (&animations[i] + 1);
-        for (int32 j = 0; j < animations[i].keyframe_count; ++j) {
-            ui_layout_unserialize_element_detail(element->type, keyframes + j * element_style_type_size, in);
-        }
-    }
 }
 
 // The size of layout->data should be the file size + a bunch of additional data for additional theme dependent "UIElements->style_types".
@@ -630,455 +425,256 @@ int32 layout_from_data(
 
     int32 version;
     in = read_le(in, &version);
-    in = read_le(in, &layout->data_size);
 
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
     hashmap_create(
         &layout->hash_map,
         (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)),
-        sizeof(HashEntryInt32),
         layout->data,
-        align_up((int32) sizeof(HashEntryInt32), 32)
+        align_up((int32) sizeof(HashEntryStrT<int32>), 32)
     );
 
-    in += hashmap_load(&layout->hash_map, in, MEMBER_SIZEOF(HashEntryInt32, value));
+    layout->used_data_size = (int32) hashmap_load(&layout->hash_map, in, MEMBER_SIZEOF(HashEntryInt32, value));
+    in += layout->used_data_size;
 
-    // layout data
-    // @performance We are iterating the hashmap twice (hashmap_load and here)
-    uint32 chunk_id = 0;
-    chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
-        HashEntryInt32* const entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
-        ui_layout_parse_element(entry, layout->data, &in);
-    } chunk_iterate_end;
+    in = read_le(in, &layout->ui_offset_root.count);
+    memcpy(layout->ui_offset_root.elements, in, sizeof(int32) * layout->ui_offset_root.count);
+    in += sizeof(int32) * layout->ui_offset_root.count;
+
+    int32 offset;
+    in = read_le(in, &offset);
+    layout->ui_offset_buffer.head = layout->ui_offset_buffer.memory + offset;
+    memcpy(layout->ui_offset_buffer.memory, in, offset);
+    in += offset;
+
+    in = read_le(in, &offset);
+    layout->ui_element_buffer.head = layout->ui_element_buffer.memory + offset;
+    memcpy(layout->ui_element_buffer.memory, in, offset);
+    //in += offset;
 
     LOG_1("[INFO] Loaded layout");
 
     return (int32) layout->data_size;
 }
 
-// @performance Implement a way to only load a specific element and all its children
-// This way we can re-load specific elements on change and we could also greatly reduce the setup time by ignoring ui elements that are rarely visible
+static
+void layout_update_element(
+    UILayout* const __restrict layout,
+    const UITheme* const __restrict theme,
+    const UIOffset* const __restrict offset
+) NO_EXCEPT {
+    UICore* core = ui_get_element(layout, offset->element);
+    if (!core->class_name) {
+        return;
+    }
 
+    const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) hashmap_get_entry(&theme->hash_map, core->class_name);
+    const UIAttributeGroup* attr_group = (UIAttributeGroup *) (theme->data + entry->value);
+    const UIAttribute* attributes = (UIAttribute*) align_up((uintptr_t) (attr_group + 1), alignof(UIAttribute));
+
+    // @todo We should first update the skeleton
+    //      then inherit the skeleton style
+    //      then update the style directly assigned
+
+    for (int i = 0; i < attr_group->attribute_count; ++i) {
+        const UIAttribute* attr = &attributes[i];
+
+        switch (attr->attribute_id) {
+            // First handle core attributes
+            case UI_ATTRIBUTE_TYPE_POSITION_X: {
+                    core->dimension.pos.x = attr->value_float;
+                } break;
+            case UI_ATTRIBUTE_TYPE_POSITION_Y: {
+                    core->dimension.pos.y = attr->value_float;
+                } break;
+            case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH: {
+                    core->dimension.dimension.width = attr->value_float;
+                } break;
+            case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
+                    core->dimension.dimension.height = attr->value_float;
+                } break;
+            default: {
+                // Attribute type was not part of core, handle element specific
+                switch (offset->type) {
+                    case UI_ELEMENT_TYPE_LABEL: {
+                        UILabel* label = (UILabel *) core;
+                        switch (attr->attribute_id) {
+                            case UI_ATTRIBUTE_TYPE_FONT_COLOR: {
+                                    label->font.color = attr->value_uint;
+                                } break;
+                            case UI_ATTRIBUTE_TYPE_FONT_SIZE: {
+                                    label->font.size = attr->value_float;
+                                } break;
+                            default: {
+                                ASSERT_THROW();
+                            }
+                        }
+                    } break;
+                    case UI_ELEMENT_TYPE_VIEW_WINDOW: {
+                    } break;
+                    default: {
+                        ASSERT_THROW();
+                    }
+                }
+            }
+        }
+    }
+}
+
+// @question What about general theme?
+// force_update allows us to force a updateof all elements even if they didn't change
 void layout_from_theme(
     UILayout* const __restrict layout,
-    const UIThemeStyle* __restrict theme
+    const UITheme* __restrict theme,
+    bool force_update = false
 ) {
     PROFILE(PROFILE_LAYOUT_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Load theme for layout");
 
     // @todo Handle animations
-    // @todo Handle vertices_active offset
     if (theme->font) {
         layout->font = theme->font;
     }
 
-    // Current position where we can add the different sub elements (e.g. :hover, :active, ...)
-    // We make sure that the offset is a multiple of 8 bytes for better alignment
-    uint32 dynamic_pos = align_up(layout->data_size, 8);
+    int32 chunk_id = 0;
+    chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
+        const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
 
-    // @bug Don't we have to overwrite the layout->data after data_size to 0, to avoid bugs?
-    // This could be especially true when loading another theme
-
-    // We first need to handle the default element -> iterate all elements but only handle the default style
-    // The reason for this is, later on in the specialized style we use the base style and copy it over as foundation
-    uint32 chunk_id = 0;
-    chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
-        HashEntryInt32* style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
-
-        // We don't handle special styles here, only the default one
-        if (strchr(style_entry->key, ':')) {
-            continue;
+        const UIOffset* offset = ui_get_offset(layout, entry->value);
+        if (!force_update && !offset->is_changed) {
+            chunk_iterate_continue;
         }
 
-        // +1 to skip '#' or '.'
-        const HashEntryInt32* const entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, style_entry->key + 1);
-        if (!entry) {
-            // Couldn't find the base element
-            continue;
-        }
-
-        // Populate default element
-        UIElement* const element = (UIElement *) (layout->data + entry->value);
-        ASSERT_STRICT(((uintptr_t) element) % 4 == 0);
-
-        UIAttributeGroup* const group = (UIAttributeGroup *) (theme->data + style_entry->value);
-        ASSERT_STRICT(((uintptr_t) group) % 4 == 0);
-
-        // @todo Continue implementation
-        switch (element->type) {
-            case UI_ELEMENT_TYPE_LABEL: {
-                ui_label_state_populate(group, (UILabelState *) (layout->data + element->state));
-                ui_label_element_populate(
-                    layout,
-                    element,
-                    group,
-                    (UILabel *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT])
-                );
-            } break;
-            case UI_ELEMENT_TYPE_INPUT: {
-                ui_input_state_populate(group, (UIInputState *) (layout->data + element->state));
-                ui_input_element_populate(
-                    layout,
-                    element,
-                    group,
-                    (UIInput *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT])
-                );
-            } break;
-            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-                ui_window_state_populate(group, (UIWindowState *) (layout->data + element->state));
-                ui_window_element_populate(
-                    layout,
-                    element,
-                    group,
-                    (UIWindow *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT])
-                );
-            } break;
-        }
+        // @todo Don't update skeletons?!
+        layout_update_element(layout, theme, offset);
     } chunk_iterate_end;
-
-    // We iterate every style
-    //      1. Fill default element if it is default style
-    //      2. Create and fill new element if it isn't default style (e.g. :hover)
-    // @performance It is dumb that we iterate here again (see iteration above). It would be nice to combine both iterations
-    // If we could see if the default element is already populated we could easily combine this
-    // We could use a helper array to keep track of initialized chunk_id but we also don't have access to malloc/ring memory here
-    chunk_id = 0;
-    chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
-        HashEntryInt32* const style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
-
-        // We only handle special styles here, not the default one
-        const char* special = strchr(style_entry->key, ':');
-        if (!special) {
-            // The default element was already handled outside this loop
-            continue;
-        }
-
-        char pure_name[HASH_MAP_MAX_KEY_LENGTH];
-        // +1 to skip '#' or '.'
-        str_copy_until(style_entry->key + 1, pure_name, ':');
-
-        const HashEntryInt32* const entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, pure_name);
-        if (!entry) {
-            // Couldn't find the base element
-            continue;
-        }
-
-        UIElement* const element = (UIElement *) (layout->data + entry->value);
-        const UIStyleType style_type = (UIStyleType) ui_style_type_to_id(special);
-
-        // Doesn't exist (usually the first load, but exists when we resize our window)
-        if (!element->style_types[style_type]) {
-            element->style_types[style_type] = dynamic_pos;
-            dynamic_pos += ui_element_type_size(element->type);
-        }
-
-        // The style inherits from the default style/element
-        memcpy(
-            layout->data + element->style_types[style_type],
-            layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT],
-            ui_element_type_size(element->type)
-        );
-
-        // Populate element style_types
-        UIAttributeGroup* const group = (UIAttributeGroup *) (theme->data + style_entry->value);
-
-        // @todo Continue implementation
-        switch (element->type) {
-            case UI_ELEMENT_TYPE_LABEL: {
-                ui_label_element_populate(
-                    layout,
-                    element,
-                    group,
-                    (UILabel *) (layout->data + element->style_types[style_type])
-                );
-            } break;
-            case UI_ELEMENT_TYPE_INPUT: {
-                ui_input_element_populate(
-                    layout,
-                    element,
-                    group,
-                    (UIInput *) (layout->data + element->style_types[style_type])
-                );
-            } break;
-            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-                ui_window_element_populate(
-                    layout,
-                    element,
-                    group,
-                    (UIWindow *) (layout->data + element->style_types[style_type])
-                );
-            } break;
-        }
-    } chunk_iterate_end;
-}
-
-void ui_layout_update(UILayout* layout, UIElement* element) {
-    if (element->style_new != element->style_old
-        && (element->state_flag & UI_ELEMENT_STATE_CHANGED)
-        && (element->state_flag & UI_ELEMENT_STATE_ANIMATION)
-    ) {
-        PSEUDO_USE(layout);
-
-        // @todo Even if an animation is ongoing we might not want to update if the last step is < n ms ago
-        switch (element->type) {
-            case UI_ELEMENT_TYPE_BUTTON: {
-
-                } break;
-            case UI_ELEMENT_TYPE_SELECT: {
-
-                } break;
-            case UI_ELEMENT_TYPE_INPUT: {
-                    //ui_input_element_update(layout, element);
-                } break;
-            case UI_ELEMENT_TYPE_LABEL: {
-                    //ui_label_element_update(layout, element, NULL);
-                } break;
-            case UI_ELEMENT_TYPE_TEXT: {
-
-                } break;
-            case UI_ELEMENT_TYPE_TEXTAREA: {
-
-                } break;
-            case UI_ELEMENT_TYPE_IMAGE: {
-
-                } break;
-            case UI_ELEMENT_TYPE_LINK: {
-
-                } break;
-            case UI_ELEMENT_TYPE_TABLE: {
-
-                } break;
-            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-
-                } break;
-            case UI_ELEMENT_TYPE_VIEW_PANEL: {
-
-                } break;
-            case UI_ELEMENT_TYPE_VIEW_TAB: {
-
-                } break;
-            case UI_ELEMENT_TYPE_CURSOR: {
-
-                } break;
-            default:
-                UNREACHABLE();
-        }
-    }
-
-    LOG_1("[INFO] Loaded theme for layout");
-}
-
-// @question We might want to change the names of update/render
-// In some cases it's more like cache/render
-// @question We might want to allow rendering without caching (currently we always rely on the cache)
-// This increases our RAM requirements (every vertex is in cache AND in the asset AND in VRAM)
-// However, this also has the benefit of allowing us to ONLY re-render individual elements
-
-// @performance Profile our prefetching, no sure if it is actually helpful or harmful
-
-// @performance In our immediate mode solution we decided the update/render based on a bitfield
-// That is very efficient, the code below isn't doing that maybe there is a way to implement that here as well?
-// I don't think so but it would be nice
-// This function caches the vertices
-void ui_layout_update_dfs(UILayout* layout, UIElement* element, byte category = 0) {
-    ASSERT_TRUE(layout);
-    ASSERT_TRUE(element);
-
-    if (element->type == UI_ELEMENT_TYPE_MANUAL
-        || !(element->state_flag & UI_ELEMENT_STATE_VISIBLE)
-        || !(element->state_flag & UI_ELEMENT_STATE_CHANGED)
-    ) {
-        return;
-    }
-
-    if (element->category == category) {
-        ui_layout_update(layout, element);
-    }
-
-    if (element->children_count) {
-        uint32* children = (uint32 *) (element + 1);
-        for (int32 i = 0; i < element->children_count - 1; ++i) {
-            intrin_prefetch_l2(layout->data + children[i + 1]);
-            ui_layout_update(layout, (UIElement *) (layout->data + children[i]));
-        }
-
-        ui_layout_update(layout, (UIElement *) (layout->data + children[element->children_count - 1]));
-    }
-}
-
-uint32 ui_layout_render_dfs(
-    UILayout* layout,
-    UIElement* element, Vertex3DSamplerTextureColor* __restrict vertices,
-    byte category = 0
-) {
-    if (element->type == UI_ELEMENT_TYPE_MANUAL
-        || !(element->state_flag & UI_ELEMENT_STATE_VISIBLE)
-    ) {
-        return 0;
-    }
-
-    uint32 vertex_count = 0;
-
-    if (element->vertex_count_active && element->category == category) {
-        memcpy(
-            vertices,
-            layout->ui_vertex_cache.elements,
-            sizeof(*vertices) * layout->ui_vertex_cache.count
-        );
-        vertices += layout->ui_vertex_cache.count;
-        vertex_count += layout->ui_vertex_cache.count;
-    }
-
-    if (element->children_count) {
-        uint32* children = (uint32 *) (element + 1);
-        for (int32 i = 0; i < element->children_count - 1; ++i) {
-            intrin_prefetch_l2(layout->data + children[i + 1]);
-
-            const uint32 child_vertex_count = ui_layout_render_dfs(
-                layout,
-                (UIElement *) (layout->data + children[i]),
-                vertices,
-                category
-            );
-
-            vertices += child_vertex_count;
-            vertex_count += child_vertex_count;
-        }
-
-        const uint32 child_vertex_count = ui_layout_render_dfs(
-            layout,
-            (UIElement *) (layout->data + children[element->children_count - 1]),
-            vertices,
-            category
-        );
-
-        vertices += child_vertex_count;
-        vertex_count += child_vertex_count;
-    }
-
-    return vertex_count;
-}
-
-// @question are we even allowed to use restrict here?
-uint32 ui_layout_update_render_dfs(
-    UILayout* layout,
-    UIElement* __restrict element, Vertex3DSamplerTextureColor* __restrict vertices,
-    byte category = 0
-) {
-    if (element->type == UI_ELEMENT_TYPE_MANUAL
-        || !(element->state_flag & UI_ELEMENT_STATE_VISIBLE)
-    ) {
-        return 0;
-    }
-
-    uint32 vertex_count = 0;
-
-    if (element->category == category) {
-        ui_layout_update(layout, element);
-
-        memcpy(
-            vertices,
-            layout->ui_vertex_cache.elements,
-            sizeof(*vertices) * layout->ui_vertex_cache.count
-        );
-
-        vertices += layout->ui_vertex_cache.count;
-        vertex_count += layout->ui_vertex_cache.count;
-    }
-
-    if (element->children_count) {
-        uint32* children = (uint32 *) (element + 1);
-        for (int32 i = 0; i < element->children_count - 1; ++i) {
-            intrin_prefetch_l2(layout->data + children[i + 1]);
-
-            const uint32 child_vertex_count = ui_layout_update_render_dfs(
-                layout,
-                (UIElement *) (layout->data + children[i]),
-                vertices,
-                category
-            );
-
-            vertices += child_vertex_count;
-            vertex_count += child_vertex_count;
-        }
-
-        const uint32 child_vertex_count = ui_layout_update_render_dfs(
-            layout,
-            (UIElement *) (layout->data + children[element->children_count - 1]),
-            vertices,
-            category
-        );
-
-        vertices += child_vertex_count;
-        vertex_count += child_vertex_count;
-    }
-
-    return vertex_count;
 }
 
 FORCE_INLINE
 uint32 layout_element_from_location(const UILayout* layout, uint16 x, uint16 y) NO_EXCEPT
 {
     // UI elements have a precision of 4 pixels
-    return layout->ui_chroma_codes[layout->width * y / 4 + x / 4];
+    return layout->chroma_codes.codes[layout->chroma_codes.width * y / 4 + x / 4];
 }
 
-FORCE_INLINE
-UIElement* layout_get_element(const UILayout* const __restrict layout, const char* __restrict element) NO_EXCEPT
+// @security Consider to take in BufferMemory instead of byte for better buffer overflow control
+void ui_cache(
+    void* app,
+    GpuApiType gpu_api_type,
+    UILayout* const layout,
+    byte* const __restrict mem
+) NO_EXCEPT
 {
-    HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry((HashMap *) &layout->hash_map, element);
-    if (!entry) {
-        return NULL;
-    }
+    // @todo Reset only during testing:
+    //array_vector_reset(&layout->ui_vertex_cache);
 
-    ASSERT_STRICT(((uintptr_t) (layout->data + entry->value)) % 4 == 0);
+    /////////////////////////////////////////////////////////////////
+    // Cache vertices: Should only happen on changes in this element
+    /////////////////////////////////////////////////////////////////
+    int32* iter;
+    array_vector_iterate_start(layout->ui_offset_root, iter) {
+        UIOffset* const offset = (UIOffset *) (layout->ui_offset_buffer.memory + *iter);
 
-    return (UIElement *) (layout->data + entry->value);
+        // @bug This assert isn't really working since we don't know how large vertices_count will be
+        //      We would have to simulate/guess the max vertex count and check against this
+        ASSERT_TRUE(
+            offset->vertices_count + layout->ui_vertex_cache.count
+                <= layout->ui_vertex_cache.capacity
+        );
+
+        offset->vertices = layout->ui_vertex_cache.count;
+
+        switch (offset->type) {
+            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
+                UIWindowOffset* test_window_offset = (UIWindowOffset*) offset;
+                cache_vertices(
+                    app,
+                    test_window_offset, gpu_api_type,
+                    layout, 10.0f, // @todo fix actual value
+                    mem
+                );
+
+                // @question This means ui_vertex_cache MUST be tightly packed
+                //          AND it mustn't have unused data (not the case for pre-calculated hover styles)
+                //          For that reason we might need a vertex_array with all the possible data and one with tightly packed data
+                //          In an ideal scenario the tightly packed data is just replaced by equally long data without memmoves required
+            } break;
+            case UI_ELEMENT_TYPE_LABEL: {
+                UILabelOffset* test_label_offset = (UILabelOffset*) offset;
+                cache_vertices(
+                    app,
+                    test_label_offset,
+                    layout, 10.0f, // @todo fix actual value
+                    mem
+                );
+            } break;
+            default:
+                UNREACHABLE();
+        }
+
+        offset->vertices_count = (int16) (layout->ui_vertex_cache.count - offset->vertices);
+    } array_vector_iterate_end;
 }
 
-FORCE_INLINE
-void* layout_get_element_state(const UILayout* layout, UIElement* element) NO_EXCEPT
+// @question Consider to take in BufferMemory instead of byte for better buffer overflow control
+void ui_update(
+    void* app,
+    GpuApiType gpu_api_type,
+    UILayout* const layout,
+    byte* const __restrict mem
+) NO_EXCEPT
 {
-    return layout->data + element->state;
-}
+    // @todo Reset only during testing:
+    //array_vector_reset(&layout->ui_vertex_cache);
 
-FORCE_INLINE
-void* layout_get_element_style(const UILayout* layout, UIElement* element, UIStyleType style_type) NO_EXCEPT
-{
-    if (!element) {
-        return NULL;
-    }
+    /////////////////////////////////////////////////////////////////
+    // Cache vertices: Should only happen on changes in this element
+    /////////////////////////////////////////////////////////////////
+    int32* iter;
+    array_vector_iterate_start(layout->ui_offset_root, iter) {
+        UIOffset* const offset = (UIOffset *) (layout->ui_offset_buffer.memory + *iter);
 
-    ASSERT_STRICT(((uintptr_t) (layout->data + element->style_types[style_type])) % 4 == 0);
+        // @bug This assert isn't really working since we don't know how large vertices_count will be
+        //      We would have to simulate/guess the max vertex count and check against this
+        ASSERT_TRUE(
+            offset->vertices_count + layout->ui_vertex_cache.count
+                <= layout->ui_vertex_cache.capacity
+        );
 
-    return layout->data + element->style_types[style_type];
-}
+        offset->vertices = layout->ui_vertex_cache.count;
 
-FORCE_INLINE
-UIElement* layout_get_element_parent(const UILayout* layout, const UIElement* element) NO_EXCEPT
-{
-    if (!element) {
-        return NULL;
-    }
+        switch (offset->type) {
+            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
+                UIWindowOffset* test_window_offset = (UIWindowOffset*) offset;
+                cache_vertices(
+                    app,
+                    test_window_offset, gpu_api_type,
+                    layout, 10.0f, // @todo fix actual value
+                    mem
+                );
 
-    ASSERT_STRICT(((uintptr_t) (layout->data + element->parent)) % 4 == 0);
+                // @question This means ui_vertex_cache MUST be tightly packed
+                //          AND it mustn't have unused data (not the case for pre-calculated hover styles)
+                //          For that reason we might need a vertex_array with all the possible data and one with tightly packed data
+                //          In an ideal scenario the tightly packed data is just replaced by equally long data without memmoves required
+            } break;
+            case UI_ELEMENT_TYPE_LABEL: {
+                UILabelOffset* test_label_offset = (UILabelOffset*) offset;
+                // @todo replace with a update function
+                cache_vertices(
+                    app,
+                    test_label_offset,
+                    layout, 10.0f, // @todo fix actual value
+                    mem
+                );
+            } break;
+            default:
+                UNREACHABLE();
+        }
 
-    return (UIElement *) (layout->data + element->parent);
-}
-
-FORCE_INLINE
-UIElement* layout_get_element_child(const UILayout* layout, const UIElement* element, uint16 child) NO_EXCEPT
-{
-    if (!element) {
-        return NULL;
-    }
-
-    uint16* children = (uint16 *) (element + 1);
-
-    ASSERT_STRICT(((uintptr_t) (layout->data + children[child])) % 4 == 0);
-
-    return (UIElement *) (layout->data + children[child]);
+        offset->vertices_count = (int16) (layout->ui_vertex_cache.count - offset->vertices);
+    } array_vector_iterate_end;
 }
 
 #endif

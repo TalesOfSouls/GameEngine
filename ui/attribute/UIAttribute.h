@@ -4,10 +4,10 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
-#include "../../math/Evaluator.h"
 #include "UIAttributeType.h"
 #include "UIAttributeDimension.h"
 #include "UIAttributeFont.h"
+#include "../../math/Evaluator.h"
 
 enum UIAttributeDataType : byte {
     UI_ATTRIBUTE_DATA_TYPE_INT,
@@ -31,6 +31,7 @@ struct UIAttribute {
     };
 };
 
+// Basically a class/id in HTML/CSS terms
 struct UIAttributeGroup {
     // We are using int32 to at least ensure 4 byte alignment of pointer manipulation (group + 1)
     int32 attribute_count;
@@ -51,7 +52,7 @@ UIAttribute* ui_attribute_from_group(const UIAttributeGroup* const group, UIAttr
     // @performance Consider to use EytzingerSearch for even better performance
     int32 length = group->attribute_count;
     while (length > 1) {
-        int32 half = length / 2;
+        const int32 half = length / 2;
         length -= half;
         attributes += (attributes[half - 1].attribute_id < type) * half;
     }

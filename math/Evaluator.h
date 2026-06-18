@@ -148,8 +148,8 @@ f32 evaluator_evaluate_expression(const char* expr) {
             name[ptr - start] = '\0';
 
             char args[128];
-            memcpy(args, args_start, ptr - args_start - 1);
-            args[ptr - args_start - 1] = '\0';
+            memcpy(args, args_start, ptr - args_start);
+            args[ptr - args_start] = '\0';
 
             f32 result = evaluator_evaluate_function(name, args);
             evaluator_push_value(&values, result);

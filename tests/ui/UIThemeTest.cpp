@@ -6,7 +6,7 @@ static void test_theme_from_file_txt() {
     RingMemory ring;
     ring_alloc(&ring, 10 * MEGABYTE, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
-    UIThemeStyle theme;
+    UITheme theme;
     theme.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
     theme_from_file_txt(&theme, "./../../GameEditor/assets/themes/default/scene1.themetxt", &ring);
 
@@ -27,11 +27,11 @@ static void test_theme_to_from_data() {
     RingMemory ring;
     ring_alloc(&ring, 10 * MEGABYTE, 10 * MEGABYTE, ASSUMED_CACHE_LINE_SIZE);
 
-    UIThemeStyle theme_dump;
+    UITheme theme_dump;
     theme_dump.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
     theme_from_file_txt(&theme_dump, "./../../GameEditor/assets/themes/default/scene1.themetxt", &ring);
 
-    UIThemeStyle theme_load = {0};
+    UITheme theme_load = {0};
     theme_load.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
 
     byte* out = memory_get(&ring, 1024 * 1024);

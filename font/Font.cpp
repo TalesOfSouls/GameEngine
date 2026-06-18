@@ -106,8 +106,6 @@ void font_from_file_txt(
 
     const char* pos = (char *) file.content;
 
-    char block_name[32];
-
     int32 image_width = 0;
     int32 image_height = 0;
 
@@ -118,14 +116,8 @@ void font_from_file_txt(
         // Parsing general data
         pos = str_skip_empty(pos);
 
-        int32 i = 0;
-        while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && i < ARRAY_COUNT(block_name) - 1) {
-            block_name[i] = *pos;
-            ++pos;
-            ++i;
-        }
-
-        block_name[i] = '\0';
+        const char* block_name = pos;
+        str_move_to(&pos, " :\r\n");
 
         if (*pos != ':') {
             break;
@@ -136,21 +128,21 @@ void font_from_file_txt(
             ++pos;
         }
 
-        if (strcmp(block_name, "texture") == 0) {
+        if (strncmp(block_name, "texture", sizeof("texture") - 1) == 0) {
             while (!is_eol(pos)) {
                 *texture_pos++ = *pos++;
             }
 
             *texture_pos++ = '\0';
-        } else if (strcmp(block_name, "font_size") == 0) {
+        } else if (strncmp(block_name, "font_size", sizeof("font_size") - 1) == 0) {
             font->size = str_to_float(pos, &pos);
-        } else if (strcmp(block_name, "line_height") == 0) {
+        } else if (strncmp(block_name, "line_height", sizeof("line_height") - 1) == 0) {
             font->line_height = str_to_float(pos, &pos);
-        } else if (strcmp(block_name, "image_width") == 0) {
+        } else if (strncmp(block_name, "image_width", sizeof("image_width") - 1) == 0) {
             image_width = (int32) str_to_int(pos, &pos);
-        } else if (strcmp(block_name, "image_height") == 0) {
+        } else if (strncmp(block_name, "image_height", sizeof("image_height") - 1) == 0) {
             image_height = (int32) str_to_int(pos, &pos);
-        } else if (strcmp(block_name, "glyph_count") == 0) {
+        } else if (strncmp(block_name, "glyph_count", sizeof("glyph_count") - 1) == 0) {
             // glyph_count has to be the last general element
             font->glyph_count = (uint32) str_to_int(pos, &pos);
 
@@ -199,7 +191,7 @@ void font_from_file_txt(
     }
 }
 
-FORCE_INLINE
+static FORCE_INLINE
 int32 font_data_size(const Font* const font) NO_EXCEPT
 {
     return font->glyph_count * sizeof(Glyph)

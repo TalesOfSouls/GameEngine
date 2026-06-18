@@ -12,6 +12,7 @@
 
 #include "../../../stdlib/Stdlib.h"
 #include "../../../thread/Atomic.h"
+#include "../../../log/PerformanceProfiler.h"
 #include <windows.h>
 
 #define THREAD_RETURN DWORD WINAPI
@@ -39,26 +40,5 @@ struct coms_pthread_rwlock_t {
     SRWLOCK lock;
     bool exclusive;
 };
-
-// We use Macros to avoid the function call overhead and exception handling overhead
-#define mutex_init(mutex, attr) { \
-    ASSERT_TRUE((mutex)); \
-    InitializeCriticalSection((mutex)); \
-}
-
-#define mutex_destroy(mutex) { \
-    ASSERT_TRUE((mutex)); \
-    DeleteCriticalSection((mutex)); \
-}
-
-#define mutex_lock(mutex) { \
-    ASSERT_TRUE((mutex)); \
-    EnterCriticalSection((mutex)); \
-}
-
-#define mutex_unlock(mutex) { \
-    ASSERT_TRUE((mutex)); \
-    LeaveCriticalSection((mutex)); \
-}
 
 #endif

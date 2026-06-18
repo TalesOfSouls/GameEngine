@@ -106,6 +106,7 @@ void asset_archive_header_load(
     );
     PSEUDO_USE(steps);
 
+    // Load dependency data
     if (header->asset_dependency_count) {
         header->asset_dependencies = (uint32 *) (
             (byte *) header->asset_element
@@ -147,7 +148,7 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
         case ASSET_TYPE_LANGUAGE:
             return sizeof(Language);
         case ASSET_TYPE_THEME:
-            return sizeof(UIThemeStyle);
+            return sizeof(UITheme);
         default:
             UNREACHABLE();
     }
@@ -339,6 +340,7 @@ Asset* const asset_archive_asset_load(
         asset->official_id = id;
         asset->ram_size = element->uncompressed;
 
+        // @todo Should be async
         FileBody file = {0};
         file.content = asset->self;
 
@@ -433,7 +435,7 @@ Asset* const asset_archive_asset_load(
                 font_from_data(file.content, font);
             } break;
             case ASSET_TYPE_THEME: {
-                UIThemeStyle* const theme = (UIThemeStyle *) asset->self;
+                UITheme* const theme = (UITheme *) asset->self;
                 theme->data = (byte *) (theme + 1);
 
                 theme_from_data(file.content, theme);

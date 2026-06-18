@@ -12,6 +12,7 @@
 
 #include <stdarg.h>
 #include "../stdlib/Stdlib.h"
+#include "SimpleString.h"
 
 FORCE_INLINE
 size_t str_length(const char* str) NO_EXCEPT {
@@ -938,9 +939,37 @@ int32 is_eol(const char* str) NO_EXCEPT
     return 0;
 }
 
+template <typename C>
+FORCE_INLINE
+void str_copy(C* __restrict destination, const SimpleString<C>* const __restrict str) NO_EXCEPT
+{
+    memcpy(destination, str->str, sizeof(C) * str->length);
+}
+
+template <typename C>
+FORCE_INLINE
+void str_copy(C* __restrict destination, const SimpleString<C>& str) NO_EXCEPT
+{
+    memcpy(destination, str.str, sizeof(C) * str.length);
+}
+
+template <typename C>
+FORCE_INLINE
+void str_copy(C* __restrict destination, const SimpleString<const C>* const __restrict str) NO_EXCEPT
+{
+    memcpy(destination, str->str, sizeof(C) * str->length);
+}
+
+template <typename C>
+FORCE_INLINE
+void str_copy(C* __restrict destination, const SimpleString<const C>& str) NO_EXCEPT
+{
+    memcpy(destination, str.str, sizeof(C) * str.length);
+}
+
 // Similar to wcscpy but returns length instead of pointer to the beginning
 inline
-int32 str_copy(char* __restrict dest, const char* __restrict src)
+int32 str_copy(char* __restrict dest, const char* __restrict src) NO_EXCEPT
 {
     const char* start = dest;
 
@@ -1921,38 +1950,10 @@ const char* str_move_to_pos(const char* str, int32 pos) NO_EXCEPT
 inline
 void str_move_past(const char* __restrict* __restrict str, char delim) NO_EXCEPT
 {
-    const char* s = *str;
-
-    // Handle unaligned prefix
-    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != '\0' && *s != delim) {
-        ++s;
+    str_move_to(str, delim);
+    if (**str != '\0') {
+        ++(*str);
     }
-
-    const size_t delim_mask = ((size_t) - 1 / 0xFF) * (byte)delim;
-    const size_t* wptr = (const size_t *) s;
-
-    // Word-wise scan
-    while (true) {
-        const size_t v = *wptr;
-        if (OMS_HAS_ZERO(v) || OMS_HAS_ZERO(v ^ delim_mask)) {
-            break;
-        }
-
-        ++wptr;
-    }
-
-    // Fallback to byte scan
-    s = (const char *) wptr;
-    while (*s != '\0' && *s != delim) {
-        ++s;
-    }
-
-    // Move past delimiter if present
-    if (*s == delim) {
-        ++s;
-    }
-
-    *str = s;
 }
 
 FORCE_INLINE
@@ -2064,7 +2065,7 @@ char* str_skip_non_empty(const char* str) NO_EXCEPT
 }
 
 FORCE_INLINE
-void str_skip_line(const char** __restrict str) {
+void str_skip_line(const char** str) {
     while (**str != '\0' && **str != '\n') { ++(*str); };
 
     if (**str == '\n') {
@@ -2073,7 +2074,7 @@ void str_skip_line(const char** __restrict str) {
 }
 
 FORCE_INLINE
-char* str_skip_line(const char* __restrict str) {
+char* str_skip_line(const char* str) {
     while (*str != '\0' && *str != '\n') { ++str; };
 
     if (*str == '\n') {

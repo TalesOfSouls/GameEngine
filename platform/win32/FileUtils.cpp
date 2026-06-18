@@ -327,6 +327,8 @@ file_read(
 {
     PROFILE(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
 
+    ASSERT_TRUE(file_exists(path));
+
     FileHandle fp;
     if (*path == '.') {
         C full_path[PATH_MAX_LENGTH];
@@ -407,6 +409,8 @@ file_read(
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+
+    ASSERT_TRUE(file_exists(path));
 
     FileHandle fp;
     if (*path == '.') {
@@ -490,6 +494,8 @@ void file_read(
 ) NO_EXCEPT
 {
     PROFILE(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+
+    ASSERT_TRUE(file_exists(path));
 
     FileHandle fp;
     if (*path == (C) '.') {

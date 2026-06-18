@@ -16,135 +16,6 @@
 #include "TextureAtlas.h"
 #include "../memory/RingMemory.cpp"
 
-char* atlas_enum_from_file_txt(
-    const char* path,
-    RingMemory* const ring
-) NO_EXCEPT
-{
-    FileBody file = {0};
-    file_read(path, &file, ring);
-    ASSERT_TRUE(file.size);
-
-    const char* pos = (char *) file.content;
-
-    char* output = (char *) memory_get(ring, 1 * MEGABYTE, alignof(size_t));
-    memset(output, 0, 1 * MEGABYTE);
-
-    char block_name[32];
-    char texture_name[PATH_MAX_LENGTH];
-
-    char* texture_pos = texture_name;
-
-    while (*pos != '\0') {
-        // Parsing general data
-        pos = str_skip_empty(pos);
-
-        int32 i = 0;
-        while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && *pos != '#' && i < ARRAY_COUNT(block_name) - 1) {
-            block_name[i] = *pos;
-            ++pos;
-            ++i;
-        }
-
-        block_name[i] = '\0';
-
-        if (*pos != ':') {
-            break;
-        }
-
-        // Go to value
-        while (*pos == ' ' || *pos == '\t' || *pos == ':') {
-            ++pos;
-        }
-
-        if (strcmp(block_name, "texture") == 0) {
-            while (!is_eol(pos)) {
-                *texture_pos++ = *pos++;
-            }
-
-            *texture_pos++ = '\0';
-
-            break;
-        }
-
-        pos = str_skip_line(pos);
-    }
-
-    char* last_slash = strrchr(texture_name, '/');
-    if (!last_slash) {
-        last_slash = strrchr(texture_name, '\\');
-    }
-    ++last_slash;
-
-    char namespace_name[32];
-    char enum_name[32];
-    int32 i = 0;
-    for (; last_slash[i] != '.'; ++i) {
-        namespace_name[i] = (char) toupper(last_slash[i]);
-        enum_name[i] = (char) tolower(last_slash[i]);
-    }
-
-    enum_name[0] = (char) toupper(enum_name[0]);
-    namespace_name[i] = '\0';
-    enum_name[i] = '\0';
-
-    sprintf((char *) output,
-        "/**\n"
-        " * Jingga\n"
-        " *\n"
-        " * @copyright Jingga\n"
-        " * @license    License 2.0\n"
-        " * @version   1.0.0\n"
-        " * @link      https://jingga.app\n"
-        " */\n"
-        "#ifndef TOS_%s\n"
-        "#define TOS_%s\n"
-        "\n"
-        "enum AtlasIds%s : int32 {\n",
-        namespace_name,
-        namespace_name,
-        enum_name
-    );
-
-    while (*pos != '\0') {
-        // Go to next element
-        while (*pos != '#' && *pos != '\0') {
-            ++pos;
-        }
-
-        if (*pos != '#') {
-            break;
-        }
-
-        // Skip #
-        ++pos;
-
-        char enum_value_name[64] = {0};
-        char* enum_pos = enum_value_name;
-        while (*pos != '\0' && !is_eol(pos) && *pos != '#') {
-            *enum_pos = (char) toupper(*pos);
-            ++enum_pos;
-            ++pos;
-        }
-
-        // @performance It is horrible performance to call strlen every time on the entire output data
-        sprintf(
-            (char *) output + strlen((char *) output),
-            "    AT_ID_%s,\n",
-            enum_value_name
-        );
-
-        pos = str_skip_line(pos);
-    }
-
-    sprintf((char *) output + strlen((char *) output),
-        "};\n\n"
-        "#endif\n"
-    );
-
-    return output;
-}
-
 void atlas_from_file_txt(
     TextureAtlas* const atlas,
     const char* path,
@@ -156,8 +27,6 @@ void atlas_from_file_txt(
     ASSERT_TRUE(file.size);
 
     const char* pos = (char *) file.content;
-
-    char block_name[32];
 
     int32 image_width = 0;
     int32 image_height = 0;
@@ -171,14 +40,8 @@ void atlas_from_file_txt(
         // Parsing general data
         pos = str_skip_eol(pos);
 
-        int32 i = 0;
-        while (*pos != '\0' && *pos != ' ' && *pos != ':' && !is_eol(pos) && *pos != '#' && i < ARRAY_COUNT(block_name) - 1) {
-            block_name[i] = *pos;
-            ++pos;
-            ++i;
-        }
-
-        block_name[i] = '\0';
+        const char* block_name = pos;
+        str_move_to(&pos, " :\r\n#");
 
         if (*pos != ':') {
             break;
@@ -189,15 +52,15 @@ void atlas_from_file_txt(
             ++pos;
         }
 
-        if (strcmp(block_name, "texture") == 0) {
+        if (strncmp(block_name, "texture", sizeof("texture") - 1) == 0) {
             while (!is_eol(pos)) {
                 *texture_pos++ = *pos++;
             }
 
             *texture_pos++ = '\0';
-        } else if (strcmp(block_name, "image_width") == 0) {
+        } else if (strncmp(block_name, "image_width", sizeof("image_width") - 1) == 0) {
             image_width = (int32) str_to_int(pos, &pos);
-        } else if (strcmp(block_name, "image_height") == 0) {
+        } else if (strncmp(block_name, "image_height", sizeof("image_height") - 1) == 0) {
             image_height = (int32) str_to_int(pos, &pos);
 
             // @bug it's a little bit of a bad design to force the order here

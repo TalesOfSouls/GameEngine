@@ -22,10 +22,11 @@
 inline
 void thrd_cmd_ui_load(
     ChunkMemoryT<AppCommand>* const __restrict cb,
+    void* app,
     AssetManagementSystem* const __restrict ams,
     const wchar_t* const __restrict layout_path,
     const wchar_t* const __restrict theme_path,
-    UIThemeStyle* const __restrict general_theme,
+    UITheme* const __restrict general_theme,
     SceneInfo* const scene_info,
     GpuApiType gpu_api_type,
     ChunkMemory* const __restrict mem,
@@ -36,6 +37,7 @@ void thrd_cmd_ui_load(
     cmd.type = CMD_UI_LOAD;
     cmd.callback = callback;
 
+    cmd.layout_body.app = app;
     cmd.layout_body.ams = ams;
 
     wcscpy(cmd.layout_body.layout_path, layout_path);

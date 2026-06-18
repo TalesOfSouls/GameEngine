@@ -360,7 +360,7 @@ void voxel_world_update_pos(VoxelWorld* const vw, const v3_int32& pos) NO_EXCEPT
 
     // Now we need to add every chunk to the octree that is within the aabb box
     // Not all chunks currently in memory may fulfill that (we remove those)
-    uint32 chunk_id = 0;
+    int32 chunk_id = 0;
     chunk_iterate_start(&vw->map.buf, chunk_id) {
         HashEntry* entry = (HashEntry *) chunk_get_element(&vw->map.buf, chunk_id);
         VoxelChunk* chunk = (VoxelChunk *) entry->value;
@@ -400,7 +400,7 @@ void voxel_world_chunk_update(VoxelWorld* vw) NO_EXCEPT
     // Iterate all elements in the hash map (only the active ones of course)
     // @bug do We need a lock? we are not locking the chunk when doing this,
     // if we have a thread that defragments the datapool we are screwed
-    uint32 chunk_id = 0;
+    int32 chunk_id = 0;
     chunk_iterate_start(&vw->chunks, chunk_id) {
         VoxelChunk* chunk = (VoxelChunk *) chunk_get_element((ChunkMemory *) &vw->chunks, chunk_id);
 

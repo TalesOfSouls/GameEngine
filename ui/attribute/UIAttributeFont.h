@@ -18,8 +18,6 @@ struct UIAttributeFont {
     UIAttributeShadow shadow_outer;
     byte decoration;
     byte alignment;
-
-    // @todo family?
 };
 
 #endif

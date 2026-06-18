@@ -32,64 +32,11 @@ struct UIAttributeDimension {
     v2_f32 pos;
     v2_f32 dimension;
 
-    /*
-    // We commented this out since we will try to work around it for now by simply reloading the UI,
-    // whenever a in-game window gets resized, same as resizing the actual game window
-    union {
-        struct {
-            f32 x, y;
-            f32 width, height;
-        };
-
-        // We can never have position and dimension both be dynamic
-        // This isn't really a technical limitation, it's more a "what happens in reality" kind of reason
-        // This allows us to save 40 bytes
-        struct {
-            char x_str[24];
-            char y_str[24];
-            f32 width, height;
-        };
-
-        struct {
-            f32 x, y;
-            char width_str[24];
-            char height_str[24];
-        };
-    };
-    */
+    // Sometimes position and dimension are relative to a parent element
+    // In such case we take the parent pos/dimension + these relative information to build the absolute pos
+    // Since we are rendering back to front this nicely ensures that the parent element MUST have already been computed
+    v2_f32 pos_rel;
+    v2_f32 dimension_rel;
 };
-
-inline
-void ui_attr_dimension_serialize(const UIAttributeDimension* __restrict dim, byte** __restrict pos)
-{
-    **pos = dim->flag;
-    *pos += sizeof(dim->flag);
-
-    **pos = dim->alignment;
-    *pos += sizeof(dim->alignment);
-
-    f32 temp;
-    for (int32 i = 0; i < 4; ++i) {
-        temp = SWAP_ENDIAN_LITTLE(dim->dimension.vec[i]);
-        memcpy(*pos, &temp, sizeof(temp));
-        *pos += sizeof(dim->dimension.vec[i]);
-    }
-}
-
-inline
-void ui_attr_dimension_unserialize(UIAttributeDimension* __restrict dim, const byte** __restrict pos)
-{
-    dim->flag = **pos;
-    *pos += sizeof(dim->flag);
-
-    dim->alignment = **pos;
-    *pos += sizeof(dim->alignment);
-
-    for (int32 i = 0; i < 4; ++i) {
-        memcpy(&dim->dimension.vec[i], *pos, sizeof(dim->dimension.vec[i]));
-        SWAP_ENDIAN_LITTLE_SELF(dim->dimension.vec[i]);
-        *pos += sizeof(dim->dimension.vec[i]);
-    }
-}
 
 #endif

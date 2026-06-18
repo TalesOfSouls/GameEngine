@@ -15,7 +15,7 @@
 #include "../hash/GeneralHash.h"
 #include "../memory/RingMemory.cpp"
 
-typedef uint64 (*PerfectHashFunction)(const char* key, int32 seed);
+typedef uint64 (*PerfectHashFunction)(const char* key, int32 seed) NO_EXCEPT;
 
 const PerfectHashFunction PERFECT_HASH_FUNCTIONS[] = {
     hash_djb2_seeded,
@@ -456,7 +456,7 @@ bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 
 
     // Find all keys
     int32 key_index = 0;
-    uint32 chunk_id = 0;
+    int32 chunk_id = 0;
     chunk_iterate_start(&hm->buf, chunk_id) {
         HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, chunk_id);
         keys[key_index++] = entry->key;

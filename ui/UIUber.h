@@ -3,14 +3,22 @@
 #define COMS_UI_UBER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../camera/Camera.h"
+#include "../utils/SimpleString.h"
+#include "UICore.h"
+#include "attribute/UIAttributeBackground.h"
+#include "attribute/UIAttributeBorder.h"
+#include "attribute/UIAttributeShadow.h"
 
 // A Uber element that is very versatile and can hold basically all possible atributes
 // Using this type is not encouraged since it is expensive in memory and when rendering
 struct UIUber {
-    UIAttributeDimension dimension;
-    byte opacity; // 1 byte alpha channel
-    byte padding;
+    UICore core;
+
+    int32 pattern_length;
+    SimpleString<const wchar_t> pattern;
+
+    int32 content_length;
+    SimpleString<const wchar_t> content;
 
     UIAttributeBackground background;
     UIAttributeBorder border;
@@ -18,6 +26,6 @@ struct UIUber {
     UIAttributeShadow shadow_inner;
 
     // @todo implement more
-}
+};
 
 #endif

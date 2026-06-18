@@ -51,11 +51,11 @@ static void test_layout_from_theme() {
     layout.data = (byte *) platform_alloc_aligned(10 * MEGABYTE);
     layout_from_file_txt(&layout, "./../../GameEditor/assets/themes/default/scene1.layouttxt", &ring);
 
-    UIThemeStyle theme1;
+    UITheme theme1;
     theme1.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
     theme_from_file_txt(&theme1, "./../../GameEditor/assets/themes/default/general.themetxt", &ring);
 
-    UIThemeStyle theme2;
+    UITheme theme2;
     theme2.data = (byte *) platform_alloc_aligned(2 * MEGABYTE);
     theme_from_file_txt(&theme2, "./../../GameEditor/assets/themes/default/scene1.themetxt", &ring);
 

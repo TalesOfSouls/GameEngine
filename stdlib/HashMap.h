@@ -169,7 +169,7 @@ struct HashEntryKeyInt64 {
     byte* value;
 };
 
-typedef uint64 (*HashMapHashFunction)(const void* data);
+typedef uint64 (*HashMapHashFunction)(const void* data) NO_EXCEPT;
 
 struct HashMap {
     // Contains the actual data of the hash map (sometimes)

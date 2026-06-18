@@ -32,11 +32,8 @@ void mesh_from_file_txt(
 
     const char* pos = (char *) file.content;
 
-    // move past the "version" string
-    pos += 8;
-
-    // @todo us version for different handling
-    /*MAYBE_UNUSED int32 version = (int32) */str_to_int(pos, &pos); ++pos;
+    // skip verion
+    str_skip_line(&pos);
 
     int32 object_index = 0;
     int32 group_index = 0;

@@ -16,7 +16,7 @@
 #include "../log/PerformanceProfiler.h"
 #include "../log/DebugMemory.h"
 #include "../system/Allocator.h"
-#include "../thread/Thread.h"
+#include "../thread/ThreadHelper.cpp"
 #include "MemoryArena.h"
 #include "BufferMemory.h"
 

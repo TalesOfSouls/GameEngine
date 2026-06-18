@@ -5,7 +5,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../memory/RingMemory.cpp"
 #include "../utils/StringUtils.h"
-#include "../stdlib/HashMap.cpp"
+#include "../stdlib/HashMapT.cpp"
 #include "../font/Font.cpp"
 #include "../system/FileUtils.cpp"
 #include "../sort/Sort.h"
@@ -15,9 +15,9 @@
 #include "UIElementType.h"
 
 FORCE_INLINE
-UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
+UIAttributeGroup* theme_style_group(UITheme* theme, const char* group_name)
 {
-    HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&theme->hash_map, group_name);
+    const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) hashmap_get_entry(&theme->hash_map, group_name);
     if (!entry) {
         ASSERT_THROW();
         return NULL;
@@ -31,8 +31,8 @@ UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
 static FORCE_INLINE
 int compare_by_attribute_id(const void* __restrict a, const void* __restrict b) NO_EXCEPT
 {
-    UIAttribute* attr_a = (UIAttribute *) a;
-    UIAttribute* attr_b = (UIAttribute *) b;
+    const UIAttribute* attr_a = (UIAttribute *) a;
+    const UIAttribute* attr_b = (UIAttribute *) b;
 
     return attr_a->attribute_id - attr_b->attribute_id;
 }
@@ -50,7 +50,7 @@ int compare_by_attribute_id(const void* __restrict a, const void* __restrict b) 
 
 // WARNING: theme needs to have memory already reserved and assigned to data
 void theme_from_file_txt(
-    UIThemeStyle* theme,
+    UITheme* theme,
     const char* path,
     RingMemory* const ring
 ) {
@@ -60,11 +60,8 @@ void theme_from_file_txt(
 
     const char* pos = (char *) file.content;
 
-    // move past the "version" string
-    pos += 8;
-
-    // Use version for different handling
-    /*MAYBE_UNUSED int32 version = (int32) */str_to_int(pos, &pos); ++pos;
+    // skip version
+    str_skip_line(&pos);
 
     // We have to find how many groups are defined in the theme file.
     // Therefore we have to do an initial iteration
@@ -82,16 +79,18 @@ void theme_from_file_txt(
         str_move_past(&pos, '\n');
     }
 
-    // @performance This is probably horrible since we are not using a perfect hashing function (1 hash -> 1 index)
-    //      I wouldn't be surprised if we have a 50% hash overlap (2 hashes -> 1 index)
+    ASSERT_TRUE(temp_group_count > 0);
+
+    // @performance we reserve * 2 memory to avoid too many hash collisions... urgh
     hashmap_create(
         &theme->hash_map,
-        temp_group_count,
-        sizeof(HashEntryInt32),
+        temp_group_count * 2,
         theme->data,
-        align_up((int32) sizeof(HashEntryInt32), 32)
+        align_up((int32) sizeof(HashEntryStrT<int32>), 32)
     );
     int32 data_offset = (int32) hashmap_size(&theme->hash_map);
+
+    ASSERT_TRUE(data_offset <= theme->data_size);
 
     UIAttributeGroup* temp_group = NULL;
 
@@ -100,7 +99,10 @@ void theme_from_file_txt(
     // move past "version" string
     str_move_past(&pos, '\n');
 
-    char attribute_name[32];
+    char* attribute_name;
+
+    // This one cannot be a pointer directly to the existing string like attribute_name since we may have a suffix like :hover
+    // In that case the : of course is not allowed to be overwritten
     char block_name[128]; // HASH_MAP_MAX_KEY_LENGTH would probably result in a buffer overflow
     bool last_token_newline = false;
     bool block_open = false;
@@ -138,11 +140,14 @@ void theme_from_file_txt(
                 if (temp_group) {
                     // Before we insert a new group we have to sort the attributes of the PREVIOUS temp_group
                     // since this makes searching them later on more efficient.
-                    sort_introsort(temp_group + 1, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
+                    UIAttribute* attribute_start = (UIAttribute *) align_up((uintptr_t) (temp_group + 1), alignof(UIAttribute));
+                    sort_introsort(attribute_start, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
                     // @todo This is where we create the Eytzinger order if we want to use it
                 }
 
                 // Insert new group
+                data_offset = (int32) ((uintptr_t) align_up((uintptr_t) theme->data + data_offset, alignof(UIAttributeGroup))
+                    - (uintptr_t) theme->data);
                 hashmap_insert(&theme->hash_map, block_name, data_offset);
 
                 temp_group = (UIAttributeGroup *) (theme->data + data_offset);
@@ -159,7 +164,9 @@ void theme_from_file_txt(
 
         // Handle new attribute for previously found group
         /////////////////////////////////////////////////////////
-        str_copy_move_until(attribute_name, &pos, " :\n");
+        attribute_name = (char *) pos; // Yes, we are forcing a const -> none-const changes
+        str_move_to(&pos, " :\n");
+        attribute_name[pos++ - attribute_name] = '\0';
 
         // Skip any white spaces or other delimeter
         str_skip_list(&pos, " \t:", sizeof(" \t:") - 1);
@@ -178,7 +185,7 @@ void theme_from_file_txt(
         // Again, currently this if check is redundant but it wasn't in the past and we may need it again in the future.
         if (block_name[0] == '#' || block_name[0] == '.') {
             // Named block
-            UIAttribute* attribute_reference = (UIAttribute *) (temp_group + 1);
+            UIAttribute* attribute_reference = (UIAttribute *) align_up((uintptr_t) (temp_group + 1), alignof(UIAttribute));
             // @question Why are we even doing this? couldn't we just pass this offset to the ui_attribute_parse_value() function?
             memcpy(
                 attribute_reference + temp_group->attribute_count,
@@ -196,12 +203,14 @@ void theme_from_file_txt(
     theme->used_data_size = data_offset;
 
     // We still need to sort the last group
-    sort_introsort(temp_group + 1, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
+    UIAttribute* attribute_start = (UIAttribute *) align_up((uintptr_t) (temp_group + 1), alignof(UIAttribute));
+    sort_introsort(attribute_start, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
     // @todo This is where we create the Eytzinger order if we want to use it
 }
 
+// from data
 static inline
-void ui_theme_parse_group(HashEntryInt32* entry, byte* data, const byte** in)
+void ui_theme_parse_group(const HashEntryStrT<int32>* entry, byte* data, const byte** in)
 {
     UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
     ASSERT_STRICT(((uintptr_t) group) % 4 == 0);
@@ -209,7 +218,7 @@ void ui_theme_parse_group(HashEntryInt32* entry, byte* data, const byte** in)
     group->attribute_count = SWAP_ENDIAN_LITTLE(*((int32 *) *in));
     *in += sizeof(group->attribute_count);
 
-    UIAttribute* attribute_reference = (UIAttribute *) (group + 1);
+    UIAttribute* attribute_reference = (UIAttribute *) align_up((uintptr_t) (group + 1), alignof(UIAttribute));
     ASSERT_STRICT(((uintptr_t) attribute_reference) % 4 == 0);
 
     for (int32 j = 0; j < group->attribute_count; ++j) {
@@ -244,15 +253,17 @@ void ui_theme_parse_group(HashEntryInt32* entry, byte* data, const byte** in)
     }
 }
 
-// Memory layout (data) - This is not the layout of the file itself, just how we represent it in memory
+// Memory layout (data)
 // Hashmap
+// [alignment - UIAttributeGroup]
 // UIAttributeGroup - This is where the pointers point to (or what the offset represents)
-//      size
+//      [alignment - Attributes]
 //      Attributes ...
 //      Attributes ...
 //      Attributes ...
+// [alignment - UIAttributeGroup]
 // UIAttributeGroup
-//      size
+//      [alignment - Attributes]
 //      Attributes ...
 //      Attributes ...
 //      Attributes ...
@@ -261,7 +272,7 @@ void ui_theme_parse_group(HashEntryInt32* entry, byte* data, const byte** in)
 // Yes, this means we have a little too much data but not by a lot
 int32 theme_from_data(
     const byte* __restrict data,
-    UIThemeStyle* __restrict theme
+    UITheme* __restrict theme
 ) {
     PROFILE(PROFILE_THEME_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Load theme");
@@ -270,8 +281,12 @@ int32 theme_from_data(
 
     int32 version;
     in = read_le(in, &version);
-    in = read_le(in, &theme->used_data_size);
 
+    // This information is written to the data by the hashmap_dump = chunk_dump
+    // We don't move the *in pointer since that happens later with hashmap_load
+    // However, we need to pre-load that information now so we can initialize the hashmap
+    // We could in theory not do that and hard-code a fixed allowed number here.
+    // @question Consider the fixed amount idea from above.
     int32 count;
     read_le(in, &count);
     SWAP_ENDIAN_LITTLE_SELF(count);
@@ -282,19 +297,21 @@ int32 theme_from_data(
     hashmap_create(
         &theme->hash_map,
         count,
-        sizeof(HashEntryInt32),
         theme->data,
-        align_up((int32) sizeof(HashEntryInt32), 4)
+        align_up((int32) sizeof(HashEntryStrT<int32>), 4) // @todo This line is stupid, shouldn't this be alignof
     );
 
-    in += hashmap_load(&theme->hash_map, in, MEMBER_SIZEOF(HashEntryInt32, value));
+    ASSERT_TRUE(sizeof(HashEntryStrT<int32>) * count <= theme->data_size);
+
+    theme->used_data_size = (int32) hashmap_load(&theme->hash_map, in);
+    in += theme->used_data_size;
 
     // theme data
     // Layout: first load the size of the group, then load the individual attributes
     // @performance We are iterating the hashmap twice (hashmap_load and here)
-    uint32 chunk_id = 0;
+    int32 chunk_id = 0;
     chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
-        HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
+        HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
         ui_theme_parse_group(entry, theme->data, &in);
     } chunk_iterate_end;
 
@@ -307,14 +324,15 @@ int32 theme_from_data(
 // Not every group has all the attributes (most likely only a small subset)
 // However, an accurate calculation is probably too slow and not needed most of the time
 FORCE_INLINE
-int64 theme_data_size_max(const UIThemeStyle* theme)
+int64 theme_data_size_max(const UITheme* theme)
 {
     return hashmap_size(&theme->hash_map)
         + theme->hash_map.buf.capacity * UI_ATTRIBUTE_TYPE_SIZE * sizeof(UIAttribute);
 }
 
+// to data
 static inline
-void ui_theme_serialize_group(const HashEntryInt32* entry, const byte* data, byte** out)
+void ui_theme_serialize_group(const HashEntryStrT<int32>* entry, const byte* data, byte** out)
 {
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of theme->data
@@ -329,7 +347,7 @@ void ui_theme_serialize_group(const HashEntryInt32* entry, const byte* data, byt
     *((int32 *) *out) = SWAP_ENDIAN_LITTLE(group->attribute_count);
     *out += sizeof(group->attribute_count);
 
-    UIAttribute* attribute_reference = (UIAttribute *) (group + 1);
+    UIAttribute* attribute_reference = (UIAttribute *) align_up((uintptr_t) (group + 1), alignof(UIAttribute));
     ASSERT_STRICT(((uintptr_t) attribute_reference) % 4 == 0);
 
     f32 tempf32;
@@ -387,24 +405,31 @@ void ui_theme_serialize_group(const HashEntryInt32* entry, const byte* data, byt
 //      attributes ...
 //      attributes ...
 
+/**
+ * Binary representation:
+ *
+ * 00 01 02 03 = version
+ * 00 .. .. 0F = hash map header
+ * 10 .. .. .. = hash map data
+ * .. .. .. .. = theme data
+ */
 int32 theme_to_data(
-    const UIThemeStyle* __restrict theme,
+    const UITheme* __restrict theme,
     byte* __restrict data
 ) {
     byte* out = data;
 
     // version
     out = write_le(out, UI_THEME_VERSION);
-    out = write_le(out, theme->used_data_size);
 
     // hashmap
-    out += hashmap_dump(&theme->hash_map, out, MEMBER_SIZEOF(HashEntryInt32, value));
+    out += hashmap_dump(&theme->hash_map, out);
 
     // theme data
     // Layout: first save the size of the group, then save the individual attributes
-    uint32 chunk_id = 0;
+    int32 chunk_id = 0;
     chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
-        const HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
+        const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
         ui_theme_serialize_group(entry, theme->data, &out);
     } chunk_iterate_end;
 

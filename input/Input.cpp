@@ -609,7 +609,7 @@ void input_handle_hotkeys(const Input* const input, void* data) NO_EXCEPT {
     // Run all input events
     for (int i = 0; i < input_event_count; ++i) {
         if (!input_events[i]) {
-            // Hotkey is not bound to a function
+            // Hotkey exists but is not bound to a function
             ASSERT_THROW();
 
             // This does NOT mean a hotkey that the user unbound

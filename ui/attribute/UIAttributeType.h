@@ -119,8 +119,7 @@ enum UIAttributeType : uint16 {
     // This is used to reserve memory in our vertex cache
     UI_ATTRIBUTE_TYPE_VERTEX_COUNT,
 
-    UI_ATTRIBUTE_TYPE_SIZE,
+    UI_ATTRIBUTE_TYPE_SIZE
 };
-
 
 #endif

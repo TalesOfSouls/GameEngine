@@ -413,14 +413,14 @@ byte ams_component_find_type(const AssetManagementSystem* const ams, uint32 size
         const f32 multiple_increase = (f32) ams->asset_components[i].asset_memory.chunk_size
             / (f32) ams->asset_components[i - 1].asset_memory.chunk_size;
 
-        const f32 chunk_size = (f32) ams->asset_components[i].asset_memory.chunk_size;
+        const f32 c_size = (f32) ams->asset_components[i].asset_memory.chunk_size;
 
         // @todo we should also check if there is still room available in this component
         //      or one step further how much of the total chunks this one would occupy and if it is > 20% go to next component
         // 1. Does the required size still not fit into one chunk than this new component is better anyways
         // 2. If it does fit in we ensure that the wasted memory is less than the previous multiple increase
-        if (required_size / chunk_size >= 1.0f
-            || multiple_increase * ams->asset_components[i - 1].asset_memory.chunk_size >= (1.0f - (required_size / chunk_size)) * chunk_size
+        if (required_size / c_size >= 1.0f
+            || multiple_increase * ams->asset_components[i - 1].asset_memory.chunk_size >= (1.0f - (required_size / c_size)) * c_size
         ) {
             type = (byte) i;
         } else {
@@ -531,7 +531,7 @@ void thrd_ams_update(AssetManagementSystem* const ams, uint64 time, uint64 dt) N
     }
 
     // Iterate the hash map to find all assets
-    uint32 chunk_id = 0;
+    int32 chunk_id = 0;
     chunk_iterate_start(&ams->hash_map.buf, chunk_id) {
         HashEntry* const entry = (HashEntry *) chunk_get_element(&ams->hash_map.buf, chunk_id);
         Asset* const asset = (Asset *) entry->value;

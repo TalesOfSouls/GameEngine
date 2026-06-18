@@ -31,6 +31,8 @@ struct FontSystem {
     // This image is then uploaded to the GPU where it can be used
     Image temp_font_atlas;
 
+    int16 newline_id;
+
     // Has the font_map changed, which is important for GPU,
     // since we need to upload the new temp font atlas
     bool has_changes;

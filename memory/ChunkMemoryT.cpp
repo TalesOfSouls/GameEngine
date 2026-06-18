@@ -503,6 +503,14 @@ void thrd_chunk_free_elements_atomic(ChunkMemoryT<T>* const buf, uint_max elemen
     DEBUG_MEMORY_DELETE((uintptr_t) &buf->memory[element], sizeof(T) * element_count);
 }
 
+/**
+ * Binary representation:
+ *
+ * 00 01 02 03 = capacity
+ * 04 05 06 07 = last_pos
+ * 08 09 0A 0B = free_offset
+ * 0C .. .. .. = hash map data
+ */
 template <typename T>
 inline
 int64 chunk_dump(const ChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
@@ -517,7 +525,7 @@ int64 chunk_dump(const ChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
     data = write_le(data, free_offset);
 
     const size_t size = buf->capacity * sizeof(T)
-        + sizeof(uint_max) * ceil_div(buf->capacity, (sizeof(uint_max) * 8))
+        + sizeof(uint_max) * ceil_div(buf->capacity, (int32) (sizeof(uint_max) * 8))
         + sizeof(uint_max);
 
     // All memory is handled in the buffer -> simply copy the buffer
@@ -583,7 +591,7 @@ int64 chunk_load(ChunkMemoryT<T>* const buf, const byte* data) NO_EXCEPT
     data = read_le(data, &free_offset);
 
     const size_t size = buf->capacity * sizeof(T)
-        + sizeof(uint_max) * ceil_div(buf->capacity, (sizeof(uint_max) * 8))
+        + sizeof(uint_max) * ceil_div(buf->capacity, (int32) (sizeof(uint_max) * 8))
         + sizeof(uint_max);
 
     memcpy(buf->memory, data, size);

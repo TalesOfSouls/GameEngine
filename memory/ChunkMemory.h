@@ -34,7 +34,7 @@ struct ChunkMemory {
     // @question Do I really want to use uint?
     uint_max size;
     atomic_32 int32 last_pos;
-    uint32 capacity;
+    int32 capacity;
     int32 chunk_size;
 
     // WARNING: The alignment may increase the original chunk size e.g.

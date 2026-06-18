@@ -29,6 +29,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
         _log_memory = pool->debug_container->log_memory;
         _dmc = pool->debug_container->dmc;
         _perf_stats = pool->debug_container->perf_stats;
+        _perf_static_stats = pool->debug_container->perf_static_stats;
         _perf_active = pool->debug_container->perf_active;
         _stats_counter_active = pool->debug_container->stats_counter_active;
         _stats_counter = pool->debug_container->stats_counter;

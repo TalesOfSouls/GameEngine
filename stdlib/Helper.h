@@ -352,6 +352,20 @@ const byte* read_le(const byte* __restrict p, f64* __restrict out) NO_EXCEPT
     return p;
 }
 
+// Used to hash strings used in macros (e.g. __FILE__)
+CONSTEXPR
+int macro_fnv1a_32(const char* str)
+{
+    uint32_t hash = 2166136261u;
+
+    while (*str) {
+        hash ^= (uint8_t) (*str++);
+        hash *= 16777619u;
+    }
+
+    return (int) hash;
+}
+
 template <bool B, typename T = void>
 struct enable_if { };
 

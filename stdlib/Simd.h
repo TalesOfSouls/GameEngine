@@ -17,6 +17,10 @@
  *              Therefore, only enable the SIMD features that are available
  */
 
+#define SIMD_ALIGN_512 64
+#define SIMD_ALIGN_256 32
+#define SIMD_ALIGN_128 16
+
 #ifdef __aarch64__
     #include <arm_neon.h>
 #else

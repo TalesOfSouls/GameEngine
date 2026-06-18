@@ -3,34 +3,43 @@
 #define COMS_UI_THEME_H
 
 #include "../stdlib/Stdlib.h"
-#include "../stdlib/HashMap.h"
+#include "../stdlib/HashMapT.h"
 #include "../font/FontSystem.h"
 #include "../font/Font.h"
 
 #define UI_THEME_VERSION 1
 
-// @question Currently there is some data duplication in here and in the UIElement.
-//      Not sure if this is how we want this to be or if we want to change this in the future
-// Modified for every scene
-// WARNING: Make sure the order of this struct and UITheme is the same for the first elements
-//          This allows us to cast between both
-struct UIThemeStyle {
+// Memory layout (data)
+// Hashmap
+// [alignment - UIAttributeGroup]
+// UIAttributeGroup - This is where the pointers point to (or what the offset represents)
+//      [alignment - Attributes]
+//      Attributes ...
+//      Attributes ...
+//      Attributes ...
+// [alignment - UIAttributeGroup]
+// UIAttributeGroup
+//      [alignment - Attributes]
+//      Attributes ...
+//      Attributes ...
+//      Attributes ...
+struct UITheme {
     // A theme may have N named styles
     // The hashmap contains the offset where the respective style can be found
-    // @performance Switch to perfect hash map
-    // @question Both the layout and theme have their own hashmap
-    //          Would it make sense to have one hashmap for both together?
-    HashMap hash_map;
+    // @performance Consider to switch to perfect hash map
+    HashMapT<HashEntryStrT<int32>> hash_map;
 
     // Total size of the theme incl. hash_map
     // Most likely the theme has some additional free data available
-    // This is because we might want to dynamically grow the theme
-    uint32 data_size;
+    // This is because we might want to dynamically grow the theme/allow modification that increases the theme size
+    //      e.g. theme didn't define an outline, user wants to have an outline -> additional attribute needed
+    int32 data_size;
 
-    // This is how much we actually use in the theme
-    uint32 used_data_size;
+    // This is how much we actually use in the theme right now
+    int32 used_data_size;
 
-    // This buffer is used also by the hash_map
+    // This data is the owner of the theme data
+    // This also holds the hashmap data in the very beginning
     byte* data;
 
     // @question It feels weird that this is here, especially considering we could have multiple fonts
