@@ -20,7 +20,7 @@
 #include "UICustom.h"
 
 CONSTEXPR
-int32 ui_element_type_size(UIElementType e)
+int32 ui_element_type_size(UIElementType e) NO_EXCEPT
 {
     switch (e) {
         case UI_ELEMENT_TYPE_BUTTON:
@@ -59,47 +59,8 @@ int32 ui_element_type_size(UIElementType e)
     }
 }
 
-CONSTEXPR
-int32 ui_element_state_size(UIElementType e)
-{
-    switch (e) {
-        case UI_ELEMENT_TYPE_BUTTON:
-            return sizeof(UIButtonState);
-        case UI_ELEMENT_TYPE_SELECT:
-            return sizeof(UISelectState);
-        case UI_ELEMENT_TYPE_INPUT:
-            return sizeof(UIInputState);
-        case UI_ELEMENT_TYPE_LABEL:
-            return sizeof(UILabelState);
-        case UI_ELEMENT_TYPE_TEXT:
-            return sizeof(UITextState);
-        case UI_ELEMENT_TYPE_TEXTAREA:
-            return sizeof(UITextareaState);
-        case UI_ELEMENT_TYPE_IMAGE:
-            return sizeof(UIImageState);
-        case UI_ELEMENT_TYPE_LINK:
-            return sizeof(UILinkState);
-        case UI_ELEMENT_TYPE_TABLE:
-            return sizeof(UITableState);
-        case UI_ELEMENT_TYPE_VIEW_WINDOW:
-            return sizeof(UIWindowState);
-        case UI_ELEMENT_TYPE_VIEW_PANEL:
-            return sizeof(UIPanelState);
-        case UI_ELEMENT_TYPE_VIEW_TAB:
-            return sizeof(UITabState);
-        case UI_ELEMENT_TYPE_CURSOR:
-            return sizeof(UICursorState);
-        case UI_ELEMENT_TYPE_CUSTOM:
-            return sizeof(UICustomState);
-        case UI_ELEMENT_TYPE_MANUAL:
-            return sizeof(UICustomState);
-        default: {
-            UNREACHABLE();
-        }
-    }
-}
-
-int32 ui_element_type_to_id(const char* str)
+static
+int32 ui_element_type_to_id(const char* str) NO_EXCEPT
 {
     if (strncmp("button", str, sizeof("button") - 1) == 0) {
         return UI_ELEMENT_TYPE_BUTTON;

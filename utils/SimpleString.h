@@ -22,4 +22,9 @@ struct SimpleString {
     int32 length;
 };
 
+enum CharType {
+    CHAR_TYPE_CHAR,
+    CHAR_TYPE_WCHAR,
+};
+
 #endif

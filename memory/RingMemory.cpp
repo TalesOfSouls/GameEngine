@@ -31,7 +31,7 @@ void ring_alloc(RingMemory* const ring, size_t size, size_t max_size, int32 alig
     ASSERT_TRUE(size);
     ASSERT_TRUE(max_size >= size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
-    PROFILE(PROFILE_RING_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_RING_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
 
     size = align_up(size, ASSUMED_CACHE_LINE_SIZE);
     LOG_1("[INFO] Allocating RingMemory: %n B", {DATA_TYPE_UINT64, &size});
@@ -59,7 +59,7 @@ void ring_alloc(
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     size = align_up(size, (size_t) alignment);
-    MemoryArena* arena = mem_arena_add(mem, size, max_size, alignment);
+    MemoryArena* const arena = mem_arena_add(mem, size, max_size, alignment);
     ring->memory = arena->memory;
 
     ring->end = ring->memory + size;
@@ -280,7 +280,7 @@ byte* memory_get(RingMemory* const ring, size_t size, int32 alignment = sizeof(s
     ring->head += size;
 
     ASSERT_TRUE(offset);
-    STATS_MAX_PERSISTENT(DEBUG_COUNTER_RING_MAX_REQUEST, size);
+    STATS_MAX_PERSISTENT_DEBUG(DEBUG_COUNTER_RING_MAX_REQUEST, size);
 
     return offset;
 }
@@ -316,7 +316,7 @@ byte* ring_grow_memory(RingMemory* const ring, const byte* old, size_t size_old,
         }
     } else {
         // Some other allocations happened — must allocate new block
-        byte* new_block = memory_get(ring, size_new, alignment);
+        byte* const new_block = memory_get(ring, size_new, alignment);
         memcpy(new_block, old, size_old);
 
         return new_block;

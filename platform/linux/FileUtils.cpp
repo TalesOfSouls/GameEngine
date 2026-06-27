@@ -160,7 +160,7 @@ FileHandle file_append_handle(const char* path) {
 inline
 bool file_exists(const char* path) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, path, false, true);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, path, false, true);
 
     struct stat buffer;
     const char* full_path = path;
@@ -176,7 +176,7 @@ bool file_exists(const char* path) NO_EXCEPT
 
 inline
 bool file_copy(const char* __restrict src, const char* __restrict dst) {
-    PROFILE(PROFILE_FILE_UTILS, src, false, true);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, src, false, true);
 
     char src_full_path[PATH_MAX_LENGTH];
     char dst_full_path[PATH_MAX_LENGTH];
@@ -222,8 +222,8 @@ bool file_copy(const char* __restrict src, const char* __restrict dst) {
     close(src_fd);
     close(dst_fd);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, bytes_written);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, bytes_written);
 
     return success;
 }
@@ -235,7 +235,7 @@ void file_read(
     FileBody* __restrict file,
     T* const __restrict mem = NULL
 ) {
-    PROFILE(PROFILE_FILE_UTILS, path, false, true);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, path, false, true);
 
     char full_path[PATH_MAX_LENGTH];
     const char* abs_path = path;
@@ -290,7 +290,7 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 
     close(fp);
 }
@@ -350,7 +350,7 @@ bool file_read_line(
 
 inline
 bool file_write(const char* __restrict path, const FileBody* __restrict file) {
-    PROFILE(PROFILE_FILE_UTILS, path, false, true);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, path, false, true);
 
     int32 fd;
     char full_path[PATH_MAX_LENGTH];
@@ -377,7 +377,7 @@ bool file_write(const char* __restrict path, const FileBody* __restrict file) {
         return false;
     }
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, written);
 
     return true;
 }

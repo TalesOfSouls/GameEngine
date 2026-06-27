@@ -35,7 +35,7 @@ void* cmd_shader_load_sync(
     VkDescriptorSetLayout* __restrict descriptor_set_layouts
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
     char asset_id[9];
 
     VkShaderModule shader_assets[SHADER_TYPE_SIZE];

@@ -72,7 +72,7 @@ void* platform_alloc_aligned(
     ((void**)aligned)[-1] = base;
 
     DEBUG_MEMORY_INIT((uintptr_t)aligned, initial_size);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, initial_size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, initial_size);
 
     return aligned;
 }
@@ -106,7 +106,7 @@ bool platform_alloc_aligned_grow(void* aligned_ptr, size_t new_user_size) NO_EXC
     }
 
     DEBUG_MEMORY_INIT((uintptr_t)aligned_ptr + hdr->committed_size, new_committed - hdr->committed_size);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, new_committed - hdr->committed_size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, new_committed - hdr->committed_size);
 
     hdr->committed_size = new_committed;
     LOG_3("[INFO] Grown aligned allocation to %n B", {DATA_TYPE_UINT64, &hdr->committed_size});
@@ -135,7 +135,7 @@ bool platform_alloc_aligned_shrink(void* aligned_ptr, size_t new_user_size) NO_E
         return false;
     }
 
-    STATS_DECREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, delta);
+    STATS_DECREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, delta);
     LOG_3("[INFO] Shrunk aligned allocation by %n B", {DATA_TYPE_UINT64, &delta});
 
     hdr->committed_size = new_committed;
@@ -200,7 +200,7 @@ void* platform_shared_alloc(
     void* user_ptr = (void*)((uintptr_t)base + sizeof(platform_alloc_header));
 
     DEBUG_MEMORY_INIT((uintptr_t)user_ptr, initial_size);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, initial_size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, initial_size);
 
     return user_ptr;
 }
@@ -231,7 +231,7 @@ bool platform_shared_alloc_grow(void* shm_ptr, size_t new_user_size) NO_EXCEPT
     }
 
     DEBUG_MEMORY_INIT((uintptr_t)shm_ptr + hdr->committed_size, new_committed - hdr->committed_size);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, new_committed - hdr->committed_size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, new_committed - hdr->committed_size);
 
     hdr->committed_size = new_committed;
     LOG_3("[INFO] Grown shared allocation to %n B", {DATA_TYPE_UINT64, &hdr->committed_size});
@@ -259,7 +259,7 @@ bool platform_shared_alloc_shrink(void* shm_ptr, size_t new_user_size) NO_EXCEPT
         return false;
     }
 
-    STATS_DECREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, delta);
+    STATS_DECREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, delta);
     LOG_3("[INFO] Shrunk shared allocation by %n B", {DATA_TYPE_UINT64, &delta});
 
     hdr->committed_size = new_committed;

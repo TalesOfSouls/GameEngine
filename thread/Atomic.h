@@ -38,9 +38,6 @@
 
 // The following functions are "non-standard" atomic helper functions that are based on other atomic functions
 
-// @question These functions behave differently from the normal atomic increment function:
-//          Normal: return old + increment
-//          This:   increment + return new
 template <typename T>
 inline
 T atomic_increment_wrap_relaxed(T* value, T threshold) NO_EXCEPT

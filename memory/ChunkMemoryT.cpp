@@ -35,7 +35,7 @@ template <typename T>
 inline
 void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -67,7 +67,7 @@ template <typename T>
 inline
 void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -113,7 +113,7 @@ template <typename T>
 inline
 void chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -147,7 +147,7 @@ template <typename T>
 inline
 void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);

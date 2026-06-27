@@ -29,8 +29,15 @@ struct UIAttributeDimension {
     // @see UIAlign
     byte alignment;
 
+    byte padding;
+
+    // This is the calculated position/dimension
     v2_f32 pos;
     v2_f32 dimension;
+
+    // This is the original position definition required if we move/resize the UI element or change the resolution
+    v2_f32 pos_raw;
+    v2_f32 dimension_raw;
 
     // Sometimes position and dimension are relative to a parent element
     // In such case we take the parent pos/dimension + these relative information to build the absolute pos

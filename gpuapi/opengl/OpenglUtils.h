@@ -231,7 +231,7 @@ void gpuapi_prepare_texture(Texture* const texture) NO_EXCEPT
 inline
 void gpuapi_texture_to_gpu(const Texture* const texture, int32 mipmap_level = 0) NO_EXCEPT
 {
-    PROFILE_START(PROFILE_GPU);
+    PROFILE_START_DEBUG(PROFILE_GPU);
     // @todo also handle different texture formats (R, RG, RGB, 1 byte vs 4 byte per pixel)
     const uint32 texture_data_type = gpuapi_texture_data_type(texture->texture_data_type);
     glTexImage2D(
@@ -244,13 +244,13 @@ void gpuapi_texture_to_gpu(const Texture* const texture, int32 mipmap_level = 0)
     if (mipmap_level > -1) {
         glGenerateMipmap(GL_TEXTURE_2D);
     }
-    PROFILE_END(PROFILE_GPU);
+    PPROFILE_END_DEBUG(PROFILE_GPU);
 
-    STATS_INCREMENT_BY(
+    STATS_INCREMENT_BY_DEBUG(
         DEBUG_COUNTER_GPU_UPLOAD,
         texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings)
     );
-    STATS_INCREMENT_BY_PERSISTENT(
+    STATS_INCREMENT_BY_PERSISTENT_DEBUG(
         DEBUG_COUNTER_VRAM_BYTES,
         texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings)
     );
@@ -432,8 +432,8 @@ uint32 gpuapi_buffer_generate(int32 type, int32 size, const void* data) NO_EXCEP
     glBindBuffer(type, bo);
     glBufferData(type, size, data, GL_STATIC_DRAW);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
-    STATS_INCREMENT_BY_PERSISTENT(DEBUG_COUNTER_VRAM_BYTES, size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, size);
 
     return bo;
 }
@@ -447,8 +447,8 @@ uint32 gpuapi_buffer_generate_dynamic(int32 type, int32 size, const void* data) 
     glBindBuffer(type, bo);
     glBufferData(type, size, data, GL_DYNAMIC_DRAW);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
-    STATS_INCREMENT_BY_PERSISTENT(DEBUG_COUNTER_VRAM_BYTES, size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, size);
 
     return bo;
 }
@@ -472,8 +472,8 @@ void gpuapi_buffer_persistent_generate(int32 type, PersistentGpuBuffer* const bu
     ASSERT_GPU_API();
     ASSERT_TRUE(buffer->data);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
-    STATS_INCREMENT_BY_PERSISTENT(DEBUG_COUNTER_VRAM_BYTES, buffer->size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
+    STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, buffer->size);
 }
 
 FORCE_INLINE
@@ -531,12 +531,12 @@ uint32 gpuapi_renderbuffer_generate() NO_EXCEPT
 FORCE_INLINE
 void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data) NO_EXCEPT
 {
-    PROFILE_START(PROFILE_GPU);
+    PROFILE_START_DEBUG(PROFILE_GPU);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
-    PROFILE_END(PROFILE_GPU);
+    PPROFILE_END_DEBUG(PROFILE_GPU);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
 }
 
 // @todo change name. vulkan and directx have different functions for vertex buffer updates
@@ -549,7 +549,7 @@ void gpuapi_vertex_buffer_update(
     const void* data, int32 vertex_size, int32 vertex_count, int32 offset = 0
 ) NO_EXCEPT
 {
-    PROFILE_START(PROFILE_GPU);
+    PROFILE_START_DEBUG(PROFILE_GPU);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     // @performance Does this if even make sense or is glBufferSubData always the better choice?
     if (offset) {
@@ -560,10 +560,10 @@ void gpuapi_vertex_buffer_update(
     } else {
         glBufferData(GL_ARRAY_BUFFER, vertex_size * vertex_count, data, GL_DYNAMIC_DRAW);
     }
-    PROFILE_END(PROFILE_GPU);
+    PPROFILE_END_DEBUG(PROFILE_GPU);
     ASSERT_GPU_API();
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, vertex_size * vertex_count - offset);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, vertex_size * vertex_count - offset);
 }
 
 FORCE_INLINE

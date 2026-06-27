@@ -22,7 +22,9 @@ typedef void* (*UIRenderFunction)(
 
 struct UICore {
     byte opacity;
-    // Consider to pull out into this struct to reduce alignment paddings
+
+    // @question Consider to pull out into this struct to reduce alignment paddings
+    //          We are currently wasting at least 3 bytes after opacity due to alignment
     UIAttributeDimension dimension;
     UIUpdateFunction update_func;
 

@@ -19,7 +19,7 @@
 inline
 void usleep(uint64 microseconds) NO_EXCEPT
 {
-    PROFILE(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
+    PROFILE_DEBUG(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
 
     struct timespec start, now;
     clock_gettime(CLOCK_MONOTONIC, &start);

@@ -105,56 +105,56 @@ FORCE_INLINE
 void gpuapi_buffer_update(void* location, bool value) NO_EXCEPT
 {
     *((bool *) location) = value;
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, int32 value) NO_EXCEPT
 {
     *((int32 *) location) = value;
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, f32 value) NO_EXCEPT
 {
     *((f32 *) location) = value;
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, const void* value, size_t size) NO_EXCEPT
 {
     memcpy(location, value, size);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, v3_f32 value) NO_EXCEPT
 {
     memcpy(location, value.vec, sizeof(f32) * 3);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 3);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 3);
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update(void* location, v4_f32 value) NO_EXCEPT
 {
     memcpy(location, value.vec, sizeof(f32) * 4);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 4);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 4);
 }
 
 FORCE_INLINE
 void gpuapi_ref_update(void* location, void* value) NO_EXCEPT
 {
     location = value;
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(void*));
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(void*));
 }
 
 FORCE_INLINE
 void gpuapi_buffer_update_m4(void* location, const f32* value) NO_EXCEPT
 {
     memcpy(location, value, sizeof(f32) * 16);
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 16);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 16);
 }
 
 #endif

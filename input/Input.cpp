@@ -41,6 +41,8 @@ void input_init(Input* const input, uint8 count, BufferMemory* const buf) NO_EXC
 
     // This clears both mapping1 and mapping2
     memset(input->input_mapping1, 0, hotkey_size);
+
+    DEBUG_MEMORY_SUBREGION((uintptr_t) input->input_mapping1, hotkey_size);
 }
 
 // Resets the mapping

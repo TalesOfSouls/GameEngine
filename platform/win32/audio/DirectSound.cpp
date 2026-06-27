@@ -191,7 +191,7 @@ void direct_sound_free(AudioSetting*, DirectSoundSetting* __restrict api_setting
 inline
 uint32 direct_sound_buffer_fillable(const AudioSetting* __restrict setting, const DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
-    PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
+    PROFILE_DEBUG(PROFILE_AUDIO_BUFFER_FILLABLE);
 
     DWORD player_cursor;
     DWORD write_cursor;
@@ -223,7 +223,7 @@ uint32 direct_sound_buffer_fillable(const AudioSetting* __restrict setting, cons
 inline
 void direct_sound_play_buffer(AudioSetting* __restrict setting, DirectSoundSetting* __restrict api_setting) NO_EXCEPT
 {
-    PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
+    PROFILE_DEBUG(PROFILE_AUDIO_PLAY_BUFFER);
     if (setting->sample_buffer_size == 0) {
         return;
     }

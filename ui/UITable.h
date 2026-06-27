@@ -4,9 +4,6 @@
 
 #include "../stdlib/Stdlib.h"
 
-struct UITableState {
-};
-
 struct UITable {
 
 };

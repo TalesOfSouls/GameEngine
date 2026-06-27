@@ -17,19 +17,9 @@
 #include "UILabel.cpp"
 #include "UIStyleType.h"
 #include "UIWindow.h"
-#include "UIWindowOffset.h"
 
-enum UIWindowComponentFlag : uint32 {
-    UI_WINDOW_COMPONENT_FLAG_TITLE_LABEL = 1 << 0,
-    UI_WINDOW_COMPONENT_FLAG_TITLE_BORDER = 1 << 1,
-    UI_WINDOW_COMPONENT_FLAG_TITLE_PANEL = 1 << 2,
-    UI_WINDOW_COMPONENT_FLAG_TITLE = (1 << 8) - 1, // This allows us to check if any title component exists
-
-    UI_WINDOW_COMPONENT_FLAG_MAIN_BORDER = 1 << 8,
-    UI_WINDOW_COMPONENT_FLAG_MAIN_BUTTONS = 1 << 9,
-};
-
-void ui_window_title_add(UILayout* layout, UIWindowOffset* window, uint32 component_flags)
+static
+void ui_window_title_add(UILayout* layout, UIWindowOffset* window, uint32 component_flags) NO_EXCEPT
 {
     // Title - Start
     // We don't have an element since a title is 100% composite of other elements
@@ -91,7 +81,7 @@ void ui_window_title_add(UILayout* layout, UIWindowOffset* window, uint32 compon
         window->title.label.self.element = (int32) MEMORY_OFFSET(title_label, layout->ui_element_buffer.memory);
 
         const wchar_t title[] = L"Title";
-        title_label->content = (wchar_t*) memory_get(&layout->ui_element_buffer, sizeof(title), alignof(wchar_t));
+        title_label->content = (char*) memory_get(&layout->ui_element_buffer, sizeof(title), alignof(wchar_t));
         memcpy(title_label->content, title, sizeof(title));
 
         window->title.label.self.element = (int32) MEMORY_OFFSET(title_label, layout->ui_element_buffer.memory);
@@ -108,7 +98,8 @@ void ui_window_title_add(UILayout* layout, UIWindowOffset* window, uint32 compon
     window->title.self.parent_offset = (int32) MEMORY_OFFSET(&window->title, window);
 }
 
-UIWindowOffset* ui_window_create(UILayout* layout, uint32 component_flags) {
+UIWindowOffset* ui_window_create(UILayout* layout, uint32 component_flags) NO_EXCEPT
+{
     UIWindowOffset* window = (UIWindowOffset*) BUFFER_ELEMENT_GET(&layout->ui_offset_buffer, UIWindowOffset);
     MEMORY_ELEMENT_ZERO(window);
 
@@ -169,24 +160,13 @@ UIWindowOffset* ui_window_create(UILayout* layout, uint32 component_flags) {
     return window;
 }
 
-FORCE_INLINE
-UIWindowOffset* ui_element_create(UILayout* const __restrict layout, const UIUber* const __restrict) NO_EXCEPT
-{
-    return ui_window_create(
-        layout,
-        UI_WINDOW_COMPONENT_FLAG_MAIN_BORDER
-            | UI_WINDOW_COMPONENT_FLAG_TITLE_PANEL
-            | UI_WINDOW_COMPONENT_FLAG_TITLE_BORDER
-            | UI_WINDOW_COMPONENT_FLAG_TITLE_LABEL
-    );
-}
-
-void cache_vertices(
+static
+void ui_vertices_cache(
     void* app,
     UIWindowTitleOffset* offset_data, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
     byte* const __restrict mem
-) {
+) NO_EXCEPT {
     const UIOffset* parent = ui_parent_offset_by_type(&offset_data->self, UI_ELEMENT_TYPE_VIEW_WINDOW);
     UIWindow* window = (UIWindow *) (layout->ui_element_buffer.memory + parent->element);
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
@@ -209,6 +189,7 @@ void cache_vertices(
         title_dim.height = title_panel->core.dimension.dimension.height;
     }
 
+    // @todo make border part of panel
     cache_border_vertices(
         vertex_cache, index_cache, zindex, gpu_api_type,
         &window->core.dimension.pos, &title_dim, offset_data->border,
@@ -217,7 +198,7 @@ void cache_vertices(
 
     // @question Do I also need to check for empty text here?
     if (offset_data->label.self.element) {
-        cache_vertices(
+        ui_vertices_cache(
             app,
             &offset_data->label,
             layout, camera_step_closer(gpu_api_type, zindex),
@@ -226,7 +207,7 @@ void cache_vertices(
     }
 }
 
-void cache_vertices(
+void ui_vertices_cache(
     void* app, UIWindowOffset* offset_data, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
     byte* const __restrict mem
@@ -246,27 +227,17 @@ void cache_vertices(
         );
     }
 
+    // @todo make border part of panel
     /*
-    for (int32 i = 0; i < ARRAY_COUNT(offset_data->border); ++i) {
-        if (i == 0 && offset_data->border[i].self.element) {
-            // @todo this should be in the UIAttributeBorder file?
-            // @todo the offsets are wrong
-            UIAttributeBorder* border = (UIAttributeBorder*) (layout->ui_element_buffer.memory + offset_data->border[i].self.element);
-            array_vector_insert(vertex_cache, {{window->core.dimension.pos.x, window->core.dimension.pos.y + 19, zindex}, 2, border->tex_coord[0]});
-            array_vector_insert(vertex_cache, {{window->core.dimension.pos.x + 27, window->core.dimension.pos.y + 19, zindex}, 2, border->tex_coord[1]});
-            array_vector_insert(vertex_cache, {{window->core.dimension.pos.x, window->core.dimension.pos.y, zindex}, 2, border->tex_coord[3]});
-
-            array_vector_insert(vertex_cache, {{window->core.dimension.pos.x + 27, window->core.dimension.pos.y +19, zindex}, 2, border->tex_coord[1]});
-            array_vector_insert(vertex_cache, {{window->core.dimension.pos.x + 27, window->core.dimension.pos.y, zindex}, 2, border->tex_coord[2]});
-            array_vector_insert(vertex_cache, {{window->core.dimension.pos.x, window->core.dimension.pos.y, zindex}, 2, border->tex_coord[3]});
-
-            vertex_count += 6;
-        }
-    }
+    cache_border_vertices(
+        vertex_cache, index_cache, zindex, gpu_api_type,
+        &window->core.dimension.pos, &title_dim, offset_data->border,
+        layout->ui_element_buffer.memory
+    );
     */
 
     if (offset_data->title.self.element) {
-        cache_vertices(
+        ui_vertices_cache(
             app, &offset_data->title, gpu_api_type,
             layout, camera_step_closer(gpu_api_type, zindex),
             mem

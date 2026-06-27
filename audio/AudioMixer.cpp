@@ -405,7 +405,7 @@ int32 mixer_effects_stereo() NO_EXCEPT
 
 void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
 {
-    PROFILE(PROFILE_AUDIO_MIXER_MIX);
+    PROFILE_DEBUG(PROFILE_AUDIO_MIXER_MIX);
     memset(mixer->settings.buffer, 0, size);
 
     mixer->settings.sample_buffer_size = 0;
@@ -423,7 +423,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
 
         // @bug This could result in invalid counts during the rendering since we may render
         //      after setting to 0 and before this loop finished
-        STATS_INCREMENT(DEBUG_COUNTER_AUDIO_COUNT);
+        STATS_INCREMENT_DEBUG(DEBUG_COUNTER_AUDIO_COUNT);
 
         uint32 limit = limit_max;
 

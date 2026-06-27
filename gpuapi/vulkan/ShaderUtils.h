@@ -212,7 +212,7 @@ VkPipeline gpuapi_pipeline_make(
     VkShaderModule vertex_shader, VkShaderModule fragment_shader,
     VkShaderModule
 ) {
-    PROFILE(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Create pipeline");
     VkPipelineShaderStageCreateInfo vertex_shader_stage_info = {
         VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, // .sType =

@@ -60,7 +60,7 @@ MemoryArena* mem_arena_alloc(
     size_t initial_size, size_t reserve_size,
     int32 alignment = sizeof(void*)
 ) {
-    PROFILE(PROFILE_ARENA_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_ARENA_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
 
     initial_size += align_up(sizeof(MemoryArena), alignment);
     reserve_size += align_up(sizeof(MemoryArena), alignment);

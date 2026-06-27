@@ -7,9 +7,11 @@
 #include "attribute/UIAttributeFont.h"
 #include "attribute/UIAttributeDimension.h"
 #include "UICore.h"
+#include "UIOffset.h"
+#include "../utils/SimpleString.h"
 
-struct UILabelState {
-    char* content;
+struct UILabelOffset {
+    UIOffset self;
 };
 
 struct UILabel {
@@ -17,8 +19,10 @@ struct UILabel {
     UIAttributeFont font;
     int32 content_length;
     int32 pattern_length;
-    wchar_t* content;
-    wchar_t* pattern;
+
+    CharType char_type;
+    char* content;
+    char* pattern;
 };
 
 #endif

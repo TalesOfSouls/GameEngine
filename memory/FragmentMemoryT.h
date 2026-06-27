@@ -52,7 +52,7 @@ void fragment_alloc(
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -89,7 +89,7 @@ void fragment_alloc(
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);

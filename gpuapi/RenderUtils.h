@@ -122,7 +122,7 @@ void vertex_rect_create(
     uint32 rgba = 0, v2_f32 tex1 = {}, v2_f32 tex2 = {}
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_VERTEX_RECT_CREATE);
+    PROFILE_DEBUG(PROFILE_VERTEX_RECT_CREATE);
     if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
         adjust_aligned_position(&dimension, alignment);
     }
@@ -360,7 +360,7 @@ v3_int32 vertex_text_create(
     f32 size, MAYBE_UNUSED uint32 rgba
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_VERTEX_TEXT_CREATE);
+    PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
     PSEUDO_USE(rgba);
 
     const Font* const font_base = &font->base;
@@ -463,7 +463,7 @@ v3_int32 vertex_text_create(
     f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_VERTEX_TEXT_CREATE);
+    PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
     PSEUDO_USE(rgba);
 
     size_t length;
@@ -536,7 +536,7 @@ v3_int32 vertex_text_create(
     f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_VERTEX_TEXT_CREATE);
+    PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
     PSEUDO_USE(rgba);
 
     int32 length;

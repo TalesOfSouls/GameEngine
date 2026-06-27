@@ -192,7 +192,7 @@ void wasapi_free(WasapiSetting* __restrict api_setting) NO_EXCEPT
 inline
 uint32 wasapi_buffer_fillable(const WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
-    PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
+    PROFILE_DEBUG(PROFILE_AUDIO_BUFFER_FILLABLE);
     if (!api_setting->wasapi_handle) {
         return 0;
     }
@@ -209,7 +209,7 @@ uint32 wasapi_buffer_fillable(const WasapiSetting* __restrict api_setting) NO_EX
 inline
 void wasapi_play_buffer(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
-    PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
+    PROFILE_DEBUG(PROFILE_AUDIO_PLAY_BUFFER);
     if (!api_setting->wasapi_handle || setting->sample_buffer_size == 0) {
         return;
     }

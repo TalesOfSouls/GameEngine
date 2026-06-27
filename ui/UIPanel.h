@@ -7,8 +7,10 @@
 #include "attribute/UIAttributeBackground.h"
 #include "UICore.h"
 
+struct UIPanelOffset {
+    UIOffset self;
 
-struct UIPanelState {
+    int32 background;
 };
 
 struct UIPanel {

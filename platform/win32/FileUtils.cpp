@@ -106,7 +106,7 @@ static inline bool CopyFileWrapper(const wchar_t* lpExistingFileName, const wcha
 FORCE_INLINE
 MMFHandle file_mmf_handle(FileHandle fp) NO_EXCEPT
 {
-    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
     return CreateFileMappingA(fp, NULL, PAGE_READONLY, 0, 0, NULL);
 }
 
@@ -129,7 +129,7 @@ FORCE_INLINE
 void file_mmf_close(MMFHandle fh) NO_EXCEPT
 {
     CloseHandle(fh);
-    STATS_DECREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+    STATS_DECREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 }
 
 template <typename C>
@@ -257,7 +257,7 @@ template <typename C>
 inline size_t
 file_size(const C* path) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
 
     // @performance Profile against fseek strategy
     FileHandle fp;
@@ -302,7 +302,7 @@ template <typename C>
 inline
 bool file_exists(const C* path) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
 
     DWORD file_attr;
     if (*path == (C) '.') {
@@ -325,7 +325,7 @@ file_read(
     T* const __restrict mem
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
 
     ASSERT_TRUE(file_exists(path));
 
@@ -398,7 +398,8 @@ file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
 template <typename C>
@@ -408,7 +409,7 @@ file_read(
     FileBody* __restrict file
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
 
     ASSERT_TRUE(file_exists(path));
 
@@ -479,7 +480,8 @@ file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
 // @question Do we really need length? we have file.size we could use as we do in a function above
@@ -493,7 +495,7 @@ void file_read(
     T* const __restrict mem = NULL
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
 
     ASSERT_TRUE(file_exists(path));
 
@@ -583,7 +585,8 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
 template <typename T>
@@ -642,7 +645,8 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
 inline
@@ -697,7 +701,8 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
 uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UINT64) NO_EXCEPT
@@ -816,7 +821,7 @@ template <typename C>
 inline bool
 file_write(const C* __restrict path, const FileBody* __restrict file) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == (C) '.') {
@@ -856,7 +861,8 @@ file_write(const C* __restrict path, const FileBody* __restrict file) NO_EXCEPT
 
     CloseHandle(fp);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, length);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, length);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, length);
 
     return true;
 }
@@ -865,7 +871,7 @@ template <typename C>
 inline bool
 file_copy(const C* __restrict src, const C* __restrict dst) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, (char *) src, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) src, PROFILE_FLAG_SHOULD_LOG);
 
     C dst_full_path[PATH_MAX_LENGTH];
     relative_to_absolute(dst, dst_full_path);
@@ -962,7 +968,7 @@ template <typename C>
 inline bool
 file_move(const C* __restrict src, const C* __restrict dst) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, (char *) src, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) src, PROFILE_FLAG_SHOULD_LOG);
 
     // @performance we are creating an absolute path for dst potentially twice
     directory_tree_create(dst);
@@ -993,7 +999,7 @@ FORCE_INLINE
 void file_close_handle(FileHandle fp) NO_EXCEPT
 {
     CloseHandle(fp);
-    STATS_DECREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+    STATS_DECREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 }
 
 template <typename C>
@@ -1029,7 +1035,7 @@ FileHandle file_append_handle(const C* path) NO_EXCEPT
         return NULL;
     }
 
-    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 
     return fp;
 }
@@ -1097,7 +1103,8 @@ bool file_read_async(
     file->content[read_length] = '\0';
     file->size = read_length;
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, read_length);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, read_length);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, read_length);
 
     return true;
 }
@@ -1158,7 +1165,8 @@ bool file_read_async(
     file->content[read_length] = '\0';
     file->size = read_length;
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, read_length);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, read_length);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, read_length);
 
     return true;
 }
@@ -1203,7 +1211,7 @@ FileHandle file_read_handle(const C* path) NO_EXCEPT
         return NULL;
     }
 
-    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 
     return fp;
 }
@@ -1241,7 +1249,7 @@ FileHandle file_read_async_handle(const C* path) NO_EXCEPT
         return NULL;
     }
 
-    STATS_INCREMENT_PERSISTENT(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 
     return fp;
 }
@@ -1249,7 +1257,7 @@ FileHandle file_read_async_handle(const C* path) NO_EXCEPT
 inline bool
 file_append(FileHandle fp, const char* file) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, file, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, file, PROFILE_FLAG_SHOULD_LOG);
 
     if (fp == INVALID_HANDLE_VALUE) {
         ASSERT_THROW();
@@ -1263,7 +1271,8 @@ file_append(FileHandle fp, const char* file) NO_EXCEPT
         return false;
     }
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, written);
 
     return true;
 }
@@ -1271,7 +1280,7 @@ file_append(FileHandle fp, const char* file) NO_EXCEPT
 inline bool
 file_append(FileHandle fp, const char* file, size_t length) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, file, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, file, PROFILE_FLAG_SHOULD_LOG);
 
     if (fp == INVALID_HANDLE_VALUE) {
         ASSERT_THROW();
@@ -1284,7 +1293,8 @@ file_append(FileHandle fp, const char* file, size_t length) NO_EXCEPT
         return false;
     }
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, written);
 
     return true;
 }
@@ -1292,7 +1302,7 @@ file_append(FileHandle fp, const char* file, size_t length) NO_EXCEPT
 template <typename C>
 bool file_append(const C* __restrict path, const C* __restrict file) NO_EXCEPT
 {
-    PROFILE(PROFILE_FILE_UTILS, (C) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, (C) path, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == (C) '.') {
@@ -1332,7 +1342,8 @@ bool file_append(const C* __restrict path, const C* __restrict file) NO_EXCEPT
 
     CloseHandle(fp);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, written);
 
     return true;
 }

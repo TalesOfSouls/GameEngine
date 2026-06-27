@@ -27,7 +27,7 @@ UILayout* cmd_layout_load_sync(
     UILayout* const __restrict layout, const wchar_t* const __restrict layout_path
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CMD_LAYOUT_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Load layout");
 
     FileBody layout_file = {0};
@@ -51,7 +51,7 @@ UITheme* cmd_theme_load_sync(
     UITheme* const __restrict theme, const wchar_t* const __restrict theme_path
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CMD_THEME_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Load theme");
 
     FileBody theme_file = {0};
@@ -80,7 +80,7 @@ UILayout* cmd_ui_load_sync(
     const Camera* const __restrict
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_CMD_UI_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CMD_UI_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Load ui");
 
     if (!cmd_layout_load_sync(mem, layout, layout_path)) {

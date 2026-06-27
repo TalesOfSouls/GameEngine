@@ -60,7 +60,7 @@ void chunk_alloc(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
@@ -103,7 +103,7 @@ void thrd_chunk_alloc(
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
@@ -142,7 +142,7 @@ void chunk_alloc(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
@@ -187,7 +187,7 @@ void thrd_chunk_alloc(
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);

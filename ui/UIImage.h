@@ -4,11 +4,14 @@
 
 #include "../stdlib/Stdlib.h"
 
-struct UIImageState {
+struct UIImageOffset {
+    UIOffset self;
 };
 
 struct UIImage {
-
+    UICore core;
+    int32 asset_id;
+    int32 sampler;
 };
 
 #endif

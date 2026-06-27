@@ -183,7 +183,7 @@ void xaudio2_free(XAudio2Setting* __restrict api_setting) NO_EXCEPT
 inline
 uint32 xaudio2_buffer_fillable(const AudioSetting* __restrict setting, const XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
-    PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
+    PROFILE_DEBUG(PROFILE_AUDIO_BUFFER_FILLABLE);
     if (!api_setting->source_voice) {
         return 0;
     }
@@ -200,7 +200,7 @@ uint32 xaudio2_buffer_fillable(const AudioSetting* __restrict setting, const XAu
 inline
 void xaudio2_play_buffer(AudioSetting* __restrict setting, XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
-    PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
+    PROFILE_DEBUG(PROFILE_AUDIO_PLAY_BUFFER);
 
     if (!api_setting->source_voice || setting->sample_buffer_size == 0) {
         return;

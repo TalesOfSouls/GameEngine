@@ -78,6 +78,10 @@ inline
 void cmd_buffer_create(AppCmdBuffer* const cb, BufferMemory* const buf, int32 command_capacity) NO_EXCEPT
 {
     thrd_chunk_init(&cb->commands, buf, command_capacity, ASSUMED_CACHE_LINE_SIZE);
+    DEBUG_MEMORY_SUBREGION(
+        (uintptr_t) cb->commands.memory,
+        command_capacity * sizeof(AppCommand)
+    );
 
     LOG_1("[INFO] Created AppCmdBuffer: %n", {DATA_TYPE_UINT64, &cb->commands.capacity});
 }
@@ -177,7 +181,7 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
 //          e.g. couldn't play audio since it isn't loaded -> queue for asset load -> queue for internal play
 void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
 {
-    PROFILE(PROFILE_CMD_ITERATE);
+    PROFILE_DEBUG(PROFILE_CMD_ITERATE);
     int32 chunk_id = 0;
     chunk_iterate_start(&cb->commands, chunk_id) {
         AppCommand* cmd = (AppCommand *) chunk_get_element(&cb->commands, chunk_id);

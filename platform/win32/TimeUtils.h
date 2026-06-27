@@ -23,7 +23,7 @@ thread_local static LARGE_INTEGER _performance_frequency = []{
 inline
 void usleep(uint64 microseconds) NO_EXCEPT
 {
-    PROFILE(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
+    PROFILE_DEBUG(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
 
     LARGE_INTEGER start, end;
     QueryPerformanceCounter(&start);

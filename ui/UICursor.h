@@ -6,12 +6,14 @@
 #include "attribute/UIAttributeDimension.h"
 #include "UILayout.h"
 
-struct UICursorState {
+struct UICursorOffset {
+    UIOffset self;
 };
 
 struct UICursor {
-    UIAttributeDimension dimension;
-    byte opacity; // 1 byte alpha channel
+    UICore core;
+    int32 asset_id;
+    int32 sampler;
 };
 
 #endif

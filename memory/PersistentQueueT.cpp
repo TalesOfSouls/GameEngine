@@ -25,7 +25,7 @@ template <typename T>
 FORCE_INLINE
 void queue_alloc(PersistentQueueT<T>* const queue, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
-    PROFILE(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -327,7 +327,6 @@ uint_max* chunk_find_free_array(const PersistentQueueT<T>* const queue) NO_EXCEP
     );
 }
 
-// @todo implement enqueue with pass by value
 template <typename T>
 inline
 T* queue_enqueue(PersistentQueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
@@ -367,8 +366,46 @@ T* queue_enqueue(PersistentQueueT<T>* const __restrict queue, const T* __restric
     return mem;
 }
 
+template <typename T>
+inline
+T* queue_enqueue(PersistentQueueT<T>* const __restrict queue, const T data) NO_EXCEPT
+{
+    // In a normal queue we would only go until tail BUT the tail might be VERY far behind in a persistent queue
+    uint32 old_head = queue->head;
+    while (queue->head != old_head - 1
+        && !chunk_is_free_internal(queue->free, queue->head)
+    ) {
+        OMS_WRAPPED_INCREMENT(
+            queue->head,
+            queue->capacity
+        );
+    }
+
+    if (queue->head != old_head - 1
+        || !chunk_is_free_internal(queue->free, queue->head)
+    ) {
+        return NULL;
+    }
+
+    // @performance This is slow we are calculating free_index and bit_index also in the loop above
+    //              Calculating it here again adds 1 such calculation as overhead
+    const uint32 free_index = queue->head / (sizeof(uint_max) * 8);
+    const uint32 bit_index = MODULO_2(queue->head, (sizeof(uint_max) * 8));
+    queue->free[free_index] |= (OMS_UINT_ONE << bit_index);
+
+    queue->memory[queue->head] = data;
+    T* mem = &queue->memory[queue->head];
+    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
+
+    OMS_WRAPPED_INCREMENT(
+        queue->head,
+        queue->capacity
+    );
+
+    return mem;
+}
+
 // Conditional Lock
-// @todo implement enqueue with pass by value
 template <typename T>
 inline
 T* thrd_queue_enqueue(PersistentQueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
@@ -381,7 +418,18 @@ T* thrd_queue_enqueue(PersistentQueueT<T>* __restrict queue, const T* __restrict
     return mem;
 }
 
-// @todo implement enqueue with pass by value
+template <typename T>
+inline
+T* thrd_queue_enqueue(PersistentQueueT<T>* __restrict queue, const T data) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->lock);
+    T* mem = queue_enqueue(queue, data);
+
+    coms_pthread_cond_signal(&queue->cond);
+
+    return mem;
+}
+
 template <typename T>
 inline
 T* queue_enqueue_atomic(PersistentQueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
@@ -408,7 +456,32 @@ T* queue_enqueue_atomic(PersistentQueueT<T>* const __restrict queue, const T* __
     return mem;
 }
 
-// @todo implement enqueue with pass by value
+template <typename T>
+inline
+T* queue_enqueue_atomic(PersistentQueueT<T>* const __restrict queue, const T data) NO_EXCEPT
+{
+    uint32 index;
+    do {
+        index = atomic_fetch_increment_wrap_relaxed(
+            &queue->head,
+            queue->capacity
+        );
+    } while (!chunk_is_free_internal(queue->free, queue->head) && queue->head != queue->tail - 1);
+
+    // @performance This is slow we are calculating free_index and bit_index also in the loop above
+    //              Calculating it here again adds 1 such calculation as overhead
+    const uint32 free_index = index / (sizeof(uint_max) * 8);
+    const uint32 bit_index = MODULO_2(index, (sizeof(uint_max) * 8));
+
+    atomic_or_release(&queue->free[free_index], (OMS_UINT_ONE << bit_index));
+
+    queue->memory[index] = data;
+    T* mem = &queue->memory[index];
+    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
+
+    return mem;
+}
+
 template <typename T>
 inline
 T* queue_enqueue_safe(PersistentQueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
@@ -422,7 +495,30 @@ T* queue_enqueue_safe(PersistentQueueT<T>* const __restrict queue, const T* __re
 
 template <typename T>
 inline
+T* queue_enqueue_safe(PersistentQueueT<T>* const __restrict queue, const T data) NO_EXCEPT
+{
+    if(!queue_has_space(queue)) {
+        return NULL;
+    }
+
+    return queue_enqueue(queue, data);
+}
+
+template <typename T>
+inline
 T* thrd_queue_enqueue_safe(PersistentQueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->lock);
+    if(!queue_has_space(queue)) {
+        return NULL;
+    }
+
+    return queue_enqueue(queue, data);
+}
+
+template <typename T>
+inline
+T* thrd_queue_enqueue_safe(PersistentQueueT<T>* const __restrict queue, const T data) NO_EXCEPT
 {
     MutexGuard _guard(&queue->lock);
     if(!queue_has_space(queue)) {
@@ -460,6 +556,32 @@ void queue_enqueue_unique(PersistentQueueT<T>* const __restrict queue, const T* 
 
 template <typename T>
 inline
+void queue_enqueue_unique(PersistentQueueT<T>* const __restrict queue, const T data) NO_EXCEPT
+{
+    uint32 tail = queue->tail;
+    while (tail != queue->head) {
+        if (!chunk_is_free_internal(queue->free, tail)
+            && memcmp(&queue->memory[tail], data, sizeof(T)) == 0
+        ) {
+            return;
+        }
+
+        OMS_WRAPPED_INCREMENT(
+            tail,
+            queue->capacity
+        );
+    }
+
+    // @performance This feels like it is performing some of the cost of the while loop above
+    if (!queue_has_space(queue)) {
+        return;
+    }
+
+    queue_enqueue(queue, data);
+}
+
+template <typename T>
+inline
 void thrd_queue_enqueue_unique(PersistentQueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
 {
     ASSERT_TRUE((uint64_t) data % 4 == 0);
@@ -470,12 +592,49 @@ void thrd_queue_enqueue_unique(PersistentQueueT<T>* __restrict queue, const T* _
     coms_pthread_cond_signal(&queue->cond);
 }
 
-// @todo Create enqueue_unique and enqueue_unique_sem
+template <typename T>
+inline
+void thrd_queue_enqueue_unique(PersistentQueueT<T>* __restrict queue, const T data) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->lock);
+
+    queue_enqueue_unique(queue, data);
+
+    coms_pthread_cond_signal(&queue->cond);
+}
+
 template <typename T>
 inline
 void thrd_queue_enqueue_unique_wait(PersistentQueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
 {
     ASSERT_TRUE((uint64_t) data % 4 == 0);
+    MutexGuard _guard(&queue->lock);
+
+    uint32 tail = queue->tail;
+    while (tail != queue->head) {
+        if (!chunk_is_free_internal(queue->free, tail)
+            && memcmp(&queue->memory[tail], data, sizeof(T)) == 0
+        ) {
+            return;
+        }
+
+        OMS_WRAPPED_INCREMENT(
+            tail,
+            queue->capacity
+        );
+    }
+
+    while (!queue_enqueue_safe(queue, data)) {
+        coms_pthread_cond_wait(&queue->cond, &queue->lock);
+    }
+
+    coms_pthread_cond_signal(&queue->cond);
+}
+
+template <typename T>
+inline
+void thrd_queue_enqueue_unique_wait(PersistentQueueT<T>* __restrict queue, const T data) NO_EXCEPT
+{
     MutexGuard _guard(&queue->lock);
 
     uint32 tail = queue->tail;
@@ -545,7 +704,33 @@ void thrd_queue_enqueue_wait(PersistentQueueT<T>* __restrict queue, const T* __r
 
 template <typename T>
 inline
+void thrd_queue_enqueue_wait(PersistentQueueT<T>* __restrict queue, const T data) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->lock);
+
+    while (!queue_enqueue_safe(queue, data)) {
+        coms_pthread_cond_wait(&queue->cond, &queue->lock);
+    }
+
+    coms_pthread_cond_signal(&queue->cond);
+}
+
+template <typename T>
+inline
 void thrd_queue_enqueue_sem_wait(PersistentQueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT
+{
+    coms_sem_wait(&queue->empty);
+    mutex_lock(&queue->lock);
+
+    queue_enqueue(queue, data);
+
+    mutex_unlock(&queue->lock);
+    coms_sem_post(&queue->full);
+}
+
+template <typename T>
+inline
+void thrd_queue_enqueue_sem_wait(PersistentQueueT<T>* __restrict queue, const T data) NO_EXCEPT
 {
     coms_sem_wait(&queue->empty);
     mutex_lock(&queue->lock);
@@ -574,6 +759,23 @@ bool thrd_queue_enqueue_semimedwait(PersistentQueueT<T>* __restrict queue, const
     return true;
 }
 
+template <typename T>
+inline
+bool thrd_queue_enqueue_semimedwait(PersistentQueueT<T>* __restrict queue, const T data, uint64 wait) NO_EXCEPT
+{
+    if (semimedwait(&queue->empty, wait)) {
+        return false;
+    }
+
+    {
+        MutexGuard _guard(&queue->lock);
+        queue_enqueue(queue, data);
+    }
+
+    coms_sem_post(&queue->full);
+
+    return true;
+}
 
 template <typename T>
 inline

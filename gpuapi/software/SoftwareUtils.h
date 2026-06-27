@@ -58,7 +58,7 @@ void gpuapi_buffer_persistent_generate(
     }
 
     // @bug This is not a vertex upload it's just a generic data upload
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
 }
 
 inline
@@ -71,7 +71,7 @@ int32 gpuapi_buffer_generate(SoftwareRenderer* const renderer, void* data, int32
         memcpy(mem, data, size);
     }
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
 
     return id;
 }

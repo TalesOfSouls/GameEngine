@@ -29,7 +29,7 @@ void buffer_alloc(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(size);
     ASSERT_TRUE(max_size >= size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -47,7 +47,7 @@ void buffer_alloc(
 
     memset(buf->memory, 0, buf->size);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, buf->size);
 }
 
 FORCE_INLINE
@@ -73,7 +73,7 @@ void buffer_alloc(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(size);
     ASSERT_TRUE(max_size >= size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -97,7 +97,7 @@ void buffer_alloc(
 
     memset(buf->memory, 0, buf->size);
 
-    STATS_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, buf->size);
 }
 
 FORCE_INLINE
@@ -186,7 +186,7 @@ FORCE_INLINE
 void buffer_reset(BufferMemory* const buf) NO_EXCEPT
 {
     // @bug aren't we wasting element 0 (see get_memory, we are not using 0 only next element)
-    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->head - buf->memory);
+    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->end - buf->memory);
     buf->head = buf->memory;
 }
 
@@ -213,17 +213,18 @@ byte* memory_get(BufferMemory* const buf, size_t size, int32 alignment = sizeof(
     buf->head += size;
 
     ASSERT_TRUE(offset);
-    ASSERT_STRICT((uintptr_t) offset + size < (uintptr_t) buf->memory + buf->size);
-    STATS_MAX_PERSISTENT(DEBUG_COUNTER_BUFFER_MAX_REQUEST, size);
-    STATS_MAX_PERSISTENT(DEBUG_COUNTER_BUFFER_MAX_USAGE, buf->head - buf->memory);
+    ASSERT_STRICT((uintptr_t) offset + size < (uintptr_t) buf->end);
+    STATS_MAX_PERSISTENT_DEBUG(DEBUG_COUNTER_BUFFER_MAX_REQUEST, size);
+    STATS_MAX_PERSISTENT_DEBUG(DEBUG_COUNTER_BUFFER_MAX_USAGE, buf->head - buf->memory);
 
     return offset;
 }
 
 FORCE_INLINE HOT_CODE
-void memory_rewind(BufferMemory* const buf, void* head) NO_EXCEPT
+void memory_rewind(BufferMemory* const buf, void* old_head) NO_EXCEPT
 {
-    buf->head = (byte *) head;
+    DEBUG_MEMORY_DELETE((uintptr_t) old_head, (size_t) ((uintptr_t) buf->head - (uintptr_t) old_head));
+    buf->head = (byte *) old_head;
 }
 
 // This resets (memory_rewind) the BufferMemory after it leaves scope

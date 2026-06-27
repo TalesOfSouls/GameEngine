@@ -59,7 +59,7 @@ void hashmap_create(HashMapT<T>* const hm, int32 count, byte* const buf, int32 a
     ASSERT_MEM_ZERO(
         hm->buf.memory,
         count * sizeof(T)
-        + ceil_div(count, (int32) sizeof(uint_max) * 8) * sizeof(hm->buf.free)
+            + ceil_div(count, (int32) sizeof(uint_max) * 8) * sizeof(hm->buf.free)
     );
 }
 

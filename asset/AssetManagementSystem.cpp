@@ -523,7 +523,7 @@ Asset* thrd_ams_reserve_asset(
 // @todo don't use uint64 for time, use uint32 and use relative time to start of program
 void thrd_ams_update(AssetManagementSystem* const ams, uint64 time, uint64 dt) NO_EXCEPT
 {
-    PROFILE(PROFILE_AMS_UPDATE);
+    PROFILE_DEBUG(PROFILE_AMS_UPDATE);
     for (int32 i = 0; i < ams->asset_component_count; ++i) {
         ams->asset_components[i].vram_size = 0;
         ams->asset_components[i].ram_size = 0;

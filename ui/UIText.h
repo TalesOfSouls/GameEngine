@@ -4,11 +4,13 @@
 
 #include "../stdlib/Stdlib.h"
 
-struct UITextState {
+struct UITextOffset {
+    UIOffset self;
 };
 
 struct UIText {
-
+    UICore core;
+    UIAttributeFont font;
 };
 
 #endif

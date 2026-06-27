@@ -16,7 +16,7 @@ template <typename T>
 FORCE_INLINE
 void queue_alloc(QueueT<T>* const queue, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
-    PROFILE(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -42,11 +42,11 @@ void queue_alloc(
     uint32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(max_capacity >= capacity);
     queue->capacity = capacity;
 
-    MemoryArena* arena = mem_arena_add(
+    MemoryArena* const arena = mem_arena_add(
         mem,
         sizeof(T) * capacity,
         sizeof(T) * max_capacity,

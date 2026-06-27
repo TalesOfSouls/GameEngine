@@ -96,7 +96,7 @@ Asset* cmd_font_load_sync(
     char id_str[9];
     int_to_hex(asset_id, id_str);
 
-    PROFILE(PROFILE_CMD_FONT_LOAD_SYNC, id_str, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CMD_FONT_LOAD_SYNC, id_str, PROFILE_FLAG_SHOULD_LOG);
 
     Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
 

@@ -33,6 +33,8 @@
         PROFILE_RING_ALLOC,
         PROFILE_DB_POOL_ALLOC,
         PROFILE_THREAD_POOL_ALLOC,
+        PROFILE_MUTEX_LOCK,
+        PROFILE_MUTEX_ACQUIRE,
         PROFILE_CMD_ITERATE,
         PROFILE_CMD_FONT_LOAD_SYNC,
         PROFILE_CMD_SHADER_LOAD_SYNC,
@@ -87,7 +89,7 @@ struct alignas(8) PerformanceProfileResult {
 };
 
 // If we call PROFILE_SNAPSHOT after every frame this number is the same as the amount frames can store
-#define MAX_PERFORMANCE_STATS_HISTORY 100
+#define MAX_PERFORMANCE_STATS_HISTORY 96
 struct PerformanceStatHistory {
     atomic_32 int32 pos;
     // This contains all stats usually per frame in a 1D array
@@ -489,106 +491,29 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     perf->total_cycle = perf->self_cycle;
 }
 
-// We need some static profiling for stuff that has multiple logs per frame but every log is unique
-// Ok no one understood that e.g.
-//      logging mutex performance
-//          we have multiple mutex and we want the performance for every mutex and even store historic values for that
-enum TimingStaticStats {
-    PROFILE_STATIC_TEMP,
-    PROFILE_STATIC_MUTEX_ACQUIRE, // How long do we have to wait for the lock
-    PROFILE_STATIC_MUTEX_LOCK,
-    PROFILE_STATIC_SIZE,
-};
-struct alignas(8) PerformanceProfileStaticResult {
-    int id;
-    const char* function;
-    int line;
-
-    // WARNING: rdtsc doesn't really return cycle count but we will just call it that
-    atomic_64 int64 cycles;
-};
-#define MAX_PERFORMANCE_STATS_STATIC_HISTORY 100
-struct PerformanceStatStaticHistory {
-    atomic_32 int32 pos;
-    // This contains all stats usually per frame in a 1D array
-    alignas(8) PerformanceProfileStaticResult perfs[MAX_PERFORMANCE_STATS_STATIC_HISTORY];
-};
-// Array length = PROFILE_STATIC_SIZE
-static PerformanceStatStaticHistory* _perf_static_stats = NULL;
-
-/**
- * Manually start a profiling section that doesn't end when leaving scope
- *
- * @param int32         id      Profiling id
- * @param const char*   name    Profiling name
- *
- * return void
- */
-inline HOT_CODE
-void performance_profiler_static_start(
-    TimingStaticStats type,
-    int32 id,
-    const char* const __restrict function,
-    int32 line
-) NO_EXCEPT
-{
-    if (!_perf_active || !*_perf_active) {
-        return;
-    }
-
-    const int32 pos = atomic_increment_wrap_acquire(
-        &_perf_static_stats[type].pos,
-        MAX_PERFORMANCE_STATS_STATIC_HISTORY
-    );
-
-    PerformanceProfileStaticResult* const perf = &_perf_static_stats[type].perfs[pos];
-    perf->id = id;
-    perf->function = function;
-    perf->line = line;
-    perf->cycles -= (int64) intrin_timestamp_counter();
-}
-
-/**
- * Manually end a profiling section that previously got manually started
- *
- * @param int32 id Profiling id
- *
- * return void
- */
-inline HOT_CODE
-void performance_profiler_static_end(TimingStaticStats type, int32 id) NO_EXCEPT
-{
-    if (!_perf_active || !*_perf_active) {
-        return;
-    }
-
-    const int32 start = atomic_get_acquire(&_perf_static_stats[type].pos);
-    int32 pos = start;
-    OMS_WRAPPED_DECREMENT(pos, MAX_PERFORMANCE_STATS_STATIC_HISTORY);
-
-    while (pos != start) {
-        PerformanceProfileStaticResult* const perf = &_perf_static_stats[type].perfs[pos];
-        if (perf->id == id) {
-            perf->cycles += intrin_timestamp_counter();
-
-            return;
-        }
-
-        OMS_WRAPPED_DECREMENT(pos, MAX_PERFORMANCE_STATS_STATIC_HISTORY);
-    }
-}
-
-
-#if LOG_LEVEL > 1
+#if LOG_LEVEL > 0
     // Only these function can properly handle self-time calculation
     // Use these whenever you want to profile an entire function
+    #if (DEBUG || INTERNAL)
+        #define PROFILE_DEBUG(id, ...) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, ##__VA_ARGS__)
+        #define PROFILE_START_DEBUG(id, ...) performance_profiler_start((id), ##__VA_ARGS__)
+        #define PPROFILE_END_DEBUG(id) performance_profiler_end((id))
+        #define PROFILE_SCOPE_DEBUG(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
+    #else
+        #define PROFILE_DEBUG(id, ...) ((void) 0)
+        #define PROFILE_START_DEBUG(id, ...) ((void) 0)
+        #define PPROFILE_END_DEBUG(id) ((void) 0)
+        #define PROFILE_SCOPE_DEBUG(id, name) ((void) 0)
+    #endif
+
     #define PROFILE(id, ...) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, ##__VA_ARGS__)
     #define PROFILE_START(id, ...) performance_profiler_start((id), ##__VA_ARGS__)
-    #define PROFILE_END(id) performance_profiler_end((id))
+    #define PPROFILE_END(id) performance_profiler_end((id))
     #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
 
     // Moves the index of _perf_stats usually called after a completed frame
     #define PROFILE_SNAPSHOT() profile_performance_snapshot()
+    // @question Do I want this in release mode?
     #define PROFILE_LOG_TO_FILE() performance_log_to_file()
     #define PROFILE_LOG_FORMATTED() performance_log_to_file_formatted()
 
@@ -600,14 +525,17 @@ void performance_profiler_static_end(TimingStaticStats type, int32 id) NO_EXCEPT
 
     // Starts a new thread tick which is used to measure how long a frame/thread cycle is
     #define THREAD_TICK(id) PerformanceThreadProfiler __profile_thread_##__func__##_##__LINE__((id))
-
-    #define PROFILE_STATIC_START(type) performance_profiler_static_start((type), macro_fnv1a_32(__func__), __func__, __LINE__)
-    #define PROFILE_STATIC_END(type) performance_profiler_static_end((type), macro_fnv1a_32(__func__))
 #else
+    #define PROFILE_DEBUG(id, ...) ((void) 0)
+    #define PROFILE_START_DEBUG(id, ...) ((void) 0)
+    #define PPROFILE_END_DEBUG(id) ((void) 0)
+    #define PROFILE_SCOPE_DEBUG(id, name) ((void) 0)
+
     #define PROFILE(id, ...) ((void) 0)
     #define PROFILE_START(id, ...) ((void) 0)
-    #define PROFILE_END(id) ((void) 0)
+    #define PPROFILE_END(id) ((void) 0)
     #define PROFILE_SCOPE(id, name) ((void) 0)
+
     #define PROFILE_SNAPSHOT() ((void) 0)
     #define PROFILE_LOG_TO_FILE() ((void) 0)
     #define PROFILE_LOG_FORMATTED() ((void) 0)
@@ -615,9 +543,6 @@ void performance_profiler_static_end(TimingStaticStats type, int32 id) NO_EXCEPT
     #define THREAD_LOG_CREATE(id, ...) ((void) 0)
     #define THREAD_LOG_NAME(id, name) ((void) 0)
     #define THREAD_LOG_DELETE(id) ((void) 0)
-
-    #define PROFILE_STATIC_START(type) ((void) 0)
-    #define PROFILE_STATIC_END(type) ((void) 0)
 #endif
 
 #endif

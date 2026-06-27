@@ -14,4 +14,14 @@ enum UIAlign : byte {
     UI_ALIGN_V_TOP = 1 << 5,
 };
 
+enum UIAnchor : byte {
+    UI_ANCHOR_H_LEFT = 1 << 0,
+    UI_ANCHOR_H_CENTER = 1 << 1,
+    UI_ANCHOR_H_RIGHT = 1 << 2,
+
+    UI_ANCHOR_V_BOTTOM = 1 << 3,
+    UI_ANCHOR_V_CENTER = 1 << 4,
+    UI_ANCHOR_V_TOP = 1 << 5,
+};
+
 #endif

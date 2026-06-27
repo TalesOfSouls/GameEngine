@@ -8,24 +8,39 @@
 #include "attribute/UIAttributeBackground.h"
 #include "UIAnimation.h"
 #include "UICore.h"
+#include "../stdlib/Stdlib.h"
+#include "UIOffset.h"
+#include "UILabel.h"
+#include "attribute/UIAttributeBorderOffset.h"
+#include "UIPanel.h"
 
-struct UIWindowState {
+struct UIWindowTitleOffset {
+    UIOffset self;
+    UIBorderOffset border[8];
+    UIPanelOffset panel;
+    UILabelOffset label;
+};
+
+struct UIWindowOffset {
+    UIOffset self;
+    UIWindowTitleOffset title;
+    UIBorderOffset border[8];
+    UIPanelOffset panel;
+};
+
+enum UIWindowComponentFlag : uint32 {
+    UI_WINDOW_COMPONENT_FLAG_TITLE_LABEL = 1 << 0,
+    UI_WINDOW_COMPONENT_FLAG_TITLE_BORDER = 1 << 1,
+    UI_WINDOW_COMPONENT_FLAG_TITLE_PANEL = 1 << 2,
+    UI_WINDOW_COMPONENT_FLAG_TITLE = (1 << 8) - 1, // This allows us to check if any title component exists
+
+    UI_WINDOW_COMPONENT_FLAG_MAIN_BORDER = 1 << 8,
+    UI_WINDOW_COMPONENT_FLAG_MAIN_BUTTONS = 1 << 9,
 };
 
 struct UIWindow {
     UICore core;
     UIAnimation animation;
-    byte padding;
-    byte alignment;
-    byte opacity;
-
-    uintptr_t background;
-    UIBackgroundStyle background_style;
-    UIAttributeShadow shadow_outer;
-    UIAttributeShadow shadow_inner;
-
-    // @todo Remove, this is now in the UIOffset
-    UIWindow* styles[UI_STYLE_TYPE_SIZE];
 };
 
 #endif

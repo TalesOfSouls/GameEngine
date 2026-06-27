@@ -90,6 +90,7 @@
 #define SEC_MICRO 1000000
 #define MILLI_MICRO 1000
 
+#define KHZ 1000
 #define MHZ 1000000
 #define GHZ 1000000000ULL
 

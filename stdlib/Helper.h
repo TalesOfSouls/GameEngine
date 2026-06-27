@@ -97,22 +97,25 @@ FORCE_INLINE CONSTEXPR T align_down(T x, size_t align) NO_EXCEPT
 #define MEMSET_ZERO(ptr) (*(size_t *)(ptr) = 0)
 
 // Casting between e.g. f32 and int32 without changing bits
-#define BITCAST(x, new_type) bitcast_impl_##new_type(x)
-#define DEFINE_BITCAST_FUNCTION(from_type, to_type) \
-    static inline to_type bitcast_impl_##to_type(from_type src) { \
-        union { from_type src; to_type dst; } u; \
-        u.src = src; \
-        return u.dst; \
-    }
+template<typename To, typename From>
+static inline To bitcast(From src)
+{
+    IF_CONSTEXPR(sizeof(To) == sizeof(From)) {
+        union {
+            From src;
+            To dst;
+        } u;
 
-DEFINE_BITCAST_FUNCTION(f32, uint32)
-DEFINE_BITCAST_FUNCTION(uint32, f32)
-DEFINE_BITCAST_FUNCTION(f64, uint64)
-DEFINE_BITCAST_FUNCTION(uint64, f64)
-DEFINE_BITCAST_FUNCTION(f32, int32)
-DEFINE_BITCAST_FUNCTION(int32, f32)
-DEFINE_BITCAST_FUNCTION(f64, int64)
-DEFINE_BITCAST_FUNCTION(int64, f64)
+        u.src = src;
+        return u.dst;
+    } else {
+        To dst = {0};
+        memcpy(&dst, &src, sizeof(From) > sizeof(To) ? sizeof(To) : sizeof(From));
+
+        return dst;
+    }
+}
+#define BITCAST(x, new_type) bitcast<new_type>(x)
 
 // Modulo function when b is a power of 2
 #define MODULO_2(a, b) ((a) & (b - 1))

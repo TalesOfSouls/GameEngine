@@ -6,13 +6,20 @@
 #include "attribute/UIAttribute.h"
 #include "attribute/UIAttributeDimension.h"
 #include "UIStyleType.h"
+#include "UIImage.h"
+#include "UILabel.h"
+#include "UIPanel.h"
 #include "UILayout.h"
 
-struct UIButtonState {
+struct UIButtonOffset {
+    UIOffset self;
+    UIBorderOffset border[8];
+    UIPanelOffset panel;
+    UILabelOffset label;
 };
 
 struct UIButton {
-    UIAttributeDimension dimension;
+    UIOffset self;
 };
 
 #endif

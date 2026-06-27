@@ -14,6 +14,7 @@
 
         DEBUG_COUNTER_DRIVE_READ,
         DEBUG_COUNTER_DRIVE_WRITE,
+        DEBUG_COUNTER_DRIVE_IO,
 
         DEBUG_COUNTER_THREAD,
 
@@ -27,10 +28,12 @@
         // Network byte transfer
         DEBUG_COUNTER_NETWORK_OUT_RAW,
         DEBUG_COUNTER_NETWORK_IN_RAW,
+        DEBUG_COUNTER_NETWORK_IO_RAW,
 
         // Network packet transfer count
         DEBUG_COUNTER_NETWORK_OUT_COUNT,
         DEBUG_COUNTER_NETWORK_IN_COUNT,
+        DEBUG_COUNTER_NETWORK_IO_COUNT,
 
         // Asset information
         DEBUG_COUNTER_AUDIO_COUNT,
@@ -52,11 +55,13 @@
         DEBUG_COUNTER_BUFFER_MAX_REQUEST,
         DEBUG_COUNTER_BUFFER_MAX_USAGE,
 
+        DEBUG_COUNTER_FPS,
+
         DEBUG_COUNTER_SIZE
     };
 #endif
 
-#define MAX_STATS_COUNTER_HISTORY 100
+#define MAX_STATS_COUNTER_HISTORY 96
 struct StatCounterHistory {
     atomic_32 int32 pos;
     atomic_64 int64 stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE];
@@ -83,6 +88,25 @@ void stats_snapshot() NO_EXCEPT
         0,
         DEBUG_COUNTER_SIZE * sizeof(int64)
     );
+}
+
+/**
+ * Increments a counter variable
+ *
+ * @param int32 id  Stats id
+ * @param int64 value  Change amount
+ *
+ * @return void
+ */
+inline HOT_CODE
+void stats_set(int32 id, int64 value = 1) NO_EXCEPT
+{
+    if (!_stats_counter_active || !*_stats_counter_active) {
+        return;
+    }
+
+    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
+    atomic_set_relaxed(&_stats_counter->stats[pos + id], value);
 }
 
 /**
@@ -299,28 +323,49 @@ void stats_log_to_file() NO_EXCEPT
     LOG_1("[END] Stats log");
 }
 
-#if (!DEBUG && !INTERNAL) || RELEASE
-    #define STATS_INCREMENT(a) ((void) 0)
-    #define STATS_INCREMENT_BY(a, b) ((void) 0)
-    #define STATS_DECREMENT(a) ((void) 0)
-    #define STATS_DECREMENT_BY(a, b) ((void) 0)
-    #define STATS_COUNTER(a, b) ((void) 0)
-    #define STATS_MAX(a, b) ((void) 0)
-    #define STATS_MIN(a, b) ((void) 0)
+#if LOG_LEVEL > 0
+    #if (DEBUG || INTERNAL)
+        #define STATS_SET_DEBUG(a, b) stats_set((a), (b))
+        #define STATS_INCREMENT_DEBUG(a) stats_increment((a), 1)
+        #define STATS_INCREMENT_BY_DEBUG(a, b) stats_increment((a), (b))
+        #define STATS_DECREMENT_DEBUG(a) stats_decrement((a), 1)
+        #define STATS_DECREMENT_BY_DEBUG(a, b) stats_decrement((a), (b))
+        #define STATS_COUNTER_DEBUG(a, b) stats_counter((a), (b))
+        #define STATS_MAX_DEBUG(a, b) stats_max((a), (b))
+        #define STATS_MIN_DEBUG(a, b) stats_min((a), (b))
 
-    #define STATS_SNAPSHOT() ((void) 0)
-    #define STATS_LOG_TO_FILE() ((void) 0)
+        // Persistent stats, not per frame or tick
+        #define STATS_INCREMENT_PERSISTENT_DEBUG(a) stats_increment_persistent((a), 1)
+        #define STATS_INCREMENT_BY_PERSISTENT_DEBUG(a, b) stats_increment_persistent((a), (b))
+        #define STATS_DECREMENT_PERSISTENT_DEBUG(a) stats_decrement_persistent((a), 1)
+        #define STATS_DECREMENT_BY_PERSISTENT_DEBUG(a, b) stats_decrement_persistent((a), (b))
 
-    #define STATS_INCREMENT_PERSISTENT(a) ((void) 0)
-    #define STATS_INCREMENT_BY_PERSISTENT(a, b) ((void) 0)
-    #define STATS_DECREMENT_PERSISTENT(a) ((void) 0)
-    #define STATS_DECREMENT_BY_PERSISTENT(a, b) ((void) 0)
+        #define STATS_COUNTER_PERSISTENT_DEBUG(a, b) stats_counter_persistent((a), (b))
 
-    #define STATS_COUNTER_PERSISTENT(a, b) ((void) 0)
+        #define STATS_MAX_PERSISTENT_DEBUG(a, b) stats_max_persistent((a), (b))
+        #define STATS_MIN_PERSISTENT_DEBUG(a, b) stats_min_persistent((a), (b))
+    #else
+        #define STATS_SET_DEBUG(a, b) ((void) 0)
+        #define STATS_INCREMENT_DEBUG(a) ((void) 0)
+        #define STATS_INCREMENT_BY_DEBUG(a, b) ((void) 0)
+        #define STATS_DECREMENT_DEBUG(a) ((void) 0)
+        #define STATS_DECREMENT_BY_DEBUG(a, b) ((void) 0)
+        #define STATS_COUNTER_DEBUG(a, b) ((void) 0)
+        #define STATS_MAX_DEBUG(a, b) ((void) 0)
+        #define STATS_MIN_DEBUG(a, b) ((void) 0)
 
-    #define STATS_MAX_PERSISTENT(a, b) ((void) 0)
-    #define STATS_MIN_PERSISTENT(a, b) ((void) 0)
-#else
+        #define STATS_INCREMENT_PERSISTENT_DEBUG(a) ((void) 0)
+        #define STATS_INCREMENT_BY_PERSISTENT_DEBUG(a, b) ((void) 0)
+        #define STATS_DECREMENT_PERSISTENT_DEBUG(a) ((void) 0)
+        #define STATS_DECREMENT_BY_PERSISTENT_DEBUG(a, b) ((void) 0)
+
+        #define STATS_COUNTER_PERSISTENT_DEBUG(a, b) ((void) 0)
+
+        #define STATS_MAX_PERSISTENT_DEBUG(a, b) ((void) 0)
+        #define STATS_MIN_PERSISTENT_DEBUG(a, b) ((void) 0)
+    #endif
+
+    #define STATS_SET(a, b) stats_set((a), (b))
     #define STATS_INCREMENT(a) stats_increment((a), 1)
     #define STATS_INCREMENT_BY(a, b) stats_increment((a), (b))
     #define STATS_DECREMENT(a) stats_decrement((a), 1)
@@ -328,9 +373,6 @@ void stats_log_to_file() NO_EXCEPT
     #define STATS_COUNTER(a, b) stats_counter((a), (b))
     #define STATS_MAX(a, b) stats_max((a), (b))
     #define STATS_MIN(a, b) stats_min((a), (b))
-
-    #define STATS_SNAPSHOT() stats_snapshot()
-    #define STATS_LOG_TO_FILE() stats_log_to_file()
 
     // Persistent stats, not per frame or tick
     #define STATS_INCREMENT_PERSISTENT(a) stats_increment_persistent((a), 1)
@@ -340,8 +382,35 @@ void stats_log_to_file() NO_EXCEPT
 
     #define STATS_COUNTER_PERSISTENT(a, b) stats_counter_persistent((a), (b))
 
-     #define STATS_MAX_PERSISTENT(a, b) stats_max_persistent((a), (b))
-     #define STATS_MIN_PERSISTENT(a, b) stats_min_persistent((a), (b))
+    #define STATS_MAX_PERSISTENT(a, b) stats_max_persistent((a), (b))
+    #define STATS_MIN_PERSISTENT(a, b) stats_min_persistent((a), (b))
+
+    #define STATS_SNAPSHOT() stats_snapshot()
+
+    // @question Do I want this in release mode?
+    #define STATS_LOG_TO_FILE() stats_log_to_file()
+#else
+    #define STATS_SET_DEBUG(a, b) ((void) 0)
+    #define STATS_INCREMENT_DEBUG(a) ((void) 0)
+    #define STATS_INCREMENT_BY_DEBUG(a, b) ((void) 0)
+    #define STATS_DECREMENT_DEBUG(a) ((void) 0)
+    #define STATS_DECREMENT_BY_DEBUG(a, b) ((void) 0)
+    #define STATS_COUNTER_DEBUG(a, b) ((void) 0)
+    #define STATS_MAX_DEBUG(a, b) ((void) 0)
+    #define STATS_MIN_DEBUG(a, b) ((void) 0)
+
+    #define STATS_INCREMENT_PERSISTENT_DEBUG(a) ((void) 0)
+    #define STATS_INCREMENT_BY_PERSISTENT_DEBUG(a, b) ((void) 0)
+    #define STATS_DECREMENT_PERSISTENT_DEBUG(a) ((void) 0)
+    #define STATS_DECREMENT_BY_PERSISTENT_DEBUG(a, b) ((void) 0)
+
+    #define STATS_COUNTER_PERSISTENT_DEBUG(a, b) ((void) 0)
+
+    #define STATS_MAX_PERSISTENT_DEBUG(a, b) ((void) 0)
+    #define STATS_MIN_PERSISTENT_DEBUG(a, b) ((void) 0)
+
+    #define STATS_SNAPSHOT() ((void) 0)
+    #define STATS_LOG_TO_FILE() ((void) 0)
 #endif
 
 #endif

@@ -45,7 +45,7 @@ void pool_alloc(DataPool* buf, uint32 capacity, int32 chunk_size, int32 alignmen
 {
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(capacity);
-    PROFILE(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Allocating DataPool");
 
     chunk_size = align_up(chunk_size, alignment);

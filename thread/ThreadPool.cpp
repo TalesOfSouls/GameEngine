@@ -29,7 +29,6 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
         _log_memory = pool->debug_container->log_memory;
         _dmc = pool->debug_container->dmc;
         _perf_stats = pool->debug_container->perf_stats;
-        _perf_static_stats = pool->debug_container->perf_static_stats;
         _perf_active = pool->debug_container->perf_active;
         _stats_counter_active = pool->debug_container->stats_counter_active;
         _stats_counter = pool->debug_container->stats_counter;
@@ -42,7 +41,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 
     // @bug Why doesn't this work? There must be some threading issue
     LOG_2("[INFO] Thread pool worker starting up");
-    STATS_INCREMENT(DEBUG_COUNTER_THREAD);
+    STATS_INCREMENT_DEBUG(DEBUG_COUNTER_THREAD);
 
     // Setting up thread local rng state
     rand_setup();
@@ -83,8 +82,8 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 
         LOG_3("[INFO] ThreadPool worker started");
         {
-            PROFILE(PROFILE_THREADPOOL_WORK, NULL, PROFILE_FLAG_ADD_HISTORY);
-            STATS_INCREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
+            PROFILE_DEBUG(PROFILE_THREADPOOL_WORK, NULL, PROFILE_FLAG_ADD_HISTORY);
+            STATS_INCREMENT_DEBUG(DEBUG_COUNTER_THREAD_ACTIVE);
             if (work->mem_size) {
                 // @performance For longer tasks this is fine but for jobs running really quick, this is slow
                 // @bug we need to wait if we don't have enough memory available
@@ -93,7 +92,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
             } else {
                 work->func(work);
             }
-            STATS_DECREMENT(DEBUG_COUNTER_THREAD_ACTIVE);
+            STATS_DECREMENT_DEBUG(DEBUG_COUNTER_THREAD_ACTIVE);
         }
         LOG_3("[INFO] ThreadPool worker ended");
 
@@ -120,7 +119,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     coms_pthread_cond_signal(&pool->working_cond);
 
     LOG_2("[INFO] Thread pool worker shutting down");
-    STATS_DECREMENT(DEBUG_COUNTER_THREAD);
+    STATS_DECREMENT_DEBUG(DEBUG_COUNTER_THREAD);
 
     return (THREAD_RETURN_BODY) NULL;
 }
@@ -143,7 +142,7 @@ void thread_pool_alloc(
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_THREAD_POOL_ALLOC);
+    PROFILE_DEBUG(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
         "[INFO] Allocating thread pool with %d threads and %d queue length",
         {DATA_TYPE_INT32, &thread_count},
@@ -203,7 +202,7 @@ void thread_pool_init(
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_THREAD_POOL_ALLOC);
+    PROFILE_DEBUG(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
         "[INFO] Creating thread pool with %d threads and %d queue length",
         {DATA_TYPE_INT32, &thread_count},
@@ -219,6 +218,10 @@ void thread_pool_init(
             alignof(coms_pthread_t)
         );
     }
+    DEBUG_MEMORY_SUBREGION(
+        (uintptr_t) pool->work_queue.memory,
+        sizeof(PoolWorker) * worker_capacity + sizeof(coms_pthread_t) * thread_count
+    );
 
     // @todo switch from pool mutex and pool cond to threadjob mutex/cond
     //      thread_pool_wait etc. should just iterate over all mutexes

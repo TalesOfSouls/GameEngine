@@ -29,6 +29,7 @@ FORCE_INLINE
 void scheduler_init(TaskScheduler* const scheduler, BufferMemory* const buf, int32 count) NO_EXCEPT
 {
     queue_init(&scheduler->tasks, buf, count);
+    DEBUG_MEMORY_SUBREGION((uintptr_t) scheduler->tasks.memory, count * sizeof(TaskSchedule));
 }
 
 FORCE_INLINE

@@ -34,7 +34,7 @@ struct DatabasePool {
 
 void db_pool_alloc(DatabasePool* const pool, uint8 count) NO_EXCEPT {
     ASSERT_TRUE(count);
-    PROFILE(PROFILE_DB_POOL_ALLOC, NULL, false, true);
+    PROFILE_DEBUG(PROFILE_DB_POOL_ALLOC, NULL, false, true);
     LOG_1("[INFO] Allocating DatabasePool for %d connections", {DATA_TYPE_UINT8, &count});
 
     uint64 size = count * sizeof(DatabaseConnection)

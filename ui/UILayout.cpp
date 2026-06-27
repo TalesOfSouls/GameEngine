@@ -16,6 +16,7 @@
 #include "UIInput.h"
 #include "UILabel.cpp"
 #include "UIWindow.cpp"
+#include "attribute/UIAttribute.cpp"
 
 #define UI_LAYOUT_MAX_CLASS_NAME_LENGTH 32
 
@@ -31,17 +32,17 @@
 #define LAYOUT_ELEMENT_CHILD_TOKEN '$'
 
 FORCE_INLINE
-UICore* ui_get_element(UILayout* const layout, int32 offset) {
+UICore* ui_get_element(UILayout* const layout, int32 offset) NO_EXCEPT {
     return (UICore *) (layout->ui_element_buffer.memory + offset);
 }
 
 FORCE_INLINE
-UIOffset* ui_get_offset(UILayout* const layout, int32 index) {
+UIOffset* ui_get_offset(UILayout* const layout, int32 index) NO_EXCEPT {
     return (UIOffset *) (layout->ui_offset_buffer.memory + index);
 }
 
 FORCE_INLINE
-UIOffset* ui_get_offset(UILayout* const layout, const char* name) {
+UIOffset* ui_get_offset(UILayout* const layout, const char* name) NO_EXCEPT {
     const HashEntryStrT<int32>* entry = hashmap_get_entry(&layout->hash_map, name);
     if (!entry) {
         return NULL;
@@ -51,7 +52,7 @@ UIOffset* ui_get_offset(UILayout* const layout, const char* name) {
 }
 
 FORCE_INLINE
-UIOffset* ui_get_offset(UILayout* const layout, SimpleString<const char> str) {
+UIOffset* ui_get_offset(UILayout* const layout, SimpleString<const char> str) NO_EXCEPT {
     char name[64];
     ASSERT_TRUE(ARRAY_COUNT(name) > str.length);
 
@@ -65,16 +66,50 @@ static
 UILabelOffset* ui_element_create(UILayout* const __restrict layout, const UIUber* const __restrict uber, UIElementType type) NO_EXCEPT
 {
     switch (type) {
-        case UI_ELEMENT_TYPE_CURSOR : {
+        case UI_ELEMENT_TYPE_BUTTON : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_SELECT : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_INPUT : {
             return NULL;
         };
         case UI_ELEMENT_TYPE_LABEL: {
                 return ui_label_create(
                     layout,
+                    uber->char_type,
                     uber->pattern_length,
                     uber->content_length
                 );
             };
+        case UI_ELEMENT_TYPE_TEXTAREA : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_IMAGE : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_TEXT : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_LINK : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_TABLE : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_VIEW_WINDOW : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_VIEW_PANEL : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_VIEW_TAB : {
+            return NULL;
+        };
+        case UI_ELEMENT_TYPE_CURSOR : {
+            return NULL;
+        };
         default: {
             UNREACHABLE();
         }
@@ -94,7 +129,8 @@ UIOffset* ui_child_offset_from_name(UIOffset*, SimpleString<const char>&) NO_EXC
  * Check if this line is a UI element
  */
 static FORCE_INLINE
-bool ui_layout_is_element(const char* pos) {
+bool ui_layout_is_element(const char* pos) NO_EXCEPT
+{
     str_skip_whitespace(&pos);
     // # = element id
     // @ = general element definition
@@ -103,14 +139,14 @@ bool ui_layout_is_element(const char* pos) {
         || *pos == LAYOUT_ELEMENT_CHILD_TOKEN;
 }
 
-const char* ui_layout_element_parse(
+char* ui_layout_element_parse(
     UILayout* __restrict layout,
-    const char* __restrict pos,
+    char* __restrict pos,
     UIOffset* parent = NULL
-)
+) NO_EXCEPT
 {
     const char* start = pos;
-    str_skip_whitespace(&pos);
+    str_skip_whitespace((const char**) &pos);
     const int32 self_indent = (int32) (pos - start);
 
     if (*pos != LAYOUT_ELEMENT_ID_TOKEN
@@ -130,13 +166,13 @@ const char* ui_layout_element_parse(
     }
     element_name[i] = '\0';
 
-    str_skip_line(&pos);
+    str_skip_line((const char**) &pos);
 
     // find element type
     // WARNING: The type MUST be specified right after the element id
     const char* type;
     {
-        str_skip_whitespace(&pos);
+        str_skip_whitespace((const char**) &pos);
         if (strncmp(pos, "type:", sizeof("type:") - 1) != 0) {
             ASSERT_THROW();
             LOG_1("Couldn't find element type");
@@ -145,11 +181,11 @@ const char* ui_layout_element_parse(
         }
 
         pos += sizeof("type:") - 1;
-        str_skip_empty(&pos);
+        str_skip_empty((const char**) &pos);
 
         type = pos;
-        str_move_to(&pos, " \r\n");
-        str_skip_line(&pos);
+        str_move_to((const char**) &pos, " \r\n");
+        str_skip_line((const char**) &pos);
     }
 
     UIElementType type_id = (UIElementType) ui_element_type_to_id(type);
@@ -164,11 +200,12 @@ const char* ui_layout_element_parse(
 
     // We iterate as long as new element components show up or in other words until the next line would be another element
     while (*pos && !ui_layout_is_element(pos)) {
-        str_skip_whitespace(&pos);
+        str_skip_whitespace((const char**) &pos);
 
         const char* value_type = pos;
-        str_move_past(&pos, ':');
-        str_skip_whitespace(&pos);
+        str_move_to((const char**) &pos, ':');
+        *pos++ = '\0';
+        str_skip_whitespace((const char**) &pos);
 
         // We use a uber element that can hold all possible value types
         // We sacrifice some memory for simpler handling
@@ -179,35 +216,25 @@ const char* ui_layout_element_parse(
         //          @performance Maybe test/profile that approach in the future, it shouldn't be that hard to test
         if (strncmp(value_type, "class", sizeof("class") - 1) == 0) {
             class_name.str = pos;
-            str_move_to(&pos, " \r\n");
+            str_move_to((const char**) &pos, " \r\n");
             class_name.length = (int32) (pos - class_name.str);
         } else if (strncmp(value_type, "inherit", sizeof("inherit") - 1) == 0) {
             SimpleString<const char> inherit_name;
 
             inherit_name.str = pos;
-            str_move_to(&pos, " \r\n");
+            str_move_to((const char**) &pos, " \r\n");
             inherit_name.length = (int32) (pos - inherit_name.str);
 
             inherit_offset = ui_get_offset(layout, inherit_name);
         } else if (strncmp(value_type, "child", sizeof("child") - 1) == 0) {
             child_name.str = pos;
-            str_move_to(&pos, " \r\n");
+            str_move_to((const char**) &pos, " \r\n");
             child_name.length = (int32) (pos - child_name.str);
-        } else if (strncmp(value_type, "pattern_length", sizeof("pattern_length") - 1) == 0) {
-            uber.pattern_length = (int32) str_to_int(pos, &pos);
-        } else if (strncmp(value_type, "pattern", sizeof("pattern") - 1) == 0) {
-            // @bug How to write wchar_t in a text file when everything else is ascii?
-            uber.pattern.str = (const wchar_t *) pos;
-            str_move_to(&pos, "\r\n");
-            uber.pattern.length = (int32) ((uintptr_t) pos - (uintptr_t) uber.pattern.str);
-        } else if (strncmp(value_type, "content_length", sizeof("content_length") - 1) == 0) {
-            // @bug How to write wchar_t in a text file when everything else is ascii?
-            uber.content.str = (const wchar_t *) pos;
-            str_move_to(&pos, "\r\n");
-            uber.content.length = (int32) ((uintptr_t) pos - (uintptr_t) uber.content.str);
+        } else {
+            ui_uber_from_txt(&uber, value_type, pos);
         }
 
-        str_skip_line(&pos);
+        str_skip_line((const char**) &pos);
     }
 
     UIOffset* offset = NULL;
@@ -282,7 +309,6 @@ const char* ui_layout_element_parse(
     //              opacity: 0
     //      In this case we don't want to create a new element but modify the existing element from the skeleton
 
-    // Create new element in hash map + add class name to element if available
     // We need to load the style for every state change directly from the theme
     // For that we need the class name
     // Alternatively we could've created an element multiple times = once per state
@@ -300,12 +326,17 @@ const char* ui_layout_element_parse(
         str_copy(core->class_name, class_name);
     }
 
-    hashmap_insert(&layout->hash_map, element_name, (int32) MEMORY_OFFSET(offset, layout->ui_offset_buffer.memory));
+    // Create new element in hash map
+    hashmap_insert(
+        &layout->hash_map,
+        element_name,
+        (int32) MEMORY_OFFSET(offset, layout->ui_offset_buffer.memory)
+    );
 
     // We skip useless empty lines
-    str_skip_eol(pos);
+    str_skip_eol((const char**) &pos);
 
-    // handle all child elements
+    // Handle all child elements
     if (ui_layout_is_element(pos)) {
         // Figure out if next element is a child by checking the indention
         const char* pos_temp = pos;
@@ -335,24 +366,24 @@ void layout_from_file_txt(
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
 
-    const char* pos = (char *) file.content;
+    char* pos = (char *) file.content;
 
     // skip version
-    str_skip_line(&pos);
+    str_skip_line((const char**) &pos);
 
     // skip all empty lines
-    str_skip_empty(&pos);
+    str_skip_empty((const char**) &pos);
 
     // 1. Iteration: Find the element count
     ////////////////////////////////////////////////////////////
     int32 temp_element_count = 0;
     while (*pos != '\0') {
-        str_skip_whitespace(&pos);
+        str_skip_whitespace((const char**) &pos);
         if (*pos == '#') {
             ++temp_element_count;
         }
 
-        str_skip_line(&pos);
+        str_skip_line((const char**) &pos);
     }
 
     // 2. Iteration: Fill HashMap
@@ -369,13 +400,13 @@ void layout_from_file_txt(
     pos = (char *) file.content;
 
     // move past version string
-    str_move_past(&pos, '\n');
+    str_move_past((const char**) &pos, '\n');
 
     // skip all empty lines
-    str_skip_empty(&pos);
+    str_skip_empty((const char**) &pos);
 
     while (*pos != '\0') {
-        str_skip_eol(&pos);
+        str_skip_eol((const char**) &pos);
         if (*pos == '#') {
             pos = ui_layout_element_parse(layout, pos, NULL);
         }
@@ -386,7 +417,7 @@ int32 layout_to_data(
     const UILayout* const __restrict layout,
     byte* __restrict data
 ) {
-    LOG_1("Save layout");
+    LOG_1("[INFO] UI save layout");
     byte* out = data;
 
     out = write_le(out, UI_LAYOUT_VERSION);
@@ -407,7 +438,7 @@ int32 layout_to_data(
     memcpy(out, layout->ui_element_buffer.memory, layout->ui_element_buffer.head - layout->ui_element_buffer.memory);
     out += layout->ui_element_buffer.head - layout->ui_element_buffer.memory;
 
-    LOG_1("Saved layout");
+    LOG_1("[INFO] UI saved layout");
 
     return (int32) (out - data);
 }
@@ -418,8 +449,8 @@ int32 layout_from_data(
     const byte* const __restrict data,
     UILayout* const __restrict layout
 ) {
-    PROFILE(PROFILE_LAYOUT_FROM_DATA, NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("[INFO] Load layout");
+    PROFILE_DEBUG(PROFILE_LAYOUT_FROM_DATA, NULL, PROFILE_FLAG_SHOULD_LOG);
+    LOG_1("[INFO] UI load layout");
 
     const byte* in = data;
 
@@ -453,9 +484,107 @@ int32 layout_from_data(
     memcpy(layout->ui_element_buffer.memory, in, offset);
     //in += offset;
 
-    LOG_1("[INFO] Loaded layout");
+    LOG_1("[INFO] UI loaded layout");
 
     return (int32) layout->data_size;
+}
+
+static inline
+void layout_update_element_by_type(
+    UIAttributeFont* const __restrict font,
+    const UIAttribute* const __restrict attr
+) NO_EXCEPT
+{
+    switch (attr->attribute_id) {
+        case UI_ATTRIBUTE_TYPE_FONT_COLOR: {
+                font->color = attr->value_uint;
+            } break;
+        case UI_ATTRIBUTE_TYPE_FONT_SIZE: {
+                font->size = attr->value_float;
+            } break;
+        default: {
+            UNREACHABLE();
+        }
+    }
+}
+
+static FORCE_INLINE
+void layout_update_element_by_type(
+    UICore* const __restrict core,
+    const UIAttribute* const __restrict attr,
+    UIElementType type
+) NO_EXCEPT
+{
+    switch (type) {
+        case UI_ELEMENT_TYPE_BUTTON : {
+        } break;
+        case UI_ELEMENT_TYPE_SELECT : {
+        } break;
+        case UI_ELEMENT_TYPE_INPUT : {
+        } break;
+        case UI_ELEMENT_TYPE_LABEL: {
+            UILabel* element = (UILabel *) core;
+            if (attr->attribute_id >= UI_ATTRIBUTE_TYPE_FONT_NAME
+                && attr->attribute_id <= UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT
+            ) {
+                layout_update_element_by_type(&element->font, attr);
+                return;
+            }
+
+            // switch (attr->attribute_id) {
+            //     default: {
+            //         UNREACHABLE();
+            //     }
+            // }
+        } break;
+        case UI_ELEMENT_TYPE_TEXTAREA : {
+            UITextarea* element = (UITextarea *) core;
+            if (attr->attribute_id >= UI_ATTRIBUTE_TYPE_FONT_NAME
+                && attr->attribute_id <= UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT
+            ) {
+                layout_update_element_by_type(&element->font, attr);
+                return;
+            }
+
+            // switch (attr->attribute_id) {
+            //     default: {
+            //         UNREACHABLE();
+            //     }
+            // }
+        } break;
+        case UI_ELEMENT_TYPE_IMAGE : {
+        } break;
+        case UI_ELEMENT_TYPE_TEXT : {
+            UIText* element = (UIText *) core;
+            if (attr->attribute_id >= UI_ATTRIBUTE_TYPE_FONT_NAME
+                && attr->attribute_id <= UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT
+            ) {
+                layout_update_element_by_type(&element->font, attr);
+                return;
+            }
+
+            // switch (attr->attribute_id) {
+            //     default: {
+            //         UNREACHABLE();
+            //     }
+            // }
+        } break;
+        case UI_ELEMENT_TYPE_LINK : {
+        } break;
+        case UI_ELEMENT_TYPE_TABLE : {
+        } break;
+        case UI_ELEMENT_TYPE_VIEW_WINDOW: {
+        } break;
+        case UI_ELEMENT_TYPE_VIEW_PANEL : {
+        } break;
+        case UI_ELEMENT_TYPE_VIEW_TAB : {
+        } break;
+        case UI_ELEMENT_TYPE_CURSOR : {
+        } break;
+        default: {
+            UNREACHABLE();
+        }
+    }
 }
 
 static
@@ -478,7 +607,7 @@ void layout_update_element(
     //      then update the style directly assigned
 
     for (int i = 0; i < attr_group->attribute_count; ++i) {
-        const UIAttribute* attr = &attributes[i];
+        const UIAttribute* const attr = &attributes[i];
 
         switch (attr->attribute_id) {
             // First handle core attributes
@@ -496,27 +625,7 @@ void layout_update_element(
                 } break;
             default: {
                 // Attribute type was not part of core, handle element specific
-                switch (offset->type) {
-                    case UI_ELEMENT_TYPE_LABEL: {
-                        UILabel* label = (UILabel *) core;
-                        switch (attr->attribute_id) {
-                            case UI_ATTRIBUTE_TYPE_FONT_COLOR: {
-                                    label->font.color = attr->value_uint;
-                                } break;
-                            case UI_ATTRIBUTE_TYPE_FONT_SIZE: {
-                                    label->font.size = attr->value_float;
-                                } break;
-                            default: {
-                                ASSERT_THROW();
-                            }
-                        }
-                    } break;
-                    case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-                    } break;
-                    default: {
-                        ASSERT_THROW();
-                    }
-                }
+                layout_update_element_by_type(core, attr, offset->type);
             }
         }
     }
@@ -529,8 +638,8 @@ void layout_from_theme(
     const UITheme* __restrict theme,
     bool force_update = false
 ) {
-    PROFILE(PROFILE_LAYOUT_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("[INFO] Load theme for layout");
+    PROFILE_DEBUG(PROFILE_LAYOUT_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
+    LOG_1("[INFO] UI load theme for layout");
 
     // @todo Handle animations
     if (theme->font) {
@@ -556,125 +665,6 @@ uint32 layout_element_from_location(const UILayout* layout, uint16 x, uint16 y) 
 {
     // UI elements have a precision of 4 pixels
     return layout->chroma_codes.codes[layout->chroma_codes.width * y / 4 + x / 4];
-}
-
-// @security Consider to take in BufferMemory instead of byte for better buffer overflow control
-void ui_cache(
-    void* app,
-    GpuApiType gpu_api_type,
-    UILayout* const layout,
-    byte* const __restrict mem
-) NO_EXCEPT
-{
-    // @todo Reset only during testing:
-    //array_vector_reset(&layout->ui_vertex_cache);
-
-    /////////////////////////////////////////////////////////////////
-    // Cache vertices: Should only happen on changes in this element
-    /////////////////////////////////////////////////////////////////
-    int32* iter;
-    array_vector_iterate_start(layout->ui_offset_root, iter) {
-        UIOffset* const offset = (UIOffset *) (layout->ui_offset_buffer.memory + *iter);
-
-        // @bug This assert isn't really working since we don't know how large vertices_count will be
-        //      We would have to simulate/guess the max vertex count and check against this
-        ASSERT_TRUE(
-            offset->vertices_count + layout->ui_vertex_cache.count
-                <= layout->ui_vertex_cache.capacity
-        );
-
-        offset->vertices = layout->ui_vertex_cache.count;
-
-        switch (offset->type) {
-            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-                UIWindowOffset* test_window_offset = (UIWindowOffset*) offset;
-                cache_vertices(
-                    app,
-                    test_window_offset, gpu_api_type,
-                    layout, 10.0f, // @todo fix actual value
-                    mem
-                );
-
-                // @question This means ui_vertex_cache MUST be tightly packed
-                //          AND it mustn't have unused data (not the case for pre-calculated hover styles)
-                //          For that reason we might need a vertex_array with all the possible data and one with tightly packed data
-                //          In an ideal scenario the tightly packed data is just replaced by equally long data without memmoves required
-            } break;
-            case UI_ELEMENT_TYPE_LABEL: {
-                UILabelOffset* test_label_offset = (UILabelOffset*) offset;
-                cache_vertices(
-                    app,
-                    test_label_offset,
-                    layout, 10.0f, // @todo fix actual value
-                    mem
-                );
-            } break;
-            default:
-                UNREACHABLE();
-        }
-
-        offset->vertices_count = (int16) (layout->ui_vertex_cache.count - offset->vertices);
-    } array_vector_iterate_end;
-}
-
-// @question Consider to take in BufferMemory instead of byte for better buffer overflow control
-void ui_update(
-    void* app,
-    GpuApiType gpu_api_type,
-    UILayout* const layout,
-    byte* const __restrict mem
-) NO_EXCEPT
-{
-    // @todo Reset only during testing:
-    //array_vector_reset(&layout->ui_vertex_cache);
-
-    /////////////////////////////////////////////////////////////////
-    // Cache vertices: Should only happen on changes in this element
-    /////////////////////////////////////////////////////////////////
-    int32* iter;
-    array_vector_iterate_start(layout->ui_offset_root, iter) {
-        UIOffset* const offset = (UIOffset *) (layout->ui_offset_buffer.memory + *iter);
-
-        // @bug This assert isn't really working since we don't know how large vertices_count will be
-        //      We would have to simulate/guess the max vertex count and check against this
-        ASSERT_TRUE(
-            offset->vertices_count + layout->ui_vertex_cache.count
-                <= layout->ui_vertex_cache.capacity
-        );
-
-        offset->vertices = layout->ui_vertex_cache.count;
-
-        switch (offset->type) {
-            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-                UIWindowOffset* test_window_offset = (UIWindowOffset*) offset;
-                cache_vertices(
-                    app,
-                    test_window_offset, gpu_api_type,
-                    layout, 10.0f, // @todo fix actual value
-                    mem
-                );
-
-                // @question This means ui_vertex_cache MUST be tightly packed
-                //          AND it mustn't have unused data (not the case for pre-calculated hover styles)
-                //          For that reason we might need a vertex_array with all the possible data and one with tightly packed data
-                //          In an ideal scenario the tightly packed data is just replaced by equally long data without memmoves required
-            } break;
-            case UI_ELEMENT_TYPE_LABEL: {
-                UILabelOffset* test_label_offset = (UILabelOffset*) offset;
-                // @todo replace with a update function
-                cache_vertices(
-                    app,
-                    test_label_offset,
-                    layout, 10.0f, // @todo fix actual value
-                    mem
-                );
-            } break;
-            default:
-                UNREACHABLE();
-        }
-
-        offset->vertices_count = (int16) (layout->ui_vertex_cache.count - offset->vertices);
-    } array_vector_iterate_end;
 }
 
 #endif

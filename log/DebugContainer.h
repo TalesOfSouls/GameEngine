@@ -29,7 +29,6 @@ struct DebugContainer {
     StatCounterHistory* stats_counter;
     int64* stats_counter_persistent;
     PerformanceStatHistory* perf_stats;
-    PerformanceStatStaticHistory* perf_static_stats;
     PerformanceProfiler** perf_current_scope;
     int32* perf_active;
     int32* stats_counter_active;

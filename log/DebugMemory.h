@@ -21,7 +21,7 @@
 #ifndef DEBUG_MEMORY_RANGE_PERS_MAX
     // How many persistent actions do we store?
     // Persistent actions are "create subregion", "mark memory as in use"
-    #define DEBUG_MEMORY_RANGE_PERS_MAX 100
+    #define DEBUG_MEMORY_RANGE_PERS_MAX 32
 #endif
 
 enum MemoryDebugType : char {
@@ -40,20 +40,18 @@ enum MemoryDebugType : char {
 
 struct DebugMemoryRange {
     MemoryDebugType type;
-    // @performance start is not the absolute memory position but relative to the memory. we might be able to change it to int32
     uintptr_t start;
-    // @performance we aren't really using more than a couple hundred MB per range, using uint32 should be fine
     size_t size;
     uint64 time;
 
     const char* function_name;
 };
 
-// @todo We probably want a way to log usage per frame for a chart
 struct DebugMemory {
     uintptr_t start;
 
     int64 usage;
+    int64 max_usage;
     size_t size;
 
     const char* name;
@@ -101,7 +99,7 @@ DebugMemory* debug_memory_find(uintptr_t start) NO_EXCEPT
  * Initializes a new memory region for logging.
  *
  * @param uintptr_t start   Start of the memory region
- * @param uint64    size    Size of the memory region
+ * @param size_t    size    Size of the memory region
  *
  * @return void
  */
@@ -137,6 +135,7 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
     debug_mem->start = start;
     debug_mem->size = size;
     debug_mem->usage = 0;
+    debug_mem->max_usage = 0;
 
     ++_dmc->memory_element_idx;
 }
@@ -144,13 +143,13 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
 /**
  * Names a memory range by a memory in the memory range
  */
-void debug_memory_name(const char* name, void* addr) NO_EXCEPT
+void debug_memory_name(const char* __restrict name, const void* const __restrict addr) NO_EXCEPT
 {
     if (!addr || !_dmc) {
         return;
     }
 
-    uintptr_t addrt = (uintptr_t) addr;
+    const uintptr_t addrt = (uintptr_t) addr;
 
     for (uint32 i = 0; i < _dmc->memory_size; ++i) {
         if (_dmc->memory_stats[i].start <= addrt
@@ -166,14 +165,14 @@ void debug_memory_name(const char* name, void* addr) NO_EXCEPT
  * Log memory usage
  *
  * @param uintptr_t         start       Memory start
- * @param uint64            size        Memory size
+ * @param size_t            size        Memory size
  * @param MemoryDebugType   type        Log type
  * @param const char*       function    Function where this memory log happened
  *
  * @return void
  */
 HOT_CODE
-void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const char* function) NO_EXCEPT
+void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const char* const function) NO_EXCEPT
 {
     if (!start || !_dmc) {
         return;
@@ -196,6 +195,7 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
 
     mem->usage += size * type;
     mem->usage = OMS_CLAMP(mem->usage, (int64) 0, (int64) mem->size);
+    mem->max_usage = OMS_MAX(mem->usage, mem->max_usage);
 }
 
 /**
@@ -208,7 +208,7 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
  *
  * @return void
  */
-void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type, const char* function) NO_EXCEPT
+void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type, const char* const function) NO_EXCEPT
 {
     if (!start || !_dmc) {
         return;
@@ -306,7 +306,7 @@ void debug_memory_reset() NO_EXCEPT
                 break;
             }
 
-            idx = OMS_WRAPPED_DECREMENT(idx, DEBUG_MEMORY_RANGE_MAX);
+            OMS_WRAPPED_DECREMENT(idx, DEBUG_MEMORY_RANGE_MAX);
         }
     }
 }

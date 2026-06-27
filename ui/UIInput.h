@@ -36,9 +36,15 @@ struct UIInputState {
 };
 
 struct UIInput {
-    UIAttributeDimension dimension;
-    byte opacity; // 1 byte alpha channel
-    byte padding;
+    UICore core;
+    uint16 cursor_pos_x;
+    uint16 cursor_pos_y;
+    UIInputType type;
+    int32 min_value;
+    int32 max_value;
+    uint16 max_input_length;
+    CharType char_type;
+    char* content;
 
     UIAttributeBackground background;
     UIAttributeBorder border;

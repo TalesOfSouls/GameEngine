@@ -176,7 +176,7 @@ void asset_archive_load(
     int32 steps = 8
 ) NO_EXCEPT
 {
-    PROFILE(PROFILE_ASSET_ARCHIVE_LOAD, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_ASSET_ARCHIVE_LOAD, NULL, PROFILE_FLAG_SHOULD_LOG);
 
     LOG_1("[INFO] Load AssetArchive");
 
@@ -301,7 +301,7 @@ Asset* const asset_archive_asset_load(
     char id_str[9];
     int_to_hex(id, id_str);
 
-    PROFILE(PROFILE_ASSET_ARCHIVE_ASSET_LOAD, id_str, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_ASSET_ARCHIVE_ASSET_LOAD, id_str, PROFILE_FLAG_SHOULD_LOG);
     // @todo add calculation from element->type to ams index. Probably requires an app specific conversion function
 
     // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
