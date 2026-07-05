@@ -103,9 +103,6 @@ UIWindowOffset* ui_window_create(UILayout* layout, uint32 component_flags) NO_EX
     UIWindowOffset* window = (UIWindowOffset*) BUFFER_ELEMENT_GET(&layout->ui_offset_buffer, UIWindowOffset);
     MEMORY_ELEMENT_ZERO(window);
 
-    // We need to add this offset to the root array for iteration later on
-    array_vector_insert(&layout->ui_offset_root, (int32) MEMORY_OFFSET(window, layout->ui_offset_buffer.memory));
-
     UIWindow* window_element = (UIWindow*) BUFFER_ELEMENT_GET(&layout->ui_element_buffer, UIWindow);
     MEMORY_ELEMENT_ZERO(window_element);
 

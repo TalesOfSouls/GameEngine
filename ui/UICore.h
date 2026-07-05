@@ -21,15 +21,21 @@ typedef void* (*UIRenderFunction)(
 ) NO_EXCEPT;
 
 struct UICore {
+    // UIElementType
+    // @performance we could probably move some of the date into one of the element bytes
+    UIElementType type;
+
     byte opacity;
 
     // @question Consider to pull out into this struct to reduce alignment paddings
     //          We are currently wasting at least 3 bytes after opacity due to alignment
     UIAttributeDimension dimension;
-    UIUpdateFunction update_func;
+
+    // 1-indexed
+    int32 update_func;
 
     // Defines the style it uses
-    char* class_name;
+    int32 class_name;
 };
 
 #endif

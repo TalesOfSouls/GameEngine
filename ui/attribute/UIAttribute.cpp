@@ -67,7 +67,8 @@ void ui_uber_from_txt(
         uber->core.dimension.pos.x = (f32) str_to_float(value, &value);
     } else if (strcmp(value_type, "y") == 0) {
         uber->core.dimension.pos.y = (f32) str_to_float(value, &value);
-    }
+    } else if (strcmp(value_type, "update") == 0) {
+        uber->core.update_func = (int32) str_to_int(value, &value);
 }
 
 struct AttributeStringTypeMap {
@@ -146,6 +147,7 @@ AttributeStringTypeMap attribute_string_type_map[] = {
     {"transition_animation", UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION},
     {"transition_duration", UI_ATTRIBUTE_TYPE_TRANSITION_DURATION},
     {"type", UI_ATTRIBUTE_TYPE_TYPE},
+    {"update", UI_ATTRIBUTE_TYPE_UPDATE},
     {"vertex_count", UI_ATTRIBUTE_TYPE_VERTEX_COUNT},
     {"width_max", UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH_MAX},
     {"width_min", UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH_MIN},

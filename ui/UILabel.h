@@ -21,8 +21,8 @@ struct UILabel {
     int32 pattern_length;
 
     CharType char_type;
-    char* content;
-    char* pattern;
+    int32 content;
+    int32 pattern;
 };
 
 #endif

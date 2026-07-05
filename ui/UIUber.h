@@ -20,6 +20,7 @@ struct UIUber {
 
     // UIAlign
     int32 align;
+
     CharType char_type;
     int32 pattern_length;
     SimpleString<const wchar_t> pattern;

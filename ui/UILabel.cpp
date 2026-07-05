@@ -32,7 +32,7 @@ void ui_vertices_cache(
     // @performance Do I really want to do it hear or somewhere else, maybe separate from the caching
     //              But that would mean iterating the elements twice
     if (label->core.update_func) {
-        label->core.update_func(app, layout, (UIOffset *) offset_data, label);
+        layout->update[label->core.update_func - 1](app, layout, (UIOffset *) offset_data, label);
     }
 
     ui_dimension_calculate(layout, &offset_data->self, &label->core);
@@ -58,37 +58,47 @@ void ui_vertices_cache(
 }
 
 static
-UILabelOffset* ui_label_create(UILayout* layout, CharType char_type, int32 pattern_length = 0, int32 content_length = 0) NO_EXCEPT {
-    UILabelOffset* label = (UILabelOffset*) BUFFER_ELEMENT_GET(&layout->ui_offset_buffer, UILabelOffset);
-    MEMORY_ELEMENT_ZERO(label);
+UILabelOffset* ui_label_create(
+    UILayout* layout,
+    CharType char_type,
+    int32 pattern_length = 0,
+    int32 content_length = 0,
+    UIOffset* inherit_overwrite = NULL
+) NO_EXCEPT {
+    UILabelOffset* label = inherit_overwrite;
+    UILabel* element;
+    if (label) {
+        element = label->self.element;
+    } else {
+        label = (UILabelOffset*) BUFFER_ELEMENT_GET(&layout->ui_offset_buffer, UILabelOffset);
+        MEMORY_ELEMENT_ZERO(label);
 
-    // We need to add this offset to the root array for iteration later on
-    array_vector_insert(&layout->ui_offset_root, (int32) MEMORY_OFFSET(label, layout->ui_offset_buffer.memory));
+        element = (UILabel*) BUFFER_ELEMENT_GET(&layout->ui_element_buffer, UILabel);
+        MEMORY_ELEMENT_ZERO(element);
 
-    UILabel* label_element = (UILabel*) BUFFER_ELEMENT_GET(&layout->ui_element_buffer, UILabel);
-    MEMORY_ELEMENT_ZERO(label_element);
+        label->self.element = (int32) MEMORY_OFFSET(element, layout->ui_element_buffer.memory);
+        // @todo We need an enum of types
+        label->self.type = UI_ELEMENT_TYPE_LABEL;
+    }
 
-    label->self.element = (int32) MEMORY_OFFSET(label_element, layout->ui_element_buffer.memory);
-    // @todo We need an enum of types
-    label->self.type = UI_ELEMENT_TYPE_LABEL;
-    label_element->char_type = char_type;
+    element->char_type = char_type;
 
     if (pattern_length) {
-        label_element->pattern = (char *) memory_get(
+        element->pattern = (char *) memory_get(
             &layout->ui_element_buffer,
             (char_type == CHAR_TYPE_CHAR ? sizeof(char) : sizeof(wchar_t)) * pattern_length,
             alignof(size_t)
         );
-        label_element->pattern_length = pattern_length;
+        element->pattern_length = pattern_length;
     }
 
     if (content_length) {
-        label_element->content = (char *) memory_get(
+        element->content = (char *) memory_get(
             &layout->ui_element_buffer,
             (char_type == CHAR_TYPE_CHAR ? sizeof(char) : sizeof(wchar_t)) * content_length,
             alignof(size_t)
         );
-        label_element->content_length = content_length;
+        element->content_length = content_length;
     }
 
     return label;

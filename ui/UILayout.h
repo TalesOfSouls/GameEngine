@@ -98,6 +98,8 @@ struct UILayout {
     // Stores the current version
     ArrayVector<Vertex3DSamplerTextureColor> ui_vertex_cache;
     ArrayVector<int32> ui_index_cache;
+
+    UIUpdateFunc* update;
 };
 
 #include "UIOffset.h"

@@ -9,10 +9,6 @@ struct UIOffset {
     // Represents the offset into ui_element_buffer
     int32 element;
 
-    // UIElementType
-    // @performance we could probably move some of the date into one of the element bytes
-    UIElementType type;
-
     // @question what was this? normal, hover, active? If true, wouldn't state be better as name?
     byte style_type;
 
