@@ -3,16 +3,11 @@
 #define COMS_UI_LABEL_H
 
 #include "../stdlib/Stdlib.h"
+#include "../utils/SimpleString.h"
 #include "attribute/UIAttribute.h"
 #include "attribute/UIAttributeFont.h"
 #include "attribute/UIAttributeDimension.h"
 #include "UICore.h"
-#include "UIOffset.h"
-#include "../utils/SimpleString.h"
-
-struct UILabelOffset {
-    UIOffset self;
-};
 
 struct UILabel {
     UICore core;

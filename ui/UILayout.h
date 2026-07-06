@@ -53,6 +53,8 @@ struct UIChromaCodes {
     uint32* codes;
 };
 
+typedef void* (*UIUpdateFunc)(void*, UILayout*, UICore*, void*) NO_EXCEPT;
+
 // Modified for every scene
 struct UILayout {
     // We use a simple RGBA image to detect what kind of UI component the mouse his currently hovering
@@ -86,10 +88,20 @@ struct UILayout {
     // @todo It's stupid that we use Asset for this, fix
     Asset* ui_asset;
 
-    // This array links into the ui_offset_buffer
-    ArrayVector<int32> ui_offset_root;
+    // Every element in this array is an offset to a changed element
+    // This allows us to identify and re-draw changed elements quickly
+    ArrayVector<int32> ui_element_changed;
 
-    BufferMemory ui_offset_buffer;
+    // This array links into the ui_element_buffer via offsets
+    // We need to know what the root elements are for our rendering 
+    // Think of this array as the first level in a tree 
+    // but instead of storing pointers or the elements themselves we store the offset to the "root" elements
+    // When rendering we iterate over these root elements 
+    // and internally then over all children of these root elements
+    ArrayVector<int32> ui_element_root;
+
+    // This is where we actually store the elements
+    // It has to be an arbitrary buffer since the element size is not uniform
     BufferMemory ui_element_buffer;
 
     // Stores all of the vertex data (even for different states e.g. hover, ...)
@@ -97,12 +109,10 @@ struct UILayout {
 
     // Stores the current version
     ArrayVector<Vertex3DSamplerTextureColor> ui_vertex_cache;
+    // This is a index cache that references ui_vertex_cache to reduce the stored vertices
     ArrayVector<int32> ui_index_cache;
 
     UIUpdateFunc* update;
 };
-
-#include "UIOffset.h"
-typedef void* (*UIUpdateFunc)(void*, UILayout*, UIOffset*, void*) NO_EXCEPT;
 
 #endif

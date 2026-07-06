@@ -19,23 +19,23 @@
 static
 void ui_vertices_cache(
     void* app,
-    UILabelOffset* offset_data,
+    UICore* element,
     UILayout* const layout, f32 zindex,
     byte* const __restrict mem
 ) NO_EXCEPT {
     FontSystem* const font = layout->font;
-    UILabel* label = (UILabel*) (layout->ui_element_buffer.memory + offset_data->self.element);
+    UILabel* label = (UILabel*) element;
     const f32 font_size = label->font.size / font->base.size;
 
-    offset_data->self.vertices = layout->ui_vertex_cache.count;
+    label->vertices = layout->ui_vertex_cache.count;
 
     // @performance Do I really want to do it hear or somewhere else, maybe separate from the caching
     //              But that would mean iterating the elements twice
     if (label->core.update_func) {
-        layout->update[label->core.update_func - 1](app, layout, (UIOffset *) offset_data, label);
+        layout->update[label->core.update_func - 1](app, layout, element);
     }
 
-    ui_dimension_calculate(layout, &offset_data->self, &label->core);
+    ui_dimension_calculate(layout, element);
 
     if (label->char_type == CHAR_TYPE_CHAR) {
         vertex_text_create(
@@ -63,24 +63,22 @@ UILabelOffset* ui_label_create(
     CharType char_type,
     int32 pattern_length = 0,
     int32 content_length = 0,
-    UIOffset* inherit_overwrite = NULL
+    UICore* element = NULL
 ) NO_EXCEPT {
-    UILabelOffset* label = inherit_overwrite;
-    UILabel* element;
-    if (label) {
-        element = label->self.element;
-    } else {
-        label = (UILabelOffset*) BUFFER_ELEMENT_GET(&layout->ui_offset_buffer, UILabelOffset);
-        MEMORY_ELEMENT_ZERO(label);
+    UILabel* label = (UILabel *) element;
+    UILabelOffset* offset;
+
+    if (!label) {
+         = (UILabelOffset*) BUFFER_ELEMENT_GET(&layout->ui_offset_buffer, UILabelOffset);
+        MEMORY_ELEMENT_ZERO(offset);
 
         element = (UILabel*) BUFFER_ELEMENT_GET(&layout->ui_element_buffer, UILabel);
         MEMORY_ELEMENT_ZERO(element);
 
-        label->self.element = (int32) MEMORY_OFFSET(element, layout->ui_element_buffer.memory);
-        // @todo We need an enum of types
-        label->self.type = UI_ELEMENT_TYPE_LABEL;
-    }
-
+        offset->self.element = (int32) MEMORY_OFFSET(element, layout->ui_element_buffer.memory);
+        offset->self.type = UI_ELEMENT_TYPE_LABEL;
+    } 
+    
     element->char_type = char_type;
 
     if (pattern_length) {
@@ -102,6 +100,16 @@ UILabelOffset* ui_label_create(
     }
 
     return label;
+}
+
+static
+UILabelOffset* ui_label_create(
+    UILayout* layout,
+    CharType char_type,
+    int32 pattern_length = 0,
+    int32 content_length = 0,
+    UICore* element = NULL
+) NO_EXCEPT {
 }
 
 #endif

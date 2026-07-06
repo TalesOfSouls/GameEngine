@@ -5,13 +5,8 @@
 #include "../stdlib/Stdlib.h"
 #include "../stdlib/ArrayVector.h"
 #include "attribute/UIAttributeDimension.h"
+#include "UIElementType.h"
 #include "UILayout.h"
-#include "UIOffset.h"
-
-// Only updates data
-typedef void* (*UIUpdateFunction)(
-    void* app, UILayout* layout, UIOffset* offset, void* element
-) NO_EXCEPT;
 
 // Creates the vertices in a custom way if necessary
 // This is rarely necessary and recommended since the element itself has a default render function
@@ -31,11 +26,18 @@ struct UICore {
     //          We are currently wasting at least 3 bytes after opacity due to alignment
     UIAttributeDimension dimension;
 
-    // 1-indexed
+    // 1-indexed, 0 = no update function defined
     int32 update_func;
 
     // Defines the style it uses
     int32 class_name;
+
+    // Offset of the parent element
+    // WARNING: this is a relative offset to this element
+    int32 parent_offset;
+
+    int32 vertex_count;
+    int32 vertices;
 };
 
 #endif

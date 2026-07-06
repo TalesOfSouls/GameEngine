@@ -11,15 +11,8 @@
 #include "UIPanel.h"
 #include "UILayout.h"
 
-struct UIButtonOffset {
-    UIOffset self;
-    UIBorderOffset border[8];
-    UIPanelOffset panel;
-    UILabelOffset label;
-};
-
 struct UIButton {
-    UIOffset self;
+    UICore core;
 };
 
 #endif

@@ -37,46 +37,40 @@ UICore* ui_get_element(UILayout* const layout, int32 offset) NO_EXCEPT {
 }
 
 FORCE_INLINE
-UIOffset* ui_get_offset(UILayout* const layout, int32 index) NO_EXCEPT {
-    return (UIOffset *) (layout->ui_offset_buffer.memory + index);
-}
-
-FORCE_INLINE
-UIOffset* ui_get_offset(UILayout* const layout, const char* name) NO_EXCEPT {
+UICore* ui_get_element(UILayout* const layout, const char* name) NO_EXCEPT {
     const HashEntryStrT<int32>* entry = hashmap_get_entry(&layout->hash_map, name);
     if (!entry) {
         return NULL;
     }
 
-    return (UIOffset *) (layout->ui_offset_buffer.memory + entry->value);
+    return (UICore *) (layout->ui_element_buffer.memory + entry->value);
 }
 
 FORCE_INLINE
-UIOffset* ui_get_offset(UILayout* const layout, SimpleString<const char> str) NO_EXCEPT {
+UICore* ui_get_element(UILayout* const layout, SimpleString<const char> str) NO_EXCEPT {
     char name[64];
     ASSERT_TRUE(ARRAY_COUNT(name) > str.length);
 
     memcpy(name, str.str, str.length);
     name[str.length] = '\0';
 
-    return ui_get_offset(layout, name);
+    return ui_get_element(layout, name);
 }
 
 /**
- * This create the UI...Offset and the UI...Element data
+ * This creates the UI...Offset and the UI...Element data
  * WARNING: this doesn't add to the layout root list
  *
- * inherit_overwrite is a offset + element data that can be overwritten from since we copied it as a baseline
+ * inherit_overwrite is an element that can be overwritten from since we copied it as a baseline
  */
 static
-UIOffset* ui_element_create(
+UICore* ui_element_create(
     UILayout* const __restrict layout,
     const UIUber* const __restrict uber,
-    UIElementType type,
-    UIOffset* inherit_overwrite
+    UICore* inherit_overwrite
 ) NO_EXCEPT
 {
-    switch (type) {
+    switch (uber->core.type) {
         case UI_ELEMENT_TYPE_BUTTON : {
             return NULL;
         };
@@ -87,7 +81,7 @@ UIOffset* ui_element_create(
             return NULL;
         };
         case UI_ELEMENT_TYPE_LABEL: {
-                return (UIOffset *) ui_label_create(
+                return (UICore *) ui_label_create(
                     layout,
                     uber->char_type,
                     uber->pattern_length,
@@ -129,71 +123,6 @@ UIOffset* ui_element_create(
 }
 
 /**
- * A label can never have children -> return NULL
- */
-FORCE_INLINE
-UIOffset* ui_child_offset_from_name(
-    UIOffset* parent,
-    SimpleString<const char>& child_name,
-    const UIUber* uber,
-    UIOffset*
-) NO_EXCEPT
-{
-    switch (parent->type) {
-        case UI_ELEMENT_TYPE_BUTTON : {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_SELECT : {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_INPUT : {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_LABEL: {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_TEXTAREA : {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_IMAGE : {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_TEXT : {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_LINK : {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_TABLE : {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_VIEW_WINDOW : {
-            UIWindow* element = ui_get_element(layout, parent->self.element);
-            if (strncmp("title", child_name.str, child_name.length) == 0) {
-                // @bug static child elements don't have an offset definition they only have an element
-                element
-            }
-
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_VIEW_PANEL : {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_VIEW_TAB : {
-            return NULL;
-        };
-        case UI_ELEMENT_TYPE_CURSOR : {
-            return NULL;
-        };
-        default: {
-            UNREACHABLE();
-        }
-    }
-
-    return NULL;
-}
-
-/**
  * Check if this line is a UI element
  */
 static FORCE_INLINE
@@ -211,7 +140,7 @@ static
 char* ui_layout_element_parse(
     UILayout* __restrict layout,
     char* __restrict pos,
-    UICore* parent
+    UICore* parent = NULL
 ) NO_EXCEPT
 {
     const char* start = pos;
@@ -258,15 +187,14 @@ char* ui_layout_element_parse(
         str_skip_line((const char**) &pos);
     }
 
-    UIElementType type_id = (UIElementType) ui_element_type_to_id(type);
-
     // Parse element values
     SimpleString<const char> class_name = {0};
 
     // Defines this elements child name in the parent (e.g. title_label in the UITitle)
     SimpleString<const char> child_name = {0};
-    const UIOffset* inherit_offset = NULL;
+    UICore* inherit_element = NULL;
     UIUber uber = {0};
+    uber.core.type = (UIElementType) ui_element_type_to_id(type);
 
     // We iterate as long as new element components show up
     // or in other words until the next line would be another element or even a child element
@@ -296,7 +224,7 @@ char* ui_layout_element_parse(
             str_move_to((const char**) &pos, " \r\n");
             inherit_name.length = (int32) (pos - inherit_name.str);
 
-            inherit_offset = ui_get_offset(layout, inherit_name);
+            inherit_element = ui_get_element(layout, inherit_name);
         } else if (strncmp(value_type, "child", sizeof("child") - 1) == 0) {
             child_name.str = pos;
             str_move_to((const char**) &pos, " \r\n");
@@ -312,121 +240,6 @@ char* ui_layout_element_parse(
         child_name.str = element_name;
         child_name.length = strlen(child_name.str);
     }
-
-    // @todo set new parent and pass new parent
-    switch (parent->type) {
-
-    }
-
-    ui_layout_element_parse();
-}
-
-static
-char* ui_layout_element_parse(
-    UILayout* __restrict layout,
-    char* __restrict pos
-) NO_EXCEPT
-{
-    const char* start = pos;
-    str_skip_whitespace((const char**) &pos);
-    const int32 self_indent = (int32) (pos - start);
-
-    // check if this is even an element
-    if (!ui_layout_is_element(pos)) {
-        ASSERT_THROW();
-        LOG_1("Couldn't find element");
-
-        return str_skip_line(pos);
-    }
-
-    // find element name
-    char element_name[HASH_MAP_MAX_KEY_LENGTH];
-    {
-        int i = 0;
-        while (isalnum(*pos) && i < ARRAY_COUNT(element_name) - 1) {
-            element_name[i++] = *pos++;
-        }
-        element_name[i] = '\0';
-    }
-
-    str_skip_line((const char**) &pos);
-
-    // find element type
-    // WARNING: The type MUST be specified right after the element id
-    const char* type;
-    {
-        str_skip_whitespace((const char**) &pos);
-        if (strncmp(pos, "type:", sizeof("type:") - 1) != 0) {
-            ASSERT_THROW();
-            LOG_1("Couldn't find element type");
-
-            return str_skip_line(pos);
-        }
-
-        pos += sizeof("type:") - 1;
-        str_skip_empty((const char**) &pos);
-
-        type = pos;
-        str_move_to((const char**) &pos, " \r\n");
-        str_skip_line((const char**) &pos);
-    }
-
-    UIElementType type_id = (UIElementType) ui_element_type_to_id(type);
-
-    // Parse element values
-    SimpleString<const char> class_name = {0};
-
-    // Defines this elements child name in the parent (e.g. title_label in the UITitle)
-    SimpleString<const char> child_name = {0};
-    const UIOffset* inherit_offset = NULL;
-    UIUber uber = {0};
-
-    // We iterate as long as new element components show up
-    // or in other words until the next line would be another element or even a child element
-    while (*pos && !ui_layout_is_element(pos)) {
-        str_skip_whitespace((const char**) &pos);
-
-        const char* value_type = pos;
-        str_move_to((const char**) &pos, ':');
-        *pos++ = '\0';
-        str_skip_whitespace((const char**) &pos);
-
-        // We use a uber element that can hold all possible value types
-        // We sacrifice some memory for simpler handling
-        // Alternatively we would either have to:
-        //      Write element type specific parsing which can repeat some parts between elements
-        //      or, create some array which we then search e.g. struct {char[32], union { int32, f32, bool, ...}}[16];
-        //          This is much smaller but probably slower since we would have to search that array every time and do a strcmp
-        //          @performance Maybe test/profile that approach in the future, it shouldn't be that hard to test
-        if (strncmp(value_type, "class", sizeof("class") - 1) == 0) {
-            class_name.str = pos;
-            str_move_to((const char**) &pos, " \r\n");
-            class_name.length = (int32) (pos - class_name.str);
-        } else if (strncmp(value_type, "inherit", sizeof("inherit") - 1) == 0) {
-            SimpleString<const char> inherit_name;
-
-            inherit_name.str = pos;
-            str_move_to((const char**) &pos, " \r\n");
-            inherit_name.length = (int32) (pos - inherit_name.str);
-
-            inherit_offset = ui_get_offset(layout, inherit_name);
-        } else if (strncmp(value_type, "child", sizeof("child") - 1) == 0) {
-            child_name.str = pos;
-            str_move_to((const char**) &pos, " \r\n");
-            child_name.length = (int32) (pos - child_name.str);
-        } else {
-            ui_uber_from_txt(&uber, value_type, pos);
-        }
-
-        str_skip_line((const char**) &pos);
-    }
-
-    if (!child_name.length) {
-        child_name.str = element_name;
-        child_name.length = strlen(child_name.str);
-    }
-
-    UIOffset* offset = NULL;
 
     // If it is a standalone element, we need to add a new offset and element to their respective arrays/vectors
     // (ui_offset_buffer and ui_element_buffer)
@@ -437,16 +250,20 @@ char* ui_layout_element_parse(
     //          the title label is not standalone and a "fixed" part of the UIWindow element,
     //          but a label on a panel is not standalone, it is a dynamic child of
 
-    if (inherit_offset) {
-        // @todo copy inherit_offset + element data + child data
-        // offset = ...
+    if (inherit_element) {
+        // @todo copy inherit_element + child data
+        // inherit_element = ...
     }
 
-    offset = (UIOffset *) ui_element_create(layout, &uber, type_id, offset);
-    array_vector_insert(
-        &layout->ui_offset_root,
-        (int32) ((uintptr_t) offset - (uintptr_t) layout->ui_offset_buffer.memory)
-    );
+    UICore* element = (UICore *) ui_element_create(layout, &uber, inherit_element);
+
+    if (!parent) {
+        // This can only be a root element if we don't have a parent
+        array_vector_insert(
+            &layout->ui_element_root,
+            (int32) ((uintptr_t) element - (uintptr_t) layout->ui_element_buffer.memory)
+        );
+    }
 
     // @todo We need to handle skeleton references e.g.
     //      #my_element
@@ -461,7 +278,6 @@ char* ui_layout_element_parse(
     // This might have been fine for most situations since we don't have that many states.
     // However, animations completely break that approach
     // Therefore we decided to load it live from the theme which however is handled in a different state change function
-    UICore* const core = ui_get_element(layout, offset->element);
     if (class_name.length) {
         ASSERT_TRUE(class_name.length < UI_LAYOUT_MAX_CLASS_NAME_LENGTH);
         char* inserted_class_name = (char*) memory_get(
@@ -471,14 +287,15 @@ char* ui_layout_element_parse(
         );
         str_copy(inserted_class_name, class_name);
 
-        core->class_name = (int32) MEMORY_OFFSET(inserted_class_name, layout->ui_element_buffer.memory);
+        element->class_name = (int32) MEMORY_OFFSET(inserted_class_name, layout->ui_element_buffer.memory);
     }
 
     // Create new element in hash map
+    // @question Maybe only insert if name starts with "#"?
     hashmap_insert(
         &layout->hash_map,
         element_name,
-        (int32) MEMORY_OFFSET(offset, layout->ui_offset_buffer.memory)
+        (int32) MEMORY_OFFSET(element, layout->ui_offset_buffer.memory)
     );
 
     // We skip useless empty lines
@@ -493,7 +310,7 @@ char* ui_layout_element_parse(
         int32 child_indent = (int32) (pos_temp - pos);
 
         while (self_indent < child_indent) {
-            pos = ui_layout_element_parse(layout, pos, core);
+            pos = ui_layout_element_parse(layout, pos, element);
 
             // Figure out if next element is a child by checking the indention
             pos_temp = pos;

@@ -16,19 +16,19 @@ void ui_cache(
 ) NO_EXCEPT
 {
     int32* iter;
-    array_vector_iterate_start(layout->ui_offset_root, iter) {
-        UIOffset* const offset = (UIOffset *) (layout->ui_offset_buffer.memory + *iter);
+    array_vector_iterate_start(layout->ui_element_root, iter) {
+        UICore* const element = (UICore *) (layout->ui_element_buffer.memory + *iter);
 
         // @bug This assert isn't really working since we don't know how large vertices_count will be
         //      We would have to simulate/guess the max vertex count and check against this
         ASSERT_TRUE(
-            offset->vertices_count + layout->ui_vertex_cache.count
+            element->vertex_count + layout->ui_vertex_cache.count
                 <= layout->ui_vertex_cache.capacity
         );
 
-        offset->vertices = layout->ui_vertex_cache.count;
+        element->vertices = layout->ui_vertex_cache.count;
 
-        switch (offset->type) {
+        switch (element->type) {
             case UI_ELEMENT_TYPE_BUTTON : {
             } break;
             case UI_ELEMENT_TYPE_SELECT : {
@@ -36,10 +36,10 @@ void ui_cache(
             case UI_ELEMENT_TYPE_INPUT : {
             } break;
             case UI_ELEMENT_TYPE_LABEL: {
-                UILabelOffset* test_label_offset = (UILabelOffset*) offset;
+                UILabel* test_label_element = (UILabel*) element;
                 ui_vertices_cache(
                     app,
-                    test_label_offset,
+                    test_label_element,
                     layout, 10.0f, // @todo fix actual value
                     mem
                 );
@@ -55,10 +55,10 @@ void ui_cache(
             case UI_ELEMENT_TYPE_TABLE : {
             } break;
             case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-                UIWindowOffset* test_window_offset = (UIWindowOffset*) offset;
+                UIWindow* test_window_element = (UIWindow*) element;
                 ui_vertices_cache(
                     app,
-                    test_window_offset, gpu_api_type,
+                    test_window_element, gpu_api_type,
                     layout, 10.0f, // @todo fix actual value
                     mem
                 );
@@ -78,7 +78,7 @@ void ui_cache(
                 UNREACHABLE();
         }
 
-        offset->vertices_count = (int16) (layout->ui_vertex_cache.count - offset->vertices);
+        element->vertex_count = (int16) (layout->ui_vertex_cache.count - element->vertices);
     } array_vector_iterate_end;
 }
 
@@ -91,19 +91,19 @@ void ui_update(
 ) NO_EXCEPT
 {
     int32* iter;
-    array_vector_iterate_start(layout->ui_offset_root, iter) {
-        UIOffset* const offset = (UIOffset *) (layout->ui_offset_buffer.memory + *iter);
+    array_vector_iterate_start(layout->ui_element_root, iter) {
+        UICore* const element = (UICore *) (layout->ui_element_buffer.memory + *iter);
 
         // @bug This assert isn't really working since we don't know how large vertices_count will be
         //      We would have to simulate/guess the max vertex count and check against this
         ASSERT_TRUE(
-            offset->vertices_count + layout->ui_vertex_cache.count
+            element->vertex_count + layout->ui_vertex_cache.count
                 <= layout->ui_vertex_cache.capacity
         );
 
-        offset->vertices = layout->ui_vertex_cache.count;
+        element->vertices = layout->ui_vertex_cache.count;
 
-        switch (offset->type) {
+        switch (element->type) {
             case UI_ELEMENT_TYPE_BUTTON : {
             } break;
             case UI_ELEMENT_TYPE_SELECT : {
@@ -111,11 +111,11 @@ void ui_update(
             case UI_ELEMENT_TYPE_INPUT : {
             } break;
             case UI_ELEMENT_TYPE_LABEL: {
-                UILabelOffset* test_label_offset = (UILabelOffset*) offset;
+                UILabel* test_label_element = (UILabel*) element;
                 // @todo replace with a update function
                 ui_vertices_cache(
                     app,
-                    test_label_offset,
+                    test_label_element,
                     layout, 10.0f, // @todo fix actual value
                     mem
                 );
@@ -131,10 +131,10 @@ void ui_update(
             case UI_ELEMENT_TYPE_TABLE : {
             } break;
             case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-                UIWindowOffset* test_window_offset = (UIWindowOffset*) offset;
+                UIWindow* test_window_element = (UIWindow*) element;
                 ui_vertices_cache(
                     app,
-                    test_window_offset, gpu_api_type,
+                    test_window_element, gpu_api_type,
                     layout, 10.0f, // @todo fix actual value
                     mem
                 );
@@ -154,7 +154,7 @@ void ui_update(
                 UNREACHABLE();
         }
 
-        offset->vertices_count = (int16) (layout->ui_vertex_cache.count - offset->vertices);
+        element->vertex_count = (int16) (layout->ui_vertex_cache.count - element->vertices);
     } array_vector_iterate_end;
 }
 

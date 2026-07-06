@@ -8,25 +8,8 @@
 #include "attribute/UIAttributeBackground.h"
 #include "UIAnimation.h"
 #include "UICore.h"
-#include "../stdlib/Stdlib.h"
-#include "UIOffset.h"
 #include "UILabel.h"
-#include "attribute/UIAttributeBorderOffset.h"
 #include "UIPanel.h"
-
-struct UIWindowTitleOffset {
-    UIOffset self;
-    UIBorderOffset border[8];
-    UIPanelOffset panel;
-    UILabelOffset label;
-};
-
-struct UIWindowOffset {
-    UIOffset self;
-    UIWindowTitleOffset title;
-    UIBorderOffset border[8];
-    UIPanelOffset panel;
-};
 
 enum UIWindowComponentFlag : uint32 {
     UI_WINDOW_COMPONENT_FLAG_TITLE_LABEL = 1 << 0,
@@ -38,9 +21,20 @@ enum UIWindowComponentFlag : uint32 {
     UI_WINDOW_COMPONENT_FLAG_MAIN_BUTTONS = 1 << 9,
 };
 
+struct UIWindowTitle {
+    UICore core;
+    UIAttributeBorder border[8];
+    UIPanel panel;
+    UILabel label;
+};
+
 struct UIWindow {
     UICore core;
-    UIAnimation animation;
+    
+    UIWindowTitle title;
+
+    UIAttributeBorder border[8];
+    UIPanel panel;
 };
 
 #endif

@@ -4,10 +4,6 @@
 
 #include "../stdlib/Stdlib.h"
 
-struct UILinkOffset {
-    UIOffset self;
-};
-
 struct UILink {
     UICore core;
     UIAttributeFont font;
