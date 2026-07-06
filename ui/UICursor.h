@@ -6,10 +6,6 @@
 #include "attribute/UIAttributeDimension.h"
 #include "UILayout.h"
 
-struct UICursorOffset {
-    UIOffset self;
-};
-
 struct UICursor {
     UICore core;
     int32 asset_id;

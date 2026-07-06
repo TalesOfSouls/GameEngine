@@ -69,6 +69,7 @@ void ui_uber_from_txt(
         uber->core.dimension.pos.y = (f32) str_to_float(value, &value);
     } else if (strcmp(value_type, "update") == 0) {
         uber->core.update_func = (int32) str_to_int(value, &value);
+    }
 }
 
 struct AttributeStringTypeMap {

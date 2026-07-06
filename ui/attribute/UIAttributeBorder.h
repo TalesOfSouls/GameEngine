@@ -31,12 +31,11 @@ struct UIAttributeBorder {
 
 void cache_border_vertices(
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache, ArrayVector<int32>* index_cache, f32 zindex, GpuApiType gpu_api_type,
-    v2_f32* anchor_pos, v2_f32* anchor_dim, UIAttributeBorder* border,
-    byte* element_base
+    v2_f32* anchor_pos, v2_f32* anchor_dim, UIAttributeBorder* borders
 )
 {
-    if (border[UI_BORDER_T].color & 0xFF) {
-        UIAttributeBorder* border = (UIAttributeBorder*) &border[UI_BORDER_T];
+    if (borders[UI_BORDER_T].color & 0xFF) {
+        UIAttributeBorder* border = (UIAttributeBorder*) &borders[UI_BORDER_T];
 
         vertex_rect_create(
             vertex_cache, index_cache, zindex, 2,
@@ -46,8 +45,8 @@ void cache_border_vertices(
         );
     }
 
-    if (border[UI_BORDER_R].color & 0xFF) {
-        UIAttributeBorder* border = (UIAttributeBorder*) &border[UI_BORDER_R];
+    if (borders[UI_BORDER_R].color & 0xFF) {
+        UIAttributeBorder* border = (UIAttributeBorder*) &borders[UI_BORDER_R];
 
         vertex_rect_create(
             vertex_cache, index_cache, zindex, 2,
@@ -57,8 +56,8 @@ void cache_border_vertices(
         );
     }
 
-    if (border[UI_BORDER_B].color & 0xFF) {
-        UIAttributeBorder* border = (UIAttributeBorder*) &border[UI_BORDER_B];
+    if (borders[UI_BORDER_B].color & 0xFF) {
+        UIAttributeBorder* border = (UIAttributeBorder*) &borders[UI_BORDER_B];
 
         vertex_rect_create(
             vertex_cache, index_cache, zindex, 2,
@@ -68,8 +67,8 @@ void cache_border_vertices(
         );
     }
 
-    if (border[UI_BORDER_L].color & 0xFF) {
-        UIAttributeBorder* border = (UIAttributeBorder*) &border[UI_BORDER_L];
+    if (borders[UI_BORDER_L].color & 0xFF) {
+        UIAttributeBorder* border = (UIAttributeBorder*) &borders[UI_BORDER_L];
 
         vertex_rect_create(
             vertex_cache, index_cache, zindex, 2,
@@ -81,8 +80,8 @@ void cache_border_vertices(
 
     zindex = camera_step_closer(gpu_api_type, zindex);
 
-    if (border[UI_BORDER_TL].color & 0xFF) {
-        UIAttributeBorder* border = (UIAttributeBorder*) &border[UI_BORDER_TL];
+    if (borders[UI_BORDER_TL].color & 0xFF) {
+        UIAttributeBorder* border = (UIAttributeBorder*) &borders[UI_BORDER_TL];
 
         vertex_rect_create(
             vertex_cache, index_cache, zindex, 2,
@@ -92,8 +91,8 @@ void cache_border_vertices(
         );
     }
 
-    if (border[UI_BORDER_TR].color & 0xFF) {
-        UIAttributeBorder* border = (UIAttributeBorder*) &border[UI_BORDER_TR];
+    if (borders[UI_BORDER_TR].color & 0xFF) {
+        UIAttributeBorder* border = (UIAttributeBorder*) &borders[UI_BORDER_TR];
 
         vertex_rect_create(
             vertex_cache, index_cache, zindex, 2,
@@ -103,8 +102,8 @@ void cache_border_vertices(
         );
     }
 
-    if (border[UI_BORDER_BR].color & 0xFF) {
-        UIAttributeBorder* border = (UIAttributeBorder*) &border[UI_BORDER_BR];
+    if (borders[UI_BORDER_BR].color & 0xFF) {
+        UIAttributeBorder* border = (UIAttributeBorder*) &borders[UI_BORDER_BR];
 
         vertex_rect_create(
             vertex_cache, index_cache, zindex, 2,
@@ -114,8 +113,8 @@ void cache_border_vertices(
         );
     }
 
-    if (border[UI_BORDER_BL].color & 0xFF) {
-        UIAttributeBorder* border = (UIAttributeBorder*) &border[UI_BORDER_BL];
+    if (borders[UI_BORDER_BL].color & 0xFF) {
+        UIAttributeBorder* border = (UIAttributeBorder*) &borders[UI_BORDER_BL];
 
         vertex_rect_create(
             vertex_cache, index_cache, zindex, 2,

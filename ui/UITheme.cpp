@@ -187,7 +187,7 @@ void theme_from_file_txt(
             // Named block
             UIAttribute* attribute_reference = (UIAttribute *) align_up((uintptr_t) (temp_group + 1), alignof(UIAttribute));
             // @question Why are we even doing this? couldn't we just pass this offset to the ui_attribute_parse_value() function?
-            // @bug I also think that this is no longer the correct format, Shouldn't it just store the UIElement/UIOffset stuff?
+            // @bug I also think that this is no longer the correct format, Shouldn't it just store the UIElement stuff?
             memcpy(
                 attribute_reference + temp_group->attribute_count,
                 &attribute,

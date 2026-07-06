@@ -122,7 +122,36 @@ template<typename T>
 FORCE_INLINE
 void array_vector_reset(ArrayVector<T>* vec) NO_EXCEPT
 {
-    vec->count = 0;;
+    vec->count = 0;
+}
+
+template<typename T>
+FORCE_INLINE
+bool array_vector_has_value(ArrayVector<T>* vec, T value) NO_EXCEPT
+{
+    for (int i = 0; i < vec->count; ++i) {
+        if (vec->elements[i] == value) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+template<typename T>
+FORCE_INLINE
+void array_vector_remove(ArrayVector<T>* vec, T value) NO_EXCEPT
+{
+    for (int i = 0; i < vec->count; ++i) {
+        if (vec->elements[i] == value) {
+            // Move elements after the found element forward
+            if (i < vec->count - 1) {
+                memcpy(vec->elements + i, vec->elements + i + 1, sizeof(T) * (vec->count - i - 1));
+            }
+
+            --vec->count;
+        }
+    }
 }
 
 #define array_vector_iterate_start(vec, element_ptr) {   \

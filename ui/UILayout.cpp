@@ -557,9 +557,8 @@ static
 void layout_update_element(
     UILayout* const __restrict layout,
     const UITheme* const __restrict theme,
-    const UIOffset* const __restrict offset
+    const UICore* const __restrict core
 ) NO_EXCEPT {
-    UICore* core = ui_get_element(layout, offset->element);
     if (!core->class_name) {
         return;
     }
@@ -616,13 +615,13 @@ void layout_from_theme(
     chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
         const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
 
-        const UIOffset* offset = ui_get_offset(layout, entry->value);
-        if (!force_update && !offset->is_changed) {
+        const UICore* core = ui_get_element(layout, entry->value);
+        if (!force_update && !core->is_changed) {
             chunk_iterate_continue;
         }
 
         // @todo Don't update skeletons?!
-        layout_update_element(layout, theme, offset);
+        layout_update_element(layout, theme, core);
     } chunk_iterate_end;
 }
 

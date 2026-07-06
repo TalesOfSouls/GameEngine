@@ -53,7 +53,15 @@ struct UIChromaCodes {
     uint32* codes;
 };
 
-typedef void* (*UIUpdateFunc)(void*, UILayout*, UICore*, void*) NO_EXCEPT;
+// @bug I hate this forward declaration
+typedef struct UILayout UILayout;
+typedef struct UICore UICore;
+
+typedef void *(*UIUpdateFunc)(
+    void* userData,
+    UILayout* layout,
+    UICore* core
+) NO_EXCEPT;
 
 // Modified for every scene
 struct UILayout {
@@ -68,7 +76,7 @@ struct UILayout {
     FontSystem* font;
 
     // Used to directly find offsets by name
-    // The values are pointers to the UIOffset
+    // The values are pointers to the UICore
     // @todo Consider to use a perfect hash map
     HashMapT<HashEntryStrT<int32>> hash_map;
 
@@ -93,10 +101,10 @@ struct UILayout {
     ArrayVector<int32> ui_element_changed;
 
     // This array links into the ui_element_buffer via offsets
-    // We need to know what the root elements are for our rendering 
-    // Think of this array as the first level in a tree 
+    // We need to know what the root elements are for our rendering
+    // Think of this array as the first level in a tree
     // but instead of storing pointers or the elements themselves we store the offset to the "root" elements
-    // When rendering we iterate over these root elements 
+    // When rendering we iterate over these root elements
     // and internally then over all children of these root elements
     ArrayVector<int32> ui_element_root;
 

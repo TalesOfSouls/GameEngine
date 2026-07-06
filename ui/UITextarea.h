@@ -4,10 +4,6 @@
 
 #include "../stdlib/Stdlib.h"
 
-struct UITextareaOffset {
-    UIOffset self;
-};
-
 struct UITextarea {
     UICore core;
     UIAttributeFont font;

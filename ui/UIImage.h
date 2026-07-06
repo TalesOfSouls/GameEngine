@@ -4,10 +4,6 @@
 
 #include "../stdlib/Stdlib.h"
 
-struct UIImageOffset {
-    UIOffset self;
-};
-
 struct UIImage {
     UICore core;
     int32 asset_id;

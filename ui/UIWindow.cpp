@@ -27,16 +27,12 @@ UIWindow* ui_window_create(UILayout* layout, uint32 component_flags) NO_EXCEPT
     if (component_flags & UI_WINDOW_COMPONENT_FLAG_TITLE) {
         // Title - Label
         if (component_flags & UI_WINDOW_COMPONENT_FLAG_TITLE_LABEL) {
-            UILabel* title_label = (UILabel*) BUFFER_ELEMENT_GET(&layout->ui_element_buffer, UILabel);
-            MEMORY_ELEMENT_ZERO(title_label);
-            window->title.label.self.element = (int32) MEMORY_OFFSET(title_label, layout->ui_element_buffer.memory);
-
             const wchar_t title[] = L"Title";
-            title_label->content = (char*) memory_get(&layout->ui_element_buffer, sizeof(title), alignof(wchar_t));
-            memcpy(title_label->content, title, sizeof(title));
+            byte* label_content = memory_get(&layout->ui_element_buffer, sizeof(title), alignof(wchar_t));
+            title_label->content = MEMORY_OFFSET(label_content, layout->ui_element_buffer.memory);
+            memcpy(label_content, title, sizeof(title));
 
-            window->title.label.self.element = (int32) MEMORY_OFFSET(title_label, layout->ui_element_buffer.memory);
-            window->title.label.self.parent_offset = (int32) MEMORY_OFFSET(&window->title.label, &window->title);
+            window->title.label.core.parent_offset = (int32) MEMORY_OFFSET(&window->title.label, &window->title);
         }
     }
 
