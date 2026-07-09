@@ -58,7 +58,7 @@ typedef struct UILayout UILayout;
 typedef struct UICore UICore;
 
 typedef void *(*UIUpdateFunc)(
-    void* userData,
+    void* user_data,
     UILayout* layout,
     UICore* core
 ) NO_EXCEPT;
@@ -120,7 +120,7 @@ struct UILayout {
     // This is a index cache that references ui_vertex_cache to reduce the stored vertices
     ArrayVector<int32> ui_index_cache;
 
-    UIUpdateFunc* update;
+    const UIUpdateFunc* update;
 };
 
 #endif

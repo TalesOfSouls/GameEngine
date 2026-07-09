@@ -23,16 +23,18 @@ UIWindow* ui_window_create(UILayout* layout, uint32 component_flags) NO_EXCEPT
     MEMORY_ELEMENT_ZERO(element);
 
     element->core.type = UI_ELEMENT_TYPE_VIEW_WINDOW;
+    element->core.opacity = 255;
+    element->title.core.parent_offset = (int32) MEMORY_OFFSET(&element->title, element);
 
     if (component_flags & UI_WINDOW_COMPONENT_FLAG_TITLE) {
+        element->title.core.opacity = 255;
+        element->title.label.font.color = 0x000000FF;
+
         // Title - Label
         if (component_flags & UI_WINDOW_COMPONENT_FLAG_TITLE_LABEL) {
-            const wchar_t title[] = L"Title";
-            byte* label_content = memory_get(&layout->ui_element_buffer, sizeof(title), alignof(wchar_t));
-            title_label->content = MEMORY_OFFSET(label_content, layout->ui_element_buffer.memory);
-            memcpy(label_content, title, sizeof(title));
-
-            window->title.label.core.parent_offset = (int32) MEMORY_OFFSET(&window->title.label, &window->title);
+            const char title[] = "Title";
+            element->title.label.content_length = ui_label_reserve_text(layout, &element->title.label.content, title);
+            element->title.label.core.parent_offset = (int32) MEMORY_OFFSET(&element->title.label, layout->ui_element_buffer.memory);
         }
     }
 
@@ -42,17 +44,16 @@ UIWindow* ui_window_create(UILayout* layout, uint32 component_flags) NO_EXCEPT
 static
 void ui_vertices_cache(
     void* app,
-    UICore* core, GpuApiType gpu_api_type,
+    UIWindowTitle* window_title, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
     byte* const __restrict mem
 ) NO_EXCEPT {
-    UIWindow* window = (UIWindow*) ui_parent_element_by_type(core, UI_ELEMENT_TYPE_VIEW_WINDOW);
+    UIWindow* window = (UIWindow*) ui_parent_element_by_type(&window_title->core, UI_ELEMENT_TYPE_VIEW_WINDOW);
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
     ArrayVector<int32>* index_cache = &layout->ui_index_cache;
 
     v2_f32 title_dim = {window->core.dimension.dimension.width, 0.0f};
 
-    UIWindowTitle* window_title = (UIWindowTitle *) core;
     if (window_title->core.opacity) {
         UIPanel* title_panel = &window_title->panel;
 
@@ -69,12 +70,11 @@ void ui_vertices_cache(
 
     cache_border_vertices(
         vertex_cache, index_cache, zindex, gpu_api_type,
-        &window->core.dimension.pos, &title_dim, window_title->border,
-        layout->ui_element_buffer.memory
+        &window->core.dimension.pos, &title_dim, window_title->border
     );
 
     // @question Do I also need to check for empty text here?
-    if (window_title->label.core.opacity) {
+    if ((window_title->label.font.color & 0xFF) && window_title->label.content) {
         ui_vertices_cache(
             app,
             &window_title->label,
@@ -85,22 +85,24 @@ void ui_vertices_cache(
 }
 
 void ui_vertices_cache(
-    void* app, UIWindowOffset* offset_data, GpuApiType gpu_api_type,
+    void* app, UIWindow* window, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
     byte* const __restrict mem
 ) NO_EXCEPT {
-    const UIWindow* window = (UIWindow*) (layout->ui_element_buffer.memory + offset_data->self.element);
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
     ArrayVector<int32>* index_cache = &layout->ui_index_cache;
 
-    if (offset_data->panel.self.element) {
-        const UIPanel* panel = (UIPanel *) (layout->ui_element_buffer.memory + offset_data->panel.self.element);
-
+    if (window->panel.core.opacity || (window->panel.background_style.color & 0xFF)) {
         vertex_rect_create(
             vertex_cache, index_cache, zindex, 0,
-            {window->core.dimension.pos.x, window->core.dimension.pos.y, window->core.dimension.dimension.width, window->core.dimension.dimension.height},
+            {
+                window->core.dimension.pos.x,
+                window->core.dimension.pos.y,
+                window->core.dimension.dimension.width,
+                window->core.dimension.dimension.height
+            },
             UI_ALIGN_V_TOP | UI_ALIGN_H_LEFT,
-            panel->background_style.color
+            window->panel.background_style.color
         );
     }
 
@@ -113,9 +115,9 @@ void ui_vertices_cache(
     );
     */
 
-    if (offset_data->title.self.element) {
+    if (window->title.core.opacity) {
         ui_vertices_cache(
-            app, &offset_data->title, gpu_api_type,
+            app, &window->title, gpu_api_type,
             layout, camera_step_closer(gpu_api_type, zindex),
             mem
         );

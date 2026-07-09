@@ -32,8 +32,7 @@ struct UICore {
     // Defines the style it uses
     int32 class_name;
 
-    // Offset of the parent element
-    // WARNING: this is a relative offset to this element
+    // Offset of the parent element (absolute position)
     int32 parent_offset;
 
     int32 vertex_count;
