@@ -193,7 +193,7 @@ char* ui_layout_element_parse(
     // Defines this elements child name in the parent (e.g. title_label in the UITitle)
     SimpleString<const char> child_name = {0};
     UICore* inherit_element = NULL;
-    UIUber uber = {0};
+    UIUber uber = {};
     uber.core.type = (UIElementType) ui_element_type_to_id(type);
 
     // We iterate as long as new element components show up
@@ -238,12 +238,12 @@ char* ui_layout_element_parse(
 
     if (!child_name.length) {
         child_name.str = element_name;
-        child_name.length = strlen(child_name.str);
+        child_name.length = (int32) strlen(child_name.str);
     }
 
     // If it is a standalone element, we need to add a new offset and element to their respective arrays/vectors
     // (ui_offset_buffer and ui_element_buffer)
-    // We also need to add the offset to the root vector ui_offset_root
+    // We also need to add the offset to the root vector ui_element_root
     // We can be a standalone element with or without parent e.g.
     //      A window element is always a standalone
     //      A label could be standalone or not e.g.
@@ -295,7 +295,7 @@ char* ui_layout_element_parse(
     hashmap_insert(
         &layout->hash_map,
         element_name,
-        (int32) MEMORY_OFFSET(element, layout->ui_offset_buffer.memory)
+        (int32) MEMORY_OFFSET(element, layout->ui_element_buffer.memory)
     );
 
     // We skip useless empty lines
@@ -392,13 +392,9 @@ int32 layout_to_data(
 
     out += hashmap_dump(&layout->hash_map, out, MEMBER_SIZEOF(HashEntryInt32, value));
 
-    out = write_le(out, layout->ui_offset_root.count);
-    memcpy(out, layout->ui_offset_root.elements, layout->ui_offset_root.count);
-    out += sizeof(int32) * layout->ui_offset_root.count;
-
-    out = write_le(out, (int32) (layout->ui_offset_buffer.head - layout->ui_offset_buffer.memory));
-    memcpy(out, layout->ui_offset_buffer.memory, layout->ui_offset_buffer.head - layout->ui_offset_buffer.memory);
-    out += layout->ui_offset_buffer.head - layout->ui_offset_buffer.memory;
+    out = write_le(out, layout->ui_element_root.count);
+    memcpy(out, layout->ui_element_root.elements, layout->ui_element_root.count);
+    out += sizeof(int32) * layout->ui_element_root.count;
 
     out = write_le(out, (int32) (layout->ui_element_buffer.head - layout->ui_element_buffer.memory));
     memcpy(out, layout->ui_element_buffer.memory, layout->ui_element_buffer.head - layout->ui_element_buffer.memory);
@@ -435,16 +431,11 @@ int32 layout_from_data(
     layout->used_data_size = (int32) hashmap_load(&layout->hash_map, in, MEMBER_SIZEOF(HashEntryInt32, value));
     in += layout->used_data_size;
 
-    in = read_le(in, &layout->ui_offset_root.count);
-    memcpy(layout->ui_offset_root.elements, in, sizeof(int32) * layout->ui_offset_root.count);
-    in += sizeof(int32) * layout->ui_offset_root.count;
+    in = read_le(in, &layout->ui_element_root.count);
+    memcpy(layout->ui_element_root.elements, in, sizeof(int32) * layout->ui_element_root.count);
+    in += sizeof(int32) * layout->ui_element_root.count;
 
     int32 offset;
-    in = read_le(in, &offset);
-    layout->ui_offset_buffer.head = layout->ui_offset_buffer.memory + offset;
-    memcpy(layout->ui_offset_buffer.memory, in, offset);
-    in += offset;
-
     in = read_le(in, &offset);
     layout->ui_element_buffer.head = layout->ui_element_buffer.memory + offset;
     memcpy(layout->ui_element_buffer.memory, in, offset);
@@ -477,11 +468,10 @@ void layout_update_element_by_type(
 static FORCE_INLINE
 void layout_update_element_by_type(
     UICore* const __restrict core,
-    const UIAttribute* const __restrict attr,
-    UIElementType type
+    const UIAttribute* const __restrict attr
 ) NO_EXCEPT
 {
-    switch (type) {
+    switch (core->type) {
         case UI_ELEMENT_TYPE_BUTTON : {
         } break;
         case UI_ELEMENT_TYPE_SELECT : {
@@ -557,13 +547,16 @@ static
 void layout_update_element(
     UILayout* const __restrict layout,
     const UITheme* const __restrict theme,
-    const UICore* const __restrict core
+    UICore* const __restrict core
 ) NO_EXCEPT {
     if (!core->class_name) {
         return;
     }
 
-    const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) hashmap_get_entry(&theme->hash_map, core->class_name);
+    const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) hashmap_get_entry(
+        &theme->hash_map,
+        (const char*) (layout->ui_element_buffer.memory + core->class_name)
+    );
     const UIAttributeGroup* attr_group = (UIAttributeGroup *) (theme->data + entry->value);
     const UIAttribute* attributes = (UIAttribute*) align_up((uintptr_t) (attr_group + 1), alignof(UIAttribute));
 
@@ -590,7 +583,7 @@ void layout_update_element(
                 } break;
             default: {
                 // Attribute type was not part of core, handle element specific
-                layout_update_element_by_type(core, attr, offset->type);
+                layout_update_element_by_type(core, attr);
             }
         }
     }
@@ -615,12 +608,12 @@ void layout_from_theme(
     chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
         const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
 
-        const UICore* core = ui_get_element(layout, entry->value);
-        if (!force_update && !core->is_changed) {
+        if (!force_update && !array_vector_has_value(&layout->ui_element_changed, entry->value)) {
             chunk_iterate_continue;
         }
 
         // @todo Don't update skeletons?!
+        UICore* core = ui_get_element(layout, entry->value);
         layout_update_element(layout, theme, core);
     } chunk_iterate_end;
 }
