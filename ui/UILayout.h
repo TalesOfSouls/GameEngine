@@ -78,7 +78,7 @@ enum UIElementChangeType {
     UI_ELEMENT_CHANGE_CONTENT = 1 << 3,
 };
 
-struct UIElementChanged {
+struct UIElementChange {
     int32 element;
     uint32 change_type;
 };
@@ -118,7 +118,7 @@ struct UILayout {
 
     // Every element in this array is an offset to a changed element
     // This allows us to identify and re-draw changed elements quickly
-    ArrayVector<UIElementChanged> ui_element_changed;
+    ArrayVector<UIElementChange> ui_element_changed;
 
     // This array links into the ui_element_buffer via offsets
     // We need to know what the root elements are for our rendering
