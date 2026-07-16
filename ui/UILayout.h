@@ -63,6 +63,26 @@ typedef void *(*UIUpdateFunc)(
     UICore* core
 ) NO_EXCEPT;
 
+enum UIElementChangeType {
+    // If an element go larger we can update it VERY efficiently
+    UI_ELEMENT_CHANGE_DIM_LARGER = 1 << 0,
+
+    // dimensions got smaller or one axis got smaller and only one got bigger
+    UI_ELEMENT_CHANGE_DIM_OTHER = 1 << 1,
+    
+    // Z-axis changed
+    UI_ELEMENT_CHANGE_ORDER = 1 << 2,
+
+    // This is the most complex change since it also results in different vertex counts
+    // We now have to change the entire vertex cache/index cache after this element as well
+    UI_ELEMENT_CHANGE_CONTENT = 1 << 3,
+};
+
+struct UIElementChange {
+    int32 element;
+    uint32 change_type;
+};
+
 // Modified for every scene
 struct UILayout {
     // We use a simple RGBA image to detect what kind of UI component the mouse his currently hovering
@@ -98,7 +118,7 @@ struct UILayout {
 
     // Every element in this array is an offset to a changed element
     // This allows us to identify and re-draw changed elements quickly
-    ArrayVector<int32> ui_element_changed;
+    ArrayVector<UIElementChange> ui_element_changed;
 
     // This array links into the ui_element_buffer via offsets
     // We need to know what the root elements are for our rendering
