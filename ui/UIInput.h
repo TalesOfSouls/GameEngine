@@ -7,7 +7,6 @@
 #include "attribute/UIAttribute.h"
 #include "attribute/UIAttributeBorder.h"
 #include "attribute/UIAttributeShadow.h"
-#include "attribute/UIAttributeBackground.h"
 #include "attribute/UIAttributeDimension.h"
 #include "UIAnimation.h"
 #include "UIStyleType.h"
@@ -46,7 +45,7 @@ struct UIInput {
     CharType char_type;
     char* content;
 
-    UIAttributeBackground background;
+    uint32 background_color;
     UIAttributeBorder border;
     UIAttributeShadow shadow_outer;
     UIAttributeShadow shadow_inner;

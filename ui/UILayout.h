@@ -121,6 +121,7 @@ struct UILayout {
     ArrayVector<int32> ui_index_cache;
 
     const UIUpdateFunc* update;
+    const UIUpdateFunc* on_actions;
 };
 
 #endif

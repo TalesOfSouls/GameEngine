@@ -74,7 +74,7 @@ void adjust_aligned_position(
 
 inline
 void vertex_line_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
     v2_f32 start, v2_f32 end, f32 thickness,
     uint32 rgba = 0
 ) NO_EXCEPT
@@ -117,7 +117,7 @@ void vertex_line_create(
 
 inline HOT_CODE
 void vertex_rect_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     uint32 rgba = 0, v2_f32 tex1 = {}, v2_f32 tex2 = {}
 ) NO_EXCEPT
@@ -154,7 +154,7 @@ void vertex_rect_create(
 
 inline
 void vertex_circle_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices,
     f32 zindex, int32 sampler,
     v4_f32 dimension,
     byte alignment,
@@ -213,7 +213,7 @@ void vertex_circle_create(
 
 inline
 void vertex_arc_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices,
     f32 zindex, int32 sampler,
     v4_f32 dimension,
     byte alignment,
@@ -354,7 +354,7 @@ f32 text_calculate_dimensions_height(
 
 HOT_CODE
 v3_int32 vertex_text_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length,
     f32 size, MAYBE_UNUSED uint32 rgba
@@ -457,7 +457,7 @@ v3_int32 vertex_text_create(
 template <typename T>
 HOT_CODE
 v3_int32 vertex_text_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
     const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const wchar_t* const __restrict text,
     f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
@@ -530,7 +530,7 @@ v3_int32 vertex_text_create(
 template <typename T>
 HOT_CODE
 v3_int32 vertex_text_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const vertices, ArrayVector<int32>* const indices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
     const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const char* const __restrict text,
     f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem

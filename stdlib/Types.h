@@ -243,7 +243,7 @@ struct alignas(16) v4_int32 {
 
         int32 vec[4];
 
-        // Reference to a vec[4]
+        // Reference to a vec[4]: Of course this wastes memory
         const int32* ref;
 
         #if defined(__SSE4_2__)
@@ -263,7 +263,7 @@ struct alignas(16) v4_uint32 {
 
         uint32 vec[4];
 
-        // Reference to a vec[4]
+        // Reference to a vec[4]: Of course this wastes memory
         const uint32* ref;
 
         #if defined(__SSE4_2__)
@@ -295,7 +295,7 @@ struct v4_int64 {
 
         int64 vec[4];
 
-        // Reference to a vec[4]
+        // Reference to a vec[4]: Of course this wastes memory
         const int64* ref;
 
         #if defined(__AVX2__)
@@ -339,7 +339,7 @@ struct alignas(16) v4_f32 {
 
         f32 vec[4];
 
-        // Reference to a vec[4]
+        // Reference to a vec[4]: Of course this wastes memory
         const f32* ref;
 
         #if defined(__SSE4_2__)
@@ -352,6 +352,8 @@ typedef v4_f32 quaternion;
 struct v2_f64 {
     union {
         struct { f64 x; f64 y; };
+        struct { f64 width, height; };
+        struct { f64 min, max; };
 
         f64 vec[2];
     };
@@ -361,6 +363,8 @@ struct v3_f64 {
     union {
         struct { f64 x, y, z; };
         struct { f64 r, g, b; };
+        struct { f64 pitch, yaw, roll; };
+        struct { f64 u, v, w; };
 
         f64 vec[3];
     };
@@ -372,7 +376,7 @@ struct alignas(64) v16_f32 {
         f32 vec[16];
         f32 mat[4][4];
 
-        // Reference to a vec[16]
+        // Reference to a vec[16]: Of course this wastes memory
         const f32* ref;
 
         #if defined(__SSE4_2__)
@@ -419,6 +423,8 @@ inline v3_int32 to_v3_int32(const v3_f32& vec) { return {(int32) vec.x, (int32) 
 inline v4_int32 to_v4_int32(const v4_f32& vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z, (int32) vec.w}; }
 
 // Data type helpers
+// We sometimes need to store data types in binary files or as some kind of descriptor for a byte array,
+// whenever we want to dynamically handle data types
 enum DataType : byte {
     DATA_TYPE_VOID,
 

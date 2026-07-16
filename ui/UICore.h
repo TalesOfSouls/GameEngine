@@ -11,23 +11,22 @@
 // Creates the vertices in a custom way if necessary
 // This is rarely necessary and recommended since the element itself has a default render function
 typedef void* (*UIRenderFunction)(
-    void* app,
-    ArrayVector<Vertex3DSamplerTextureColor>* vertices, ArrayVector<int32>* indices, byte* mem
+    void* const __restrict app,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, byte* const __restrict mem
 ) NO_EXCEPT;
 
 struct UICore {
-    // UIElementType
-    // @performance we could probably move some of the date into one of the element bytes
     UIElementType type;
 
+    // @performance we could move 1 bit out of here to the type to specify if it is active or not because that is what it is used for
     byte opacity;
+
+    // 1-indexed, 0 = no update function defined
+    int16 update_func;
 
     // @question Consider to pull out into this struct to reduce alignment paddings
     //          We are currently wasting at least 3 bytes after opacity due to alignment
     UIAttributeDimension dimension;
-
-    // 1-indexed, 0 = no update function defined
-    int32 update_func;
 
     // Defines the style it uses
     int32 class_name;

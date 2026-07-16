@@ -61,6 +61,7 @@ FORCE_INLINE CONSTEXPR T align_down(T x, size_t align) NO_EXCEPT
 
 #define OMS_IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
 
+// Uses value for bit instead of position
 #define OMS_FLAG_SET(flags, bit) ((flags) | (bit))
 #define OMS_FLAG_CLEAR(flags, bit) ((flags) & ~(bit))
 #define OMS_FLAG_REMOVE(flags, bit) OMS_FLAG_CLEAR(flags, bit)
@@ -72,14 +73,22 @@ FORCE_INLINE CONSTEXPR T align_down(T x, size_t align) NO_EXCEPT
 
 #define OMS_BIT_WORD_INDEX(pos) ((pos) / (8 * sizeof(size_t)))
 #define OMS_BIT_INDEX(pos) ((pos) & ((8 * sizeof(size_t)) - 1))
-#define OMS_BIT_SET(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] | ((size_t)1 << OMS_BIT_INDEX(pos)))
-#define OMS_BIT_CLEAR(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] & ~((size_t)1 << OMS_BIT_INDEX(pos)))
-#define OMS_BIT_REMOVE(flags, pos) OMS_BIT_CLEAR(flags, pos)
-#define OMS_BIT_DELETE(flags, pos) OMS_BIT_CLEAR(flags, pos)
-#define OMS_BIT_TOGGLE(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] ^ ((size_t)1 << OMS_BIT_INDEX(pos)))
-#define OMS_BIT_FLIP(flags, pos) OMS_BIT_TOGGLE(flags, pos)
-#define OMS_BIT_CHECK(flags, pos) (((flags)[OMS_BIT_WORD_INDEX(pos)] >> OMS_BIT_INDEX(pos)) & (size_t)1)
-#define OMS_BIT_IS_SET(flags, pos) OMS_BIT_CHECK(flags, pos)
+
+// Uses index/position to set
+#define OMS_BIT_SET(flag, pos) ((flag) | (1 << (pos)))
+#define OMS_BIT_IS_SET(flag, pos) ((flag) & (1 << (pos)))
+
+// Works on arrays of where the element size is sizeof(size_t) = usually 8 bytes
+#define OMS_BITARRAY_SET(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] | ((size_t)1 << OMS_BIT_INDEX(pos)))
+#define OMS_BITARRAY_CLEAR(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] & ~((size_t)1 << OMS_BIT_INDEX(pos)))
+#define OMS_BITARRAY_REMOVE(flags, pos) OMS_BITARRAY_CLEAR(flags, pos)
+#define OMS_BITARRAY_DELETE(flags, pos) OMS_BITARRAY_CLEAR(flags, pos)
+#define OMS_BITARRAY_TOGGLE(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] ^ ((size_t)1 << OMS_BIT_INDEX(pos)))
+#define OMS_BITARRAY_FLIP(flags, pos) OMS_BITARRAY_TOGGLE(flags, pos)
+#define OMS_BITARRAY_CHECK(flags, pos) (((flags)[OMS_BIT_WORD_INDEX(pos)] >> OMS_BIT_INDEX(pos)) & (size_t)1)
+#define OMS_BITARRAY_SET(flags, pos) OMS_BITARRAY_CHECK(flags, pos)
+
+#define OMS_HAS_ALPHA(color) (color & 0xFF)
 
 // This is the same as using % but for sufficiently large wrapping this is faster
 // WARNING: if wrap is a power of 2 don't use this but use the & operator

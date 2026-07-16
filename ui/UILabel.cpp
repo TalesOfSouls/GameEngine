@@ -62,7 +62,11 @@ void ui_vertices_cache(
 
 template <typename T>
 static
-int32 ui_label_reserve_text(UILayout* layout, int32* offset, const T* content) {
+int32 ui_label_reserve_text(UILayout* layout, int32* offset, const T* content) NO_EXCEPT {
+    if (!content) {
+        return NULL;
+    }
+
     const int32 length = (int32) str_length(content) + 1;
 
     if (*offset) {
@@ -104,7 +108,7 @@ UILabel* ui_label_create(
     }
 
     label->char_type = char_type;
-    label->core.opacity = 255;
+    label->core.opacity = 0xFF;
 
     if (pattern_length) {
         const byte* temp = memory_get(

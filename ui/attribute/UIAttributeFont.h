@@ -15,8 +15,14 @@ struct UIAttributeFont {
     f32 line_height;
     uint32 color;
     f32 weight;
+
+    uint32 outline_color;
+    f32 outline_weight;
     UIAttributeShadow shadow_outer;
+
     byte decoration;
+
+    // @question Do we even need this? Isn't this handled in UICore::dimension.alignment?
     byte alignment;
 };
 

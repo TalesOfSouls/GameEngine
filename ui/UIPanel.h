@@ -4,12 +4,11 @@
 
 #include "../stdlib/Stdlib.h"
 #include "attribute/UIAttributeDimension.h"
-#include "attribute/UIAttributeBackground.h"
 #include "UICore.h"
 
 struct UIPanel {
     UICore core;
-    UIAttributeBackground background_style;
+    uint32 background_color;
     // @todo also needs color and texture
 
     // For some time we considered to add borders to the panel

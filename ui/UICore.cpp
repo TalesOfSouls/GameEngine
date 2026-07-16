@@ -5,29 +5,15 @@
 #include "UICore.h"
 #include "UILayout.h"
 
-/**
- * Calculate dimension based on relative/absolute positioning
- * In case of relative positioning the position depends on a parent element
- * The function then defines the dimension in its own data structure
- */
-inline
-void ui_dimension_calculate(UILayout* const layout, UICore* const core) {
-    if (!(core->dimension.flag & UI_DIMENSION_DIM_RELATIVE)) {
-        return;
+UICore* ui_parent_element_by_type(UICore* base, UIElementType type) NO_EXCEPT
+{
+    if (!base) {
+        return NULL;
     }
 
-    const UICore* parent_element = (UICore *) (layout->ui_element_buffer.memory + core->parent_offset);
+    base = (UICore*) (((uintptr_t) base) - base->parent_offset);
 
-    const UIAttributeDimension* parent_dim = &parent_element->dimension;
-    core->dimension.pos = {
-        parent_dim->pos.x + core->dimension.pos_rel.x,
-        parent_dim->pos.y + core->dimension.pos_rel.y
-    };
-}
-
-UICore* ui_parent_element_by_type(UICore* base, int32 type) NO_EXCEPT
-{
-    while (base && base->type != type) {
+    while (base->type != type) {
         if (!base->parent_offset) {
             return NULL;
         }
@@ -36,6 +22,33 @@ UICore* ui_parent_element_by_type(UICore* base, int32 type) NO_EXCEPT
     }
 
     return base;
+}
+
+UICore* ui_parent_element_by_type(UICore* base, int32 type_flags) NO_EXCEPT
+{
+    if (!base) {
+        return NULL;
+    }
+
+    base = (UICore*) (((uintptr_t) base) - base->parent_offset);
+
+    while (true) {
+        for (int i = 0; i < sizeof(type_flags) * 8; ++i) {
+            if (!OMS_BIT_POS_IS_SET(type_flags, i)) {
+                continue;
+            }
+
+            if (base->type == i) {
+                return base;
+            }
+        }
+
+        if (!base->parent_offset) {
+            return NULL;
+        }
+
+        base = (UICore*) (((uintptr_t) base) - base->parent_offset);
+    }
 }
 
 #endif
