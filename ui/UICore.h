@@ -21,8 +21,9 @@ struct UICore {
     // @performance we could move 1 bit out of here to the type to specify if it is active or not because that is what it is used for
     byte opacity;
 
-    // 1-indexed, 0 = no update function defined
+    // 1-indexed, 0 = no function defined
     int16 update_func;
+    int16 render_func;
 
     // @question Consider to pull out into this struct to reduce alignment paddings
     //          We are currently wasting at least 3 bytes after opacity due to alignment

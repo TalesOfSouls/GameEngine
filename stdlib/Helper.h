@@ -86,7 +86,6 @@ FORCE_INLINE CONSTEXPR T align_down(T x, size_t align) NO_EXCEPT
 #define OMS_BITARRAY_TOGGLE(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] ^ ((size_t)1 << OMS_BIT_INDEX(pos)))
 #define OMS_BITARRAY_FLIP(flags, pos) OMS_BITARRAY_TOGGLE(flags, pos)
 #define OMS_BITARRAY_CHECK(flags, pos) (((flags)[OMS_BIT_WORD_INDEX(pos)] >> OMS_BIT_INDEX(pos)) & (size_t)1)
-#define OMS_BITARRAY_SET(flags, pos) OMS_BITARRAY_CHECK(flags, pos)
 
 #define OMS_HAS_ALPHA(color) (color & 0xFF)
 

@@ -7,25 +7,26 @@
 #include "../UIAlignment.h"
 
 // @todo for more complex designs we would need padding, gutter, fill ratio per element
-// @question how to handle relative for root elements? Maybe create a pseudo container for root?
 static inline
 void ui_dimension_calculate(
-    UILayout* const layout,
-    UIAttributeDimension* const __restrict parent_dim,
+    const UIAttributeDimension* const __restrict parent_dim,
     UIAttributeDimension* const __restrict dim
 ) NO_EXCEPT
 {
     // Resolve size
     ////////////////////////////////////////////////////////
-    if (dim->flag & UI_DIMENSION_DIM_RELATIVE) {
+    if (dim->flag & UI_DIMENSION_DIM_X_RELATIVE) {
         // Relative: dim_raw is a 0..1 fraction of the parent's resolved dimension
-        dim->dim = {
-            dim->dim_raw.x * parent_dim->dim.x,
-            dim->dim_raw.y * parent_dim->dim.y
-        };
+        dim->dim.x = dim->dim_raw.x * parent_dim->dim.x;
     } else {
-        // Absolute: dim_raw is already in the target unit (px or otherwise)
-        dim->dim = dim->dim_raw;
+        dim->dim.x = dim->dim_raw.x;
+    }
+
+    if (dim->flag & UI_DIMENSION_DIM_Y_RELATIVE) {
+        // Relative: dim_raw is a 0..1 fraction of the parent's resolved dimension
+        dim->dim.y = dim->dim_raw.y * parent_dim->dim.y;
+    } else {
+        dim->dim.y = dim->dim_raw.y;
     }
 
     // Resolve anchor point from parent
@@ -34,31 +35,34 @@ void ui_dimension_calculate(
     if (dim->anchor & UI_ANCHOR_H_RIGHT) {
         anchor_point.x = parent_dim->pos.x + parent_dim->dim.x;
     } else if (dim->anchor & UI_ANCHOR_H_CENTER) {
-        anchor_point.x = parent_dim->pos.x + parent_dim->dim.x * 0.5f;
+        anchor_point.x = parent_dim->pos.x + (parent_dim->pos.x - parent_dim->dim.x) * 0.5f;
     } else {
         // UI_ANCHOR_H_LEFT (default)
         anchor_point.x = parent_dim->pos.x;
     }
 
     if (dim->anchor & UI_ANCHOR_V_TOP) {
-        anchor_point.y = parent_dim->pos.y + parent_dim->dim.y;
+        anchor_point.y = parent_dim->pos.y;
     } else if (dim->anchor & UI_ANCHOR_V_CENTER) {
-        anchor_point.y = parent_dim->pos.y + parent_dim->dim.y * 0.5f;
+        anchor_point.y = parent_dim->pos.y + (parent_dim->pos.y - parent_dim->dim.y) * 0.5f;
     } else {
         // UI_ANCHOR_V_BOTTOM (default)
-        anchor_point.y = parent_dim->pos.y;
+        anchor_point.y = parent_dim->pos.y - parent_dim->dim.y;
     }
 
     // Resolve the offset from the anchor
     ////////////////////////////////////////////////////////
     v2_f32 pos_offset;
-    if (dim->flag & UI_DIMENSION_POS_RELATIVE) {
-        pos_offset = {
-            dim->pos_raw.x * parent_dim->dim.x,
-            dim->pos_raw.y * parent_dim->dim.y
-        };
+    if (dim->flag & UI_DIMENSION_POS_X_RELATIVE) {
+        pos_offset.x = dim->pos_raw.x * parent_dim->dim.x;
     } else {
-        pos_offset = dim->pos_raw;
+        pos_offset.x = dim->pos_raw.x;
+    }
+
+    if (dim->flag & UI_DIMENSION_POS_Y_RELATIVE) {
+        pos_offset.y = dim->pos_raw.y * parent_dim->dim.y;
+    } else {
+        pos_offset.y = dim->pos_raw.y;
     }
 
     const f32 sign_x = (dim->anchor & UI_ANCHOR_H_RIGHT) ? -1.0f : 1.0f;
@@ -105,7 +109,7 @@ void ui_dimension_calculate(
 inline
 void ui_dimension_calculate(UILayout* const layout, UICore* const core) NO_EXCEPT {
     const UICore* parent_element = (UICore *) (layout->ui_element_buffer.memory + core->parent_offset);
-    ui_dimension_calculate(layout, &parent_element->dimension, &core->dimension);
+    ui_dimension_calculate(&parent_element->dimension, &core->dimension);
 }
 
 #endif

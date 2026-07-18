@@ -576,10 +576,10 @@ void layout_update_element(
                     core->dimension.pos.y = attr->value_float;
                 } break;
             case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH: {
-                    core->dimension.dimension.width = attr->value_float;
+                    core->dimension.dim.width = attr->value_float;
                 } break;
             case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
-                    core->dimension.dimension.height = attr->value_float;
+                    core->dimension.dim.height = attr->value_float;
                 } break;
             default: {
                 // Attribute type was not part of core, handle element specific
@@ -608,8 +608,18 @@ void layout_from_theme(
     chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
         const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
 
-        if (!force_update && !array_vector_has_value(&layout->ui_element_changed, entry->value)) {
-            chunk_iterate_continue;
+        if (!force_update) {
+            bool should_skip = true;
+            for (int32 i = 0; i < layout->ui_element_changed.count; ++i) {
+                if (layout->ui_element_changed.elements[i].element == entry->value) {
+                    should_skip = false;
+                    break;
+                }
+            }
+
+            if (should_skip) {
+                chunk_iterate_continue;
+            }
         }
 
         // @todo Don't update skeletons?!

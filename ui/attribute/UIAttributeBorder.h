@@ -7,6 +7,7 @@
 #include "../../camera/Camera.cpp"
 #include "../UIAlignment.h"
 #include "UIAttributeBorder.h"
+#include "UIAttributeImage.h"
 
 enum UIBorderType {
     UI_BORDER_TL,

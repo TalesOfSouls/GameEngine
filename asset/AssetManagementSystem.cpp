@@ -218,7 +218,7 @@ Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* const ams, byte ty
     ac->ram_size += asset->ram_size;
     ++ac->asset_count;
 
-    DEBUG_MEMORY_RESERVE((uintptr_t) asset, asset->ram_size);
+    DEBUG_MEMORY_WRITE((uintptr_t) asset, asset->ram_size);
 
     return asset;
 }
@@ -461,7 +461,7 @@ Asset* ams_reserve_asset(
     ac->ram_size += asset->ram_size;
     ++ac->asset_count;
 
-    DEBUG_MEMORY_RESERVE((uintptr_t) asset, asset->ram_size);
+    DEBUG_MEMORY_WRITE((uintptr_t) asset, asset->ram_size);
 
     return asset;
 }
@@ -510,7 +510,7 @@ Asset* thrd_ams_reserve_asset(
     ac->ram_size += asset.ram_size;
     ++ac->asset_count;
 
-    DEBUG_MEMORY_RESERVE((uintptr_t) asset_data, asset.ram_size);
+    DEBUG_MEMORY_WRITE((uintptr_t) asset_data, asset.ram_size);
 
     return (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) &asset)->value;
 }
@@ -590,7 +590,7 @@ Asset* ams_insert_asset(AssetManagementSystem* const ams, Asset* const asset_tem
     ++ac->asset_count;
 
     Asset* const asset = (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) asset_temp)->value;
-    DEBUG_MEMORY_RESERVE((uintptr_t) asset->self, asset->ram_size);
+    DEBUG_MEMORY_WRITE((uintptr_t) asset->self, asset->ram_size);
 
     return asset;
 }
@@ -621,7 +621,7 @@ Asset* thrd_ams_insert_asset(AssetManagementSystem* const ams, Asset* const asse
     ++ac->asset_count;
 
     Asset* const asset = (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) asset_temp)->value;
-    DEBUG_MEMORY_RESERVE((uintptr_t) asset->self, asset->ram_size);
+    DEBUG_MEMORY_WRITE((uintptr_t) asset->self, asset->ram_size);
 
     atomic_set_release(&asset->is_loaded, 1);
 

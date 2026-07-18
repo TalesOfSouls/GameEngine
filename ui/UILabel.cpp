@@ -7,7 +7,7 @@
 #include "UIAlignment.h"
 #include "attribute/UIAttribute.h"
 #include "attribute/UIAttributeFont.h"
-#include "attribute/UIAttributeDimension.h"
+#include "attribute/UIAttributeDimension.cpp"
 #include "UIStyleType.h"
 #include "UILayout.h"
 #include "UIWindow.h"
@@ -56,8 +56,13 @@ void ui_vertices_cache(
 
     label->core.vertex_count = (int16) (layout->ui_vertex_cache.count - label->core.vertices);
 
-    int32 element_index = (int32) MEMORY_OFFSET(label, layout->ui_element_buffer.memory);
-    array_vector_remove(&layout->ui_element_changed, element_index);
+    const int32 element_offset = (int32) MEMORY_OFFSET(label, layout->ui_element_buffer.memory);
+    for (int32 i = 0; i < layout->ui_element_changed.count; ++i) {
+        if (layout->ui_element_changed.elements[i].element == element_offset) {
+            array_vector_remove_index(&layout->ui_element_changed, i);
+            break;
+        }
+    }
 }
 
 template <typename T>

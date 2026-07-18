@@ -63,13 +63,21 @@ typedef void *(*UIUpdateFunc)(
     UICore* core
 ) NO_EXCEPT;
 
+typedef void *(*UIRenderFunc)(
+    void* user_data,
+    UICore* element,
+    GpuApiType gpu_api_type,
+    UILayout* const layout, f32 zindex,
+    byte* const __restrict mem
+) NO_EXCEPT;
+
 enum UIElementChangeType {
     // If an element go larger we can update it VERY efficiently
     UI_ELEMENT_CHANGE_DIM_LARGER = 1 << 0,
 
     // dimensions got smaller or one axis got smaller and only one got bigger
     UI_ELEMENT_CHANGE_DIM_OTHER = 1 << 1,
-    
+
     // Z-axis changed
     UI_ELEMENT_CHANGE_ORDER = 1 << 2,
 
@@ -120,6 +128,8 @@ struct UILayout {
     // This allows us to identify and re-draw changed elements quickly
     ArrayVector<UIElementChange> ui_element_changed;
 
+    void* ui_root;
+
     // This array links into the ui_element_buffer via offsets
     // We need to know what the root elements are for our rendering
     // Think of this array as the first level in a tree
@@ -141,6 +151,7 @@ struct UILayout {
     ArrayVector<int32> ui_index_cache;
 
     const UIUpdateFunc* update;
+    const UIRenderFunc* render;
     const UIUpdateFunc* on_actions;
 };
 

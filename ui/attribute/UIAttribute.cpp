@@ -68,7 +68,7 @@ void ui_uber_from_txt(
     } else if (strcmp(value_type, "y") == 0) {
         uber->core.dimension.pos.y = (f32) str_to_float(value, &value);
     } else if (strcmp(value_type, "update") == 0) {
-        uber->core.update_func = (int32) str_to_int(value, &value);
+        uber->core.update_func = (int16) str_to_int(value, &value);
     }
 }
 
@@ -247,16 +247,16 @@ void ui_theme_assign_dimension(UIAttributeDimension* const dimension, const UIAt
 {
     switch (attr->attribute_id) {
         case UI_ATTRIBUTE_TYPE_POSITION_X: {
-                ui_theme_assign_f32(&dimension->dimension.x, attr);
+                ui_theme_assign_f32(&dimension->pos.x, attr);
             } break;
         case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH: {
-                ui_theme_assign_f32(&dimension->dimension.width, attr);
+                ui_theme_assign_f32(&dimension->dim.width, attr);
             } break;
         case UI_ATTRIBUTE_TYPE_POSITION_Y: {
-                ui_theme_assign_f32(&dimension->dimension.y, attr);
+                ui_theme_assign_f32(&dimension->pos.y, attr);
             } break;
         case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
-                ui_theme_assign_f32(&dimension->dimension.height, attr);
+                ui_theme_assign_f32(&dimension->dim.height, attr);
             } break;
         default: {
             UNREACHABLE();

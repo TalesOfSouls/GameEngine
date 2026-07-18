@@ -4,6 +4,10 @@
 
 #include "../stdlib/Stdlib.h"
 
+// @performance We could probably remove H_LEFT and V_TOP in the following two enums
+// Why? because if _CENTER AND _RIGHT are not set it is automatically _LEFT/_TOP
+// If we do this we could even combine align and anchor into one byte
+
 enum UIAlign : byte {
     UI_ALIGN_H_LEFT = 1 << 0,
     UI_ALIGN_H_CENTER = 1 << 1,

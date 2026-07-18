@@ -36,23 +36,23 @@ CONSTEXPR T clamp_branched(T val, T low, T high) {
 // The branchless versions only work for int types
 template <typename T> FORCE_INLINE
 CONSTEXPR T max_branchless(T a, T b) {
-    T mask = T(0) - T(a < b);
+    const T mask = T(0) - T(a < b);
     return a ^ ((a ^ b) & mask);
 }
 
 template <typename T> FORCE_INLINE
 CONSTEXPR T min_branchless(T a, T b) {
-    T mask = T(0) - T(a < b);
+    const T mask = T(0) - T(a < b);
     return b ^ ((a ^ b) & mask);
 }
 
 template <typename T> FORCE_INLINE
 CONSTEXPR T clamp_branchless(T val, T low, T high) {
-    T maskLow  = T(0) - T(val < low);
-    T temp = val ^ ((val ^ low) & maskLow);
+    const T maskLow  = T(0) - T(val < low);
+    const T temp = val ^ ((val ^ low) & maskLow);
 
-    T maskHigh = T(0) - T(temp < high);
-    T result = high ^ ((temp ^ high) & maskHigh);
+    const T maskHigh = T(0) - T(temp < high);
+    const T result = high ^ ((temp ^ high) & maskHigh);
 
     return result;
 }
@@ -75,7 +75,7 @@ inline T min_branchless_general(T a, T b) NO_EXCEPT
 template <typename T>
 inline T clamp_branchless_general(T v, T lo, T hi) NO_EXCEPT
 {
-    T t = v + (hi - v) * (v > hi);
+    const T t = v + (hi - v) * (v > hi);
 
     return lo + (t - lo) * (t > lo);
 }
@@ -84,32 +84,32 @@ inline T clamp_branchless_general(T v, T lo, T hi) NO_EXCEPT
 FORCE_INLINE
 int8 __internal_abs(int8 a) NO_EXCEPT
 {
-    uint8 ua = (uint8)a;
-    uint8 mask = ua >> 7;
+    const uint8 ua = (uint8)a;
+    const uint8 mask = ua >> 7;
     return (int8)((ua ^ mask) - mask);
 }
 
 FORCE_INLINE
 int16 __internal_abs(int16 a) NO_EXCEPT
 {
-    uint16 ua = (uint16)a;
-    uint16 mask = ua >> 15;
+    const uint16 ua = (uint16)a;
+    const uint16 mask = ua >> 15;
     return (int16)((ua ^ mask) - mask);
 }
 
 FORCE_INLINE
 int32 __internal_abs(int32 a) NO_EXCEPT
 {
-    uint32 ua = (uint32)a;
-    uint32 mask = ua >> 31;
+    const uint32 ua = (uint32)a;
+    const uint32 mask = ua >> 31;
     return (int32)((ua ^ mask) - mask);
 }
 
 FORCE_INLINE
 int64 __internal_abs(int64 a) NO_EXCEPT
 {
-    uint64 ua = (uint64)a;
-    uint64 mask = ua >> 63;
+    const uint64 ua = (uint64)a;
+    const uint64 mask = ua >> 63;
     return (int64)((ua ^ mask) - mask);
 }
 
@@ -170,7 +170,7 @@ template <typename F>
 FORCE_INLINE CONSTEXPR
 F __internal_ceil(F x) NO_EXCEPT
 {
-    uint64 xi = (uint64)x;
+    const uint64 xi = (uint64)x;
     if (x == (F)xi) {
         return xi;
     }
@@ -188,7 +188,7 @@ F __internal_floor(F x) NO_EXCEPT {
     return (f32)(xi - (int32)(adjust));
     */
 
-    int32 xi = (int32)x;
+    const int32 xi = (int32)x;
     return (F)(xi - ((x < (F)0.0 && x != (F)xi) ? 1 : 0));
 }
 
@@ -200,8 +200,8 @@ template <typename T>
 FORCE_INLINE
 T floor_div(T a, T b) NO_EXCEPT
 {
-    T q = a / b;
-    T r = a - q * b;
+    const T q = a / b;
+    const T r = a - q * b;
     return q - (r < 0);
 }
 
@@ -383,13 +383,13 @@ f32 log_approx(f32 x) NO_EXCEPT
 
     // Force mantissa into [1,2)
     v.u = (v.u & 0x007FFFFF) | 0x3F800000;
-    f32 m = v.f;
+    const f32 m = v.f;
 
     // y = (m - 1) / (m + 1), |y| <= ~0.1716
     const f32 y  = (m - 1.0f) / (m + 1.0f);
     const f32 y2 = y * y;
 
-    f32 poly = 1.0f +
+    const f32 poly = 1.0f +
         y2 * (1.0f / 3.0f +
         y2 * (1.0f / 5.0f +
         y2 * (1.0f / 7.0f +
@@ -536,11 +536,11 @@ f64 log_approx(f64 x) NO_EXCEPT
     f64_bits v = { x };
 
     // Extract exponent (11 bits, bias 1023)
-    int64 e = ((v.u >> 52) & 0x7FF) - 1023;
+    const int64 e = ((v.u >> 52) & 0x7FF) - 1023;
 
     // Force mantissa into [1,2)
     v.u = (v.u & 0x000FFFFFFFFFFFFFULL) | 0x3FF0000000000000ULL;
-    f64 m = v.f;
+    const f64 m = v.f;
 
     // y = (m - 1) / (m + 1), |y| <= ~0.1716
     const f64 y  = (m - 1.0) / (m + 1.0);

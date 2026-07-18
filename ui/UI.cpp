@@ -74,6 +74,16 @@ void ui_cache(
             } break;
             case UI_ELEMENT_TYPE_CURSOR : {
             } break;
+            case UI_ELEMENT_TYPE_CUSTOM : {
+                layout->render[element->render_func - 1](
+                    app,
+                    element,
+                    gpu_api_type,
+                    layout,
+                    10.0f,
+                    mem
+                );
+            } break;
             default:
                 UNREACHABLE();
         }

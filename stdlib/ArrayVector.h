@@ -140,7 +140,7 @@ bool array_vector_has_value(ArrayVector<T>* vec, T value) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void array_vector_remove(ArrayVector<T>* vec, T value) NO_EXCEPT
+void array_vector_remove_value(ArrayVector<T>* vec, T value) NO_EXCEPT
 {
     for (int i = 0; i < vec->count; ++i) {
         if (vec->elements[i] == value) {
@@ -152,6 +152,18 @@ void array_vector_remove(ArrayVector<T>* vec, T value) NO_EXCEPT
             --vec->count;
         }
     }
+}
+
+template<typename T>
+FORCE_INLINE
+void array_vector_remove_index(ArrayVector<T>* vec, int32 index) NO_EXCEPT
+{
+    // Move elements after the found element forward
+    if (index < vec->count - 1) {
+        memcpy(vec->elements + index, vec->elements + index + 1, sizeof(T) * (vec->count - index - 1));
+    }
+
+    --vec->count;
 }
 
 #define array_vector_iterate_start(vec, element_ptr) {   \
