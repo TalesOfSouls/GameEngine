@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -27,7 +24,7 @@ void audio_load(
     ApiAudioSetting* const __restrict api_setting
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_AUDIO_INIT, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_AUDIO_INIT, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     bool success = false;
 
     // Try different audio wrappers if one fails in the following loop

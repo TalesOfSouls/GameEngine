@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -33,8 +30,7 @@ static const int SECONDARY_STAT_INDICES[] = {
 // Character stats modifiable through skill tree?
 struct SecondaryStatsPoints {
     /*
-    @todo
-    Composite damage types would allow us to combine skills of different players (e.g. arrow flies through fire -> adds fire damage flag)
+    @todo Composite damage types would allow us to combine skills of different players (e.g. arrow flies through fire -> adds fire damage flag)
     Obviously this doesn't increase the damage directly but can have a positive impact if the enemy has low fire resistance for example
 
     @question what happens if a skill has two flags (fire&slashing) and the enemy has high resistance vs slashing.
@@ -141,8 +137,7 @@ struct SecondaryStatsPoints {
 
 struct SecondaryStatsPoints2 {
     /*
-    @todo
-    Composite damage types would allow us to combine skills of different players (e.g. arrow flies through fire -> adds fire damage flag)
+    @todo Composite damage types would allow us to combine skills of different players (e.g. arrow flies through fire -> adds fire damage flag)
     Obviously this doesn't increase the damage directly but can have a positive impact if the enemy has low fire resistance for example
 
     @question what happens if a skill has two flags (fire&slashing) and the enemy has high resistance vs slashing.

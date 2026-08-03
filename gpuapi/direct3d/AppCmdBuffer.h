@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -39,7 +36,7 @@ void* cmd_shader_load_sync(
     int32 layout_count
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CMD_SHADER_LOAD_SYNC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     char asset_id[9];
 
     ID3DBlob* shader_assets[SHADER_TYPE_SIZE];

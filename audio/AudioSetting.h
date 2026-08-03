@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -46,6 +43,10 @@ struct AudioSetting {
     // The buffer could be larger than the data to output
     uint32 sample_buffer_size;
     int16* buffer;
+
+    // Depending on the used sound API we need to provide a buffer for it for use
+    // This is only used by the respective sound API if it needs it.
+    byte* buffer_internal;
 };
 
 struct AudioLocationSetting {

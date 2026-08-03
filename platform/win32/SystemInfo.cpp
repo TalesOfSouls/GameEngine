@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -23,30 +20,26 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wbemidl.h>
-#include <comdef.h>
 #include <winnls.h>
 #include <wingdi.h>
-#include <hidsdi.h>
+#include <oleauto.h>
 
-#include "libs/ole32_static.h"
-#include "libs/cfgmgr32.h"
+#include "libs/ole32.h"
+//#include "libs/cfgmgr32.h"
 #include "libs/setupapi.h"
 #include "libs/iphlpapi.h"
-#include "libs/comsuppw.h"
 #include "libs/wbemuuid.h"
 #include "libs/Advapi32.h"
+#include "libs/hid.h"
 
 #include <intrin.h>
-//#pragma comment(lib, "Advapi32.lib")
 //#pragma comment(lib, "wbemuuid.lib")
-//#pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "Ws2_32.lib")
-//#pragma comment(lib, "setupapi.lib")
 //#pragma comment(lib, "cfgmgr32.lib")
-//#pragma comment(lib, "comsuppw.lib")
 #pragma comment(lib, "ntdll.lib")
+#pragma comment(lib, "oleaut32.lib")
 
 f64 system_cpu_benchmark(int iterations)
 {
@@ -250,11 +243,11 @@ void mainboard_info_get(MainboardInfo* const info) {
 
     // Obtain initial locator to WMI
     IWbemLocator* pLoc = NULL;
-    HRESULT hres = CoCreateInstance(
-        pCLSID_WbemLocator,
+    HRESULT hres = OLE32_CoCreateInstance(
+        WBEMUUID_CLSID_WbemLocator,
         0,
         CLSCTX_INPROC_SERVER,
-        pIID_IWbemLocator,
+        WBEMUUID_IID_IWbemLocator,
         (LPVOID *)&pLoc
     );
 
@@ -263,9 +256,10 @@ void mainboard_info_get(MainboardInfo* const info) {
     }
 
     // Connect to WMI through IWbemLocator::ConnectServer
+    BSTR ns = SysAllocString(L"ROOT\\CIMV2");
     IWbemServices* pSvc = NULL;
     hres = pLoc->ConnectServer(
-        _bstr_t(L"ROOT\\CIMV2"),
+        ns,
         NULL,
         NULL,
         0,
@@ -277,11 +271,12 @@ void mainboard_info_get(MainboardInfo* const info) {
 
     if (FAILED(hres)) {
         pLoc->Release();
+        SysFreeString(ns);
         return;
     }
 
     // Set security levels on the proxy
-    hres = CoSetProxyBlanket(
+    hres = OLE32_CoSetProxyBlanket(
         pSvc,
         RPC_C_AUTHN_WINNT,
         RPC_C_AUTHZ_NONE,
@@ -295,14 +290,18 @@ void mainboard_info_get(MainboardInfo* const info) {
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
+        SysFreeString(ns);
         return;
     }
 
     // Use the IWbemServices pointer to make a WMI query
+    BSTR queryLanguage = SysAllocString(L"WQL");
+    BSTR query = SysAllocString(L"SELECT * FROM Win32_BaseBoard");
+
     IEnumWbemClassObject* enumerator = NULL;
     hres = pSvc->ExecQuery(
-        bstr_t("WQL"),
-        bstr_t("SELECT * FROM Win32_BaseBoard"),
+        queryLanguage,
+        query,
         WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
         NULL,
         &enumerator
@@ -311,6 +310,10 @@ void mainboard_info_get(MainboardInfo* const info) {
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
+
+        SysFreeString(queryLanguage);
+        SysFreeString(query);
+        SysFreeString(ns);
         return;
     }
 
@@ -346,6 +349,10 @@ void mainboard_info_get(MainboardInfo* const info) {
 
     info->name[sizeof(info->name) - 1] = '\0';
     info->serial_number[sizeof(info->serial_number) - 1] = '\0';
+
+    SysFreeString(queryLanguage);
+    SysFreeString(query);
+    SysFreeString(ns);
 }
 
 int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* ring = NULL) {
@@ -359,7 +366,7 @@ int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* rin
     PIP_ADAPTER_ADDRESSES adapter = NULL;
 
     // Get the size of the adapter addresses buffer
-    if (pGetAdaptersAddresses(AF_UNSPEC, 0, NULL, NULL, &dwSize) == ERROR_BUFFER_OVERFLOW) {
+    if (IPHLPAPI_GetAdaptersAddresses(AF_UNSPEC, 0, NULL, NULL, &dwSize) == ERROR_BUFFER_OVERFLOW) {
         WSACleanup();
         return 0;
     }
@@ -376,7 +383,7 @@ int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* rin
     }
 
     // Get the adapter addresses
-    if (pGetAdaptersAddresses(AF_UNSPEC, 0, NULL, adapter_address, &dwSize) != NO_ERROR) {
+    if (IPHLPAPI_GetAdaptersAddresses(AF_UNSPEC, 0, NULL, adapter_address, &dwSize) != NO_ERROR) {
         if (!ring) {
             free(adapter_address);
         }
@@ -448,17 +455,17 @@ void cpu_info_get(CpuInfo* const info) {
 
     DWORD bufSize = sizeof(DWORD);
     HKEY hKey;
-    const long lError = pRegOpenKeyExW(
+    const long lError = ADVAPI32_RegOpenKeyExW(
         HKEY_LOCAL_MACHINE,
         L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
         0, KEY_READ, &hKey
     );
 
     if (lError == ERROR_SUCCESS) {
-        pRegQueryValueExW(hKey, L"~MHz", NULL, NULL, (LPBYTE) &(info->mhz), &bufSize);
+        ADVAPI32_RegQueryValueExW(hKey, L"~MHz", NULL, NULL, (LPBYTE) &(info->mhz), &bufSize);
     }
 
-    pRegCloseKey(hKey);
+    ADVAPI32_RegCloseKey(hKey);
 }
 
 inline
@@ -492,33 +499,43 @@ void ram_info_get(RamInfo* const info) {
 
 RamChannelType ram_channel_info() {
     IWbemLocator* pLoc = NULL;
-    HRESULT hres = CoCreateInstance(pCLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, pIID_IWbemLocator, (LPVOID *)&pLoc);
+    HRESULT hres = OLE32_CoCreateInstance(WBEMUUID_CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, WBEMUUID_IID_IWbemLocator, (LPVOID *)&pLoc);
     if (FAILED(hres)) {
 
         return RAM_CHANNEL_TYPE_FAILED;
     }
 
     IWbemServices* pSvc = NULL;
-    hres = pLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pSvc);
+    BSTR ns = SysAllocString(L"ROOT\\CIMV2");
+    hres = pLoc->ConnectServer(ns, NULL, NULL, 0, NULL, 0, 0, &pSvc);
     if (FAILED(hres)) {
         pLoc->Release();
+        SysFreeString(ns);
 
         return RAM_CHANNEL_TYPE_FAILED;
     }
 
-    hres = CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+    hres = OLE32_CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
+        SysFreeString(ns);
 
         return RAM_CHANNEL_TYPE_FAILED;
     }
 
     IEnumWbemClassObject* enumerator = NULL;
-    hres = pSvc->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_PhysicalMemory"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
+    BSTR queryLanguage = SysAllocString(L"WQL");
+    BSTR query = SysAllocString(L"SELECT * FROM Win32_PhysicalMemory");
+
+    hres = pSvc->ExecQuery(queryLanguage, query, WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
+
+        SysFreeString(queryLanguage);
+        SysFreeString(query);
+        SysFreeString(ns);
 
         return RAM_CHANNEL_TYPE_FAILED;
     }
@@ -547,7 +564,10 @@ RamChannelType ram_channel_info() {
 
     pSvc->Release();
     pLoc->Release();
-    CoUninitialize();
+    SysFreeString(queryLanguage);
+    SysFreeString(query);
+    SysFreeString(ns);
+    OLE32_CoUninitialize();
 
     if (ram_module_count == 1) {
         return RAM_CHANNEL_TYPE_SINGLE_CHANNEL;

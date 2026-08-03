@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -60,6 +57,9 @@
  *
  *      Misc.
  *          NO_STDLIB=1 (= disables stdlib usage and uses user/compiler space implementations)
+ *
+ *      LINKING
+ *          COMS_STATIC_LINKING (default = 0, 1 = switches to static linking build)
  */
 #include "Defines.h"
 #include "Types.h"

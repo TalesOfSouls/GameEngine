@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -80,13 +77,15 @@ bool xaudio2_settings_load(AudioSetting* const __restrict setting, XAudio2Settin
         return false;
     }
 
-    // @todo consider to remove mallocs/callocs
-    setting->buffer_size = setting->sample_rate * setting->sample_size;
-    setting->buffer = (int16 *) calloc(setting->sample_rate, setting->sample_size);
+    byte* mem = setting->buffer_internal;
 
     api_setting->internal_buffer[0].Flags = 0;
     api_setting->internal_buffer[0].AudioBytes = setting->buffer_size;
-    api_setting->internal_buffer[0].pAudioData = (byte *) malloc(setting->buffer_size * sizeof(byte));
+    api_setting->internal_buffer[0].pAudioData = (byte *) memory_get(
+        &mem,
+        setting->buffer_size * sizeof(byte),
+        ASSUMED_CACHE_LINE_SIZE
+    );
     api_setting->internal_buffer[0].PlayBegin = 0;
     api_setting->internal_buffer[0].PlayLength = 0;
     api_setting->internal_buffer[0].LoopBegin = 0;
@@ -96,7 +95,11 @@ bool xaudio2_settings_load(AudioSetting* const __restrict setting, XAudio2Settin
 
     api_setting->internal_buffer[1].Flags = 0;
     api_setting->internal_buffer[1].AudioBytes = setting->buffer_size;
-    api_setting->internal_buffer[1].pAudioData = (byte *) malloc(setting->buffer_size * sizeof(byte));
+    api_setting->internal_buffer[1].pAudioData = (byte *) memory_get(
+        &mem,
+        setting->buffer_size * sizeof(byte),
+        ASSUMED_CACHE_LINE_SIZE
+    );
     api_setting->internal_buffer[1].PlayBegin = 0;
     api_setting->internal_buffer[1].PlayLength = 0;
     api_setting->internal_buffer[1].LoopBegin = 0;

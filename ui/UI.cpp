@@ -6,6 +6,7 @@
 #include "UIInput.h"
 #include "UILabel.cpp"
 #include "UIWindow.cpp"
+#include "UICursor.cpp"
 
 // @security Consider to take in BufferMemory instead of byte for better buffer overflow control
 void ui_cache(
@@ -15,12 +16,21 @@ void ui_cache(
     byte* const __restrict mem
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE);
+
+    // @bug this shouldn't be here, this is only during development/testing
+    layout->ui_vertex_cache.count = 0;
+    layout->ui_index_cache.count = 0;
+    array_vector_insert(&layout->ui_vertex_cache, {{0.0f, 0.0f, 10.0f}, 0, {0}});
+
     int32* iter;
     array_vector_iterate_start(layout->ui_element_root, iter) {
         UICore* const element = (UICore *) (layout->ui_element_buffer.memory + *iter);
 
-        // @bug This assert isn't really working since we don't know how large vertices_count will be
-        //      We would have to simulate/guess the max vertex count and check against this
+        // This assert isn't really working since we don't know how large vertices_count will be
+        // We would have to simulate/guess the max vertex count and check against this
+        // This just assumes that this update is smaller or as large as the previous one
+        // Of course for the first update this doesn't work at all
         ASSERT_TRUE(
             element->vertex_count + layout->ui_vertex_cache.count
                 <= layout->ui_vertex_cache.capacity
@@ -55,10 +65,10 @@ void ui_cache(
             case UI_ELEMENT_TYPE_TABLE : {
             } break;
             case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-                UIWindow* test_window_element = (UIWindow*) element;
+                UIWindow* window_element = (UIWindow*) element;
                 ui_vertices_cache(
                     app,
-                    test_window_element, gpu_api_type,
+                    window_element, gpu_api_type,
                     layout, 10.0f, // @todo fix actual value
                     mem
                 );
@@ -73,6 +83,13 @@ void ui_cache(
             case UI_ELEMENT_TYPE_VIEW_TAB : {
             } break;
             case UI_ELEMENT_TYPE_CURSOR : {
+                UICursor* cursor_element = (UICursor*) element;
+                ui_vertices_cache(
+                    app,
+                    cursor_element,
+                    layout, 10.0f, // @todo fix actual value
+                    mem
+                );
             } break;
             case UI_ELEMENT_TYPE_CUSTOM : {
                 layout->render[element->render_func - 1](
@@ -100,12 +117,16 @@ void ui_update(
     byte* const __restrict mem
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_UPDATE);
+
     int32* iter;
     array_vector_iterate_start(layout->ui_element_root, iter) {
         UICore* const element = (UICore *) (layout->ui_element_buffer.memory + *iter);
 
-        // @bug This assert isn't really working since we don't know how large vertices_count will be
-        //      We would have to simulate/guess the max vertex count and check against this
+        // This assert isn't really working since we don't know how large vertices_count will be
+        // We would have to simulate/guess the max vertex count and check against this
+        // This just assumes that this update is smaller or as large as the previous one
+        // Of course for the first update this doesn't work at all
         ASSERT_TRUE(
             element->vertex_count + layout->ui_vertex_cache.count
                 <= layout->ui_vertex_cache.capacity

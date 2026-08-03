@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -14,6 +11,7 @@
 // Log is used in many other header files
 #include "../stdlib/Stdlib.h"
 #include "../utils/StringUtils.h"
+#include "../thread/SpinlockStandalone.h"
 #include "DebugMemory.h"
 
 /**
@@ -57,12 +55,6 @@
 #if _WIN32
     #include <windows.h>
 
-    thread_local static LARGE_INTEGER _log_performance_frequency = []{
-        LARGE_INTEGER f;
-        QueryPerformanceFrequency(&f);
-        return f;
-    }();
-
     /**
      * Get the system time
      *
@@ -86,58 +78,6 @@
     }
 
     static HANDLE _log_fp;
-    typedef long log_spinlock32;
-
-    /**
-     * Initialize the log specific spinlock
-     *
-     * @param log_spinlock32* lock Spinlock variable
-     *
-     * @return void
-     */
-    FORCE_INLINE
-    void log_spinlock_init(log_spinlock32* const lock) NO_EXCEPT
-    {
-        *lock = 0;
-    }
-
-    /**
-     * Start the spinlock
-     *
-     * @param log_spinlock32*   lock    Spinlock variable
-     * @param int32             delay   Minimum amount of time spend befor rechecking spinlock
-     *
-     * @return void
-     */
-    static FORCE_INLINE HOT_CODE
-    void log_spinlock_start(log_spinlock32* const lock, int32 delay = 10) NO_EXCEPT
-    {
-        while (InterlockedExchange(lock, 1) != 0) {
-            LARGE_INTEGER start, end;
-            QueryPerformanceCounter(&start);
-
-            const long long target = start.QuadPart
-                + (delay * _log_performance_frequency.QuadPart)
-                / 1000000ULL;
-
-            do {
-                QueryPerformanceCounter(&end);
-            } while (end.QuadPart < target);
-        }
-    }
-
-    /**
-     * End/unlock the spinlock
-     *
-     * @param log_spinlock32* lock Spinlock variable
-     *
-     * @return void
-     */
-    static FORCE_INLINE HOT_CODE
-    void log_spinlock_end(log_spinlock32* const lock) NO_EXCEPT
-    {
-        InterlockedExchange(lock, 0);
-    }
 #elif __linux__
     #include <time.h>
     #include <sys/time.h>
@@ -158,88 +98,7 @@
     }
 
     static int32 _log_fp;
-    typedef int32 log_spinlock32;
-
-    /**
-     * Initialize the log specific spinlock
-     *
-     * @param log_spinlock32* lock Spinlock variable
-     *
-     * @return void
-     */
-    FORCE_INLINE
-    void log_spinlock_init(log_spinlock32* const lock) NO_EXCEPT
-    {
-        *lock = 0;
-    }
-
-    /**
-     * Start the spinlock
-     *
-     * @param log_spinlock32*   lock    Spinlock variable
-     * @param int32             delay   Minimum amount of time spend befor rechecking spinlock
-     *
-     * @return void
-     */
-    static FORCE_INLINE HOT_CODE
-    void log_spinlock_start(log_spinlock32* const lock, int32 delay = 10) NO_EXCEPT
-    {
-        while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE) != 0) {
-            struct timespec start, now;
-            clock_gettime(CLOCK_MONOTONIC, &start);
-            const uint64 target_ns = usec * 1000ULL;
-
-            do {
-                clock_gettime(CLOCK_MONOTONIC, &now);
-                const uint64 elapsed = (now.tv_sec - start.tv_sec) * 1000000000ULL
-                    + (now.tv_nsec - start.tv_nsec);
-
-                if (elapsed >= target_ns) {
-                    break;
-                }
-            } while (true);
-        }
-    }
-
-    /**
-     * End/unlock the spinlock
-     *
-     * @param log_spinlock32* lock Spinlock variable
-     *
-     * @return void
-     */
-    static FORCE_INLINE HOT_CODE
-    void log_spinlock_end(log_spinlock32* const lock) NO_EXCEPT
-{
-        __atomic_store_n(lock, 0, __ATOMIC_RELEASE);
-    }
 #endif
-
-// By using this constructor/destructor pattern you can avoid deadlocks in case of exceptions
-// Why? Well because if we go out of scope the destructor is automatically called and the lock is unlocked
-struct LogSpinlockGuard {
-    log_spinlock32* _lock = NULL;
-
-    inline HOT_CODE
-    explicit LogSpinlockGuard(log_spinlock32* const lock, int32 delay = 10) {
-        this->_lock = lock;
-
-        log_spinlock_start(this->_lock, delay);
-    }
-
-    inline HOT_CODE
-    void unlock() {
-        if (this->_lock) {
-            log_spinlock_end(this->_lock);
-            this->_lock = NULL;
-        }
-    }
-
-    inline HOT_CODE
-    ~LogSpinlockGuard() {
-        this->unlock();
-    }
-};
 
 struct LogMemory {
     byte* memory;
@@ -247,7 +106,7 @@ struct LogMemory {
     uint64 size;
     uint64 pos;
 
-    log_spinlock32 lock;
+    standalone_spinlock32 lock;
 };
 static LogMemory* _log_memory = NULL;
 
@@ -307,7 +166,7 @@ byte* log_memory_get() NO_EXCEPT
  */
 void log_to_file(const void* const data, size_t size) NO_EXCEPT
 {
-    if (!_log_memory || _log_memory->pos == 0 || !_log_fp) {
+    if (!_log_memory || !size || !_log_fp) {
         return;
     }
 
@@ -345,7 +204,7 @@ void log_flush() NO_EXCEPT
         return;
     }
 
-    LogSpinlockGuard _guard(&_log_memory->lock, 0);
+    StandaloneSpinlockGuard _guard(&_log_memory->lock, 0);
     log_to_file(_log_memory->memory, _log_memory->pos);
     _log_memory->pos = 0;
 }
@@ -391,9 +250,8 @@ void log(
         return;
     }
 
-    LogSpinlockGuard _guard(&_log_memory->lock, 0);
-
     int32 len = (int32) strlen(str);
+    StandaloneSpinlockGuard _guard(&_log_memory->lock, 0);
 
     // Ensure that we have enough space in our log memory, otherwise log to file
     const int32 total_len = (len + (MAX_LOG_LENGTH - 1) / MAX_LOG_LENGTH) * sizeof(LogMessage) + len;
@@ -432,6 +290,24 @@ void log(
     }
 }
 
+HOT_CODE
+void log(
+    const wchar_t* __restrict str,
+    const char* const __restrict file,
+    const char* const __restrict function,
+    int32 line
+) NO_EXCEPT
+{
+    if (!_log_memory) {
+        return;
+    }
+
+    char temp[MAX_LOG_LENGTH];
+    wchar_to_char(temp, str, MAX_LOG_LENGTH);
+
+    log(temp, file, function, line);
+}
+
 /**
  * Log message
  *
@@ -461,15 +337,17 @@ void log(
         return;
     }
 
-    ASSERT_TRUE(strlen(format) + strlen(file) + strlen(function) + 50 < MAX_LOG_LENGTH);
-
-    LogSpinlockGuard _guard(&_log_memory->lock, 0);
+    StandaloneSpinlockGuard _guard(&_log_memory->lock, 0);
 
     // Is data raw output?
+    // Raw output is not stored in memory and immediately logged to file
     if (data.data[0].type == DATA_TYPE_BYTE_ARRAY) {
         // If length is larger than buffer directly log to file
-        const int32 total_len = *((int32 *) data.data[0].value);
-        #if defined(DEBUG) && DEBUG || VERBOSE
+        const int32 total_len = data.data[0].value
+            ? *((int32 *) data.data[0].value)
+            : (int32) strlen(format);
+
+        #if (defined(DEBUG) && DEBUG) || (defined(VERBOSE) && VERBOSE)
             // In debug mode we always output the log message to the debug console
             log_to_terminal(log_sys_time(), format);
         #endif
@@ -479,10 +357,11 @@ void log(
         //      The raw data doesn't fulfill \0 and probably also doesn't fulfill MAX_LOG_LENGTH
 
         log_to_file(format, total_len);
-        _log_memory->pos = 0;
 
         return;
     }
+
+    ASSERT_TRUE(strlen(format) + strlen(file) + strlen(function) + 50 < MAX_LOG_LENGTH);
 
     LogMessage* const msg = (LogMessage *) log_memory_get();
     msg->file = file;
@@ -532,6 +411,9 @@ void log(
             case DATA_TYPE_CHAR_STR: {
                 sprintf_fast_iter(msg->message, temp_format, (const char *) data.data[i].value);
             } break;
+            case DATA_TYPE_WCHAR_STR: {
+                sprintf_fast_iter(msg->message, temp_format, (const wchar_t *) data.data[i].value);
+            } break;
             case DATA_TYPE_F32: {
                 sprintf_fast_iter(msg->message, temp_format, *((f32 *) data.data[i].value));
             } break;
@@ -557,25 +439,27 @@ void log(
     }
 }
 
+HOT_CODE
+void log(
+    const wchar_t* const __restrict format,
+    LogDataArray data,
+    const char* const __restrict file,
+    const char* const __restrict function,
+    int32 line
+) NO_EXCEPT
+{
+    if (!_log_memory) {
+        return;
+    }
+
+    char temp[MAX_LOG_LENGTH];
+    wchar_to_char(temp, format, MAX_LOG_LENGTH);
+
+    log(temp, data, file, function, line);
+}
+
 #define LOG_TO_FILE() log_to_file(_log_memory->memory, _log_memory->pos)
 #define LOG_FLUSH() log_flush()
-
-/**
- * This is just an annoying helper function required for MSVC
- * which doesn't allow (LogData) {type, value} as a return/type case
- *
- * @param DataType  type    Data type
- * @param void*     value   Pointer to value
- *
- * @return LogData
- */
-inline HOT_CODE
-LogData makeLogData(DataType type, const void* const value) NO_EXCEPT
-{
-    const LogData d = {type, value};
-    return d;
-}
-#define LOG_ENTRY(type, value) makeLogData(type, (const void*)(value))
 
 // WARNING: Unfortunately this helper function is required
 //          since post c++20 nested-brace initialize no longer support array initialization

@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -156,7 +153,7 @@
     #define DIRECTX_11 0
 #endif
 
-#if DIRECTX_11 || DIRECTX_12
+#if (defined(DIRECTX_11) && DIRECTX_11) || (defined(DIRECTX_12) && DIRECTX_12)
     #ifdef DIRECTX
         #undef DIRECTX
     #endif
@@ -197,6 +194,10 @@
 
 #ifndef WASAPI
     #define WASAPI 0
+#endif
+
+#ifndef COMS_STATIC_LINKING
+    #define COMS_STATIC_LINKING 0
 #endif
 
 #endif

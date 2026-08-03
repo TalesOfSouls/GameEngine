@@ -23,7 +23,6 @@ UIWindow* ui_window_create(UILayout* layout) NO_EXCEPT
     MEMORY_ELEMENT_ZERO(element);
 
     element->core.type = UI_ELEMENT_TYPE_VIEW_WINDOW;
-    element->core.opacity = 0xFF;
     element->core.parent_offset = (int32) MEMORY_OFFSET(layout->ui_root, layout->ui_element_buffer.memory);
     element->core.dimension.anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP;
     element->core.dimension.alignment = UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM;
@@ -32,8 +31,8 @@ UIWindow* ui_window_create(UILayout* layout) NO_EXCEPT
     // title
     {
         // Only the height is pixel based
-        element->title.core.dimension.flag = UI_DIMENSION_DIM_X_RELATIVE
-            | UI_DIMENSION_DIM_Y_PX;
+        element->title.core.dimension.flag = UI_DIMENSION_DIM_X_RELATIVE | UI_DIMENSION_DIM_Y_PX
+            | UI_DIMENSION_POS_X_RELATIVE | UI_DIMENSION_POS_Y_RELATIVE;
         element->title.core.dimension.anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP;
         element->title.core.dimension.alignment = UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM;
 
@@ -65,13 +64,14 @@ void ui_vertices_cache(
     UIWindowTitle* window_title, GpuApiType gpu_api_type,
     UILayout* const layout, f32* zindex,
     byte* const __restrict mem
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
     ArrayVector<int32>* index_cache = &layout->ui_index_cache;
 
     ui_dimension_calculate(layout, &window_title->core);
 
-    if (window_title->core.opacity) {
+    if (OMS_HAS_ALPHA(window_title->panel.background_color)) {
         UIPanel* title_panel = &window_title->panel;
 
         // @question consider to use panel dimensions instead/call panel render function
@@ -85,6 +85,14 @@ void ui_vertices_cache(
         );
 
         *zindex = camera_step_closer(gpu_api_type, *zindex);
+
+        if (window_title->core.change_type & UI_ELEMENT_CHANGE_CHROMA_CODE) {
+            ui_chroma_codes_update(
+                (int32) MEMORY_OFFSET(&window_title->core, layout->ui_element_buffer.memory),
+                &window_title->core,
+                &layout->chroma_codes
+            );
+        }
     }
 
     // Border
@@ -108,13 +116,16 @@ void ui_vertices_cache(
     void* app, UIWindow* window, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
     byte* const __restrict mem
-) NO_EXCEPT {
+) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_UI_CACHE_WINDOW);
+
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
     ArrayVector<int32>* index_cache = &layout->ui_index_cache;
 
     ui_dimension_calculate(layout, &window->core);
 
-    if (window->panel.core.opacity || OMS_HAS_ALPHA(window->panel.background_color)) {
+    if (OMS_HAS_ALPHA(window->panel.background_color)) {
         vertex_rect_create(
             vertex_cache, index_cache, zindex, 0,
             {
@@ -128,6 +139,14 @@ void ui_vertices_cache(
         );
 
         zindex = camera_step_closer(gpu_api_type, zindex);
+
+        if (window->core.change_type & UI_ELEMENT_CHANGE_CHROMA_CODE) {
+            ui_chroma_codes_update(
+                (int32) MEMORY_OFFSET(&window->core, layout->ui_element_buffer.memory),
+                &window->core,
+                &layout->chroma_codes
+            );
+        }
     }
 
     // @todo make border part of panel
@@ -139,7 +158,7 @@ void ui_vertices_cache(
     );
     */
 
-    if (window->title.core.opacity) {
+    if (OMS_HAS_ALPHA(window->title.panel.background_color)) {
         zindex = camera_step_closer(gpu_api_type, zindex);
         ui_vertices_cache(
             app, &window->title, gpu_api_type,

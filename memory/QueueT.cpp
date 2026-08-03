@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -16,7 +13,7 @@ template <typename T>
 FORCE_INLINE
 void queue_alloc(QueueT<T>* const queue, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -42,7 +39,7 @@ void queue_alloc(
     uint32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(max_capacity >= capacity);
     queue->capacity = capacity;
 
@@ -159,6 +156,68 @@ void thrd_queue_free(QueueT<T>* const queue, MemoryArena* const mem) NO_EXCEPT
 {
     queue_free(queue, mem);
     thrd_queue_locks_free(queue);
+}
+
+template <typename T>
+inline
+bool memory_resize(QueueT<T>* const queue, size_t new_capacity) NO_EXCEPT
+{
+    T* old_memory = queue->memory;
+    int old_capacity = queue->capacity;
+
+    size_t head_index = queue->head - old_memory;
+    size_t tail_index = queue->tail - old_memory;
+
+    // Number of live/unhandled elements currently in the queue
+    const size_t count = (tail_index >= head_index)
+        ? (tail_index - head_index)
+        : (old_capacity - head_index + tail_index);
+
+    // Refuse a resize that would drop unhandled data
+    if (new_capacity < count) {
+        return false;
+    }
+
+    // If the live data currently wraps around the end of the buffer,
+    // linearize it first so realloc doesn't split/corrupt it.
+    if (tail_index < head_index && count > 0) {
+        T* temp = (T*) platform_alloc_aligned(sizeof(T) * count);
+        if (!temp) {
+            return false;
+        }
+
+        size_t first_chunk = old_capacity - head_index;
+        memcpy(temp, old_memory + head_index, sizeof(T) * first_chunk);
+        memcpy(temp + first_chunk, old_memory, sizeof(T) * tail_index);
+
+        memcpy(old_memory, temp, sizeof(T) * count);
+        platform_free_aligned(temp);
+
+        head_index = 0;
+        tail_index = count;
+    }
+
+    if (!platform_alloc_aligned_resize(queue->memory, sizeof(T) * new_capacity)) {
+        return false;
+    }
+
+    queue->capacity = new_capacity;
+
+    // memory may have moved (realloc) and/or been linearized above —
+    // re-point head/tail into the new buffer rather than assuming the
+    // old raw pointer offsets are still valid
+    queue->head = queue->memory + head_index;
+    queue->tail = queue->memory + (tail_index % new_capacity);
+
+    return true;
+}
+
+template <typename T>
+inline
+bool thrd_memory_resize(QueueT<T>* const queue, size_t new_capacity) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->mtx);
+    return memory_resize(queue, new_capacity);
 }
 
 template <typename T>
@@ -290,7 +349,6 @@ void thrd_queue_enqueue(QueueT<T>* __restrict queue, T data) NO_EXCEPT
     coms_pthread_cond_signal(&queue->cond);
 }
 
-// @todo implement enqueue with pass by value
 template <typename T>
 inline
 T* queue_enqueue_atomic(QueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
@@ -302,6 +360,22 @@ T* queue_enqueue_atomic(QueueT<T>* const __restrict queue, const T* __restrict d
     );
 
     *mem = *data;
+    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
+
+    return mem;
+}
+
+template <typename T>
+inline
+T* queue_enqueue_atomic(QueueT<T>* const __restrict queue, const T data) NO_EXCEPT
+{
+    T* mem = atomic_fetch_increment_wrap_relaxed(
+        &queue->head,
+        queue->memory,
+        queue->memory + queue->capacity
+    );
+
+    *mem = data;
     DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
 
     return mem;
@@ -390,7 +464,7 @@ void thrd_queue_enqueue_unique(QueueT<T>* __restrict queue, const T* __restrict 
     coms_pthread_cond_signal(&queue->cond);
 }
 
-// @todo Create enqueue_unique and enqueue_unique_sem
+// @todo Create enqueue_unique_sem
 template <typename T>
 inline
 void thrd_queue_enqueue_unique_wait(QueueT<T>* __restrict queue, const T* __restrict data) NO_EXCEPT

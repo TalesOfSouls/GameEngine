@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -95,7 +92,11 @@ int32 coms_pthread_cond_destroy(mutex_cond*) NO_EXCEPT
 
 // @question Can't we turn timespec in a typedef of uint64? I would like to avoid the time.h class
 FORCE_INLINE
-int32 mutex_condimedwait(mutex_cond* __restrict cond, mutex* __restrict mutex, const timespec* __restrict abstime) NO_EXCEPT
+int32 mutex_condimedwait(
+    mutex_cond* __restrict cond,
+    mutex* __restrict mutex,
+    const timespec* __restrict abstime
+) NO_EXCEPT
 {
     ASSERT_TRUE(cond);
     ASSERT_TRUE(mutex);

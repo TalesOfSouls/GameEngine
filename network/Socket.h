@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -17,7 +14,8 @@
 #endif
 
 inline
-bool network_ipv6_is_usable() NO_EXCEPT {
+bool network_ipv6_is_usable() NO_EXCEPT
+{
     return network_is_ipv6_enabled_in_os()
         && network_has_ipv6_address()
         && network_has_ipv6_default_route();

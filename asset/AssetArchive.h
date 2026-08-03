@@ -3,7 +3,6 @@
  *
  * @copyright Jingga
  * @license    License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -35,7 +34,6 @@ struct AssetArchiveElement {
     // We store all dependencies in a continuous array
     // but for a single element of course we only need a small subsection
     // @question sometimes dependencies are in different files, this might be better as an id?
-    // @performance, should this be uint16?
     uint32 dependency_start;
     uint32 dependency_count;
 };

@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -87,9 +84,9 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
     ac->asset_memory.last_pos = 0;
     ac->asset_memory.alignment = sizeof(size_t);
     ac->asset_memory.memory = buf;
-    ac->asset_memory.free = (uint_max *) align_up(
+    ac->asset_memory.free = (size_t *) align_up(
         (uintptr_t) (ac->asset_memory.memory + ac->asset_memory.chunk_size * count),
-        alignof(uint_max)
+        alignof(size_t)
     );
 
     mutex_init(&ac->mtx, NULL);
@@ -409,24 +406,18 @@ byte ams_component_find_type(const AssetManagementSystem* const ams, uint32 size
     byte type = 0;
 
     for (int i = 1; i < AMS_TYPE_SIZE; ++i) {
-        // How often does the previous components chunk size fit into this larger chunk size
-        const f32 multiple_increase = (f32) ams->asset_components[i].asset_memory.chunk_size
-            / (f32) ams->asset_components[i - 1].asset_memory.chunk_size;
-
         const f32 c_size = (f32) ams->asset_components[i].asset_memory.chunk_size;
 
         // @todo we should also check if there is still room available in this component
         //      or one step further how much of the total chunks this one would occupy and if it is > 20% go to next component
-        // 1. Does the required size still not fit into one chunk than this new component is better anyways
-        // 2. If it does fit in we ensure that the wasted memory is less than the previous multiple increase
-        if (required_size / c_size >= 1.0f
-            || multiple_increase * ams->asset_components[i - 1].asset_memory.chunk_size >= (1.0f - (required_size / c_size)) * c_size
-        ) {
-            type = (byte) i;
-        } else {
-            // @todo fix this if/else we shouldn't have both we should negate the if and return type;
+
+        // This is an extremely simple approach.
+        // We only take the next larger component if the required size is above a certain threshold
+        if (required_size < 0.33f * c_size) {
             return type;
         }
+
+        type = (byte) i;
     }
 
     return type;
@@ -493,17 +484,17 @@ Asset* thrd_ams_reserve_asset(
     byte* const asset_data = chunk_get_element(&ac->asset_memory, free_data);
 
     Asset asset = {
-        0, // .official_id =
-        ac->asset_memory.chunk_size * elements, // .ram_size =
-        0, // .vram_size =
-        0, // .last_access =
-        elements, // .size =
-        0, // .is_loaded =
-        type, // .componentid =
-        0, // .state =
-        false, // .is_persistent =
-        0, // .reference_count =
-        asset_data // .self =
+        SMN(official_id) 0,
+        SMN(ram_size) ac->asset_memory.chunk_size * elements,
+        SMN(vram_size) 0,
+        SMN(last_access) 0,
+        SMN(size) elements,
+        SMN(is_loaded) 0,
+        SMN(component_id) type,
+        SMN(state) 0,
+        SMN(is_persistent) false,
+        SMN(reference_count) 0,
+        SMN(self) asset_data
     };
 
     ac->vram_size += asset.vram_size;

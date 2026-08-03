@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -17,7 +14,8 @@
 #define OMS_HAS_CHAR(x, c) (OMS_HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
 
 FORCE_INLINE
-bool __internal_has_zero(char c) NO_EXCEPT {
+bool __internal_has_zero(char c) NO_EXCEPT
+{
     return (c - ((size_t)-1 / 0xFF)) & ~c & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1));
 }
 
@@ -26,7 +24,8 @@ bool __internal_has_zero(char c) NO_EXCEPT {
     #define OMS_HAS_ZERO_WCHAR(x) ((((x) - 0x0001000100010001ULL) & ~(x) & 0x8000800080008000ULL) != 0)
 
     FORCE_INLINE
-    bool __internal_has_zero(wchar_t c) NO_EXCEPT {
+    bool __internal_has_zero(wchar_t c) NO_EXCEPT
+{
         return ((c - 0x0001000100010001ULL) & ~c & 0x8000800080008000ULL) != 0;
     }
 #else
@@ -34,7 +33,8 @@ bool __internal_has_zero(char c) NO_EXCEPT {
     #define OMS_HAS_ZERO_WCHAR(x) ((((x) - 0x0000000100000001ULL) & ~(x) & 0x8000000080000000ULL) != 0)
 
     FORCE_INLINE
-    bool __internal_has_zero(wchar_t c) NO_EXCEPT {
+    bool __internal_has_zero(wchar_t c) NO_EXCEPT
+{
         return ((c - 0x0000000100000001ULL) & ~c & 0x8000000080000000ULL) != 0;
     }
 #endif

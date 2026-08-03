@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -15,22 +12,26 @@
 #include "SimpleString.h"
 
 FORCE_INLINE
-size_t str_length(const char* str) NO_EXCEPT {
+size_t str_length(const char* str) NO_EXCEPT
+{
     return strlen(str);
 }
 
 FORCE_INLINE
-size_t str_length(const wchar_t* str) NO_EXCEPT {
+size_t str_length(const wchar_t* str) NO_EXCEPT
+{
     return wcslen(str);
 }
 
 FORCE_INLINE
-char* str_right(const char* str, char c) NO_EXCEPT {
+char* str_right(const char* str, char c) NO_EXCEPT
+{
     return (char *) strrchr(str, c);
 }
 
 FORCE_INLINE
-wchar_t* str_right(const wchar_t* str, wchar_t c) NO_EXCEPT {
+wchar_t* str_right(const wchar_t* str, wchar_t c) NO_EXCEPT
+{
     return (wchar_t *) wcsrchr(str, c);
 }
 
@@ -205,6 +206,20 @@ int32 char_to_wchar(
     dest[written] = 0;
 
     return written;
+}
+
+size_t wchar_to_char(char* dst, wchar_t wc)
+{
+    const unsigned char *p = (const unsigned char *) &wc;
+    size_t n = 0;
+
+    for (size_t i = 0; i < sizeof(wchar_t); ++i) {
+        if (p[i] != 0) {
+            dst[n++] = (char) p[i];
+        }
+    }
+
+    return n;
 }
 
 inline
@@ -2657,6 +2672,12 @@ void sprintf_fast_iter(char* __restrict buffer, const char* __restrict format, .
                     const char* str = va_arg(args, const char *);
                     while (*str) {
                         *buffer++ = *str++;
+                    }
+                } break;
+                case 'w': {
+                    const wchar_t* str = va_arg(args, const wchar_t *);
+                    while (*str) {
+                        buffer += wchar_to_char(buffer, *str++);
                     }
                 } break;
                 case 'c': {

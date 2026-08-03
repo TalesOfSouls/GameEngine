@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -37,9 +34,8 @@ struct FragmentMemoryT {
     int capacity;
     int last_pos;
 
-    // Array that contains pointers into the free chunks
-    // @performance consider to replace pointers with 32 bit offset values instead
-    T** free;
+    // Array that contains indices into the free chunks
+    int32* free;
 
     mutex lock;
 };
@@ -52,15 +48,15 @@ void fragment_alloc(
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FRAGMENT_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     LOG_1("[INFO] Allocating FragmentMemoryT");
 
-    const size_t memory_size = sizeof(T) * capacity + capacity * sizeof(T*) + alignof(uintptr_t);
-    const size_t max_memory_size = sizeof(T) * max_capacity + max_capacity * sizeof(T*) + alignof(uintptr_t);
+    const size_t memory_size = sizeof(T) * capacity + capacity * sizeof(int32) + alignof(int32);
+    const size_t max_memory_size = sizeof(T) * max_capacity + max_capacity * sizeof(int32) + alignof(int32);
 
     fragment->memory = (T *) platform_alloc_aligned(
         memory_size,
@@ -70,13 +66,13 @@ void fragment_alloc(
 
     fragment->capacity = capacity;
     fragment->last_pos = capacity - 1;
-    fragment->free = (T **) align_up(
-        (uint_max) ((uintptr_t) (fragment->memory + capacity)),
-        (uint_max) alignof(uintptr_t)
+    fragment->free = (int32 *) align_up(
+        (size_t) ((uintptr_t) (fragment->memory + capacity)),
+        (size_t) alignof(int32)
     );
 
     for (int i = 0; i < capacity; ++i) {
-        fragment->free[i] = &fragment->memory[i];
+        fragment->free[i] = i;
     }
 }
 
@@ -89,15 +85,15 @@ void fragment_alloc(
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FRAGMENT_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     LOG_1("[INFO] Allocating FragmentMemoryT");
 
-    const size_t memory_size = sizeof(T) * capacity + capacity * sizeof(T*) + alignof(uintptr_t);
-    const size_t max_memory_size = sizeof(T) * max_capacity + max_capacity * sizeof(T*) + alignof(uintptr_t);
+    const size_t memory_size = sizeof(T) * capacity + capacity * sizeof(int32) + alignof(int32);
+    const size_t max_memory_size = sizeof(T) * max_capacity + max_capacity * sizeof(int32) + alignof(int32);
 
     MemoryArena* arena = mem_arena_add(
         mem,
@@ -109,13 +105,13 @@ void fragment_alloc(
 
     fragment->capacity = capacity;
     fragment->last_pos = capacity - 1;
-    fragment->free = (T **) align_up(
-        (uint_max) ((uintptr_t) (fragment->memory + capacity)),
-        (uint_max) alignof(uintptr_t)
+    fragment->free = (int32 *) align_up(
+        (size_t) ((uintptr_t) (fragment->memory + capacity)),
+        (size_t) alignof(int32)
     );
 
     for (int i = 0; i < capacity; ++i) {
-        fragment->free[i] = &fragment->memory[i];
+        fragment->free[i] = i;
     }
 }
 
@@ -127,16 +123,16 @@ T* fragment_memory_get(FragmentMemoryT<T>* const fragment) NO_EXCEPT
         return NULL;
     }
 
-    DEBUG_MEMORY_READ(fragment->free[fragment->last_pos - 1], sizeof(T));
+    DEBUG_MEMORY_READ(&fragment->memory[fragment->free[fragment->last_pos]], sizeof(T));
 
-    return fragment->free[fragment->last_pos--];
+    return &fragment->memory[fragment->free[fragment->last_pos--]];
 }
 
 template <typename T>
 inline HOT_CODE
 void fragment_release_memory(FragmentMemoryT<T>* const fragment, T* data) NO_EXCEPT
 {
-    fragment->free[++fragment->last_pos] = data;
+    fragment->free[++fragment->last_pos] = (int32) (data - fragment->memory);
 }
 
 template <typename T>

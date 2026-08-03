@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -37,6 +34,10 @@ struct file_suffix_array<wchar_t>
 
 #include "../hash/Sha1.h"
 
+/**
+ * Securely overwrites a file preventing corruption
+ * Only after the file is successfully written to the file system it replaces the old file
+ */
 template <typename C, typename T>
 inline
 bool file_write_secure(const C* const path, const FileBody* const file, T* const mem) NO_EXCEPT
@@ -44,7 +45,7 @@ bool file_write_secure(const C* const path, const FileBody* const file, T* const
     C temp_path[PATH_MAX_LENGTH];
     const size_t path_len = str_length(path);
 
-    memcpy(temp_path, path, path_len * sizeof(T));
+    memcpy(temp_path, path, (path_len + 1) * sizeof(C));
     memcpy(
         temp_path + path_len,
         file_suffix_array<C>::value,
@@ -56,15 +57,14 @@ bool file_write_secure(const C* const path, const FileBody* const file, T* const
     byte mem_hash[20];
     sha1_hash(file->content, file->size, mem_hash);
 
-    FileBody* temp_file = {0};
-    file_read(temp_path, temp_file, mem);
+    FileBody temp_file = {0};
+    file_read(temp_path, &temp_file, mem);
 
     byte temp_hash[20];
-    sha1_hash(file->content, file->size, temp_hash);
-
-    file_delete(temp_path);
+    sha1_hash(temp_file.content, temp_file.size, temp_hash);
 
     if (memcmp(mem_hash, temp_hash, sizeof(temp_hash)) == 0) {
+        file_delete(path);
         return file_move(temp_path, path);
     }
 

@@ -15,6 +15,7 @@
 #include "UIElementType.cpp"
 #include "UIInput.h"
 #include "UILabel.cpp"
+#include "UICursor.cpp"
 #include "UIWindow.cpp"
 #include "attribute/UIAttribute.cpp"
 
@@ -32,12 +33,14 @@
 #define LAYOUT_ELEMENT_CHILD_TOKEN '$'
 
 FORCE_INLINE
-UICore* ui_get_element(UILayout* const layout, int32 offset) NO_EXCEPT {
+UICore* ui_get_element(UILayout* const layout, int32 offset) NO_EXCEPT
+{
     return (UICore *) (layout->ui_element_buffer.memory + offset);
 }
 
 FORCE_INLINE
-UICore* ui_get_element(UILayout* const layout, const char* name) NO_EXCEPT {
+UICore* ui_get_element(UILayout* const layout, const char* name) NO_EXCEPT
+{
     const HashEntryStrT<int32>* entry = hashmap_get_entry(&layout->hash_map, name);
     if (!entry) {
         return NULL;
@@ -47,7 +50,8 @@ UICore* ui_get_element(UILayout* const layout, const char* name) NO_EXCEPT {
 }
 
 FORCE_INLINE
-UICore* ui_get_element(UILayout* const layout, SimpleString<const char> str) NO_EXCEPT {
+UICore* ui_get_element(UILayout* const layout, SimpleString<const char> str) NO_EXCEPT
+{
     char name[64];
     ASSERT_TRUE(ARRAY_COUNT(name) > str.length);
 
@@ -114,7 +118,7 @@ UICore* ui_element_create(
             return NULL;
         };
         case UI_ELEMENT_TYPE_CURSOR : {
-            return NULL;
+            return (UICore *) ui_cursor_create(layout);
         };
         default: {
             UNREACHABLE();
@@ -291,7 +295,6 @@ char* ui_layout_element_parse(
     }
 
     // Create new element in hash map
-    // @question Maybe only insert if name starts with "#"?
     hashmap_insert(
         &layout->hash_map,
         element_name,
@@ -304,10 +307,10 @@ char* ui_layout_element_parse(
     // Handle all child elements
     if (ui_layout_is_element(pos)) {
         // Figure out if next element is a child by checking the indention
-        // @bug what if indention is malformed (e.g. missing a single whitespace or using \t)
         const char* pos_temp = pos;
         str_skip_whitespace(&pos_temp);
         int32 child_indent = (int32) (pos_temp - pos);
+        ASSERT_TRUE(child_indent % 4 == 0);
 
         while (self_indent < child_indent) {
             pos = ui_layout_element_parse(layout, pos, element);
@@ -316,6 +319,7 @@ char* ui_layout_element_parse(
             pos_temp = pos;
             str_skip_whitespace(&pos_temp);
             child_indent = (int32) (pos_temp - pos);
+            ASSERT_TRUE(child_indent % 4 == 0);
         }
     }
 
@@ -411,7 +415,7 @@ int32 layout_from_data(
     const byte* const __restrict data,
     UILayout* const __restrict layout
 ) {
-    PROFILE_DEBUG(PROFILE_LAYOUT_FROM_DATA, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_LAYOUT_FROM_DATA, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] UI load layout");
 
     const byte* in = data;
@@ -548,7 +552,8 @@ void layout_update_element(
     UILayout* const __restrict layout,
     const UITheme* const __restrict theme,
     UICore* const __restrict core
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     if (!core->class_name) {
         return;
     }
@@ -596,7 +601,7 @@ void layout_from_theme(
     const UITheme* __restrict theme,
     bool force_update = false
 ) {
-    PROFILE_DEBUG(PROFILE_LAYOUT_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_LAYOUT_FROM_THEME, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] UI load theme for layout");
 
     // @todo Handle animations

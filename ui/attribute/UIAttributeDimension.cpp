@@ -54,13 +54,21 @@ void ui_dimension_calculate(
     ////////////////////////////////////////////////////////
     v2_f32 pos_offset;
     if (dim->flag & UI_DIMENSION_POS_X_RELATIVE) {
-        pos_offset.x = dim->pos_raw.x * parent_dim->dim.x;
+        if (dim->flag & UI_DIMENSION_POS_X_PX) {
+            pos_offset.x = dim->pos_raw.x + parent_dim->pos.x;
+        } else {
+            pos_offset.x = dim->pos_raw.x * parent_dim->dim.x;
+        }
     } else {
         pos_offset.x = dim->pos_raw.x;
     }
 
     if (dim->flag & UI_DIMENSION_POS_Y_RELATIVE) {
-        pos_offset.y = dim->pos_raw.y * parent_dim->dim.y;
+        if (dim->flag & UI_DIMENSION_POS_Y_PX) {
+            pos_offset.y = dim->pos_raw.y + parent_dim->pos.y;
+        } else {
+            pos_offset.y = dim->pos_raw.y * parent_dim->dim.y;
+        }
     } else {
         pos_offset.y = dim->pos_raw.y;
     }
@@ -107,7 +115,8 @@ void ui_dimension_calculate(
  * The function then defines the dimension in its own data structure
  */
 inline
-void ui_dimension_calculate(UILayout* const layout, UICore* const core) NO_EXCEPT {
+void ui_dimension_calculate(UILayout* const layout, UICore* const core) NO_EXCEPT
+{
     const UICore* parent_element = (UICore *) (layout->ui_element_buffer.memory + core->parent_offset);
     ui_dimension_calculate(&parent_element->dimension, &core->dimension);
 }

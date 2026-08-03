@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -56,6 +53,13 @@
         PROFILE_VERTEX_TEXT_CREATE,
         PROFILE_PIPELINE_MAKE,
         PROFILE_THREADPOOL_WORK,
+
+        PROFILE_UI_UPDATE,
+        PROFILE_UI_CACHE,
+        PROFILE_UI_CACHE_CUSTOM,
+        PROFILE_UI_CACHE_WINDOW,
+        PROFILE_UI_CACHE_CHROMA_CODES,
+
         PROFILE_MAIN, // Used to profile the main loop
         PROFILE_GPU, // Used to profile the total gpu time
 
@@ -96,7 +100,7 @@ struct PerformanceStatHistory {
     alignas(8) PerformanceProfileResult perfs[MAX_PERFORMANCE_STATS_HISTORY * PROFILE_SIZE];
 };
 static PerformanceStatHistory* _perf_stats = NULL;
-static int32* _perf_active = NULL;
+static volatile int32* _perf_active = NULL;
 
 /**
  * Creates a snapshot of the current performance logs
@@ -293,7 +297,7 @@ void performance_log_to_file_formatted() NO_EXCEPT
     }
 
     MAYBE_UNUSED const int32 count = PROFILE_SIZE;
-    LOG_1("[BEGIN] Performance log (count %d)", {DATA_TYPE_INT32, &count});
+    LOG_1("[BEGIN] Formatted performance log (count %d)", {DATA_TYPE_INT32, &count});
     PSEUDO_USE(count);
 
     const int32 pos = atomic_get_acquire(&_perf_stats->pos) * PROFILE_SIZE;
@@ -323,6 +327,7 @@ static thread_local PerformanceProfiler** _perf_current_scope = NULL;
 static thread_local PerformanceProfiler* _perf_current_scope_internal;
 struct PerformanceProfiler {
     bool is_active;
+    bool is_wchar;
 
     const char* name;
     const char* info_msg;
@@ -335,9 +340,11 @@ struct PerformanceProfiler {
 
     PerformanceProfiler* parent;
 
-    HOT_CODE inline
+    template<typename C = char>
     explicit PerformanceProfiler(
-        int32 id, const char* const __restrict scope_name, const char* __restrict info = NULL,
+        int32 id,
+        const char* __restrict scope_name,
+        const C* __restrict info = (char *) NULL,
         uint32 flags = 0
     ) NO_EXCEPT
     {
@@ -348,10 +355,11 @@ struct PerformanceProfiler {
         }
 
         this->is_active = true;
+        this->is_wchar = is_same<C, wchar_t>::value;
         this->_id = id;
 
         this->name = scope_name;
-        this->info_msg = info;
+        this->info_msg = (char *) info;
         this->_flags = flags;
 
         this->total_cycle = 0;
@@ -431,12 +439,21 @@ struct PerformanceProfiler {
             || (this->_flags & PROFILE_FLAG_SHOULD_LOG)
         ) {
             if (this->info_msg && this->info_msg[0]) {
-                LOG_2(
-                    "[PERF] %s (%s): %n cycles",
-                    {DATA_TYPE_CHAR_STR, (void *) perf->name},
-                    {DATA_TYPE_CHAR_STR, (void *) this->info_msg},
-                    {DATA_TYPE_INT64, (void *) &perf->total_cycle},
-                );
+                if (this->is_wchar) {
+                    LOG_2(
+                        "[PERF] %s (%w): %n cycles",
+                        {DATA_TYPE_CHAR_STR, (void *) perf->name},
+                        {DATA_TYPE_WCHAR_STR, (void *) this->info_msg},
+                        {DATA_TYPE_INT64, (void *) &perf->total_cycle},
+                    );
+                } else {
+                    LOG_2(
+                        "[PERF] %s (%s): %n cycles",
+                        {DATA_TYPE_CHAR_STR, (void *) perf->name},
+                        {DATA_TYPE_CHAR_STR, (void *) this->info_msg},
+                        {DATA_TYPE_INT64, (void *) &perf->total_cycle},
+                    );
+                }
             } else {
                 LOG_2(
                     "[PERF] %s: %n cycles",
@@ -491,10 +508,10 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     perf->total_cycle = perf->self_cycle;
 }
 
-#if LOG_LEVEL > 0
+#if defined(LOG_LEVEL) && LOG_LEVEL > 0
     // Only these function can properly handle self-time calculation
     // Use these whenever you want to profile an entire function
-    #if (DEBUG || INTERNAL)
+    #if ((defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL))
         #define PROFILE_DEBUG(id, ...) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, ##__VA_ARGS__)
         #define PROFILE_START_DEBUG(id, ...) performance_profiler_start((id), ##__VA_ARGS__)
         #define PPROFILE_END_DEBUG(id) performance_profiler_end((id))

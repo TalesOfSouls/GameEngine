@@ -22,8 +22,7 @@ void module_file_parse(const char* path, Module* module, RingMemory* const ring)
     file.content = memory_get(ring, MEGABYTE * 1);
     file_read(path, &file);
 
-    char *rest = NULL;
-    char *line = strtok_r((char *) file.content, "\n", &rest);
+    char* line = file.content;
 
     const int32 MAX_LENGTH = 128;
     char name[MAX_LENGTH];
@@ -48,7 +47,7 @@ void module_file_parse(const char* path, Module* module, RingMemory* const ring)
             }
         }
 
-        line = strtok_r(rest, "\n", &rest);
+        line = str_move_past(line, '\n');
     }
 }
 

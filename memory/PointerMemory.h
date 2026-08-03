@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -16,6 +13,12 @@
  * This is a dangerous memory system since we could easily run out of bounds
  * The memory overflow needs to be entirely handled by the developer
  */
+
+FORCE_INLINE
+bool memory_resize(byte**, size_t) NO_EXCEPT
+{
+    return false;
+}
 
 inline
 byte* memory_get(byte** data, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT

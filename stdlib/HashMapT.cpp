@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -59,7 +56,7 @@ void hashmap_create(HashMapT<T>* const hm, int32 count, byte* const buf, int32 a
     ASSERT_MEM_ZERO(
         hm->buf.memory,
         count * sizeof(T)
-            + ceil_div(count, (int32) sizeof(uint_max) * 8) * sizeof(hm->buf.free)
+            + ceil_div(count, (int32) sizeof(size_t) * 8) * sizeof(hm->buf.free)
     );
 }
 
@@ -342,6 +339,7 @@ int64 hashmap_dump(const HashMapT<T>* const hm, byte* data, MAYBE_UNUSED int32 s
 
     // @bug change endian of hashmap next "pointer" and values?
     // Since we just dump the chunk memory we may have different endian between the saving and the loading system
+    // An additional problem is that the elements can have different types and therefore memory layout
 
     PSEUDO_USE(steps);
 
@@ -360,6 +358,7 @@ int64 hashmap_load(HashMapT<T>* const hm, const byte* data, MAYBE_UNUSED int32 s
 
     // @bug change endian of hashmap next "pointer" and values?
     // Since we just dump the chunk memory we may have different endian between the saving and the loading system
+    // An additional problem is that the elements can have different types and therefore memory layout
 
     PSEUDO_USE(steps);
 

@@ -3,7 +3,6 @@
  *
  * @copyright Jingga
  * @license    License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -24,6 +23,7 @@
 #include "../font/Font.cpp"
 #include "../localization/Language.cpp"
 #include "../ui/UITheme.cpp"
+#include "../compression/LZ4.h"
 #include "Asset.h"
 #include "AssetArchive.h"
 #include "AssetManagementSystem.cpp"
@@ -67,7 +67,6 @@ int32 asset_archive_header_size(
     int32 asset_dependency_count;
     read_le(data, &asset_dependency_count);
 
-    // @bug Sometimes (1 in 30) this assert fails, I HAVE NO IDEA WHY
     ASSERT_TRUE(asset_count + asset_dependency_count < 100000);
 
     return sizeof(archive->header.version)
@@ -176,7 +175,7 @@ void asset_archive_load(
     int32 steps = 8
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_ASSET_ARCHIVE_LOAD, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_ASSET_ARCHIVE_LOAD, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
 
     LOG_1("[INFO] Load AssetArchive");
 
@@ -296,15 +295,13 @@ Asset* const asset_archive_asset_load(
     // Create a string representation from the asset id
     // We can't just use the asset id, since an int can have a \0 between high byte and low byte
     // @question We maybe can switch the AMS to work with ints as keys.
-    // We would then have to also create an application specific enum for general assets,
-    // that are not stored in the asset archive (e.g. color palette, which is generated at runtime).
+    //          We would then have to also create an application specific enum for general assets,
+    //          that are not stored in the asset archive (e.g. color palette, which is generated at runtime).
     char id_str[9];
     int_to_hex(id, id_str);
 
     PROFILE_DEBUG(PROFILE_ASSET_ARCHIVE_ASSET_LOAD, id_str, PROFILE_FLAG_SHOULD_LOG);
-    // @todo add calculation from element->type to ams index. Probably requires an app specific conversion function
 
-    // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
     const AssetArchiveElement* const element = &archive->header.asset_element[ASSET_RAW_ID_FROM_ID(id)];
 
     ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
@@ -328,121 +325,110 @@ Asset* const asset_archive_asset_load(
         return asset;
     }
 
+    /**
+     * All other types have asset specific loading
+     * This determins how the data is loaded, decompressed and possibly stored into objects
+     */
+
+    // @performance In this case we may want to check if memory mapped regions are better.
+    // 1. I don't think they work together with async loading
+    // 2. Profile which one is faster
+    // 3. The big benefit of mmf would be that we can avoid one memcpy and directly load the data into the object
+    // 4. Of course the disadvantage would be to no longer have async loading
+
+    // @performance Currently loading the data into a temp buffer is universally working
+    //              However, some data types could be directly loaded into the final memory
+    //              This would avoid a memcpy
+    //              Although, I assume all formats have some form of compression which would make that statement false
+    // We are reading into temp memory since we have to perform transformations on the data
+    FileBodyAsync file = {0};
+    // @performance I don't like using chunk stack memory here, it is very slow since it well...
+    //              it uses chunks AND is threaded
+    THRD_CHUNK_STACK_MEMORY(mem, &file.content, element->length + 1);
+    file_read_async(archive->fd_async, &file, element->start, element->length);
+
+    // This happens while the file system loads the data
+    // The important part is to reserve the uncompressed file size, not the compressed one
+    // @performance I think we are wasting space here
+    //              e.g. check TextureAtlas, Font, ...
+    //              The reason for this is we don't calculate the exact required size to avoid a pre-parsing of the file
+    //              On the other hand would pre-parsing really be that bad?
+    asset = thrd_ams_reserve_asset(ams, id_str, element->uncompressed + asset_type_size(element->type));
+    asset->official_id = id;
+    asset->ram_size = element->uncompressed;
+
+    asset->state |= ASSET_STATE_IN_RAM;
+
+    file_async_wait(archive->fd_async, &file.ov, true);
+
     // @bug Couldn't the asset become available from thrd_ams_get_asset_wait to here?
     // This would mean we are overwriting it
     // A solution could be a function called thrd_ams_get_reserve_wait() that reserves, if not available
     // However, that function would have to lock the ams during that entire time
-    if (element->type == ASSET_TYPE_GENERAL) {
-        /**
-         * General asset types have a general compression and don't need specific loading logic
-         */
-        asset = thrd_ams_reserve_asset(ams, id_str, element->uncompressed);
-        asset->official_id = id;
-        asset->ram_size = element->uncompressed;
+    switch (element->type) {
+        case ASSET_TYPE_GENERAL: {
+            byte* const raw_data = asset->self;
 
-        // @todo Should be async
-        FileBody file = {0};
-        file.content = asset->self;
+            lz4_decode(file.content, file.size, raw_data);
+        } break;
+        case ASSET_TYPE_TEXTURE_ATLAS: {
+            TextureAtlas* const atlas = (TextureAtlas *) asset->self;
+            atlas->elements = (TextureAtlasElement *) (atlas + 1);
 
-        // @performance Consider to implement general purpose fast compression algorithm
+            atlas_from_data(file.content, atlas);
+        } break;
+        case ASSET_TYPE_IMAGE: {
+            // @todo Do we really want to store textures in the asset management system or only images?
+            // If it is only images then we need to somehow also manage textures
+            Texture* texture = (Texture *) asset->self;
+            texture->image.pixels = (byte *) (texture + 1);
 
-        // We are directly reading into the correct destination
-        file_read(archive->fd, &file, element->start, element->length);
-    } else {
-        /**
-         * All other types have asset specific loading
-         * This determins how the data is loaded, decompressed and possibly stored into objects
-         */
+            file.content += image_header_from_data(file.content, &texture->image);
+            qoi_decode(file.content, &texture->image);
 
-        // @performance In this case we may want to check if memory mapped regions are better.
-        // 1. I don't think they work together with async loading
-        // 2. Profile which one is faster
-        // 3. The big benefit of mmf would be that we can avoid one memcpy and directly load the data into the object
-        // 4. Of course the disadvantage would be to no longer have async loading
+            asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
+            asset->ram_size = asset->vram_size + sizeof(Texture);
 
-        // @performance Currently loading the data into a temp buffer is universally working
-        //              However, some data types could be directly loaded into the final memory
-        //              This would avoid a memcpy
-        //              Although, I assume all formats have some form of compression which would make that statement false
-        // We are reading into temp memory since we have to perform transformations on the data
-        FileBodyAsync file = {0};
-        // @performance I don't like using chunk stack memory here, it is very slow since it well...
-        //              it uses chunks AND is threaded
-        THRD_CHUNK_STACK_MEMORY(mem, &file.content, element->length + 1);
-        file_read_async(archive->fd_async, &file, element->start, element->length);
+            #if (defined(OPENGL) && OPENGL) || (defined(VULKAN) && VULKAN)
+                // If opengl, we always flip
+                if (!(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)) {
+                    image_flip_vertical(&texture->image);
+                }
+            #endif
+        } break;
+        case ASSET_TYPE_AUDIO: {
+            Audio* const audio = (Audio *) asset->self;
+            audio->data = (byte *) (audio + 1);
 
-        // This happens while the file system loads the data
-        // The important part is to reserve the uncompressed file size, not the compressed one
-        // @performance I think we are wasting space here
-        //              e.g. check TextureAtlas, Font, ...
-        //              The reason for this is we don't calculate the exact required size to avoid a pre-parsing of the file
-        //              On the other hand would pre-parsing really be that bad?
-        asset = thrd_ams_reserve_asset(ams, id_str, element->uncompressed + asset_type_size(element->type));
-        asset->official_id = id;
+            file.content += audio_header_from_data(file.content, audio);
+            qoa_decode(file.content, audio);
+        } break;
+        case ASSET_TYPE_OBJ: {
+            Mesh* const mesh = (Mesh *) asset->self;
+            mesh->data = (byte *) (mesh + 1);
 
-        asset->state |= ASSET_STATE_IN_RAM;
+            mesh_from_data(file.content, mesh);
+        } break;
+        case ASSET_TYPE_LANGUAGE: {
+            Language* const language = (Language *) asset->self;
+            language->data = (byte *) (language + 1);
 
-        file_async_wait(archive->fd_async, &file.ov, true);
-        switch (element->type) {
-            case ASSET_TYPE_TEXTURE_ATLAS: {
-                TextureAtlas* const atlas = (TextureAtlas *) asset->self;
-                atlas->elements = (TextureAtlasElement *) (atlas + 1);
+            language_from_data(file.content, language);
+        } break;
+        case ASSET_TYPE_FONT: {
+            Font* const font = (Font *) asset->self;
+            font->glyphs = (Glyph *) (font + 1);
 
-                atlas_from_data(file.content, atlas);
-            } break;
-            case ASSET_TYPE_IMAGE: {
-                // @todo Do we really want to store textures in the asset management system or only images?
-                // If it is only images then we need to somehow also manage textures
-                Texture* texture = (Texture *) asset->self;
-                texture->image.pixels = (byte *) (texture + 1);
+            font_from_data(file.content, font);
+        } break;
+        case ASSET_TYPE_THEME: {
+            UITheme* const theme = (UITheme *) asset->self;
+            theme->data = (byte *) (theme + 1);
 
-                file.content += image_header_from_data(file.content, &texture->image);
-                qoi_decode(file.content, &texture->image);
-
-                asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
-                asset->ram_size = asset->vram_size + sizeof(Texture);
-
-                #if (defined(OPENGL) && OPENGL) || (defined(VULKAN) && VULKAN)
-                    // If opengl, we always flip
-                    if (!(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)) {
-                        image_flip_vertical(&texture->image);
-                    }
-                #endif
-            } break;
-            case ASSET_TYPE_AUDIO: {
-                Audio* const audio = (Audio *) asset->self;
-                audio->data = (byte *) (audio + 1);
-
-                file.content += audio_header_from_data(file.content, audio);
-                qoa_decode(file.content, audio);
-            } break;
-            case ASSET_TYPE_OBJ: {
-                Mesh* const mesh = (Mesh *) asset->self;
-                mesh->data = (byte *) (mesh + 1);
-
-                mesh_from_data(file.content, mesh);
-            } break;
-            case ASSET_TYPE_LANGUAGE: {
-                Language* const language = (Language *) asset->self;
-                language->data = (byte *) (language + 1);
-
-                language_from_data(file.content, language);
-            } break;
-            case ASSET_TYPE_FONT: {
-                Font* const font = (Font *) asset->self;
-                font->glyphs = (Glyph *) (font + 1);
-
-                font_from_data(file.content, font);
-            } break;
-            case ASSET_TYPE_THEME: {
-                UITheme* const theme = (UITheme *) asset->self;
-                theme->data = (byte *) (theme + 1);
-
-                theme_from_data(file.content, theme);
-            } break;
-            default: {
-                UNREACHABLE();
-            }
+            theme_from_data(file.content, theme);
+        } break;
+        default: {
+            UNREACHABLE();
         }
     }
 
@@ -466,8 +452,7 @@ Asset* const asset_archive_asset_load(
             sizeof(uint32)
         );
 
-        // @performance maybe do in worker threads? This just feels very slow
-        // @question Do we even want to do it here or is this the job of something else like the AppCmdBuffer
+        // @performance maybe do in worker threads or AppCmdbuffer? This just feels very slow
         if (load_dependencies) {
             for (uint32 i = 0; i < element->dependency_count; ++i) {
                 asset_archive_asset_load(archive, asset->references[i], ams, mem);

@@ -12,7 +12,6 @@
 #include "UILayout.h"
 #include "UIWindow.h"
 #include "UILabel.h"
-#include "UIUber.h"
 #include "UICore.cpp"
 #include "../object/Vertex.h"
 
@@ -22,7 +21,8 @@ void ui_vertices_cache(
     UILabel* label,
     UILayout* const layout, f32 zindex,
     byte* const __restrict mem
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     FontSystem* const font = layout->font;
     const f32 font_size = label->font.size / font->base.size;
 
@@ -67,7 +67,8 @@ void ui_vertices_cache(
 
 template <typename T>
 static
-int32 ui_label_reserve_text(UILayout* layout, int32* offset, const T* content) NO_EXCEPT {
+int32 ui_label_reserve_text(UILayout* layout, int32* offset, const T* content) NO_EXCEPT
+{
     if (!content) {
         return NULL;
     }
@@ -101,7 +102,8 @@ UILabel* ui_label_create(
     int32 pattern_length = 0,
     int32 content_length = 0,
     UICore* element = NULL
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     UILabel* label = (UILabel *) element;
 
     if (!label) {
@@ -113,7 +115,6 @@ UILabel* ui_label_create(
     }
 
     label->char_type = char_type;
-    label->core.opacity = 0xFF;
 
     if (pattern_length) {
         const byte* temp = memory_get(

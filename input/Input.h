@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -39,7 +36,7 @@ enum InputType : byte {
 // @todo This should probably be a setting
 #define INPUT_LONG_PRESS_DURATION 250
 
-enum InputMouseAction {
+enum InputMouseAction : uint8 {
     INPUT_MOUSE_BUTTON_1 = 1,
     INPUT_MOUSE_BUTTON_2 = 2,
     INPUT_MOUSE_BUTTON_3 = 3,
@@ -51,6 +48,7 @@ enum InputMouseAction {
     INPUT_MOUSE_WHEEL_DOWN = 9,
     INPUT_MOUSE_HWHEEL_LEFT = 10,
     INPUT_MOUSE_HWHEEL_RIGHT = 11,
+    INPUT_MOUSE_MOVE = 12,
 };
 
 /**
@@ -145,37 +143,33 @@ struct InputState {
     int16 y[3];
 };
 
-// @todo Do we even want to use these input states, I don't really see there use case
-//      Instead the typing mode etc. we may want to use the context
 enum GeneralInputState : byte {
-    INPUT_STATE_GENERAL_BUTTON_CHANGE = 1 << 0,
-    INPUT_STATE_GENERAL_MOUSE_CHANGE = 1 << 1,
-    INPUT_STATE_GENERAL_MOUSE_MOVEMENT = 1 << 2,
+    INPUT_STATE_GENERAL_INPUT_CHANGE = 1 << 0,
 
-    INPUT_STATE_GENERAL_TYPING_MODE = 1 << 3, // Used for typing in chat box etc. otherwise we could have conflicts with hotkeys
-    INPUT_STATE_GENERAL_HOTKEY_ACTIVE = 1 << 4, // At least one hotkey is active
+    INPUT_STATE_GENERAL_TYPING_MODE = 1 << 1, // Used for typing in chat box etc. otherwise we could have conflicts with hotkeys
+    INPUT_STATE_GENERAL_HOTKEY_ACTIVE = 1 << 2, // At least one hotkey is active
 };
 
 #ifdef _WIN32
     #include <windows.h>
     #include <dinput.h>
+
+    typedef HANDLE InputHandle;
 #endif
 
 struct KBMDevice {
     wchar_t device_name[128];
 
-    #ifdef _WIN32
-        // Windows is nuts, one device can have multiple handles
-        // Sometimes to simulate additional buttons additional devices are created
-        // There are probably more insane reasons
-        HANDLE handle[8];
-    #endif
+    // Windows is nuts, one device can have multiple handles
+    // Sometimes to simulate additional buttons additional devices are created
+    // There are probably more insane reasons
+    InputHandle handle[8];
 };
 
 union ControllerDevice {
     #ifdef _WIN32
         int32 id; // used by XInput
-        HANDLE handle; // used by raw input controller
+        InputHandle handle; // used by raw input controller
         LPDIRECTINPUTDEVICE8* direct; // used by direct input controller
     #endif
 };
@@ -184,14 +178,24 @@ struct Input {
     // Device
     InputConnectionType connection_type;
 
+    // GeneralInputState
     byte general_states;
+
+    // InputContext
+    byte context;
+
+    // ControllerType
     byte controller_type;
+
     uint8 hotkey_count;
 
     KBMDevice keyboard;
     KBMDevice mouse;
 
     ControllerDevice controller;
+
+    f32 cursor_sensitivity;
+    f32 controller_sensitivity[6];
 
     InputState state;
     uint64 time_last_input_check;
@@ -200,14 +204,13 @@ struct Input {
     // @todo don't we need multiple deadzones? triggers, sticks
     int32 deadzone;
 
-    // @performance I hate having this here.
-    //      Shouldn't it be just a pointer
-    char text[512];
+    // Buffer for text (e.g. text copy/clipboard)
+    // In case of multiple Input elements we may even reference the same buffer
+    char* text;
 
     // We allow a hotkey to be mapped in two different ways = allow alternative hotkey combination
-    // @bug This doesn't allow alternative mappings + controller support together with keyboard
-    //      Sometimes a player wants to use controller but still use keyboard hotkeys at the same time
-    //      Sure mapping1 could be keyboard and mapping2 controller but then we cannot have alternate mapping for keyboard
+    // This allows to use controller + keyboard or alternative hotkey mapping but not both at the same time
+    // This trade off seems fine since both situations are edge cases
     Hotkey* input_mapping1;
     Hotkey* input_mapping2;
 

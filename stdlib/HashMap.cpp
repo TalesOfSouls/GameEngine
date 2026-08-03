@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -113,7 +110,7 @@ void hashmap_create(HashMap* const hm, int32 count, int32 element_size, byte* co
     ASSERT_MEM_ZERO(
         buf,
         count * element_size
-        + ceil_div(count, (int32) sizeof(uint_max) * 8) * sizeof(hm->buf.free)
+        + ceil_div(count, (int32) sizeof(size_t) * 8) * sizeof(hm->buf.free)
     );
 }
 
@@ -138,7 +135,7 @@ HashEntryInt32* hashmap_insert(HashMap* const __restrict hm, const char* __restr
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -175,7 +172,7 @@ HashEntryInt64* hashmap_insert(HashMap* const __restrict hm, const char* __restr
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -210,7 +207,7 @@ HashEntryInt32Int32* hashmap_insert(HashMap* const __restrict hm, const char* __
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -247,7 +244,7 @@ HashEntryUIntPtr* hashmap_insert(HashMap* const __restrict hm, const char* __res
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -283,7 +280,7 @@ HashEntryVoidP* hashmap_insert(HashMap* const __restrict hm, const char* key, vo
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -319,7 +316,7 @@ HashEntryFloat* hashmap_insert(HashMap* const __restrict hm, const char* __restr
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -355,7 +352,7 @@ HashEntryStr* hashmap_insert(HashMap* const __restrict hm, const char* __restric
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -395,7 +392,7 @@ HashEntry* hashmap_insert(HashMap* const __restrict hm, const char* __restrict k
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -436,7 +433,7 @@ HashEntry* hashmap_reserve(HashMap* const __restrict hm, const char* __restrict 
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -566,7 +563,7 @@ HashEntryInt32KeyInt32* hashmap_insert(HashMap* const hm, uint32 key, int32 valu
     const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -596,7 +593,7 @@ HashEntryInt64KeyInt32* hashmap_insert(HashMap* const hm, uint32 key, int64 valu
     const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -626,7 +623,7 @@ HashEntryUIntPtrKeyInt32* hashmap_insert(HashMap* const hm, uint32 key, uintptr_
     const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -656,7 +653,7 @@ HashEntryVoidPKeyInt32* hashmap_insert(HashMap* const __restrict hm, uint32 key,
     const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -686,7 +683,7 @@ HashEntryFloatKeyInt32* hashmap_insert(HashMap* const hm, uint32 key, f32 value)
     const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -716,7 +713,7 @@ HashEntryStrKeyInt32* hashmap_insert(HashMap* const __restrict hm, uint32 key, c
     const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -749,7 +746,7 @@ HashEntryKeyInt32* hashmap_insert(HashMap* const __restrict hm, uint32 key, cons
     const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -832,7 +829,7 @@ HashEntryInt32KeyInt64* hashmap_insert(HashMap* const hm, uint64 key, int32 valu
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -862,7 +859,7 @@ HashEntryInt64KeyInt64* hashmap_insert(HashMap* const hm, uint64 key, int64 valu
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -892,7 +889,7 @@ HashEntryUIntPtrKeyInt64* hashmap_insert(HashMap* const hm, uint64 key, uintptr_
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -922,7 +919,7 @@ HashEntryVoidPKeyInt64* hashmap_insert(HashMap* const __restrict hm, uint64 key,
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -952,7 +949,7 @@ HashEntryFloatKeyInt64* hashmap_insert(HashMap* const hm, uint64 key, f32 value)
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -982,7 +979,7 @@ HashEntryStrKeyInt64* hashmap_insert(HashMap* const __restrict hm, uint64 key, c
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -1014,7 +1011,7 @@ HashEntryKeyInt64* hashmap_insert(HashMap* const __restrict hm, uint64 key, cons
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one((uint_max *) hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one((size_t *) hm->buf.free, hm->buf.capacity, index);
     if (new_index < 0) {
         return NULL;
     }

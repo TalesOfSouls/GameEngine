@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -37,6 +34,7 @@ char* settings_save_name(
 ) NO_EXCEPT
 {
     out += str_copy(out, match->name);
+    --out;
 
     switch (match->type) {
         case DATA_TYPE_UINT16_ARRAY: FALLTHROUGH;
@@ -65,6 +63,12 @@ char* settings_save_value(
 ) NO_EXCEPT
 {
     const byte* const member = settings_data + match[match_index].offset;
+
+    // Check if there is a value
+    str_skip_whitespace((const char **) &member);
+    if (str_is_eol((char) *member)) {
+        return out;
+    }
 
     switch (match[match_index].type) {
         case DATA_TYPE_BOOL: {
@@ -183,6 +187,9 @@ size_t settings_save(
 
     int32 offset;
     while (*in && out_length - (out - start) > 128) {
+        // @questions How can we maintain multiple newlines also in the output?
+        in = str_skip_empty(in);
+
         if (in[0] == '/' && in[1] == '/') {
             offset = str_copy_to_eol(in, out);
             in += offset;
@@ -190,6 +197,9 @@ size_t settings_save(
 
             *out = '\n';
             ++out;
+
+            // @questions How can we maintain multiple newlines also in the output?
+            in = str_skip_empty(in);
 
             continue;
         }

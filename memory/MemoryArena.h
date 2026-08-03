@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -60,7 +57,7 @@ MemoryArena* mem_arena_alloc(
     size_t initial_size, size_t reserve_size,
     int32 alignment = sizeof(void*)
 ) {
-    PROFILE_DEBUG(PROFILE_ARENA_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_ARENA_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
 
     initial_size += align_up(sizeof(MemoryArena), alignment);
     reserve_size += align_up(sizeof(MemoryArena), alignment);
@@ -111,7 +108,8 @@ static inline
 void mem_arena_remove(
     MemoryArena* mem,
     MemoryArena* remove
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     MemoryArena* prev = NULL;
     while (mem != remove) {
         prev = mem;
@@ -129,7 +127,8 @@ inline
 void mem_arena_remove(
     MemoryArena* mem,
     byte* remove
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     MemoryArena* arena = (MemoryArena *) align_down((uintptr_t) remove - sizeof(MemoryArena), sizeof(uintptr_t));
     mem_arena_remove(mem, arena);
 }

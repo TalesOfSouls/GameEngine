@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -30,8 +27,9 @@ struct DebugContainer {
     int64* stats_counter_persistent;
     PerformanceStatHistory* perf_stats;
     PerformanceProfiler** perf_current_scope;
-    int32* perf_active;
-    int32* stats_counter_active;
+    volatile int32* perf_active;
+    volatile int32* stats_counter_active;
+    volatile int32* dmc_active;
     int32 perf_profile_history_count;
     PerformanceProfileThread* perf_profile_history;
 };

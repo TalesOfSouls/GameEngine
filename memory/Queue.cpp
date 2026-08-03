@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -184,6 +181,68 @@ void thrd_queue_free(Queue* const queue, MemoryArena* const mem)
     thrd_queue_locks_free(queue);
 }
 
+inline
+bool memory_resize(Queue* const queue, size_t new_capacity) NO_EXCEPT
+{
+    byte* old_memory = queue->memory;
+    uint32 element_size = queue->element_size;
+    size_t old_capacity = queue->size;
+
+    size_t head_index = (queue->head - old_memory) / element_size;
+    size_t tail_index = (queue->tail - old_memory) / element_size;
+
+    // Number of live/unhandled elements currently in the queue
+    size_t count = (tail_index >= head_index)
+        ? (tail_index - head_index)
+        : (old_capacity - head_index + tail_index);
+
+    // Refuse a resize that would drop unhandled data
+    if (new_capacity < count) {
+        return false;
+    }
+
+    // If the live data currently wraps around the end of the buffer,
+    // linearize it first so realloc doesn't split/corrupt it.
+    if (tail_index < head_index && count > 0) {
+        byte* temp = (byte*) platform_alloc_aligned(element_size * count, queue->alignment);
+        if (!temp) {
+            return false;
+        }
+
+        size_t first_chunk = old_capacity - head_index;
+        memcpy(temp, old_memory + head_index * element_size, element_size * first_chunk);
+        memcpy(temp + first_chunk * element_size, old_memory, element_size * tail_index);
+
+        memcpy(old_memory, temp, element_size * count);
+        platform_free_aligned(temp);
+
+        head_index = 0;
+        tail_index = count;
+    }
+
+    if (!platform_alloc_aligned_resize(queue->memory, new_capacity * element_size)) {
+        return false;
+    }
+
+    queue->size = new_capacity;
+    queue->end = queue->memory + element_size * new_capacity;
+
+    // memory may have moved (realloc) and/or been linearized above —
+    // re-point head/tail into the new buffer rather than assuming the
+    // old raw pointer offsets are still valid
+    queue->head = queue->memory + head_index * element_size;
+    queue->tail = queue->memory + (tail_index % new_capacity) * element_size;
+
+    return true;
+}
+
+inline
+bool thrd_memory_resize(Queue* const queue, size_t new_capacity) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->mtx);
+    return memory_resize(queue, new_capacity);
+}
+
 FORCE_INLINE
 bool queue_is_empty(const Queue* const queue) NO_EXCEPT
 {
@@ -315,7 +374,6 @@ void thrd_queue_enqueue_unique_wait(Queue* __restrict queue, const byte* __restr
     while (tail != queue->tail) {
         ASSERT_TRUE((uint64_t) tail % 4 == 0);
 
-        // @performance we could probably make this faster since we don't need to compare the entire range
         if (memcmp(tail, data, queue->element_size) == 0) {
             mutex_unlock(&queue->mtx);
 

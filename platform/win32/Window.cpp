@@ -1,23 +1,22 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
-#ifndef COMS_PLATFORM_WIN32_GUI_UTILS_H
-#define COMS_PLATFORM_WIN32_GUI_UTILS_H
+#ifndef COMS_PLATFORM_WIN32_WINDOW_C
+#define COMS_PLATFORM_WIN32_WINDOW_C
 
-#include <windows.h>
-#include "Window.h"
 #include "../../stdlib/Stdlib.h"
+#include "../../system/Window.h"
 #include "../../utils/StringUtils.h"
+#include <windows.h>
 
-// @question Shouldn't this function and the next one accept a parameter of what to add/remove?
+/**
+ * Removes all window styles effectively turning it into a full screen window
+ */
 FORCE_INLINE
-void window_remove_style(Window* const w) NO_EXCEPT
+void window_style_remove(Window* const w) NO_EXCEPT
 {
     WindowPlatform* const platform_window = (WindowPlatform *) w->platform_window;
 
@@ -26,8 +25,11 @@ void window_remove_style(Window* const w) NO_EXCEPT
     SetWindowLongPtr(platform_window->hwnd, GWL_STYLE, style);
 }
 
+/**
+ * Re-add window styles
+ */
 FORCE_INLINE
-void window_add_style(Window* const w) NO_EXCEPT
+void window_style_add(Window* const w) NO_EXCEPT
 {
     WindowPlatform* const platform_window = (WindowPlatform *) w->platform_window;
 
@@ -37,7 +39,7 @@ void window_add_style(Window* const w) NO_EXCEPT
 }
 
 FORCE_INLINE
-void physical_resolution(Window* const w) {
+void physical_resolution_update(Window* const w) {
     w->dpi = (byte) GetDpiForWindow(((WindowPlatform *) w->platform_window)->hwnd);
 
     w->state_current.physical_width = (uint16) (((uint32) w->state_current.logical_width * (uint32) w->dpi) / 96);
@@ -59,11 +61,11 @@ void monitor_resolution(Window* const w) NO_EXCEPT
     w->state_current.logical_width = (uint16) GetDeviceCaps(platform_window->hdc, HORZRES);
     w->state_current.logical_height = (uint16) GetDeviceCaps(platform_window->hdc, VERTRES);
 
-    physical_resolution(w);
+    physical_resolution_update(w);
 }
 
 FORCE_INLINE
-void window_resolution(Window* const w) NO_EXCEPT
+void window_resolution_update(Window* const w) NO_EXCEPT
 {
     RECT rect;
     GetClientRect(((WindowPlatform *) w->platform_window)->hwnd, &rect);
@@ -73,7 +75,7 @@ void window_resolution(Window* const w) NO_EXCEPT
     w->state_current.logical_width = (uint16) (rect.right - rect.left);
     w->state_current.logical_height = (uint16) (rect.bottom - rect.top);
 
-    physical_resolution(w);
+    physical_resolution_update(w);
 
     if (!w->state_current.physical_width || !w->state_current.physical_height) {
         w->state_flag |= WINDOW_STATE_FLAG_DIMENSIONLESS;
@@ -83,7 +85,7 @@ void window_resolution(Window* const w) NO_EXCEPT
 }
 
 inline
-void window_fullscreen(Window* const w) NO_EXCEPT
+void window_fullscreen_apply(Window* const w) NO_EXCEPT
 {
     monitor_resolution(w);
     w->state_current.x = 0;
@@ -99,7 +101,7 @@ void window_fullscreen(Window* const w) NO_EXCEPT
 inline
 void window_restore(Window* const w) NO_EXCEPT
 {
-    window_restore_state(w);
+    window_state_restore(w);
 
     WindowPlatform* const platform_window = (WindowPlatform *) w->platform_window;
 
@@ -173,7 +175,7 @@ void window_create(Window* const __restrict window, void* const __restrict proc)
         NULL, NULL, platform_window->hInstance, window
     );
 
-    window_resolution(window);
+    window_resolution_update(window);
 
     ASSERT_TRUE(platform_window->hwnd);
 }
@@ -188,6 +190,13 @@ void window_open(Window* const window) NO_EXCEPT
     UpdateWindow(platform_window->hwnd);
 
     window->state_changes |= WINDOW_STATE_CHANGE_FOCUS;
+}
+
+inline
+void window_hide(Window* const window) NO_EXCEPT
+{
+    WindowPlatform* const platform_window = (WindowPlatform *) window->platform_window;
+    ShowWindow(platform_window->hwnd, SW_HIDE);
 }
 
 inline
@@ -219,6 +228,16 @@ HBITMAP CreateBitmapFromRGBA(
     }
 
     return hbitmap;
+}
+
+FORCE_INLINE
+void window_state_backup(Window* const w) NO_EXCEPT
+{
+    memcpy(&w->state_old, &w->state_current, sizeof(w->state_current));
+    w->state_old.style = GetWindowLongPtrW(
+        ((WindowPlatform *) w->platform_window)->hwnd,
+        GWL_STYLE
+    );
 }
 
 #endif

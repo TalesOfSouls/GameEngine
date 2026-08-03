@@ -169,8 +169,9 @@ int32 ui_attribute_type_to_id(const char* attribute_name) NO_EXCEPT
     size_t index = count;
 
     // Binary search for any entry starting with c
-    // @performance If we ever make this a runtime aspect we could heavily optimize this
+    // @performance If we ever make this a runtime function instead of build time we could heavily optimize this
     //              Use 2 separate arrays or even have a string with only the first character to find the index
+    //              Since this is only get called during build time we don't really care
     while (left < right) {
         size_t mid = left + (right - left) / 2;
 

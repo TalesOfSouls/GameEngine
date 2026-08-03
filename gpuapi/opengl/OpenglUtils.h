@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -529,7 +526,7 @@ uint32 gpuapi_renderbuffer_generate() NO_EXCEPT
 }
 
 FORCE_INLINE
-void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data) NO_EXCEPT
+void gpuapi_buffer_update(uint32 vbo, int32 size, const void* data) NO_EXCEPT
 {
     PROFILE_START_DEBUG(PROFILE_GPU);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);

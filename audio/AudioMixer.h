@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -77,6 +74,7 @@ struct AudioMixer {
     // Some platforms require the window data for audio
     void* platform_window;
 
+    // Used to create the mixer output
     int16* buffer_temp;
 
     // @todo add mutex for locking and create threaded functions

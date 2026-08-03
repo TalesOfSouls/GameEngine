@@ -34,8 +34,6 @@ struct UIUber {
     UIAttributeBorder border;
     UIAttributeShadow shadow_outer;
     UIAttributeShadow shadow_inner;
-
-    // @todo implement more
 };
 
 #endif

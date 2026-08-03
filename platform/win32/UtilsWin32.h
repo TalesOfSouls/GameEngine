@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -13,9 +10,6 @@
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include <windows.h>
-
-// @question Shouldn't this be somewhere else, like the Helper.h file
-#define strtok_r strtok_s
 
 uint32 key_to_unicode(byte scan_code, byte vkey, byte keyboard_state[256]) NO_EXCEPT
 {

@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -40,10 +37,10 @@ struct PersistentQueueT {
     uint32 capacity;
 
     // free describes which locations are used and which are free
-    atomic_ptr uint_max* free;
+    atomic_ptr size_t* free;
 
     // completed describes which elements are already dequeued but are kept in the queue indefinitely
-    atomic_ptr uint_max* completed;
+    atomic_ptr size_t* completed;
 
     // We support both conditional locking and semaphore locking
     // These values are not initialized and not used unless you use the queue

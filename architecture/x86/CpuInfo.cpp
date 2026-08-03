@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -35,18 +32,13 @@ uint64 cpu_info_features() {
     if (ecx & (1 << 22)) feature_bitfield |= CPU_FEATURE_MOVBE;
     if (ecx & (1 << 23)) feature_bitfield |= CPU_FEATURE_POPCNT;
     if (ecx & (1 << 25)) feature_bitfield |= CPU_FEATURE_AES;
-    if (ecx & (1 << 26)) feature_bitfield |= CPU_FEATURE_XSAVE;
-    if (ecx & (1 << 27)) feature_bitfield |= CPU_FEATURE_OSXSAVE;
     if (ecx & (1 << 28)) feature_bitfield |= CPU_FEATURE_AVX;
     if (ecx & (1 << 29)) feature_bitfield |= CPU_FEATURE_F16C;
     if (ecx & (1 << 30)) feature_bitfield |= CPU_FEATURE_RDRAND;
 
     // Map EDX features
-    if (edx & (1 << 5)) feature_bitfield |= CPU_FEATURE_MSR;
     if (edx & (1 << 8)) feature_bitfield |= CPU_FEATURE_CX8;
-    if (edx & (1 << 11)) feature_bitfield |= CPU_FEATURE_SEP;
     if (edx & (1 << 15)) feature_bitfield |= CPU_FEATURE_CMOV;
-    if (edx & (1 << 19)) feature_bitfield |= CPU_FEATURE_CLFSH;
     if (edx & (1 << 23)) feature_bitfield |= CPU_FEATURE_MMX;
     if (edx & (1 << 24)) feature_bitfield |= CPU_FEATURE_FXSR;
     if (edx & (1 << 25)) feature_bitfield |= CPU_FEATURE_SSE;
@@ -61,7 +53,6 @@ uint64 cpu_info_features() {
     if (ebx & (1 << 5)) feature_bitfield |= CPU_FEATURE_AVX2;
     if (ebx & (1 << 8)) feature_bitfield |= CPU_FEATURE_BMI2;
     if (ebx & (1 << 9)) feature_bitfield |= CPU_FEATURE_ERMS;
-    if (ebx & (1 << 10)) feature_bitfield |= CPU_FEATURE_INVPCID;
     if (ebx & (1 << 16)) feature_bitfield |= CPU_FEATURE_AVX512F;
     if (ebx & (1 << 18)) feature_bitfield |= CPU_FEATURE_RDSEED;
     if (ebx & (1 << 19)) feature_bitfield |= CPU_FEATURE_ADX;
@@ -79,7 +70,6 @@ uint64 cpu_info_features() {
     uint32 edx81 = (uint32) cpu_info[3];
 
     // Map ECX extended features
-    if (ecx81 & (1 << 0)) feature_bitfield |= CPU_FEATURE_LAHF;
     if (ecx81 & (1 << 5)) feature_bitfield |= CPU_FEATURE_LZCNT;
     if (ecx81 & (1 << 6)) feature_bitfield |= CPU_FEATURE_ABM;
     if (ecx81 & (1 << 11)) feature_bitfield |= CPU_FEATURE_XOP;

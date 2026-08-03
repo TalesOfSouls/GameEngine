@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -266,7 +263,8 @@ f32 soft_edge(v2_f32 a, v2_f32 b, v2_f32 c) NO_EXCEPT
 }
 
 static FORCE_INLINE
-v2_f32 soft_edge_coeff(v2_f32 a, v2_f32 b) NO_EXCEPT {
+v2_f32 soft_edge_coeff(v2_f32 a, v2_f32 b) NO_EXCEPT
+{
     return {b.y - a.y, b.x - a.x};
 }
 

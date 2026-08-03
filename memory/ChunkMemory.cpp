@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -27,26 +24,26 @@ int32 chunk_size_element(int32 element_size, int32 alignment = sizeof(size_t)) N
 }
 
 FORCE_INLINE
-uint_max chunk_size_total(int32 capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+size_t chunk_size_total(int32 capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = chunk_size_element(element_size, alignment);
 
     return capacity * element_size
-        + sizeof(uint_max) * ceil_div(capacity, (int32) (sizeof(uint_max) * 8)) // free
-        + alignof(uint_max) * 2; // overhead for alignment
+        + sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)) // free
+        + alignof(size_t) * 2; // overhead for alignment
 }
 
 FORCE_INLINE
-uint_max thrd_chunk_size_total(int32 capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+size_t thrd_chunk_size_total(int32 capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = chunk_size_element(element_size, alignment);
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
 
     return capacity * element_size
-        + sizeof(uint_max) * array_count // free
-        + sizeof(uint_max) * array_count // completeness
-        + alignof(uint_max) * 2; // overhead for alignment
+        + sizeof(size_t) * array_count // free
+        + sizeof(size_t) * array_count // completeness
+        + alignof(size_t) * 2; // overhead for alignment
 }
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
@@ -60,7 +57,7 @@ void chunk_alloc(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
@@ -69,8 +66,8 @@ void chunk_alloc(
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
-    const uint_max size = chunk_size_total(capacity, element_size, alignment);
-    const uint_max max_size = chunk_size_total(max_capacity, element_size, alignment);
+    const size_t size = chunk_size_total(capacity, element_size, alignment);
+    const size_t max_size = chunk_size_total(max_capacity, element_size, alignment);
 
     buf->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
 
@@ -79,11 +76,11 @@ void chunk_alloc(
     buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
-    buf->free = (uint_max *) align_up(
-        (uint_max) ((uintptr_t) (buf->memory + capacity * element_size)),
-        (uint_max) alignof(uint_max)
+    buf->free = (size_t *) align_up(
+        (size_t) ((uintptr_t) (buf->memory + capacity * element_size)),
+        (size_t) alignof(size_t)
     );
-    memset((void *) buf->free, 0, sizeof(uint_max) * ceil_div(capacity, (int32) (sizeof(uint_max) * 8)));
+    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)));
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -103,12 +100,12 @@ void thrd_chunk_alloc(
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
-    const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
-    const uint_max max_size = thrd_chunk_size_total(max_capacity, element_size, alignment);
+    const size_t size = thrd_chunk_size_total(capacity, element_size, alignment);
+    const size_t max_size = thrd_chunk_size_total(max_capacity, element_size, alignment);
 
     buf->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
 
@@ -118,13 +115,13 @@ void thrd_chunk_alloc(
     buf->last_pos = -1;
     buf->alignment = alignment;
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
 
-    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(uint_max));
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignof(uint_max));
+    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
+    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), alignof(size_t));
 
-    memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
+    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
+    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
     mutex_init(&buf->lock, NULL);
 
@@ -142,7 +139,7 @@ void chunk_alloc(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
@@ -151,8 +148,8 @@ void chunk_alloc(
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
-    const uint_max size = chunk_size_total(capacity, element_size, alignment);
-    const uint_max max_size = chunk_size_total(max_capacity, element_size, alignment);
+    const size_t size = chunk_size_total(capacity, element_size, alignment);
+    const size_t max_size = chunk_size_total(max_capacity, element_size, alignment);
 
     MemoryArena* arena = mem_arena_add(mem, size, max_size, start_alignment);
     buf->memory = (byte *) arena->memory;
@@ -162,11 +159,11 @@ void chunk_alloc(
     buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
-    buf->free = (uint_max *) align_up(
-        (uint_max) ((uintptr_t) (buf->memory + capacity * element_size)),
-        (uint_max) alignof(uint_max)
+    buf->free = (size_t *) align_up(
+        (size_t) ((uintptr_t) (buf->memory + capacity * element_size)),
+        (size_t) alignof(size_t)
     );
-    memset((void *) buf->free, 0, sizeof(uint_max) * ceil_div(capacity, (int32) (sizeof(uint_max) * 8)));
+    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)));
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -187,12 +184,12 @@ void thrd_chunk_alloc(
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
-    const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
-    const uint_max max_size = thrd_chunk_size_total(max_capacity, element_size, alignment);
+    const size_t size = thrd_chunk_size_total(capacity, element_size, alignment);
+    const size_t max_size = thrd_chunk_size_total(max_capacity, element_size, alignment);
 
     MemoryArena* arena = mem_arena_add(mem, size, max_size, start_alignment);
     buf->memory = (byte *) arena->memory;
@@ -203,13 +200,13 @@ void thrd_chunk_alloc(
     buf->last_pos = -1;
     buf->alignment = alignment;
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
 
-    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(uint_max));
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignof(uint_max));
+    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
+    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), alignof(size_t));
 
-    memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
+    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
+    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
     mutex_init(&buf->lock, NULL);
 
@@ -232,7 +229,7 @@ void chunk_init(
 
     element_size = chunk_size_element(element_size, alignment);
 
-    const uint_max size = chunk_size_total(capacity, element_size, alignment);
+    const size_t size = chunk_size_total(capacity, element_size, alignment);
 
     buf->memory = memory_get(data, size, start_alignment);
     memset(buf->memory, 0, size);
@@ -242,8 +239,8 @@ void chunk_init(
     buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
-    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(uint_max));
-    memset((void *) buf->free, 0, sizeof(uint_max) * ceil_div(capacity, (int32) (sizeof(uint_max) * 8)));
+    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
+    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)));
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -265,7 +262,7 @@ void thrd_chunk_alloc(
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
-    const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
+    const size_t size = thrd_chunk_size_total(capacity, element_size, alignment);
 
     buf->memory = memory_get(data, size, start_alignment);
 
@@ -275,13 +272,13 @@ void thrd_chunk_alloc(
     buf->last_pos = -1;
     buf->alignment = alignment;
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
 
-    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(uint_max));
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignof(uint_max));
+    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
+    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), alignof(size_t));
 
-    memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
+    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
+    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
     mutex_init(&buf->lock, NULL);
 
@@ -304,7 +301,7 @@ void chunk_init(
 
     element_size = chunk_size_element(element_size, alignment);
 
-    const uint_max size = chunk_size_total(capacity, element_size, alignment);
+    const size_t size = chunk_size_total(capacity, element_size, alignment);
 
     buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
 
@@ -313,11 +310,11 @@ void chunk_init(
     buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
-    buf->free = (uint_max *) align_up(
+    buf->free = (size_t *) align_up(
         (uintptr_t) (buf->memory + capacity * element_size),
-        (uint_max) alignof(uint_max)
+        (size_t) alignof(size_t)
     );
-    memset((void *) buf->free, 0, sizeof(uint_max) * ceil_div(capacity, (int32) (sizeof(uint_max) * 8)));
+    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)));
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -339,7 +336,7 @@ void thrd_chunk_alloc(
     LOG_1("[INFO] Allocating ChunkMemory");
 
     element_size = chunk_size_element(element_size, alignment);
-    const uint_max size = thrd_chunk_size_total(capacity, element_size, alignment);
+    const size_t size = thrd_chunk_size_total(capacity, element_size, alignment);
 
     buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
 
@@ -349,13 +346,13 @@ void thrd_chunk_alloc(
     buf->last_pos = -1;
     buf->alignment = alignment;
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
 
-    buf->free = (uint_max *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(uint_max));
-    buf->completeness = (uint_max *) align_up((uintptr_t) (buf->free + array_count), alignof(uint_max));
+    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
+    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), alignof(size_t));
 
-    memset((void *) buf->free, 0, sizeof(uint_max) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(uint_max) * array_count);
+    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
+    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
     mutex_init(&buf->lock, NULL);
 
@@ -399,11 +396,11 @@ void thrd_chunk_free(ChunkMemory* const buf, MemoryArena* mem) NO_EXCEPT
 }
 
 FORCE_INLINE
-uint_max* chunk_find_free_array(const ChunkMemory* const buf) NO_EXCEPT
+size_t* chunk_find_free_array(const ChunkMemory* const buf) NO_EXCEPT
 {
-    return (uint_max *) align_up(
+    return (size_t *) align_up(
         (uintptr_t) (buf->memory + buf->capacity * buf->chunk_size),
-        (uint_max) alignof(uint_max)
+        (size_t) alignof(size_t)
     );
 }
 
@@ -420,12 +417,12 @@ uint32 chunk_id_from_memory(void* memory, void* pos, size_t chunk_size) NO_EXCEP
 }
 
 inline
-void thrd_chunk_set_unset_atomic(int32 element, uint_max* state) NO_EXCEPT
+void thrd_chunk_set_unset_atomic(int32 element, size_t* state) NO_EXCEPT
 {
-    const int32 free_index = element / (sizeof(uint_max) * 8);
-    const int32 bit_index = MODULO_2(element, (sizeof(uint_max) * 8));
+    const int32 free_index = element / (sizeof(size_t) * 8);
+    const int32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
 
-    const uint_max mask = ~(OMS_UINT_ONE << bit_index);
+    const size_t mask = ~(OMS_UINT_ONE << bit_index);
     atomic_fetch_and_release(&state[free_index], mask);
 }
 
@@ -443,10 +440,10 @@ byte* chunk_get_element(const ChunkMemory* const buf, int32 element) NO_EXCEPT
 }
 
 FORCE_INLINE
-bool chunk_is_free_internal(const uint_max* const state, int32 element) NO_EXCEPT
+bool chunk_is_free_internal(const size_t* const state, int32 element) NO_EXCEPT
 {
-    const uint32 free_index = element / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(element, (sizeof(uint_max) * 8));
+    const uint32 free_index = element / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
 
     return !IS_BIT_SET_R2L(state[free_index], bit_index);
 }
@@ -458,12 +455,12 @@ bool chunk_is_free(const ChunkMemory* const buf, int32 element) NO_EXCEPT
 }
 
 FORCE_INLINE
-bool thrd_chunk_is_free_atomic_internal(const uint_max* const state, int32 element) NO_EXCEPT
+bool thrd_chunk_is_free_atomic_internal(const size_t* const state, int32 element) NO_EXCEPT
 {
-    const uint32 free_index = element / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(element, (sizeof(uint_max) * 8));
+    const uint32 free_index = element / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
 
-    uint_max mask = atomic_get_acquire(&state[free_index]);
+    size_t mask = atomic_get_acquire(&state[free_index]);
 
     return !IS_BIT_SET_R2L(mask, bit_index);
 }
@@ -477,14 +474,14 @@ bool thrd_chunk_is_free_atomic(const ChunkMemory* const buf, int32 element) NO_E
 // This is effectively the same as reserve with elements = 1 which allows for some performance improvements
 // state_count = number of maximum elements in the state array.
 HOT_CODE FORCE_FLATTEN
-int32 chunk_reserve_one(uint_max* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
+int32 chunk_reserve_one(size_t* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
 {
     if ((uint32) start_index >= state_count) { UNLIKELY
         start_index = 0;
     }
 
-    uint32 free_index = start_index / (sizeof(uint_max) * 8);
-    uint32 bit_index = MODULO_2(start_index, (sizeof(uint_max) * 8));
+    uint32 free_index = start_index / (sizeof(size_t) * 8);
+    uint32 bit_index = MODULO_2(start_index, (sizeof(size_t) * 8));
 
     // Check standard simple solution
     if (!IS_BIT_SET_R2L(state[free_index], bit_index)) {
@@ -493,7 +490,7 @@ int32 chunk_reserve_one(uint_max* state, uint32 state_count, int32 start_index =
         return start_index;
     }
 
-    for (uint32 i = 0; i < state_count; i+= (sizeof(uint_max) * 8)) {
+    for (uint32 i = 0; i < state_count; i+= (sizeof(size_t) * 8)) {
         if (state[free_index] != OMS_UINT_MAX) {
             // @bug This doesn't return the next best element in a hash map case
             // In a hash map we want the next free element AFTER start_index
@@ -501,7 +498,7 @@ int32 chunk_reserve_one(uint_max* state, uint32 state_count, int32 start_index =
             // The reason why we want the next best element is because it is faster to iterate (cache locality)
             bit_index = compiler_find_first_bit_r2l(~state[free_index]);
 
-            const uint32 id = free_index * (sizeof(uint_max) * 8) + bit_index;
+            const uint32 id = free_index * (sizeof(size_t) * 8) + bit_index;
             if (id >= state_count) { UNLIKELY
                 free_index = 0;
 
@@ -513,7 +510,7 @@ int32 chunk_reserve_one(uint_max* state, uint32 state_count, int32 start_index =
             return id;
         } else {
             ++free_index;
-            if (free_index * (sizeof(uint_max) * 8) >= state_count) {
+            if (free_index * (sizeof(size_t) * 8) >= state_count) {
                 free_index = 0;
             }
         }
@@ -523,41 +520,41 @@ int32 chunk_reserve_one(uint_max* state, uint32 state_count, int32 start_index =
 }
 
 HOT_CODE
-int32 thrd_chunk_reserve_one_atomic(uint_max* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
+int32 thrd_chunk_reserve_one_atomic(size_t* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
 {
     if ((uint32) start_index >= state_count) {
         start_index = 0;
     }
 
-    uint32 free_index = start_index / (sizeof(uint_max) * 8);
-    uint32 bit_index = MODULO_2(start_index, (sizeof(uint_max) * 8));
+    uint32 free_index = start_index / (sizeof(size_t) * 8);
+    uint32 bit_index = MODULO_2(start_index, (sizeof(size_t) * 8));
 
     // Check standard simple solution
-    uint_max current = atomic_get_acquire(&state[free_index]);
+    size_t current = atomic_get_acquire(&state[free_index]);
     if (!(current & (OMS_UINT_ONE << bit_index))) {
-        uint_max desired = current | (OMS_UINT_ONE << bit_index);
+        size_t desired = current | (OMS_UINT_ONE << bit_index);
         if (atomic_compare_exchange_strong_acquire_release(&state[free_index], current, desired) == current) {
-            return free_index * (sizeof(uint_max) * 8) + bit_index;
+            return free_index * (sizeof(size_t) * 8) + bit_index;
         }
     }
 
-    for (uint32 i = 0; i < state_count; i += (sizeof(uint_max) * 8)) {
-        uint_max current_free = atomic_get_acquire(&state[free_index]);
+    for (uint32 i = 0; i < state_count; i += (sizeof(size_t) * 8)) {
+        size_t current_free = atomic_get_acquire(&state[free_index]);
         if (current_free != OMS_UINT_MAX) {
-            uint_max inverted = ~current_free;
+            size_t inverted = ~current_free;
 
             int32 j = 0; // We will only try 3 times to avoid infinite or long loops
             while (j < 3) {
                 // We don't have to test bit_index >= 0 since we already tested current_free != OMS_UINT_MAX
                 bit_index = compiler_find_first_bit_r2l(inverted);
-                uint32 id = free_index * (sizeof(uint_max) * 8) + bit_index;
+                uint32 id = free_index * (sizeof(size_t) * 8) + bit_index;
                 if (id >= state_count) {
                     free_index = 0;
 
                     break;
                 }
 
-                uint_max new_free = current_free | (OMS_UINT_ONE << bit_index);
+                size_t new_free = current_free | (OMS_UINT_ONE << bit_index);
                 if ((new_free = atomic_compare_exchange_strong_acquire_release(&state[free_index], current_free, new_free)) == current_free) {
                     return id;
                 }
@@ -567,7 +564,7 @@ int32 thrd_chunk_reserve_one_atomic(uint_max* state, uint32 state_count, int32 s
             }
         } else {
             ++free_index;
-            if (free_index * (sizeof(uint_max) * 8) >= state_count) {
+            if (free_index * (sizeof(size_t) * 8) >= state_count) {
                 free_index = 0;
             }
         }
@@ -591,7 +588,7 @@ int32 thrd_chunk_reserve_one_atomic(ChunkMemory* const buf) NO_EXCEPT
 }
 
 HOT_CODE FORCE_FLATTEN
-int32 chunk_reserve_internal(uint_max* const state, int32 capacity, int32 last_pos, int32 elements = 1) NO_EXCEPT
+int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos, int32 elements = 1) NO_EXCEPT
 {
     ASSERT_TRUE(elements > 0);
 
@@ -602,8 +599,8 @@ int32 chunk_reserve_internal(uint_max* const state, int32 capacity, int32 last_p
         last_pos = -1;
     }
 
-    uint32 free_index = (last_pos + 1) / (sizeof(uint_max) * 8);
-    uint32 bit_index = MODULO_2(last_pos + 1, (sizeof(uint_max) * 8));
+    uint32 free_index = (last_pos + 1) / (sizeof(size_t) * 8);
+    uint32 bit_index = MODULO_2(last_pos + 1, (sizeof(size_t) * 8));
 
     // Check standard simple solution
     if (elements == 1 && !IS_BIT_SET_R2L(state[free_index], bit_index)) {
@@ -621,13 +618,13 @@ int32 chunk_reserve_internal(uint_max* const state, int32 capacity, int32 last_p
             // Skip fully filled ranges
             ++free_index;
             bit_index = 0;
-            i += (sizeof(uint_max) * 8);
+            i += (sizeof(size_t) * 8);
             consecutive_free_bits = 0;
 
             continue;
-        } else if (free_index * (sizeof(uint_max) * 8) + bit_index + elements - consecutive_free_bits > capacity) { UNLIKELY
+        } else if (free_index * (sizeof(size_t) * 8) + bit_index + elements - consecutive_free_bits > capacity) { UNLIKELY
             // Go to beginning after overflow
-            i += capacity - (free_index * (sizeof(uint_max) * 8) + bit_index);
+            i += capacity - (free_index * (sizeof(size_t) * 8) + bit_index);
             consecutive_free_bits = 0;
             free_index = 0;
             bit_index = 0;
@@ -645,7 +642,7 @@ int32 chunk_reserve_internal(uint_max* const state, int32 capacity, int32 last_p
             ++consecutive_free_bits;
             ++bit_index;
 
-            if (bit_index > (sizeof(uint_max) * 8 - 1)) {
+            if (bit_index > (sizeof(size_t) * 8 - 1)) {
                 bit_index = 0;
                 ++free_index;
 
@@ -653,30 +650,30 @@ int32 chunk_reserve_internal(uint_max* const state, int32 capacity, int32 last_p
             }
         } while (!IS_BIT_SET_R2L(state[free_index], bit_index)
             && consecutive_free_bits != elements
-            && free_index * (sizeof(uint_max) * 8) + bit_index + elements - consecutive_free_bits <= capacity
+            && free_index * (sizeof(size_t) * 8) + bit_index + elements - consecutive_free_bits <= capacity
             && i <= capacity
         );
 
         // Do we have enough free bits?
         if (consecutive_free_bits == elements) {
-            free_element = free_index * (sizeof(uint_max) * 8) + bit_index - elements;
-            const uint32 possible_free_index = free_element / (sizeof(uint_max) * 8);
-            const uint32 possible_bit_index = MODULO_2(free_element, (sizeof(uint_max) * 8));
+            free_element = free_index * (sizeof(size_t) * 8) + bit_index - elements;
+            const uint32 possible_free_index = free_element / (sizeof(size_t) * 8);
+            const uint32 possible_bit_index = MODULO_2(free_element, (sizeof(size_t) * 8));
 
             // Mark as used
             if (elements == 1) {
                 state[possible_free_index] |= (OMS_UINT_ONE << possible_bit_index);
             } else {
                 int32 elements_temp = elements;
-                uint_max current_free_index = possible_free_index;
+                size_t current_free_index = possible_free_index;
                 int32 current_bit_index = possible_bit_index;
 
                 while (elements_temp > 0) {
                     // Calculate the number of bits we can set in the current 64-bit block
-                    uint32 bits_in_current_block = (uint32) OMS_MIN(((int32) (sizeof(uint_max) * 8) - current_bit_index), elements_temp);
+                    uint32 bits_in_current_block = (uint32) OMS_MIN(((int32) (sizeof(size_t) * 8) - current_bit_index), elements_temp);
 
                     // Create a mask to set the bits
-                    uint_max mask = ((OMS_UINT_ONE << (bits_in_current_block & (sizeof(uint_max) * 8 - 1))) - 1) << current_bit_index | ((bits_in_current_block >> 6) * ((uint_max) -1));
+                    size_t mask = ((OMS_UINT_ONE << (bits_in_current_block & (sizeof(size_t) * 8 - 1))) - 1) << current_bit_index | ((bits_in_current_block >> 6) * ((size_t) -1));
                     state[current_free_index] |= mask;
 
                     // Update the counters and indices
@@ -723,26 +720,26 @@ int32 thrd_chunk_reserve(ChunkMemory* const buf, int32 elements = 1) NO_EXCEPT
 }
 
 FORCE_INLINE
-void chunk_free_element(uint_max* const state, uint_max free_index, int32 bit_index) NO_EXCEPT
+void chunk_free_element(size_t* const state, size_t free_index, int32 bit_index) NO_EXCEPT
 {
     state[free_index] &= ~(OMS_UINT_ONE << bit_index);
 }
 
 FORCE_INLINE
-void chunk_free_element(ChunkMemory* const buf, uint_max free_index, int32 bit_index) NO_EXCEPT
+void chunk_free_element(ChunkMemory* const buf, size_t free_index, int32 bit_index) NO_EXCEPT
 {
     buf->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
     DEBUG_MEMORY_DELETE(
-        (uintptr_t) (buf->memory + (free_index * (sizeof(uint_max) * 8) + bit_index) * buf->chunk_size),
+        (uintptr_t) (buf->memory + (free_index * (sizeof(size_t) * 8) + bit_index) * buf->chunk_size),
         buf->chunk_size
     );
 }
 
 inline
-void thrd_chunk_free_element_internal(uint_max* const state, uint_max free_index, int32 bit_index) NO_EXCEPT
+void thrd_chunk_free_element_internal(size_t* const state, size_t free_index, int32 bit_index) NO_EXCEPT
 {
-    atomic_max uint_max* target = &state[free_index];
-    uint_max old_value, new_value;
+    atomic_max size_t* target = &state[free_index];
+    size_t old_value, new_value;
 
     do {
         old_value = atomic_get_relaxed(target);
@@ -756,11 +753,11 @@ void thrd_chunk_free_element_internal(uint_max* const state, uint_max free_index
 }
 
 inline
-void thrd_chunk_free_element(ChunkMemory* const buf, uint_max free_index, int32 bit_index) NO_EXCEPT
+void thrd_chunk_free_element(ChunkMemory* const buf, size_t free_index, int32 bit_index) NO_EXCEPT
 {
     thrd_chunk_free_element_internal(buf->free, free_index, bit_index);
     DEBUG_MEMORY_DELETE(
-        (uintptr_t) (buf->memory + (free_index * (sizeof(uint_max) * 8) + bit_index) * buf->chunk_size),
+        (uintptr_t) (buf->memory + (free_index * (sizeof(size_t) * 8) + bit_index) * buf->chunk_size),
         buf->chunk_size
     );
 }
@@ -768,21 +765,21 @@ void thrd_chunk_free_element(ChunkMemory* const buf, uint_max free_index, int32 
 FORCE_INLINE
 void chunk_free_element(ChunkMemory* const buf, int32 element) NO_EXCEPT
 {
-    const uint_max free_index = element / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(element, (sizeof(uint_max) * 8));
+    const size_t free_index = element / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
     buf->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
 
     DEBUG_MEMORY_DELETE(
-        (uintptr_t) (buf->memory + (free_index * (sizeof(uint_max) * 8) + bit_index) * buf->chunk_size),
+        (uintptr_t) (buf->memory + (free_index * (sizeof(size_t) * 8) + bit_index) * buf->chunk_size),
         buf->chunk_size
     );
 }
 
 HOT_CODE
-void chunk_free_elements_internal(uint_max* const state, int32 element, int32 element_count = 1) NO_EXCEPT
+void chunk_free_elements_internal(size_t* const state, int32 element, int32 element_count = 1) NO_EXCEPT
 {
-    uint_max free_index = element / (sizeof(uint_max) * 8);
-    uint32 bit_index = MODULO_2(element, (sizeof(uint_max) * 8));
+    size_t free_index = element / (sizeof(size_t) * 8);
+    uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
 
     if (element == 1) {
         chunk_free_element(state, free_index, bit_index);
@@ -791,10 +788,10 @@ void chunk_free_elements_internal(uint_max* const state, int32 element, int32 el
 
     while (element_count > 0) {
         // Calculate the number of bits we can clear in the current 64-bit block
-        const uint32 bits_in_current_block = (uint32) OMS_MIN((int32) ((sizeof(uint_max) * 8) - bit_index), element_count);
+        const uint32 bits_in_current_block = (uint32) OMS_MIN((int32) ((sizeof(size_t) * 8) - bit_index), element_count);
 
         // Create a mask to clear the bits
-        const uint_max mask = ((OMS_UINT_ONE << bits_in_current_block) - 1) << bit_index;
+        const size_t mask = ((OMS_UINT_ONE << bits_in_current_block) - 1) << bit_index;
         state[free_index] &= ~mask;
 
         // Update the counters and indices
@@ -819,10 +816,10 @@ void thrd_chunk_free_elements(ChunkMemory* const buf, int32 element, int32 eleme
 }
 
 inline
-void thrd_chunk_free_elements_atomic_internal(uint_max* const state, uint_max element, int32 element_count = 1) NO_EXCEPT
+void thrd_chunk_free_elements_atomic_internal(size_t* const state, size_t element, int32 element_count = 1) NO_EXCEPT
 {
-    uint_max free_index = element / (sizeof(uint_max) * 8);
-    uint32 bit_index = MODULO_2(element, (sizeof(uint_max) * 8));
+    size_t free_index = element / (sizeof(size_t) * 8);
+    uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
 
     if (element == 1) {
         thrd_chunk_free_element_internal(state, free_index, bit_index);
@@ -831,13 +828,13 @@ void thrd_chunk_free_elements_atomic_internal(uint_max* const state, uint_max el
 
     while (element_count > 0) {
         // Calculate the number of bits we can clear in the current 64-bit block
-        uint32 bits_in_current_block = (uint32) OMS_MIN((int32) ((sizeof(uint_max) * 8) - bit_index), element_count);
+        uint32 bits_in_current_block = (uint32) OMS_MIN((int32) ((sizeof(size_t) * 8) - bit_index), element_count);
 
         // Create a mask to clear the bits
-        uint_max mask = ((OMS_UINT_ONE << bits_in_current_block) - 1) << bit_index;
+        size_t mask = ((OMS_UINT_ONE << bits_in_current_block) - 1) << bit_index;
 
-        uint_max old_value, new_value;
-        atomic_max uint_max* target = &state[free_index];
+        size_t old_value, new_value;
+        atomic_max size_t* target = &state[free_index];
 
         do {
             old_value = atomic_get_relaxed(target);
@@ -857,7 +854,7 @@ void thrd_chunk_free_elements_atomic_internal(uint_max* const state, uint_max el
 }
 
 FORCE_INLINE
-void thrd_chunk_free_elements_atomic(ChunkMemory* const buf, uint_max element, int32 element_count = 1) NO_EXCEPT
+void thrd_chunk_free_elements_atomic(ChunkMemory* const buf, size_t element, int32 element_count = 1) NO_EXCEPT
 {
     thrd_chunk_free_elements_atomic_internal(buf->free, element, element_count);
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size * element_count);
@@ -902,8 +899,8 @@ int64 chunk_dump(const ChunkMemory* const buf, byte* data) NO_EXCEPT
     memcpy(data, buf->memory, buf->size);
 
     #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
-        uint_max* free_data = (uint_max *) (data + free_offset);
-        for (uint32 i = 0; i < ceil_div(buf->capacity, (uint32) (sizeof(uint_max) * 8)); ++i) {
+        size_t* free_data = (size_t *) (data + free_offset);
+        for (uint32 i = 0; i < ceil_div(buf->capacity, (uint32) (sizeof(size_t) * 8)); ++i) {
             *free_data = SWAP_ENDIAN_LITTLE(*free_data);
             ++free_data;
         }
@@ -1032,11 +1029,11 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
     memcpy(buf->memory, data, buf->size);
     data += buf->size;
 
-    buf->free = (uint_max *) (buf->memory + free_offset);
+    buf->free = (size_t *) (buf->memory + free_offset);
 
     #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
-        uint_max* free_data = buf->free;
-        for (uint32 i = 0; i < ceil_div(buf->capacity, (uint32) (sizeof(uint_max) * 8)); ++i) {
+        size_t* free_data = buf->free;
+        for (uint32 i = 0; i < ceil_div(buf->capacity, (uint32) (sizeof(size_t) * 8)); ++i) {
             *free_data = SWAP_ENDIAN_LITTLE(*free_data);
             ++free_data;
         }
@@ -1060,14 +1057,14 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
             /* Skip various elements */                                                               \
             /* @performance Consider to only check 1 byte instead of 8 */                             \
             /* There are probably even better ways by using compiler intrinsics if available */       \
-            bit_index += (sizeof(uint_max) * 8 - 1); /* +64 - 1 since the loop also increases by 1 */ \
-            chunk_id += (sizeof(uint_max) * 8 - 1);                                                   \
+            bit_index += (sizeof(size_t) * 8 - 1); /* +64 - 1 since the loop also increases by 1 */ \
+            chunk_id += (sizeof(size_t) * 8 - 1);                                                   \
         } else if ((buf)->free[free_index] & (OMS_UINT_ONE << bit_index))
 
 // INTERNAL: Not intended for use by any programmer
 #define chunk_iterate_end_internal {                  \
         ++bit_index;                                  \
-        if (bit_index > (sizeof(uint_max) * 8 - 1)) { \
+        if (bit_index > (sizeof(size_t) * 8 - 1)) { \
             bit_index = 0;                            \
             ++free_index;                             \
         }                                             \
@@ -1075,12 +1072,12 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
 
 // This is needed because if bit_index can be larger than 127 we need to skip multiple free_index
 // But even for less than 127 we still may have to change the bit_index to a value != 0
-// bit_index = 0 is only allowed for a 1 skip or (sizeof(uint_max) * 8) skip (as used in chunk_iterate_end_internal)
+// bit_index = 0 is only allowed for a 1 skip or (sizeof(size_t) * 8) skip (as used in chunk_iterate_end_internal)
 // INTERNAL: Not intended for use by any programmer
 #define chunk_iterate_end_internal_n(n) {                 \
-        if (bit_index > (sizeof(uint_max) * 8 - 1)) {     \
-            bit_index %= (sizeof(uint_max) * 8);          \
-            free_index += ((n) / (sizeof(uint_max) * 8)); \
+        if (bit_index > (sizeof(size_t) * 8 - 1)) {     \
+            bit_index %= (sizeof(size_t) * 8);          \
+            free_index += ((n) / (sizeof(size_t) * 8)); \
         }                                                 \
     }
 

@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -31,12 +28,9 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
         _perf_stats = pool->debug_container->perf_stats;
         _perf_active = pool->debug_container->perf_active;
         _stats_counter_active = pool->debug_container->stats_counter_active;
+        _dmc_active = pool->debug_container->dmc_active;
         _stats_counter = pool->debug_container->stats_counter;
         _stats_counter_persistent = pool->debug_container->stats_counter_persistent;
-
-        // @question Why do we even need to to this?
-        *_perf_active = *pool->debug_container->perf_active;
-        *_stats_counter_active = *pool->debug_container->stats_counter_active;
     }
 
     // @bug Why doesn't this work? There must be some threading issue
@@ -82,10 +76,9 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 
         LOG_3("[INFO] ThreadPool worker started");
         {
-            PROFILE_DEBUG(PROFILE_THREADPOOL_WORK, NULL, PROFILE_FLAG_ADD_HISTORY);
+            PROFILE_DEBUG(PROFILE_THREADPOOL_WORK, (char *) NULL, PROFILE_FLAG_ADD_HISTORY);
             STATS_INCREMENT_DEBUG(DEBUG_COUNTER_THREAD_ACTIVE);
             if (work->mem_size) {
-                // @performance For longer tasks this is fine but for jobs running really quick, this is slow
                 // @bug we need to wait if we don't have enough memory available
                 THRD_CHUNK_STACK_MEMORY(&pool->thrd_mem, &work->mem, work->mem_size);
                 work->func(work);
@@ -313,7 +306,8 @@ bool thread_pool_healthy(const ThreadPool* const pool) NO_EXCEPT
 
 // Tries to fix threads that are no longer running but should be running
 inline
-void thread_pool_fix(ThreadPool* const pool) NO_EXCEPT {
+void thread_pool_fix(ThreadPool* const pool) NO_EXCEPT
+{
     // We cannot fix a thread pool that uses detached threads
     ASSERT_TRUE(!pool->is_detached);
 
@@ -409,7 +403,12 @@ void thread_pool_add_work_end(ThreadPool* const pool) NO_EXCEPT
 // This joins the work not the actual threads in the thread pool
 // We are not marking jobs const since it may change during the joining process (e.g. the state)
 inline
-bool thread_pool_join(const PoolWorker* const jobs, int32 count, uint64 sleep_time = 0, uint64 max_sleep = 0) NO_EXCEPT
+bool thread_pool_join(
+    const PoolWorker* const jobs,
+    int32 count,
+    uint64 sleep_time = 0,
+    uint64 max_sleep = 0
+) NO_EXCEPT
 {
     ASSERT_TRUE(count <= 64);
 
@@ -430,7 +429,7 @@ bool thread_pool_join(const PoolWorker* const jobs, int32 count, uint64 sleep_ti
             }
 
             if (!jobs[i].id
-                || atomic_get_relaxed((int32 *) jobs[i].state) == POOL_WORKER_STATE_COMPLETED
+                || atomic_get_relaxed((int32 *) &(jobs[i].state)) == POOL_WORKER_STATE_COMPLETED
             ) {
                 completed_mask |= bit;
             }
@@ -473,7 +472,7 @@ bool thread_pool_join(
             }
 
             if (!jobs[i] || !jobs[i]->id
-                || atomic_get_relaxed((int32 *) jobs[i]->state) == POOL_WORKER_STATE_COMPLETED
+                || atomic_get_relaxed((int32 *) &(jobs[i]->state)) == POOL_WORKER_STATE_COMPLETED
             ) {
                 completed_mask |= bit;
             }

@@ -68,7 +68,7 @@ struct StatCounterHistory {
 };
 static StatCounterHistory* _stats_counter = NULL;
 static atomic_64 int64* _stats_counter_persistent = NULL;
-static int32* _stats_counter_active = NULL;
+static volatile int32* _stats_counter_active = NULL;
 
 /**
  * Creates a snapshot of the current stats

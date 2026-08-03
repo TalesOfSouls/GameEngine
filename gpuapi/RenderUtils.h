@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -281,7 +278,7 @@ v2_f32 text_calculate_dimensions(
     f32 offset_x = 0;
 
     const Glyph* const base_glyphs = font->base.glyphs;
-    const Glyph* const extended_glyphs = font->base.glyphs;
+    const Glyph* const extended_glyphs = font->extended.glyphs;
 
     for (int i = 0; i < length; ++i) {
         if (glyphs[i] == font->newline_id) {
@@ -296,7 +293,7 @@ v2_f32 text_calculate_dimensions(
 
         const Glyph* const glyph = !(glyphs[i] & 0x8000)
             ? &base_glyphs[glyphs[i]]
-            : &extended_glyphs[abs(glyphs[i])];
+            : &extended_glyphs[glyphs[i] & 0x7FFF];
 
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
@@ -313,7 +310,7 @@ f32 text_calculate_dimensions_width(
     f32 offset_x = 0;
 
     const Glyph* const base_glyphs = font->base.glyphs;
-    const Glyph* const extended_glyphs = font->base.glyphs;
+    const Glyph* const extended_glyphs = font->extended.glyphs;
 
     for (int i = 0; i < length; ++i) {
         if (glyphs[i] == font->newline_id) {
@@ -326,7 +323,7 @@ f32 text_calculate_dimensions_width(
 
         const Glyph* const glyph = !(glyphs[i] & 0x8000)
             ? &base_glyphs[glyphs[i]]
-            : &extended_glyphs[abs(glyphs[i])];
+            : &extended_glyphs[glyphs[i] & 0x7FFF];
 
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
@@ -353,7 +350,7 @@ f32 text_calculate_dimensions_height(
 }
 
 HOT_CODE
-v3_int32 vertex_text_create(
+v2_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length,
@@ -389,11 +386,10 @@ v3_int32 vertex_text_create(
     f32 rendered_width = 0;
     f32 rendered_height = line_height_scaled;
 
-    int32 idx = 0;
     f32 offset_x = dimension.x;
 
     const Glyph* const base_glyphs = font->base.glyphs;
-    const Glyph* const extended_glyphs = font->base.glyphs;
+    const Glyph* const extended_glyphs = font->extended.glyphs;
 
     for (int32 i = 0; i < length; ++i) {
         if (glyphs[i] == font->newline_id) {
@@ -408,7 +404,7 @@ v3_int32 vertex_text_create(
 
         const Glyph* const glyph = !(glyphs[i] & 0x8000)
             ? &base_glyphs[glyphs[i]]
-            : &extended_glyphs[abs(glyphs[i])];
+            : &extended_glyphs[glyphs[i] & 0x7FFF];
 
         const GlyphMetrics* const metrics = &glyph->metrics;
         const f32 offset_y = dimension.y + metrics->offset_y * scale;
@@ -450,13 +446,13 @@ v3_int32 vertex_text_create(
     //      This way we can ensure no overflow easily
     // @todo implement line alignment, currently only total alignment is considered
 
-    return {(int32) rendered_width, (int32) rendered_height, idx};
+    return {(int32) rendered_width, (int32) rendered_height};
 }
 
 // @todo It is stupid that we effectively have the same function twice and the only difference is how we calculate int32 character
 template <typename T>
 HOT_CODE
-v3_int32 vertex_text_create(
+v2_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
     const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const wchar_t* const __restrict text,
@@ -529,7 +525,7 @@ v3_int32 vertex_text_create(
 
 template <typename T>
 HOT_CODE
-v3_int32 vertex_text_create(
+v2_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
     const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const char* const __restrict text,

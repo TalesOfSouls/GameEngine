@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -32,7 +29,8 @@ struct DatabasePool {
     atomic_64 uint64* free;
 };
 
-void db_pool_alloc(DatabasePool* const pool, uint8 count) NO_EXCEPT {
+void db_pool_alloc(DatabasePool* const pool, uint8 count) NO_EXCEPT
+{
     ASSERT_TRUE(count);
     PROFILE_DEBUG(PROFILE_DB_POOL_ALLOC, NULL, false, true);
     LOG_1("[INFO] Allocating DatabasePool for %d connections", {DATA_TYPE_UINT8, &count});
@@ -55,7 +53,8 @@ void db_pool_add(
     memcpy(&pool->connections[pool->pos], db, sizeof(DatabaseConnection));
 }
 
-void db_pool_free(DatabasePool* const pool) NO_EXCEPT {
+void db_pool_free(DatabasePool* const pool) NO_EXCEPT
+{
     LOG_1("[INFO] Freeing DatabasePool");
 
     for (int32 i = 0; i < pool->count; ++i) {

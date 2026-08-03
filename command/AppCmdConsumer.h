@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -83,7 +80,7 @@ void cmd_buffer_create(AppCmdBuffer* const cb, BufferMemory* const buf, int32 co
         command_capacity * sizeof(AppCommand)
     );
 
-    LOG_1("[INFO] Created AppCmdBuffer: %n", {DATA_TYPE_UINT64, &cb->commands.capacity});
+    LOG_1("[INFO] Created AppCmdBuffer: %n", {DATA_TYPE_INT32, &cb->commands.capacity});
 }
 
 inline
@@ -91,7 +88,7 @@ void cmd_buffer_alloc(AppCmdBuffer* const cb, int32 command_capacity) NO_EXCEPT
 {
     thrd_chunk_alloc(&cb->commands, command_capacity, command_capacity, ASSUMED_CACHE_LINE_SIZE);
 
-    LOG_1("[INFO] Created AppCmdBuffer: %n", {DATA_TYPE_UINT64, &cb->commands.capacity});
+    LOG_1("[INFO] Created AppCmdBuffer: %n", {DATA_TYPE_INT32, &cb->commands.capacity});
 }
 
 inline

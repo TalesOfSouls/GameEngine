@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -14,9 +11,21 @@
 
 #include "../../../stdlib/Stdlib.h"
 #include "../../../input/Input.cpp"
+#include "../Window.h"
 #include "Keys.h"
 
-FORCE_INLINE
+/**
+ * Finds the system mouse sensitivity
+ */
+inline
+f32 input_mouse_sensitivity() NO_EXCEPT
+{
+    int mouse_speed = 10;
+    SystemParametersInfo(SPI_GETMOUSESPEED, 0, &mouse_speed, 0);
+    return (f32) mouse_speed / 10.0f;
+}
+
+inline
 void input_mouse_position(HWND hwnd, v2_int32* pos) NO_EXCEPT
 {
     POINT p;
@@ -24,6 +33,27 @@ void input_mouse_position(HWND hwnd, v2_int32* pos) NO_EXCEPT
         pos->x = p.x;
         pos->y = p.y;
     }
+}
+
+inline
+v2_int32 input_mouse_position(HWND hwnd) NO_EXCEPT
+{
+    POINT p;
+    if (GetCursorPos(&p) && ScreenToClient(hwnd, &p)) {
+        return {p.x, p.y};
+    }
+
+    return {0, 0};
+}
+
+inline
+void input_mouse_update(HWND hwnd, Input* input_states) NO_EXCEPT
+{
+    v2_int32 mouse_pos = input_mouse_position(hwnd);
+    Input* const input = input_kbm_find(input_states, INPUT_DEVICE_COUNT);
+
+    input->state.x[0] = (int16) mouse_pos.x;
+    input->state.y[0] = (int16) mouse_pos.y;
 }
 
 // Mouse and Keyboard only work on the first element in the states
@@ -71,7 +101,7 @@ int16 input_poll_handle(
         ++input_count;
 
         input_set_state(states[0].state.active_keys, &key);
-        states[0].general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
+        states[0].general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
     }
 
     return input_count;

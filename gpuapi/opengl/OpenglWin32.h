@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -11,7 +8,7 @@
 #define COMS_GPUAPI_OPENGL_WIN32_H
 
 #include <windows.h>
-#include "../../platform/win32/Window.h"
+#include "../../system/Window.h"
 #include "../../stdlib/Stdlib.h"
 #include "OpenglDefines.h"
 

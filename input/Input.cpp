@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -21,6 +18,58 @@
 #ifdef _WIN32
     #include "../platform/win32/UtilsWin32.h"
 #endif
+
+FORCE_INLINE
+Input* input_kbm_find(Input* input, int count) NO_EXCEPT
+{
+    for (int i = 0; i < count; ++i) {
+        if (input[i].mouse.handle[0]) {
+            return &input[i];
+        }
+    }
+
+    return NULL;
+}
+
+FORCE_INLINE
+v2_int16 input_keyboard_find_by_handle(Input* input, int count, InputHandle handle) NO_EXCEPT
+{
+    for (int16 i = 0; i < count; ++i) {
+        for (int16 h = 0; h < ARRAY_COUNT(input[i].keyboard.handle); ++h) {
+            if (input[i].keyboard.handle[h] == handle) {
+                return {i, h};
+            }
+        }
+    }
+
+    return {-1, -1};
+}
+
+FORCE_INLINE
+v2_int16 input_mouse_find_by_handle(Input* input, int count, InputHandle handle) NO_EXCEPT
+{
+    for (int16 i = 0; i < count; ++i) {
+        for (int16 h = 0; h < ARRAY_COUNT(input[i].mouse.handle); ++h) {
+            if (input[i].mouse.handle[h] == handle) {
+                return {i, h};
+            }
+        }
+    }
+
+    return {-1, -1};
+}
+
+FORCE_INLINE
+v2_int16 input_controller_find_by_handle(Input* input, int count, InputHandle handle) NO_EXCEPT
+{
+    for (int16 i = 0; i < count; ++i) {
+        if (input[i].controller.handle == handle) {
+            return {i, 0};
+        }
+    }
+
+    return {-1, -1};
+}
 
 FORCE_INLINE CONSTEXPR
 size_t input_memory_size(uint8 count) NO_EXCEPT
@@ -48,7 +97,8 @@ void input_init(Input* const input, uint8 count, BufferMemory* const buf) NO_EXC
 // Resets the mapping
 // Usually used for re-assigning hotkeys
 FORCE_INLINE
-void input_mapping_reset(Input* const input) NO_EXCEPT {
+void input_mapping_reset(Input* const input) NO_EXCEPT
+{
     // This clears both mapping1 and mapping2
     memset(input->input_mapping1, 0, input_memory_size(input->hotkey_count));
     memset(&input->state, 0, sizeof(input->state));
@@ -288,28 +338,28 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     // @todo This is also not very general, maybe we can fix it like we did with analog vs digital key (instead of bool flag maybe bit flag)
     if (abs(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL]) > input->deadzone) {
         input->state.dx[0] += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] / 8;
-        input->general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
+        input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
     } else {
         input->state.dx[0] = 0;
     }
 
     if (abs(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL]) > input->deadzone) {
         input->state.dy[0] += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] / 8;
-        input->general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
+        input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
     } else {
         input->state.dy[0] = 0;
     }
 
     if (abs(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
         input->state.dx[1] += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
-        // @todo needs state change flag like mouse?!
+        input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
     } else {
         input->state.dx[1] = 0;
     }
 
     if (abs(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
         input->state.dy[1] += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
-        // @todo needs state change flag like mouse?!
+        input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
     } else {
         input->state.dy[1] = 0;
     }
@@ -335,11 +385,11 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
         input_set_state(input->state.active_keys, &keys[i]);
     }
 
-    input->general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
+    input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
 }
 
 HOT_CODE
-void input_hotkey_state(Input* const input) NO_EXCEPT
+void input_hotkey_state_update(Input* const input, uint64 time = 0) NO_EXCEPT
 {
     // @performance Can't we have a input state that checks if we even have to check the input?
     // careful even no active keys may require a minor update because we need to set it to inactive
@@ -359,9 +409,8 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
         return;
     }
 
-    // @question Should this be changed to context instead of state?
     // Check typing mode
-    if (input->general_states & INPUT_STATE_GENERAL_TYPING_MODE) {
+    if (input->context & INPUT_STATE_GENERAL_TYPING_MODE) {
         *input->text = '\0';
         int32 input_characters = 0;
         uint32 characters[10];
@@ -416,7 +465,7 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
                 InputKey* const key = &state_active_keys[key_state];
 
                 key->is_processed = true;
-                key->time = 0; // @todo fix
+                key->time = time;
             }
 
             // Create text from input
@@ -436,6 +485,7 @@ void input_hotkey_state(Input* const input) NO_EXCEPT
     int32 active_hotkeys = 0;
 
     // Check every mapping
+    // @todo Currently we ignore the context, we need to change that
     for (int32 i = 0; i < 2; ++i) {
         const Hotkey* const mapping = i == 0 ? input->input_mapping1 : input->input_mapping2;
 
@@ -484,7 +534,6 @@ bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32
     return false;
 }
 
-// @todo I wrote this code at 9am after staying awake for the whole night and that is how that code looks like... fix it!
 bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f32 dt = 0.0f) NO_EXCEPT
 {
     bool is_longpress = false;
@@ -499,32 +548,32 @@ bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f3
             bool potential_miss = true;
             bool both_empty = false;
             if (input->input_mapping1[hotkey].scan_codes[j] > 0) {
-                if(!input_key_is_longpress(&input->state, input->input_mapping1[hotkey].scan_codes[j], time, dt)) {
-                    potential_miss = true;
-                } else {
-                    potential_miss = false;
+                potential_miss = !input_key_is_longpress(
+                    &input->state,
+                    input->input_mapping1[hotkey].scan_codes[j],
+                    time,
+                    dt
+                );
+
+                if (!potential_miss) {
+                    continue;
                 }
             } else {
                 both_empty = true;
             }
 
-            if (!potential_miss) {
-                continue;
-            }
-
             if (input->input_mapping2[hotkey].scan_codes[j] > 0) {
-                if(!input_key_is_longpress(&input->state, input->input_mapping2[hotkey].scan_codes[j], time, dt)) {
-                    potential_miss = true;
-                } else {
-                    potential_miss = false;
-                }
+                potential_miss = !input_key_is_longpress(
+                    &input->state,
+                    input->input_mapping2[hotkey].scan_codes[j],
+                    time,
+                    dt
+                );
             } else {
                 both_empty &= true;
             }
 
-            if (both_empty) {
-                continue;
-            } else if (potential_miss) {
+            if (!both_empty && potential_miss) {
                 return false;
             }
         }
@@ -579,7 +628,8 @@ uint32 input_get_typed_character(InputState* state, uint64 time, uint64 dt) NO_E
 }
 
 inline
-void input_handle_hotkeys(const Input* const input, void* data) NO_EXCEPT {
+void input_hotkeys_handle(const Input* const input, void* data) NO_EXCEPT
+{
     // @question One hotkey can trigger one function, do we want multiple functions per hotkey?
     const InputEvent* input_events[MAX_KEY_PRESSES] = {0};
     int32 input_event_count = 0;

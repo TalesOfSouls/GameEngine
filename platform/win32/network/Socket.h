@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -34,8 +31,9 @@ void socket_close(SOCKET sd) {
 #define socket_cleanup() WSACleanup()
 
 static inline
-bool network_is_ipv6_enabled_in_os() NO_EXCEPT {
-    if (!pRegOpenKeyExW || !pRegQueryValueExW || !pRegCloseKey) {
+bool network_is_ipv6_enabled_in_os() NO_EXCEPT
+{
+    if (!ADVAPI32_RegOpenKeyExW || !ADVAPI32_RegQueryValueExW || !ADVAPI32_RegCloseKey) {
         return true;
     }
 
@@ -43,7 +41,7 @@ bool network_is_ipv6_enabled_in_os() NO_EXCEPT {
     DWORD size = sizeof(value);
 
     HKEY key;
-    if (pRegOpenKeyExW(HKEY_LOCAL_MACHINE,
+    if (ADVAPI32_RegOpenKeyExW(HKEY_LOCAL_MACHINE,
         L"SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters",
         0, KEY_READ, &key) != ERROR_SUCCESS
     ) {
@@ -51,31 +49,32 @@ bool network_is_ipv6_enabled_in_os() NO_EXCEPT {
         return true;
     }
 
-    if (pRegQueryValueExW(key, L"DisabledComponents", NULL, NULL,
+    if (ADVAPI32_RegQueryValueExW(key, L"DisabledComponents", NULL, NULL,
         (LPBYTE) &value, &size) == ERROR_SUCCESS
     ) {
-        pRegCloseKey(key);
+        ADVAPI32_RegCloseKey(key);
 
         if (value == 0xffffffff) {
             return false;
         }
     }
 
-    pRegCloseKey(key);
+    ADVAPI32_RegCloseKey(key);
 
     return true;
 }
 
 static inline
-bool network_has_ipv6_address() NO_EXCEPT {
-    if (!pGetAdaptersAddresses) {
+bool network_has_ipv6_address() NO_EXCEPT
+{
+    if (!IPHLPAPI_GetAdaptersAddresses) {
         return false;
     }
 
     IP_ADAPTER_ADDRESSES addresses[16384 / sizeof(IP_ADAPTER_ADDRESSES)] = {0};
     unsigned long size = sizeof(addresses);
 
-    if (pGetAdaptersAddresses(AF_UNSPEC, 0, NULL, addresses, &size) != ERROR_SUCCESS) {
+    if (IPHLPAPI_GetAdaptersAddresses(AF_UNSPEC, 0, NULL, addresses, &size) != ERROR_SUCCESS) {
         return false;
     }
 
@@ -99,13 +98,14 @@ bool network_has_ipv6_address() NO_EXCEPT {
 }
 
 static inline
-bool network_has_ipv6_default_route() NO_EXCEPT {
-    if (!pGetIpForwardTable2 || !pFreeMibTable) {
+bool network_has_ipv6_default_route() NO_EXCEPT
+{
+    if (!IPHLPAPI_GetIpForwardTable2 || !IPHLPAPI_FreeMibTable) {
         return false;
     }
 
     PMIB_IPFORWARD_TABLE2 table;
-    if (pGetIpForwardTable2(AF_INET6, &table) != NO_ERROR) {
+    if (IPHLPAPI_GetIpForwardTable2(AF_INET6, &table) != NO_ERROR) {
         return false;
     }
 
@@ -121,7 +121,7 @@ bool network_has_ipv6_default_route() NO_EXCEPT {
         }
     }
 
-    pFreeMibTable(table);
+    IPHLPAPI_FreeMibTable(table);
 
     return found;
 }

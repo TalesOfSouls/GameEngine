@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -22,8 +19,10 @@
 #elif defined(SOFTWARE) && SOFTWARE
     #include "../gpuapi/software/AppCmdBuffer.h"
 #else
-    inline void* cmd_shader_load(AppCmdBuffer*, AppCommand*) NO_EXCEPT { return NULL; }
-    inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, const int32*, ...) NO_EXCEPT { return NULL; }
+    inline void* cmd_shader_load(AppCmdBuffer*, AppCommand*) NO_EXCEPT
+{ return NULL; }
+    inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, const int32*, ...) NO_EXCEPT
+{ return NULL; }
 #endif
 
 #endif

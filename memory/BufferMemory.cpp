@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -29,7 +26,7 @@ void buffer_alloc(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_BUFFER_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(size);
     ASSERT_TRUE(max_size >= size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -73,7 +70,7 @@ void buffer_alloc(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_BUFFER_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_BUFFER_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(size);
     ASSERT_TRUE(max_size >= size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
@@ -185,7 +182,6 @@ void thrd_buffer_init(
 FORCE_INLINE
 void buffer_reset(BufferMemory* const buf) NO_EXCEPT
 {
-    // @bug aren't we wasting element 0 (see get_memory, we are not using 0 only next element)
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->end - buf->memory);
     buf->head = buf->memory;
 }

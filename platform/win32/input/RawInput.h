@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -330,24 +327,22 @@ int16 input_raw_handle(
     const RAWINPUT* const __restrict raw,
     Input* const __restrict states,
     int32 state_count,
+    Window* window,
     uint64 time
 ) NO_EXCEPT
 {
     int16 input_count = 0;
 
-    int32 i = 0;
-    int32 h = 0;
     if (raw->header.dwType == RIM_TYPEMOUSE) {
-        for (i = 0; i < state_count; ++i) {
-            for (h = 0; h < ARRAY_COUNT(states[i].mouse.handle); ++h) {
-                if (states[i].mouse.handle[h] == raw->header.hDevice) {
-                    goto FOUND_MATCH_MOUSE;
-                }
-            }
-        }
+        const v2_int16 input_handle = input_mouse_find_by_handle(
+            states,
+            state_count,
+            raw->header.hDevice
+        );
 
-        FOUND_MATCH_MOUSE:
-        if (i >= state_count || h >= ARRAY_COUNT(states[i].mouse.handle) || !states[i].connection_type) {
+        if (input_handle.vec[0] < 0
+            || !states[input_handle.vec[0]].connection_type
+        ) {
             return 0;
         }
 
@@ -385,12 +380,10 @@ int16 input_raw_handle(
                 key.key_state = KEY_PRESS_TYPE_RELEASED;
                 key.scan_code = INPUT_MOUSE_BUTTON_5;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
-                // @bug not working
                 key.key_state = KEY_PRESS_TYPE_RELEASED;
                 key.scan_code = INPUT_MOUSE_BUTTON_WHEEL;
                 key.value = (int16) raw->data.mouse.usButtonData;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_HWHEEL) {
-                // @bug not working
                 key.key_state = KEY_PRESS_TYPE_RELEASED;
                 key.scan_code = INPUT_MOUSE_BUTTON_HWHEEL;
                 key.value = (int16) raw->data.mouse.usButtonData;
@@ -403,58 +396,61 @@ int16 input_raw_handle(
             key.scan_code |= INPUT_MOUSE_PREFIX;
             key.time = time;
 
-            input_set_state(states[i].state.active_keys, &key);
-            states[i].general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
+            input_set_state(states[input_handle.vec[0]].state.active_keys, &key);
+            states[input_handle.vec[0]].general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
         }
 
         if (raw->data.mouse.lLastX || raw->data.mouse.lLastY) {
-            // @question do we want to handle mouse movement for every individual movement, or do we want to pull it
-            if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) {
-                RECT rect;
+            // @question do we want to handle mouse movement for every individual movement,
+            //          or do we want to pull it at the end if we have ANY mouse movement
 
-                // @todo move out, this is slow and should be stored in Window
-                // @performance this is slow and should be handled in the WindowProc !!!
-                if (raw->data.mouse.usFlags & MOUSE_VIRTUAL_DESKTOP) {
-                    rect.left = GetSystemMetrics(SM_XVIRTUALSCREEN);
-                    rect.top = GetSystemMetrics(SM_YVIRTUALSCREEN);
-                    rect.right = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-                    rect.bottom = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-                } else {
-                    rect.left = 0;
-                    rect.top = 0;
-                    rect.right = GetSystemMetrics(SM_CXSCREEN);
-                    rect.bottom = GetSystemMetrics(SM_CYSCREEN);
-                }
+            // @bug Consider to change dx and x to float values
+            //      Currently we are jumping in unsmooth ways since we always round down to int values
+            //      However, in reality the movement is much smoother
+            //      I couldn't feel it on my crappy mouse, low monitor resolution etc. but it could be an issue
+            const int16 dy = (int16) (raw->data.mouse.lLastY * states[input_handle.vec[0]].cursor_sensitivity);
+            const int16 dx = (int16) (raw->data.mouse.lLastX * states[input_handle.vec[0]].cursor_sensitivity);
 
-                states[i].state.dx[0] += (int16) (raw->data.mouse.lLastX);
-                states[i].state.dy[0] += (int16) (raw->data.mouse.lLastY);
+            states[input_handle.vec[0]].state.dx[0] += dx;
+            states[input_handle.vec[0]].state.dy[0] += dy;
 
-                states[i].state.x[0] = (int16) (MulDiv(raw->data.mouse.lLastX, rect.right, 32768) + rect.left);
-                states[i].state.y[0] = (int16) (MulDiv(raw->data.mouse.lLastY, rect.bottom, 32768) + rect.top);
+            states[input_handle.vec[0]].state.x[0] += dx;
+            states[input_handle.vec[0]].state.y[0] += dy;
 
-                states[i].general_states |= INPUT_STATE_GENERAL_MOUSE_MOVEMENT;
-            } else if (raw->data.mouse.lLastX != 0 || raw->data.mouse.lLastY != 0) {
-                states[i].state.dx[0] += (int16) (raw->data.mouse.lLastX);
-                states[i].state.dy[0] += (int16) (raw->data.mouse.lLastY);
+            // Since we are only using relative movement we need to clip to the window dimensions
+            states[input_handle.vec[0]].state.x[0] = OMS_CLAMP(states[input_handle.vec[0]].state.x[0], (int16) 0, (int16) window->state_current.logical_width);
+            states[input_handle.vec[0]].state.y[0] = OMS_CLAMP(states[input_handle.vec[0]].state.y[0], (int16) 0, (int16) window->state_current.logical_height);
 
-                states[i].state.x[0] = (int16) (states[i].state.x[0] + raw->data.mouse.lLastX);
-                states[i].state.y[0] = (int16) (states[i].state.y[0] + raw->data.mouse.lLastY);
+            // We need to signal that the mouse was moved
+            // We basically fake that a mouse movement is the same as a button
+            const InputKey key = {
+                SMN(scan_code) INPUT_MOUSE_PREFIX | INPUT_MOUSE_MOVE,
+                SMN(virtual_code) 0,
+                SMN(key_state) KEY_PRESS_TYPE_RELEASED,
+                SMN(is_processed) false,
+                SMN(value) 0,
+                SMN(time) time
+            };
 
-                states[i].general_states |= INPUT_STATE_GENERAL_MOUSE_MOVEMENT;
-            }
+            input_set_state(states[input_handle.vec[0]].state.active_keys, &key);
+            states[input_handle.vec[0]].general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
+
+            ++input_count;
+
+            // @todo Maybe we need to enforce the same coordinates between platforms?!
+            //          Windows top left    = 0;0
+            //                  bottom left = 0;height
         }
     } else if (raw->header.dwType == RIM_TYPEKEYBOARD) {
-        // @todo Change so we can directly access the correct state (maybe map handle address to index?)
-        for (i = 0; i < state_count; ++i) {
-            for (h = 0; h < ARRAY_COUNT(states[i].keyboard.handle); ++h) {
-                if (states[i].keyboard.handle[h] == raw->header.hDevice) {
-                    goto FOUND_MATCH_KEYBOARD;
-                }
-            }
-        }
+        const v2_int16 input_handle = input_keyboard_find_by_handle(
+            states,
+            state_count,
+            raw->header.hDevice
+        );
 
-        FOUND_MATCH_KEYBOARD:
-        if (i >= state_count || h >= ARRAY_COUNT(states[i].keyboard.handle) || !states[i].connection_type) {
+        if (input_handle.vec[0] < 0
+            || !states[input_handle.vec[0]].connection_type
+        ) {
             return 0;
         }
 
@@ -479,8 +475,8 @@ int16 input_raw_handle(
             new_state, false, 0, time
         };
 
-        input_set_state(states[i].state.active_keys, &key);
-        states[i].general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
+        input_set_state(states[input_handle.vec[0]].state.active_keys, &key);
+        states[input_handle.vec[0]].general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
     } else if (raw->header.dwType == RIM_TYPEHID
         && raw->header.dwSize > sizeof(RAWINPUT)
     ) {
@@ -489,30 +485,31 @@ int16 input_raw_handle(
         // Maybe we can add timer usage instead of polling?
         // But we would still need to register them, right?
         // Ideally we wouldn't even have to register them then because they would still pollute the general buffer
-        while (i < state_count
-            && states[i].controller.handle != raw->header.hDevice
-        ) {
-            ++i;
-        }
+        const v2_int16 input_handle = input_controller_find_by_handle(
+            states,
+            state_count,
+            raw->header.hDevice
+        );
 
-        if (i >= state_count || !states[i].connection_type
-            || time - states[i].time_last_input_check < 5
+        if (input_handle.vec[0] < 0
+            || !states[input_handle.vec[0]].connection_type
+            || time - states[input_handle.vec[0]].time_last_input_check < 5
         ) {
             return 0;
         }
 
         ControllerInput controller = {0};
-        switch(states[i].controller_type) {
+        switch(states[input_handle.vec[0]].controller_type) {
             case CONTROLLER_TYPE_DUALSHOCK4: {
-                input_map_dualshock4(&controller, states[i].connection_type, raw->data.hid.bRawData);
+                input_map_dualshock4(&controller, states[input_handle.vec[0]].connection_type, raw->data.hid.bRawData);
             } break;
             default: {
             };
         }
-        input_set_controller_state(&states[i], &controller, time);
+        input_set_controller_state(&states[input_handle.vec[0]], &controller, time);
 
-        states[i].general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
-        states[i].time_last_input_check = time;
+        states[input_handle.vec[0]].general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
+        states[input_handle.vec[0]].time_last_input_check = time;
     }
 
     return input_count;
@@ -521,6 +518,7 @@ int16 input_raw_handle(
 void input_raw_handle(
     LPARAM lParam,
     Input* __restrict states, int32 state_count,
+    Window* window,
     BufferMemory* const __restrict mem,
     uint64 time
 ) NO_EXCEPT
@@ -528,25 +526,24 @@ void input_raw_handle(
     uint32 db_size;
     GetRawInputData((HRAWINPUT) lParam, RID_INPUT, NULL, &db_size, sizeof(RAWINPUTHEADER));
 
-    // @todo pull out, we only need to register this memory once
-    //      Maybe even put it into the general memory pool
     LPBYTE lpb;
     BUFFER_STACK_MEMORY(mem, (byte **) &lpb, db_size * sizeof(BYTE), alignof(size_t));
 
     uint32 size = GetRawInputData((HRAWINPUT) lParam, RID_INPUT, lpb, &db_size, sizeof(RAWINPUTHEADER));
-    // @todo Log large data size, e.g. very high poll rate
+    LOG_TRUE_3(size > 100 * KILOBYTE, "Very large input data %d bytes", {DATA_TYPE_UINT32, &size});
 
     if (db_size != size) {
         return;
     }
 
-    input_raw_handle((RAWINPUT *) lpb, states, state_count, time);
+    input_raw_handle((RAWINPUT *) lpb, states, state_count, window, time);
 }
 
 // max_inputs = max input messages
 int16 input_raw_handle_buffered(
     int32 max_inputs,
     Input* __restrict states, int32 state_count,
+    Window* window,
     BufferMemory* const __restrict mem,
     uint64 time
 ) NO_EXCEPT
@@ -560,7 +557,7 @@ int16 input_raw_handle_buffered(
     // Max input messages (e.g. 16)
     cb_size *= max_inputs;
 
-    // @todo Log large data size, e.g. very high poll rate
+    LOG_TRUE_3(cb_size > 100 * KILOBYTE, "Very large input data %d bytes", {DATA_TYPE_UINT32, &cb_size});
 
     PRAWINPUT raw_input;
     BUFFER_STACK_MEMORY(mem, (byte **) &raw_input, cb_size, alignof(size_t));
@@ -580,7 +577,7 @@ int16 input_raw_handle_buffered(
             }
 
             // @performance Instead of passing all input states we should only pass the state that actually matters
-            input_count += input_raw_handle(pri, states, state_count, time);
+            input_count += input_raw_handle(pri, states, state_count, window, time);
 
             pri = NEXTRAWINPUTBLOCK(pri);
         }

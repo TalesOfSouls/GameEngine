@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -56,19 +53,6 @@ typedef unsigned int uint;
 
 #if _WIN32
     typedef long long ssize_t;
-#endif
-
-/**
- * Some implementations should support 32 bit and 64 bit.
- * For this reason we need types that are universal.
- * And who knows, maybe we will get to 128 bits as default integer sizes.
- */
-#if !defined(_WIN64) && !__x86_64__ && !__ppc64__
-    typedef int32 sint_max;
-    typedef uint32 uint_max;
-#else
-    typedef int64 sint_max;
-    typedef uint64 uint_max;
 #endif
 
 typedef float f32;
@@ -489,7 +473,7 @@ enum DataType : byte {
 struct timespec
 {
     time_t tv_sec;  // Seconds - >= 0
-    long   tv_nsec; // Nanoseconds - [0, 999999999]
+    long tv_nsec; // Nanoseconds - [0, 999999999]
 };
 #define _CRT_NO_TIME_T 1
 

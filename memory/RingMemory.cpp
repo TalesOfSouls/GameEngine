@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -31,7 +28,7 @@ void ring_alloc(RingMemory* const ring, size_t size, size_t max_size, int32 alig
     ASSERT_TRUE(size);
     ASSERT_TRUE(max_size >= size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
-    PROFILE_DEBUG(PROFILE_RING_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_RING_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
 
     size = align_up(size, ASSUMED_CACHE_LINE_SIZE);
     LOG_1("[INFO] Allocating RingMemory: %n B", {DATA_TYPE_UINT64, &size});
@@ -258,8 +255,26 @@ void thrd_ring_move_pointer(RingMemory* const ring, byte** pos, size_t size, int
     ring_move_pointer(ring, pos, size, alignment);
 }
 
-// @todo Implement a function called ring_grow_memory that tries to grow a memory range
-// this of course is only possible if the memory range is the last memory range returned and if the growing part still fits into the ring
+inline
+bool memory_resize(RingMemory* const mem, size_t new_size) NO_EXCEPT
+{
+    if (!platform_alloc_aligned_resize(mem->memory, new_size)) {
+        return false;
+    }
+
+    mem->size = new_size;
+    mem->end = mem->memory + new_size;
+
+    return true;
+}
+
+inline
+bool thrd_memory_resize(RingMemory* const mem, size_t new_size) NO_EXCEPT
+{
+    MutexGuard _guard(&mem->lock);
+    return memory_resize(mem, new_size);
+}
+
 HOT_CODE
 byte* memory_get(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
@@ -290,43 +305,6 @@ byte* thrd_memory_get(RingMemory* const ring, size_t size, int32 alignment = siz
 {
     MutexGuard _guard(&ring->lock);
     return memory_get(ring, size, alignment);
-}
-
-byte* ring_grow_memory(RingMemory* const ring, const byte* old, size_t size_old, size_t size_new, int32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    size_new = align_up(size_new, alignment);
-
-    const byte* const expected_head = old + align_up(size_old, alignment);
-
-    // Check if we can grow in place (no allocations since old)
-    if (expected_head == ring->head) {
-        // Check if there's enough space left in current buffer
-        if (ring->head + (size_new - size_old) <= ring->end) {
-            DEBUG_MEMORY_WRITE((uintptr_t) ring->head, size_new - size_old);
-            ring->head += (size_new - size_old);
-
-            return (byte *) old;
-        } else {
-            // Not enough space at the end — wrap and reset
-            // Allocate new space with ring_memory_get and copy over
-            byte* const new_block = memory_get(ring, size_new, alignment);
-            memcpy(new_block, old, size_old);
-
-            return new_block;
-        }
-    } else {
-        // Some other allocations happened — must allocate new block
-        byte* const new_block = memory_get(ring, size_new, alignment);
-        memcpy(new_block, old, size_old);
-
-        return new_block;
-    }
-}
-
-FORCE_INLINE
-byte* thrd_ring_grow_memory(RingMemory* const ring, const byte* old, size_t size_old, size_t size_new, int32 alignment = sizeof(size_t)) {
-    MutexGuard _guard(&ring->lock);
-    return ring_grow_memory(ring, old, size_old, size_new, alignment);
 }
 
 // Same as ring_memory_get but DOESN'T move the head

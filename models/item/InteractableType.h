@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -12,7 +9,7 @@
 
 #include "../../stdlib/Stdlib.h"
 
-// The following flags describe when something is interactable
+// The following flags describe when something is interactive
 enum InteractableType : uint8 {
     INTERACTABLE_TYPE_WHILE_MOVING,
     INTERACTABLE_TYPE_WHILE_WALKING,

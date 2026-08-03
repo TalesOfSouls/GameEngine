@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -24,7 +21,7 @@
 #include "../../../log/Log.h"
 #include "../../../audio/Audio.cpp"
 
-#include "../libs/ole32_static.h"
+#include "../libs/ole32.h"
 
 //#pragma comment(lib, "avrt.lib")
 
@@ -58,7 +55,7 @@ bool wasapi_settings_load(WasapiSetting* const __restrict api_setting) {
     IMMDeviceEnumerator* enumerator;
     IMMDevice* device;
 
-    HRESULT hr = CoCreateInstance(
+    HRESULT hr = OLE32_CoCreateInstance(
         __uuidof(MMDeviceEnumerator),
         NULL,
         CLSCTX_ALL,
@@ -214,9 +211,8 @@ void wasapi_play_buffer(AudioSetting* __restrict setting, WasapiSetting* __restr
         return;
     }
 
-    // @question Do we have to change it from sample_buffer_size to sample count?
     byte* buffer;
-    api_setting->render_client->GetBuffer(setting->sample_buffer_size, (byte **) &buffer);
+    api_setting->render_client->GetBuffer(setting->sample_buffer_size / setting->sample_size, (byte **) &buffer);
 
     memcpy(buffer, setting->buffer, setting->sample_buffer_size);
 }

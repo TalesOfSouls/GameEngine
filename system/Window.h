@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -11,6 +8,7 @@
 #define COMS_SYSTEM_WINDOW_H
 
 #include "../stdlib/Stdlib.h"
+#include "../platform/win32/Window.h"
 
 struct WindowState {
     // Logical dimension
@@ -57,7 +55,7 @@ struct Window {
 
     const char* name;
 
-    void* platform_window;
+    WindowPlatform* platform_window;
     void* gpu_api_context;
 };
 

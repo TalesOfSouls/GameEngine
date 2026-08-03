@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -20,6 +17,14 @@
 // Gets the size of a struct member
 #define MEMBER_SIZEOF(type, member) (sizeof(((type *)0)->member))
 #define MEMBER_ARRAY_COUNT(type, member) ARRAY_COUNT(((type *)0)->member)
+
+// Older c++ version don't allow member variable assignment using ".name = value" style
+// Why use it at all? Well because it helps spotting bugs if the order changes in a struct
+#if CPP_VERSION >= 17
+    #define SMN(name) .name =
+#else
+    #define SMN(name)
+#endif
 
 #define MEMORY_OFFSET(a, b) (size_t) ((uintptr_t) a - (uintptr_t) b)
 #define MEMORY_ELEMENT_ZERO(ptr) memset(ptr, 0, sizeof(*ptr))
@@ -86,6 +91,87 @@ FORCE_INLINE CONSTEXPR T align_down(T x, size_t align) NO_EXCEPT
 #define OMS_BITARRAY_TOGGLE(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] ^ ((size_t)1 << OMS_BIT_INDEX(pos)))
 #define OMS_BITARRAY_FLIP(flags, pos) OMS_BITARRAY_TOGGLE(flags, pos)
 #define OMS_BITARRAY_CHECK(flags, pos) (((flags)[OMS_BIT_WORD_INDEX(pos)] >> OMS_BIT_INDEX(pos)) & (size_t)1)
+#define OMS_BITARRAY_SET_TO(flags, pos, value) {                                                              \
+        if (value)                                                    \
+            (flags)[OMS_BIT_WORD_INDEX(pos)] |=                        \
+                ((size_t)1 << OMS_BIT_INDEX(pos));                     \
+        else                                                          \
+            (flags)[OMS_BIT_WORD_INDEX(pos)] &=                        \
+                ~((size_t)1 << OMS_BIT_INDEX(pos));                    \
+    }
+
+// Usually these specific implementation R2L or L2R are only used if you are handling a specific format
+// e.g. file format or algorithm (e.g. Huffman encoding)
+// If you are only doing bit manipulation of your own format or data that only exists during runtime
+// feel free to use the OMS_BIT and OMS_FLAG versions defined in Types.h
+
+// Left to right (big endian)
+// "bits" refers to the bits of the data type (e.g. 8, 16, 32, 64)
+#define IS_BIT_SET_L2R(num, pos, bits) ((bool) ((num) & (OMS_UINT_ONE << ((bits - 1) - (pos)))))
+#define BIT_SET_L2R(num, pos, bits) ((num) | (OMS_UINT_ONE << ((bits - 1) - (pos))))
+
+#define IS_BIT_SET_64_L2R(num, pos, bits) ((bool) ((num) & (1ULL << ((bits - 1) - (pos)))))
+#define BIT_SET_64_L2R(num, pos, bits) ((num) | (1ULL << ((bits - 1) - (pos))))
+#define BIT_UNSET_64_L2R(num, pos, bits) ((num) & ~(1ULL << ((bits - 1) - (pos))))
+#define BIT_FLIP_64_L2R(num, pos, bits) ((num) ^ (1ULL << ((bits - 1) - (pos))))
+#define BIT_SET_TO_64_L2R(num, pos, x, bits) (((num) & ~(1ULL << ((bits) - 1 - (pos)))) | (((uint64_t)(x) & 1ULL) << ((bits) - 1 - (pos))))
+
+#define IS_BIT_SET_32_L2R(num, pos, bits) ((bool) ((num) & (1 << ((bits - 1) - (pos)))))
+#define BIT_SET_32_L2R(num, pos, bits) ((num) | (1U << ((bits - 1) - (pos))))
+#define BIT_UNSET_L2R(num, pos, bits) ((num) & ~(1U << ((bits - 1) - (pos))))
+#define BIT_FLIP_L2R(num, pos, bits) ((num) ^ (1U << ((bits - 1) - (pos))))
+#define BIT_SET_TO_L2R(num, pos, x, bits) (((num) & ~(1U << ((bits) - 1 - (pos)))) | (((uint32_t)(x) & 1U) << ((bits) - 1 - (pos))))
+
+#define BITS_GET_8_L2R(num, pos, to_read) (((num) >> (8 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
+#define BITS_GET_16_L2R(num, pos, to_read) (((num) >> (16 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
+#define BITS_GET_32_L2R(num, pos, to_read) (((num) >> (32 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
+#define BITS_GET_64_L2R(num, pos, to_read) (((num) >> (64ULL - (pos) - (to_read))) & ((1ULL << (to_read)) - 1))
+
+// Merges an array of bytes as an int value (16bit, 32bit, 64bit)
+// The implementation is endian aware
+#if _WIN32 || __LITTLE_ENDIAN__
+    #define BYTES_MERGE_2_L2R(arr) (((arr)[0] << 8) | (arr)[1])
+    #define BYTES_MERGE_4_L2R(arr) (((arr)[0] << 24) | ((arr)[1] << 16) | ((arr)[2] << 8) | (arr)[3])
+    #define BYTES_MERGE_8_L2R(arr) (((uint64_t)(arr)[0] << 56) | ((uint64_t)(arr)[1] << 48) | ((uint64_t)(arr)[2] << 40) | ((uint64_t)(arr)[3] << 32) | ((uint64_t)(arr)[4] << 24) | ((uint64_t)(arr)[5] << 16) | ((uint64_t)(arr)[6] << 8)  | ((uint64_t)(arr)[7]))
+#else
+    #define BYTES_MERGE_2_L2R(arr) (*(const uint16_t *)(arr))
+    #define BYTES_MERGE_4_L2R(arr) (*(const uint32_t *)(arr))
+    #define BYTES_MERGE_8_L2R(arr) (*(const uint64_t *)(arr))
+#endif
+
+// The R2L version is basically the same as: OMS_FLAG_ and OMS_BIT_ defined in Types
+// Right to left (little endian)
+#define IS_BIT_SET_R2L(num, pos) ((bool) ((num) & (OMS_UINT_ONE << (pos))))
+#define BIT_SET_R2L(num, pos) ((num) | (OMS_UINT_ONE << (pos)))
+
+#define IS_BIT_SET_64_R2L(num, pos) ((bool) ((num) & (1ULL << (pos))))
+#define BIT_SET_64_R2L(num, pos) ((num) | (1ULL << (pos)))
+#define BIT_UNSET_64_R2L(num, pos) ((num) & ~(1ULL << (pos)))
+#define BIT_FLIP_64_R2L(num, pos) ((num) ^ (1ULL << (pos)))
+#define BIT_SET_TO_64_R2L(num, pos, x) (((num) & ~(1ULL << (pos))) | ((uint64_t)(x) << (pos)))
+
+#define IS_BIT_SET_32_R2L(num, pos) ((bool) ((num) & (1 << (pos))))
+#define BIT_SET_32_R2L(num, pos) ((num) | (1U << (pos)))
+#define BIT_UNSET_R2L(num, pos) ((num) & ~(1U << (pos)))
+#define BIT_FLIP_R2L(num, pos) ((num) ^ (1U << (pos)))
+#define BIT_SET_TO_R2L(num, pos, x) (((num) & ~(1U << (pos))) | ((uint32_t)(x) << (pos)))
+
+#define BITS_GET_8_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
+#define BITS_GET_16_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
+#define BITS_GET_32_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
+#define BITS_GET_64_R2L(num, pos, to_read) (((num) >> (pos)) & ((1ULL << (to_read)) - 1))
+
+// Merges an array of bytes as an int value (16bit, 32bit, 64bit)
+// The implementation is endian aware
+#if _WIN32 || __LITTLE_ENDIAN__
+    #define BYTES_MERGE_2_R2L(arr) (*(const uint16_t *)(arr))
+    #define BYTES_MERGE_4_R2L(arr) (*(const uint32_t *)(arr))
+    #define BYTES_MERGE_8_R2L(arr) (*(const uint64_t *)(arr))
+#else
+    #define BYTES_MERGE_2_R2L(arr) (((arr)[1] << 8) | (arr)[0])
+    #define BYTES_MERGE_4_R2L(arr) (((arr)[3] << 24) | ((arr)[2] << 16) | ((arr)[1] << 8) | (arr)[0])
+    #define BYTES_MERGE_8_R2L(arr) (((uint64_t)(arr)[7] << 56) | ((uint64_t)(arr)[6] << 48) | ((uint64_t)(arr)[5] << 40) | ((uint64_t)(arr)[4] << 32) | ((uint64_t)(arr)[3] << 24) | ((uint64_t)(arr)[2] << 16) | ((uint64_t)(arr)[1] << 8)  | ((uint64_t)(arr)[0]))
+#endif
 
 #define OMS_HAS_ALPHA(color) (color & 0xFF)
 
@@ -398,5 +484,18 @@ public:
 
 template <typename From, typename To>
 constexpr bool is_convertible_v = is_convertible<From, To>::value;
+
+// Used to check if two types are the same
+template<typename T, typename U>
+struct is_same
+{
+    enum { value = 0 };
+};
+
+template<typename T>
+struct is_same<T, T>
+{
+    enum { value = 1 };
+};
 
 #endif

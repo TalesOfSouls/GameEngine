@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -35,6 +32,8 @@ void atlas_from_file_txt(
     atlas->uv_count = 0;
     char* texture_pos = atlas->texture_name;
 
+    int header_completed = 0;
+
     // Font header
     while (*pos != '\0') {
         // Parsing general data
@@ -58,13 +57,16 @@ void atlas_from_file_txt(
             }
 
             *texture_pos++ = '\0';
+            ++header_completed;
         } else if (strncmp(block_name, "image_width", sizeof("image_width") - 1) == 0) {
             image_width = (int32) str_to_int(pos, &pos);
+            ++header_completed;
         } else if (strncmp(block_name, "image_height", sizeof("image_height") - 1) == 0) {
             image_height = (int32) str_to_int(pos, &pos);
+            ++header_completed;
+        }
 
-            // @bug it's a little bit of a bad design to force the order here
-            //      this requires image_height to be the last element before the content starts
+        if (header_completed >= 3) {
             break;
         }
 

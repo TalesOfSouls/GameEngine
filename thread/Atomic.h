@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -185,9 +182,9 @@ T* atomic_fetch_increment_wrap_relaxed(T** value, T* start, const T* end) NO_EXC
 
         T* expected = old;
         T* prev = (T *) atomic_compare_exchange_strong_relaxed(
-            (uint_max *) (uintptr_t) value,
-            (uint_max) (uintptr_t) expected,
-            (uint_max) (uintptr_t) next
+            (size_t *) (uintptr_t) value,
+            (size_t) (uintptr_t) expected,
+            (size_t) (uintptr_t) next
         );
 
         if (prev == old) {
@@ -212,9 +209,9 @@ T* atomic_fetch_increment_wrap_acquire(T** value, T* start, const T* end) NO_EXC
 
         T* expected = old;
         T* prev = (T *) atomic_compare_exchange_strong_acquire(
-            (uint_max *) (uintptr_t) value,
-            (uint_max) (uintptr_t) expected,
-            (uint_max) (uintptr_t) next
+            (size_t *) (uintptr_t) value,
+            (size_t) (uintptr_t) expected,
+            (size_t) (uintptr_t) next
         );
 
         if (prev == old) {
@@ -239,9 +236,9 @@ T* atomic_fetch_increment_wrap_release(T** value, T* start, const T* end) NO_EXC
 
         T* expected = old;
         T* prev = (T *) atomic_compare_exchange_strong_release(
-            (uint_max *) (uintptr_t) value,
-            (uint_max) (uintptr_t) expected,
-            (uint_max) (uintptr_t) next
+            (size_t *) (uintptr_t) value,
+            (size_t) (uintptr_t) expected,
+            (size_t) (uintptr_t) next
         );
 
         if (prev == old) {
@@ -266,9 +263,9 @@ T* atomic_fetch_increment_wrap_acquire_release(T** value, T* start, const T* end
 
         T* expected = old;
         T* prev = (T *) atomic_compare_exchange_strong_acquire_release(
-            (uint_max *) (uintptr_t) value,
-            (uint_max) (uintptr_t) expected,
-            (uint_max) (uintptr_t) next
+            (size_t *) (uintptr_t) value,
+            (size_t) (uintptr_t) expected,
+            (size_t) (uintptr_t) next
         );
 
         if (prev == old) {

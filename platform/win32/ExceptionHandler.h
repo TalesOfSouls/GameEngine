@@ -1,9 +1,8 @@
 /**
- * Jingga
+ * Exception handling
  *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -29,7 +28,7 @@ void create_minidump(EXCEPTION_POINTERS* exception_pointers) NO_EXCEPT
     mdei.ExceptionPointers = exception_pointers;
     mdei.ClientPointers = FALSE;
 
-    pMiniDumpWriteDump(
+    DBGHELP_MiniDumpWriteDump(
         GetCurrentProcess(),
         GetCurrentProcessId(),
         fp,
@@ -49,11 +48,10 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
 
-    // Initialize symbols
-    pSymInitialize(process, NULL, TRUE);
+    DBGHELP_SymInitialize(process, NULL, TRUE);
 
     // Set symbol options to load line numbers and undecorated names
-    pSymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
+    DBGHELP_SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
     STACKFRAME64 stack_frame = {0};
     DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
@@ -69,8 +67,8 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
     LOG_1("Stack trace:");
 
     // Walk the stack
-    while (pStackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
-        pSymFunctionTableAccess64, pSymGetModuleBase64, NULL)
+    while (DBGHELP_StackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
+        DBGHELP_SymFunctionTableAccess64, DBGHELP_SymGetModuleBase64, NULL)
     ) {
         DWORD64 address = stack_frame.AddrPC.Offset;
 
@@ -85,7 +83,7 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
         symbol->MaxNameLen = MAX_SYM_NAME;
 
-        if (pSymFromAddr(process, address, NULL, symbol)) {
+        if (DBGHELP_SymFromAddr(process, address, NULL, symbol)) {
             LOG_1(
                 "Function: %s - Address: %l",
                 {DATA_TYPE_CHAR_STR, symbol->Name},
@@ -100,7 +98,7 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
         DWORD displacement = 0;
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
-        if (pSymGetLineFromAddr64(process, address, &displacement, &line)) {
+        if (DBGHELP_SymGetLineFromAddr64(process, address, &displacement, &line)) {
             LOG_1(
                 "    File: %s, Line: %l",
                 {DATA_TYPE_CHAR_STR, line.FileName},
@@ -113,7 +111,7 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
         // Print module name
         IMAGEHLP_MODULE64 module_info;
         module_info.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
-        if (pSymGetModuleInfo64(process, address, &module_info)) {
+        if (DBGHELP_SymGetModuleInfo64(process, address, &module_info)) {
             LOG_1("    Module: %s", {DATA_TYPE_CHAR_STR, module_info.ModuleName});
         } else {
             LOG_1("    Module: (unknown)");
@@ -121,7 +119,7 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
     }
 
     LOG_TO_FILE();
-    pSymCleanup(process);
+    DBGHELP_SymCleanup(process);
 }
 
 void print_stack_trace(CONTEXT* context) NO_EXCEPT
@@ -129,8 +127,7 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
 
-    // Initialize symbols
-    pSymInitialize(process, NULL, TRUE);
+    DBGHELP_SymInitialize(process, NULL, TRUE);
 
     STACKFRAME64 stack_frame = {0};
     DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
@@ -145,8 +142,8 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
 
     LOG_1("Stack trace:");
 
-    while (pStackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
-        pSymFunctionTableAccess64, pSymGetModuleBase64, NULL)
+    while (DBGHELP_StackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
+        DBGHELP_SymFunctionTableAccess64, DBGHELP_SymGetModuleBase64, NULL)
     ) {
         DWORD64 address = stack_frame.AddrPC.Offset;
 
@@ -156,7 +153,7 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
         symbol->MaxNameLen = MAX_SYM_NAME;
 
-        if (pSymFromAddr(process, address, NULL, symbol)) {
+        if (DBGHELP_SymFromAddr(process, address, NULL, symbol)) {
             LOG_1(
                 "Function: %s - Address: 0x%l\n",
                 {DATA_TYPE_CHAR_STR, symbol->Name},
@@ -171,7 +168,7 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
         DWORD displacement = 0;
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
-        if (pSymGetLineFromAddr64(process, address, &displacement, &line)) {
+        if (DBGHELP_SymGetLineFromAddr64(process, address, &displacement, &line)) {
             LOG_1(
                 "    File: %s, Line: %l",
                 {DATA_TYPE_CHAR_STR, line.FileName},
@@ -183,7 +180,7 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
     }
 
     LOG_TO_FILE();
-    pSymCleanup(process);
+    DBGHELP_SymCleanup(process);
 }
 
 #endif

@@ -8,6 +8,8 @@
 #include "../asset/Asset.h"
 #include "../font/FontSystem.h"
 #include "../object/Vertex.h"
+#include "UICore.h"
+#include "UICursor.h"
 
 #define UI_LAYOUT_VERSION 1
 
@@ -45,6 +47,9 @@ struct UIChromaCodes {
     // Size is based on screen size (we don't need full screen size since we assume an interactible element is at least 4 pixels width and height)
     //      width = 25% of screen size
     //      height = 25% of screen size
+    // @bug what if we want to support 8k resolution? in that case 4 pixel get reduced to 1 pixel
+    //      That means a border doesn't really have a good hitbox
+    //      Maybe I then have to check neighboring pixels?
     uint16 width;
     uint16 height;
 
@@ -55,7 +60,6 @@ struct UIChromaCodes {
 
 // @bug I hate this forward declaration
 typedef struct UILayout UILayout;
-typedef struct UICore UICore;
 
 typedef void *(*UIUpdateFunc)(
     void* user_data,
@@ -71,24 +75,11 @@ typedef void *(*UIRenderFunc)(
     byte* const __restrict mem
 ) NO_EXCEPT;
 
-enum UIElementChangeType {
-    // If an element go larger we can update it VERY efficiently
-    UI_ELEMENT_CHANGE_DIM_LARGER = 1 << 0,
-
-    // dimensions got smaller or one axis got smaller and only one got bigger
-    UI_ELEMENT_CHANGE_DIM_OTHER = 1 << 1,
-
-    // Z-axis changed
-    UI_ELEMENT_CHANGE_ORDER = 1 << 2,
-
-    // This is the most complex change since it also results in different vertex counts
-    // We now have to change the entire vertex cache/index cache after this element as well
-    UI_ELEMENT_CHANGE_CONTENT = 1 << 3,
-};
-
 struct UIElementChange {
     int32 element;
-    uint32 change_type;
+
+    // UIElementChangeType
+    byte change_type;
 };
 
 // Modified for every scene
@@ -118,6 +109,8 @@ struct UILayout {
     int32 used_data_size;
 
     // This is the owner of the hashmap data
+    // @question Do we want to also store the layout in here again in text form?
+    //          This would mean that we store it effectively twice (binary format in element_buffer and here text format)
     byte* data;
 
     // Used for the vao, vbo, ...
@@ -128,7 +121,10 @@ struct UILayout {
     // This allows us to identify and re-draw changed elements quickly
     ArrayVector<UIElementChange> ui_element_changed;
 
-    void* ui_root;
+    UICore* ui_root;
+
+    // This is just a helper because a cursor is a special UI element that is needed frequently
+    UICursor* cursor;
 
     // This array links into the ui_element_buffer via offsets
     // We need to know what the root elements are for our rendering
@@ -136,6 +132,7 @@ struct UILayout {
     // but instead of storing pointers or the elements themselves we store the offset to the "root" elements
     // When rendering we iterate over these root elements
     // and internally then over all children of these root elements
+    // The order of elements in this array also define the rendering order
     ArrayVector<int32> ui_element_root;
 
     // This is where we actually store the elements

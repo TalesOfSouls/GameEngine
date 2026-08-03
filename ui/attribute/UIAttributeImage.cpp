@@ -19,6 +19,8 @@ void ui_image_attribute_from_atlas(
     img->texture = 2 + 1;
     memcpy(img->tex_coord, &ui_atlas->uv[uv_start], sizeof(v2_f32) * 4);
     img->dimension.pos = {0.0f, 0.0f};
+
+    // We are only storing it in dim, we might not want to use it
     img->dimension.dim = {
         (img->tex_coord[1].x - img->tex_coord[0].x) * ui_atlas->texture->image.width,
         (img->tex_coord[0].y - img->tex_coord[3].y) * ui_atlas->texture->image.height,

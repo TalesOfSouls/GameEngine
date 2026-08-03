@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -27,10 +24,10 @@ void hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_
 {
     // Get the GUID for HID devices
     GUID hid_guid;
-    pHidD_GetHidGuid(&hid_guid);
+    HID_HidD_GetHidGuid(&hid_guid);
 
     // Get a handle to the device information set
-    HDEVINFO device_info_set = pSetupDiGetClassDevsW(&hid_guid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+    HDEVINFO device_info_set = SETUPAPI_SetupDiGetClassDevsW(&hid_guid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
     if (device_info_set == INVALID_HANDLE_VALUE) {
         return;
     }
@@ -41,7 +38,7 @@ void hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_
     DWORD device_index = 0;
     int32 controller_found = 0;
 
-    while (pSetupDiEnumDeviceInterfaces(
+    while (SETUPAPI_SetupDiEnumDeviceInterfaces(
         device_info_set,
         NULL,
         &hid_guid,
@@ -52,7 +49,7 @@ void hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_
         DWORD required_size = 0;
 
         // First call to get required buffer size for device detail data
-        pSetupDiGetDeviceInterfaceDetailW(
+        SETUPAPI_SetupDiGetDeviceInterfaceDetailW(
             device_info_set,
             &device_interface_data,
             NULL,
@@ -71,7 +68,7 @@ void hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_
         device_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
         // Get device interface detail
-        if (!pSetupDiGetDeviceInterfaceDetailW(
+        if (!SETUPAPI_SetupDiGetDeviceInterfaceDetailW(
             device_info_set,
             &device_interface_data,
             device_detail_data,
@@ -99,19 +96,19 @@ void hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_
         // Check if the device is a gamepad or joystick by reading its attributes
         HIDD_ATTRIBUTES attributes;
         attributes.Size = sizeof(HIDD_ATTRIBUTES);
-        if (!pHidD_GetAttributes(device_handle, &attributes)) {
+        if (!HID_HidD_GetAttributes(device_handle, &attributes)) {
             continue;
         }
 
         // Get the preparsed data to check usage page and usage ID
         PHIDP_PREPARSED_DATA preparsed_data;
-        if (!pHidD_GetPreparsedData(device_handle, &preparsed_data)) {
+        if (!HID_HidD_GetPreparsedData(device_handle, &preparsed_data)) {
             continue;
         }
 
         HIDP_CAPS caps;
-        if (pHidP_GetCaps(preparsed_data, &caps) == HIDP_STATUS_SUCCESS) {
-            pHidD_FreePreparsedData(preparsed_data);
+        if (HID_HidP_GetCaps(preparsed_data, &caps) == HIDP_STATUS_SUCCESS) {
+            HID_HidD_FreePreparsedData(preparsed_data);
             continue;
         }
 
@@ -155,10 +152,10 @@ void hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_
             CloseHandle(device_handle);
         }
 
-        pHidD_FreePreparsedData(preparsed_data);
+        HID_HidD_FreePreparsedData(preparsed_data);
     }
 
-    pSetupDiDestroyDeviceInfoList(device_info_set);
+    SETUPAPI_SetupDiDestroyDeviceInfoList(device_info_set);
 }
 
 inline
@@ -181,7 +178,7 @@ uint32 hid_device_poll(Input* state, uint64 time) NO_EXCEPT
     }
     input_set_controller_state(state, &controller, time);
 
-    state->general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
+    state->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
     state->time_last_input_check = time;
 
     return 0;

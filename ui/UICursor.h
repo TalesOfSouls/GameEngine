@@ -3,13 +3,12 @@
 #define COMS_UI_CURSOR_H
 
 #include "../stdlib/Stdlib.h"
-#include "attribute/UIAttributeDimension.h"
-#include "UILayout.h"
+#include "attribute/UIAttributeImage.h"
+#include "UICore.h"
 
 struct UICursor {
     UICore core;
-    int32 asset_id;
-    int32 sampler;
+    UIAttributeImage image;
 };
 
 #endif

@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -60,10 +57,12 @@ void input_controller_init(
     */
 }
 
+// @todo make window const and maybe __restrict
 int16 input_kbm_handle(
     InputMode mode,
     int32 max_inputs,
     Input* __restrict states, int32 state_count,
+    Window* window,
     BufferMemory* const __restrict mem,
     uint64 time
 ) NO_EXCEPT
@@ -71,7 +70,7 @@ int16 input_kbm_handle(
     // @performance Maybe states should have its own temp memory to handle input data
     switch (mode) {
         case INPUT_MODE_EVENT: {
-            return input_raw_handle_buffered(max_inputs, states, state_count, mem, time);
+            return input_raw_handle_buffered(max_inputs, states, state_count, window, mem, time);
         };
         case INPUT_MODE_POLLING: {
             return input_poll_handle(states, time);

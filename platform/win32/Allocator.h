@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -141,6 +138,27 @@ bool platform_alloc_aligned_shrink(void* aligned_ptr, size_t new_user_size) NO_E
     hdr->committed_size = new_committed;
 
     return true;
+}
+
+inline
+bool platform_alloc_aligned_resize(void* aligned_ptr, size_t new_user_size) NO_EXCEPT
+{
+    ASSERT_TRUE(aligned_ptr);
+
+    // Get the base header
+    void* base = ((void**)aligned_ptr)[-1];
+    platform_alloc_header* hdr = (platform_alloc_header *) base;
+
+    // Calculate new committed size including header and alignment
+    const size_t new_committed = align_up(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
+
+    if (new_committed == hdr->committed_size) {
+        return true;
+    } else if (new_committed > hdr->committed_size) {
+        return platform_alloc_aligned_grow(aligned_ptr, new_user_size);
+    } else {
+        return platform_alloc_aligned_shrink(aligned_ptr, new_user_size);
+    }
 }
 
 inline

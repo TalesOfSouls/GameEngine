@@ -6,8 +6,6 @@
 #include "../object/Texture.h"
 
 /**
- * @todo The font atlas should have a pixel perfect representation at the smallest possible font size. Currently it's not pixel perfect nor the smallest possible size
- * @todo The font atlas letters could be minimized by using one channel each. This allows us to reduce the font atlas size by a factor of 3
  * @todo Font atlas should be two fold:
  *      1. In memory contains all required font characters in a font atlas
  *      2. On gpu only contains the default pre-selected characters and extends that font atlas with new characters

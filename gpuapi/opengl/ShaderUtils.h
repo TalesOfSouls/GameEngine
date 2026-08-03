@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -226,7 +223,6 @@ int32 opengl_program_optimize(const char* __restrict input, char* __restrict out
 
     *write_ptr = '\0';
 
-    // -1 to remove \0 from length, same as strlen
     return (int32) (write_ptr - output);
 }
 
@@ -277,7 +273,7 @@ GLuint gpuapi_pipeline_make(
     GLint geometry_shader
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_PIPELINE_MAKE, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Create pipeline");
     const GLuint program = glCreateProgram();
 

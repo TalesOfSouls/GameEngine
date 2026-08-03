@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -76,7 +73,7 @@ ID3D12PipelineState* gpuapi_pipeline_make(
     ID3DBlob* fragment_shader,
     ID3DBlob*
 ) {
-    PROFILE_DEBUG(PROFILE_PIPELINE_MAKE, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_PIPELINE_MAKE, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("Create pipeline");
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_info = {0};

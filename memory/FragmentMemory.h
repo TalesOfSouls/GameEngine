@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -34,7 +31,7 @@ struct FragmentMemory {
     byte* memory;
 
     // @question Do I really want to use uint?
-    uint_max size;
+    size_t size;
     int32 last_pos;
     uint32 count;
     int32 chunk_size;
@@ -44,25 +41,24 @@ struct FragmentMemory {
     uint32 alignment;
 
     // Array that contains pointers into the free chunks
-    // @performance consider to replace pointers with 32 bit offset values instead
-    byte** free;
+    int32* free;
 
     mutex lock;
 };
 
-FORCE_INLINE
+static FORCE_INLINE
 int32 fragment_size_element(int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     return align_up(element_size, alignment);
 }
 
 FORCE_INLINE
-uint_max fragment_size_total(uint32 count, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+size_t fragment_size_total(uint32 count, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = fragment_size_element(element_size, alignment);
 
     return count * element_size
-        + sizeof(byte*) * count // free
+        + sizeof(int32) * count // free
         + alignof(uintptr_t) * 2; // overhead for alignment
 }
 
@@ -76,7 +72,7 @@ void fragment_alloc(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FRAGMENT_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
     ASSERT_TRUE(max_count >= count);
@@ -85,8 +81,8 @@ void fragment_alloc(
     LOG_1("[INFO] Allocating FragmentMemory");
 
     element_size = fragment_size_element(element_size, alignment);
-    const uint_max size = fragment_size_total(count, element_size, alignment);
-    const uint_max max_size = fragment_size_total(max_count, element_size, alignment);
+    const size_t size = fragment_size_total(count, element_size, alignment);
+    const size_t max_size = fragment_size_total(max_count, element_size, alignment);
 
     fragment->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
 
@@ -95,13 +91,13 @@ void fragment_alloc(
     fragment->chunk_size = element_size;
     fragment->last_pos = count - 1;
     fragment->alignment = alignment;
-    fragment->free = (byte **) align_up(
-        (uint_max) ((uintptr_t) (fragment->memory + count * element_size)),
-        (uint_max) alignof(uintptr_t)
+    fragment->free = (int32 *) align_up(
+        (size_t) ((uintptr_t) (fragment->memory + count * element_size)),
+        (size_t) alignof(int32)
     );
 
     for (int i = 0; i < count; ++i) {
-        fragment->free[i] = &fragment->memory[i * fragment->chunk_size];
+        fragment->free[i] = i * fragment->chunk_size;
     }
 }
 
@@ -116,7 +112,7 @@ void fragment_alloc(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FRAGMENT_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FRAGMENT_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(element_size);
     ASSERT_TRUE(count);
     ASSERT_TRUE(max_count >= count);
@@ -125,8 +121,8 @@ void fragment_alloc(
     LOG_1("[INFO] Allocating FragmentMemory");
 
     element_size = fragment_size_element(element_size, alignment);
-    const uint_max size = fragment_size_total(count, element_size, alignment);
-    const uint_max max_size = fragment_size_total(max_count, element_size, alignment);
+    const size_t size = fragment_size_total(count, element_size, alignment);
+    const size_t max_size = fragment_size_total(max_count, element_size, alignment);
 
     MemoryArena* arena = mem_arena_add(mem, size, max_size, start_alignment);
     fragment->memory = (byte *) arena->memory;
@@ -136,13 +132,13 @@ void fragment_alloc(
     fragment->chunk_size = element_size;
     fragment->last_pos = count - 1;
     fragment->alignment = alignment;
-    fragment->free = (byte **) align_up(
-        (uint_max) ((uintptr_t) (fragment->memory + count * element_size)),
-        (uint_max) alignof(uintptr_t)
+    fragment->free = (int32 *) align_up(
+        (size_t) ((uintptr_t) (fragment->memory + count * element_size)),
+        (size_t) alignof(int32)
     );
 
     for (int i = 0; i < count; ++i) {
-        fragment->free[i] = &fragment->memory[i * fragment->chunk_size];
+        fragment->free[i] = i * fragment->chunk_size;
     }
 }
 
@@ -153,15 +149,15 @@ byte* fragment_memory_get(FragmentMemory* const fragment) NO_EXCEPT
         return NULL;
     }
 
-    DEBUG_MEMORY_READ(fragment->free[fragment->last_pos - 1], buf->chunk_size);
+    DEBUG_MEMORY_READ(&fragment->memory[fragment->free[fragment->last_pos]], buf->chunk_size);
 
-    return fragment->free[fragment->last_pos--];
+    return &fragment->memory[fragment->free[fragment->last_pos--]];
 }
 
 inline HOT_CODE
 void fragment_release_memory(FragmentMemory* const fragment, byte* const data) NO_EXCEPT
 {
-    fragment->free[++fragment->last_pos] = data;
+    fragment->free[++fragment->last_pos] = (int32) (data - fragment->memory);
 }
 
 inline

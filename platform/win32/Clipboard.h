@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -13,8 +10,6 @@
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include <windows.h>
-
-#define strtok_r strtok_s
 
 inline
 void clipboard_get(char* text, int32 max_length) NO_EXCEPT

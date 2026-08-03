@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -37,11 +34,11 @@ struct ChunkMemoryT {
 
     // length = count
     // free describes which locations are used and which are free
-    atomic_ptr uint_max* free;
+    atomic_ptr size_t* free;
 
     // Chunk implementation ends here
     // The completeness indicates if the data is completely written to
-    atomic_ptr uint_max* completeness;
+    atomic_ptr size_t* completeness;
 
     mutex lock;
 };

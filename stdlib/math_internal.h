@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -137,25 +134,29 @@ f64 __internal_abs(f64 a) NO_EXCEPT
 // GCC seems to heavily optimize this making the above functions redundant but MSVC doesn't
 /*
 FORCE_INLINE template <typename T>
-T __internal_abs(T a) NO_EXCEPT {
+T __internal_abs(T a) NO_EXCEPT
+{
     return (a > (T)0) ? a : (T)(-a);
 }
 */
 
 // Rounding
 FORCE_INLINE CONSTEXPR
-int32 oms_round_positive(f32 x) NO_EXCEPT {
+int32 oms_round_positive(f32 x) NO_EXCEPT
+{
     return (int32) (x + 0.5f);
 }
 
 FORCE_INLINE CONSTEXPR
-int64 oms_round_positive(f64 x) NO_EXCEPT {
+int64 oms_round_positive(f64 x) NO_EXCEPT
+{
     return (int64) (x + 0.5);
 }
 
 template <typename T>
 FORCE_INLINE CONSTEXPR
-T __internal_round(T x) NO_EXCEPT {
+T __internal_round(T x) NO_EXCEPT
+{
     return (x >= (T) 0)
         ? (T)((int32)(x + 0.5f))
         : (T)((int32)(x - 0.5f));
@@ -180,7 +181,8 @@ F __internal_ceil(F x) NO_EXCEPT
 
 template <typename F>
 FORCE_INLINE CONSTEXPR
-F __internal_floor(F x) NO_EXCEPT {
+F __internal_floor(F x) NO_EXCEPT
+{
     /*
     int32 xi = (int32) x;
     bool adjust = (x < 0.0f) && (x != (f32)(xi));
@@ -216,13 +218,15 @@ f32 rad2deg(f32 angle) NO_EXCEPT
 
 // -pi / pi
 FORCE_INLINE
-f32 normalize_rad(f32 angle) NO_EXCEPT {
+f32 normalize_rad(f32 angle) NO_EXCEPT
+{
     return angle - OMS_TAU_F32 * __internal_floor((angle + OMS_PI_F32) / OMS_TAU_F32);
 }
 
 // 0 / 360
 FORCE_INLINE
-f32 normalize_deg(f32 angle) NO_EXCEPT {
+f32 normalize_deg(f32 angle) NO_EXCEPT
+{
     return angle - 360.0f * __internal_floor(angle / 360.0f);
 }
 

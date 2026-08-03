@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -12,6 +9,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
+#include "../thread/SpinlockStandalone.h"
 
 #ifndef DEBUG_MEMORY_RANGE_MAX
     // How many memory actions do we store per memory arena?
@@ -68,11 +66,14 @@ struct DebugMemory {
 };
 
 struct DebugMemoryContainer {
-    uint32 memory_size;
+    atomic_32 uint32 memory_size;
     uint32 memory_element_idx;
     DebugMemory* memory_stats;
+
+    standalone_spinlock32 lock;
 };
 static DebugMemoryContainer* _dmc = NULL;
+static volatile int32* _dmc_active = NULL;
 
 /**
  * Tries to find a memory region for a pointer where we can add logging information.
@@ -109,6 +110,7 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
         return;
     }
 
+    StandaloneSpinlockGuard _guard(&_dmc->lock, 0);
     const DebugMemory* const mem = debug_memory_find(start);
     if (mem) {
         return;
@@ -174,10 +176,11 @@ void debug_memory_name(const char* __restrict name, const void* const __restrict
 HOT_CODE
 void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const char* const function) NO_EXCEPT
 {
-    if (!start || !_dmc) {
+    if (!start || !_dmc || !_dmc_active || !*_dmc_active) {
         return;
     }
 
+    StandaloneSpinlockGuard _guard(&_dmc->lock, 0);
     DebugMemory* const mem = debug_memory_find(start);
     if (!mem) {
         return;
@@ -210,16 +213,18 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
  */
 void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type, const char* const function) NO_EXCEPT
 {
-    if (!start || !_dmc) {
+    if (!start || !_dmc || !_dmc_active || !*_dmc_active) {
         return;
     }
 
+    StandaloneSpinlockGuard _guard(&_dmc->lock, 0);
     DebugMemory* const mem = debug_memory_find(start);
     if (!mem) {
         return;
     }
 
-    // @bug we will most likely overwrite subregions in due time
+    // We will most likely overwrite subregions in due time
+    // It is what it is
     const uint32 idx = atomic_increment_wrap_relaxed(
         &mem->persistent_action_idx,
         (uint32) ARRAY_COUNT(mem->persistent_action)
@@ -243,10 +248,11 @@ void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type,
  */
 void debug_memory_free(uintptr_t start) NO_EXCEPT
 {
-    if (!start || !_dmc) {
+    if (!start || !_dmc || !_dmc_active || !*_dmc_active) {
         return;
     }
 
+    StandaloneSpinlockGuard _guard(&_dmc->lock, 0);
     DebugMemory* const mem = debug_memory_find(start);
     if (!mem) {
         return;
@@ -259,8 +265,6 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
             return;
         }
     }
-
-    // @todo move over memory ranges and
 }
 
 /**
@@ -271,20 +275,19 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
 inline
 void debug_memory_reset() NO_EXCEPT
 {
-    if (!_dmc) {
+    if (!_dmc || !_dmc_active || !*_dmc_active) {
         return;
     }
 
     // We remove debug information that are "older" than 1GHz
     const uint64 time = intrin_timestamp_counter() - 1 * GHZ;
 
+    StandaloneSpinlockGuard _guard(&_dmc->lock, 0);
     for (uint32 i = 0; i < _dmc->memory_element_idx; ++i) {
         const int32 last = _dmc->memory_stats[i].action_idx;
         int32 idx = last;
 
         for (int32 j = 0; j < DEBUG_MEMORY_RANGE_MAX; ++j) {
-            // @bug This probably requires thread safety
-            // last could be updated while we loop
             if (_dmc->memory_stats[i].last_action[idx].time < time) {
                 if (idx <= last) {
                     memset(

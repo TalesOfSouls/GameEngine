@@ -9,11 +9,6 @@
 #include "../system/FileUtils.cpp"
 #include "Font.h"
 
-/**
- * @todo The font atlas should have a pixel perfect representation at the smallest possible font size. Currently it's not pixel perfect nor the smallest possible size
- * @todo The font atlas letters could be minimized by using one channel each. This allows us to reduce the font atlas size by a factor of 3
- */
-
 FORCE_INLINE
 void font_init(Font* const font, byte* data, int count) NO_EXCEPT
 {
@@ -111,6 +106,8 @@ void font_from_file_txt(
 
     char* texture_pos = font->texture_name;
 
+    int header_completed = 0;
+
     // Font header
     while (*pos != '\0') {
         // Parsing general data
@@ -134,20 +131,25 @@ void font_from_file_txt(
             }
 
             *texture_pos++ = '\0';
+            ++header_completed;
         } else if (strncmp(block_name, "font_size", sizeof("font_size") - 1) == 0) {
             font->size = str_to_float(pos, &pos);
+            ++header_completed;
         } else if (strncmp(block_name, "line_height", sizeof("line_height") - 1) == 0) {
             font->line_height = str_to_float(pos, &pos);
+            ++header_completed;
         } else if (strncmp(block_name, "image_width", sizeof("image_width") - 1) == 0) {
             image_width = (int32) str_to_int(pos, &pos);
+            ++header_completed;
         } else if (strncmp(block_name, "image_height", sizeof("image_height") - 1) == 0) {
             image_height = (int32) str_to_int(pos, &pos);
+            ++header_completed;
         } else if (strncmp(block_name, "glyph_count", sizeof("glyph_count") - 1) == 0) {
-            // glyph_count has to be the last general element
             font->glyph_count = (uint32) str_to_int(pos, &pos);
+            ++header_completed;
+        }
 
-            // @bug it's a little bit of a bad design to force the order here
-            //      this requires glyph_count to be the last element before the content starts
+        if (header_completed >= 6) {
             break;
         }
 

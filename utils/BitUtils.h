@@ -1,90 +1,13 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
 #ifndef COMS_UTILS_BIT_H
 #define COMS_UTILS_BIT_H
 
-//#include <intrin.h>
 #include "../stdlib/Stdlib.h"
-
-// Usually these specific implementation R2L or L2R are only used if you are handling a specific format
-// e.g. file format or algorithm (e.g. Huffman encoding)
-// If you are only doing bit manipulation of your own format or data that only exists during runtime
-// feel free to use the OMS_BIT and OMS_FLAG versions defined in Types.h
-
-// Left to right (big endian)
-// "bits" refers to the bits of the data type (e.g. 8, 16, 32, 64)
-#define IS_BIT_SET_L2R(num, pos, bits) ((bool) ((num) & (OMS_UINT_ONE << ((bits - 1) - (pos)))))
-#define BIT_SET_L2R(num, pos, bits) ((num) | (OMS_UINT_ONE << ((bits - 1) - (pos))))
-
-#define IS_BIT_SET_64_L2R(num, pos, bits) ((bool) ((num) & (1ULL << ((bits - 1) - (pos)))))
-#define BIT_SET_64_L2R(num, pos, bits) ((num) | (1ULL << ((bits - 1) - (pos))))
-#define BIT_UNSET_64_L2R(num, pos, bits) ((num) & ~(1ULL << ((bits - 1) - (pos))))
-#define BIT_FLIP_64_L2R(num, pos, bits) ((num) ^ (1ULL << ((bits - 1) - (pos))))
-#define BIT_SET_TO_64_L2R(num, pos, x, bits) (((num) & ~(1ULL << ((bits) - 1 - (pos)))) | (((uint64_t)(x) & 1ULL) << ((bits) - 1 - (pos))))
-
-#define IS_BIT_SET_32_L2R(num, pos, bits) ((bool) ((num) & (1 << ((bits - 1) - (pos)))))
-#define BIT_SET_32_L2R(num, pos, bits) ((num) | (1U << ((bits - 1) - (pos))))
-#define BIT_UNSET_L2R(num, pos, bits) ((num) & ~(1U << ((bits - 1) - (pos))))
-#define BIT_FLIP_L2R(num, pos, bits) ((num) ^ (1U << ((bits - 1) - (pos))))
-#define BIT_SET_TO_L2R(num, pos, x, bits) (((num) & ~(1U << ((bits) - 1 - (pos)))) | (((uint32_t)(x) & 1U) << ((bits) - 1 - (pos))))
-
-#define BITS_GET_8_L2R(num, pos, to_read) (((num) >> (8 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
-#define BITS_GET_16_L2R(num, pos, to_read) (((num) >> (16 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
-#define BITS_GET_32_L2R(num, pos, to_read) (((num) >> (32 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
-#define BITS_GET_64_L2R(num, pos, to_read) (((num) >> (64ULL - (pos) - (to_read))) & ((1ULL << (to_read)) - 1))
-
-// Merges an array of bytes as an int value (16bit, 32bit, 64bit)
-// The implementation is endian aware
-#if _WIN32 || __LITTLE_ENDIAN__
-    #define BYTES_MERGE_2_L2R(arr) (((arr)[0] << 8) | (arr)[1])
-    #define BYTES_MERGE_4_L2R(arr) (((arr)[0] << 24) | ((arr)[1] << 16) | ((arr)[2] << 8) | (arr)[3])
-    #define BYTES_MERGE_8_L2R(arr) (((uint64_t)(arr)[0] << 56) | ((uint64_t)(arr)[1] << 48) | ((uint64_t)(arr)[2] << 40) | ((uint64_t)(arr)[3] << 32) | ((uint64_t)(arr)[4] << 24) | ((uint64_t)(arr)[5] << 16) | ((uint64_t)(arr)[6] << 8)  | ((uint64_t)(arr)[7]))
-#else
-    #define BYTES_MERGE_2_L2R(arr) (*(const uint16_t *)(arr))
-    #define BYTES_MERGE_4_L2R(arr) (*(const uint32_t *)(arr))
-    #define BYTES_MERGE_8_L2R(arr) (*(const uint64_t *)(arr))
-#endif
-
-// The R2L version is basically the same as: OMS_FLAG_ and OMS_BIT_ defined in Types
-// Right to left (little endian)
-#define IS_BIT_SET_R2L(num, pos) ((bool) ((num) & (OMS_UINT_ONE << (pos))))
-#define BIT_SET_R2L(num, pos) ((num) | (OMS_UINT_ONE << (pos)))
-
-#define IS_BIT_SET_64_R2L(num, pos) ((bool) ((num) & (1ULL << (pos))))
-#define BIT_SET_64_R2L(num, pos) ((num) | (1ULL << (pos)))
-#define BIT_UNSET_64_R2L(num, pos) ((num) & ~(1ULL << (pos)))
-#define BIT_FLIP_64_R2L(num, pos) ((num) ^ (1ULL << (pos)))
-#define BIT_SET_TO_64_R2L(num, pos, x) (((num) & ~(1ULL << (pos))) | ((uint64_t)(x) << (pos)))
-
-#define IS_BIT_SET_32_R2L(num, pos) ((bool) ((num) & (1 << (pos))))
-#define BIT_SET_32_R2L(num, pos) ((num) | (1U << (pos)))
-#define BIT_UNSET_R2L(num, pos) ((num) & ~(1U << (pos)))
-#define BIT_FLIP_R2L(num, pos) ((num) ^ (1U << (pos)))
-#define BIT_SET_TO_R2L(num, pos, x) (((num) & ~(1U << (pos))) | ((uint32_t)(x) << (pos)))
-
-#define BITS_GET_8_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
-#define BITS_GET_16_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
-#define BITS_GET_32_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
-#define BITS_GET_64_R2L(num, pos, to_read) (((num) >> (pos)) & ((1ULL << (to_read)) - 1))
-
-// Merges an array of bytes as an int value (16bit, 32bit, 64bit)
-// The implementation is endian aware
-#if _WIN32 || __LITTLE_ENDIAN__
-    #define BYTES_MERGE_2_R2L(arr) (*(const uint16_t *)(arr))
-    #define BYTES_MERGE_4_R2L(arr) (*(const uint32_t *)(arr))
-    #define BYTES_MERGE_8_R2L(arr) (*(const uint64_t *)(arr))
-#else
-    #define BYTES_MERGE_2_R2L(arr) (((arr)[1] << 8) | (arr)[0])
-    #define BYTES_MERGE_4_R2L(arr) (((arr)[3] << 24) | ((arr)[2] << 16) | ((arr)[1] << 8) | (arr)[0])
-    #define BYTES_MERGE_8_R2L(arr) (((uint64_t)(arr)[7] << 56) | ((uint64_t)(arr)[6] << 48) | ((uint64_t)(arr)[5] << 40) | ((uint64_t)(arr)[4] << 32) | ((uint64_t)(arr)[3] << 24) | ((uint64_t)(arr)[2] << 16) | ((uint64_t)(arr)[1] << 8)  | ((uint64_t)(arr)[0]))
-#endif
 
 struct BitWalk {
     byte* pos;
@@ -486,56 +409,6 @@ FORCE_INLINE
 byte bits_count(uint8 data) NO_EXCEPT
 {
     return BIT_COUNT_LOOKUP_TABLE[data];
-}
-
-// @bug what about sve/neon?
-void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps = 16) NO_EXCEPT
-{
-    int32 i = 0;
-    steps = intrin_validate_steps((const byte*) val, steps);
-    steps = intrin_validate_steps((const byte*) result, steps);
-    PSEUDO_USE(steps);
-
-    #ifdef __AVX2__
-        if (steps >= 8) {
-            steps = 8;
-            const __m256i mask_256 = _mm256_setr_epi8(
-                1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14,
-                17, 16, 19, 18, 21, 20, 23, 22, 25, 24, 27, 26, 29, 28, 31, 30
-            );
-
-            for (i = 0; i <= size - steps; i += steps) {
-                __m256i vec = _mm256_load_si256((const __m256i *) (val + i));
-                vec = _mm256_shuffle_epi8(vec, mask_256);
-
-                _mm256_store_si256((__m256i *) (result + i), vec);
-            }
-
-            steps = 1;
-            PSEUDO_USE(steps);
-        }
-    #endif
-
-    #ifdef __SSE4_2__
-        if (steps >= 4) {
-            steps = 4;
-            const __m128i mask_128 = _mm_setr_epi8(
-                1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14
-            );
-
-            for (i = 0; i <= size - steps; i += steps) {
-                __m128i vec = _mm_load_si128((const __m128i *) (val + i));
-                vec = _mm_shuffle_epi8(vec, mask_128);
-
-                _mm_store_si128((__m128i *) (result + i), vec);
-            }
-        }
-    #endif
-
-    for (; i < size; ++i) {
-        uint16 v = ((uint16 *) val)[i];
-        ((uint16 *) result)[i] = ((v << 8) | (v >> 8));
-    }
 }
 
 #if _WIN32 || __LITTLE_ENDIAN__

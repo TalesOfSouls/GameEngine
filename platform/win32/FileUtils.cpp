@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -35,7 +32,8 @@ static inline HANDLE CreateFileWrapper(
     const char* path,
     DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes,
     DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     return CreateFileA(
         path,
         dwDesiredAccess,
@@ -51,7 +49,8 @@ static inline HANDLE CreateFileWrapper(
     const wchar_t* path,
     DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes,
     DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile
-) NO_EXCEPT {
+) NO_EXCEPT
+{
     return CreateFileW(
         path,
         dwDesiredAccess,
@@ -63,43 +62,53 @@ static inline HANDLE CreateFileWrapper(
     );
 }
 
-static inline DWORD GetFileAttributesWrapper(const char* path) NO_EXCEPT {
+static inline DWORD GetFileAttributesWrapper(const char* path) NO_EXCEPT
+{
     return GetFileAttributesA(path);
 }
 
-static inline DWORD GetFileAttributesWrapper(const wchar_t* path) NO_EXCEPT {
+static inline DWORD GetFileAttributesWrapper(const wchar_t* path) NO_EXCEPT
+{
     return GetFileAttributesW(path);
 }
 
-static inline bool CreateDirectoryWrapper(const char* path, LPSECURITY_ATTRIBUTES lpSecurityAttributes) NO_EXCEPT {
+static inline bool CreateDirectoryWrapper(const char* path, LPSECURITY_ATTRIBUTES lpSecurityAttributes) NO_EXCEPT
+{
     return CreateDirectoryA(path, lpSecurityAttributes);
 }
 
-static inline bool CreateDirectoryWrapper(const wchar_t* path, LPSECURITY_ATTRIBUTES lpSecurityAttributes) NO_EXCEPT {
+static inline bool CreateDirectoryWrapper(const wchar_t* path, LPSECURITY_ATTRIBUTES lpSecurityAttributes) NO_EXCEPT
+{
     return CreateDirectoryW(path, lpSecurityAttributes);
 }
 
-static inline DWORD GetModuleFileNameWrapper(HMODULE hModule, const char* lpFilename, DWORD nSize) NO_EXCEPT {
+static inline DWORD GetModuleFileNameWrapper(HMODULE hModule, const char* lpFilename, DWORD nSize) NO_EXCEPT
+{
     return GetModuleFileNameA(hModule, (LPSTR) lpFilename, nSize);
 }
 
-static inline DWORD GetModuleFileNameWrapper(HMODULE hModule, const wchar_t* lpFilename, DWORD nSize) NO_EXCEPT {
+static inline DWORD GetModuleFileNameWrapper(HMODULE hModule, const wchar_t* lpFilename, DWORD nSize) NO_EXCEPT
+{
     return GetModuleFileNameW(hModule, (LPWSTR) lpFilename, nSize);
 }
 
-static inline bool MoveFileWrapper(const char* lpExistingFileName, const char* lpNewFileName) NO_EXCEPT {
+static inline bool MoveFileWrapper(const char* lpExistingFileName, const char* lpNewFileName) NO_EXCEPT
+{
     return MoveFileA(lpExistingFileName, lpNewFileName);
 }
 
-static inline bool MoveFileWrapper(const wchar_t* lpExistingFileName, const wchar_t* lpNewFileName) NO_EXCEPT {
+static inline bool MoveFileWrapper(const wchar_t* lpExistingFileName, const wchar_t* lpNewFileName) NO_EXCEPT
+{
     return MoveFileW(lpExistingFileName, lpNewFileName);
 }
 
-static inline bool CopyFileWrapper(const char* lpExistingFileName, const char* lpNewFileName, BOOL bFailIfExists) NO_EXCEPT {
+static inline bool CopyFileWrapper(const char* lpExistingFileName, const char* lpNewFileName, BOOL bFailIfExists) NO_EXCEPT
+{
     return CopyFileA(lpExistingFileName, lpNewFileName, bFailIfExists);
 }
 
-static inline bool CopyFileWrapper(const wchar_t* lpExistingFileName, const wchar_t* lpNewFileName, BOOL bFailIfExists) NO_EXCEPT {
+static inline bool CopyFileWrapper(const wchar_t* lpExistingFileName, const wchar_t* lpNewFileName, BOOL bFailIfExists) NO_EXCEPT
+{
     return CopyFileW(lpExistingFileName, lpNewFileName, bFailIfExists);
 }
 
@@ -257,7 +266,7 @@ template <typename C>
 inline size_t
 file_size(const C* path) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     // @performance Profile against fseek strategy
     FileHandle fp;
@@ -302,7 +311,7 @@ template <typename C>
 inline
 bool file_exists(const C* path) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     DWORD file_attr;
     if (*path == (C) '.') {
@@ -325,7 +334,7 @@ file_read(
     T* const __restrict mem
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     ASSERT_TRUE(file_exists(path));
 
@@ -409,7 +418,7 @@ file_read(
     FileBody* __restrict file
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     ASSERT_TRUE(file_exists(path));
 
@@ -484,18 +493,16 @@ file_read(
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
-// @question Do we really need length? we have file.size we could use as we do in a function above
 template <typename C, typename T>
 inline
 void file_read(
     const C* __restrict path,
     FileBody* __restrict file,
     uint64 offset,
-    uint64 length = MAX_UINT64,
     T* const __restrict mem = NULL
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     ASSERT_TRUE(file_exists(path));
 
@@ -551,7 +558,10 @@ void file_read(
     }
 
     // Adjust the length to read so that it does not exceed the file size
-    const uint64 read_length = OMS_MIN(length, fsize - offset);
+    uint64 read_length = file->size;
+    if (!read_length) {
+        read_length = fsize - offset;
+    }
 
     if (mem != NULL) {
         file->content = memory_get((T*) mem, read_length + 1);
@@ -821,7 +831,7 @@ template <typename C>
 inline bool
 file_write(const C* __restrict path, const FileBody* __restrict file) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == (C) '.') {
@@ -871,7 +881,7 @@ template <typename C>
 inline bool
 file_copy(const C* __restrict src, const C* __restrict dst) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) src, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
 
     C dst_full_path[PATH_MAX_LENGTH];
     relative_to_absolute(dst, dst_full_path);
@@ -964,11 +974,14 @@ inline bool directory_copy(
     return true;
 }
 
+/**
+ * This doesn't overwrite an existing file and fails
+ */
 template <typename C>
 inline bool
 file_move(const C* __restrict src, const C* __restrict dst) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FILE_UTILS, (char *) src, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
 
     // @performance we are creating an absolute path for dst potentially twice
     directory_tree_create(dst);
@@ -1011,7 +1024,7 @@ FileHandle file_append_handle(const C* path) NO_EXCEPT
         C full_path[PATH_MAX_LENGTH];
         relative_to_absolute(path, full_path);
 
-        fp = CreateFileWrapper((LPCSTR) full_path,
+        fp = CreateFileWrapper(full_path,
             FILE_APPEND_DATA,
             0,
             NULL,
@@ -1020,7 +1033,7 @@ FileHandle file_append_handle(const C* path) NO_EXCEPT
             NULL
         );
     } else {
-        fp = CreateFileWrapper((LPCSTR) path,
+        fp = CreateFileWrapper(path,
             FILE_APPEND_DATA,
             0,
             NULL,
@@ -1302,7 +1315,7 @@ file_append(FileHandle fp, const char* file, size_t length) NO_EXCEPT
 template <typename C>
 bool file_append(const C* __restrict path, const C* __restrict file) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_FILE_UTILS, (C) path, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     FileHandle fp;
     if (*path == (C) '.') {
@@ -1484,12 +1497,24 @@ void iterate_directory(
 
 FORCE_INLINE
 void file_delete(const char* path) {
-    DeleteFileA(path);
+    if (*path == '.') {
+        char full_path[PATH_MAX_LENGTH];
+        relative_to_absolute(path, full_path);
+        DeleteFileA(full_path);
+    } else {
+        DeleteFileA(path);
+    }
 }
 
 FORCE_INLINE
 void file_delete(const wchar_t* path) {
-    DeleteFileW(path);
+    if (*path == L'.') {
+        wchar_t full_path[PATH_MAX_LENGTH];
+        relative_to_absolute(path, full_path);
+        DeleteFileW(full_path);
+    } else {
+        DeleteFileW(path);
+    }
 }
 
 #endif

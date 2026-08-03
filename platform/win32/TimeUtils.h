@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -23,7 +20,7 @@ thread_local static LARGE_INTEGER _performance_frequency = []{
 inline
 void usleep(uint64 microseconds) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_SLEEP, NULL, PROFILE_FLAG_ADD_HISTORY);
+    PROFILE_DEBUG(PROFILE_SLEEP, (char *) NULL, PROFILE_FLAG_ADD_HISTORY);
 
     LARGE_INTEGER start, end;
     QueryPerformanceCounter(&start);

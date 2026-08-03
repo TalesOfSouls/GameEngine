@@ -81,7 +81,7 @@ void theme_from_file_txt(
 
     ASSERT_TRUE(temp_group_count > 0);
 
-    // @performance we reserve * 2 memory to avoid too many hash collisions... urgh
+    // We reserve * 2 memory to avoid too many hash collisions
     hashmap_create(
         &theme->hash_map,
         temp_group_count * 2,
@@ -275,7 +275,7 @@ int32 theme_from_data(
     const byte* __restrict data,
     UITheme* __restrict theme
 ) {
-    PROFILE_DEBUG(PROFILE_THEME_FROM_THEME, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_THEME_FROM_THEME, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Load theme");
 
     const byte* in = data;
@@ -299,7 +299,7 @@ int32 theme_from_data(
         &theme->hash_map,
         count,
         theme->data,
-        align_up((int32) sizeof(HashEntryStrT<int32>), 4) // @todo This line is stupid, shouldn't this be alignof
+        alignof(HashEntryStrT<int32>)
     );
 
     ASSERT_TRUE(sizeof(HashEntryStrT<int32>) * count <= theme->data_size);

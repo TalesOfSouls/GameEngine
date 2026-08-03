@@ -1,9 +1,6 @@
 /**
- * Jingga
- *
  * @copyright Jingga
  * @license   OMS License 2.0
- * @version   1.0.0
  * @link      https://jingga.app
  */
 #pragma once
@@ -15,32 +12,32 @@
 FORCE_INLINE CONSTEXPR
 size_t queue_persistent_size(size_t type_size, int max_capacity) NO_EXCEPT
 {
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
     return max_capacity * type_size
-        + sizeof(uint_max) * max_array_count + alignof(uint_max) // free
-        + sizeof(uint_max) * max_array_count + alignof(uint_max); // complete
+        + sizeof(size_t) * max_array_count + alignof(size_t) // free
+        + sizeof(size_t) * max_array_count + alignof(size_t); // complete
 }
 
 template <typename T>
 FORCE_INLINE
 void queue_alloc(PersistentQueueT<T>* const queue, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, NULL, PROFILE_FLAG_SHOULD_LOG);
+    PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(max_capacity >= capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     LOG_1("[INFO] Allocating QueueT");
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
     const size_t memory_size = capacity * sizeof(T)
-    + sizeof(uint_max) * array_count + sizeof(uint_max) // free
-    + sizeof(uint_max) * array_count + sizeof(uint_max); // complete
+    + sizeof(size_t) * array_count + sizeof(size_t) // free
+    + sizeof(size_t) * array_count + sizeof(size_t); // complete
 
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
     const size_t max_memory_size = max_capacity * sizeof(T)
-        + sizeof(uint_max) * max_array_count + alignof(uint_max) // free
-        + sizeof(uint_max) * max_array_count + alignof(uint_max); // complete
+        + sizeof(size_t) * max_array_count + alignof(size_t) // free
+        + sizeof(size_t) * max_array_count + alignof(size_t); // complete
 
     queue->capacity = capacity;
     queue->memory = (T *) platform_alloc_aligned(
@@ -51,17 +48,17 @@ void queue_alloc(PersistentQueueT<T>* const queue, int capacity, int max_capacit
     queue->head = 0;
     queue->tail = 0;
 
-    queue->free = (uint_max *) align_up(
-        (uint_max) ((uintptr_t) (queue->memory + capacity)),
-        sizeof(uint_max)
+    queue->free = (size_t *) align_up(
+        (size_t) ((uintptr_t) (queue->memory + capacity)),
+        sizeof(size_t)
     );
-    memset(queue->free, 0, sizeof(uint_max) * array_count);
+    memset(queue->free, 0, sizeof(size_t) * array_count);
 
-    queue->completed = (uint_max *) align_up(
-        (uint_max) ((uintptr_t) (queue->free + array_count)),
-        sizeof(uint_max)
+    queue->completed = (size_t *) align_up(
+        (size_t) ((uintptr_t) (queue->free + array_count)),
+        sizeof(size_t)
     );
-    memset(queue->completed, 0, sizeof(uint_max) * array_count);
+    memset(queue->completed, 0, sizeof(size_t) * array_count);
 }
 
 template <typename T>
@@ -75,15 +72,15 @@ void queue_alloc(
 {
     ASSERT_TRUE(max_capacity >= capacity);
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
     const size_t memory_size = queue->capacity * sizeof(T)
-    + sizeof(uint_max) * array_count + sizeof(uint_max) // free
-    + sizeof(uint_max) * array_count + sizeof(uint_max); // complete
+    + sizeof(size_t) * array_count + sizeof(size_t) // free
+    + sizeof(size_t) * array_count + sizeof(size_t); // complete
 
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
     const size_t max_memory_size = max_capacity * sizeof(T)
-        + sizeof(uint_max) * max_array_count + alignof(uint_max) // free
-        + sizeof(uint_max) * max_array_count + alignof(uint_max); // complete
+        + sizeof(size_t) * max_array_count + alignof(size_t) // free
+        + sizeof(size_t) * max_array_count + alignof(size_t); // complete
 
     queue->capacity = capacity;
     queue->memory = (T *) mem_arena_add(
@@ -95,71 +92,71 @@ void queue_alloc(
     queue->head = 0;
     queue->tail = 0;
 
-    queue->free = (uint_max *) align_up(
-        (uint_max) ((uintptr_t) (queue->memory + capacity)),
-        alignof(uint_max)
+    queue->free = (size_t *) align_up(
+        (size_t) ((uintptr_t) (queue->memory + capacity)),
+        alignof(size_t)
     );
-    memset(queue->free, 0, sizeof(uint_max) * array_count);
+    memset(queue->free, 0, sizeof(size_t) * array_count);
 
-    queue->completed = (uint_max *) align_up(
-        (uint_max) ((uintptr_t) (queue->free + array_count)),
-        alignof(uint_max)
+    queue->completed = (size_t *) align_up(
+        (size_t) ((uintptr_t) (queue->free + array_count)),
+        alignof(size_t)
     );
-    memset(queue->completed, 0, sizeof(uint_max) * array_count);
+    memset(queue->completed, 0, sizeof(size_t) * array_count);
 }
 
 template <typename T>
 FORCE_INLINE
 void queue_init(PersistentQueueT<T>* const queue, BufferMemory* const buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
 
     queue->capacity = capacity;
     queue->memory = (T *) memory_get(
         buf,
         sizeof(T) * capacity
-        + sizeof(uint_max) * array_count + alignof(uint_max) // free
-        + sizeof(uint_max) * array_count + alignof(uint_max), // complete
+        + sizeof(size_t) * array_count + alignof(size_t) // free
+        + sizeof(size_t) * array_count + alignof(size_t), // complete
         alignment
     );
     queue->head = 0;
     queue->tail = 0;
 
-    queue->free = (uint_max *) align_up(
-        (uint_max) ((uintptr_t) (queue->memory + capacity)),
-        alignof(uint_max)
+    queue->free = (size_t *) align_up(
+        (size_t) ((uintptr_t) (queue->memory + capacity)),
+        alignof(size_t)
     );
-    memset(queue->free, 0, sizeof(uint_max) * array_count);
+    memset(queue->free, 0, sizeof(size_t) * array_count);
 
-    queue->completed = (uint_max *) align_up(
-        (uint_max) ((uintptr_t) (queue->free + array_count)),
-        alignof(uint_max)
+    queue->completed = (size_t *) align_up(
+        (size_t) ((uintptr_t) (queue->free + array_count)),
+        alignof(size_t)
     );
-    memset(queue->completed, 0, sizeof(uint_max) * array_count);
+    memset(queue->completed, 0, sizeof(size_t) * array_count);
 }
 
 template <typename T>
 FORCE_INLINE
 void queue_init(PersistentQueueT<T>* const queue, byte* buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(uint_max) * 8));
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
 
     queue->capacity = capacity;
     queue->memory = (T *) align_up((uintptr_t) buf, alignment);
     queue->head = 0;
     queue->tail = 0;
 
-    queue->free = (uint_max *) align_up(
-        (uint_max) ((uintptr_t) (queue->memory + capacity)),
-        alignof(uint_max)
+    queue->free = (size_t *) align_up(
+        (size_t) ((uintptr_t) (queue->memory + capacity)),
+        alignof(size_t)
     );
-    memset(queue->free, 0, sizeof(uint_max) * array_count);
+    memset(queue->free, 0, sizeof(size_t) * array_count);
 
-    queue->completed = (uint_max *) align_up(
-        (uint_max) ((uintptr_t) (queue->free + array_count)),
-        alignof(uint_max)
+    queue->completed = (size_t *) align_up(
+        (size_t) ((uintptr_t) (queue->free + array_count)),
+        alignof(size_t)
     );
-    memset(queue->completed, 0, sizeof(uint_max) * array_count);
+    memset(queue->completed, 0, sizeof(size_t) * array_count);
 }
 
 template <typename T>
@@ -246,6 +243,138 @@ void thrd_queue_free(PersistentQueueT<T>* const queue, MemoryArena* mem) NO_EXCE
 }
 
 template <typename T>
+inline
+bool memory_resize(PersistentQueueT<T>* const queue, uint32 new_capacity) NO_EXCEPT
+{
+    const uint32 old_capacity = queue->capacity;
+    if (new_capacity == old_capacity) {
+        return true;
+    }
+
+    const uint32 head_index = queue->head;
+    const uint32 tail_index = queue->tail;
+
+    // Elements still "in play" (occupied — whether awaiting dequeue or
+    // completed-but-retained) that must survive the resize.
+    const uint32 count = (head_index >= tail_index)
+        ? (head_index - tail_index)
+        : (old_capacity - tail_index + head_index);
+
+    if (new_capacity < count) {
+        return false;
+    }
+
+    const bool wrapped = tail_index > head_index;
+    const size_t old_array_count = ceil_div(old_capacity, (uint32) (sizeof(size_t) * 8));
+
+    // The live region only stays physically valid across a capacity change
+    // if it already starts at index 0 and doesn't wrap. Otherwise the
+    // mod-capacity math changes underneath it and corrupts ordering — so
+    // relocate T data + both bitmaps together to start at 0 first.
+    const bool needs_linearize = count > 0 && (wrapped || tail_index != 0);
+
+    if (needs_linearize) {
+        T* temp_data = (T*) platform_alloc_aligned(sizeof(T) * count);
+        size_t* temp_free = (size_t*) platform_alloc_aligned(sizeof(size_t) * old_array_count);
+        size_t* temp_completed = (size_t*) platform_alloc_aligned(sizeof(size_t) * old_array_count);
+
+        if (!temp_data || !temp_free || !temp_completed) {
+            platform_free_aligned(temp_data);
+            platform_free_aligned(temp_free);
+            platform_free_aligned(temp_completed);
+
+            return false;
+        }
+
+        memset(temp_free, 0, sizeof(size_t) * old_array_count);
+        memset(temp_completed, 0, sizeof(size_t) * old_array_count);
+
+        for (uint32 i = 0; i < count; ++i) {
+            const uint32 src = (tail_index + i) % old_capacity;
+            temp_data[i] = queue->memory[src];
+            OMS_BITARRAY_SET_TO(temp_free, i, OMS_BITARRAY_CHECK(queue->free, src));
+            OMS_BITARRAY_SET_TO(temp_completed, i, OMS_BITARRAY_CHECK(queue->completed, src));
+        }
+
+        memcpy(queue->memory, temp_data, sizeof(T) * count);
+        memcpy(queue->free, temp_free, sizeof(size_t) * old_array_count);
+        memcpy(queue->completed, temp_completed, sizeof(size_t) * old_array_count);
+
+        platform_free_aligned(temp_data);
+        platform_free_aligned(temp_free);
+        platform_free_aligned(temp_completed);
+    }
+
+    const uint32 lin_head = needs_linearize ? count : head_index;
+    const uint32 lin_tail = needs_linearize ? 0 : tail_index;
+
+    const size_t new_array_count = ceil_div(new_capacity, (uint32) (sizeof(size_t) * 8));
+    const size_t memory_size = new_capacity * sizeof(T)
+        + sizeof(size_t) * new_array_count + sizeof(size_t) // free
+        + sizeof(size_t) * new_array_count + sizeof(size_t); // complete
+
+    if (!platform_alloc_aligned_grow(queue->memory, memory_size)) {
+        return false;
+    }
+
+    size_t* const old_free = queue->free;
+    size_t* const old_completed = queue->completed;
+
+    size_t* const new_free = (size_t*) align_up(
+        (uintptr_t) (queue->memory + new_capacity),
+        sizeof(size_t)
+    );
+    size_t* const new_completed = (size_t*) align_up(
+        (uintptr_t) (new_free + new_array_count),
+        sizeof(size_t)
+    );
+
+    const size_t common_array_count = old_array_count < new_array_count ? old_array_count : new_array_count;
+    const bool growing = new_capacity > old_capacity;
+
+    if (growing) {
+        memmove(new_completed, old_completed, sizeof(size_t) * common_array_count);
+        memmove(new_free, old_free, sizeof(size_t) * common_array_count);
+
+        memset(new_free + old_array_count, 0, sizeof(size_t) * (new_array_count - old_array_count));
+        memset(new_completed + old_array_count, 0, sizeof(size_t) * (new_array_count - old_array_count));
+    } else {
+        memmove(new_free, old_free, sizeof(size_t) * common_array_count);
+        memmove(new_completed, old_completed, sizeof(size_t) * common_array_count);
+
+        const uint32 valid_bits = new_capacity % (sizeof(size_t) * 8);
+        if (valid_bits != 0 && new_array_count > 0) {
+            const size_t mask = ((size_t) 1 << valid_bits) - 1;
+            new_free[new_array_count - 1] &= mask;
+            new_completed[new_array_count - 1] &= mask;
+        }
+    }
+
+    queue->free = new_free;
+    queue->completed = new_completed;
+    queue->capacity = new_capacity;
+
+    queue->tail = lin_tail;
+    queue->head = lin_head;
+
+    if (!growing) {
+        if (!platform_alloc_aligned_shrink(queue->memory, memory_size)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+template <typename T>
+inline
+bool thrd_memory_resize(PersistentQueueT<T>* const queue, uint32 new_capacity) NO_EXCEPT
+{
+    MutexGuard _guard(&queue->mtx);
+    return memory_resize(queue, new_capacity);
+}
+
+template <typename T>
 FORCE_INLINE
 bool queue_is_empty(const PersistentQueueT<T>* const queue) NO_EXCEPT
 {
@@ -319,11 +448,11 @@ bool queue_is_full_atomic(PersistentQueueT<T>* const queue) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-uint_max* chunk_find_free_array(const PersistentQueueT<T>* const queue) NO_EXCEPT
+size_t* chunk_find_free_array(const PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    return (uint_max *) align_up(
+    return (size_t *) align_up(
         (uintptr_t) (queue->memory + queue->capacity),
-        (uint_max) sizeof(uint_max)
+        (size_t) sizeof(size_t)
     );
 }
 
@@ -350,8 +479,8 @@ T* queue_enqueue(PersistentQueueT<T>* const __restrict queue, const T* __restric
 
     // @performance This is slow we are calculating free_index and bit_index also in the loop above
     //              Calculating it here again adds 1 such calculation as overhead
-    const uint32 free_index = queue->head / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(queue->head, (sizeof(uint_max) * 8));
+    const uint32 free_index = queue->head / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(queue->head, (sizeof(size_t) * 8));
     queue->free[free_index] |= (OMS_UINT_ONE << bit_index);
 
     queue->memory[queue->head] = *data;
@@ -389,8 +518,8 @@ T* queue_enqueue(PersistentQueueT<T>* const __restrict queue, const T data) NO_E
 
     // @performance This is slow we are calculating free_index and bit_index also in the loop above
     //              Calculating it here again adds 1 such calculation as overhead
-    const uint32 free_index = queue->head / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(queue->head, (sizeof(uint_max) * 8));
+    const uint32 free_index = queue->head / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(queue->head, (sizeof(size_t) * 8));
     queue->free[free_index] |= (OMS_UINT_ONE << bit_index);
 
     queue->memory[queue->head] = data;
@@ -444,8 +573,8 @@ T* queue_enqueue_atomic(PersistentQueueT<T>* const __restrict queue, const T* __
 
     // @performance This is slow we are calculating free_index and bit_index also in the loop above
     //              Calculating it here again adds 1 such calculation as overhead
-    const uint32 free_index = index / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(index, (sizeof(uint_max) * 8));
+    const uint32 free_index = index / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(index, (sizeof(size_t) * 8));
 
     atomic_or_release(&queue->free[free_index], (OMS_UINT_ONE << bit_index));
 
@@ -470,8 +599,8 @@ T* queue_enqueue_atomic(PersistentQueueT<T>* const __restrict queue, const T dat
 
     // @performance This is slow we are calculating free_index and bit_index also in the loop above
     //              Calculating it here again adds 1 such calculation as overhead
-    const uint32 free_index = index / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(index, (sizeof(uint_max) * 8));
+    const uint32 free_index = index / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(index, (sizeof(size_t) * 8));
 
     atomic_or_release(&queue->free[free_index], (OMS_UINT_ONE << bit_index));
 
@@ -806,8 +935,8 @@ template <typename T>
 FORCE_INLINE
 void queue_enqueue_end(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    const uint32 free_index = queue->head / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(queue->head, (sizeof(uint_max) * 8));
+    const uint32 free_index = queue->head / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(queue->head, (sizeof(size_t) * 8));
     queue->free[free_index] |= (OMS_UINT_ONE << bit_index);
 
     OMS_WRAPPED_INCREMENT(
@@ -846,8 +975,8 @@ bool queue_dequeue(PersistentQueueT<T>* const __restrict queue, T* __restrict da
 
     // Some of the code below basically replaces chunk_is_free_internal
     // By doing this we can reduce the repetition of calculating free_index/bit_index
-    uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
-    uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+    uint32 free_index = queue->tail / (sizeof(size_t) * 8);
+    uint32 bit_index = MODULO_2(queue->tail, (sizeof(size_t) * 8));
 
     while (queue->head != queue->tail
         && (!IS_BIT_SET_R2L(queue->free[free_index], bit_index)
@@ -866,8 +995,8 @@ bool queue_dequeue(PersistentQueueT<T>* const __restrict queue, T* __restrict da
     *data = queue->memory[queue->tail];
     DEBUG_MEMORY_DELETE((uintptr_t) queue->memory[queue->tail], sizeof(T));
 
-    free_index = queue->tail / (sizeof(uint_max) * 8);
-    bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+    free_index = queue->tail / (sizeof(size_t) * 8);
+    bit_index = MODULO_2(queue->tail, (sizeof(size_t) * 8));
 
     queue->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
 
@@ -962,8 +1091,8 @@ T* queue_dequeue_keep(PersistentQueueT<T>* const queue) NO_EXCEPT
 
     // Some of the code below basically replaces chunk_is_free_internal
     // By doing this we can reduce the repetition of calculating free_index/bit_index
-    uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
-    uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+    uint32 free_index = queue->tail / (sizeof(size_t) * 8);
+    uint32 bit_index = MODULO_2(queue->tail, (sizeof(size_t) * 8));
 
     while (queue->head != queue->tail
         && (!IS_BIT_SET_R2L(queue->free[free_index], bit_index)
@@ -979,8 +1108,8 @@ T* queue_dequeue_keep(PersistentQueueT<T>* const queue) NO_EXCEPT
         return NULL;
     }
 
-    free_index = queue->tail / (sizeof(uint_max) * 8);
-    bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+    free_index = queue->tail / (sizeof(size_t) * 8);
+    bit_index = MODULO_2(queue->tail, (sizeof(size_t) * 8));
 
     // We don't mark the element as free since it still needs to keep the data stored
     // But we mark it as already handled/completed
@@ -1008,8 +1137,8 @@ template <typename T>
 FORCE_INLINE
 void queue_dequeue_release(PersistentQueueT<T>* const queue, uint32 index) NO_EXCEPT
 {
-    const uint32 free_index = index / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(index, (sizeof(uint_max) * 8));
+    const uint32 free_index = index / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(index, (sizeof(size_t) * 8));
 
     queue->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
     queue->completed[free_index] &= ~(OMS_UINT_ONE << bit_index);
@@ -1023,7 +1152,7 @@ template <typename T>
 FORCE_INLINE
 void queue_dequeue_release(PersistentQueueT<T>* const queue, const T* element) NO_EXCEPT
 {
-    const uint32 index = (uint32) (((uintptr_t) queue->memory - (uintptr_t) element) / sizeof(T));
+    const uint32 index = (uint32) (((uintptr_t) element - (uintptr_t) queue->memory) / sizeof(T));
     queue_dequeue_release(queue, index);
 }
 
@@ -1047,8 +1176,8 @@ template <typename T>
 FORCE_INLINE
 void queue_uncomplete(PersistentQueueT<T>* const queue, uint32 index) NO_EXCEPT
 {
-    const uint32 free_index = index / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(index, (sizeof(uint_max) * 8));
+    const uint32 free_index = index / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(index, (sizeof(size_t) * 8));
 
     queue->completed[free_index] &= ~(OMS_UINT_ONE << bit_index);
 }
@@ -1057,7 +1186,7 @@ template <typename T>
 FORCE_INLINE
 void queue_uncomplete(PersistentQueueT<T>* const queue, T* element) NO_EXCEPT
 {
-    const uint32 index = (uint32) (((uintptr_t) queue->memory - (uintptr_t) element) / sizeof(T));
+    const uint32 index = (uint32) (((uintptr_t) element - (uintptr_t) queue->memory) / sizeof(T));
     queue_uncomplete(queue, index);
 }
 
@@ -1073,9 +1202,9 @@ template <typename T>
 FORCE_INLINE
 void queue_uncomplete_atomic(PersistentQueueT<T>* const queue, T* element) NO_EXCEPT
 {
-    const uint32 index = ((uintptr_t) queue->memory - (uintptr_t) element) / sizeof(T);
-    const uint32 free_index = index / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(index, (sizeof(uint_max) * 8));
+    const uint32 index = ((uintptr_t) element - (uintptr_t) queue->memory) / sizeof(T);
+    const uint32 free_index = index / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(index, (sizeof(size_t) * 8));
 
     atomic_and_release(&queue->completed[free_index], ~(OMS_UINT_ONE << bit_index));
 }
@@ -1084,9 +1213,9 @@ template <typename T>
 FORCE_INLINE
 void queue_dequeue_release_atomic(PersistentQueueT<T>* const queue, T* element) NO_EXCEPT
 {
-    const uint32 index = ((uintptr_t) queue->memory - (uintptr_t) element) / sizeof(T);
-    const uint32 free_index = index / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(index, (sizeof(uint_max) * 8));
+    const uint32 index = ((uintptr_t) element - (uintptr_t) queue->memory) / sizeof(T);
+    const uint32 free_index = index / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(index, (sizeof(size_t) * 8));
 
     atomic_and_release(&queue->free[free_index], ~(OMS_UINT_ONE << bit_index));
     atomic_and_release(&queue->completed[free_index], ~(OMS_UINT_ONE << bit_index));
@@ -1102,8 +1231,8 @@ T* queue_dequeue_start(const PersistentQueueT<T>* const queue) NO_EXCEPT
 {
     // Some of the code below basically replaces chunk_is_free_internal
     // By doing this we can reduce the repetition of calculating free_index/bit_index
-    const uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+    const uint32 free_index = queue->tail / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(queue->tail, (sizeof(size_t) * 8));
 
     while (queue->tail != queue->head
         && (!IS_BIT_SET_R2L(queue->free[free_index], bit_index)
@@ -1151,8 +1280,8 @@ template <typename T>
 FORCE_INLINE
 void queue_dequeue_end(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
-    const uint32 free_index = queue->tail / (sizeof(uint_max) * 8);
-    const uint32 bit_index = MODULO_2(queue->tail, (sizeof(uint_max) * 8));
+    const uint32 free_index = queue->tail / (sizeof(size_t) * 8);
+    const uint32 bit_index = MODULO_2(queue->tail, (sizeof(size_t) * 8));
 
     queue->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
     queue->completed[free_index] &= ~(OMS_UINT_ONE << bit_index);
