@@ -67,14 +67,12 @@ void cmd_layout_populate_sync(
     layout_from_theme(layout, theme);
 }
 
-// @question Do we really want the camera here or is a v2_uint16 sufficient?
 inline
 UILayout* cmd_ui_load_sync(
     BufferMemory* const __restrict mem,
     UILayout* const __restrict layout, const wchar_t* const __restrict layout_path,
     UITheme* const __restrict general_theme,
-    UITheme* const __restrict theme, const wchar_t* const __restrict theme_path,
-    const Camera* const __restrict
+    UITheme* const __restrict theme, const wchar_t* const __restrict theme_path
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_CMD_UI_LOAD_SYNC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -93,11 +91,9 @@ UILayout* cmd_ui_load_sync(
     return layout;
 }
 
-// @question Do we really want the camera here or is a v2_uint16 sufficient?
 static inline
 UILayout* cmd_ui_load(
     ChunkMemory* const __restrict mem,
-    Camera* const __restrict camera,
     const AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
@@ -113,8 +109,7 @@ UILayout* cmd_ui_load(
         &buf,
         &cmd->layout_body.scene_info->ui_layout, cmd->layout_body.layout_path,
         cmd->layout_body.general_theme,
-        &cmd->layout_body.scene_info->ui_theme, cmd->layout_body.theme_path,
-        camera
+        &cmd->layout_body.scene_info->ui_theme, cmd->layout_body.theme_path
     );
 }
 

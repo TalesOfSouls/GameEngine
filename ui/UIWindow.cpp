@@ -63,7 +63,7 @@ void ui_vertices_cache(
     void* app,
     UIWindowTitle* window_title, GpuApiType gpu_api_type,
     UILayout* const layout, f32* zindex,
-    byte* const __restrict mem
+    BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
     ArrayVector<Vertex3DSamplerTextureColor>* vertex_cache = &layout->ui_vertex_cache;
@@ -115,7 +115,7 @@ void ui_vertices_cache(
 void ui_vertices_cache(
     void* app, UIWindow* window, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
-    byte* const __restrict mem
+    BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_UI_CACHE_WINDOW);

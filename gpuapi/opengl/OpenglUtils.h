@@ -219,9 +219,9 @@ void gpuapi_prepare_texture(Texture* const texture) NO_EXCEPT
 {
     const uint32 texture_data_type = gpuapi_texture_data_type(texture->texture_data_type);
 
-    glGenTextures(1, (GLuint *) &texture->id);
-    glActiveTexture(GL_TEXTURE0 + texture->sample_id);
-    glBindTexture(texture_data_type, (GLuint) texture->id);
+    glGenTextures(1, (GLuint *) &texture->opengl_texture.texture_id);
+    glActiveTexture(GL_TEXTURE0 + texture->opengl_texture.sampler);
+    glBindTexture(texture_data_type, (GLuint) texture->opengl_texture.texture_id);
 }
 
 // @todo this should have a gpuapi_ name
@@ -258,14 +258,14 @@ void gpuapi_texture_use(const Texture* const texture) NO_EXCEPT
 {
     const uint32 texture_data_type = gpuapi_texture_data_type(texture->texture_data_type);
 
-    glActiveTexture(GL_TEXTURE0 + texture->sample_id);
-    glBindTexture(texture_data_type, (GLuint) texture->id);
+    glActiveTexture(GL_TEXTURE0 + texture->opengl_texture.sampler);
+    glBindTexture(texture_data_type, (GLuint) texture->opengl_texture.texture_id);
 }
 
 FORCE_INLINE
 void gpuapi_texture_delete(Texture* const texture) NO_EXCEPT
 {
-    glDeleteTextures(1, &texture->id);
+    glDeleteTextures(1, &texture->opengl_texture.texture_id);
 }
 
 inline

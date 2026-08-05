@@ -267,8 +267,6 @@ int32 font_to_data(
     pos = write_le(pos, font->line_height);
 
     // The glyphs are naturally tightly packed -> we can just store the memory
-    // @bug we are storing floats into the data and to the file system
-    //      depending on the compiler floats are not consistent across platforms
     memcpy(pos, font->glyphs, font->glyph_count * sizeof(Glyph));
     //pos += font->glyph_count * sizeof(Glyph);
 

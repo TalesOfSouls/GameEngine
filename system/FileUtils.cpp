@@ -54,19 +54,21 @@ bool file_write_secure(const C* const path, const FileBody* const file, T* const
 
     file_write(temp_path, file);
 
-    byte mem_hash[20];
+    byte mem_hash[20] = {0};
     sha1_hash(file->content, file->size, mem_hash);
 
     FileBody temp_file = {0};
     file_read(temp_path, &temp_file, mem);
 
-    byte temp_hash[20];
+    byte temp_hash[20]= {0};
     sha1_hash(temp_file.content, temp_file.size, temp_hash);
 
     if (memcmp(mem_hash, temp_hash, sizeof(temp_hash)) == 0) {
         file_delete(path);
         return file_move(temp_path, path);
     }
+
+    file_delete(temp_path);
 
     return false;
 }

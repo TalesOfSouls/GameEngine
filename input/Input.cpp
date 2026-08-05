@@ -630,7 +630,6 @@ uint32 input_get_typed_character(InputState* state, uint64 time, uint64 dt) NO_E
 inline
 void input_hotkeys_handle(const Input* const input, void* data) NO_EXCEPT
 {
-    // @question One hotkey can trigger one function, do we want multiple functions per hotkey?
     const InputEvent* input_events[MAX_KEY_PRESSES] = {0};
     int32 input_event_count = 0;
 

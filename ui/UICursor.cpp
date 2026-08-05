@@ -10,8 +10,7 @@
 void ui_vertices_cache(
     void* app,
     UICursor* cursor,
-    UILayout* const layout, f32,
-    byte*
+    UILayout* const layout
 ) NO_EXCEPT
 {
     ArrayVector<Vertex3DSamplerTextureColor>* const vertex_cache = &layout->ui_vertex_cache;

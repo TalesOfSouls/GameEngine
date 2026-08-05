@@ -37,8 +37,6 @@ struct Shader {
 
     int32 shader_count;
     SoftShaderFunc shader_functions[4];
-
-    byte data[16];
 };
 
 // In the shader we very often need a camera object for vertex manipulation

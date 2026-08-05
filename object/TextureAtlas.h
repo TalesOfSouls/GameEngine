@@ -18,7 +18,7 @@ struct TextureAtlasElement {
 
 struct TextureAtlas {
     // The data before the elements can be considered header data
-    // @performance I hate that this is here
+    // @performance I hate that this is here. The only place that uses this is the archive_builder
     char texture_name[32];
     Texture* texture;
 

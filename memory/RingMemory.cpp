@@ -300,6 +300,26 @@ byte* memory_get(RingMemory* const ring, size_t size, int32 alignment = sizeof(s
     return offset;
 }
 
+HOT_CODE
+byte* memory_get_temp(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    ASSERT_TRUE(size <= ring->size);
+
+    size = align_up(size, (size_t) alignment);
+
+    byte* head_temp = (byte *) align_up((uintptr_t) ring->head, alignment);
+    if (head_temp + size > ring->end) { UNLIKELY
+        // We are back at the beginning of the ring memory
+        head_temp = (byte *) align_up((uintptr_t) ring->memory, alignment);
+    }
+
+    DEBUG_MEMORY_WRITE((uintptr_t) head_temp, size);
+    ASSERT_TRUE(head_temp);
+    STATS_MAX_PERSISTENT_DEBUG(DEBUG_COUNTER_RING_MAX_REQUEST, size);
+
+    return head_temp;
+}
+
 FORCE_INLINE
 byte* thrd_memory_get(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {

@@ -32,11 +32,12 @@ struct Glyph {
 struct Font {
     // The data before the glyphs can be considered header data
 
-    // @performance I hate that this is here
+    // @performance I hate that this is here. The only place that uses this is the archive_builder
     char texture_name[32];
     Texture* texture;
 
     // @question Consider to make 16bit int (we internally don't support more than 2^16 - 1)
+    //          Currently we wouldn't save any bytes due to padding
     uint32 glyph_count;
 
     int32 sampler;

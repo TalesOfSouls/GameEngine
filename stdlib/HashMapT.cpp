@@ -13,7 +13,7 @@
 
 template <typename T>
 inline
-void hashmap_alloc(HashMapT<T>* const hm, int32 capacity, int32 max_capacity, int32 alignment = 32) NO_EXCEPT
+void hashmap_alloc(HashMapT<T>* const hm, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     // This ensures 4 byte alignment
     capacity = align_up(capacity, 2);
@@ -33,7 +33,7 @@ void hashmap_free(HashMapT<T>* const hm) NO_EXCEPT
 
 template <typename T>
 inline
-void hashmap_alloc(HashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int32 max_capacity, int32 alignment = 32) NO_EXCEPT
+void hashmap_alloc(HashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     // This ensures 4 byte alignment
     capacity = align_up(capacity, 2);
@@ -47,7 +47,7 @@ void hashmap_alloc(HashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int3
 // Alignment 32 so we can get 2 elements per cache line
 template <typename T>
 inline
-void hashmap_create(HashMapT<T>* const hm, int32 count, byte* const buf, int32 alignment = 32) NO_EXCEPT
+void hashmap_create(HashMapT<T>* const hm, int32 count, byte* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
     hm->hash_function = hash_djb2;

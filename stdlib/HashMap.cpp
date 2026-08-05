@@ -16,9 +16,8 @@
 #include "../system/Allocator.h"
 #include "HashMap.h"
 
-// @performance We might want to provide an element alignment and memory start alignment (= e.g. cache line size)
 FORCE_INLINE
-void hashmap_alloc(HashMap* const hm, int32 count, int32 max_count, int32 element_size, int32 alignment = 32) NO_EXCEPT
+void hashmap_alloc(HashMap* const hm, int32 count, int32 max_count, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     // This ensures 4 byte alignment
     count = align_up(count, 2);
@@ -30,7 +29,7 @@ void hashmap_alloc(HashMap* const hm, int32 count, int32 max_count, int32 elemen
 }
 
 FORCE_INLINE
-void hashmap_alloc(HashMap* const hm, MemoryArena* mem, int32 count, int32 max_count, int32 element_size, int32 alignment = 32) NO_EXCEPT
+void hashmap_alloc(HashMap* const hm, MemoryArena* mem, int32 count, int32 max_count, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     // This ensures 4 byte alignment
     count = align_up(count, 2);
@@ -56,7 +55,7 @@ void hashmap_free(HashMap* const hm, MemoryArena* mem) NO_EXCEPT
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* const hm, int32 count, int32 element_size, RingMemory* const ring, int32 alignment = 32) NO_EXCEPT
+void hashmap_create(HashMap* const hm, int32 count, int32 element_size, RingMemory* const ring, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(ring);
 
@@ -80,7 +79,7 @@ void hashmap_create(HashMap* const hm, int32 count, int32 element_size, RingMemo
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* const hm, int32 count, int32 element_size, BufferMemory* const buf, int32 alignment = 32) NO_EXCEPT
+void hashmap_create(HashMap* const hm, int32 count, int32 element_size, BufferMemory* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(buf);
 
@@ -101,7 +100,7 @@ void hashmap_create(HashMap* const hm, int32 count, int32 element_size, BufferMe
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* const hm, int32 count, int32 element_size, byte* const buf, int32 alignment = 32) NO_EXCEPT
+void hashmap_create(HashMap* const hm, int32 count, int32 element_size, byte* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->hash_function = hash_djb2;
@@ -116,7 +115,7 @@ void hashmap_create(HashMap* const hm, int32 count, int32 element_size, byte* co
 
 // Calculates how large a hashmap will be
 FORCE_INLINE
-int64 hashmap_size(int32 count, int32 element_size, int32 alignment = 32) NO_EXCEPT
+int64 hashmap_size(int32 count, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     return chunk_size_total(count, element_size, alignment); // elements
 }

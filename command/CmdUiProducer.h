@@ -15,7 +15,7 @@
 #include "AppCommand.h"
 #include "CmdGeneralProducer.h"
 
-// @question Why are we passing all this data instead of just cb?
+// @question Why are we passing all this data instead of just cb? this is mental
 inline
 void thrd_cmd_ui_load(
     ChunkMemoryT<AppCommand>* const __restrict cb,

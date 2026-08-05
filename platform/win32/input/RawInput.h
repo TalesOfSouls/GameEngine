@@ -13,8 +13,8 @@
 #include "../../../input/Input.cpp"
 #include "../../../input/ControllerType.h"
 #include "../../../input/ControllerInput.h"
-#include "controller/DualShock4.h"
 #include "../../../memory/BufferMemory.cpp"
+#include "controller/DualShock4.h"
 #include <winDNS.h>
 
 static inline
@@ -83,7 +83,7 @@ uint32 rawinput_kbm_init(
 
     uint32 i;
 
-    // @bug This could overflow states count since device_count > states
+    // @test Test with 5 devices connected
     for (i = 0; i < device_count; ++i) {
         uint32 cb_size = sizeof(RID_DEVICE_INFO);
         RID_DEVICE_INFO rdi;
@@ -327,7 +327,7 @@ int16 input_raw_handle(
     const RAWINPUT* const __restrict raw,
     Input* const __restrict states,
     int32 state_count,
-    Window* window,
+    v2_int16 window_dim,
     uint64 time
 ) NO_EXCEPT
 {
@@ -418,8 +418,8 @@ int16 input_raw_handle(
             states[input_handle.vec[0]].state.y[0] += dy;
 
             // Since we are only using relative movement we need to clip to the window dimensions
-            states[input_handle.vec[0]].state.x[0] = OMS_CLAMP(states[input_handle.vec[0]].state.x[0], (int16) 0, (int16) window->state_current.logical_width);
-            states[input_handle.vec[0]].state.y[0] = OMS_CLAMP(states[input_handle.vec[0]].state.y[0], (int16) 0, (int16) window->state_current.logical_height);
+            states[input_handle.vec[0]].state.x[0] = OMS_CLAMP(states[input_handle.vec[0]].state.x[0], (int16) 0, window_dim.width);
+            states[input_handle.vec[0]].state.y[0] = OMS_CLAMP(states[input_handle.vec[0]].state.y[0], (int16) 0, window_dim.height);
 
             // We need to signal that the mouse was moved
             // We basically fake that a mouse movement is the same as a button
@@ -518,7 +518,7 @@ int16 input_raw_handle(
 void input_raw_handle(
     LPARAM lParam,
     Input* __restrict states, int32 state_count,
-    Window* window,
+    v2_int16 window_dim,
     BufferMemory* const __restrict mem,
     uint64 time
 ) NO_EXCEPT
@@ -536,14 +536,14 @@ void input_raw_handle(
         return;
     }
 
-    input_raw_handle((RAWINPUT *) lpb, states, state_count, window, time);
+    input_raw_handle((RAWINPUT *) lpb, states, state_count, window_dim, time);
 }
 
 // max_inputs = max input messages
 int16 input_raw_handle_buffered(
     int32 max_inputs,
     Input* __restrict states, int32 state_count,
-    Window* window,
+    v2_int16 window_dim,
     BufferMemory* const __restrict mem,
     uint64 time
 ) NO_EXCEPT
@@ -577,7 +577,7 @@ int16 input_raw_handle_buffered(
             }
 
             // @performance Instead of passing all input states we should only pass the state that actually matters
-            input_count += input_raw_handle(pri, states, state_count, window, time);
+            input_count += input_raw_handle(pri, states, state_count, window_dim, time);
 
             pri = NEXTRAWINPUTBLOCK(pri);
         }

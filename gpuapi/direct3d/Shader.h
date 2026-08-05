@@ -13,7 +13,6 @@
 struct Shader {
     ID3D12PipelineState* id;
     uint32 locations[7];
-    byte data[16];
 };
 
 #endif

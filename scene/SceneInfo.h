@@ -7,9 +7,16 @@
 #include "../ui/UITheme.h"
 
 struct SceneInfo {
-    // @todo Find a better way to handle state data, the problem is we need the maximum scene size
-    // I'm pretty sure for the main scene we probably need a couple MB
-    // We also cannot pull the SceneGeneral out since it has different sizes based on gpuapi, unless we force it to a fixed size
+    atomic_32 int32 scene_setup_state;
+
+    // Scene specific state
+    int32 scene_state;
+
+    // Keeps track of the setup iterations until it got finally setup
+    uint32 scene_setup_counter;
+
+    // This represents the actual Scene data e.g. Scene0, Scene1, ...
+    // @todo Find a better way to handle this, the size of 8K is probably also not enough
     byte data[8192];
     UILayout ui_layout;
 

@@ -26,7 +26,7 @@
     #define SMN(name)
 #endif
 
-#define MEMORY_OFFSET(a, b) (size_t) ((uintptr_t) a - (uintptr_t) b)
+#define MEMORY_OFFSET(high, low) (size_t) ((uintptr_t) (high) - (uintptr_t) (low))
 #define MEMORY_ELEMENT_ZERO(ptr) memset(ptr, 0, sizeof(*ptr))
 
 template <typename T, size_t N>

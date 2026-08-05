@@ -17,7 +17,7 @@ void sha1_transform(Sha1Context* ctx, const byte data[64], int32 steps) NO_EXCEP
     uint32 a, b, c, d, e, temp;
     alignas(64) uint32 w[80];
 
-    for (int32 i = 0; i < 16; ++i) {
+    for (int32 i = 0; i < 16; i++) {
         w[i] = ((uint32) data[i * 4 + 0] << 24)
             | ((uint32) data[i * 4 + 1] << 16)
             | ((uint32) data[i * 4 + 2] <<  8)
@@ -27,47 +27,46 @@ void sha1_transform(Sha1Context* ctx, const byte data[64], int32 steps) NO_EXCEP
     #ifdef __AVX512F__
     if (steps >= 16) {
         for (int i = 16; i < 80; i += 16) {
-            __m512i v3 = _mm512_loadu_si512((__m512i*)&w[i-3]);
-            __m512i v8 = _mm512_load_si512((__m512i*)&w[i-8]);
-            __m512i v14 = _mm512_loadu_si512((__m512i*)&w[i-14]);
-            __m512i v16 = _mm512_load_si512((__m512i*)&w[i-16]);
+            __m512i v3  = _mm512_loadu_si512((const __m512i*)&w[i-3]);
+            __m512i v8  = _mm512_loadu_si512((const __m512i*)&w[i-8]);
+            __m512i v14 = _mm512_loadu_si512((const __m512i*)&w[i-14]);
+            __m512i v16 = _mm512_loadu_si512((const __m512i*)&w[i-16]);
 
-            __m512i v = _mm512_xor_si512(v3, v8);
-            v = _mm512_xor_si512(v, v14);
-            v = _mm512_xor_si512(v, v16);
+            __m512i v = _mm512_xor_si512(_mm512_xor_si512(v3, v8), _mm512_xor_si512(v14, v16));
+            __m512i v_rot = _mm512_or_si512(_mm512_slli_epi32(v, 1), _mm512_srli_epi32(v, 31));
 
-            __m512i v_rot = _mm512_or_si512(
-                _mm512_slli_epi32(v, 1),
-                _mm512_srli_epi32(v, 31)
-            );
+            _mm512_storeu_si512((__m512i*)&w[i], v_rot);
 
-            _mm512_store_si512((__m512i*)&w[i], v_rot);
+            // lanes 0-2 are correct; lanes 3-15 used a not-yet-computed
+            // value from inside this same batch, so redo them sequentially
+            // now that the earlier lanes in this batch are available.
+            for (int j = 3; j < 16; j++) {
+                uint32 t = w[i+j-3] ^ w[i+j-8] ^ w[i+j-14] ^ w[i+j-16];
+                w[i+j] = (t << 1) | (t >> 31);
+            }
         }
-
-        steps = 1
+        steps = 1;
     } else
     #endif
 
     #ifdef __AVX2__
     if (steps >= 8) {
         for (int i = 16; i < 80; i += 8) {
-            __m256i v3 = _mm256_loadu_si256((__m256i*)&w[i-3]);
-            __m256i v8 = _mm256_load_si256((__m256i*)&w[i-8]);
-            __m256i v14 = _mm256_loadu_si256((__m256i*)&w[i-14]);
-            __m256i v16 = _mm256_load_si256((__m256i*)&w[i-16]);
+            __m256i v3  = _mm256_loadu_si256((const __m256i*)&w[i-3]);
+            __m256i v8  = _mm256_loadu_si256((const __m256i*)&w[i-8]);
+            __m256i v14 = _mm256_loadu_si256((const __m256i*)&w[i-14]);
+            __m256i v16 = _mm256_loadu_si256((const __m256i*)&w[i-16]);
 
-            __m256i v = _mm256_xor_si256(v3, v8);
-            v = _mm256_xor_si256(v, v14);
-            v = _mm256_xor_si256(v, v16);
+            __m256i v = _mm256_xor_si256(_mm256_xor_si256(v3, v8), _mm256_xor_si256(v14, v16));
+            __m256i v_rot = _mm256_or_si256(_mm256_slli_epi32(v, 1), _mm256_srli_epi32(v, 31));
 
-            __m256i v_rot = _mm256_or_si256(
-                _mm256_slli_epi32(v, 1),
-                _mm256_srli_epi32(v, 31)
-            );
+            _mm256_storeu_si256((__m256i*)&w[i], v_rot);
 
-            _mm256_store_si256((__m256i*)&w[i], v_rot);
+            for (int j = 3; j < 8; j++) {
+                uint32 t = w[i+j-3] ^ w[i+j-8] ^ w[i+j-14] ^ w[i+j-16];
+                w[i+j] = (t << 1) | (t >> 31);
+            }
         }
-
         steps = 1;
     } else
     #endif
@@ -75,19 +74,27 @@ void sha1_transform(Sha1Context* ctx, const byte data[64], int32 steps) NO_EXCEP
     #ifdef __SSE4_2__
     if (steps >= 4) {
         for (int32 i = 16; i < 80; i += 4) {
-            __m128i v = _mm_xor_si128(
-                _mm_loadu_si128((__m128i*) &w[i-3]),
-                _mm_load_si128((__m128i*) &w[i-8])
-            );
-            v = _mm_xor_si128(v, _mm_loadu_si128((__m128i*) &w[i-14]));
-            v = _mm_xor_si128(v, _mm_load_si128((__m128i*) &w[i-16]));
+            __m128i v3  = _mm_loadu_si128((const __m128i*)&w[i-3]);
+            __m128i v8  = _mm_loadu_si128((const __m128i*)&w[i-8]);
+            __m128i v14 = _mm_loadu_si128((const __m128i*)&w[i-14]);
+            __m128i v16 = _mm_loadu_si128((const __m128i*)&w[i-16]);
 
-            v = _mm_or_si128(_mm_slli_epi32(v, 1), _mm_srli_epi32(v, 31));
+            __m128i v = _mm_xor_si128(_mm_xor_si128(v3, v8), _mm_xor_si128(v14, v16));
+            __m128i v_rot = _mm_or_si128(_mm_slli_epi32(v, 1), _mm_srli_epi32(v, 31));
 
-            _mm_store_si128((__m128i*) &w[i], v);
+            _mm_storeu_si128((__m128i*)&w[i], v_rot);
+
+            uint32 t = w[i] ^ w[i-5] ^ w[i-11] ^ w[i-13];
+            w[i+3] = (t << 1) | (t >> 31);
+        }
+    } else
+    #endif
+    {
+        for (int i = 16; i < 80; i++) {
+            uint32 t = w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16];
+            w[i] = (t << 1) | (t >> 31);
         }
     }
-    #endif
 
     a = ctx->state[0];
     b = ctx->state[1];
@@ -95,7 +102,7 @@ void sha1_transform(Sha1Context* ctx, const byte data[64], int32 steps) NO_EXCEP
     d = ctx->state[3];
     e = ctx->state[4];
 
-    for (int32 i = 0; i < 80; ++i) {
+    for (int32 i = 0; i < 80; i++) {
         if (i < 20) {
             temp = SHA1_ROTL32(a, 5) + SHA1_Ch(b, c, d) + e + K1 + w[i];
         } else if (i < 40) {
@@ -105,7 +112,6 @@ void sha1_transform(Sha1Context* ctx, const byte data[64], int32 steps) NO_EXCEP
         } else {
             temp = SHA1_ROTL32(a, 5) + SHA1_Parity(b, c, d) + e + K4 + w[i];
         }
-
         e = d;
         d = c;
         c = SHA1_ROTL32(b, 30);

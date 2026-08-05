@@ -11,18 +11,14 @@
 #include "OpenglUtils.h"
 
 struct FrameInFlight {
-    uint32 framebuffer;
-    uint32 renderbuffer;
+    OpenGLFramebufferData framebuffer;
     Texture* texture;
 
     GpuFence fence;
 
     // msaa data
-    uint32 framebuffer_msaa;
-    uint32 colorbuffer_msaa;
-    uint32 depthbuffer_msaa;
+    OpenGLFramebufferData framebuffer_msaa;
     Texture* texture_msaa;
-
 };
 
 #endif

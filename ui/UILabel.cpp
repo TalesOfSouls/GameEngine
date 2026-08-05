@@ -20,7 +20,7 @@ void ui_vertices_cache(
     void* app,
     UILabel* label,
     UILayout* const layout, f32 zindex,
-    byte* const __restrict mem
+    BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
     FontSystem* const font = layout->font;

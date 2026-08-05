@@ -57,6 +57,13 @@ void gpuapi_uniform_buffer_update(uint32 location, int32 value) NO_EXCEPT
 }
 
 FORCE_INLINE
+void gpuapi_uniform_buffer_update(uint32 location, uint32 value) NO_EXCEPT
+{
+    glUniform1ui(location, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+}
+
+FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 location, f32 value) NO_EXCEPT
 {
     glUniform1f(location, value);

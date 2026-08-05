@@ -470,7 +470,7 @@ v2_int32 vertex_text_create(
     // Try to find all the necessary glyphs
     // We use offsets instead of pointer chasing
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* const glyphs = (int16*) memory_get(mem, length * sizeof(int16), alignof(uintptr_t));
+    int16* const glyphs = (int16*) memory_get_temp(mem, length * sizeof(int16), alignof(uintptr_t));
     //alignas(alignof(size_t)) int16 glyphs[10000];
     for (int32 i = 0; i < length; ++i) {
         const int32 character = text[i];
@@ -545,7 +545,7 @@ v2_int32 vertex_text_create(
     // Try to find all the necessary glyphs
     // We use offsets instead of pointer chasing
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* const glyphs = (int16*) memory_get(mem, length * sizeof(int16), alignof(uintptr_t));
+    int16* const glyphs = (int16*) memory_get_temp(mem, length * sizeof(int16), alignof(uintptr_t));
     for (int32 i = 0; i < length; ++i) {
         const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 

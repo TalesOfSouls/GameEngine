@@ -113,6 +113,13 @@ void gpuapi_buffer_update(void* location, int32 value) NO_EXCEPT
 }
 
 FORCE_INLINE
+void gpuapi_buffer_update(void* location, uint32 value) NO_EXCEPT
+{
+    *((uint32 *) location) = value;
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+}
+
+FORCE_INLINE
 void gpuapi_buffer_update(void* location, f32 value) NO_EXCEPT
 {
     *((f32 *) location) = value;

@@ -9,6 +9,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "InputConnectionType.h"
+#include "ControllerType.h"
 
 // How many concurrent primary key/button presses can be handled?
 #define MAX_KEY_PRESSES 5
@@ -185,7 +186,7 @@ struct Input {
     byte context;
 
     // ControllerType
-    byte controller_type;
+    ControllerType controller_type;
 
     uint8 hotkey_count;
 

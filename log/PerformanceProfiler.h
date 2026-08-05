@@ -141,7 +141,6 @@ struct PerformanceProfileThread {
 
     // WARNING: This only shows tha last tick but when rendering the rendering thread may be way slower
     // As a result you will only output every n-th tick
-    // @todo we probably want to log tick performance per frame for a chart?
     uint64 tick;
     const char* name;
     PerformanceThreadHistory history[MAX_PERFORMANCE_STATS_HISTORY];

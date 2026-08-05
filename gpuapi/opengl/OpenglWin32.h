@@ -434,6 +434,9 @@ static type_glUniform4ui* glUniform4ui;
 typedef void WINAPI type_glUniform1i(GLint location, GLint v0);
 static type_glUniform1i* glUniform1i;
 
+typedef void WINAPI type_glUniform1ui(GLint location, GLint v0);
+static type_glUniform1ui* glUniform1ui;
+
 typedef void WINAPI type_glUniform1iv(GLint location, GLsizei count, const GLint* value);
 static type_glUniform1iv* glUniform1iv;
 
@@ -859,6 +862,7 @@ void opengl_init_gl() NO_EXCEPT
     glUniform4i = (type_glUniform4i *) wglGetProcAddress("glUniform4i");
     glUniform4ui = (type_glUniform4ui *) wglGetProcAddress("glUniform4ui");
     glUniform1i = (type_glUniform1i *) wglGetProcAddress("glUniform1i");
+    glUniform1ui = (type_glUniform1ui *) wglGetProcAddress("glUniform1ui");
     glUniform1iv = (type_glUniform1iv *) wglGetProcAddress("glUniform1iv");
     glUniform1f = (type_glUniform1f *) wglGetProcAddress("glUniform1f");
     glUniform1fv = (type_glUniform1fv *) wglGetProcAddress("glUniform1fv");

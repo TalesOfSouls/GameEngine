@@ -32,17 +32,19 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../image/Image.h"
+#include "../gpuapi/GpuAssetType.h"
 
 struct Texture {
-    uint32 id;
-    byte sample_id;
-
-    // @question Should the texture hold the texture unit?
-    //  If yes remember to update gpuapi_prepare_texture()
+    union {
+        OpenGLTextureData opengl_texture;
+        VulkanTextureData vulkan_texture;
+        D3D12TextureData d12_texture;
+        MetalTextureData metal_texture;
+        SoftwareTextureData soft_texture;
+    };
 
     byte texture_data_type;
     byte texture_minification;
-    byte data[16];
 
     Image image;
 };

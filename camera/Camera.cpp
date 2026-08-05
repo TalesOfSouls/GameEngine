@@ -462,8 +462,8 @@ void camera_orth_matrix_lh(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_lh(
         camera->orth,
-        0.0f, camera->viewport_width,
-        0.0f, camera->viewport_height,
+        0.0f, camera->viewport.width,
+        0.0f, camera->viewport.height,
         camera->znear,
         camera->zfar
     );
@@ -474,8 +474,8 @@ void camera_ui_matrix_lh(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_lh(
         camera->orth,
-        0.0f, camera->viewport_width,
-        0.0f, camera->viewport_height,
+        0.0f, camera->viewport.width,
+        0.0f, camera->viewport.height,
         camera->znear,
         camera->zfar
     );
@@ -486,8 +486,8 @@ void camera_orth_matrix_rh_opengl(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_opengl(
         camera->orth,
-        0.0f, camera->viewport_width,
-        0.0f, camera->viewport_height,
+        0.0f, camera->viewport.width,
+        0.0f, camera->viewport.height,
         camera->znear,
         camera->zfar
     );
@@ -498,8 +498,8 @@ void camera_orth_matrix_rh_software(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_software(
         camera->orth,
-        0.0f, camera->viewport_width,
-        0.0f, camera->viewport_height,
+        0.0f, camera->viewport.width,
+        0.0f, camera->viewport.height,
         camera->znear,
         camera->zfar
     );
@@ -510,8 +510,8 @@ void camera_ui_matrix_rh_software(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_software(
         camera->orth,
-        0.0f, camera->viewport_width,
-        0.0f, camera->viewport_height,
+        0.0f, camera->viewport.width,
+        0.0f, camera->viewport.height,
         camera->znear,
         camera->zfar
     );
@@ -522,8 +522,8 @@ void camera_orth_matrix_rh_vulkan(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_vulkan(
         camera->orth,
-        0.0f, camera->viewport_width,
-        0.0f, camera->viewport_height,
+        0.0f, camera->viewport.width,
+        0.0f, camera->viewport.height,
         camera->znear,
         camera->zfar
     );
@@ -534,8 +534,8 @@ void camera_ui_matrix_rh_vulkan(Camera* const camera) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_vulkan(
         camera->orth,
-        0.0f, camera->viewport_width,
-        0.0f, camera->viewport_height,
+        0.0f, camera->viewport.width,
+        0.0f, camera->viewport.height,
         camera->znear,
         camera->zfar
     );

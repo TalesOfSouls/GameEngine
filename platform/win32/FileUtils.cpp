@@ -904,7 +904,7 @@ file_copy(const C* __restrict src, const C* __restrict dst) NO_EXCEPT
     }
     directory_tree_create(dst_full_path);
 
-    // We re-add the previously removed .
+    // We re-add the previously removed /
     *last_slash = (C) '\\';
 
     if (*src == (C) '.') {
@@ -983,28 +983,37 @@ file_move(const C* __restrict src, const C* __restrict dst) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
 
-    // @performance we are creating an absolute path for dst potentially twice
-    directory_tree_create(dst);
+    C dst_full_path[PATH_MAX_LENGTH];
+    relative_to_absolute(dst, dst_full_path);
+
+    // Find last slash and check if the last path element is a file
+    // We don't want to create the file name as a directory by accident
+    C* last_slash = NULL;
+    for (C* pos = dst_full_path; *pos; ++pos) {
+        if (*pos == (C) '\\' || *pos == (C) '/') {
+            last_slash = pos;
+        }
+    }
+
+    // Remove . from path since the directory tree creation will otherwise create the file name as directory
+    for (C* pos = last_slash; *pos; ++pos) {
+        if (*pos == (C) '.') {
+            *last_slash = (C) '\0';
+            break;
+        }
+    }
+    directory_tree_create(dst_full_path);
+
+    // We re-add the previously removed /
+    *last_slash = (C) '\\';
 
     if (*src == (C) '.') {
         C src_full_path[PATH_MAX_LENGTH];
         relative_to_absolute(src, src_full_path);
 
-        if (*dst == (C) '.') {
-            C dst_full_path[PATH_MAX_LENGTH];
-            relative_to_absolute(dst, dst_full_path);
-
-            return (bool) MoveFileWrapper(src_full_path, dst_full_path);
-        } else {
-            return (bool) MoveFileWrapper(src_full_path, dst);
-        }
-    } else if (*dst == (C) '.') {
-        C dst_full_path[PATH_MAX_LENGTH];
-        relative_to_absolute(dst, dst_full_path);
-
-        return (bool) MoveFileWrapper(src, dst_full_path);
+        return (bool) MoveFileWrapper(src_full_path, dst_full_path);
     } else {
-        return (bool) MoveFileWrapper(src, dst);
+        return (bool) MoveFileWrapper(src, dst_full_path);
     }
 }
 

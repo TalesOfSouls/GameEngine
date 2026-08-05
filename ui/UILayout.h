@@ -47,9 +47,8 @@ struct UIChromaCodes {
     // Size is based on screen size (we don't need full screen size since we assume an interactible element is at least 4 pixels width and height)
     //      width = 25% of screen size
     //      height = 25% of screen size
-    // @bug what if we want to support 8k resolution? in that case 4 pixel get reduced to 1 pixel
+    // WARNING: what if we want to support 8k resolution? in that case 4 pixel get reduced to 1 pixel
     //      That means a border doesn't really have a good hitbox
-    //      Maybe I then have to check neighboring pixels?
     uint16 width;
     uint16 height;
 
@@ -58,7 +57,6 @@ struct UIChromaCodes {
     uint32* codes;
 };
 
-// @bug I hate this forward declaration
 typedef struct UILayout UILayout;
 
 typedef void *(*UIUpdateFunc)(
@@ -72,7 +70,7 @@ typedef void *(*UIRenderFunc)(
     UICore* element,
     GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
-    byte* const __restrict mem
+    BufferMemory* const __restrict mem
 ) NO_EXCEPT;
 
 struct UIElementChange {

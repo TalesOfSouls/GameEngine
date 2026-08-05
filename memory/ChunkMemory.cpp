@@ -429,7 +429,9 @@ void thrd_chunk_set_unset_atomic(int32 element, size_t* state) NO_EXCEPT
 FORCE_INLINE FORCE_FLATTEN
 byte* chunk_get_element(const ChunkMemory* const buf, int32 element) NO_EXCEPT
 {
-    ASSERT_TRUE(element < buf->capacity);
+    if (element >= buf->capacity) {
+        return NULL;
+    }
 
     byte* const offset = buf->memory + element * buf->chunk_size;
     ASSERT_TRUE(offset);
@@ -808,6 +810,14 @@ void chunk_free_elements(ChunkMemory* const buf, int32 element, int32 element_co
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size * element_count);
 }
 
+HOT_CODE
+void chunk_free_elements(ChunkMemory* const buf, byte* data, int32 element_count = 1) NO_EXCEPT
+{
+    const int32 element = chunk_id_from_memory(buf->memory, data, buf->chunk_size);
+    chunk_free_elements_internal(buf->free, element, element_count);
+    DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size * element_count);
+}
+
 FORCE_INLINE
 void thrd_chunk_free_elements(ChunkMemory* const buf, int32 element, int32 element_count = 1) NO_EXCEPT
 {
@@ -927,6 +937,16 @@ byte* memory_get(ChunkMemory* const buf, size_t size) NO_EXCEPT
 }
 
 inline HOT_CODE
+byte* memory_get_temp(ChunkMemory* const buf, size_t size) NO_EXCEPT
+{
+    const uint32 element_count = (uint32) ((size + buf->chunk_size - 1) / buf->chunk_size);
+    byte* data = chunk_memory_get(buf, element_count);
+    chunk_free_elements(buf, data, element_count);
+
+    return data;
+}
+
+inline HOT_CODE
 byte* thrd_chunk_memory_get(ChunkMemory* const buf, int32 elements) NO_EXCEPT
 {
     MutexGuard _guard(&buf->lock);
@@ -987,6 +1007,21 @@ struct ThrdChunkStackMemory {
         this->buffer = buf;
 
         *mem = chunk_get_element(buf, this->element);
+    }
+
+    HOT_CODE inline
+    explicit ThrdChunkStackMemory(
+        ChunkMemory* buf,
+        BufferMemory* mem,
+        size_t size
+    ) NO_EXCEPT
+    {
+        this->count = (uint32) ((size + buf->chunk_size - 1) / buf->chunk_size);
+        this->element = thrd_chunk_reserve(buf, this->count);
+        this->buffer = buf;
+
+        byte* data = chunk_get_element(buf, this->element);
+        buffer_init(mem, data, size, sizeof(size_t));
     }
 
     HOT_CODE inline

@@ -19,8 +19,6 @@ void coms_thread_affinity_set(coms_pthread_t* const thread, int64 mask) NO_EXCEP
     SetThreadAffinityMask(thread->h, (DWORD_PTR) mask);
 }
 
-// @todo write a function
-
 inline
 int32 coms_pthread_create(
     coms_pthread_t* const __restrict thread,

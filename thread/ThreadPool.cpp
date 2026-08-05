@@ -33,7 +33,6 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
         _stats_counter_persistent = pool->debug_container->stats_counter_persistent;
     }
 
-    // @bug Why doesn't this work? There must be some threading issue
     LOG_2("[INFO] Thread pool worker starting up");
     STATS_INCREMENT_DEBUG(DEBUG_COUNTER_THREAD);
 
@@ -45,7 +44,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     while (true) {
         THREAD_TICK(_thread_local_id);
         {
-            // @performance Would a spinlock be faster
+            // @performance Would a spinlock be faster, WAIT isn't this locking the thread potentially extremely long?
             MutexGuard _guard(&pool->work_mutex);
 
             while (pool->state >= THREAD_POOL_STATE_RUNNING && queue_is_empty(&pool->work_queue)) {

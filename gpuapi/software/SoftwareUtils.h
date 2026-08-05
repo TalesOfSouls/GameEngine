@@ -19,7 +19,7 @@ void gpuapi_prepare_texture(
     const Texture* const texture
 ) NO_EXCEPT
 {
-    renderer->textures[texture->sample_id] = texture;
+    renderer->textures[texture->soft_texture.sampler] = texture;
 }
 
 FORCE_INLINE
@@ -28,7 +28,7 @@ void gpuapi_texture_use(
     const Texture* const texture
 ) NO_EXCEPT
 {
-    renderer->textures[texture->sample_id] = texture;
+    renderer->textures[texture->soft_texture.sampler] = texture;
 }
 
 // @question Why is this here instead of in the shaderutils? same goes for opengl

@@ -163,7 +163,7 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                 completed = cmd_shader_load(cb, cmd) != NULL;
             } break;
         case CMD_UI_LOAD: {
-                cmd_ui_load(cb->mem, cb->camera, cmd);
+                cmd_ui_load(cb->mem, cmd);
             } break;
         default: {
             UNREACHABLE();

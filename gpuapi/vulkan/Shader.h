@@ -15,7 +15,6 @@ struct Shader {
     // @question Does this have to be a pointer to the gpuapi->pipeline var?
     VkPipeline id;
     uint32 locations[7];
-    byte data[16];
 };
 
 #endif

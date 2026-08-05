@@ -107,12 +107,12 @@ char* settings_save_value(
 
         // Array data
         case DATA_TYPE_UINT16_ARRAY: {
-            for (int32 j = 0; j < match[match_index].count; ++j) {
-                out += sprintf_fast(
-                    out, "%d\n",
-                    (int32) *((uint16 *) member)
-                );
+            for (int32 j = 0; j < match[match_index].count - 1; ++j) {
+                out += int_to_str((int64) *((uint16 *) (member + sizeof(uint16) * j)), out);
+                *out++ = ' ';
             }
+
+            out += int_to_str((int64) *((uint16 *) (member + sizeof(uint16) * (match[match_index].count - 1))), out);
         } break;
 
         // Vectors
@@ -128,7 +128,7 @@ char* settings_save_value(
         case DATA_TYPE_V4_F32_ARRAY: {
             for (int32 j = 0; j < match[match_index].count; ++j) {
                 out += sprintf_fast(
-                    out, "%f %f %f %f\n",
+                    out, "%f %f %f %f",
                     (f32) *((f32 *) member),
                     (f32) *((f32 *) (member + sizeof(f32) * 1)),
                     (f32) *((f32 *) (member + sizeof(f32) * 2)),
@@ -187,19 +187,20 @@ size_t settings_save(
 
     int32 offset;
     while (*in && out_length - (out - start) > 128) {
-        // @questions How can we maintain multiple newlines also in the output?
-        in = str_skip_empty(in);
+        while (str_is_eol(*in)) {
+            in += is_eol(in);
+            *out++= '\n';
+        }
 
         if (in[0] == '/' && in[1] == '/') {
             offset = str_copy_to_eol(in, out);
             in += offset;
             out += offset;
 
-            *out = '\n';
-            ++out;
-
-            // @questions How can we maintain multiple newlines also in the output?
-            in = str_skip_empty(in);
+            while (str_is_eol(*in)) {
+                in += is_eol(in);
+                *out++= '\n';
+            }
 
             continue;
         }
@@ -214,9 +215,6 @@ size_t settings_save(
                 out = settings_save_name(&match[i], out);
                 out = settings_save_value(settings, match, i, out);
 
-                // Newline after settings line output
-                *out++ = '\n';
-
                 found = true;
                 break;
             }
@@ -228,8 +226,9 @@ size_t settings_save(
 
         // Couldn't find any match -> just copy old values
         out += str_copy_to_eol(line, out);
-        *out++ = '\n';
     }
+
+    *out = '\0';
 
     return (size_t) (out - start);
 }

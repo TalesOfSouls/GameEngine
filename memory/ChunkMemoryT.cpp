@@ -387,7 +387,6 @@ template <typename T>
 FORCE_INLINE FORCE_FLATTEN
 T* chunk_get_element(const ChunkMemoryT<T>* const buf, int32 element) NO_EXCEPT
 {
-    // @question How is this even possible? Isn't an assert enough?
     if (element >= buf->capacity) {
         return NULL;
     }
@@ -494,6 +493,15 @@ void chunk_free_elements(ChunkMemoryT<T>* const buf, size_t element, uint32 elem
 
 template <typename T>
 FORCE_INLINE
+void chunk_free_elements(ChunkMemoryT<T>* const buf, T* data, uint32 element_count = 1) NO_EXCEPT
+{
+    const int32 element = chunk_id_from_memory(buf->memory, data, sizeof(T));
+    chunk_free_elements_internal(buf->state, element, element_count);
+    DEBUG_MEMORY_DELETE((uintptr_t) &buf->memory[element], sizeof(T) * element_count);
+}
+
+template <typename T>
+FORCE_INLINE
 void thrd_chunk_free_elements_atomic(ChunkMemoryT<T>* const buf, size_t element, uint32 element_count = 1) NO_EXCEPT
 {
     thrd_chunk_free_elements_atomic_internal(buf->free, element, element_count);
@@ -545,7 +553,7 @@ int64 chunk_dump(const ChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-byte* chunk_memory_get(ChunkMemoryT<T>* const buf, uint32 elements) NO_EXCEPT
+T* chunk_memory_get(ChunkMemoryT<T>* const buf, uint32 elements) NO_EXCEPT
 {
     const int32 element = chunk_reserve(buf, elements);
 
@@ -554,14 +562,25 @@ byte* chunk_memory_get(ChunkMemoryT<T>* const buf, uint32 elements) NO_EXCEPT
 
 template <typename T>
 inline HOT_CODE
-byte* memory_get(ChunkMemoryT<T>* const buf, size_t size) NO_EXCEPT
+T* memory_get(ChunkMemoryT<T>* const buf, size_t size) NO_EXCEPT
 {
     return chunk_memory_get(buf, (size + sizeof(T) - 1) / sizeof(T));
 }
 
 template <typename T>
+inline HOT_CODE
+T* memory_get_temp(ChunkMemoryT<T>* const buf, size_t size) NO_EXCEPT
+{
+    const uint32 element_count = (uint32) (size + sizeof(T) - 1) / sizeof(T);
+    T* data = chunk_memory_get(buf, element_count);
+    chunk_free_elements(buf, data, element_count);
+
+    return data;
+}
+
+template <typename T>
 FORCE_INLINE
-byte* chunk_memory_get_one(ChunkMemoryT<T>* const buf) NO_EXCEPT
+T* chunk_memory_get_one(ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     const int32 element = chunk_reserve_one(buf);
 

@@ -60,8 +60,7 @@ struct Camera {
     f32 sensitivity;
     f32 zoom;
 
-    f32 viewport_width;
-    f32 viewport_height;
+    v2_f32 viewport;
 
     f32 fov;
     f32 znear;

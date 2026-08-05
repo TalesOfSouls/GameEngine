@@ -14,8 +14,6 @@ struct Shader {
     uint32 id;
 
     OpenglDescriptorSetLayoutBinding descriptor_set_layout[7];
-
-    byte data[16];
 };
 
 #endif

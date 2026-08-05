@@ -20,7 +20,7 @@
 #include "../libs/hid.h"
 #include "../libs/setupapi.h"
 
-void hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_EXCEPT
+int32 hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_EXCEPT
 {
     // Get the GUID for HID devices
     GUID hid_guid;
@@ -29,7 +29,7 @@ void hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_
     // Get a handle to the device information set
     HDEVINFO device_info_set = SETUPAPI_SetupDiGetClassDevsW(&hid_guid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
     if (device_info_set == INVALID_HANDLE_VALUE) {
-        return;
+        return 0;
     }
 
     SP_DEVICE_INTERFACE_DATA device_interface_data;
@@ -156,6 +156,8 @@ void hid_init_controllers(Input* __restrict states, BufferMemory* const mem) NO_
     }
 
     SETUPAPI_SetupDiDestroyDeviceInfoList(device_info_set);
+
+    return controller_found;
 }
 
 inline

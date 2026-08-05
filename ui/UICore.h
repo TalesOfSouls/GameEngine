@@ -32,15 +32,20 @@ enum UIElementChangeType : byte {
     // dimensions got smaller or one axis got smaller and only one got bigger
     UI_ELEMENT_CHANGE_DIM_OTHER = 1 << 1,
 
+    UI_ELEMENT_CHANGE_POS = 1 << 2,
+
     // Z-axis changed
-    UI_ELEMENT_CHANGE_ORDER = 1 << 2,
+    UI_ELEMENT_CHANGE_ORDER = 1 << 3,
 
     // This is the most complex change since it also results in different vertex counts
     // We now have to change the entire vertex cache/index cache after this element as well
-    UI_ELEMENT_CHANGE_CONTENT = 1 << 3,
+    UI_ELEMENT_CHANGE_CONTENT = 1 << 4,
 
     // We use this to check if the chroma code needs to get recreated
-    UI_ELEMENT_CHANGE_CHROMA_CODE = UI_ELEMENT_CHANGE_DIM_LARGER | UI_ELEMENT_CHANGE_DIM_OTHER | UI_ELEMENT_CHANGE_ORDER,
+    UI_ELEMENT_CHANGE_CHROMA_CODE = UI_ELEMENT_CHANGE_DIM_LARGER
+        | UI_ELEMENT_CHANGE_DIM_OTHER
+        | UI_ELEMENT_CHANGE_POS
+        | UI_ELEMENT_CHANGE_ORDER,
 };
 
 struct UICore {

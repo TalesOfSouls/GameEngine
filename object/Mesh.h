@@ -8,6 +8,7 @@
 #define COMS_OBJECT_MESH_H
 
 #include "../stdlib/Stdlib.h"
+#include "../gpuapi/GpuAssetType.h"
 
 #define MESH_VERSION 1
 
@@ -37,13 +38,14 @@ struct Mesh {
 
     // @todo this only works if you have sub meshes e.g. one for body, one for hat, one for weapon etc.
     uint32 vertex_ref;
-    uint32 vao;
 
-    // used for vertex arrays
-    uint32 vbo;
-
-    // used for index arrays
-    uint32 ebo;
+    union {
+        OpenGLMeshData opengl_mesh;
+        VulkanMeshData vulkan_mesh;
+        D3D12MeshData d12_mesh;
+        MetalMeshData metal_mesh;
+        SoftwareMeshData soft_mesh;
+    };
 
     uint32 material_count;
     uint32* materials;

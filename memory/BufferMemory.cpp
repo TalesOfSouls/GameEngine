@@ -216,6 +216,32 @@ byte* memory_get(BufferMemory* const buf, size_t size, int32 alignment = sizeof(
     return offset;
 }
 
+/**
+ * Doesn't remove the internal memory pointer meaning a subsequent memory request will immediately overwrite this memory
+ */
+inline HOT_CODE
+byte* memory_get_temp(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    ASSERT_TRUE(size <= buf->size);
+
+    byte* head_temp = (byte *) align_up((uintptr_t) buf->head, alignment);
+    size = align_up(size, alignment);
+
+    ASSERT_TRUE(head_temp + size <= buf->end);
+
+    DEBUG_MEMORY_WRITE((uintptr_t) head_temp, size);
+
+    byte* const offset = head_temp;
+    head_temp += size;
+
+    ASSERT_TRUE(offset);
+    ASSERT_STRICT((uintptr_t) offset + size < (uintptr_t) buf->end);
+    STATS_MAX_PERSISTENT_DEBUG(DEBUG_COUNTER_BUFFER_MAX_REQUEST, size);
+    STATS_MAX_PERSISTENT_DEBUG(DEBUG_COUNTER_BUFFER_MAX_USAGE, head_temp - buf->memory);
+
+    return offset;
+}
+
 FORCE_INLINE HOT_CODE
 void memory_rewind(BufferMemory* const buf, void* old_head) NO_EXCEPT
 {

@@ -20,7 +20,7 @@ bool memory_resize(byte**, size_t) NO_EXCEPT
     return false;
 }
 
-inline
+FORCE_INLINE
 byte* memory_get(byte** data, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     byte* out = (byte *) align_up((uintptr_t) *data, alignment);
@@ -29,10 +29,21 @@ byte* memory_get(byte** data, size_t size, int32 alignment = sizeof(size_t)) NO_
     return out;
 }
 
-inline
-byte* memory_get(byte* data, MAYBE_UNUSED size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+FORCE_INLINE
+byte* memory_get_temp(byte** data, size_t, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    PSEUDO_USE(size);
+    return (byte *) align_up((uintptr_t) *data, alignment);
+}
+
+FORCE_INLINE
+byte* memory_get(byte* data, size_t, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    return (byte *) align_up((uintptr_t) data, alignment);
+}
+
+FORCE_INLINE
+byte* memory_get_temp(byte* data, size_t, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
     return (byte *) align_up((uintptr_t) data, alignment);
 }
 

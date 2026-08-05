@@ -68,33 +68,54 @@ void xinput_free() NO_EXCEPT
     _xinput_lib_ref_count = 0;
 }
 
-ControllerInput* xinput_init_controllers()
+int32 xinput_init_controllers(Input* states)
 {
-    uint32 c = 0;
-    for (uint32 controller_index = 0; controller_index < XUSER_MAX_COUNT; ++controller_index) {
+    if (!states || !pXInputGetState) {
+        return 0;
+    }
+
+    int32 connected = 0;
+
+    // Count connected XInput controllers
+    for (uint32 controller_index = 0;
+         controller_index < XUSER_MAX_COUNT;
+         ++controller_index)
+    {
         XINPUT_STATE controller_state;
+        ZeroMemory(&controller_state, sizeof(controller_state));
+
         if (pXInputGetState(controller_index, &controller_state) == ERROR_SUCCESS) {
-            ++c;
+            ++connected;
         }
     }
 
-    // We always want at least one empty controller slot
-    // @todo Change so that we store the actual number of devices
-    ControllerInput* const controllers = (ControllerInput *) calloc((c + 1), sizeof(ControllerInput));
-
-    if (c == 0) {
-        return controllers;
+    if (connected == 0) {
+        // Leave the first slot as an empty/default controller.
+        return 0;
     }
 
-    c = 0;
-    for (uint32 controller_index = 0; controller_index < XUSER_MAX_COUNT; ++controller_index) {
+    uint32 out_index = 0;
+
+    // Initialize connected controller slots
+    for (uint32 controller_index = 0;
+         controller_index < XUSER_MAX_COUNT && controller_index < 4;
+         ++controller_index
+    ) {
         XINPUT_STATE controller_state;
+        ZeroMemory(&controller_state, sizeof(controller_state));
+
         if (pXInputGetState(controller_index, &controller_state) == ERROR_SUCCESS) {
-            ++c;
+            Input* input = &states[out_index];
+
+            input->connection_type = INPUT_CONNECTION_TYPE_USB;
+            input->controller_type = CONTROLLER_TYPE_XBOX_GENERIC;
+            input->controller.id = (int32) controller_index;
+
+            ++out_index;
         }
     }
 
-    return controllers;
+    return connected;
 }
 
 inline

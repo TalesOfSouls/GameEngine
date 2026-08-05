@@ -17,7 +17,7 @@
 #include "RawInput.h"
 #include "HidInput.h"
 
-void input_controller_init(
+int32 input_controller_init(
     byte input_controller_api,
     Input* const __restrict states,
     BufferMemory* const __restrict mem
@@ -26,9 +26,7 @@ void input_controller_init(
     for (int i = 0; i < 2; ++i) {
         switch (input_controller_api) {
             case CONTROLLER_INPUT_TYPE_HID: {
-                hid_init_controllers(states, mem);
-
-                return;
+                return hid_init_controllers(states, mem);
             } break;
             case CONTROLLER_INPUT_TYPE_XINPUT: {
                 bool success = xinput_load();
@@ -37,9 +35,7 @@ void input_controller_init(
                     break;
                 }
 
-                xinput_init_controllers();
-
-                return;
+                return xinput_init_controllers(states);
             } break;
             default:
                 UNREACHABLE();
@@ -55,14 +51,15 @@ void input_controller_init(
         ring
     );
     */
+
+    return 0;
 }
 
-// @todo make window const and maybe __restrict
 int16 input_kbm_handle(
     InputMode mode,
     int32 max_inputs,
     Input* __restrict states, int32 state_count,
-    Window* window,
+    v2_int16 window_dim,
     BufferMemory* const __restrict mem,
     uint64 time
 ) NO_EXCEPT
@@ -70,7 +67,14 @@ int16 input_kbm_handle(
     // @performance Maybe states should have its own temp memory to handle input data
     switch (mode) {
         case INPUT_MODE_EVENT: {
-            return input_raw_handle_buffered(max_inputs, states, state_count, window, mem, time);
+            return input_raw_handle_buffered(
+                max_inputs,
+                states,
+                state_count,
+                window_dim,
+                mem,
+                time
+            );
         };
         case INPUT_MODE_POLLING: {
             return input_poll_handle(states, time);

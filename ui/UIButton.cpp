@@ -35,7 +35,7 @@ UIButton* ui_button_create(
 void ui_vertices_cache(
     void* app, UIButton* button, GpuApiType gpu_api_type,
     UILayout* const layout, f32 zindex,
-    byte* const __restrict mem
+    BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
     ArrayVector<Vertex3DSamplerTextureColor>* const vertex_cache = &layout->ui_vertex_cache;

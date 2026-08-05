@@ -8,17 +8,15 @@
 #include "UIWindow.cpp"
 #include "UICursor.cpp"
 
-// @security Consider to take in BufferMemory instead of byte for better buffer overflow control
 void ui_cache(
     void* app,
     GpuApiType gpu_api_type,
     UILayout* const layout,
-    byte* const __restrict mem
+    BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_UI_CACHE);
 
-    // @bug this shouldn't be here, this is only during development/testing
     layout->ui_vertex_cache.count = 0;
     layout->ui_index_cache.count = 0;
     array_vector_insert(&layout->ui_vertex_cache, {{0.0f, 0.0f, 10.0f}, 0, {0}});
@@ -37,6 +35,11 @@ void ui_cache(
         );
 
         element->vertices = layout->ui_vertex_cache.count;
+
+        // @question This means ui_vertex_cache MUST be tightly packed
+        //          AND it mustn't have unused data (not the case for pre-calculated hover styles)
+        //          For that reason we might need a vertex_array with all the possible data and one with tightly packed data
+        //          In an ideal scenario the tightly packed data is just replaced by equally long data without memmoves required
 
         switch (element->type) {
             case UI_ELEMENT_TYPE_BUTTON : {
@@ -72,11 +75,6 @@ void ui_cache(
                     layout, 10.0f, // @todo fix actual value
                     mem
                 );
-
-                // @question This means ui_vertex_cache MUST be tightly packed
-                //          AND it mustn't have unused data (not the case for pre-calculated hover styles)
-                //          For that reason we might need a vertex_array with all the possible data and one with tightly packed data
-                //          In an ideal scenario the tightly packed data is just replaced by equally long data without memmoves required
             } break;
             case UI_ELEMENT_TYPE_VIEW_PANEL : {
             } break;
@@ -87,8 +85,7 @@ void ui_cache(
                 ui_vertices_cache(
                     app,
                     cursor_element,
-                    layout, 10.0f, // @todo fix actual value
-                    mem
+                    layout
                 );
             } break;
             case UI_ELEMENT_TYPE_CUSTOM : {
@@ -107,14 +104,15 @@ void ui_cache(
 
         element->vertex_count = (int16) (layout->ui_vertex_cache.count - element->vertices);
     } array_vector_iterate_end;
+
+    layout->ui_element_changed.count = 0;
 }
 
-// @question Consider to take in BufferMemory instead of byte for better buffer overflow control
 void ui_update(
     void* app,
     GpuApiType gpu_api_type,
     UILayout* const layout,
-    byte* const __restrict mem
+    BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_UI_UPDATE);
@@ -133,6 +131,11 @@ void ui_update(
         );
 
         element->vertices = layout->ui_vertex_cache.count;
+
+        // @question This means ui_vertex_cache MUST be tightly packed
+        //          AND it mustn't have unused data (not the case for pre-calculated hover styles)
+        //          For that reason we might need a vertex_array with all the possible data and one with tightly packed data
+        //          In an ideal scenario the tightly packed data is just replaced by equally long data without memmoves required
 
         switch (element->type) {
             case UI_ELEMENT_TYPE_BUTTON : {
@@ -169,11 +172,6 @@ void ui_update(
                     layout, 10.0f, // @todo fix actual value
                     mem
                 );
-
-                // @question This means ui_vertex_cache MUST be tightly packed
-                //          AND it mustn't have unused data (not the case for pre-calculated hover styles)
-                //          For that reason we might need a vertex_array with all the possible data and one with tightly packed data
-                //          In an ideal scenario the tightly packed data is just replaced by equally long data without memmoves required
             } break;
             case UI_ELEMENT_TYPE_VIEW_PANEL : {
             } break;

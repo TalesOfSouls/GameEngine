@@ -4,7 +4,7 @@
 #include "../../system/FileUtils.cpp"
 
 #define STB_IMAGE_IMPLEMENTATION 1
-#include "../../image/stb_image.h"
+#include "../../../EngineDependencies/image/stb_image.h"
 
 static void test_qoi() {
     int w;

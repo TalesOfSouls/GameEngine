@@ -22,7 +22,6 @@ struct UIAttribute {
     UIAttributeDataType datatype;
 
     union {
-        // @performance The string makes this struct really large when it is not needed in 95% of the cases
         char value_str[32];
         int32 value_int;
         uint32 value_uint;
