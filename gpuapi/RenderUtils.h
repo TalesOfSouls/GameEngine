@@ -351,7 +351,7 @@ f32 text_calculate_dimensions_height(
 
 HOT_CODE
 v2_int32 vertex_text_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
     v4_f32 dimension, byte alignment,
     FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length,
     f32 size, MAYBE_UNUSED uint32 rgba
@@ -429,6 +429,7 @@ v2_int32 vertex_text_create(
             array_vector_insert(indices, vertices->count + 2);
             array_vector_insert(indices, vertices->count + 3);
 
+            const int32 sampler = font->base.texture->opengl_texture.sampler + 1;
             array_vector_insert(vertices, {{offset_x, y_end_scaled, zindex}, sampler, glyph->uv_start}); // tl
             array_vector_insert(vertices, {{x_end_scaled, y_end_scaled, zindex}, sampler, {glyph->uv_end.x, glyph->uv_start.y}}); // tr
             array_vector_insert(vertices, {{x_end_scaled, offset_y, zindex}, sampler, glyph->uv_end}); // br
@@ -453,7 +454,7 @@ v2_int32 vertex_text_create(
 template <typename T>
 HOT_CODE
 v2_int32 vertex_text_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
     const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const wchar_t* const __restrict text,
     f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
@@ -516,7 +517,7 @@ v2_int32 vertex_text_create(
     }
 
     return vertex_text_create(
-        vertices, indices, zindex, sampler,
+        vertices, indices, zindex,
         dimension, alignment,
         font, glyphs, (int32) length,
         size, rgba
@@ -526,7 +527,7 @@ v2_int32 vertex_text_create(
 template <typename T>
 HOT_CODE
 v2_int32 vertex_text_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
     const v4_f32& dimension, byte alignment,
     FontSystem* const __restrict font, const char* const __restrict text,
     f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
@@ -593,7 +594,7 @@ v2_int32 vertex_text_create(
     }
 
     return vertex_text_create(
-        vertices, indices, zindex, sampler,
+        vertices, indices, zindex,
         dimension, alignment,
         font, glyphs, length,
         size, rgba

@@ -153,6 +153,31 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
     }
 }
 
+static inline
+uint32 asset_align_size(int32 type) NO_EXCEPT
+{
+    switch (type) {
+        case ASSET_TYPE_GENERAL:
+            return 0;
+        case ASSET_TYPE_AUDIO:
+            return alignof(Audio);
+        case ASSET_TYPE_FONT:
+            return alignof(Font);
+        case ASSET_TYPE_IMAGE:
+            return alignof(Image);
+        case ASSET_TYPE_TEXTURE_ATLAS:
+            return alignof(TextureAtlas);
+        case ASSET_TYPE_OBJ:
+            return alignof(Mesh);
+        case ASSET_TYPE_LANGUAGE:
+            return alignof(Language);
+        case ASSET_TYPE_THEME:
+            return alignof(UITheme);
+        default:
+            UNREACHABLE();
+    }
+}
+
 /**
  * Asset archives files remain open from the _load() function
  * They need to be explicitly closed when no longer needed.
@@ -349,11 +374,13 @@ Asset* const asset_archive_asset_load(
 
     // This happens while the file system loads the data
     // The important part is to reserve the uncompressed file size, not the compressed one
-    // @performance I think we are wasting space here
-    //              e.g. check TextureAtlas, Font, ...
-    //              The reason for this is we don't calculate the exact required size to avoid a pre-parsing of the file
-    //              On the other hand would pre-parsing really be that bad?
-    asset = thrd_ams_reserve_asset(ams, id_str, element->uncompressed + asset_type_size(element->type));
+    asset = thrd_ams_reserve_asset(
+        ams,
+        id_str,
+        element->uncompressed
+            + asset_type_size(element->type)
+            + asset_align_size(element->type)
+    );
     asset->official_id = id;
     asset->ram_size = element->uncompressed;
 
@@ -378,8 +405,6 @@ Asset* const asset_archive_asset_load(
             atlas_from_data(file.content, atlas);
         } break;
         case ASSET_TYPE_IMAGE: {
-            // @todo Do we really want to store textures in the asset management system or only images?
-            // If it is only images then we need to somehow also manage textures
             Texture* texture = (Texture *) asset->self;
             texture->image.pixels = (byte *) (texture + 1);
 

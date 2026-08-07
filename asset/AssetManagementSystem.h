@@ -9,8 +9,9 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemory.h"
-#include "../stdlib/HashMap.h"
+#include "../stdlib/HashMapT.h"
 #include "../thread/ThreadDefines.h"
+#include "Asset.h"
 
 enum AssetManagementType {
     AMS_TYPE_VERY_SMALL,
@@ -40,8 +41,7 @@ struct AssetComponent {
 // Once core stuff is on the gpu, it should be removed from RAM (at least after n seconds)
 struct AssetManagementSystem {
     // Used to find an asset in any asset component
-    // @performance Change to HashMapT<???>
-    HashMap hash_map;
+    HashMapT<HashEntryStrT<Asset>> hash_map;
 
     int32 asset_component_count;
     AssetComponent* asset_components;

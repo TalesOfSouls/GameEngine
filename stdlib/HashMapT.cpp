@@ -44,10 +44,24 @@ void hashmap_alloc(HashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int3
     chunk_alloc(&hm->buf, mem, capacity, max_capacity, alignment);
 }
 
-// Alignment 32 so we can get 2 elements per cache line
 template <typename T>
 inline
 void hashmap_create(HashMapT<T>* const hm, int32 count, byte* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
+    hm->hash_function = hash_djb2;
+    chunk_init(&hm->buf, buf, count, alignment);
+
+    ASSERT_MEM_ZERO(
+        hm->buf.memory,
+        count * sizeof(T)
+            + ceil_div(count, (int32) sizeof(size_t) * 8) * sizeof(hm->buf.free)
+    );
+}
+
+template <typename T>
+inline
+void hashmap_create(HashMapT<T>* const hm, int32 count, BufferMemory* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
     hm->hash_function = hash_djb2;
@@ -108,6 +122,43 @@ T* hashmap_insert(HashMapT<T>* const __restrict hm, const char* __restrict key, 
     return entry;
 }
 
+template <typename T, typename V>
+T* hashmap_insert(HashMapT<T>* const __restrict hm, const char* __restrict key, V* value) NO_EXCEPT
+{
+    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+
+    // This is either the place where we insert or the start of the chain we have to follow
+    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
+    if (new_index < 0) {
+        return NULL;
+    }
+
+    T* entry = (T *) chunk_get_element(&hm->buf, index);
+    if (index != new_index) {
+        // Find the previous chain element
+        T* prev = entry;
+        while (prev->next) {
+            prev = (T *) chunk_get_element(&hm->buf, prev->next - 1);
+        }
+
+        prev->next = (uint16) (new_index + 1);
+        entry = (T *) chunk_get_element(&hm->buf, new_index);
+    }
+
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
+
+    if (value) {
+        memcpy(&entry->value, value, sizeof(V));
+    }
+
+    entry->next = 0;
+
+    return entry;
+}
+
 template <typename T>
 T* hashmap_reserve(HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
@@ -131,8 +182,6 @@ T* hashmap_reserve(HashMapT<T>* const __restrict hm, const char* __restrict key)
         prev->next = (uint16) (new_index + 1);
         entry = (T *) chunk_get_element(&hm->buf, new_index);
     }
-
-    entry->value = (byte *) entry + sizeof(T);
 
     // Ensure key length
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
@@ -177,7 +226,6 @@ T* hashmap_get_reserve(HashMapT<T>* const __restrict hm, const char* __restrict 
     prev->next = (uint16) (new_index + 1);
 
     entry = (T *) chunk_get_element(&hm->buf, new_index);
-    entry->value = (byte *) entry + sizeof(T);
 
     strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';

@@ -40,8 +40,6 @@ struct Font {
     //          Currently we wouldn't save any bytes due to padding
     uint32 glyph_count;
 
-    int32 sampler;
-
     // Default font size at which the font renders best
     f32 size;
 

@@ -13,14 +13,24 @@
 
 inline
 void spinlock_start(spinlock32* lock) {
-    while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE) != 0) {
+    // We only try the exchange if we can get a good read
+    // Otherwise InterlockedExchange may invalidate the cache
+    // for all other threads that also try to access this
+    while (__atomic_load_n(lock, __ATOMIC_ACQUIRE)
+        || __atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE)
+    ) {
         cpu_yield();
     }
 }
 
 inline
 void spinlock_start(spinlock32* lock, int32 delay) {
-    while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE) != 0) {
+    // We only try the exchange if we can get a good read
+    // Otherwise InterlockedExchange may invalidate the cache
+    // for all other threads that also try to access this
+    while (__atomic_load_n(lock, __ATOMIC_ACQUIRE)
+        || __atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE) != 0
+    ) {
         usleep(delay);
     }
 }

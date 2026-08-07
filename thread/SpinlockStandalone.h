@@ -54,7 +54,7 @@
         return ((uint64) (large_int.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
     }
 
-    typedef long standalone_spinlock32;
+    typedef volatile long standalone_spinlock32;
 
     /**
      * Initialize the log specific spinlock
@@ -80,7 +80,7 @@
     static FORCE_INLINE HOT_CODE
     void standalone_spinlock_start(standalone_spinlock32* const lock, int32 delay = 10) NO_EXCEPT
     {
-        while (InterlockedExchange(lock, 1) != 0) {
+        while (*lock || InterlockedExchange(lock, 1)) {
             LARGE_INTEGER start, end;
             QueryPerformanceCounter(&start);
 
@@ -125,7 +125,7 @@
         return (uint64) ts.tv_sec * 1000000ULL + (uint64) ts.tv_nsec / 1000ULL;
     }
 
-    typedef int32 standalone_spinlock32;
+    typedef volatile int32 standalone_spinlock32;
 
     /**
      * Initialize the log specific spinlock
@@ -151,7 +151,9 @@
     static FORCE_INLINE HOT_CODE
     void standalone_spinlock_start(standalone_spinlock32* const lock, int32 delay = 10) NO_EXCEPT
     {
-        while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE) != 0) {
+        while (__atomic_load_n(lock, __ATOMIC_ACQUIRE)
+            || __atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE)
+        ) {
             struct timespec start, now;
             clock_gettime(CLOCK_MONOTONIC, &start);
             const uint64 target_ns = usec * 1000ULL;

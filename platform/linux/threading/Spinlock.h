@@ -9,6 +9,6 @@
 
 #include "../../../stdlib/Stdlib.h"
 
-typedef volatile int32 spinlock32;
+typedef volatile alignas(sizeof(int32)) int32 spinlock32;
 
 #endif
