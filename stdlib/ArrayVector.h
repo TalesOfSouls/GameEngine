@@ -46,9 +46,16 @@ void array_vector_init(ArrayVector<T>* vec, BufferMemory* buf, int capacity, int
 
 template<typename T>
 FORCE_INLINE
-void array_vector_insert(ArrayVector<T>* vec, T element) NO_EXCEPT
+void array_vector_insert(ArrayVector<T>* vec, const T& element) NO_EXCEPT
 {
     vec->elements[vec->count++] = element;
+}
+
+template<typename T>
+FORCE_INLINE
+T& array_vector_reserve_one(ArrayVector<T>* vec) NO_EXCEPT
+{
+    return vec->elements[vec->count++];
 }
 
 template<typename T>

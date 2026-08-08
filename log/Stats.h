@@ -66,12 +66,14 @@
 
 #define MAX_STATS_COUNTER_HISTORY 96
 struct StatCounterHistory {
-    atomic_32 int32 pos;
-    atomic_64 int64 stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE];
+    standalone_spinlock32 lock;
+
+    atomic<int32> pos;
+    int64 stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE];
 };
 static StatCounterHistory* _stats_counter = NULL;
-static atomic_64 int64* _stats_counter_persistent = NULL;
-static volatile int32* _stats_counter_active = NULL;
+static atomic<int64>* _stats_counter_persistent = NULL;
+static atomic<int32>* _stats_counter_active = NULL;
 
 /**
  * Creates a snapshot of the current stats
@@ -85,9 +87,11 @@ void stats_snapshot() NO_EXCEPT
         return;
     }
 
-    const int32 pos = atomic_increment_wrap_acquire_release(&_stats_counter->pos, MAX_STATS_COUNTER_HISTORY);
+    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
+    atomic_increment_wrap_release(_stats_counter->pos, MAX_STATS_COUNTER_HISTORY);
+
     memset(
-        (void *) &_stats_counter->stats[pos * DEBUG_COUNTER_SIZE],
+        (void *) &_stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE],
         0,
         DEBUG_COUNTER_SIZE * sizeof(int64)
     );
@@ -108,8 +112,8 @@ void stats_set(int32 id, int64 value = 1) NO_EXCEPT
         return;
     }
 
-    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
-    atomic_set_relaxed(&_stats_counter->stats[pos + id], value);
+    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
+    _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] = value;
 }
 
 /**
@@ -127,8 +131,8 @@ void stats_increment(int32 id, int64 by = 1) NO_EXCEPT
         return;
     }
 
-    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
-    atomic_add_relaxed(&_stats_counter->stats[pos + id], by);
+    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
+    _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] += by;
 }
 
 /**
@@ -146,8 +150,8 @@ void stats_decrement(int32 id, int64 by = 1) NO_EXCEPT
         return;
     }
 
-    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
-    atomic_sub_relaxed(&_stats_counter->stats[pos + id], by);
+    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
+    _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] -= by;
 }
 
 /**
@@ -165,7 +169,7 @@ void stats_increment_persistent(int32 id, int64 by = 1) NO_EXCEPT
         return;
     }
 
-    atomic_add_relaxed(&_stats_counter_persistent[id], by);
+    _stats_counter_persistent[id].fetch_add(by, memory_order_relaxed);
 }
 
 /**
@@ -183,7 +187,7 @@ void stats_decrement_persistent(int32 id, int64 by = 1) NO_EXCEPT
         return;
     }
 
-    atomic_sub_relaxed(&_stats_counter_persistent[id], by);
+    _stats_counter_persistent[id].fetch_sub(by, memory_order_relaxed);
 }
 
 /**
@@ -201,8 +205,8 @@ void stats_max_persistent(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    const int64 old = atomic_get_acquire(&_stats_counter_persistent[id]);
-    atomic_set_relaxed(&_stats_counter_persistent[id], OMS_MAX(old, value));
+    const int64 old = _stats_counter_persistent[id].load();
+    _stats_counter_persistent[id].store(OMS_MAX(old, value), memory_order_relaxed);
 }
 
 /**
@@ -220,8 +224,8 @@ void stats_min_persistent(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    const int64 old = atomic_get_acquire(&_stats_counter_persistent[id]);
-    atomic_set_relaxed(&_stats_counter_persistent[id], OMS_MIN(old, value));
+    const int64 old = _stats_counter_persistent[id].load();
+    _stats_counter_persistent[id].store(OMS_MIN(old, value), memory_order_relaxed);
 }
 
 /**
@@ -239,8 +243,8 @@ void stats_counter(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
-    atomic_set_relaxed(&_stats_counter->stats[pos + id], value);
+    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
+    _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] = value;
 }
 
 /**
@@ -258,7 +262,7 @@ void stats_counter_persistent(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    atomic_set_relaxed(&_stats_counter_persistent[id], value);
+    _stats_counter_persistent[id].store(value, memory_order_relaxed);
 }
 
 /**
@@ -276,8 +280,9 @@ void stats_max(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
-    atomic_set_relaxed(&_stats_counter->stats[pos + id], OMS_MAX(_stats_counter->stats[pos + id], value));
+    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
+    const int32 pos = _stats_counter->pos.load() * DEBUG_COUNTER_SIZE;
+    _stats_counter->stats[pos + id] = OMS_MAX(_stats_counter->stats[pos + id], value);
 }
 
 /**
@@ -295,8 +300,9 @@ void stats_min(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    const int32 pos = atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE;
-    atomic_set_relaxed(&_stats_counter->stats[pos + id], OMS_MIN(_stats_counter->stats[pos + id], value));
+    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
+    const int32 pos = _stats_counter->pos.load() * DEBUG_COUNTER_SIZE;
+    _stats_counter->stats[pos + id] = OMS_MIN(_stats_counter->stats[pos + id], value);
 }
 
 /**

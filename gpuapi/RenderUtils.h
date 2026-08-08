@@ -26,8 +26,8 @@ void vertex_degenerate_create(
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
     //          The easiest way is to just define a "degenerate" starting point
-    array_vector_insert(vertices, {{vertices->elements[vertices->count - 1].position.x, vertices->elements[vertices->count - 1].position.y, zindex}, -1, {}});
-    array_vector_insert(vertices, {{x, y, zindex}, -1, {}});
+    array_vector_reserve_one(vertices) = {{vertices->elements[vertices->count - 1].position.x, vertices->elements[vertices->count - 1].position.y, zindex}, -1, {}};
+    array_vector_reserve_one(vertices) = {{x, y, zindex}, -1, {}};
 }
 
 static inline
@@ -106,10 +106,10 @@ void vertex_line_create(
     array_vector_insert(indices, vertices->count + 2);
     array_vector_insert(indices, vertices->count + 3);
 
-    array_vector_insert(vertices, {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}); // tl
-    array_vector_insert(vertices, {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}); // tr
-    array_vector_insert(vertices, {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}); // br
-    array_vector_insert(vertices, {{v0.x, v0.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}); // bl
+    array_vector_reserve_one(vertices) = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // tl
+    array_vector_reserve_one(vertices) = {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // tr
+    array_vector_reserve_one(vertices) = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // br
+    array_vector_reserve_one(vertices) = {{v0.x, v0.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // bl
 }
 
 inline HOT_CODE
@@ -143,10 +143,10 @@ void vertex_rect_create(
     array_vector_insert(indices, vertices->count + 2);
     array_vector_insert(indices, vertices->count + 3);
 
-    array_vector_insert(vertices, {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}}); // tl
-    array_vector_insert(vertices, {{x_width, y_height, zindex}, sampler, tex2}); // tr
-    array_vector_insert(vertices, {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}}); // br
-    array_vector_insert(vertices, {{dimension.x, dimension.y, zindex}, sampler, tex1}); // bl
+    array_vector_reserve_one(vertices) = {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}}; // tl
+    array_vector_reserve_one(vertices) = {{x_width, y_height, zindex}, sampler, tex2}; // tr
+    array_vector_reserve_one(vertices) = {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}}; // br
+    array_vector_reserve_one(vertices) = {{dimension.x, dimension.y, zindex}, sampler, tex1}; // bl
 }
 
 inline
@@ -180,7 +180,7 @@ void vertex_circle_create(
     // Generate a triangle fan: center + pairs of edge vertices
 
     const int32 center_index = vertices->count;
-    array_vector_insert(vertices, {{cx, cy, zindex}, sampler, tex_center});
+    array_vector_reserve_one(vertices) = {{cx, cy, zindex}, sampler, tex_center};
 
     // @performance For sure this is vectorizable (SIMD)
     for (int i = 0; i < segments; ++i) {
@@ -203,8 +203,8 @@ void vertex_circle_create(
 
         // @performance Isn't one of the points on the circle arcs a duplicate same as the center
         //              We fixed it for the center but not for the previous circle arc point
-        array_vector_insert(vertices, {{x0, y0, zindex}, sampler, tex_edge});
-        array_vector_insert(vertices, {{x1, y1, zindex}, sampler, tex_edge});
+        array_vector_reserve_one(vertices) = {{x0, y0, zindex}, sampler, tex_edge};
+        array_vector_reserve_one(vertices) = {{x1, y1, zindex}, sampler, tex_edge};
     }
 }
 
@@ -239,7 +239,7 @@ void vertex_arc_create(
     const f32 ry = dimension.height * 0.5f;
 
     const int32 center_index = vertices->count;
-    array_vector_insert(vertices, {{cx, cy, zindex}, sampler, tex_center});
+    array_vector_reserve_one(vertices) = {{cx, cy, zindex}, sampler, tex_center};
 
     // Generate a triangle fan over the arc
     for (int32 i = 0; i < segments; ++i) {
@@ -262,8 +262,8 @@ void vertex_arc_create(
 
         // @performance Isn't one of the points on the circle arcs a duplicate same as the center
         //              We fixed it for the center but not for the previous circle arc point
-        array_vector_insert(vertices, {{x0, y0, zindex}, sampler, tex_edge});
-        array_vector_insert(vertices, {{x1, y1, zindex}, sampler, tex_edge});
+        array_vector_reserve_one(vertices) = {{x0, y0, zindex}, sampler, tex_edge};
+        array_vector_reserve_one(vertices) = {{x1, y1, zindex}, sampler, tex_edge};
     }
 }
 
@@ -430,10 +430,10 @@ v2_int32 vertex_text_create(
             array_vector_insert(indices, vertices->count + 3);
 
             const int32 sampler = font->base.texture->opengl_texture.sampler + 1;
-            array_vector_insert(vertices, {{offset_x, y_end_scaled, zindex}, sampler, glyph->uv_start}); // tl
-            array_vector_insert(vertices, {{x_end_scaled, y_end_scaled, zindex}, sampler, {glyph->uv_end.x, glyph->uv_start.y}}); // tr
-            array_vector_insert(vertices, {{x_end_scaled, offset_y, zindex}, sampler, glyph->uv_end}); // br
-            array_vector_insert(vertices, {{offset_x, offset_y, zindex}, sampler, {glyph->uv_start.x, glyph->uv_end.y}}); // bl
+            array_vector_reserve_one(vertices) = {{offset_x, y_end_scaled, zindex}, sampler, glyph->uv_start}; // tl
+            array_vector_reserve_one(vertices) = {{x_end_scaled, y_end_scaled, zindex}, sampler, {glyph->uv_end.x, glyph->uv_start.y}}; // tr
+            array_vector_reserve_one(vertices) = {{x_end_scaled, offset_y, zindex}, sampler, glyph->uv_end}; // br
+            array_vector_reserve_one(vertices) = {{offset_x, offset_y, zindex}, sampler, {glyph->uv_start.x, glyph->uv_end.y}}; // bl
         }
 
         const f32 add_offset = (metrics->width + metrics->advance_x) * scale;

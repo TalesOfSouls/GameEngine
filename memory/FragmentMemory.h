@@ -43,7 +43,7 @@ struct FragmentMemory {
     // Array that contains pointers into the free chunks
     int32* free;
 
-    mutex lock;
+    spinlock32 lock;
 };
 
 static FORCE_INLINE

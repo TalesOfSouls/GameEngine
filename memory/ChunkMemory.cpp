@@ -123,7 +123,7 @@ void thrd_chunk_alloc(
     memset((void *) buf->free, 0, sizeof(size_t) * array_count);
     memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -208,7 +208,7 @@ void thrd_chunk_alloc(
     memset((void *) buf->free, 0, sizeof(size_t) * array_count);
     memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -280,7 +280,7 @@ void thrd_chunk_alloc(
     memset((void *) buf->free, 0, sizeof(size_t) * array_count);
     memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -354,7 +354,7 @@ void thrd_chunk_alloc(
     memset((void *) buf->free, 0, sizeof(size_t) * array_count);
     memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -374,7 +374,7 @@ FORCE_INLINE
 void thrd_chunk_free(ChunkMemory* const buf) NO_EXCEPT
 {
     chunk_free(buf);
-    mutex_destroy(&buf->lock);
+    //mutex_destroy(&buf->lock);
 }
 
 inline
@@ -392,7 +392,7 @@ FORCE_INLINE
 void thrd_chunk_free(ChunkMemory* const buf, MemoryArena* mem) NO_EXCEPT
 {
     chunk_free(buf, mem);
-    mutex_destroy(&buf->lock);
+    //mutex_destroy(&buf->lock);
 }
 
 FORCE_INLINE
@@ -414,16 +414,6 @@ FORCE_INLINE
 uint32 chunk_id_from_memory(void* memory, void* pos, size_t chunk_size) NO_EXCEPT
 {
     return (uint32) (((uintptr_t)pos - (uintptr_t)memory) / chunk_size);
-}
-
-inline
-void thrd_chunk_set_unset_atomic(int32 element, size_t* state) NO_EXCEPT
-{
-    const int32 free_index = element / (sizeof(size_t) * 8);
-    const int32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
-
-    const size_t mask = ~(OMS_UINT_ONE << bit_index);
-    atomic_fetch_and_release(&state[free_index], mask);
 }
 
 FORCE_INLINE FORCE_FLATTEN
@@ -454,23 +444,6 @@ FORCE_INLINE
 bool chunk_is_free(const ChunkMemory* const buf, int32 element) NO_EXCEPT
 {
     return chunk_is_free_internal(buf->free, element);
-}
-
-FORCE_INLINE
-bool thrd_chunk_is_free_atomic_internal(const size_t* const state, int32 element) NO_EXCEPT
-{
-    const uint32 free_index = element / (sizeof(size_t) * 8);
-    const uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
-
-    size_t mask = atomic_get_acquire(&state[free_index]);
-
-    return !IS_BIT_SET_R2L(mask, bit_index);
-}
-
-FORCE_INLINE
-bool thrd_chunk_is_free_atomic(const ChunkMemory* const buf, int32 element) NO_EXCEPT
-{
-    return thrd_chunk_is_free_atomic_internal(buf->free, element);;
 }
 
 // This is effectively the same as reserve with elements = 1 which allows for some performance improvements
@@ -521,60 +494,6 @@ int32 chunk_reserve_one(size_t* state, uint32 state_count, int32 start_index = 0
     return -1;
 }
 
-HOT_CODE
-int32 thrd_chunk_reserve_one_atomic(size_t* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
-{
-    if ((uint32) start_index >= state_count) {
-        start_index = 0;
-    }
-
-    uint32 free_index = start_index / (sizeof(size_t) * 8);
-    uint32 bit_index = MODULO_2(start_index, (sizeof(size_t) * 8));
-
-    // Check standard simple solution
-    size_t current = atomic_get_acquire(&state[free_index]);
-    if (!(current & (OMS_UINT_ONE << bit_index))) {
-        size_t desired = current | (OMS_UINT_ONE << bit_index);
-        if (atomic_compare_exchange_strong_acquire_release(&state[free_index], current, desired) == current) {
-            return free_index * (sizeof(size_t) * 8) + bit_index;
-        }
-    }
-
-    for (uint32 i = 0; i < state_count; i += (sizeof(size_t) * 8)) {
-        size_t current_free = atomic_get_acquire(&state[free_index]);
-        if (current_free != OMS_UINT_MAX) {
-            size_t inverted = ~current_free;
-
-            int32 j = 0; // We will only try 3 times to avoid infinite or long loops
-            while (j < 3) {
-                // We don't have to test bit_index >= 0 since we already tested current_free != OMS_UINT_MAX
-                bit_index = compiler_find_first_bit_r2l(inverted);
-                uint32 id = free_index * (sizeof(size_t) * 8) + bit_index;
-                if (id >= state_count) {
-                    free_index = 0;
-
-                    break;
-                }
-
-                size_t new_free = current_free | (OMS_UINT_ONE << bit_index);
-                if ((new_free = atomic_compare_exchange_strong_acquire_release(&state[free_index], current_free, new_free)) == current_free) {
-                    return id;
-                }
-
-                inverted = ~new_free;
-                ++j;
-            }
-        } else {
-            ++free_index;
-            if (free_index * (sizeof(size_t) * 8) >= state_count) {
-                free_index = 0;
-            }
-        }
-    }
-
-    return -1;
-}
-
 FORCE_INLINE
 int32 chunk_reserve_one(ChunkMemory* const buf) NO_EXCEPT
 {
@@ -582,11 +501,10 @@ int32 chunk_reserve_one(ChunkMemory* const buf) NO_EXCEPT
 }
 
 FORCE_INLINE
-int32 thrd_chunk_reserve_one_atomic(ChunkMemory* const buf) NO_EXCEPT
+int32 thrd_chunk_reserve_one(ChunkMemory* const buf) NO_EXCEPT
 {
-    int32 last = atomic_fetch_increment_wrap_release(&buf->last_pos, -1, (int32) buf->capacity);
-
-    return thrd_chunk_reserve_one_atomic(buf->free, buf->capacity, last);
+    SpinlockGuard _guard(&buf->lock, 0);
+    return chunk_reserve_one(buf->free, buf->capacity, buf->last_pos);
 }
 
 HOT_CODE FORCE_FLATTEN
@@ -717,7 +635,7 @@ int32 chunk_reserve(ChunkMemory* const buf, int32 elements = 1) NO_EXCEPT
 FORCE_INLINE
 int32 thrd_chunk_reserve(ChunkMemory* const buf, int32 elements = 1) NO_EXCEPT
 {
-    MutexGuard _guard(&buf->lock);
+    SpinlockGuard _guard(&buf->lock, 0);
     return chunk_reserve((ChunkMemory *) buf, elements);
 }
 
@@ -738,30 +656,10 @@ void chunk_free_element(ChunkMemory* const buf, size_t free_index, int32 bit_ind
 }
 
 inline
-void thrd_chunk_free_element_internal(size_t* const state, size_t free_index, int32 bit_index) NO_EXCEPT
-{
-    atomic_max size_t* target = &state[free_index];
-    size_t old_value, new_value;
-
-    do {
-        old_value = atomic_get_relaxed(target);
-        new_value = old_value | (OMS_UINT_ONE << bit_index);
-
-        if (old_value == new_value) {
-            return;
-        }
-        // @bug Wrong use
-    } while (!atomic_compare_exchange_strong_release(target, old_value, new_value));
-}
-
-inline
 void thrd_chunk_free_element(ChunkMemory* const buf, size_t free_index, int32 bit_index) NO_EXCEPT
 {
-    thrd_chunk_free_element_internal(buf->free, free_index, bit_index);
-    DEBUG_MEMORY_DELETE(
-        (uintptr_t) (buf->memory + (free_index * (sizeof(size_t) * 8) + bit_index) * buf->chunk_size),
-        buf->chunk_size
-    );
+    SpinlockGuard _guard(&buf->lock, 0);
+    chunk_free_element(buf->free, free_index, bit_index);
 }
 
 FORCE_INLINE
@@ -821,69 +719,25 @@ void chunk_free_elements(ChunkMemory* const buf, byte* data, int32 element_count
 FORCE_INLINE
 void thrd_chunk_free_elements(ChunkMemory* const buf, int32 element, int32 element_count = 1) NO_EXCEPT
 {
-    MutexGuard _guard(&buf->lock);
+    SpinlockGuard _guard(&buf->lock, 0);
     chunk_free_elements((ChunkMemory *) buf, element, element_count);
-}
-
-inline
-void thrd_chunk_free_elements_atomic_internal(size_t* const state, size_t element, int32 element_count = 1) NO_EXCEPT
-{
-    size_t free_index = element / (sizeof(size_t) * 8);
-    uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
-
-    if (element == 1) {
-        thrd_chunk_free_element_internal(state, free_index, bit_index);
-        return;
-    }
-
-    while (element_count > 0) {
-        // Calculate the number of bits we can clear in the current 64-bit block
-        uint32 bits_in_current_block = (uint32) OMS_MIN((int32) ((sizeof(size_t) * 8) - bit_index), element_count);
-
-        // Create a mask to clear the bits
-        size_t mask = ((OMS_UINT_ONE << bits_in_current_block) - 1) << bit_index;
-
-        size_t old_value, new_value;
-        atomic_max size_t* target = &state[free_index];
-
-        do {
-            old_value = atomic_get_relaxed(target);
-            new_value = old_value & ~mask;
-
-            if (old_value == new_value) {
-                break;
-            }
-            // @bug Wrong use
-        } while (!atomic_compare_exchange_strong_release(target, old_value, new_value));
-
-        // Update the counters and indices
-        element_count -= bits_in_current_block;
-        ++free_index;
-        bit_index = 0;
-    }
-}
-
-FORCE_INLINE
-void thrd_chunk_free_elements_atomic(ChunkMemory* const buf, size_t element, int32 element_count = 1) NO_EXCEPT
-{
-    thrd_chunk_free_elements_atomic_internal(buf->free, element, element_count);
-    DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size * element_count);
 }
 
 // @performance We can optimize it by checking if we can just append additional chunks if they are free
 inline
 int32 thrd_chunk_resize(ChunkMemory* const buf, int32 element_id, int32 elements_old, int32 elements_new) NO_EXCEPT
 {
+    SpinlockGuard _guard(&buf->lock, 0);
     const byte* data = chunk_get_element(buf, element_id);
 
-    int32 chunk_id = thrd_chunk_reserve(buf, elements_new);
+    const int32 chunk_id = chunk_reserve(buf, elements_new);
     byte* data_new = chunk_get_element(buf, chunk_id);
 
     memcpy(data_new, data, buf->chunk_size * elements_old);
 
     // @see performance remark above
     //if (element_id != chunk_id) {
-        thrd_chunk_free_elements_atomic(buf, element_id, elements_old);
+        chunk_free_elements(buf, element_id, elements_old);
     //}
 
     return chunk_id;
@@ -949,14 +803,14 @@ byte* memory_get_temp(ChunkMemory* const buf, size_t size) NO_EXCEPT
 inline HOT_CODE
 byte* thrd_chunk_memory_get(ChunkMemory* const buf, int32 elements) NO_EXCEPT
 {
-    MutexGuard _guard(&buf->lock);
+    SpinlockGuard _guard(&buf->lock, 0);
     return chunk_memory_get(buf, elements);
 }
 
 inline HOT_CODE
 byte* thrd_memory_get(ChunkMemory* const buf, size_t size) NO_EXCEPT
 {
-    MutexGuard _guard(&buf->lock);
+    SpinlockGuard _guard(&buf->lock, 0);
     return memory_get(buf, size);
 }
 
@@ -1003,9 +857,10 @@ struct ThrdChunkStackMemory {
     ) NO_EXCEPT
     {
         this->count = (uint32) ((size + buf->chunk_size - 1) / buf->chunk_size);
-        this->element = thrd_chunk_reserve(buf, this->count);
         this->buffer = buf;
 
+        SpinlockGuard _guard(&buf->lock, 0);
+        this->element = chunk_reserve(buf, this->count);
         *mem = chunk_get_element(buf, this->element);
     }
 
@@ -1017,10 +872,13 @@ struct ThrdChunkStackMemory {
     ) NO_EXCEPT
     {
         this->count = (uint32) ((size + buf->chunk_size - 1) / buf->chunk_size);
-        this->element = thrd_chunk_reserve(buf, this->count);
         this->buffer = buf;
 
+        SpinlockGuard _guard(&buf->lock, 0);
+        this->element = chunk_reserve(buf, this->count);
         byte* data = chunk_get_element(buf, this->element);
+        _guard.unlock();
+
         buffer_init(mem, data, size, sizeof(size_t));
     }
 

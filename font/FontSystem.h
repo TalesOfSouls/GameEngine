@@ -3,9 +3,9 @@
 #define COMS_FONT_SYSTEM_H
 
 #include "../stdlib/Stdlib.h"
-#include "Font.h"
 #include "../stdlib/HashMapT.h"
 #include "../image/Image.h"
+#include "Font.h"
 
 struct FontSystem {
     // Usually a program has one standard character set which is fast to load

@@ -383,13 +383,6 @@ bool queue_is_empty(const PersistentQueueT<T>* const queue) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-bool queue_is_empty_atomic(const PersistentQueueT<T>* const queue) NO_EXCEPT
-{
-    return atomic_get_relaxed(&queue->head) == atomic_get_relaxed(&queue->tail);
-}
-
-template <typename T>
-FORCE_INLINE
 bool thrd_queue_is_empty(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
     MutexGuard _guard(&queue->lock);
@@ -404,24 +397,10 @@ void queue_set_empty(PersistentQueueT<T>* const queue) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
-void queue_set_empty_atomic(PersistentQueueT<T>* const queue) NO_EXCEPT
-{
-    atomic_set_relaxed(&queue->head, queue->tail);
-}
-
-template <typename T>
 static inline
 bool queue_has_space(const PersistentQueueT<T>* const queue) NO_EXCEPT
 {
     return queue->tail - 1 != queue->head;
-}
-
-template <typename T>
-static inline
-bool queue_has_space_atomic(PersistentQueueT<T>* const queue) NO_EXCEPT
-{
-    return atomic_get_relaxed(&queue->head) - 1 != atomic_get_relaxed(&queue->tail);
 }
 
 template <typename T>
@@ -437,13 +416,6 @@ bool thrd_queue_is_full(PersistentQueueT<T>* const queue) NO_EXCEPT
 {
     MutexGuard _guard(&queue->lock);
     return !queue_has_space(queue);
-}
-
-template <typename T>
-FORCE_INLINE
-bool queue_is_full_atomic(PersistentQueueT<T>* const queue) NO_EXCEPT
-{
-    return !queue_has_space_atomic(queue);
 }
 
 template <typename T>
@@ -555,58 +527,6 @@ T* thrd_queue_enqueue(PersistentQueueT<T>* __restrict queue, const T data) NO_EX
     T* mem = queue_enqueue(queue, data);
 
     coms_pthread_cond_signal(&queue->cond);
-
-    return mem;
-}
-
-template <typename T>
-inline
-T* queue_enqueue_atomic(PersistentQueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
-{
-    uint32 index;
-    do {
-        index = atomic_fetch_increment_wrap_relaxed(
-            &queue->head,
-            queue->capacity
-        );
-    } while (!chunk_is_free_internal(queue->free, queue->head) && queue->head != queue->tail - 1);
-
-    // @performance This is slow we are calculating free_index and bit_index also in the loop above
-    //              Calculating it here again adds 1 such calculation as overhead
-    const uint32 free_index = index / (sizeof(size_t) * 8);
-    const uint32 bit_index = MODULO_2(index, (sizeof(size_t) * 8));
-
-    atomic_or_release(&queue->free[free_index], (OMS_UINT_ONE << bit_index));
-
-    queue->memory[index] = *data;
-    T* mem = &queue->memory[index];
-    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
-
-    return mem;
-}
-
-template <typename T>
-inline
-T* queue_enqueue_atomic(PersistentQueueT<T>* const __restrict queue, const T data) NO_EXCEPT
-{
-    uint32 index;
-    do {
-        index = atomic_fetch_increment_wrap_relaxed(
-            &queue->head,
-            queue->capacity
-        );
-    } while (!chunk_is_free_internal(queue->free, queue->head) && queue->head != queue->tail - 1);
-
-    // @performance This is slow we are calculating free_index and bit_index also in the loop above
-    //              Calculating it here again adds 1 such calculation as overhead
-    const uint32 free_index = index / (sizeof(size_t) * 8);
-    const uint32 bit_index = MODULO_2(index, (sizeof(size_t) * 8));
-
-    atomic_or_release(&queue->free[free_index], (OMS_UINT_ONE << bit_index));
-
-    queue->memory[index] = data;
-    T* mem = &queue->memory[index];
-    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
 
     return mem;
 }
@@ -1028,9 +948,6 @@ bool thrd_queue_dequeue(PersistentQueueT<T>* __restrict queue, T* __restrict dat
     return result;
 }
 
-// thrd_queue_dequeue_atomic Seems to make no sense due to the amount of operations
-// tail, head, free, completed all need to be checked
-
 // Waits until a dequeue is available
 template <typename T>
 inline
@@ -1196,33 +1113,6 @@ void thrd_queue_uncomplete(PersistentQueueT<T>* const queue, T* element) NO_EXCE
 {
     MutexGuard _guard(&queue->lock);
     queue_uncomplete(queue, element);
-}
-
-template <typename T>
-FORCE_INLINE
-void queue_uncomplete_atomic(PersistentQueueT<T>* const queue, T* element) NO_EXCEPT
-{
-    const uint32 index = ((uintptr_t) element - (uintptr_t) queue->memory) / sizeof(T);
-    const uint32 free_index = index / (sizeof(size_t) * 8);
-    const uint32 bit_index = MODULO_2(index, (sizeof(size_t) * 8));
-
-    atomic_and_release(&queue->completed[free_index], ~(OMS_UINT_ONE << bit_index));
-}
-
-template <typename T>
-FORCE_INLINE
-void queue_dequeue_release_atomic(PersistentQueueT<T>* const queue, T* element) NO_EXCEPT
-{
-    const uint32 index = ((uintptr_t) element - (uintptr_t) queue->memory) / sizeof(T);
-    const uint32 free_index = index / (sizeof(size_t) * 8);
-    const uint32 bit_index = MODULO_2(index, (sizeof(size_t) * 8));
-
-    atomic_and_release(&queue->free[free_index], ~(OMS_UINT_ONE << bit_index));
-    atomic_and_release(&queue->completed[free_index], ~(OMS_UINT_ONE << bit_index));
-    DEBUG_MEMORY_DELETE((uintptr_t) element, sizeof(T));
-
-    // This doesn't move the tail index since the tail index could be already somewhere entirely different
-    // And for that reason we already moved it immediately when calling _keep()
 }
 
 template <typename T>

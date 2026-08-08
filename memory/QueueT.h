@@ -23,8 +23,8 @@
 template <typename T>
 struct QueueT {
     T* memory;
-    atomic_ptr T* head;
-    atomic_ptr T* tail;
+    T* head;
+    T* tail;
 
     int capacity;
 

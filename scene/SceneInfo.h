@@ -7,7 +7,7 @@
 #include "../ui/UITheme.h"
 
 struct SceneInfo {
-    atomic_32 int32 scene_setup_state;
+    atomic<int32> scene_setup_state;
 
     // Scene specific state
     int32 scene_state;

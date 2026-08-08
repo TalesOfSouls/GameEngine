@@ -26,7 +26,7 @@ struct DatabasePool {
     DatabaseConnection* connections;
 
     // Bitfield showing which connections are free and which are in use
-    atomic_64 uint64* free;
+    uint64* free;
 };
 
 void db_pool_alloc(DatabasePool* const pool, uint8 count) NO_EXCEPT
@@ -81,7 +81,7 @@ const DatabaseConnection* db_pool_get(DatabasePool* const pool) NO_EXCEPT
 FORCE_INLINE
 void db_pool_release(DatabasePool* const pool, int32 id) NO_EXCEPT
 {
-    thrd_chunk_set_unset_atomic(id, pool->free);
+    thrd_chunk_set_unset(id, pool->free);
 }
 
 #endif

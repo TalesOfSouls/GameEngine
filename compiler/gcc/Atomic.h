@@ -12,6 +12,23 @@
 typedef union { f32 f; int32 l; } _atomic_32;
 typedef union { f64 f; int64 l; } _atomic_64;
 
+#define atomic_get_seq_cst atomic_get_acquire
+#define atomic_set_seq_cst atomic_set_acquire_release
+#define atomic_fetch_set_seq_cst atomic_fetch_set_acquire_release
+#define atomic_add_seq_cst atomic_add_acquire_release
+#define atomic_sub_seq_cst atomic_sub_acquire_release
+#define atomic_or_seq_cst atomic_or_acquire_release
+#define atomic_and_seq_cst atomic_and_acquire_release
+#define atomic_xor_seq_cst atomic_xor_acquire_release
+
+#define atomic_compare_exchange_weak_relaxed atomic_compare_exchange_strong_relaxed
+#define atomic_compare_exchange_weak_acquire atomic_compare_exchange_strong_acquire
+#define atomic_compare_exchange_weak_acquire atomic_compare_exchange_strong_acquire
+#define atomic_compare_exchange_weak_release atomic_compare_exchange_strong_release
+#define atomic_compare_exchange_weak_acquire_release atomic_compare_exchange_strong_acquire_release
+#define atomic_compare_exchange_weak_seq_cst atomic_compare_exchange_weak_acquire_release
+#define atomic_compare_exchange_strong_seq_cst atomic_compare_exchange_strong_acquire_release
+
 FORCE_INLINE void atomic_set_relaxed(void** target, void* value) NO_EXCEPT { __atomic_store_n(target, value, __ATOMIC_RELAXED); }
 FORCE_INLINE void* atomic_get_relaxed(void** target) NO_EXCEPT { return __atomic_load_n(target, __ATOMIC_RELAXED); }
 FORCE_INLINE void atomic_set_relaxed(int8* value, int8 new_value) NO_EXCEPT { __atomic_store_n(value, new_value, __ATOMIC_RELAXED); }
@@ -135,6 +152,14 @@ FORCE_INLINE void atomic_or_relaxed(uint32* value, uint32 mask) NO_EXCEPT { ASSE
 FORCE_INLINE void atomic_or_relaxed(int32* value, int32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_or(value, mask, __ATOMIC_RELAXED); }
 FORCE_INLINE void atomic_or_relaxed(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_or(value, mask, __ATOMIC_RELAXED); }
 FORCE_INLINE void atomic_or_relaxed(int64* value, int64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_or(value, mask, __ATOMIC_RELAXED); }
+FORCE_INLINE void atomic_xor_relaxed(uint8* value, uint8 mask) NO_EXCEPT { __atomic_fetch_xor(value, mask, __ATOMIC_RELAXED); }
+FORCE_INLINE void atomic_xor_relaxed(int8* value, int8 mask) NO_EXCEPT { __atomic_fetch_xor(value, mask, __ATOMIC_RELAXED); }
+FORCE_INLINE void atomic_xor_relaxed(uint16* value, uint16 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELAXED); }
+FORCE_INLINE void atomic_xor_relaxed(int16* value, int16 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELAXED); }
+FORCE_INLINE void atomic_xor_relaxed(uint32* value, uint32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELAXED); }
+FORCE_INLINE void atomic_xor_relaxed(int32* value, int32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELAXED); }
+FORCE_INLINE void atomic_xor_relaxed(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELAXED); }
+FORCE_INLINE void atomic_xor_relaxed(int64* value, int64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELAXED); }
 
 FORCE_INLINE void* atomic_get_acquire(void** target) NO_EXCEPT { return __atomic_load_n(target, __ATOMIC_ACQUIRE); }
 FORCE_INLINE int8 atomic_fetch_set_acquire(int8* value, int8 new_value) NO_EXCEPT { return __atomic_exchange_n(value, new_value, __ATOMIC_ACQUIRE); }
@@ -255,6 +280,14 @@ FORCE_INLINE void atomic_or_acquire(uint32* value, uint32 mask) NO_EXCEPT { ASSE
 FORCE_INLINE void atomic_or_acquire(int32* value, int32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_or(value, mask, __ATOMIC_ACQUIRE); }
 FORCE_INLINE void atomic_or_acquire(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_or(value, mask, __ATOMIC_ACQUIRE); }
 FORCE_INLINE void atomic_or_acquire(int64* value, int64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_or(value, mask, __ATOMIC_ACQUIRE); }
+FORCE_INLINE void atomic_xor_acquire(uint8* value, uint8 mask) NO_EXCEPT { __atomic_fetch_xor(value, mask, __ATOMIC_ACQUIRE); }
+FORCE_INLINE void atomic_xor_acquire(int8* value, int8 mask) NO_EXCEPT { __atomic_fetch_xor(value, mask, __ATOMIC_ACQUIRE); }
+FORCE_INLINE void atomic_xor_acquire(uint16* value, uint16 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_ACQUIRE); }
+FORCE_INLINE void atomic_xor_acquire(int16* value, int16 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_ACQUIRE); }
+FORCE_INLINE void atomic_xor_acquire(uint32* value, uint32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_ACQUIRE); }
+FORCE_INLINE void atomic_xor_acquire(int32* value, int32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_ACQUIRE); }
+FORCE_INLINE void atomic_xor_acquire(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_ACQUIRE); }
+FORCE_INLINE void atomic_xor_acquire(int64* value, int64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_ACQUIRE); }
 
 FORCE_INLINE void atomic_set_release(void** target, void* value) NO_EXCEPT { __atomic_store_n(target, value, __ATOMIC_RELEASE); }
 FORCE_INLINE void* atomic_get_release(void** target) NO_EXCEPT { return __atomic_load_n(target, __ATOMIC_RELEASE); }
@@ -328,8 +361,10 @@ FORCE_INLINE int64 atomic_fetch_add_release(int64* value, int64 operand) NO_EXCE
 FORCE_INLINE int64 atomic_fetch_sub_release(int64* value, int64 operand) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return __atomic_sub_fetch(value, operand, __ATOMIC_RELEASE); }
 FORCE_INLINE int64 atomic_fetch_and_release(int64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return __atomic_and_fetch(value, mask, __ATOMIC_RELEASE); }
 FORCE_INLINE int64 atomic_fetch_or_release(int64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return __atomic_or_fetch(value, mask, __ATOMIC_RELEASE); }
+FORCE_INLINE int64 atomic_fetch_xor_release(int64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return __atomic_xor_fetch(value, mask, __ATOMIC_RELEASE); }
 FORCE_INLINE uint64 atomic_fetch_and_release(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return __atomic_and_fetch(value, mask, __ATOMIC_RELEASE); }
 FORCE_INLINE uint64 atomic_fetch_or_release(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return __atomic_or_fetch(value, mask, __ATOMIC_RELEASE); }
+FORCE_INLINE uint64 atomic_fetch_xor_release(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return __atomic_xor_fetch(value, mask, __ATOMIC_RELEASE); }
 FORCE_INLINE void atomic_set_release(uint8* value, uint8 new_value) NO_EXCEPT { __atomic_store_n(value, new_value, __ATOMIC_RELEASE); }
 FORCE_INLINE void atomic_set_release(uint16* value, uint16 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); __atomic_store_n(value, new_value, __ATOMIC_RELEASE); }
 FORCE_INLINE void atomic_set_release(uint32* value, uint32 new_value) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_store_n(value, new_value, __ATOMIC_RELEASE); }
@@ -385,6 +420,14 @@ FORCE_INLINE void atomic_or_release(uint32* value, uint32 mask) NO_EXCEPT { ASSE
 FORCE_INLINE void atomic_or_release(int32* value, int32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_or(value, mask, __ATOMIC_RELEASE); }
 FORCE_INLINE void atomic_or_release(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_or(value, mask, __ATOMIC_RELEASE); }
 FORCE_INLINE void atomic_or_release(int64* value, int64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_or(value, mask, __ATOMIC_RELEASE); }
+FORCE_INLINE void atomic_xor_release(uint8* value, uint8 mask) NO_EXCEPT { __atomic_fetch_xor(value, mask, __ATOMIC_RELEASE); }
+FORCE_INLINE void atomic_xor_release(int8* value, int8 mask) NO_EXCEPT { __atomic_fetch_xor(value, mask, __ATOMIC_RELEASE); }
+FORCE_INLINE void atomic_xor_release(uint16* value, uint16 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELEASE); }
+FORCE_INLINE void atomic_xor_release(int16* value, int16 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELEASE); }
+FORCE_INLINE void atomic_xor_release(uint32* value, uint32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELEASE); }
+FORCE_INLINE void atomic_xor_release(int32* value, int32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELEASE); }
+FORCE_INLINE void atomic_xor_release(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELEASE); }
+FORCE_INLINE void atomic_xor_release(int64* value, int64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_RELEASE); }
 
 FORCE_INLINE void atomic_set_acquire_release(void** target, void* value) NO_EXCEPT { __atomic_store_n(target, value, __ATOMIC_SEQ_CST); }
 FORCE_INLINE void* atomic_get_acquire_release(void** target) NO_EXCEPT { return __atomic_load_n(target, __ATOMIC_SEQ_CST); }
@@ -510,6 +553,14 @@ FORCE_INLINE void atomic_or_acquire_release(uint32* value, uint32 mask) NO_EXCEP
 FORCE_INLINE void atomic_or_acquire_release(int32* value, int32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_or(value, mask, __ATOMIC_SEQ_CST); }
 FORCE_INLINE void atomic_or_acquire_release(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_or(value, mask, __ATOMIC_SEQ_CST); }
 FORCE_INLINE void atomic_or_acquire_release(int64* value, int64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_or(value, mask, __ATOMIC_SEQ_CST); }
+FORCE_INLINE void atomic_xor_acquire_release(uint8* value, uint8 mask) NO_EXCEPT { __atomic_fetch_xor(value, mask, __ATOMIC_SEQ_CST); }
+FORCE_INLINE void atomic_xor_acquire_release(int8* value, int8 mask) NO_EXCEPT { __atomic_fetch_xor(value, mask, __ATOMIC_SEQ_CST); }
+FORCE_INLINE void atomic_xor_acquire_release(uint16* value, uint16 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_SEQ_CST); }
+FORCE_INLINE void atomic_xor_acquire_release(int16* value, int16 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 2) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_SEQ_CST); }
+FORCE_INLINE void atomic_xor_acquire_release(uint32* value, uint32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_SEQ_CST); }
+FORCE_INLINE void atomic_xor_acquire_release(int32* value, int32 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 4) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_SEQ_CST); }
+FORCE_INLINE void atomic_xor_acquire_release(uint64* value, uint64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_SEQ_CST); }
+FORCE_INLINE void atomic_xor_acquire_release(int64* value, int64 mask) NO_EXCEPT { ASSERT_STRICT(((uintptr_t) value % 8) == 0); __atomic_fetch_xor(value, mask, __ATOMIC_SEQ_CST); }
 
 // Check out the intrinsic functions fence_memory and fence_write
 // These are much faster and could accomplish what you are doing

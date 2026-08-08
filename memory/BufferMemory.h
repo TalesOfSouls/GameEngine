@@ -18,7 +18,7 @@ struct BufferMemory {
     size_t size;
     int32 alignment;
 
-    mutex lock;
+    spinlock32 lock;
 };
 
 #endif

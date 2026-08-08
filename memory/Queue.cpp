@@ -250,12 +250,6 @@ bool queue_is_empty(const Queue* const queue) NO_EXCEPT
 }
 
 FORCE_INLINE
-bool queue_is_empty_atomic(const Queue* const queue) NO_EXCEPT
-{
-    return atomic_get_relaxed((void **) &queue->head) == atomic_get_relaxed((void **) &queue->tail);
-}
-
-FORCE_INLINE
 bool thrd_queue_is_empty(Queue* const queue) NO_EXCEPT
 {
     MutexGuard _guard(&queue->mtx);
@@ -266,12 +260,6 @@ FORCE_INLINE
 void queue_set_empty(Queue* const queue) NO_EXCEPT
 {
     queue->head = queue->tail;
-}
-
-FORCE_INLINE
-void queue_set_empty_atomic(Queue* const queue) NO_EXCEPT
-{
-    atomic_set_relaxed((void **) &queue->head, (void *) queue->tail);
 }
 
 static inline

@@ -118,7 +118,7 @@ FORCE_INLINE
 void thrd_ring_alloc(RingMemory* const ring, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ring_alloc(ring, size, max_size, alignment);
-    mutex_init(&ring->lock, NULL);
+    spinlock_init(&ring->lock);
 }
 
 FORCE_INLINE
@@ -130,7 +130,7 @@ void thrd_ring_alloc(
 ) NO_EXCEPT
 {
     ring_alloc(ring, mem, size, max_size, alignment);
-    mutex_init(&ring->lock, NULL);
+    spinlock_init(&ring->lock);
 }
 
 FORCE_INLINE
@@ -142,7 +142,7 @@ void thrd_ring_init(
 ) NO_EXCEPT
 {
     ring_init(ring, buf, size, alignment);
-    mutex_init(&ring->lock, NULL);
+    spinlock_init(&ring->lock);
 }
 
 FORCE_INLINE
@@ -154,7 +154,7 @@ void thrd_ring_init(
 ) NO_EXCEPT
 {
     ring_init(ring, buf, size, alignment);
-    mutex_init(&ring->lock, NULL);
+    spinlock_init(&ring->lock);
 }
 
 inline
@@ -170,7 +170,7 @@ FORCE_INLINE
 void thrd_ring_free(RingMemory* const ring) NO_EXCEPT
 {
     ring_free(ring);
-    mutex_destroy(&ring->lock);
+    //mutex_destroy(&ring->lock);
 }
 
 inline
@@ -186,7 +186,7 @@ FORCE_INLINE
 void thrd_ring_free(RingMemory* const ring, MemoryArena* mem) NO_EXCEPT
 {
     ring_free(ring, mem);
-    mutex_destroy(&ring->lock);
+    //mutex_destroy(&ring->lock);
 }
 
 inline
@@ -209,7 +209,7 @@ byte* ring_calculate_position(
 FORCE_INLINE
 byte* thrd_ring_calculate_position(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    MutexGuard _guard(&ring->lock);
+    SpinlockGuard _guard(&ring->lock, 0);
     return ring_calculate_position(ring, size, alignment);
 }
 
@@ -223,7 +223,7 @@ void ring_reset(RingMemory* const ring) NO_EXCEPT
 FORCE_INLINE
 void thrd_ring_reset(RingMemory* const ring) NO_EXCEPT
 {
-    MutexGuard _guard(&ring->lock);
+    SpinlockGuard _guard(&ring->lock, 0);
     ring_reset(ring);
 }
 
@@ -251,7 +251,7 @@ void ring_move_pointer(RingMemory* const ring, byte** pos, size_t size, int32 al
 FORCE_INLINE
 void thrd_ring_move_pointer(RingMemory* const ring, byte** pos, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    MutexGuard _guard(&ring->lock);
+    SpinlockGuard _guard(&ring->lock, 0);
     ring_move_pointer(ring, pos, size, alignment);
 }
 
@@ -271,7 +271,7 @@ bool memory_resize(RingMemory* const mem, size_t new_size) NO_EXCEPT
 inline
 bool thrd_memory_resize(RingMemory* const mem, size_t new_size) NO_EXCEPT
 {
-    MutexGuard _guard(&mem->lock);
+    SpinlockGuard _guard(&mem->lock, 0);
     return memory_resize(mem, new_size);
 }
 
@@ -323,7 +323,7 @@ byte* memory_get_temp(RingMemory* const ring, size_t size, int32 alignment = siz
 FORCE_INLINE
 byte* thrd_memory_get(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    MutexGuard _guard(&ring->lock);
+    SpinlockGuard _guard(&ring->lock, 0);
     return memory_get(ring, size, alignment);
 }
 
@@ -350,7 +350,7 @@ byte* ring_memory_get_nomove(RingMemory* const ring, size_t size, int32 alignmen
 FORCE_INLINE
 byte* thrd_ring_memory_get_nomove(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    MutexGuard _guard(&ring->lock);
+    SpinlockGuard _guard(&ring->lock, 0);
     return ring_memory_get_nomove(ring, size, alignment);
 }
 
@@ -367,7 +367,7 @@ byte* ring_get_element(const RingMemory* const ring, uint64 element, size_t size
 FORCE_INLINE
 byte* thrd_ring_get_element(RingMemory* const ring, uint64 element, size_t size) NO_EXCEPT
 {
-    MutexGuard _guard(&ring->lock);
+    SpinlockGuard _guard(&ring->lock, 0);
     return ring_get_element(ring, element, size);
 }
 
@@ -397,7 +397,7 @@ bool ring_commit_safe(const RingMemory* const ring, size_t size, int32 alignment
 FORCE_INLINE
 bool thrd_ring_commit_safe(RingMemory* const ring, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    MutexGuard _guard(&ring->lock);
+    SpinlockGuard _guard(&ring->lock, 0);
     return ring_commit_safe(ring, size, alignment);
 }
 
@@ -422,7 +422,7 @@ int64 ring_dump(const RingMemory* const ring, byte* data) NO_EXCEPT
 FORCE_INLINE
 int64 thrd_ring_dump(RingMemory* const ring, byte* data) NO_EXCEPT
 {
-    MutexGuard _guard(&ring->lock);
+    SpinlockGuard _guard(&ring->lock, 0);
     return ring_dump(ring, data);
 }
 

@@ -74,19 +74,6 @@ typedef char sbyte;
 typedef uintptr_t umm;
 typedef intptr_t smm;
 
-// Do I have to use volatile as atomic_8 etc. (e.g. #define atomic_8 volatile)?
-// The problem with that is that I may want to use the variable in single threaded use cases as well
-// However, this would block the compiler from optimizing some of the code in single threaded use cases
-// I believe volatile in conjunction with atomics is a old C++ memory I have that isn't required any longer
-// especially not in our use case.
-#define atomic_8
-#define atomic_16
-#define atomic_32 alignas(4)
-#define atomic_64 alignas(8)
-#define atomic_ptr alignas(sizeof(uintptr_t))
-#define atomic_min alignas(sizeof(int))
-#define atomic_max alignas(sizeof(size_t))
-
 // Careful, the sizeof(utf16) or sizeof(wchar_t) is different based on the platform
 typedef wchar_t utf16;
 typedef uint32 utf8;
@@ -470,12 +457,14 @@ enum DataType : byte {
     DATA_TYPE_STRUCT,
 };
 
-struct timespec
-{
-    time_t tv_sec;  // Seconds - >= 0
-    long tv_nsec; // Nanoseconds - [0, 999999999]
-};
-#define _CRT_NO_TIME_T 1
+#if defined(NO_STDLIB) && NO_STDLIB
+    struct timespec
+    {
+        time_t tv_sec;  // Seconds - >= 0
+        long tv_nsec; // Nanoseconds - [0, 999999999]
+    };
+    #define _CRT_NO_TIME_T 1
+#endif
 
 // Constexpr helper types because constexpr is dogshit
 template <unsigned N>

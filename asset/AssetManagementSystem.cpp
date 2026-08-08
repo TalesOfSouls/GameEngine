@@ -120,19 +120,19 @@ uint16 ams_calculate_chunks(const AssetComponent* ac, int32 byte_size, int32 ove
 FORCE_INLINE
 void thrd_ams_set_loaded(Asset* const asset) NO_EXCEPT
 {
-    atomic_set_release(&asset->is_loaded, 1);
+    asset->is_loaded.store(1, memory_order_relaxed);
 }
 
 FORCE_INLINE
 bool thrd_ams_is_loaded(Asset* const asset) NO_EXCEPT
 {
-    return asset && atomic_get_acquire(&asset->is_loaded) > 0;
+    return asset && asset->is_loaded.load() > 0;
 }
 
 FORCE_INLINE
 bool thrd_ams_is_in_vram(Asset* const asset) NO_EXCEPT
 {
-    return asset && atomic_get_acquire(&asset->is_loaded)
+    return asset && asset->is_loaded.load()
         && (asset->state & ASSET_STATE_IN_VRAM);
 }
 
@@ -155,7 +155,7 @@ Asset* thrd_ams_get_asset(AssetManagementSystem* const ams, const char* key) NO_
 {
     HashEntryStrT<Asset>* const entry = hashmap_get_entry(&ams->hash_map, key);
 
-    if (!entry || atomic_get_acquire(&entry->value.is_loaded) <= 0) {
+    if (!entry || entry->value.is_loaded.load() <= 0) {
         return NULL;
     }
 
@@ -175,7 +175,7 @@ Asset* thrd_ams_get_asset_wait(AssetManagementSystem* const ams, const char* key
     }
 
     int32 state = 0;
-    while (!(state = atomic_get_acquire(&entry->value.is_loaded))) {}
+    while (!(state = entry->value.is_loaded.load())) {}
     if (state < 0) {
         // Marked for removal
         // @question Consider to change the state and return the asset?
@@ -198,7 +198,7 @@ Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* const ams, byte ty
 
     if (asset->self) {
         int32 state = 0;
-        while (!(state = atomic_get_acquire(&entry->value.is_loaded))) {}
+        while (!(state = entry->value.is_loaded.load())) {}
         if (state > 0) {
             return asset;
         }
@@ -340,7 +340,8 @@ void thrd_ams_remove_asset(AssetManagementSystem* const ams, AssetComponent* ac,
     ac->ram_size -= asset->ram_size;
     --ac->asset_count;
 
-    atomic_set_release(&asset->is_loaded, 0);
+    asset->is_loaded.store(0, memory_order_release);
+
     hashmap_remove(&ams->hash_map, name);
     chunk_free_elements(
         &ac->asset_memory,
@@ -357,7 +358,7 @@ void thrd_ams_remove_asset(AssetManagementSystem* const ams, const char* name) N
 {
     HashEntryStrT<Asset>* const entry = hashmap_get_entry(&ams->hash_map, name);
     Asset* const asset = &entry->value;
-    atomic_set_release(&asset->is_loaded, -1);
+    asset->is_loaded.store(-1, memory_order_release);
     hashmap_remove(&ams->hash_map, name);
 
     AssetComponent* const ac = &ams->asset_components[asset->component_id];
@@ -378,7 +379,7 @@ void thrd_ams_remove_asset(AssetManagementSystem* const ams, const char* name) N
 
 void thrd_ams_remove_asset(AssetManagementSystem* const ams, const char* name, Asset* const asset) NO_EXCEPT
 {
-    atomic_set_release(&asset->is_loaded, -1);
+    asset->is_loaded.store(-1, memory_order_release);
     hashmap_remove(&ams->hash_map, name);
 
     AssetComponent* const ac = &ams->asset_components[asset->component_id];
@@ -620,7 +621,7 @@ Asset* thrd_ams_insert_asset(AssetManagementSystem* const ams, Asset* const asse
     Asset* const asset = (Asset *) &hashmap_insert(&ams->hash_map, name, asset_temp)->value;
     DEBUG_MEMORY_WRITE((uintptr_t) asset->self, asset->ram_size);
 
-    atomic_set_release(&asset->is_loaded, 1);
+    asset->is_loaded.store(1, memory_order_release);
 
     return asset;
 }

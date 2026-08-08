@@ -100,7 +100,7 @@ void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capa
     memset((void *) buf->free, 0, sizeof(size_t) * array_count);
     memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 
     LOG_1("[INFO] Allocated ChunkMemoryT: %n", {DATA_TYPE_UINT64, &buf->capacity});
 }
@@ -182,7 +182,7 @@ void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 
     memset((void *) buf->free, 0, sizeof(size_t) * array_count);
     memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 
     LOG_1("[INFO] Allocated ChunkMemoryT: %n", {DATA_TYPE_UINT64, &buf->capacity});
 }
@@ -249,7 +249,7 @@ void thrd_chunk_init(
     memset((void *) buf->free, 0, sizeof(size_t) * array_count);
     memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
 }
@@ -317,7 +317,7 @@ void thrd_chunk_init(
     memset((void *) buf->free, 0, sizeof(size_t) * array_count);
     memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
 
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
     PSEUDO_USE(size);
@@ -346,7 +346,7 @@ inline
 void thrd_chunk_free(ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     chunk_free(buf);
-    mutex_destroy(&buf->lock);
+    //mutex_destroy(&buf->lock);
 }
 
 template <typename T>
@@ -366,7 +366,7 @@ inline
 void thrd_chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* const mem) NO_EXCEPT
 {
     chunk_free(buf, mem);
-    mutex_destroy(&buf->lock);
+    //mutex_destroy(&buf->lock);
 }
 
 template <typename T>
@@ -378,10 +378,6 @@ size_t* chunk_find_free_array(const ChunkMemoryT<T>* const buf) NO_EXCEPT
         (size_t) alignof(size_t)
     );
 }
-
-/*
-You can use the thrd_chunk_set_unset_atomic() from ChunkMemory.h
-*/
 
 template <typename T>
 FORCE_INLINE FORCE_FLATTEN
@@ -408,9 +404,10 @@ bool chunk_is_free(const ChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-bool thrd_chunk_is_free_atomic(const ChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
+bool thrd_chunk_is_free(const ChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 {
-    return thrd_chunk_is_free_atomic_internal(buf->free, element);
+    SpinlockGuard _guard(&buf->lock, 0);
+    return chunk_is_free_internal(buf->free, element);
 }
 
 template <typename T>
@@ -422,11 +419,10 @@ int32 chunk_reserve_one(ChunkMemoryT<T>* const buf) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-int32 thrd_chunk_reserve_one_atomic(ChunkMemoryT<T>* const buf) NO_EXCEPT
+int32 thrd_chunk_reserve_one(ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
-    int32 last = atomic_fetch_increment_wrap_release(&buf->last_pos, -1, buf->capacity);
-
-    return thrd_chunk_reserve_one_atomic(buf->free, buf->capacity, last);
+    SpinlockGuard _guard(&buf->lock, 0);
+    return chunk_reserve_one(buf);
 }
 
 // use chunk_reserve_one if possible
@@ -446,7 +442,7 @@ template <typename T>
 FORCE_INLINE
 int32 thrd_chunk_reserve(ChunkMemoryT<T>* const buf, uint32 elements = 1) NO_EXCEPT
 {
-    MutexGuard _guard(&buf->lock);
+    SpinlockGuard _guard(&buf->lock, 0);
     return chunk_reserve(buf, elements);
 }
 
@@ -465,11 +461,8 @@ template <typename T>
 inline
 void thrd_chunk_free_element(ChunkMemoryT<T>* const buf, size_t free_index, int32 bit_index) NO_EXCEPT
 {
-    thrd_chunk_free_element_internal(buf->free, free_index, bit_index);
-    DEBUG_MEMORY_DELETE(
-        (uintptr_t) &buf->memory[(free_index * (sizeof(size_t) * 8) + bit_index)],
-        sizeof(T)
-    );
+    SpinlockGuard _guard(&buf->lock, 0);
+    chunk_free_element(buf, free_index, bit_index);
 }
 
 template <typename T>
@@ -502,10 +495,10 @@ void chunk_free_elements(ChunkMemoryT<T>* const buf, T* data, uint32 element_cou
 
 template <typename T>
 FORCE_INLINE
-void thrd_chunk_free_elements_atomic(ChunkMemoryT<T>* const buf, size_t element, uint32 element_count = 1) NO_EXCEPT
+void thrd_chunk_free_elements(ChunkMemoryT<T>* const buf, size_t element, uint32 element_count = 1) NO_EXCEPT
 {
-    thrd_chunk_free_elements_atomic_internal(buf->free, element, element_count);
-    DEBUG_MEMORY_DELETE((uintptr_t) &buf->memory[element], sizeof(T) * element_count);
+    SpinlockGuard _guard(&buf->lock, 0);
+    chunk_free_elements(buf, element, element_count);
 }
 
 /**

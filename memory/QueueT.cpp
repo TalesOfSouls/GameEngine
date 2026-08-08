@@ -229,13 +229,6 @@ bool queue_is_empty(const QueueT<T>* const queue) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-bool queue_is_empty_atomic(const QueueT<T>* const queue) NO_EXCEPT
-{
-    return atomic_get_relaxed((void **) &queue->head) == atomic_get_relaxed((void **) &queue->tail);
-}
-
-template <typename T>
-FORCE_INLINE
 bool thrd_queue_is_empty(QueueT<T>* const queue) NO_EXCEPT
 {
     MutexGuard _guard(&queue->mtx);
@@ -250,24 +243,10 @@ void queue_set_empty(QueueT<T>* const queue) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
-void queue_set_empty_atomic(QueueT<T>* const queue) NO_EXCEPT
-{
-    atomic_set_relaxed(&queue->head, queue->tail);
-}
-
-template <typename T>
 static inline
 bool queue_has_space(const QueueT<T>* const queue) NO_EXCEPT
 {
     return queue->tail - 1 != queue->head;
-}
-
-template <typename T>
-static inline
-bool queue_has_space_atomic(QueueT<T>* const queue) NO_EXCEPT
-{
-    return (uintptr_t) (((T*) atomic_get_relaxed((void **) &queue->head)) - 1) != (uintptr_t)atomic_get_relaxed((void **) &queue->tail);
 }
 
 template <typename T>
@@ -283,13 +262,6 @@ bool thrd_queue_is_full(QueueT<T>* const queue) NO_EXCEPT
 {
     MutexGuard _guard(&queue->mtx);
     return !queue_has_space(queue);
-}
-
-template <typename T>
-FORCE_INLINE
-bool queue_is_full_atomic(QueueT<T>* const queue) NO_EXCEPT
-{
-    return !queue_has_space_atomic(queue);
 }
 
 template <typename T>
@@ -347,38 +319,6 @@ void thrd_queue_enqueue(QueueT<T>* __restrict queue, T data) NO_EXCEPT
     queue_enqueue(queue, data);
 
     coms_pthread_cond_signal(&queue->cond);
-}
-
-template <typename T>
-inline
-T* queue_enqueue_atomic(QueueT<T>* const __restrict queue, const T* __restrict data) NO_EXCEPT
-{
-    T* mem = atomic_fetch_increment_wrap_relaxed(
-        &queue->head,
-        queue->memory,
-        queue->memory + queue->capacity
-    );
-
-    *mem = *data;
-    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
-
-    return mem;
-}
-
-template <typename T>
-inline
-T* queue_enqueue_atomic(QueueT<T>* const __restrict queue, const T data) NO_EXCEPT
-{
-    T* mem = atomic_fetch_increment_wrap_relaxed(
-        &queue->head,
-        queue->memory,
-        queue->memory + queue->capacity
-    );
-
-    *mem = data;
-    DEBUG_MEMORY_WRITE((uintptr_t) mem, sizeof(T));
-
-    return mem;
 }
 
 template <typename T>
@@ -665,27 +605,6 @@ bool thrd_queue_dequeue(QueueT<T>* __restrict queue, T* __restrict data) NO_EXCE
     coms_pthread_cond_signal(&queue->cond);
 
     return result;
-}
-
-template <typename T>
-inline
-bool thrd_queue_dequeue_atomic(QueueT<T>* const __restrict queue, T* __restrict data) NO_EXCEPT
-{
-    if (queue_is_empty_atomic(queue)) {
-        return false;
-    }
-
-    const T* mem = atomic_fetch_increment_wrap_relaxed(
-        &queue->tail,
-        queue->memory,
-        queue->memory + queue->capacity
-    );
-
-    // @bug in a queue that fills very fast this could lead to overwriting this element befor it is copied
-    *data = *mem;
-    DEBUG_MEMORY_DELETE((uintptr_t) mem, sizeof(T));
-
-    return true;
 }
 
 // Waits until a dequeue is available

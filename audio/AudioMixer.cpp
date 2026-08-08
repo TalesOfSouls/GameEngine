@@ -20,7 +20,7 @@
 
 bool audio_mixer_is_active(AudioMixer* const mixer) NO_EXCEPT
 {
-    AudioMixerState mixer_state = (AudioMixerState) atomic_get_relaxed(&mixer->state_new);
+    AudioMixerState mixer_state = (AudioMixerState) mixer->state_new.load();
     if (mixer->state_old == AUDIO_MIXER_STATE_ACTIVE
         && mixer_state == AUDIO_MIXER_STATE_ACTIVE
     ) {

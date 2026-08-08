@@ -9,6 +9,11 @@
 
 #include <windows.h>
 
-typedef volatile long spinlock32;
+#if defined(NO_STDLIB) && NO_STDLIB
+    typedef volatile long spinlock32;
+#else
+    #include <atomic>
+    typedef atomic<int> spinlock32;
+#endif
 
 #endif

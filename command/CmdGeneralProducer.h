@@ -18,7 +18,7 @@ inline
 void thrd_cmd_insert(ChunkMemoryT<AppCommand>* const __restrict cb, const AppCommand* const __restrict cmd_temp) NO_EXCEPT
 {
     // @performance Consider to replace with atomic operations
-    MutexGuard _guard(&cb->lock);
+    SpinlockGuard _guard(&cb->lock, 0);
     const int32 index = chunk_reserve_one(cb);
     if (index < 0) {
         ASSERT_THROW();

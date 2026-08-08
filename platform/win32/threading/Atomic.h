@@ -52,6 +52,23 @@ typedef union { f64 f; LONG64 l; } _atomic_64f;
     #define InterlockedExchangeAdd16(value, increment) __InterlockedExchangeAdd16((value), (increment))
 #endif
 
+#define atomic_get_seq_cst atomic_get_acquire
+#define atomic_set_seq_cst atomic_set_acquire_release
+#define atomic_fetch_set_seq_cst atomic_fetch_set_acquire_release
+#define atomic_add_seq_cst atomic_add_acquire_release
+#define atomic_sub_seq_cst atomic_sub_acquire_release
+#define atomic_or_seq_cst atomic_or_acquire_release
+#define atomic_and_seq_cst atomic_and_acquire_release
+#define atomic_xor_seq_cst atomic_xor_acquire_release
+
+#define atomic_compare_exchange_weak_relaxed atomic_compare_exchange_strong_relaxed
+#define atomic_compare_exchange_weak_acquire atomic_compare_exchange_strong_acquire
+#define atomic_compare_exchange_weak_acquire atomic_compare_exchange_strong_acquire
+#define atomic_compare_exchange_weak_release atomic_compare_exchange_strong_release
+#define atomic_compare_exchange_weak_acquire_release atomic_compare_exchange_strong_acquire_release
+#define atomic_compare_exchange_weak_seq_cst atomic_compare_exchange_weak_acquire_release
+#define atomic_compare_exchange_strong_seq_cst atomic_compare_exchange_strong_acquire_release
+
 /**
  * We sometimes have basically the same function twice (e.g. _fetch_set_, _set_).
  * This is on purpose since the compiler may optimize the ASM by removing the fetch part
@@ -258,6 +275,22 @@ FORCE_INLINE void atomic_or_relaxed(uint64* value, uint64 mask) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedOr64NoFence((LONG64 *) value, mask); }
 FORCE_INLINE void atomic_or_relaxed(int64* value, int64 mask) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedOr64NoFence((LONG64 *) value, mask); }
+FORCE_INLINE void atomic_xor_relaxed(uint8* value, uint8 mask) NO_EXCEPT
+{ InterlockedXor8((char *) value, mask); }
+FORCE_INLINE void atomic_xor_relaxed(int8* value, int8 mask) NO_EXCEPT
+{ InterlockedXor8((char *) value, mask); }
+FORCE_INLINE void atomic_xor_relaxed(uint16* value, uint16 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedXor16((short *) value, mask); }
+FORCE_INLINE void atomic_xor_relaxed(int16* value, int16 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedXor16((short *) value, mask); }
+FORCE_INLINE void atomic_xor_relaxed(uint32* value, uint32 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedXorNoFence((LONG *) value, mask); }
+FORCE_INLINE void atomic_xor_relaxed(int32* value, int32 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedXorNoFence((LONG *) value, (LONG)mask); }
+FORCE_INLINE void atomic_xor_relaxed(uint64* value, uint64 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedXor64NoFence((LONG64 *) value, mask); }
+FORCE_INLINE void atomic_xor_relaxed(int64* value, int64 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedXor64NoFence((LONG64 *) value, mask); }
 
 FORCE_INLINE void* atomic_get_acquire(void** target) NO_EXCEPT
 { return InterlockedCompareExchangePointerAcquire(target, NULL, NULL); }
@@ -445,6 +478,22 @@ FORCE_INLINE void atomic_or_acquire(uint64* value, uint64 mask) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedOr64Acquire((LONG64 *) value, mask); }
 FORCE_INLINE void atomic_or_acquire(int64* value, int64 mask) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedOr64Acquire((LONG64 *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire(uint8* value, uint8 mask) NO_EXCEPT
+{ InterlockedXor8((char *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire(int8* value, int8 mask) NO_EXCEPT
+{ InterlockedXor8((char *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire(uint16* value, uint16 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedXor16((short *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire(int16* value, int16 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedXor16((short *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire(uint32* value, uint32 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedXorAcquire((LONG *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire(int32* value, int32 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedXorAcquire((LONG *) value, (LONG)mask); }
+FORCE_INLINE void atomic_xor_acquire(uint64* value, uint64 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedXor64Acquire((LONG64 *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire(int64* value, int64 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedXor64Acquire((LONG64 *) value, mask); }
 
 FORCE_INLINE void atomic_set_release(void** target, void* new_pointer) NO_EXCEPT
 { InterlockedExchangePointer(target, new_pointer); }
@@ -654,6 +703,22 @@ FORCE_INLINE void atomic_or_release(uint64* value, uint64 mask) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedOr64Release((LONG64 *) value, mask); }
 FORCE_INLINE void atomic_or_release(int64* value, int64 mask) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedOr64Release((LONG64 *) value, mask); }
+FORCE_INLINE void atomic_xor_release(uint8* value, uint8 mask) NO_EXCEPT
+{ InterlockedXor8((char *) value, mask); }
+FORCE_INLINE void atomic_xor_release(int8* value, int8 mask) NO_EXCEPT
+{ InterlockedXor8((char *) value, mask); }
+FORCE_INLINE void atomic_xor_release(uint16* value, uint16 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedXor16((short *) value, mask); }
+FORCE_INLINE void atomic_xor_release(int16* value, int16 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedXor16((short *) value, mask); }
+FORCE_INLINE void atomic_xor_release(uint32* value, uint32 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedXorRelease((LONG *) value, mask); }
+FORCE_INLINE void atomic_xor_release(int32* value, int32 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedXorRelease((LONG *) value, (LONG)mask); }
+FORCE_INLINE void atomic_xor_release(uint64* value, uint64 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedXor64Release((LONG64 *) value, mask); }
+FORCE_INLINE void atomic_xor_release(int64* value, int64 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedXor64Release((LONG64 *) value, mask); }
 
 FORCE_INLINE void atomic_set_acquire_release(void** target, void* new_pointer) NO_EXCEPT
 { InterlockedExchangePointer(target, new_pointer); }
@@ -855,6 +920,22 @@ FORCE_INLINE void atomic_or_acquire_release(uint64* value, uint64 mask) NO_EXCEP
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedOr64((LONG64 *) value, mask); }
 FORCE_INLINE void atomic_or_acquire_release(int64* value, int64 mask) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedOr64((LONG64 *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire_release(uint8* value, uint8 mask) NO_EXCEPT
+{ InterlockedXor8((char *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire_release(int8* value, int8 mask) NO_EXCEPT
+{ InterlockedXor8((char *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire_release(uint16* value, uint16 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedXor16((short *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire_release(int16* value, int16 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 2) == 0); InterlockedXor16((short *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire_release(uint32* value, uint32 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedXor((LONG *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire_release(int32* value, int32 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); InterlockedXor((LONG *) value, (LONG)mask); }
+FORCE_INLINE void atomic_xor_acquire_release(uint64* value, uint64 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedXor64((LONG64 *) value, mask); }
+FORCE_INLINE void atomic_xor_acquire_release(int64* value, int64 mask) NO_EXCEPT
+{ ASSERT_STRICT(((uintptr_t) value % 8) == 0); InterlockedXor64((LONG64 *) value, mask); }
 
 // Check out the intrinsic functions fence_memory and fence_write
 // These are much faster and could accomplish what you are doing

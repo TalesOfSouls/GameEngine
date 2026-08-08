@@ -37,7 +37,7 @@ struct FragmentMemoryT {
     // Array that contains indices into the free chunks
     int32* free;
 
-    mutex lock;
+    spinlock32 lock;
 };
 
 template <typename T>

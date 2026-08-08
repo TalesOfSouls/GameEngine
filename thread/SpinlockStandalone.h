@@ -8,6 +8,8 @@
 #define COMS_THREADS_SPINLOCK_STANDALONE_H
 
 #include "../stdlib/Stdlib.h"
+#include "Atomic.h"
+
 
 /**
  * WARNING: This implementation is ONLY used by core framework code such as the debugging/logging code.
@@ -54,7 +56,7 @@
         return ((uint64) (large_int.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
     }
 
-    typedef volatile long standalone_spinlock32;
+    typedef atomic<int> standalone_spinlock32;
 
     /**
      * Initialize the log specific spinlock
@@ -66,7 +68,7 @@
     FORCE_INLINE
     void standalone_spinlock_init(standalone_spinlock32* const lock) NO_EXCEPT
     {
-        *lock = 0;
+        lock->store(0);
     }
 
     /**
@@ -80,7 +82,7 @@
     static FORCE_INLINE HOT_CODE
     void standalone_spinlock_start(standalone_spinlock32* const lock, int32 delay = 10) NO_EXCEPT
     {
-        while (*lock || InterlockedExchange(lock, 1)) {
+        while (lock->load() || lock->exchange(1)) {
             LARGE_INTEGER start, end;
             QueryPerformanceCounter(&start);
 
@@ -104,7 +106,7 @@
     static FORCE_INLINE HOT_CODE
     void standalone_spinlock_end(standalone_spinlock32* const lock) NO_EXCEPT
     {
-        InterlockedExchange(lock, 0);
+        lock->store(0);
     }
 #elif __linux__
     #include <time.h>
@@ -125,7 +127,7 @@
         return (uint64) ts.tv_sec * 1000000ULL + (uint64) ts.tv_nsec / 1000ULL;
     }
 
-    typedef volatile int32 standalone_spinlock32;
+    typedef atomic<int> standalone_spinlock32;
 
     /**
      * Initialize the log specific spinlock
@@ -137,7 +139,7 @@
     FORCE_INLINE
     void standalone_spinlock_init(standalone_spinlock32* const lock) NO_EXCEPT
     {
-        *lock = 0;
+        lock->store(0);
     }
 
     /**
@@ -151,9 +153,7 @@
     static FORCE_INLINE HOT_CODE
     void standalone_spinlock_start(standalone_spinlock32* const lock, int32 delay = 10) NO_EXCEPT
     {
-        while (__atomic_load_n(lock, __ATOMIC_ACQUIRE)
-            || __atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE)
-        ) {
+        while (lock->load() || lock->exchange(1)) {
             struct timespec start, now;
             clock_gettime(CLOCK_MONOTONIC, &start);
             const uint64 target_ns = usec * 1000ULL;
@@ -180,7 +180,7 @@
     static FORCE_INLINE HOT_CODE
     void standalone_spinlock_end(standalone_spinlock32* const lock) NO_EXCEPT
 {
-        __atomic_store_n(lock, 0, __ATOMIC_RELEASE);
+        lock->store(0);
     }
 #endif
 

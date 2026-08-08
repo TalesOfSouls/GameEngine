@@ -57,7 +57,7 @@ void thrd_buffer_alloc(
 ) NO_EXCEPT
 {
     buffer_alloc(buf, size, max_size, alignment, start_alignment);
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 }
 
 inline
@@ -108,7 +108,7 @@ void thrd_buffer_alloc(
 ) NO_EXCEPT
 {
     buffer_alloc(buf, mem, size, max_size, alignment, start_alignment);
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 }
 
 inline
@@ -124,7 +124,7 @@ FORCE_INLINE
 void thrd_buffer_free(BufferMemory* const buf) NO_EXCEPT
 {
     buffer_free(buf);
-    mutex_destroy(&buf->lock);
+    //mutex_destroy(&buf->lock);
 }
 
 inline
@@ -139,7 +139,7 @@ FORCE_INLINE
 void thrd_buffer_free(BufferMemory* const buf, MemoryArena* const mem) NO_EXCEPT
 {
     buffer_free(buf, mem);
-    mutex_destroy(&buf->lock);
+    //mutex_destroy(&buf->lock);
 }
 
 inline
@@ -176,7 +176,7 @@ void thrd_buffer_init(
 ) NO_EXCEPT
 {
     buffer_init(buf, data, size, alignment, start_alignment);
-    mutex_init(&buf->lock, NULL);
+    spinlock_init(&buf->lock);
 }
 
 FORCE_INLINE
@@ -189,7 +189,7 @@ void buffer_reset(BufferMemory* const buf) NO_EXCEPT
 FORCE_INLINE
 void thrd_buffer_reset(BufferMemory* const buf) NO_EXCEPT
 {
-    MutexGuard _guard(&buf->lock);
+    SpinlockGuard _guard(&buf->lock, 0);
     buffer_reset(buf);
 }
 
@@ -297,7 +297,7 @@ struct BufferStackMemory {
 FORCE_INLINE
 byte* thrd_memory_get(BufferMemory* const buf, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    MutexGuard _guard(&buf->lock);
+    SpinlockGuard _guard(&buf->lock, 0);
     return memory_get(buf, size, alignment);
 }
 
@@ -345,7 +345,7 @@ int64 buffer_dump(const BufferMemory* const buf, byte* data) NO_EXCEPT
 FORCE_INLINE
 int64 thrd_buffer_dump(BufferMemory* const buf, byte* data) NO_EXCEPT
 {
-    MutexGuard _guard(&buf->lock);
+    SpinlockGuard _guard(&buf->lock, 0);
     return buffer_dump(buf, data);
 }
 
@@ -375,7 +375,7 @@ int64 buffer_load(BufferMemory* const buf, const byte* data) NO_EXCEPT
 FORCE_INLINE
 int64 thrd_buffer_load(BufferMemory* const buf, const byte* data) NO_EXCEPT
 {
-    MutexGuard _guard(&buf->lock);
+    SpinlockGuard _guard(&buf->lock, 0);
     return buffer_load(buf, data);
 }
 

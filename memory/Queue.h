@@ -18,13 +18,13 @@ struct Queue {
     byte* memory;
     byte* end;
 
-    atomic_ptr byte* head;
+    byte* head;
 
     // This variable is usually only used by single producer/consumer code mostly found in threads.
     // One thread inserts elements -> updates head
     // The other thread reads elements -> updates tail
     // This code itself doesn't change this variable
-    atomic_ptr byte* tail;
+    byte* tail;
 
     size_t size;
     uint32 alignment;

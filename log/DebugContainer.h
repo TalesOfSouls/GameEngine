@@ -24,12 +24,12 @@ struct DebugContainer {
     LogMemory* log_memory;
 
     StatCounterHistory* stats_counter;
-    int64* stats_counter_persistent;
+    atomic<int64>* stats_counter_persistent;
     PerformanceStatHistory* perf_stats;
     PerformanceProfiler** perf_current_scope;
-    volatile int32* perf_active;
-    volatile int32* stats_counter_active;
-    volatile int32* dmc_active;
+    atomic<int32>* perf_active;
+    atomic<int32>* stats_counter_active;
+    atomic<int32>* dmc_active;
     int32 perf_profile_history_count;
     PerformanceProfileThread* perf_profile_history;
 };

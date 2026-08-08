@@ -12,6 +12,12 @@
 #include "../../utils/StringUtils.h"
 #include <windows.h>
 
+FORCE_INLINE
+v2_uint16 monitor_dimensions_get()
+{
+    return {(uint16) GetSystemMetrics(SM_CXSCREEN), (uint16) GetSystemMetrics(SM_CYSCREEN)};
+}
+
 /**
  * Removes all window styles effectively turning it into a full screen window
  */

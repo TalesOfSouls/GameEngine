@@ -205,7 +205,7 @@ void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
 inline
 void thrd_cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
 {
-    MutexGuard _guard(&cb->commands.lock);
+    SpinlockGuard _guard(&cb->commands.lock, 0);
     cmd_iterate(cb);
 }
 

@@ -46,6 +46,7 @@ struct DebugMemoryRange {
 };
 
 struct DebugMemory {
+    standalone_spinlock32 lock;
     uintptr_t start;
 
     int64 usage;
@@ -54,8 +55,8 @@ struct DebugMemory {
 
     const char* name;
 
-    atomic_32 uint32 action_idx;
-    atomic_32 uint32 persistent_action_idx;
+    uint32 action_idx;
+    uint32 persistent_action_idx;
     alignas(8) DebugMemoryRange last_action[DEBUG_MEMORY_RANGE_MAX];
 
     // Persistent actions are also actions that are relevant at all times
@@ -66,14 +67,14 @@ struct DebugMemory {
 };
 
 struct DebugMemoryContainer {
-    atomic_32 uint32 memory_size;
+    uint32 memory_size;
     uint32 memory_element_idx;
     DebugMemory* memory_stats;
 
     standalone_spinlock32 lock;
 };
 static DebugMemoryContainer* _dmc = NULL;
-static volatile int32* _dmc_active = NULL;
+static atomic<int32>* _dmc_active = NULL;
 
 /**
  * Tries to find a memory region for a pointer where we can add logging information.
@@ -151,11 +152,11 @@ void debug_memory_name(const char* __restrict name, const void* const __restrict
         return;
     }
 
-    const uintptr_t addrt = (uintptr_t) addr;
+    const uintptr_t addr_temp = (uintptr_t) addr;
 
     for (uint32 i = 0; i < _dmc->memory_size; ++i) {
-        if (_dmc->memory_stats[i].start <= addrt
-            && _dmc->memory_stats[i].start + _dmc->memory_stats[i].size > addrt
+        if (_dmc->memory_stats[i].start <= addr_temp
+            && _dmc->memory_stats[i].start + _dmc->memory_stats[i].size > addr_temp
         ) {
             _dmc->memory_stats[i].name = name;
             return;
@@ -186,9 +187,9 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
         return;
     }
 
-    const uint32 idx = atomic_increment_wrap_relaxed(&mem->action_idx, (uint32) ARRAY_COUNT(mem->last_action));
+    OMS_WRAPPED_INCREMENT(mem->action_idx, (uint32) ARRAY_COUNT(mem->last_action));
 
-    DebugMemoryRange* const dmr = &mem->last_action[idx];
+    DebugMemoryRange* const dmr = &mem->last_action[mem->action_idx];
     dmr->type = type;
     dmr->start = start - mem->start;
     dmr->size = size;
@@ -225,12 +226,9 @@ void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type,
 
     // We will most likely overwrite subregions in due time
     // It is what it is
-    const uint32 idx = atomic_increment_wrap_relaxed(
-        &mem->persistent_action_idx,
-        (uint32) ARRAY_COUNT(mem->persistent_action)
-    );
+    OMS_WRAPPED_INCREMENT(mem->persistent_action_idx, (uint32) ARRAY_COUNT(mem->persistent_action));
 
-    DebugMemoryRange* const dmr = &mem->persistent_action[idx];
+    DebugMemoryRange* const dmr = &mem->persistent_action[mem->persistent_action_idx];
     dmr->type = type;
     dmr->start = start - mem->start;
     dmr->size = size;

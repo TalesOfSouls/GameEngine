@@ -15,7 +15,7 @@
 FORCE_INLINE
 void spinlock_init(spinlock32* const lock) NO_EXCEPT
 {
-    *lock = 0;
+    lock->store(0);
 }
 
 FORCE_INLINE
@@ -25,9 +25,7 @@ void spinlock_start(spinlock32* const lock) NO_EXCEPT
     // We only try the exchange if we can get a good read
     // Otherwise InterlockedExchange may invalidate the cache
     // for all other threads that also try to access this
-    while (*lock
-        || InterlockedExchange(lock, 1)
-    ) {
+    while (lock->load() || lock->exchange(1)) {
         YieldProcessor();
     }
     PPROFILE_END_DEBUG(PROFILE_MUTEX_ACQUIRE);
@@ -41,9 +39,7 @@ void spinlock_start(spinlock32* const lock, int32 delay) NO_EXCEPT
     // We only try the exchange if we can get a good read
     // Otherwise InterlockedExchange may invalidate the cache
     // for all other threads that also try to access this
-    while (*lock
-        || InterlockedExchange(lock, 1)
-    ) {
+    while (lock->load() || lock->exchange(1)) {
         usleep(delay);
     }
     PPROFILE_END_DEBUG(PROFILE_MUTEX_ACQUIRE);
@@ -52,7 +48,7 @@ void spinlock_start(spinlock32* const lock, int32 delay) NO_EXCEPT
 FORCE_INLINE
 void spinlock_end(spinlock32* const lock) NO_EXCEPT
 {
-    InterlockedExchange(lock, 0);
+    lock->store(0);
     PPROFILE_END_DEBUG(PROFILE_MUTEX_LOCK);
 }
 

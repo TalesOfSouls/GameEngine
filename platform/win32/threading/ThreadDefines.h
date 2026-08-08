@@ -9,7 +9,6 @@
 
 #include "../../../stdlib/Stdlib.h"
 #include "../../../thread/Atomic.h"
-#include "../../../log/PerformanceProfiler.h"
 #include <windows.h>
 
 #define THREAD_RETURN DWORD WINAPI

@@ -15,9 +15,6 @@ enum AssetState : byte {
     ASSET_STATE_IN_VRAM = 1 << 1,
     ASSET_STATE_RAM_GC = 1 << 2,
     ASSET_STATE_VRAM_GC = 1 << 3,
-
-    // @todo We probably want a state that keeps the asset but removes the data
-    //      e.g. texture uploaded to gpu but we need the asset object but no longer the texture data
 };
 
 struct Asset {
@@ -38,7 +35,7 @@ struct Asset {
     uint16 chunk_count;
 
     // @performance Maybe if we would set the IS_LOADED_STATE in the enum as the highest bit we could use the state variable and check it with >=
-    atomic_8 int8 is_loaded;
+    atomic<int8> is_loaded;
 
     // Which asset component is used
     // Determined when reserving memory from the AMS or when inserting the asset based on its size

@@ -19,7 +19,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     THREAD_CPU_ID(_thread_cpu_id);
     ThreadPool* const pool = (ThreadPool *) arg;
 
-    atomic_increment_release(&pool->thread_cnt);
+    ++pool->thread_cnt;
 
     if (pool->debug_container) {
         _log_fp = pool->debug_container->log_fp;
@@ -65,13 +65,15 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 
         // When the worker functions of the thread pool get woken up it is possible that the work is already dequeued
         // by another thread -> we need to check if the work is actually valid
-        if (atomic_get_release((int32 *) &work->state) <= POOL_WORKER_STATE_COMPLETED) {
-            atomic_set_release((int32 *) &work->state, POOL_WORKER_STATE_COMPLETED);
+        PoolWorkerState state_temp = work->state.load();
+        if (state_temp <= POOL_WORKER_STATE_COMPLETED
+            && work->state.compare_exchange_strong(state_temp, POOL_WORKER_STATE_COMPLETED)
+        ) {
             continue;
         }
 
-        atomic_increment_release(&pool->working_cnt);
-        atomic_set_release((int32 *) &work->state, POOL_WORKER_STATE_RUNNING);
+        ++pool->working_cnt;
+        work->state.store(POOL_WORKER_STATE_RUNNING);
 
         LOG_3("[INFO] ThreadPool worker started");
         {
@@ -92,22 +94,22 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
             work->callback(work);
         }
 
-        atomic_set_release((int32 *) &work->state, POOL_WORKER_STATE_COMPLETED);
+        work->state.store(POOL_WORKER_STATE_COMPLETED);
         if (work->automatic_release) {
             queue_dequeue_release(&pool->work_queue, work);
         }
 
-        atomic_decrement_release(&pool->working_cnt);
+        --pool->working_cnt;
 
         // Signal that we ran out of work (maybe the main thread needs this info)
         // This is not required for the thread pool itself but maybe some other part of the main thread wants to know
-        if (atomic_get_relaxed(&pool->working_cnt) == 0) {
+        if (pool->working_cnt.load() == 0) {
             coms_pthread_cond_signal(&pool->working_cond);
         }
     }
 
     // We tell the thread pool that this worker thread is shutting down
-    atomic_decrement_release(&pool->thread_cnt);
+    --pool->thread_cnt;
     coms_pthread_cond_signal(&pool->working_cond);
 
     LOG_2("[INFO] Thread pool worker shutting down");
@@ -182,7 +184,9 @@ void thread_pool_alloc(
 
     LOG_2(
         "[INFO] %d threads running",
-        {DATA_TYPE_INT64, (void *) &_stats_counter->stats[atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD]}
+        {DATA_TYPE_INT64, (void *) &_stats_counter->stats[
+            _stats_counter->pos * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD
+        ]}
     );
 }
 
@@ -240,7 +244,7 @@ void thread_pool_init(
         "[INFO] %d threads running",
         {DATA_TYPE_INT64,
             (void *) &_stats_counter->stats[
-                atomic_get_acquire(&_stats_counter->pos) * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD
+                _stats_counter->pos * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD
             ]
         }
     );
@@ -258,7 +262,7 @@ void thread_pool_wait(ThreadPool* const pool) NO_EXCEPT
 void thread_pool_destroy(ThreadPool* const pool) NO_EXCEPT
 {
     // This sets the queue to empty
-    atomic_set_release(&pool->work_queue.tail, pool->work_queue.head);
+    pool->work_queue.tail = pool->work_queue.head;
 
     {
         MutexGuard _guard(&pool->work_mutex);
@@ -288,7 +292,7 @@ void thread_pool_destroy(ThreadPool* const pool) NO_EXCEPT
 inline
 bool thread_pool_healthy(const ThreadPool* const pool) NO_EXCEPT
 {
-    if (atomic_get_acquire(&pool->thread_cnt) != pool->size) {
+    if (pool->thread_cnt.load() != pool->size) {
         return false;
     }
 
@@ -335,18 +339,18 @@ PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) 
     }
 
     memcpy(temp_job, job, sizeof(PoolWorker));
-    atomic_set_release((int32 *) &temp_job->state, POOL_WORKER_STATE_WAITING);
+    temp_job->state.store(POOL_WORKER_STATE_WAITING);
 
     queue_enqueue_end(&pool->work_queue);
 
     // +1 because otherwise the very first job would be id = 0 which is not a valid id
     ++pool->id_counter;
-    if (!pool->id_counter) { UNLIKELY
+    if (!pool->id_counter.load()) { UNLIKELY
         // ID of 0 is not allowed
         ++pool->id_counter;
     }
 
-    temp_job->id = pool->id_counter;
+    temp_job->id.store(pool->id_counter.load());
 
     coms_pthread_cond_broadcast(&pool->work_cond);
 
@@ -367,9 +371,8 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
     PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
 
     // We need atomic here since the job state might be modified in the thread
-    if (atomic_get_relaxed((int32 *) &temp_job->state) > POOL_WORKER_STATE_COMPLETED) {
+    if (temp_job->state.load() > POOL_WORKER_STATE_COMPLETED) {
         mutex_unlock(&pool->work_mutex);
-        ASSERT_TRUE(temp_job->state <= POOL_WORKER_STATE_COMPLETED);
 
         return NULL;
     }
@@ -383,7 +386,7 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
         ++pool->id_counter;
     }
 
-    temp_job->id = pool->id_counter;
+    temp_job->id.store(pool->id_counter.load());
 
     // Here we don't need atomic
     temp_job->state = POOL_WORKER_STATE_WAITING;
@@ -428,7 +431,7 @@ bool thread_pool_join(
             }
 
             if (!jobs[i].id
-                || atomic_get_relaxed((int32 *) &(jobs[i].state)) == POOL_WORKER_STATE_COMPLETED
+                || jobs[i].state.load() == POOL_WORKER_STATE_COMPLETED
             ) {
                 completed_mask |= bit;
             }
@@ -471,7 +474,7 @@ bool thread_pool_join(
             }
 
             if (!jobs[i] || !jobs[i]->id
-                || atomic_get_relaxed((int32 *) &(jobs[i]->state)) == POOL_WORKER_STATE_COMPLETED
+                || jobs[i]->state.load() == POOL_WORKER_STATE_COMPLETED
             ) {
                 completed_mask |= bit;
             }

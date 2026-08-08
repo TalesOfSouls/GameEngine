@@ -32,7 +32,7 @@ int32 thread_create(ThreadWorker* worker, ThreadJobFunc routine, void* arg) NO_E
 FORCE_INLINE
 void thread_stop(ThreadWorker* worker) NO_EXCEPT
 {
-    atomic_set_release(&worker->state, 0);
+    worker->state.store(0);
     coms_pthread_join(worker->thread, NULL);
 
     LOG_1("[INFO] Thread ended");

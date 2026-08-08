@@ -39,8 +39,8 @@ struct ThreadPool {
     mutex_cond working_cond;
 
     // By design the working_cnt is <= thread_cnt
-    atomic_32 int32 working_cnt;
-    atomic_32 int32 thread_cnt;
+    atomic<int32> working_cnt;
+    atomic<int32> thread_cnt;
 
     // This is where we store the handles IFF we are using
     // none-detached threads
@@ -53,7 +53,7 @@ struct ThreadPool {
     //          I think because the mutex is actually intended for the queue.
     ThreadPoolState state;
     bool is_detached;
-    atomic_32 uint32 id_counter;
+    atomic<uint32> id_counter;
 
     DebugContainer* debug_container;
 

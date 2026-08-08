@@ -26,8 +26,8 @@ enum PoolWorkerState : int32 {
 struct PoolWorker {
     // @performance We could reduce the size of id and state down to u16
     //              Due to alignments this wouldn't have any effect currently
-    atomic_32 uint32 id;
-    atomic_32 PoolWorkerState state;
+    atomic<uint32> id;
+    atomic<PoolWorkerState> state;
 
     // After running the task it is automatically removed from the thread queue
     bool automatic_release;
@@ -56,7 +56,7 @@ struct PoolWorker {
  * Worker for a normal thread
  */
 struct ThreadWorker {
-    atomic_32 int32 state;
+    atomic<int32> state;
     coms_pthread_t thread;
     void* arg;
 };

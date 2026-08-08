@@ -8,6 +8,7 @@
 #define COMS_PLATFORM_LINUX_TIME_UTILS_H
 
 #include <time.h>
+#include <ctime>
 #include <sys/time.h>
 #include <unistd.h>
 #include "../../stdlib/Stdlib.h"

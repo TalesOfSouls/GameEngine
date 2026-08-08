@@ -26,11 +26,11 @@ struct DataPool {
 
     // length = count
     // free describes which locations are used and which are free
-    atomic_ptr size_t* free;
+    size_t* free;
 
     // Chunk implementation ends here
     // This is a bit field that specifies which elements in the data pool are currently in use
-    atomic_ptr size_t* used;
+    size_t* used;
 };
 
 // INFO: A chunk count of 2^n is recommended for maximum performance

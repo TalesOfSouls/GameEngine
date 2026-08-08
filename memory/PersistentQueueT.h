@@ -31,16 +31,16 @@
 template <typename T>
 struct PersistentQueueT {
     T* memory;
-    atomic_32 uint32 head;
-    atomic_32 uint32 tail;
+    uint32 head;
+    uint32 tail;
 
     uint32 capacity;
 
     // free describes which locations are used and which are free
-    atomic_ptr size_t* free;
+    size_t* free;
 
     // completed describes which elements are already dequeued but are kept in the queue indefinitely
-    atomic_ptr size_t* completed;
+    size_t* completed;
 
     // We support both conditional locking and semaphore locking
     // These values are not initialized and not used unless you use the queue

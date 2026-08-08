@@ -9,6 +9,11 @@
 
 #include "../../../stdlib/Stdlib.h"
 
-typedef volatile alignas(sizeof(int32)) int32 spinlock32;
+#if defined(NO_STDLIB) && NO_STDLIB
+    typedef volatile int32 spinlock32;
+#else
+    #include <atomic>
+    typedef atomic<int> spinlock32;
+#endif
 
 #endif

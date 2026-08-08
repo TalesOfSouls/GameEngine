@@ -96,23 +96,31 @@ int32 coms_pthread_cond_destroy(mutex_cond* cond) NO_EXCEPT
 }
 
 inline
-int32 mutex_condimedwait(mutex_cond* __restrict cond, mutex* __restrict mutex, const struct timespec*) NO_EXCEPT
+int32 mutex_cond_timedwait(
+    mutex_cond* __restrict cond,
+    mutex* __restrict mtx,
+    const struct timespec*
+) NO_EXCEPT
 {
     ASSERT_TRUE(cond);
-    ASSERT_TRUE(mutex);
+    ASSERT_TRUE(mtx);
 
-    int32 oldval = atomic_get_acquire(&cond->futex);
-    mutex_unlock(mutex);
+    const int32 oldval = cond->futex.load(memory_order_acquire);
+
+    mutex_unlock(mtx);
     futex_wait(&cond->futex, oldval);
-    mutex_lock(mutex);
+    mutex_lock(mtx);
 
     return 0;
 }
 
 FORCE_INLINE
-int32 coms_pthread_cond_wait(mutex_cond* __restrict cond, mutex* __restrict mutex) NO_EXCEPT
+int32 coms_pthread_cond_wait(
+    mutex_cond* __restrict cond,
+    mutex* __restrict mtx
+) NO_EXCEPT
 {
-    return mutex_condimedwait(cond, mutex, NULL);
+    return mutex_cond_timedwait(cond, mtx, NULL);
 }
 
 FORCE_INLINE
@@ -120,7 +128,7 @@ int32 coms_pthread_cond_signal(mutex_cond* cond) NO_EXCEPT
 {
     ASSERT_TRUE(cond);
 
-    atomic_increment_release(&cond->futex);
+    cond->futex.fetch_add(1, memory_order_release);
     futex_wake(&cond->futex, 1);
 
     return 0;
@@ -131,18 +139,21 @@ int32 coms_pthread_cond_broadcast(mutex_cond* cond) NO_EXCEPT
 {
     ASSERT_TRUE(cond);
 
-    atomic_increment_release(&cond->futex);
+    cond->futex.fetch_add(1, memory_order_release);
     futex_wake(&cond->futex, INT32_MAX);
 
     return 0;
 }
 
 FORCE_INLINE
-int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* __restrict rwlock, const coms_pthread_rwlockattr_t*) NO_EXCEPT
+int32 coms_pthread_rwlock_init(
+    coms_pthread_rwlock_t* __restrict rwlock,
+    const coms_pthread_rwlockattr_t*
+) NO_EXCEPT
 {
     ASSERT_TRUE(rwlock);
 
-    rwlock->futex = 0;
+    rwlock->futex.store(0, memory_order_relaxed);
     rwlock->exclusive = false;
 
     return 0;
@@ -152,7 +163,6 @@ FORCE_INLINE
 int32 coms_pthread_rwlock_destroy(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
 {
     ASSERT_TRUE(rwlock);
-
     return 0;
 }
 
@@ -162,10 +172,19 @@ int32 coms_pthread_rwlock_rdlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
     ASSERT_TRUE(rwlock);
 
     while (true) {
-        int32 val = atomic_get_acquire(&rwlock->futex);
-        if (val >= 0 && __atomic_compare_exchange_n(&rwlock->futex, &val, val + 1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
-            break;
+        int32 val = rwlock->futex.load(memory_order_acquire);
+
+        if (val >= 0) {
+            int32 expected = val;
+            if (rwlock->futex.compare_exchange_weak(
+                    expected,
+                    val + 1,
+                    memory_order_acq_rel,
+                    memory_order_acquire)) {
+                break;
+            }
         }
+
         futex_wait(&rwlock->futex, val);
     }
 
@@ -177,9 +196,17 @@ int32 coms_pthread_rwlock_tryrdlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
 {
     ASSERT_TRUE(rwlock);
 
-    int32 val = atomic_get_acquire(&rwlock->futex);
-    if (val >= 0 && __atomic_compare_exchange_n(&rwlock->futex, &val, val + 1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
-        return 0;
+    int32 val = rwlock->futex.load(memory_order_acquire);
+
+    if (val >= 0) {
+        int32 expected = val;
+        if (rwlock->futex.compare_exchange_strong(
+                expected,
+                val + 1,
+                memory_order_acq_rel,
+                memory_order_acquire)) {
+            return 0;
+        }
     }
 
     return 1;
@@ -191,10 +218,18 @@ int32 coms_pthread_rwlock_wrlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
     ASSERT_TRUE(rwlock);
 
     while (true) {
-        int32 val = atomic_get_acquire(&rwlock->futex);
-        if (val == 0 && __atomic_compare_exchange_n(&rwlock->futex, &val, -1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
-            rwlock->exclusive = true;
-            break;
+        int32 val = rwlock->futex.load(memory_order_acquire);
+
+        if (val == 0) {
+            int32 expected = 0;
+            if (rwlock->futex.compare_exchange_weak(
+                    expected,
+                    -1,
+                    memory_order_acq_rel,
+                    memory_order_acquire)) {
+                rwlock->exclusive = true;
+                break;
+            }
         }
 
         futex_wait(&rwlock->futex, val);
@@ -208,8 +243,15 @@ int32 coms_pthread_rwlock_trywrlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
 {
     ASSERT_TRUE(rwlock);
 
-    int32 val = atomic_get_acquire(&rwlock->futex);
-    if (val == 0 && __atomic_compare_exchange_n(&rwlock->futex, &val, -1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+    int32 expected = 0;
+
+    if (rwlock->futex.compare_exchange_strong(
+            expected,
+            -1,
+            memory_order_acq_rel,
+            memory_order_acquire
+        )
+    ) {
         rwlock->exclusive = true;
         return 0;
     }
@@ -224,11 +266,11 @@ int32 coms_pthread_rwlock_unlock(coms_pthread_rwlock_t* rwlock) NO_EXCEPT
 
     if (rwlock->exclusive) {
         rwlock->exclusive = false;
-        atomic_set_release(&rwlock->futex, 0);
+        rwlock->futex.store(0, memory_order_release);
         futex_wake(&rwlock->futex, 1);
     } else {
-        int32 val = atomic_decrement_release(&rwlock->futex);
-        if (val == 0) {
+        const int32 previous = rwlock->futex.fetch_sub(1, memory_order_release);
+        if (previous == 1) {
             futex_wake(&rwlock->futex, 1);
         }
     }

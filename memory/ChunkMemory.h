@@ -9,6 +9,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../thread/ThreadDefines.h"
+#include "../thread/Spinlock.h"
 
 /**
  * This storage system is best used for fixed sized chunks
@@ -30,7 +31,7 @@ struct ChunkMemory {
 
     // @question Do I really want to use uint?
     size_t size;
-    atomic_32 int32 last_pos;
+    int32 last_pos;
     int32 capacity;
     int32 chunk_size;
 
@@ -40,13 +41,13 @@ struct ChunkMemory {
 
     // length = count
     // free describes which locations are used and which are free
-    atomic_ptr size_t* free;
+    size_t* free;
 
     // Chunk implementation ends here
     // The completeness indicates if the data is completely written to
-    atomic_ptr size_t* completeness;
+    size_t* completeness;
 
-    mutex lock;
+    spinlock32 lock;
 };
 
 #endif
