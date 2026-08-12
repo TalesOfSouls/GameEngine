@@ -20,7 +20,7 @@ typedef ptrdiff_t GLintptr;
 extern "C" {
     WINGDIAPI void APIENTRY glAccum (GLenum op, GLfloat value);
     WINGDIAPI void APIENTRY glAlphaFunc (GLenum func, GLclampf ref);
-    WINGDIAPI GLboolean APIENTRY glAreTexturesResident (GLsizei n, const GLuint *textures, GLboolean *residences);
+    WINGDIAPI GLboolean APIENTRY glAreTexturesResident (GLsizei n, const GLuint* textures, GLboolean *residences);
     WINGDIAPI void APIENTRY glArrayElement (GLint i);
     WINGDIAPI void APIENTRY glBegin (GLenum mode);
     WINGDIAPI void APIENTRY glBindTexture (GLenum target, GLuint texture);
@@ -48,7 +48,7 @@ extern "C" {
     WINGDIAPI void APIENTRY glColor3ub (GLubyte red, GLubyte green, GLubyte blue);
     WINGDIAPI void APIENTRY glColor3ubv (const GLubyte *v);
     WINGDIAPI void APIENTRY glColor3ui (GLuint red, GLuint green, GLuint blue);
-    WINGDIAPI void APIENTRY glColor3uiv (const GLuint *v);
+    WINGDIAPI void APIENTRY glColor3uiv (const GLuint* v);
     WINGDIAPI void APIENTRY glColor3us (GLushort red, GLushort green, GLushort blue);
     WINGDIAPI void APIENTRY glColor3usv (const GLushort *v);
     WINGDIAPI void APIENTRY glColor4b (GLbyte red, GLbyte green, GLbyte blue, GLbyte alpha);
@@ -64,7 +64,7 @@ extern "C" {
     WINGDIAPI void APIENTRY glColor4ub (GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha);
     WINGDIAPI void APIENTRY glColor4ubv (const GLubyte *v);
     WINGDIAPI void APIENTRY glColor4ui (GLuint red, GLuint green, GLuint blue, GLuint alpha);
-    WINGDIAPI void APIENTRY glColor4uiv (const GLuint *v);
+    WINGDIAPI void APIENTRY glColor4uiv (const GLuint* v);
     WINGDIAPI void APIENTRY glColor4us (GLushort red, GLushort green, GLushort blue, GLushort alpha);
     WINGDIAPI void APIENTRY glColor4usv (const GLushort *v);
     WINGDIAPI void APIENTRY glColorMask (GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
@@ -77,7 +77,7 @@ extern "C" {
     WINGDIAPI void APIENTRY glCopyTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
     WINGDIAPI void APIENTRY glCullFace (GLenum mode);
     WINGDIAPI void APIENTRY glDeleteLists (GLuint list, GLsizei range);
-    WINGDIAPI void APIENTRY glDeleteTextures (GLsizei n, const GLuint *textures);
+    WINGDIAPI void APIENTRY glDeleteTextures (GLsizei n, const GLuint* textures);
     WINGDIAPI void APIENTRY glDepthFunc (GLenum func);
     WINGDIAPI void APIENTRY glDepthMask (GLboolean flag);
     WINGDIAPI void APIENTRY glDepthRange (GLclampd zNear, GLclampd zFar);
@@ -116,7 +116,7 @@ extern "C" {
     WINGDIAPI void APIENTRY glFrontFace (GLenum mode);
     WINGDIAPI void APIENTRY glFrustum (GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar);
     WINGDIAPI GLuint APIENTRY glGenLists (GLsizei range);
-    WINGDIAPI void APIENTRY glGenTextures (GLsizei n, GLuint *textures);
+    WINGDIAPI void APIENTRY glGenTextures (GLsizei n, GLuint* textures);
     WINGDIAPI void APIENTRY glGetBooleanv (GLenum pname, GLboolean *params);
     WINGDIAPI void APIENTRY glGetClipPlane (GLenum plane, GLdouble *equation);
     WINGDIAPI void APIENTRY glGetDoublev (GLenum pname, GLdouble *params);
@@ -131,7 +131,7 @@ extern "C" {
     WINGDIAPI void APIENTRY glGetMaterialfv (GLenum face, GLenum pname, GLfloat *params);
     WINGDIAPI void APIENTRY glGetMaterialiv (GLenum face, GLenum pname, GLint *params);
     WINGDIAPI void APIENTRY glGetPixelMapfv (GLenum map, GLfloat* values);
-    WINGDIAPI void APIENTRY glGetPixelMapuiv (GLenum map, GLuint *values);
+    WINGDIAPI void APIENTRY glGetPixelMapuiv (GLenum map, GLuint* values);
     WINGDIAPI void APIENTRY glGetPixelMapusv (GLenum map, GLushort *values);
     WINGDIAPI void APIENTRY glGetPointerv (GLenum pname, GLvoid* *params);
     WINGDIAPI void APIENTRY glGetPolygonStipple (GLubyte *mask);
@@ -210,7 +210,7 @@ extern "C" {
     WINGDIAPI void APIENTRY glOrtho (GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar);
     WINGDIAPI void APIENTRY glPassThrough (GLfloat token);
     WINGDIAPI void APIENTRY glPixelMapfv (GLenum map, GLsizei mapsize, const GLfloat* values);
-    WINGDIAPI void APIENTRY glPixelMapuiv (GLenum map, GLsizei mapsize, const GLuint *values);
+    WINGDIAPI void APIENTRY glPixelMapuiv (GLenum map, GLsizei mapsize, const GLuint* values);
     WINGDIAPI void APIENTRY glPixelMapusv (GLenum map, GLsizei mapsize, const GLushort *values);
     WINGDIAPI void APIENTRY glPixelStoref (GLenum pname, GLfloat param);
     WINGDIAPI void APIENTRY glPixelStorei (GLenum pname, GLint param);
@@ -225,7 +225,7 @@ extern "C" {
     WINGDIAPI void APIENTRY glPopClientAttrib (void);
     WINGDIAPI void APIENTRY glPopMatrix (void);
     WINGDIAPI void APIENTRY glPopName (void);
-    WINGDIAPI void APIENTRY glPrioritizeTextures (GLsizei n, const GLuint *textures, const GLclampf *priorities);
+    WINGDIAPI void APIENTRY glPrioritizeTextures (GLsizei n, const GLuint* textures, const GLclampf *priorities);
     WINGDIAPI void APIENTRY glPushAttrib (GLbitfield mask);
     WINGDIAPI void APIENTRY glPushClientAttrib (GLbitfield mask);
     WINGDIAPI void APIENTRY glPushMatrix (void);
@@ -270,7 +270,7 @@ extern "C" {
     WINGDIAPI void APIENTRY glScaled (GLdouble x, GLdouble y, GLdouble z);
     WINGDIAPI void APIENTRY glScalef (GLfloat x, GLfloat y, GLfloat z);
     WINGDIAPI void APIENTRY glScissor (GLint x, GLint y, GLsizei width, GLsizei height);
-    WINGDIAPI void APIENTRY glSelectBuffer (GLsizei size, GLuint *buffer);
+    WINGDIAPI void APIENTRY glSelectBuffer (GLsizei size, GLuint* buffer);
     WINGDIAPI void APIENTRY glShadeModel (GLenum mode);
     WINGDIAPI void APIENTRY glStencilFunc (GLenum func, GLint ref, GLuint mask);
     WINGDIAPI void APIENTRY glStencilMask (GLuint mask);
@@ -362,6 +362,15 @@ static type_glGetStringi* glGetStringi;
 typedef void WINAPI type_glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations);
 static type_glTexImage2DMultisample* glTexImage2DMultisample;
 
+typedef void WINAPI type_glCreateTextures(GLenum target, GLsizei n, GLuint* textures);
+static type_glCreateTextures* glCreateTextures;
+
+typedef void WINAPI type_glTextureStorage2D(GLuint texture, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
+static type_glTextureStorage2D* glTextureStorage2D;
+
+typedef void WINAPI type_glTextureSubImage2D(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels);
+static type_glTextureSubImage2D* glTextureSubImage2D;
+
 typedef GLsync WINAPI type_glFenceSync(GLenum condition, GLbitfield flags);
 static type_glFenceSync* glFenceSync;
 
@@ -371,17 +380,35 @@ static type_glClientWaitSync* glClientWaitSync;
 typedef void WINAPI type_glDeleteSync(GLsync GLsync);
 static type_glDeleteSync* glDeleteSync;
 
+typedef void WINAPI type_glCreateFramebuffers(GLsizei n, GLuint* framebuffers);
+static type_glCreateFramebuffers* glCreateFramebuffers;
+
+typedef void WINAPI type_glCreateRenderbuffers(GLsizei n, GLuint* renderbuffers);
+static type_glCreateRenderbuffers* glCreateRenderbuffers;
+
+typedef void WINAPI type_glBindTextureUnit(GLuint unit, GLuint texture);
+static type_glBindTextureUnit* glBindTextureUnit;
+
 typedef void WINAPI type_glBindFramebuffer(GLenum target, GLuint framebuffer);
 static type_glBindFramebuffer* glBindFramebuffer;
 
-typedef void WINAPI type_glGenFramebuffers(GLsizei n, GLuint *framebuffers);
+typedef void WINAPI type_glGenFramebuffers(GLsizei n, GLuint* framebuffers);
 static type_glGenFramebuffers* glGenFramebuffers;
+
+typedef void WINAPI type_glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level);
+static type_glFramebufferTexture* glFramebufferTexture;
+
+typedef void WINAPI type_glNamedFramebufferTexture(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level);
+static type_glNamedFramebufferTexture* glNamedFramebufferTexture;
 
 typedef void WINAPI type_glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 static type_glFramebufferTexture2D* glFramebufferTexture2D;
 
 typedef GLenum WINAPI type_glCheckFramebufferStatus(GLenum target);
 static type_glCheckFramebufferStatus* glCheckFramebufferStatus;
+
+typedef GLenum WINAPI type_glCheckNamedFramebufferStatus(GLuint framebuffer, GLenum target);
+static type_glCheckNamedFramebufferStatus* glCheckNamedFramebufferStatus;
 
 typedef void WINAPI type_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
 static type_glBlitFramebuffer* glBlitFramebuffer;
@@ -464,8 +491,17 @@ static type_glUniform3i* glUniform3i;
 typedef void WINAPI type_glEnableVertexAttribArray(GLuint index);
 static type_glEnableVertexAttribArray* glEnableVertexAttribArray;
 
+typedef void WINAPI type_glEnableVertexArrayAttrib(GLuint vaobj, GLuint index);
+static type_glEnableVertexArrayAttrib* glEnableVertexArrayAttrib;
+
+typedef void WINAPI type_glVertexArrayAttribIFormat(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset);
+static type_glVertexArrayAttribIFormat* glVertexArrayAttribIFormat;
+
 typedef void WINAPI type_glVertexAttribBinding(GLuint attribindex, GLuint bindingindex);
 static type_glVertexAttribBinding* glVertexAttribBinding;
+
+typedef void WINAPI type_glVertexArrayAttribBinding(GLuint vaobj, GLuint attribindex, GLuint bindingindex);
+static type_glVertexArrayAttribBinding* glVertexArrayAttribBinding;
 
 typedef void WINAPI type_glDisableVertexAttribArray(GLuint index);
 static type_glDisableVertexAttribArray* glDisableVertexAttribArray;
@@ -482,8 +518,20 @@ static type_glVertexAttribIPointer* glVertexAttribIPointer;
 typedef void WINAPI type_glBindVertexArray(GLuint array);
 static type_glBindVertexArray* glBindVertexArray;
 
-typedef void WINAPI type_glGenVertexArrays(GLsizei n, GLuint *arrays);
+typedef void WINAPI type_glGenVertexArrays(GLsizei n, GLuint* arrays);
 static type_glGenVertexArrays* glGenVertexArrays;
+
+typedef void WINAPI type_glCreateVertexArrays(GLsizei n, GLuint* arrays);
+static type_glCreateVertexArrays* glCreateVertexArrays;
+
+typedef void WINAPI type_glVertexArrayVertexBuffer(GLuint vaobj, GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride);
+static type_glVertexArrayVertexBuffer* glVertexArrayVertexBuffer;
+
+typedef void WINAPI type_glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer);
+static type_glVertexArrayElementBuffer* glVertexArrayElementBuffer;
+
+typedef void WINAPI type_glCreateBuffers(GLsizei n, GLuint* buffers);
+static type_glCreateBuffers* glCreateBuffers;
 
 typedef void WINAPI type_glBindBuffer(GLenum target, GLuint buffer);
 static type_glBindBuffer* glBindBuffer;
@@ -497,10 +545,13 @@ static type_glBindBufferBase* glBindBufferBase;
 typedef void WINAPI type_glBufferSubData(GLenum target, GLuint offset, GLsizeiptr size, const void* data);
 static type_glBufferSubData* glBufferSubData;
 
-typedef void WINAPI type_glGenBuffers(GLsizei n, GLuint *buffers);
+typedef void WINAPI type_glNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data);
+static type_glNamedBufferSubData* glNamedBufferSubData;
+
+typedef void WINAPI type_glGenBuffers(GLsizei n, GLuint* buffers);
 static type_glGenBuffers* glGenBuffers;
 
-typedef void WINAPI type_glGenRenderbuffers(GLsizei n, GLuint *renderbuffers);
+typedef void WINAPI type_glGenRenderbuffers(GLsizei n, GLuint* renderbuffers);
 static type_glGenRenderbuffers* glGenRenderbuffers;
 
 typedef void WINAPI type_glBindRenderbuffer(GLenum target, GLuint renderbuffer);
@@ -509,20 +560,38 @@ static type_glBindRenderbuffer* glBindRenderbuffer;
 typedef void WINAPI type_glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
 static type_glRenderbufferStorage* glRenderbufferStorage;
 
+typedef void WINAPI type_glNamedRenderbufferStorage(GLuint renderbuffer, GLenum internalformat, GLsizei width, GLsizei height);
+static type_glNamedRenderbufferStorage* glNamedRenderbufferStorage;
+
 typedef void WINAPI type_glRenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
 static type_glRenderbufferStorageMultisample* glRenderbufferStorageMultisample;
+
+typedef void WINAPI type_glNamedRenderbufferStorageMultisample(GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
+static type_glNamedRenderbufferStorageMultisample* glNamedRenderbufferStorageMultisample;
 
 typedef void WINAPI type_glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
 static type_glFramebufferRenderbuffer* glFramebufferRenderbuffer;
 
+typedef void WINAPI type_glNamedFramebufferRenderbuffer(GLuint framebuffer, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
+static type_glNamedFramebufferRenderbuffer* glNamedFramebufferRenderbuffer;
+
 typedef void WINAPI type_glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage);
 static type_glBufferData* glBufferData;
+
+typedef void WINAPI type_glNamedBufferData(GLuint buffer, GLsizeiptr size, const void *data, GLenum usage);
+static type_glNamedBufferData* glNamedBufferData;
 
 typedef void WINAPI type_glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
 static type_glBufferStorage* glBufferStorage;
 
-typedef void* WINAPI type_glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+typedef void WINAPI type_glNamedBufferStorage(GLuint buffer, GLsizeiptr size, const void *data, GLbitfield flags);
+static type_glNamedBufferStorage* glNamedBufferStorage;
+
+typedef void* WINAPI type_glMapBufferRange(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access);
 static type_glMapBufferRange* glMapBufferRange;
+
+typedef void* WINAPI type_glMapNamedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+static type_glMapNamedBufferRange* glMapNamedBufferRange;
 
 typedef void* WINAPI type_glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size);
 static type_glBindBufferRange* glBindBufferRange;
@@ -532,6 +601,9 @@ static type_glCopyBufferSubData* glCopyBufferSubData;
 
 typedef void WINAPI type_glUnmapBuffer(GLenum target);
 static type_glUnmapBuffer* glUnmapBuffer;
+
+typedef GLboolean WINAPI type_glUnmapNamedBuffer(GLuint buffer);
+static type_glUnmapNamedBuffer* glUnmapNamedBuffer;
 
 typedef void WINAPI type_glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length);
 static type_glFlushMappedBufferRange* glFlushMappedBufferRange;
@@ -551,10 +623,10 @@ static type_glDeleteVertexArrays* glDeleteVertexArrays;
 typedef void WINAPI type_glDeleteShader(GLuint shader);
 static type_glDeleteShader* glDeleteShader;
 
-typedef void WINAPI type_glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers);
+typedef void WINAPI type_glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers);
 static type_glDeleteFramebuffers* glDeleteFramebuffers;
 
-typedef void WINAPI type_glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers);
+typedef void WINAPI type_glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers);
 static type_glDeleteRenderbuffers* glDeleteRenderbuffers;
 
 typedef void WINAPI type_glDrawBuffers(GLsizei n, const GLenum *bufs);
@@ -571,6 +643,9 @@ static type_glDrawElementsBaseVertex* glDrawElementsBaseVertex;
 
 typedef void WINAPI type_glGenerateMipmap(GLenum target);
 static type_glGenerateMipmap* glGenerateMipmap;
+
+typedef void WINAPI type_glGenerateTextureMipmap(GLuint texture);
+static type_glGenerateTextureMipmap* glGenerateTextureMipmap;
 
 typedef void WINAPI type_glDetachShader(GLuint program, GLuint shader);
 static type_glDetachShader* glDetachShader;
@@ -599,6 +674,9 @@ static type_glDrawElementsInstanced* glDrawElementsInstanced;
 typedef void WINAPI type_glProgramParameteri(GLuint program, GLenum pname, GLint value);
 static type_glProgramParameteri* glProgramParameteri;
 
+typedef void WINAPI type_glTextureParameteri(GLuint texture, GLenum pname, GLint param);
+static type_glTextureParameteri* glTextureParameteri;
+
 typedef void WINAPI gl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 typedef void WINAPI type_glDebugMessageCallback(gl_debug_callback* callback, const void* userParam);
 static type_glDebugMessageCallback* glDebugMessageCallback;
@@ -617,6 +695,9 @@ static type_glVertexAttribFormatNV* glVertexAttribFormatNV;
 
 typedef void WINAPI type_glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset);
 static type_glVertexAttribFormat* glVertexAttribFormat;
+
+typedef void WINAPI type_glVertexArrayAttribFormat(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset);
+static type_glVertexArrayAttribFormat* glVertexArrayAttribFormat;
 
 typedef void WINAPI type_glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset);
 static type_glVertexAttribIFormat* glVertexAttribIFormat;
@@ -713,7 +794,7 @@ void set_pixel_format(HDC const hdc, int32 multisampling = 0) NO_EXCEPT
         PIXELFORMATDESCRIPTOR desired_pixel_format = {0};
         desired_pixel_format.nSize = sizeof(desired_pixel_format);
         desired_pixel_format.nVersion = 1;
-        desired_pixel_format.dwFlags = PFD_SUPPORT_OPENGL|PFD_DRAW_TO_WINDOW|PFD_DOUBLEBUFFER;
+        desired_pixel_format.dwFlags = PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER;
         desired_pixel_format.iPixelType = PFD_TYPE_RGBA;
         desired_pixel_format.cColorBits = 32;
         desired_pixel_format.cAlphaBits = 8;
@@ -838,13 +919,22 @@ void opengl_init_gl() NO_EXCEPT
 {
     glGetStringi = (type_glGetStringi *) wglGetProcAddress("glGetStringi");
     glTexImage2DMultisample = (type_glTexImage2DMultisample *) wglGetProcAddress("glTexImage2DMultisample");
+    glCreateTextures = (type_glCreateTextures *) wglGetProcAddress("glCreateTextures");
+    glTextureStorage2D = (type_glTextureStorage2D *) wglGetProcAddress("glTextureStorage2D");
+    glTextureSubImage2D = (type_glTextureSubImage2D *) wglGetProcAddress("glTextureSubImage2D");
     glFenceSync = (type_glFenceSync *) wglGetProcAddress("glFenceSync");
     glClientWaitSync = (type_glClientWaitSync *) wglGetProcAddress("glClientWaitSync");
     glDeleteSync = (type_glDeleteSync *) wglGetProcAddress("glDeleteSync");
+    glCreateFramebuffers = (type_glCreateFramebuffers *) wglGetProcAddress("glCreateFramebuffers");
+    glCreateRenderbuffers = (type_glCreateRenderbuffers *) wglGetProcAddress("glCreateRenderbuffers");
+    glBindTextureUnit = (type_glBindTextureUnit *) wglGetProcAddress("glBindTextureUnit");
     glBindFramebuffer = (type_glBindFramebuffer *) wglGetProcAddress("glBindFramebuffer");
     glGenFramebuffers = (type_glGenFramebuffers *) wglGetProcAddress("glGenFramebuffers");
+    glFramebufferTexture = (type_glFramebufferTexture *) wglGetProcAddress("glFramebufferTexture");
+    glNamedFramebufferTexture = (type_glNamedFramebufferTexture *) wglGetProcAddress("glNamedFramebufferTexture");
     glFramebufferTexture2D = (type_glFramebufferTexture2D *) wglGetProcAddress("glFramebufferTexture2D");
     glCheckFramebufferStatus = (type_glCheckFramebufferStatus *) wglGetProcAddress("glCheckFramebufferStatus");
+    glCheckNamedFramebufferStatus = (type_glCheckNamedFramebufferStatus *) wglGetProcAddress("glCheckNamedFramebufferStatus");
     glBlitFramebuffer = (type_glBlitFramebuffer *) wglGetProcAddress("glBlitFramebuffer");
     glAttachShader = (type_glAttachShader *) wglGetProcAddress("glAttachShader");
     glCompileShader = (type_glCompileShader *) wglGetProcAddress("glCompileShader");
@@ -872,29 +962,44 @@ void opengl_init_gl() NO_EXCEPT
     glUniform3i = (type_glUniform3i *) wglGetProcAddress("glUniform3i");
     glUniform3f = (type_glUniform3f *) wglGetProcAddress("glUniform3f");
     glEnableVertexAttribArray = (type_glEnableVertexAttribArray *) wglGetProcAddress("glEnableVertexAttribArray");
+    glEnableVertexArrayAttrib = (type_glEnableVertexArrayAttrib *) wglGetProcAddress("glEnableVertexArrayAttrib");
     glVertexAttribBinding = (type_glVertexAttribBinding *) wglGetProcAddress("glVertexAttribBinding");
+    glVertexArrayAttribBinding = (type_glVertexArrayAttribBinding *) wglGetProcAddress("glVertexArrayAttribBinding");
+    glVertexArrayAttribIFormat = (type_glVertexArrayAttribIFormat *) wglGetProcAddress("glVertexArrayAttribIFormat");
     glDisableVertexAttribArray = (type_glDisableVertexAttribArray *) wglGetProcAddress("glDisableVertexAttribArray");
     glGetAttribLocation = (type_glGetAttribLocation *) wglGetProcAddress("glGetAttribLocation");
     glVertexAttribPointer = (type_glVertexAttribPointer *) wglGetProcAddress("glVertexAttribPointer");
     glVertexAttribIPointer = (type_glVertexAttribIPointer *) wglGetProcAddress("glVertexAttribIPointer");
     glBindVertexArray = (type_glBindVertexArray *) wglGetProcAddress("glBindVertexArray");
     glGenVertexArrays = (type_glGenVertexArrays *) wglGetProcAddress("glGenVertexArrays");
+    glCreateVertexArrays = (type_glCreateVertexArrays *) wglGetProcAddress("glCreateVertexArrays");
+    glVertexArrayVertexBuffer = (type_glVertexArrayVertexBuffer *) wglGetProcAddress("glVertexArrayVertexBuffer");
+    glVertexArrayElementBuffer = (type_glVertexArrayElementBuffer *) wglGetProcAddress("glVertexArrayElementBuffer");
+    glCreateBuffers = (type_glCreateBuffers *) wglGetProcAddress("glCreateBuffers");
     glBindBuffer = (type_glBindBuffer *) wglGetProcAddress("glBindBuffer");
     glBindVertexBuffer = (type_glBindVertexBuffer *) wglGetProcAddress("glBindVertexBuffer");
     glBindBufferBase = (type_glBindBufferBase *) wglGetProcAddress("glBindBufferBase");
     glBufferSubData = (type_glBufferSubData *) wglGetProcAddress("glBufferSubData");
+    glNamedBufferSubData = (type_glNamedBufferSubData *) wglGetProcAddress("glNamedBufferSubData");
     glGenBuffers = (type_glGenBuffers *) wglGetProcAddress("glGenBuffers");
     glGenRenderbuffers = (type_glGenRenderbuffers *) wglGetProcAddress("glGenRenderbuffers");
     glBindRenderbuffer = (type_glBindRenderbuffer *) wglGetProcAddress("glBindRenderbuffer");
     glRenderbufferStorage = (type_glRenderbufferStorage *) wglGetProcAddress("glRenderbufferStorage");
+    glNamedRenderbufferStorage = (type_glNamedRenderbufferStorage *) wglGetProcAddress("glNamedRenderbufferStorage");
     glRenderbufferStorageMultisample = (type_glRenderbufferStorageMultisample *) wglGetProcAddress("glRenderbufferStorageMultisample");
+    glNamedRenderbufferStorageMultisample = (type_glNamedRenderbufferStorageMultisample *) wglGetProcAddress("glNamedRenderbufferStorageMultisample");
     glFramebufferRenderbuffer = (type_glFramebufferRenderbuffer *) wglGetProcAddress("glFramebufferRenderbuffer");
+    glNamedFramebufferRenderbuffer = (type_glNamedFramebufferRenderbuffer *) wglGetProcAddress("glNamedFramebufferRenderbuffer");
     glBufferData = (type_glBufferData *) wglGetProcAddress("glBufferData");
+    glNamedBufferData = (type_glNamedBufferData *) wglGetProcAddress("glNamedBufferData");
     glBufferStorage = (type_glBufferStorage *) wglGetProcAddress("glBufferStorage");
+    glNamedBufferStorage = (type_glNamedBufferStorage *) wglGetProcAddress("glNamedBufferStorage");
     glMapBufferRange = (type_glMapBufferRange *) wglGetProcAddress("glMapBufferRange");
+    glMapNamedBufferRange = (type_glMapNamedBufferRange *) wglGetProcAddress("glMapNamedBufferRange");
     glBindBufferRange = (type_glBindBufferRange *) wglGetProcAddress("glBindBufferRange");
     glCopyBufferSubData = (type_glCopyBufferSubData *) wglGetProcAddress("glCopyBufferSubData");
     glUnmapBuffer = (type_glUnmapBuffer *) wglGetProcAddress("glUnmapBuffer");
+    glUnmapNamedBuffer = (type_glUnmapNamedBuffer *) wglGetProcAddress("glUnmapNamedBuffer");
     glFlushMappedBufferRange = (type_glFlushMappedBufferRange *) wglGetProcAddress("glFlushMappedBufferRange");
     glFlushMappedNamedBufferRange = (type_glFlushMappedNamedBufferRange *) wglGetProcAddress("glFlushMappedNamedBufferRange");
     glActiveTexture = (type_glActiveTexture *) wglGetProcAddress("glActiveTexture");
@@ -908,6 +1013,7 @@ void opengl_init_gl() NO_EXCEPT
     glTexSubImage3D = (type_glTexSubImage3D *) wglGetProcAddress("glTexSubImage3D");
     glDrawElementsBaseVertex = (type_glDrawElementsBaseVertex *) wglGetProcAddress("glDrawElementsBaseVertex");
     glGenerateMipmap = (type_glGenerateMipmap *) wglGetProcAddress("glGenerateMipmap");
+    glGenerateTextureMipmap = (type_glGenerateTextureMipmap *) wglGetProcAddress("glGenerateTextureMipmap");
     glDetachShader = (type_glDetachShader *) wglGetProcAddress("glDetachShader");
     glDeleteBuffers = (type_glDeleteBuffers *) wglGetProcAddress("glDeleteBuffers");
     glUniformMatrix2fv = (type_glUniformMatrix2fv *) wglGetProcAddress("glUniformMatrix2fv");
@@ -917,8 +1023,10 @@ void opengl_init_gl() NO_EXCEPT
     glDrawArraysInstanced = (type_glDrawArraysInstanced *) wglGetProcAddress("glDrawArraysInstanced");
     glDrawElementsInstanced = (type_glDrawElementsInstanced *) wglGetProcAddress("glDrawElementsInstanced");
     glProgramParameteri = (type_glProgramParameteri *) wglGetProcAddress("glProgramParameteri");
+    glTextureParameteri = (type_glTextureParameteri *) wglGetProcAddress("glTextureParameteri");
     glDebugMessageCallback = (type_glDebugMessageCallback *) wglGetProcAddress("glDebugMessageCallback");
     glVertexAttribFormat = (type_glVertexAttribFormat *) wglGetProcAddress("glVertexAttribFormat");
+    glVertexArrayAttribFormat = (type_glVertexArrayAttribFormat *) wglGetProcAddress("glVertexArrayAttribFormat");
     glVertexAttribIFormat = (type_glVertexAttribIFormat *) wglGetProcAddress("glVertexAttribIFormat");
     glObjectLabel = (type_glObjectLabel *) wglGetProcAddress("glObjectLabel");
     glObjectPtrLabel = (type_glObjectPtrLabel *) wglGetProcAddress("glObjectPtrLabel");

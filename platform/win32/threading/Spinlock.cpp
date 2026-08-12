@@ -28,7 +28,7 @@ void spinlock_start(spinlock32* const lock) NO_EXCEPT
     while (lock->load() || lock->exchange(1)) {
         YieldProcessor();
     }
-    PPROFILE_END_DEBUG(PROFILE_MUTEX_ACQUIRE);
+    PROFILE_END_DEBUG(PROFILE_MUTEX_ACQUIRE);
     PROFILE_START_DEBUG(PROFILE_MUTEX_LOCK);
 }
 
@@ -42,14 +42,14 @@ void spinlock_start(spinlock32* const lock, int32 delay) NO_EXCEPT
     while (lock->load() || lock->exchange(1)) {
         usleep(delay);
     }
-    PPROFILE_END_DEBUG(PROFILE_MUTEX_ACQUIRE);
+    PROFILE_END_DEBUG(PROFILE_MUTEX_ACQUIRE);
 }
 
 FORCE_INLINE
 void spinlock_end(spinlock32* const lock) NO_EXCEPT
 {
     lock->store(0);
-    PPROFILE_END_DEBUG(PROFILE_MUTEX_LOCK);
+    PROFILE_END_DEBUG(PROFILE_MUTEX_LOCK);
 }
 
 #endif

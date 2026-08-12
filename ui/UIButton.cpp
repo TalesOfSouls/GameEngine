@@ -59,7 +59,7 @@ void ui_vertices_cache(
         zindex = camera_step_closer(gpu_api_type, zindex);
     }
 
-    if (button->image.texture) {
+    if (button->image.texture_id) {
         ui_dimension_calculate(&button->core.dimension, &button->image.dimension);
         ui_vertices_cache(
             &button->image, vertex_cache, index_cache, zindex

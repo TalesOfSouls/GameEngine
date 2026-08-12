@@ -123,4 +123,13 @@ enum VertexType {
     VERTEX_TYPE_ALL = 15,
 };
 
+const CONSTEXPR int32 _GPUAPI_ATTRIBUTE_STRIDE[] = {
+    sizeof(Vertex3D), // GPU_ATTRIBUTE_TYPE_VERTEX_3D
+    sizeof(Vertex3DNormal), // GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL
+    sizeof(Vertex3DColor), // GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR
+    sizeof(Vertex3DTextureColor), // GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR
+    sizeof(Vertex3DSamplerTextureColor), // GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR
+    sizeof(Vertex2DTexture)  // GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE
+};
+
 #endif

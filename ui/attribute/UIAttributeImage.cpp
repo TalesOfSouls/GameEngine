@@ -14,9 +14,8 @@ void ui_image_attribute_from_atlas(
 ) NO_EXCEPT
 {
     int32 uv_start = ui_atlas->elements[atlas_texture_id].uv_start;
-    // @todo change to use actual sampler id instead of hardcoded "2"
     // +1 due to 1-index instead of 0 index (0 = no sampler)
-    img->texture = 2 + 1;
+    img->texture_id = ui_atlas->texture->opengl_texture.texture_id + 1;
     memcpy(img->tex_coord, &ui_atlas->uv[uv_start], sizeof(v2_f32) * 4);
     img->dimension.pos = {0.0f, 0.0f};
 
@@ -34,7 +33,7 @@ void ui_vertices_cache(
 ) NO_EXCEPT
 {
     vertex_rect_create(
-        vertex_cache, index_cache, zindex, image->texture - 1,
+        vertex_cache, index_cache, zindex, image->texture_id - 1,
         {image->dimension.pos.x, image->dimension.pos.y, image->dimension.dim.width, image->dimension.dim.height},
         UI_ALIGN_V_TOP | UI_ALIGN_H_LEFT,
         0, image->tex_coord[3], image->tex_coord[1]

@@ -510,18 +510,18 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     #if ((defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL))
         #define PROFILE_DEBUG(id, ...) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, ##__VA_ARGS__)
         #define PROFILE_START_DEBUG(id, ...) performance_profiler_start((id), ##__VA_ARGS__)
-        #define PPROFILE_END_DEBUG(id) performance_profiler_end((id))
+        #define PROFILE_END_DEBUG(id) performance_profiler_end((id))
         #define PROFILE_SCOPE_DEBUG(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
     #else
         #define PROFILE_DEBUG(id, ...) ((void) 0)
         #define PROFILE_START_DEBUG(id, ...) ((void) 0)
-        #define PPROFILE_END_DEBUG(id) ((void) 0)
+        #define PROFILE_END_DEBUG(id) ((void) 0)
         #define PROFILE_SCOPE_DEBUG(id, name) ((void) 0)
     #endif
 
     #define PROFILE(id, ...) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, ##__VA_ARGS__)
     #define PROFILE_START(id, ...) performance_profiler_start((id), ##__VA_ARGS__)
-    #define PPROFILE_END(id) performance_profiler_end((id))
+    #define PROFILE_END(id) performance_profiler_end((id))
     #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
 
     // Moves the index of _perf_stats usually called after a completed frame
@@ -541,12 +541,12 @@ void performance_profiler_end(int32 id) NO_EXCEPT
 #else
     #define PROFILE_DEBUG(id, ...) ((void) 0)
     #define PROFILE_START_DEBUG(id, ...) ((void) 0)
-    #define PPROFILE_END_DEBUG(id) ((void) 0)
+    #define PROFILE_END_DEBUG(id) ((void) 0)
     #define PROFILE_SCOPE_DEBUG(id, name) ((void) 0)
 
     #define PROFILE(id, ...) ((void) 0)
     #define PROFILE_START(id, ...) ((void) 0)
-    #define PPROFILE_END(id) ((void) 0)
+    #define PROFILE_END(id) ((void) 0)
     #define PROFILE_SCOPE(id, name) ((void) 0)
 
     #define PROFILE_SNAPSHOT() ((void) 0)

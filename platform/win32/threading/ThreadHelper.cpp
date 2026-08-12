@@ -22,14 +22,14 @@
     ASSERT_TRUE((mutex)); \
     PROFILE_START_DEBUG(PROFILE_MUTEX_ACQUIRE); \
     EnterCriticalSection((mutex)); \
-    PPROFILE_END_DEBUG(PROFILE_MUTEX_ACQUIRE); \
+    PROFILE_END_DEBUG(PROFILE_MUTEX_ACQUIRE); \
     PROFILE_START_DEBUG(PROFILE_MUTEX_LOCK); \
 }
 
 #define mutex_unlock(mutex) { \
     ASSERT_TRUE((mutex)); \
     LeaveCriticalSection((mutex)); \
-    PPROFILE_END_DEBUG(PROFILE_MUTEX_LOCK); \
+    PROFILE_END_DEBUG(PROFILE_MUTEX_LOCK); \
 }
 
 #endif

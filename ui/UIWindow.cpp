@@ -167,7 +167,7 @@ void ui_vertices_cache(
         );
     }
 
-    if (window->button_close.image.texture) {
+    if (window->button_close.image.texture_id) {
         // We need two since our buttons might otherwise be behind the title/panel border
         zindex = camera_step_closer(gpu_api_type, zindex);
         zindex = camera_step_closer(gpu_api_type, zindex);

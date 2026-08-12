@@ -429,11 +429,11 @@ v2_int32 vertex_text_create(
             array_vector_insert(indices, vertices->count + 2);
             array_vector_insert(indices, vertices->count + 3);
 
-            const int32 sampler = font->base.texture->opengl_texture.sampler + 1;
-            array_vector_reserve_one(vertices) = {{offset_x, y_end_scaled, zindex}, sampler, glyph->uv_start}; // tl
-            array_vector_reserve_one(vertices) = {{x_end_scaled, y_end_scaled, zindex}, sampler, {glyph->uv_end.x, glyph->uv_start.y}}; // tr
-            array_vector_reserve_one(vertices) = {{x_end_scaled, offset_y, zindex}, sampler, glyph->uv_end}; // br
-            array_vector_reserve_one(vertices) = {{offset_x, offset_y, zindex}, sampler, {glyph->uv_start.x, glyph->uv_end.y}}; // bl
+            const int32 texture_id = font->base.texture->opengl_texture.texture_id;
+            array_vector_reserve_one(vertices) = {{offset_x, y_end_scaled, zindex}, texture_id, glyph->uv_start}; // tl
+            array_vector_reserve_one(vertices) = {{x_end_scaled, y_end_scaled, zindex}, texture_id, {glyph->uv_end.x, glyph->uv_start.y}}; // tr
+            array_vector_reserve_one(vertices) = {{x_end_scaled, offset_y, zindex}, texture_id, glyph->uv_end}; // br
+            array_vector_reserve_one(vertices) = {{offset_x, offset_y, zindex}, texture_id, {glyph->uv_start.x, glyph->uv_end.y}}; // bl
         }
 
         const f32 add_offset = (metrics->width + metrics->advance_x) * scale;

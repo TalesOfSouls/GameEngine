@@ -19,6 +19,15 @@
 #include "Opengl.h"
 #include "PersistentGpuBuffer.h"
 
+/**
+ * OpenGL has a concept called DSA where you can interact with buffers and rendering objects in general
+ * without binding them. This among other things reduces the amount of API interactions and
+ * keeps the global state cleaner.
+ *
+ * You can still use the "legacy" way by requiring a bind of the respective object. The functions that use that
+ * are called `*_legacy()`
+ */
+
 void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, const GLchar* message, const void*)
 {
     if (severity < GL_DEBUG_SEVERITY_LOW) {
@@ -215,7 +224,7 @@ uint32 gpuapi_texture_data_type(uint32 texture_data_type) NO_EXCEPT
 // 5. texture_use
 
 FORCE_INLINE
-void gpuapi_prepare_texture(Texture* const texture) NO_EXCEPT
+void gpuapi_prepare_texture_legacy(Texture* const texture) NO_EXCEPT
 {
     const uint32 texture_data_type = gpuapi_texture_data_type(texture->texture_data_type);
 
@@ -224,9 +233,8 @@ void gpuapi_prepare_texture(Texture* const texture) NO_EXCEPT
     glBindTexture(texture_data_type, (GLuint) texture->opengl_texture.texture_id);
 }
 
-// @todo this should have a gpuapi_ name
 inline
-void gpuapi_texture_to_gpu(const Texture* const texture, int32 mipmap_level = 0) NO_EXCEPT
+void gpuapi_texture_to_gpu_legacy(const Texture* const texture, int32 mipmap_level = 0) NO_EXCEPT
 {
     PROFILE_START_DEBUG(PROFILE_GPU);
     // @todo also handle different texture formats (R, RG, RGB, 1 byte vs 4 byte per pixel)
@@ -241,7 +249,7 @@ void gpuapi_texture_to_gpu(const Texture* const texture, int32 mipmap_level = 0)
     if (mipmap_level > -1) {
         glGenerateMipmap(GL_TEXTURE_2D);
     }
-    PPROFILE_END_DEBUG(PROFILE_GPU);
+    PROFILE_END_DEBUG(PROFILE_GPU);
 
     STATS_INCREMENT_BY_DEBUG(
         DEBUG_COUNTER_GPU_UPLOAD,
@@ -254,12 +262,73 @@ void gpuapi_texture_to_gpu(const Texture* const texture, int32 mipmap_level = 0)
 }
 
 FORCE_INLINE
-void gpuapi_texture_use(const Texture* const texture) NO_EXCEPT
+void gpuapi_prepare_texture(Texture* const texture) NO_EXCEPT
+{
+    const uint32 texture_data_type = gpuapi_texture_data_type(texture->texture_data_type);
+    glCreateTextures(texture_data_type, 1, (GLuint *) &texture->opengl_texture.texture_id);
+}
+
+inline
+void gpuapi_texture_to_gpu(const Texture* const texture, int32 mipmap_level = 0) NO_EXCEPT
+{
+    PROFILE_START_DEBUG(PROFILE_GPU);
+
+    const GLuint tex_id = (GLuint)texture->opengl_texture.texture_id;
+    const bool use_mipmaps = (mipmap_level > -1);
+    const int32 upload_level = use_mipmaps ? mipmap_level : 0;
+
+    // Allocate immutable storage once
+    // Note: If you call this function multiple times to update pixels, move glTextureStorage2D
+    // to your prepare_texture function instead so it only allocates once.
+    glTextureStorage2D(
+        tex_id,
+        use_mipmaps ? 4 : 1,
+        GL_RGBA8,
+        texture->image.width,
+        texture->image.height
+    );
+
+    // Upload sub-data directly to the texture ID without binding
+    glTextureSubImage2D(
+        tex_id, upload_level,
+        0, 0, texture->image.width, texture->image.height,
+        GL_RGBA, GL_UNSIGNED_BYTE, texture->image.pixels
+    );
+
+    // Configure parameters and mipmaps
+    glTextureParameteri(tex_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (use_mipmaps) {
+        glTextureParameteri(tex_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glGenerateTextureMipmap(tex_id);
+    } else {
+        glTextureParameteri(tex_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
+
+    PROFILE_END_DEBUG(PROFILE_GPU);
+
+    STATS_INCREMENT_BY_DEBUG(
+        DEBUG_COUNTER_GPU_UPLOAD,
+        texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings)
+    );
+    STATS_INCREMENT_BY_PERSISTENT_DEBUG(
+        DEBUG_COUNTER_VRAM_BYTES,
+        texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings)
+    );
+}
+
+FORCE_INLINE
+void gpuapi_texture_use_legacy(const Texture* const texture) NO_EXCEPT
 {
     const uint32 texture_data_type = gpuapi_texture_data_type(texture->texture_data_type);
 
     glActiveTexture(GL_TEXTURE0 + texture->opengl_texture.sampler);
     glBindTexture(texture_data_type, (GLuint) texture->opengl_texture.texture_id);
+}
+
+FORCE_INLINE
+void gpuapi_texture_use(const Texture* const texture) NO_EXCEPT
+{
+    glBindTextureUnit(texture->opengl_texture.sampler, (GLuint) texture->opengl_texture.texture_id);
 }
 
 FORCE_INLINE
@@ -421,7 +490,7 @@ int32 calculate_face_size(int components, int32 faces) NO_EXCEPT
 // generates faces
 // data is no longer needed after this
 inline
-uint32 gpuapi_buffer_generate(int32 type, int32 size, const void* data) NO_EXCEPT
+uint32 gpuapi_buffer_generate_legacy(int32 type, int32 size, const void* data) NO_EXCEPT
 {
     uint32 bo;
 
@@ -436,7 +505,7 @@ uint32 gpuapi_buffer_generate(int32 type, int32 size, const void* data) NO_EXCEP
 }
 
 inline
-uint32 gpuapi_buffer_generate_dynamic(int32 type, int32 size, const void* data) NO_EXCEPT
+uint32 gpuapi_buffer_generate_dynamic_legacy(int32 type, int32 size, const void* data) NO_EXCEPT
 {
     uint32 bo;
 
@@ -452,7 +521,7 @@ uint32 gpuapi_buffer_generate_dynamic(int32 type, int32 size, const void* data) 
 
 // type is GL_UNIFORM_BUFFER or GL_ARRAY_BUFFER
 inline
-void gpuapi_buffer_persistent_generate(int32 type, PersistentGpuBuffer* const buffer) NO_EXCEPT
+void gpuapi_buffer_persistent_generate_legacy(int32 type, PersistentGpuBuffer* const buffer) NO_EXCEPT
 {
     glGenBuffers(1, &buffer->bo);
     glBindBuffer(type, buffer->bo);
@@ -473,11 +542,77 @@ void gpuapi_buffer_persistent_generate(int32 type, PersistentGpuBuffer* const bu
     STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, buffer->size);
 }
 
+inline
+uint32 gpuapi_buffer_generate(int32 size, const void* data) NO_EXCEPT
+{
+    uint32 bo;
+
+    glCreateBuffers(1, &bo);
+    glNamedBufferData(bo, size, data, GL_STATIC_DRAW);
+
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, size);
+
+    return bo;
+}
+
+inline
+uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data) NO_EXCEPT
+{
+    uint32 bo;
+
+    glCreateBuffers(1, &bo);
+    glNamedBufferData(bo, size, data, GL_DYNAMIC_DRAW);
+
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, size);
+
+    return bo;
+}
+
+// type is GL_UNIFORM_BUFFER or GL_ARRAY_BUFFER — only needed at bind time now,
+// kept as a param in case callers store it on `buffer` for later binding.
+inline
+void gpuapi_buffer_persistent_generate(PersistentGpuBuffer* const buffer) NO_EXCEPT
+{
+    glCreateBuffers(1, &buffer->bo);
+    glNamedBufferStorage(
+        buffer->bo, buffer->size, NULL,
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_DYNAMIC_STORAGE_BIT
+    );
+
+    buffer->data = (byte *) glMapNamedBufferRange(
+        buffer->bo, 0, buffer->size,
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
+    );
+
+    ASSERT_GPU_API();
+    ASSERT_TRUE(buffer->data);
+
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
+    STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, buffer->size);
+}
+
+// Only required for the none-legacy functions.
+// Must be called once per frame per buffer
+inline
+void gpuapi_buffer_bind(int32 type, uint32 index, uint32 bo) NO_EXCEPT
+{
+    glBindBufferBase(type, index, bo);
+}
+
 FORCE_INLINE
-void gpuapi_buffer_persistent_delete(GLuint vbo) NO_EXCEPT
+void gpuapi_buffer_persistent_delete_legacy(GLuint vbo) NO_EXCEPT
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glUnmapBuffer(GL_ARRAY_BUFFER);
+}
+
+FORCE_INLINE
+void gpuapi_buffer_persistent_delete(GLuint vbo) NO_EXCEPT
+{
+    glUnmapNamedBuffer(vbo);
+    glDeleteBuffers(1, &vbo);
 }
 
 // region_start is the start of that specific persistent buffer region
@@ -504,7 +639,7 @@ void gpuapi_draw_buffer_subregion(void* region_start, int32 frame_index, size_t 
 */
 
 FORCE_INLINE
-uint32 gpuapi_framebuffer_generate() NO_EXCEPT
+uint32 gpuapi_framebuffer_generate_legacy() NO_EXCEPT
 {
     uint32 fbo;
 
@@ -515,7 +650,16 @@ uint32 gpuapi_framebuffer_generate() NO_EXCEPT
 }
 
 FORCE_INLINE
-uint32 gpuapi_renderbuffer_generate() NO_EXCEPT
+uint32 gpuapi_framebuffer_generate() NO_EXCEPT
+{
+    uint32 fbo;
+    glCreateFramebuffers(1, &fbo);
+
+    return fbo;
+}
+
+FORCE_INLINE
+uint32 gpuapi_renderbuffer_generate_legacy() NO_EXCEPT
 {
     uint32 rbo;
 
@@ -526,12 +670,31 @@ uint32 gpuapi_renderbuffer_generate() NO_EXCEPT
 }
 
 FORCE_INLINE
-void gpuapi_buffer_update(uint32 vbo, int32 size, const void* data) NO_EXCEPT
+uint32 gpuapi_renderbuffer_generate() NO_EXCEPT
+{
+    uint32 rbo;
+    glCreateRenderbuffers(1, &rbo);
+
+    return rbo;
+}
+
+FORCE_INLINE
+void gpuapi_buffer_update_legacy(uint32 vbo, int32 size, const void* data) NO_EXCEPT
 {
     PROFILE_START_DEBUG(PROFILE_GPU);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
-    PPROFILE_END_DEBUG(PROFILE_GPU);
+    PROFILE_END_DEBUG(PROFILE_GPU);
+
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+}
+
+FORCE_INLINE
+void gpuapi_buffer_update(uint32 vbo, int32 size, const void* data) NO_EXCEPT
+{
+    PROFILE_START_DEBUG(PROFILE_GPU);
+    glNamedBufferData(vbo, size, data, GL_DYNAMIC_DRAW);
+    PROFILE_END_DEBUG(PROFILE_GPU);
 
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
 }
@@ -541,7 +704,7 @@ void gpuapi_buffer_update(uint32 vbo, int32 size, const void* data) NO_EXCEPT
 // WARNING: if the offset is 0 you MUST provide the max. number of vertices for rendering,
 //  otherwise a subsequent call to the same vbo may fail if it has more vertices
 inline
-void gpuapi_vertex_buffer_update(
+void gpuapi_vertex_buffer_update_legacy(
     uint32 vbo,
     const void* data, int32 vertex_size, int32 vertex_count, int32 offset = 0
 ) NO_EXCEPT
@@ -557,18 +720,47 @@ void gpuapi_vertex_buffer_update(
     } else {
         glBufferData(GL_ARRAY_BUFFER, vertex_size * vertex_count, data, GL_DYNAMIC_DRAW);
     }
-    PPROFILE_END_DEBUG(PROFILE_GPU);
+    PROFILE_END_DEBUG(PROFILE_GPU);
+    ASSERT_GPU_API();
+
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, vertex_size * vertex_count - offset);
+}
+
+inline
+void gpuapi_vertex_buffer_update(
+    uint32 vbo,
+    const void* data, int32 vertex_size, int32 vertex_count, int32 offset = 0
+) NO_EXCEPT
+{
+    PROFILE_START_DEBUG(PROFILE_GPU);
+    // @performance Does this if even make sense or is glNamedBufferSubData always the better choice?
+    if (offset) {
+        glNamedBufferSubData(vbo, offset, vertex_size * vertex_count - offset, ((byte *) data) + offset);
+    } else {
+        glNamedBufferData(vbo, vertex_size * vertex_count, data, GL_DYNAMIC_DRAW);
+    }
+    PROFILE_END_DEBUG(PROFILE_GPU);
     ASSERT_GPU_API();
 
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, vertex_size * vertex_count - offset);
 }
 
 FORCE_INLINE
-uint32 gpuapi_vertex_buffer_create() NO_EXCEPT
+uint32 gpuapi_vertex_buffer_create_legacy() NO_EXCEPT
 {
     uint32 vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
+
+    return vao;
+}
+
+
+FORCE_INLINE
+uint32 gpuapi_vertex_buffer_create() NO_EXCEPT
+{
+    uint32 vao;
+    glCreateVertexArrays(1, &vao);
 
     return vao;
 }

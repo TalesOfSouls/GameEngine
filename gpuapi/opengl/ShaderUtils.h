@@ -338,7 +338,10 @@ void gpuapi_pipeline_use(uint32 id) NO_EXCEPT
 
 // Used for multi-buffering
 inline
-void gpuapi_attribute_setup(GpuAttributeType type, const OpenglVertexInputAttributeDescription* const attr) NO_EXCEPT
+void gpuapi_attribute_setup_legacy(
+    GpuAttributeType type,
+    const OpenglVertexInputAttributeDescription* const attr
+) NO_EXCEPT
 {
     const int32 length = _GPUAPI_ATTRIBUTE_COUNT[type];
     const GLuint binding_index = 0;
@@ -367,9 +370,56 @@ void gpuapi_attribute_setup(GpuAttributeType type, const OpenglVertexInputAttrib
     }
 }
 
+inline
+void gpuapi_attribute_setup(
+    uint32 vao, uint32 binding_index,
+    GpuAttributeType type,
+    const OpenglVertexInputAttributeDescription* const attr
+) NO_EXCEPT
+{
+    const int32 length = _GPUAPI_ATTRIBUTE_COUNT[type];
+
+    for (int32 i = 0; i < length; ++i) {
+        const uint32 relative_offset = (uint32)attr[i].offset;
+
+        if (attr[i].format == GL_INT) {
+            glVertexArrayAttribIFormat(
+                vao,
+                attr[i].location,
+                attr[i].count,
+                attr[i].format,
+                relative_offset
+            );
+        } else {
+            glVertexArrayAttribFormat(
+                vao,
+                attr[i].location,
+                attr[i].count,
+                attr[i].format,
+                GL_FALSE,
+                relative_offset
+            );
+        }
+
+        glVertexArrayAttribBinding(
+            vao,
+            attr[i].location,
+            binding_index
+        );
+
+        glEnableVertexArrayAttrib(
+            vao,
+            attr[i].location
+        );
+    }
+}
+
 // used for relative static content
 inline
-void gpuapi_attribute_setup_static(GpuAttributeType type, const OpenglVertexInputAttributeDescription* const attr) NO_EXCEPT
+void gpuapi_attribute_setup_static_legacy(
+    GpuAttributeType type,
+    const OpenglVertexInputAttributeDescription* const attr
+) NO_EXCEPT
 {
     const int32 length = _GPUAPI_ATTRIBUTE_COUNT[type];
     for (int32 i = 0; i < length; ++i) {
@@ -393,6 +443,40 @@ void gpuapi_attribute_setup_static(GpuAttributeType type, const OpenglVertexInpu
             );
         }
         glEnableVertexAttribArray(attr[i].location);
+    }
+}
+
+inline
+void gpuapi_attribute_setup_static(
+    uint32 vao, uint32 binding_index,
+    GpuAttributeType type, const OpenglVertexInputAttributeDescription* const attr
+) NO_EXCEPT
+{
+    const int32 length = _GPUAPI_ATTRIBUTE_COUNT[type];
+    for (int32 i = 0; i < length; ++i) {
+        const uint32 relative_offset = (uint32) attr[i].offset;
+
+        if (attr[i].format == GL_INT) {
+            glVertexArrayAttribIFormat(
+                vao,
+                attr[i].location,
+                attr[i].count,
+                attr[i].format,
+                relative_offset
+            );
+        } else {
+            glVertexArrayAttribFormat(
+                vao,
+                attr[i].location,
+                attr[i].count,
+                attr[i].format,
+                false,
+                relative_offset
+            );
+        }
+
+        glVertexArrayAttribBinding(vao, attr[i].location, binding_index);
+        glEnableVertexArrayAttrib(vao, attr[i].location);
     }
 }
 

@@ -6,8 +6,8 @@
 #include "UIAttributeDimension.h"
 
 struct UIAttributeImage {
-    // 1-indexed sampler
-    uint32 texture;
+    // 1-indexed texture_id
+    uint32 texture_id;
 
     UIAttributeDimension dimension;
 
