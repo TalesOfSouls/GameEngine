@@ -55,7 +55,7 @@ void hashmap_free(HashMap* const hm, MemoryArena* mem) NO_EXCEPT
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* const hm, int32 count, int32 element_size, RingMemory* const ring, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void hashmap_init(HashMap* const hm, int32 count, int32 element_size, RingMemory* const ring, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(ring);
 
@@ -79,7 +79,7 @@ void hashmap_create(HashMap* const hm, int32 count, int32 element_size, RingMemo
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* const hm, int32 count, int32 element_size, BufferMemory* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void hashmap_init(HashMap* const hm, int32 count, int32 element_size, BufferMemory* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     ASSERT_TRUE(buf);
 
@@ -100,7 +100,7 @@ void hashmap_create(HashMap* const hm, int32 count, int32 element_size, BufferMe
 // WARNING: element_size = element size + remaining HashEntry data size
 // count ideally should be a power of 2 for better data alignment
 inline
-void hashmap_create(HashMap* const hm, int32 count, int32 element_size, byte* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void hashmap_init(HashMap* const hm, int32 count, int32 element_size, byte* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     LOG_1("[INFO] Create HashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->hash_function = hash_djb2;
@@ -1101,7 +1101,7 @@ int64 hashmap_dump(const HashMap* const hm, byte* data, MAYBE_UNUSED int32 value
     return data - start;
 }
 
-// WARNING: Requires hashmap_create first
+// WARNING: Requires hashmap_init first
 int64 hashmap_load(HashMap* const hm, const byte* data, MAYBE_UNUSED int32 value_size, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {
     LOG_1("[INFO] Load HashMap");

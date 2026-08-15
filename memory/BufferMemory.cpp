@@ -18,6 +18,30 @@
 #include "BufferMemory.h"
 
 inline
+void buffer_init(
+    BufferMemory* const buf,
+    byte* const data,
+    size_t size,
+    int32 alignment = sizeof(size_t),
+    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
+) NO_EXCEPT
+{
+    ASSERT_TRUE(size);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
+
+    buf->end = buf->memory + size;
+    buf->head = buf->memory;
+    buf->size = size;
+    buf->alignment = alignment;
+
+    memset(buf->memory, 0, buf->size);
+
+    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
+}
+
+inline
 void buffer_alloc(
     BufferMemory* const buf,
     size_t size,
@@ -35,14 +59,8 @@ void buffer_alloc(
     max_size = align_up(max_size, ASSUMED_CACHE_LINE_SIZE);
     LOG_1("[INFO] Allocating BufferMemory: %n B", {DATA_TYPE_UINT64, &size});
 
-    buf->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
-
-    buf->end = buf->memory + size;
-    buf->head = buf->memory;
-    buf->size = size;
-    buf->alignment = alignment;
-
-    memset(buf->memory, 0, buf->size);
+    byte* buffer = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
+    buffer_init(buf, buffer, size, alignment, start_alignment);
 
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, buf->size);
 }
@@ -85,15 +103,7 @@ void buffer_alloc(
         max_size,
         start_alignment
     );
-    buf->memory = arena->memory;
-
-    buf->end = buf->memory + size;
-    buf->head = buf->memory;
-    buf->size = size;
-    buf->alignment = alignment;
-
-    memset(buf->memory, 0, buf->size);
-
+    buffer_init(buf, arena->memory, size, alignment, start_alignment);
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, buf->size);
 }
 
@@ -124,7 +134,6 @@ FORCE_INLINE
 void thrd_buffer_free(BufferMemory* const buf) NO_EXCEPT
 {
     buffer_free(buf);
-    //mutex_destroy(&buf->lock);
 }
 
 inline
@@ -139,31 +148,6 @@ FORCE_INLINE
 void thrd_buffer_free(BufferMemory* const buf, MemoryArena* const mem) NO_EXCEPT
 {
     buffer_free(buf, mem);
-    //mutex_destroy(&buf->lock);
-}
-
-inline
-void buffer_init(
-    BufferMemory* const buf,
-    byte* const data,
-    size_t size,
-    int32 alignment = sizeof(size_t),
-    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
-) NO_EXCEPT
-{
-    ASSERT_TRUE(size);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
-
-    buf->end = buf->memory + size;
-    buf->head = buf->memory;
-    buf->size = size;
-    buf->alignment = alignment;
-
-    memset(buf->memory, 0, buf->size);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 FORCE_INLINE

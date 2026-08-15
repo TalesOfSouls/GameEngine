@@ -44,11 +44,14 @@ struct PersistentQueueT {
 
     // We support both conditional locking and semaphore locking
     // These values are not initialized and not used unless you use the queue
-    mutex lock;
+    alignas(ASSUMED_CACHE_LINE_SIZE) mutex lock;
     mutex_cond cond;
 
     sem empty;
     sem full;
+
+    // We can't compile the actual required size at compile time because compilers/windows suck!
+    char _pad[ASSUMED_CACHE_LINE_SIZE];
 };
 
 #endif

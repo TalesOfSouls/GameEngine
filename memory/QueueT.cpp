@@ -11,6 +11,16 @@
 
 template <typename T>
 FORCE_INLINE
+void queue_init(QueueT<T>* const queue, byte* buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    queue->capacity = capacity;
+    queue->memory = (T *) align_up((uintptr_t) buf, alignment);
+    queue->head = queue->memory;
+    queue->tail = queue->memory;
+}
+
+template <typename T>
+FORCE_INLINE
 void queue_alloc(QueueT<T>* const queue, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -20,14 +30,13 @@ void queue_alloc(QueueT<T>* const queue, int capacity, int max_capacity, int ali
 
     LOG_1("[INFO] Allocating QueueT");
 
-    queue->capacity = capacity;
-    queue->memory = (T *) platform_alloc_aligned(
-        queue->capacity * sizeof(T),
+    byte* buffer = (byte *) platform_alloc_aligned(
+        capacity * sizeof(T),
         max_capacity * sizeof(T),
         alignment
     );
-    queue->head = queue->memory;
-    queue->tail = queue->memory;
+
+    queue_init(queue, buffer, capacity, alignment);
 }
 
 template <typename T>
@@ -41,7 +50,6 @@ void queue_alloc(
 {
     PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     ASSERT_TRUE(max_capacity >= capacity);
-    queue->capacity = capacity;
 
     MemoryArena* const arena = mem_arena_add(
         mem,
@@ -49,30 +57,15 @@ void queue_alloc(
         sizeof(T) * max_capacity,
         alignment
     );
-    queue->memory = (T *) arena->memory;
-
-    queue->head = queue->memory;
-    queue->tail = queue->memory;
+    queue_init(queue, arena->memory, capacity, alignment);
 }
 
 template <typename T>
 FORCE_INLINE
 void queue_init(QueueT<T>* const queue, BufferMemory* const buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    queue->capacity = capacity;
-    queue->memory = (T *) memory_get(buf, sizeof(T) * capacity, alignment);
-    queue->head = queue->memory;
-    queue->tail = queue->memory;
-}
-
-template <typename T>
-FORCE_INLINE
-void queue_init(QueueT<T>* const queue, byte* buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    queue->capacity = capacity;
-    queue->memory = (T *) align_up((uintptr_t) buf, alignment);
-    queue->head = queue->memory;
-    queue->tail = queue->memory;
+    byte* buffer = memory_get(buf, sizeof(T) * capacity, alignment);
+    queue_init(queue, buffer, capacity, alignment);
 }
 
 template <typename T>

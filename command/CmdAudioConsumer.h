@@ -45,7 +45,7 @@ Asset* cmd_internal_audio_play_enqueue(
 
 static inline
 Asset* cmd_audio_play_async(
-    QueueT<int32>* const __restrict assets_to_load,
+    ChunkMemoryT<AppCommand>* const cb,
     AssetManagementSystem* const __restrict ams,
     AudioMixer* const __restrict mixer,
     const AppCommand* const __restrict cmd
@@ -60,11 +60,7 @@ Asset* cmd_audio_play_async(
         //          Maybe we can pass the asset?
         cmd_internal_audio_play_enqueue(ams, mixer, cmd);
     } else {
-        AppCommand asset_cmd = {0};
-        asset_cmd.type = CMD_ASSET_ENQUEUE;
-        asset_cmd.asset_body.asset_id = cmd->audio_body.asset.asset_id;
-
-        cmd_asset_load_enqueue(assets_to_load, &asset_cmd);
+        thrd_cmd_asset_load(cb, cmd->audio_body.asset.asset_id);
     }
 
     return asset;

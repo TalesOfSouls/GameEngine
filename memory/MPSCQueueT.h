@@ -13,13 +13,19 @@
 template <typename T>
 struct MPSCQueueT {
     T* memory;
-    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<T*> head;
-    alignas(ASSUMED_CACHE_LINE_SIZE) T* tail;
     int capacity;
 
-    // Construction tracking - one per slot
-    // 0 = empty/writing, 1 = ready
-    atomic<uint32>* slot_ready;
+    // one flag per slot: 0 = not ready, 1 = ready
+    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<byte>* slot_ready;
+
+    // Contended across all producer threads.
+    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<T*> head;
+
+    // Written only by the consumer thread; read atomically by producers
+    // to know whether a slot is free.
+    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<T*> tail;
+    T* head_cache;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(atomic<T*>) - sizeof(T*)];
 };
 
 #endif

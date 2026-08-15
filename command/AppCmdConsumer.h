@@ -119,9 +119,6 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
         case CMD_FUNC_RUN: {
                 cmd_func_run(cmd);
             } break;
-        case CMD_ASSET_ENQUEUE: {
-                cmd_asset_load_enqueue(cb->assets_to_load, cmd);
-            } break;
         case CMD_ASSET_LOAD: {
                 cmd_asset_load(cb->asset_archives, cb->ams, cb->mem, cmd);
             } break;
@@ -133,7 +130,7 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
             } break;
         case CMD_TEXTURE_LOAD: {
                 completed = cmd_texture_load_async(
-                    cb->assets_to_load,
+                    &cb->commands,
                     cb->ams,
                     cb->gpu_api_type,
                     cmd
@@ -153,7 +150,7 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                 cmd_internal_font_create(cb, cmd);
             } break;
         case CMD_AUDIO_PLAY: {
-                completed = cmd_audio_play_async(cb->assets_to_load, cb->ams, cb->mixer, cmd) != NULL;
+                completed = cmd_audio_play_async(&cb->commands, cb->ams, cb->mixer, cmd) != NULL;
             } break;
         case CMD_INTERNAL_AUDIO_ENQUEUE: {
                 completed = cmd_internal_audio_play_enqueue(cb->ams, cb->mixer, cmd) != NULL;
@@ -182,9 +179,15 @@ void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
     int32 chunk_id = 0;
     chunk_iterate_start(&cb->commands, chunk_id) {
         AppCommand* cmd = (AppCommand *) chunk_get_element(&cb->commands, chunk_id);
+
+        // @performance we should have a flag that checks if it needs prior tasks to finish
+        //          e.g. run on first time, if it has prerequisites, set to false AND
+        //          tell the sub-tasks somehow to set the flag to completed once done
         bool remove = cmd_execute(cb, cmd);
 
         if (!remove) {
+            // @bug This feels like it would cause bugs
+            // @performance It feels also that this is very slow,
             continue;
         }
 

@@ -82,7 +82,7 @@ void theme_from_file_txt(
     ASSERT_TRUE(temp_group_count > 0);
 
     // We reserve * 2 memory to avoid too many hash collisions
-    hashmap_create(
+    hashmap_init(
         &theme->hash_map,
         temp_group_count * 2,
         theme->data,
@@ -295,7 +295,7 @@ int32 theme_from_data(
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
     // The value is a int64 (because this is the value of the chunk buffer size but the hashmap only allows int32)
-    hashmap_create(
+    hashmap_init(
         &theme->hash_map,
         count,
         theme->data,

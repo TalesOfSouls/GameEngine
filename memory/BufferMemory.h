@@ -8,7 +8,7 @@
 #define COMS_MEMORY_BUFFER_MEMORY_H
 
 #include "../stdlib/Stdlib.h"
-#include "../thread/Thread.h"
+#include "../thread/Spinlock.h"
 
 struct BufferMemory {
     byte* memory;
@@ -18,7 +18,8 @@ struct BufferMemory {
     size_t size;
     int32 alignment;
 
-    spinlock32 lock;
+    alignas(ASSUMED_CACHE_LINE_SIZE) spinlock32 lock;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(spinlock32)];
 };
 
 #endif

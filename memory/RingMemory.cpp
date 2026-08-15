@@ -23,75 +23,6 @@
 #include "RingMemory.h"
 
 inline
-void ring_alloc(RingMemory* const ring, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    ASSERT_TRUE(size);
-    ASSERT_TRUE(max_size >= size);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-    PROFILE_DEBUG(PROFILE_RING_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
-
-    size = align_up(size, ASSUMED_CACHE_LINE_SIZE);
-    LOG_1("[INFO] Allocating RingMemory: %n B", {DATA_TYPE_UINT64, &size});
-
-    ring->memory = (byte *) platform_alloc_aligned(size, max_size, alignment);
-
-    ring->end = ring->memory + size;
-    ring->head = ring->memory;
-    ring->tail = ring->memory;
-    ring->size = size;
-    ring->alignment = alignment;
-}
-
-inline
-void ring_alloc(
-    RingMemory* const __restrict ring,
-    MemoryArena* const __restrict mem,
-    size_t size,
-    size_t max_size,
-    int32 alignment = sizeof(size_t)
-) NO_EXCEPT
-{
-    ASSERT_TRUE(size);
-    ASSERT_TRUE(max_size >= size);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    size = align_up(size, (size_t) alignment);
-    MemoryArena* const arena = mem_arena_add(mem, size, max_size, alignment);
-    ring->memory = arena->memory;
-
-    ring->end = ring->memory + size;
-    ring->head = ring->memory;
-    ring->tail = ring->memory;
-    ring->size = size;
-    ring->alignment = alignment;
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
-}
-
-inline
-void ring_init(
-    RingMemory* const __restrict ring,
-    BufferMemory* const __restrict buf,
-    size_t size,
-    int32 alignment = sizeof(size_t)
-) NO_EXCEPT
-{
-    ASSERT_TRUE(size);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    size = align_up(size, (size_t) alignment);
-    ring->memory = memory_get(buf, size, alignment);
-
-    ring->end = ring->memory + size;
-    ring->head = ring->memory;
-    ring->tail = ring->memory;
-    ring->size = size;
-    ring->alignment = alignment;
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
-}
-
-inline
 void ring_init(
     RingMemory* const __restrict ring,
     byte* const __restrict buf,
@@ -110,6 +41,59 @@ void ring_init(
     ring->tail = ring->memory;
     ring->size = size;
     ring->alignment = alignment;
+
+    DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
+}
+
+inline
+void ring_alloc(RingMemory* const ring, size_t size, size_t max_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    ASSERT_TRUE(size);
+    ASSERT_TRUE(max_size >= size);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+    PROFILE_DEBUG(PROFILE_RING_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
+
+    size = align_up(size, ASSUMED_CACHE_LINE_SIZE);
+    LOG_1("[INFO] Allocating RingMemory: %n B", {DATA_TYPE_UINT64, &size});
+
+    byte* buffer = (byte *) platform_alloc_aligned(size, max_size, alignment);
+    ring_init(ring, buffer, size, alignment);
+}
+
+inline
+void ring_alloc(
+    RingMemory* const __restrict ring,
+    MemoryArena* const __restrict mem,
+    size_t size,
+    size_t max_size,
+    int32 alignment = sizeof(size_t)
+) NO_EXCEPT
+{
+    ASSERT_TRUE(size);
+    ASSERT_TRUE(max_size >= size);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    size = align_up(size, (size_t) alignment);
+    MemoryArena* const arena = mem_arena_add(mem, size, max_size, alignment);
+    ring_init(ring, arena->memory, size, alignment);
+
+    DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
+}
+
+inline
+void ring_init(
+    RingMemory* const __restrict ring,
+    BufferMemory* const __restrict buf,
+    size_t size,
+    int32 alignment = sizeof(size_t)
+) NO_EXCEPT
+{
+    ASSERT_TRUE(size);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    size = align_up(size, (size_t) alignment);
+    byte* buffer = memory_get(buf, size, alignment);
+    ring_init(ring, buffer, size, alignment);
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
 }
@@ -170,7 +154,6 @@ FORCE_INLINE
 void thrd_ring_free(RingMemory* const ring) NO_EXCEPT
 {
     ring_free(ring);
-    //mutex_destroy(&ring->lock);
 }
 
 inline
@@ -186,7 +169,6 @@ FORCE_INLINE
 void thrd_ring_free(RingMemory* const ring, MemoryArena* mem) NO_EXCEPT
 {
     ring_free(ring, mem);
-    //mutex_destroy(&ring->lock);
 }
 
 inline

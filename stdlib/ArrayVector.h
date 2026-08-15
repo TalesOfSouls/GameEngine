@@ -8,6 +8,7 @@
 #define COMS_STDLIB_ARRAY_VECTOR_H
 
 #include "Stdlib.h"
+#include "../memory/BufferMemory.h"
 
 template<typename T>
 struct ArrayVector {

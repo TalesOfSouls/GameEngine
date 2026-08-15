@@ -46,7 +46,7 @@ void hashmap_alloc(HashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int3
 
 template <typename T>
 inline
-void hashmap_create(HashMapT<T>* const hm, int32 count, byte* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void hashmap_init(HashMapT<T>* const hm, int32 count, byte* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
     hm->hash_function = hash_djb2;
@@ -61,7 +61,7 @@ void hashmap_create(HashMapT<T>* const hm, int32 count, byte* const buf, int32 a
 
 template <typename T>
 inline
-void hashmap_create(HashMapT<T>* const hm, int32 count, BufferMemory* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
+void hashmap_init(HashMapT<T>* const hm, int32 count, BufferMemory* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
     hm->hash_function = hash_djb2;
@@ -394,7 +394,7 @@ int64 hashmap_dump(const HashMapT<T>* const hm, byte* data, MAYBE_UNUSED int32 s
     return data - start;
 }
 
-// WARNING: Requires hashmap_create first
+// WARNING: Requires hashmap_init first
 template <typename T>
 int64 hashmap_load(HashMapT<T>* const hm, const byte* data, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {

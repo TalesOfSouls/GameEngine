@@ -37,7 +37,8 @@ struct FragmentMemoryT {
     // Array that contains indices into the free chunks
     int32* free;
 
-    spinlock32 lock;
+    alignas(ASSUMED_CACHE_LINE_SIZE) spinlock32 lock;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(spinlock32)];
 };
 
 template <typename T>

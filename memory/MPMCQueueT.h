@@ -13,15 +13,23 @@
 template <typename T>
 struct MPMCQueueT {
     T* memory;
+
+    // WARNING: Must be power of 2
     int capacity;
+    int mask;
 
-    // Sequence numbers for each slot - one extra bit indicates if slot contains data
-    // Sequence scheme: seq % (2*capacity) < capacity means slot is available for writing
-    //                  seq % (2*capacity) >= capacity means slot has data for reading
-    atomic<uint32>* sequences;
+    // The sequence number helps us to handle multiple producers/consumers and flag
+    // when a slot is empty/used
+    // Empty state: sequence[i] = i + (k * N)     where k is even (0, 2, 4, ...)
+    // Full state:  sequence[i] = i + (k * N)     where k is odd (1, 3, 5, ...)
+    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<size_t>* sequence;
 
-    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<uint32> enqueue_pos;
-    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<uint32> dequeue_pos;
+    // Contended across all producer threads
+    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<size_t> head;
+
+    // Contended across all consumer threads
+    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<size_t> tail;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(atomic<size>)];
 };
 
 #endif

@@ -8,10 +8,17 @@
 #define COMS_THREADS_THREAD_POOL_C
 
 #include "ThreadPool.h"
-#include "../memory/PersistentQueueT.cpp"
+#include "../memory/MPMCWorkTrackingQueueT.cpp"
 
-// @performance Can we optimize this? This is a critical function.
-// If we have a small worker the "spinup"/"re-activation" time is from utmost importance
+// Notifies the thread pool that a worker is about to become idle
+static FORCE_INLINE
+void thread_pool_notify_one(ThreadPool* const pool) NO_EXCEPT
+{
+    if (pool->sleeping_cnt.load() > 0) {
+        coms_sem_post(&pool->work_sem);
+    }
+}
+
 static inline
 THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 {
@@ -43,33 +50,37 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 
     while (true) {
         THREAD_TICK(_thread_local_id);
-        {
-            // @performance Would a spinlock be faster, WAIT isn't this locking the thread potentially extremely long?
-            MutexGuard _guard(&pool->work_mutex);
 
-            while (pool->state >= THREAD_POOL_STATE_RUNNING && queue_is_empty(&pool->work_queue)) {
-                coms_pthread_cond_wait(&pool->work_cond, &pool->work_mutex);
-            }
-
-            if (pool->state <= THREAD_POOL_STATE_WAITING) {
+        work = queue_dequeue_keep(&pool->work_queue);
+        if (!work) {
+            if (pool->state.load() == THREAD_POOL_STATE_CANCELING) {
+                --pool->sleeping_cnt;
                 break;
             }
 
+            // We mark this worker as asleep
+            ++pool->sleeping_cnt;
+
+            // This avoids missing an enqueue
             work = queue_dequeue_keep(&pool->work_queue);
-        }
+            if (work) {
+                coms_sem_trywait(&pool->work_sem);
+            } else {
+                if (pool->state.load() == THREAD_POOL_STATE_CANCELING) {
+                    --pool->sleeping_cnt;
+                    break;
+                }
 
-        // @question Why are we using atomic operations for some of the stuff below?
-        //          This only makes sense if the work/job pointer is shared across multiple threads
-        //          If it is only stored in the thread itself and the calling thread we don't need atomics
-        //          As a result we are now avoiding the use of atomics in some cases (see commented code)
+                LOG_1("Worker %d: about to wait", {DATA_TYPE_INT32, &_thread_local_id});
+                int32 ret = coms_sem_wait(&pool->work_sem);
+                LOG_1("Worker %d: woke up", {DATA_TYPE_INT32, &_thread_local_id});
+                LOG_1("Worker %d: ret", {DATA_TYPE_INT32, &ret});
+            }
 
-        // When the worker functions of the thread pool get woken up it is possible that the work is already dequeued
-        // by another thread -> we need to check if the work is actually valid
-        PoolWorkerState state_temp = work->state.load();
-        if (state_temp <= POOL_WORKER_STATE_COMPLETED
-            && work->state.compare_exchange_strong(state_temp, POOL_WORKER_STATE_COMPLETED)
-        ) {
-            continue;
+            --pool->sleeping_cnt;
+            if (!work) {
+                continue;
+            }
         }
 
         ++pool->working_cnt;
@@ -100,17 +111,10 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
         }
 
         --pool->working_cnt;
-
-        // Signal that we ran out of work (maybe the main thread needs this info)
-        // This is not required for the thread pool itself but maybe some other part of the main thread wants to know
-        if (pool->working_cnt.load() == 0) {
-            coms_pthread_cond_signal(&pool->working_cond);
-        }
     }
 
     // We tell the thread pool that this worker thread is shutting down
     --pool->thread_cnt;
-    coms_pthread_cond_signal(&pool->working_cond);
 
     LOG_2("[INFO] Thread pool worker shutting down");
     STATS_DECREMENT_DEBUG(DEBUG_COUNTER_THREAD);
@@ -121,10 +125,10 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 static FORCE_INLINE CONSTEXPR
 size_t thread_pool_size(
     int32 thread_count,
-    int worker_capacity
+    int32 worker_capacity
 ) NO_EXCEPT
 {
-    return queue_persistent_size(sizeof(PoolWorker), worker_capacity)
+    return queue_size(sizeof(PoolWorker), worker_capacity)
         + sizeof(coms_pthread_t) * thread_count
         + alignof(coms_pthread_t);
 }
@@ -143,10 +147,12 @@ void thread_pool_alloc(
         {DATA_TYPE_INT32, &worker_capacity}
     );
 
-    const size_t queue_size = queue_persistent_size(sizeof(PoolWorker), worker_capacity);
+    worker_capacity = queue_next_pow2(worker_capacity);
+
+    const size_t q_size = queue_size(sizeof(PoolWorker), worker_capacity);
     byte* buf = (byte *) platform_alloc_aligned(
-        queue_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t),
-        queue_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t),
+        q_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t),
+        q_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t),
         alignment
     );
     queue_init(&pool->work_queue, buf, worker_capacity, alignment);
@@ -155,20 +161,15 @@ void thread_pool_alloc(
 
     if (!pool->is_detached) {
         pool->thread_handles = (coms_pthread_t *) align_up(
-            (uintptr_t) (buf + queue_size),
+            (uintptr_t) (buf + q_size),
             alignof(coms_pthread_t)
         );
 
         memset(pool->thread_handles, 0, sizeof(coms_pthread_t) * thread_count);
     }
 
-    // @todo switch from pool mutex and pool cond to threadjob mutex/cond
-    //      thread_pool_wait etc. should just iterate over all mutexes
-    mutex_init(&pool->work_mutex, NULL);
-    coms_pthread_cond_init(&pool->work_cond, NULL);
-    coms_pthread_cond_init(&pool->working_cond, NULL);
-
-    pool->state = THREAD_POOL_STATE_RUNNING;
+    coms_sem_init(&pool->work_sem, 0);
+    pool->sleeping_cnt.store(0);
 
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
@@ -181,6 +182,8 @@ void thread_pool_alloc(
             pool->thread_handles[pool->size] = thread;
         }
     }
+
+    pool->state.store(THREAD_POOL_STATE_RUNNING);
 
     LOG_2(
         "[INFO] %d threads running",
@@ -200,33 +203,38 @@ void thread_pool_init(
 {
     PROFILE_DEBUG(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
-        "[INFO] Creating thread pool with %d threads and %d queue length",
+        "[INFO] Initializing thread pool with %d threads and %d queue length",
         {DATA_TYPE_INT32, &thread_count},
         {DATA_TYPE_INT32, &worker_capacity}
     );
 
-    queue_init(&pool->work_queue, buf, worker_capacity, alignment);
+    worker_capacity = queue_next_pow2(worker_capacity);
+
+    const size_t q_size = queue_size(sizeof(PoolWorker), worker_capacity);
+    byte* buffer = (byte *) memory_get(buf,
+        q_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t),
+        alignment
+    );
+    queue_init(&pool->work_queue, buffer, worker_capacity, alignment);
+
+    DEBUG_MEMORY_NAME("Threadpool", pool->work_queue.memory);
 
     if (!pool->is_detached) {
-        pool->thread_handles = (coms_pthread_t *) memory_get(
-            buf,
-            sizeof(coms_pthread_t) * thread_count,
+        pool->thread_handles = (coms_pthread_t *) align_up(
+            (uintptr_t) (buffer + q_size),
             alignof(coms_pthread_t)
         );
+
+        memset(pool->thread_handles, 0, sizeof(coms_pthread_t) * thread_count);
     }
+
     DEBUG_MEMORY_SUBREGION(
         (uintptr_t) pool->work_queue.memory,
         sizeof(PoolWorker) * worker_capacity + sizeof(coms_pthread_t) * thread_count
     );
 
-    // @todo switch from pool mutex and pool cond to threadjob mutex/cond
-    //      thread_pool_wait etc. should just iterate over all mutexes
-    mutex_init(&pool->work_mutex, NULL);
-    coms_pthread_cond_init(&pool->work_cond, NULL);
-    coms_pthread_cond_init(&pool->working_cond, NULL);
-
-    // No atomic operation required here
-    pool->state = THREAD_POOL_STATE_RUNNING;
+    coms_sem_init(&pool->work_sem, 0);
+    pool->sleeping_cnt.store(0);
 
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
@@ -240,50 +248,25 @@ void thread_pool_init(
         }
     }
 
+    pool->state.store(THREAD_POOL_STATE_RUNNING);
+
     LOG_2(
         "[INFO] %d threads running",
-        {DATA_TYPE_INT64,
-            (void *) &_stats_counter->stats[
-                _stats_counter->pos * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD
-            ]
-        }
+        {DATA_TYPE_INT64, (void *) &_stats_counter->stats[
+            _stats_counter->pos * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD
+        ]}
     );
-}
-
-inline
-void thread_pool_wait(ThreadPool* const pool) NO_EXCEPT
-{
-    MutexGuard _guard(&pool->work_mutex);
-    while (pool->working_cnt != 0 || pool->thread_cnt != 0) {
-        coms_pthread_cond_wait(&pool->working_cond, &pool->work_mutex);
-    }
 }
 
 void thread_pool_destroy(ThreadPool* const pool) NO_EXCEPT
 {
-    // This sets the queue to empty
-    pool->work_queue.tail = pool->work_queue.head;
-
-    {
-        MutexGuard _guard(&pool->work_mutex);
-
-        // This sets the state to "shutdown"
-        pool->state = THREAD_POOL_STATE_WAITING;
-    }
-
-    coms_pthread_cond_broadcast(&pool->work_cond);
-    thread_pool_wait(pool);
-
-    mutex_destroy(&pool->work_mutex);
-    coms_pthread_cond_destroy(&pool->work_cond);
-    coms_pthread_cond_destroy(&pool->working_cond);
-
-    // This sets the state to "down"
-    pool->state = THREAD_POOL_STATE_COMPLETED;
-
+    pool->state.store(THREAD_POOL_STATE_CANCELING);
     for (int i = 0; i < pool->size; ++i) {
         coms_pthread_join(pool->thread_handles[i], NULL);
     }
+
+    pool->state.store(THREAD_POOL_STATE_COMPLETED);
+    coms_sem_destroy(&pool->work_sem);
 }
 
 // Checks if the thread pool is running as it is supposed to
@@ -322,16 +305,10 @@ void thread_pool_fix(ThreadPool* const pool) NO_EXCEPT
     }
 }
 
+// @performance Check if adding a function that allows us to add multiple jobs in one go is more efficient
 PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) NO_EXCEPT
 {
-    // @performance It might be better to not use mutexes but rather use atomics or spinlocks
-    //              If we would change we would have to:
-    //                  1. Use atomics for queue adds
-    //                  2. in the queue use a second flag signaling when a insert is completed
-    //                  3. use atomic increment for id_counter (how to avoid id = 0?)
-    MutexGuard _guard(&pool->work_mutex);
-    PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start_safe(&pool->work_queue);
-
+    PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
     if (!temp_job) {
         ASSERT_THROW();
 
@@ -341,18 +318,17 @@ PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) 
     memcpy(temp_job, job, sizeof(PoolWorker));
     temp_job->state.store(POOL_WORKER_STATE_WAITING);
 
-    queue_enqueue_end(&pool->work_queue);
-
     // +1 because otherwise the very first job would be id = 0 which is not a valid id
-    ++pool->id_counter;
+    uint32 id = ++pool->id_counter;
     if (!pool->id_counter.load()) { UNLIKELY
         // ID of 0 is not allowed
-        ++pool->id_counter;
+        id = ++pool->id_counter;
     }
 
-    temp_job->id.store(pool->id_counter.load());
+    temp_job->id.store(id);
 
-    coms_pthread_cond_broadcast(&pool->work_cond);
+    queue_enqueue_end(temp_job);
+    thread_pool_notify_one(pool);
 
     return temp_job;
 }
@@ -362,44 +338,31 @@ PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) 
 inline
 PoolWorker* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
 {
-    // @performance It might be better to not use mutexes but rather use atomics or spinlocks
-    //              If we would change we would have to:
-    //                  1. Use atomics for queue adds
-    //                  2. in the queue use a second flag signaling when a insert is completed
-    //                  3. use atomic increment for id_counter (how to avoid id = 0?)
-    mutex_lock(&pool->work_mutex);
     PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
-
-    // We need atomic here since the job state might be modified in the thread
-    if (temp_job->state.load() > POOL_WORKER_STATE_COMPLETED) {
-        mutex_unlock(&pool->work_mutex);
-
+    if (!temp_job) {
         return NULL;
     }
 
     memset(temp_job, 0, sizeof(PoolWorker));
+    temp_job->state.store(POOL_WORKER_STATE_WAITING);
 
     // +1 because otherwise the very first job would be id = 0 which is not a valid id
-    ++pool->id_counter;
+    uint32 id = ++pool->id_counter;
     if (!pool->id_counter) { UNLIKELY
         // ID of 0 is not allowed
-        ++pool->id_counter;
+        id = ++pool->id_counter;
     }
 
-    temp_job->id.store(pool->id_counter.load());
-
-    // Here we don't need atomic
-    temp_job->state = POOL_WORKER_STATE_WAITING;
+    temp_job->id.store(id);
 
     return temp_job;
 }
 
 inline
-void thread_pool_add_work_end(ThreadPool* const pool) NO_EXCEPT
+void thread_pool_add_work_end(ThreadPool* const pool, PoolWorker* const job) NO_EXCEPT
 {
-    queue_enqueue_end(&pool->work_queue);
-    coms_pthread_cond_broadcast(&pool->work_cond);
-    mutex_unlock(&pool->work_mutex);
+    queue_enqueue_end(job);
+    thread_pool_notify_one(pool);
 }
 
 // This joins the work not the actual threads in the thread pool
@@ -443,6 +406,8 @@ bool thread_pool_join(
         }
     }
 
+    ASSERT_TRUE(max_sleep > current_sleep);
+
     return completed_mask == all_done_mask;
 }
 
@@ -455,8 +420,6 @@ bool thread_pool_join(
 {
     ASSERT_TRUE(count <= 64);
 
-    // @question Maybe we should use a semaphore for this group of jobs
-    //          to avoid the heavy thread lock due to looping below
     uint64 completed_mask = 0;
     const uint64 all_done_mask = (count == 64 ? UINT64_MAX : ((1ULL << count) - 1));
 
@@ -490,13 +453,14 @@ bool thread_pool_join(
         }
     }
 
+    ASSERT_TRUE(max_sleep > current_sleep);
+
     return false;
 }
 
 FORCE_INLINE
 void thread_pool_work_release(ThreadPool* const pool, const PoolWorker* job) NO_EXCEPT
 {
-    MutexGuard _guard(&pool->work_mutex);
     queue_dequeue_release(&pool->work_queue, job);
 }
 

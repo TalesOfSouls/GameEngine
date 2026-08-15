@@ -48,7 +48,7 @@ Asset* cmd_internal_texture_create(
 
 static inline
 Asset* cmd_texture_load_async(
-    QueueT<int32>* const __restrict assets_to_load,
+    ChunkMemoryT<AppCommand>* const cb,
     AssetManagementSystem* const __restrict ams,
     GpuApiType gpu_api_type,
     AppCommand* const __restrict cmd
@@ -61,11 +61,7 @@ Asset* cmd_texture_load_async(
     if (asset) {
         cmd_internal_texture_create(ams, gpu_api_type, cmd);
     } else {
-        AppCommand asset_cmd = {0};
-        asset_cmd.type = CMD_ASSET_ENQUEUE;
-        asset_cmd.asset_body.asset_id = cmd->texture_body.asset.asset_id;
-
-        cmd_asset_load_enqueue(assets_to_load, cmd);
+        thrd_cmd_asset_load(cb, cmd->texture_body.asset.asset_id);
     }
 
     return asset;
@@ -163,11 +159,7 @@ Asset* cmd_texture_atlas_load_async(
     if (asset) {
         cmd_internal_texture_atlas_create(cb, cmd);
     } else {
-        AppCommand asset_cmd = {0};
-        asset_cmd.type = CMD_ASSET_ENQUEUE;
-        asset_cmd.asset_body.asset_id = cmd->texture_body.asset.asset_id;
-
-        cmd_asset_load_enqueue(cb->assets_to_load, cmd);
+        thrd_cmd_asset_load(&cb->commands, cmd->texture_body.asset.asset_id);
     }
 
     return asset;

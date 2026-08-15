@@ -8,10 +8,8 @@
 #define COMS_MEMORY_QUEUE_H
 
 #include "../stdlib/Stdlib.h"
-#include "../utils/Utils.h"
-#include "../thread/Atomic.h"
-#include "RingMemory.cpp"
-#include "BufferMemory.h"
+#include "../thread/ThreadDefines.h"
+#include "../thread/Semaphore.h"
 
 // WARNING: Structure needs to be the same as RingMemory
 struct Queue {
@@ -34,11 +32,12 @@ struct Queue {
 
     // We support both conditional locking and semaphore locking
     // These values are not initialized and not used unless you use the queue
-    mutex mtx;
+    alignas(ASSUMED_CACHE_LINE_SIZE) mutex mtx;
     mutex_cond cond;
 
     sem empty;
     sem full;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(mutex) - sizeof(mutex_cond) - sizeof(sem) * 2];
 };
 
 typedef void* (*QueueFunction)(void* data);

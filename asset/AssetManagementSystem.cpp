@@ -21,7 +21,7 @@ inline
 void ams_create(AssetManagementSystem* const ams, BufferMemory* const buf, int32 asset_component_count, int32 count) NO_EXCEPT
 {
     LOG_1("[INFO] Create AMS for %n assets", {DATA_TYPE_INT32, &count});
-    hashmap_create(&ams->hash_map, count, buf);
+    hashmap_init(&ams->hash_map, count, buf);
     ams->asset_component_count = asset_component_count;
     ams->asset_components = (AssetComponent *) memory_get(
         buf,

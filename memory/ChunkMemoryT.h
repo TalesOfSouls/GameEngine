@@ -41,7 +41,8 @@ struct ChunkMemoryT {
     // The completeness indicates if the data is completely written to
     size_t* completeness;
 
-    spinlock32 lock;
+    alignas(ASSUMED_CACHE_LINE_SIZE) spinlock32 lock;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(spinlock32)];
 };
 
 #endif

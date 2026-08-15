@@ -8,11 +8,11 @@
 #define COMS_COMMAND_BUFFER_FILE_PRODUCER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/QueueT.cpp"
 #include "../system/FileUtils.cpp"
 #include "AppCommand.h"
 
 // This doesn't load the file directly but tells (most likely) a worker thread to load a file
+/*
 static inline
 void cmd_file_load_enqueue(
     QueueT<FileToLoad>* const __restrict files_to_load,
@@ -21,5 +21,6 @@ void cmd_file_load_enqueue(
 {
     thrd_queue_enqueue_wait(files_to_load, cmd->file_body.file_to_load);
 }
+*/
 
 #endif

@@ -9,7 +9,6 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemoryT.cpp"
-#include "../memory/QueueT.cpp"
 #include "../thread/ThreadHelper.cpp"
 #include "AppCommand.h"
 

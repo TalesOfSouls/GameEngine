@@ -495,7 +495,7 @@ void voxel_world_alloc(VoxelWorld* const vw, const v3_int32& pos, int chunk_coun
     pool_init(&vw->chunks, &vw->mem, chunk_count, sizeof(VoxelChunk), ASSUMED_CACHE_LINE_SIZE);
 
     // We want a hashmap with 2* the amount of chunks for reduced hash collisions
-    hashmap_create(&vw->map, node_count, sizeof(HashEntryVoidP), &vw->mem, 32);
+    hashmap_init(&vw->map, node_count, sizeof(HashEntryVoidP), &vw->mem, 32);
     vw->map.hash_function = hash_int64;
 
     // We expect at most chunk_count elements in our draw_array.

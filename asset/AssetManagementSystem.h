@@ -33,7 +33,8 @@ struct AssetComponent {
     uint64 asset_count;
 
     // @question Do we want to add a mutex to assets. This way we don't have to lock the entire ams.
-    mutex mtx;
+    alignas(ASSUMED_CACHE_LINE_SIZE) mutex mtx;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(mutex)];
 };
 
 // @performance This doesn't really have anything to do with the AMS but how we currently operate

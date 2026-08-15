@@ -27,233 +27,6 @@ size_t chunk_size(size_t type_size, int max_capacity) NO_EXCEPT
         + sizeof(size_t);
 }
 
-// INFO: A chunk count of 2^n is recommended for maximum performance
-template <typename T>
-inline
-void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(max_capacity >= capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    LOG_1("[INFO] Allocating ChunkMemoryT");
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-    const size_t memory_size = capacity * sizeof(T) + sizeof(size_t) * array_count + alignof(size_t);
-
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
-    const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(size_t) * max_array_count + alignof(size_t);
-
-    buf->memory = (T *) platform_alloc_aligned(
-        memory_size,
-        max_memory_size,
-        alignment
-    );
-
-    buf->capacity = capacity;
-    buf->last_pos = -1;
-    buf->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (buf->memory + capacity)),
-        alignof(size_t)
-    );
-    memset(buf->free, 0, sizeof(size_t) * array_count);
-}
-
-template <typename T>
-inline
-void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(max_capacity >= capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    LOG_1("[INFO] Allocating ChunkMemoryT");
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-    const size_t memory_size = capacity * sizeof(T)
-            + sizeof(size_t) * array_count
-            + sizeof(size_t) * array_count
-            + sizeof(size_t) * 2;
-
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
-    const size_t max_memory_size = max_capacity * sizeof(T)
-            + sizeof(size_t) * max_array_count
-            + sizeof(size_t) * max_array_count
-            + sizeof(size_t) * 2;
-
-    buf->memory = (T *) platform_alloc_aligned(
-        memory_size,
-        max_memory_size,
-        alignment
-    );
-
-    buf->capacity = capacity;
-    buf->last_pos = -1;
-    buf->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (buf->memory + capacity)),
-        (size_t) alignof(size_t)
-    );
-    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), alignof(size_t));
-
-    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
-
-    spinlock_init(&buf->lock);
-
-    LOG_1("[INFO] Allocated ChunkMemoryT: %n", {DATA_TYPE_UINT64, &buf->capacity});
-}
-
-// INFO: A chunk count of 2^n is recommended for maximum performance
-template <typename T>
-inline
-void chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(max_capacity >= capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    LOG_1("[INFO] Allocating ChunkMemoryT");
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-    const size_t memory_size = capacity * sizeof(T) + sizeof(size_t) * array_count + alignof(size_t);
-
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
-    const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(size_t) * max_array_count + alignof(size_t);
-
-    MemoryArena* arena = mem_arena_add(
-        mem,
-        memory_size,
-        max_memory_size,
-        alignment
-    );
-    buf->memory = (T *) arena->memory;
-
-    buf->capacity = capacity;
-    buf->last_pos = -1;
-    buf->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (buf->memory + capacity)),
-        alignof(size_t)
-    );
-    memset(buf->free, 0, sizeof(size_t) * array_count);
-}
-
-template <typename T>
-inline
-void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(max_capacity >= capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    LOG_1("[INFO] Allocating ChunkMemoryT");
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-    const size_t memory_size = capacity * sizeof(T)
-            + sizeof(size_t) * array_count
-            + sizeof(size_t) * array_count
-            + sizeof(size_t) * 2;
-
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
-    const size_t max_memory_size = max_capacity * sizeof(T)
-            + sizeof(size_t) * max_array_count
-            + sizeof(size_t) * max_array_count
-            + sizeof(size_t) * 2;
-
-    MemoryArena* arena = mem_arena_add(
-        mem,
-        memory_size,
-        max_memory_size,
-        alignment
-    );
-    buf->memory = (T *) arena->memory;
-
-    buf->capacity = capacity;
-    buf->last_pos = -1;
-    buf->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (buf->memory + capacity)),
-        (size_t) alignof(size_t)
-    );
-    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), alignof(size_t));
-
-    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
-
-    spinlock_init(&buf->lock);
-
-    LOG_1("[INFO] Allocated ChunkMemoryT: %n", {DATA_TYPE_UINT64, &buf->capacity});
-}
-
-template <typename T>
-inline
-void chunk_init(
-    ChunkMemoryT<T>* const buf,
-    BufferMemory* const data,
-    int32 capacity,
-    int32 alignment = sizeof(size_t)
-) NO_EXCEPT
-{
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-
-    const size_t size = capacity * sizeof(T)
-        + sizeof(size_t) * array_count
-        + sizeof(size_t);
-
-    buf->memory = (T *) memory_get(data, size, alignment);
-
-    buf->capacity = capacity;
-    buf->last_pos = -1;
-    buf->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (buf->memory + capacity)),
-        (size_t) alignof(size_t)
-    );
-    memset(buf->free, 0, sizeof(size_t) * array_count);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
-}
-
-template <typename T>
-inline
-void thrd_chunk_init(
-    ChunkMemoryT<T>* const buf,
-    BufferMemory* const data,
-    int32 capacity,
-    int32 alignment = sizeof(size_t)
-) NO_EXCEPT
-{
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-    const size_t size = capacity * sizeof(T)
-        + sizeof(size_t) * array_count
-        + sizeof(size_t) * array_count
-        + sizeof(size_t) * 2;
-
-    buf->memory = (T *) memory_get(data, size, alignment);
-
-    buf->capacity = capacity;
-    buf->last_pos = -1;
-    buf->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (buf->memory + capacity)),
-        (size_t) alignof(size_t)
-    );
-    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), (size_t) alignof(size_t));
-
-    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
-
-    spinlock_init(&buf->lock);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
-}
-
 template <typename T>
 inline
 void chunk_init(
@@ -323,6 +96,171 @@ void thrd_chunk_init(
     PSEUDO_USE(size);
 }
 
+// INFO: A chunk count of 2^n is recommended for maximum performance
+template <typename T>
+inline
+void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    LOG_1("[INFO] Allocating ChunkMemoryT");
+
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+    const size_t memory_size = capacity * sizeof(T) + sizeof(size_t) * array_count + alignof(size_t);
+
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
+    const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(size_t) * max_array_count + alignof(size_t);
+
+    byte* buffer =  platform_alloc_aligned(
+        memory_size,
+        max_memory_size,
+        alignment
+    );
+
+    chunk_init(buf, buffer, capacity, alignment);
+}
+
+template <typename T>
+inline
+void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    LOG_1("[INFO] Allocating ChunkMemoryT");
+
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+    const size_t memory_size = capacity * sizeof(T)
+            + sizeof(size_t) * array_count
+            + sizeof(size_t) * array_count
+            + sizeof(size_t) * 2;
+
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
+    const size_t max_memory_size = max_capacity * sizeof(T)
+            + sizeof(size_t) * max_array_count
+            + sizeof(size_t) * max_array_count
+            + sizeof(size_t) * 2;
+
+    byte* buffer = (byte *) platform_alloc_aligned(
+        memory_size,
+        max_memory_size,
+        alignment
+    );
+
+    thrd_chunk_init(buf, buffer, capacity, alignment);
+}
+
+// INFO: A chunk count of 2^n is recommended for maximum performance
+template <typename T>
+inline
+void chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    LOG_1("[INFO] Allocating ChunkMemoryT");
+
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+    const size_t memory_size = capacity * sizeof(T) + sizeof(size_t) * array_count + alignof(size_t);
+
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
+    const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(size_t) * max_array_count + alignof(size_t);
+
+    MemoryArena* arena = mem_arena_add(
+        mem,
+        memory_size,
+        max_memory_size,
+        alignment
+    );
+    chunk_init(buf, arena->memory, capacity, alignment);
+}
+
+template <typename T>
+inline
+void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    LOG_1("[INFO] Allocating ChunkMemoryT");
+
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+    const size_t memory_size = capacity * sizeof(T)
+            + sizeof(size_t) * array_count
+            + sizeof(size_t) * array_count
+            + sizeof(size_t) * 2;
+
+    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
+    const size_t max_memory_size = max_capacity * sizeof(T)
+            + sizeof(size_t) * max_array_count
+            + sizeof(size_t) * max_array_count
+            + sizeof(size_t) * 2;
+
+    MemoryArena* arena = mem_arena_add(
+        mem,
+        memory_size,
+        max_memory_size,
+        alignment
+    );
+    thrd_chunk_init(buf, arena->memory, capacity, alignment);
+}
+
+template <typename T>
+inline
+void chunk_init(
+    ChunkMemoryT<T>* const buf,
+    BufferMemory* const data,
+    int32 capacity,
+    int32 alignment = sizeof(size_t)
+) NO_EXCEPT
+{
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+
+    const size_t size = capacity * sizeof(T)
+        + sizeof(size_t) * array_count
+        + sizeof(size_t);
+
+    byte* buffer = memory_get(data, size, alignment);
+    chunk_init(buf, buffer, capacity, alignment);
+    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
+}
+
+template <typename T>
+inline
+void thrd_chunk_init(
+    ChunkMemoryT<T>* const buf,
+    BufferMemory* const data,
+    int32 capacity,
+    int32 alignment = sizeof(size_t)
+) NO_EXCEPT
+{
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+    const size_t size = capacity * sizeof(T)
+        + sizeof(size_t) * array_count
+        + sizeof(size_t) * array_count
+        + sizeof(size_t) * 2;
+
+    byte* buffer = memory_get(data, size, alignment);
+    thrd_chunk_init(buf, buffer, capacity, alignment);
+
+    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
+}
+
 template <typename T>
 inline
 void chunk_free(ChunkMemoryT<T>* const buf) NO_EXCEPT
@@ -346,7 +284,6 @@ inline
 void thrd_chunk_free(ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     chunk_free(buf);
-    //mutex_destroy(&buf->lock);
 }
 
 template <typename T>
@@ -366,7 +303,6 @@ inline
 void thrd_chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* const mem) NO_EXCEPT
 {
     chunk_free(buf, mem);
-    //mutex_destroy(&buf->lock);
 }
 
 template <typename T>

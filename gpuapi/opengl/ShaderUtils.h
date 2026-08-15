@@ -509,128 +509,128 @@ auto gpuapi_attribute_info_create() NO_EXCEPT
     switch (T) {
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D: {
             attr.data[0] = {
-                0, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3D), // .stride =
-                (int32) offsetof(Vertex3D, position) // .offset =
+                SMN(location) 0,
+                SMN(count) 3,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3D),
+                SMN(offset) (int32) offsetof(Vertex3D, position)
             };
 
             attr.data[1] = {
-                1, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3D), // .stride =
-                (int32) offsetof(Vertex3D, normal) // .offset =
+                SMN(location) 1,
+                SMN(count) 3,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3D),
+                SMN(offset) (int32) offsetof(Vertex3D, normal)
             };
 
             attr.data[2] = {
-                2, // .location =
-                2, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3D), // .stride =
-                (int32) offsetof(Vertex3D, tex_coord) // .offset =
+                SMN(location) 2,
+                SMN(count) 2,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3D),
+                SMN(offset) (int32) offsetof(Vertex3D, tex_coord)
             };
 
             attr.data[3] = {
-                3, // .location =
-                4, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3D), // .stride =
-                (int32) offsetof(Vertex3D, color) // .offset =
+                SMN(location) 3,
+                SMN(count) 4,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3D),
+                SMN(offset) (int32) offsetof(Vertex3D, color)
             };
         } break;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL: {
             attr.data[0] = {
-                0, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DNormal), // .stride =
-                (int32) offsetof(Vertex3DNormal, position) // .offset =
+                SMN(location) 0,
+                SMN(count) 3,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3DNormal),
+                SMN(offset) (int32) offsetof(Vertex3DNormal, position)
             };
 
             attr.data[1] = {
-                1, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DNormal), // .stride =
-                (int32) offsetof(Vertex3DNormal, normal) // .offset =
+                SMN(location) 1,
+                SMN(count) 3,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3DNormal),
+                SMN(offset) (int32) offsetof(Vertex3DNormal, normal)
             };
         } break;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR: {
             attr.data[0] = {
-                0, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DColor), // .stride =
-                (int32) offsetof(Vertex3DColor, position) // .offset =
+                SMN(location) 0,
+                SMN(count) 3,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3DColor),
+                SMN(offset) (int32) offsetof(Vertex3DColor, position)
             };
 
             attr.data[1] = {
-                1, // .location =
-                4, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DColor), // .stride =
-                (int32) offsetof(Vertex3DColor, color) // .offset =
+                SMN(location) 1,
+                SMN(count) 4,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3DColor),
+                SMN(offset) (int32) offsetof(Vertex3DColor, color)
             };
         } break;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR: {
             attr.data[0] = {
-                0, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DTextureColor), // .stride =
-                (int32) offsetof(Vertex3DTextureColor, position) // .offset =
+                SMN(location) 0,
+                SMN(count) 3,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3DTextureColor),
+                SMN(offset) (int32) offsetof(Vertex3DTextureColor, position)
             };
 
             attr.data[1] = {
-                1, // .location =
-                2, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DTextureColor), // .stride =
-                (int32) offsetof(Vertex3DTextureColor, texture_color) // .offset =
+                SMN(location) 1,
+                SMN(count) 2,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3DTextureColor),
+                SMN(offset) (int32) offsetof(Vertex3DTextureColor, texture_color)
             };
         } break;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR: {
             attr.data[0] = {
-                0, // .location =
-                3, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DSamplerTextureColor), // .stride =
-                (int32) offsetof(Vertex3DSamplerTextureColor, position) // .offset =
+                SMN(location) 0,
+                SMN(count) 3,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3DSamplerTextureColor),
+                SMN(offset) (int32) offsetof(Vertex3DSamplerTextureColor, position)
             };
 
             attr.data[1] = {
-                1, // .location =
-                1, // .count =
-                GL_INT, // .format =
-                sizeof(Vertex3DSamplerTextureColor), // .stride =
-                (int32) offsetof(Vertex3DSamplerTextureColor, sampler) // .offset =
+                SMN(location) 1,
+                SMN(count) 1,
+                SMN(format) GL_INT,
+                SMN(stride) sizeof(Vertex3DSamplerTextureColor),
+                SMN(offset) (int32) offsetof(Vertex3DSamplerTextureColor, sampler)
             };
 
             attr.data[2] = {
-                2, // .location =
-                2, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex3DSamplerTextureColor), // .stride =
-                (int32) offsetof(Vertex3DSamplerTextureColor, texture_color) // .offset =
+                SMN(location) 2,
+                SMN(count) 2,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex3DSamplerTextureColor),
+                SMN(offset) (int32) offsetof(Vertex3DSamplerTextureColor, texture_color)
             };
         } break;
         case GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE: {
             attr.data[0] = {
-                0, // .location =
-                2, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex2DTexture), // .stride =
-                (int32) offsetof(Vertex2DTexture, position) // .offset =
+                SMN(location) 0,
+                SMN(count) 2,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex2DTexture),
+                SMN(offset) (int32) offsetof(Vertex2DTexture, position)
             };
 
             attr.data[1] = {
-                1, // .location =
-                2, // .count =
-                GL_FLOAT, // .format =
-                sizeof(Vertex2DTexture), // .stride =
-                (int32) offsetof(Vertex2DTexture, tex_coord) // .offset =
+                SMN(location) 1,
+                SMN(count) 2,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex2DTexture),
+                SMN(offset) (int32) offsetof(Vertex2DTexture, tex_coord)
             };
         } break;
         default:

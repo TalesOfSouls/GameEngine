@@ -132,15 +132,16 @@ struct PerformanceThreadHistory {
 
 // Used to show historic values per thread unlike PerformanceStatHistory,
 // which doesn't differentiate between threads
-struct PerformanceProfileThread {
+struct alignas(ASSUMED_CACHE_LINE_SIZE) PerformanceProfileThread {
     atomic<int32> thread_id;
     atomic<uint32> pos;
     int32 cpu_id;
 
-    // WARNING: This only shows tha last tick but when rendering the rendering thread may be way slower
+    // WARNING: This only shows the last tick but when rendering the rendering thread may be way slower
     // As a result you will only output every n-th tick
     atomic<uint64> tick;
     const char* name;
+
     PerformanceThreadHistory history[MAX_PERFORMANCE_STATS_HISTORY];
 };
 // How many threads do we support?

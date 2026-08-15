@@ -374,7 +374,6 @@ FORCE_INLINE
 void thrd_chunk_free(ChunkMemory* const buf) NO_EXCEPT
 {
     chunk_free(buf);
-    //mutex_destroy(&buf->lock);
 }
 
 inline
@@ -392,7 +391,6 @@ FORCE_INLINE
 void thrd_chunk_free(ChunkMemory* const buf, MemoryArena* mem) NO_EXCEPT
 {
     chunk_free(buf, mem);
-    //mutex_destroy(&buf->lock);
 }
 
 FORCE_INLINE

@@ -359,7 +359,7 @@ void layout_from_file_txt(
     // 2. Iteration: Fill HashMap
     ////////////////////////////////////////////////////////////
     // @performance we reserve * 2 memory to avoid too many hash collisions... urgh
-    hashmap_create(
+    hashmap_init(
         &layout->hash_map,
         temp_element_count * 2,
         layout->data,
@@ -425,7 +425,7 @@ int32 layout_from_data(
 
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
-    hashmap_create(
+    hashmap_init(
         &layout->hash_map,
         (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)),
         layout->data,

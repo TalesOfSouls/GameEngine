@@ -17,7 +17,6 @@
 //          Currently the INTERNAL command type is never used at least not in terms of the normal command pool iteration
 enum AppCommandType : uint8 {
     CMD_FUNC_RUN,
-    CMD_ASSET_ENQUEUE,
     CMD_ASSET_LOAD,
     CMD_FILE_LOAD,
     CMD_FONT_LOAD,
@@ -89,6 +88,7 @@ struct AppCommand {
     AppCommandFunction callback;
     AppCommandType type;
 
+    // This defines the actual size of AppCommand
     union {
         CmdAssetBody asset_body;
         CmdAudioBody audio_body;

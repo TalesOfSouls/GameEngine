@@ -46,7 +46,6 @@ struct DebugMemoryRange {
 };
 
 struct DebugMemory {
-    standalone_spinlock32 lock;
     uintptr_t start;
 
     int64 usage;
@@ -64,6 +63,9 @@ struct DebugMemory {
     // These actions also get modified unlike the last_action which only get added or removed/overwritten
     // For example we may mark a memory are as in use and later on mark it as no longer in use
     alignas(8) DebugMemoryRange persistent_action[DEBUG_MEMORY_RANGE_PERS_MAX];
+
+    alignas(ASSUMED_CACHE_LINE_SIZE) standalone_spinlock32 lock;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(standalone_spinlock32)];
 };
 
 struct DebugMemoryContainer {
@@ -71,7 +73,8 @@ struct DebugMemoryContainer {
     uint32 memory_element_idx;
     DebugMemory* memory_stats;
 
-    standalone_spinlock32 lock;
+    alignas(ASSUMED_CACHE_LINE_SIZE) standalone_spinlock32 lock;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(standalone_spinlock32)];
 };
 static DebugMemoryContainer* _dmc = NULL;
 static atomic<int32>* _dmc_active = NULL;

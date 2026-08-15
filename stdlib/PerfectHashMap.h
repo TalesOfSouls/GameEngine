@@ -181,7 +181,7 @@ void perfect_hashmap_free(PerfectHashMap* hm) {
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
-void perfect_hashmap_create(PerfectHashMap* __restrict hm, int32 count, int32 element_size, BufferMemory* const __restrict buf)
+void perfect_hashmap_init(PerfectHashMap* __restrict hm, int32 count, int32 element_size, BufferMemory* const __restrict buf)
 {
     LOG_1("[INFO] Create PerfectHashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->map_count = count;
@@ -195,7 +195,7 @@ void perfect_hashmap_create(PerfectHashMap* __restrict hm, int32 count, int32 el
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void perfect_hashmap_create(PerfectHashMap* __restrict hm, int32 count, int32 element_size, byte* const __restrict buf)
+void perfect_hashmap_init(PerfectHashMap* __restrict hm, int32 count, int32 element_size, byte* const __restrict buf)
 {
     LOG_1("[INFO] Create PerfectHashMap for %n elements with %n B per element", {DATA_TYPE_INT32, &count}, {DATA_TYPE_INT32, &element_size});
     hm->map_count = count;
@@ -423,7 +423,7 @@ int64 perfect_hashmap_dump(const PerfectHashMap* hm, byte* data)
     return (int64) (data - start);
 }
 
-// WARNING: Requires perfect_hashmap_create first
+// WARNING: Requires perfect_hashmap_init first
 int64 perfect_hashmap_load(PerfectHashMap* hm, const byte* data)
 {
     const byte* const start = data;

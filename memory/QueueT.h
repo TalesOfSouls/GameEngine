@@ -8,10 +8,7 @@
 #define COMS_MEMORY_QUEUE_T_H
 
 #include "../stdlib/Stdlib.h"
-#include "../system/Allocator.h"
-#include "BufferMemory.h"
-#include "MemoryArena.h"
-#include "../thread/Thread.h"
+#include "../thread/ThreadDefines.h"
 #include "../thread/Semaphore.h"
 
 /**
@@ -30,11 +27,14 @@ struct QueueT {
 
     // We support both conditional locking and semaphore locking
     // These values are not initialized and not used unless you use the queue
-    mutex mtx;
+    alignas(ASSUMED_CACHE_LINE_SIZE) mutex mtx;
     mutex_cond cond;
 
     sem empty;
     sem full;
+
+    // We can't compile the actual required size at compile time because compilers/windows suck!
+    char _pad[ASSUMED_CACHE_LINE_SIZE];
 };
 
 #endif

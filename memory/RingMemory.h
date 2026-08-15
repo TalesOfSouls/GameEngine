@@ -31,7 +31,8 @@ struct RingMemory {
     size_t size;
     uint32 alignment;
 
-    spinlock32 lock;
+    alignas(ASSUMED_CACHE_LINE_SIZE) spinlock32 lock;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(spinlock32)];
 };
 
 #endif

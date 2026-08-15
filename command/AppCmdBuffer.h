@@ -36,8 +36,6 @@ struct AppCmdBuffer {
     ChunkMemory* mem;
     AssetManagementSystem* ams;
     AssetArchive* asset_archives;
-    QueueT<int32>* assets_to_load;
-    QueueT<FileToLoad>* files_to_load;
     AudioMixer* mixer;
     GpuApiType gpu_api_type;
 

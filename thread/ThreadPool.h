@@ -8,7 +8,7 @@
 #define COMS_THREADS_THREAD_POOL_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/PersistentQueueT.h"
+#include "../memory/MPMCWorkTrackingQueueT.h"
 #include "../memory/ChunkMemory.h"
 #include "../log/DebugMemory.h"
 #include "../log/PerformanceProfiler.h"
@@ -29,31 +29,33 @@ enum ThreadPoolState : int16 {
 };
 
 struct ThreadPool {
-    // This is not a threaded queue since we want to handle the mutex in here, not in the queue for finer control
-    PersistentQueueT<PoolWorker> work_queue;
-
-    // @performance Could it make more sense to use a spinlock for the thread pool?
-    // Is probably overkill if we cannot really utilize it a lot -> we would have a lot of spinning
-    mutex work_mutex;
-    mutex_cond work_cond;
-    mutex_cond working_cond;
-
+    // @performance Which variables need padding to avoid false sharing?
+    atomic<ThreadPoolState> state;
     // By design the working_cnt is <= thread_cnt
     atomic<int32> working_cnt;
     atomic<int32> thread_cnt;
+    atomic<uint32> id_counter;
+
+    // How many worker threads are currently parked/asleep
+    // Producers only take work_mutex/signal work_cond when this is > 0, so
+    // enqueueing work under load (workers already busy, none sleeping) never
+    // uses the mutex at all
+    atomic<int32> sleeping_cnt;
+
+    MPMCWorkTrackingQueueT<PoolWorker> work_queue;
+
+    sem work_sem;
 
     // This is where we store the handles IFF we are using
     // none-detached threads
     coms_pthread_t* thread_handles;
 
-    // @question what is the difference between thread_cnt and size?
+    // thread_cnt should be the same as size UNLESS a thread shut down for whatever reason
+    // We use the size to check the "healthyness" of the pool and may spin up new worker threads
+    // if size != thread_cnt
     int32 size;
 
-    // @question Why are we using atomics if we are using mutex at the same time?
-    //          I think because the mutex is actually intended for the queue.
-    ThreadPoolState state;
     bool is_detached;
-    atomic<uint32> id_counter;
 
     DebugContainer* debug_container;
 

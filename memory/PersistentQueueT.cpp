@@ -20,6 +20,30 @@ size_t queue_persistent_size(size_t type_size, int max_capacity) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
+void queue_init(PersistentQueueT<T>* const queue, byte* buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+
+    queue->capacity = capacity;
+    queue->memory = (T *) align_up((uintptr_t) buf, alignment);
+    queue->head = 0;
+    queue->tail = 0;
+
+    queue->free = (size_t *) align_up(
+        (size_t) ((uintptr_t) (queue->memory + capacity)),
+        alignof(size_t)
+    );
+    memset(queue->free, 0, sizeof(size_t) * array_count);
+
+    queue->completed = (size_t *) align_up(
+        (size_t) ((uintptr_t) (queue->free + array_count)),
+        alignof(size_t)
+    );
+    memset(queue->completed, 0, sizeof(size_t) * array_count);
+}
+
+template <typename T>
+FORCE_INLINE
 void queue_alloc(PersistentQueueT<T>* const queue, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_QUEUE_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -39,26 +63,12 @@ void queue_alloc(PersistentQueueT<T>* const queue, int capacity, int max_capacit
         + sizeof(size_t) * max_array_count + alignof(size_t) // free
         + sizeof(size_t) * max_array_count + alignof(size_t); // complete
 
-    queue->capacity = capacity;
-    queue->memory = (T *) platform_alloc_aligned(
+    byte* buffer = (byte *) platform_alloc_aligned(
         memory_size,
         max_memory_size,
         alignment
     );
-    queue->head = 0;
-    queue->tail = 0;
-
-    queue->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (queue->memory + capacity)),
-        sizeof(size_t)
-    );
-    memset(queue->free, 0, sizeof(size_t) * array_count);
-
-    queue->completed = (size_t *) align_up(
-        (size_t) ((uintptr_t) (queue->free + array_count)),
-        sizeof(size_t)
-    );
-    memset(queue->completed, 0, sizeof(size_t) * array_count);
+    queue_init(queue, buffer, capacity, alignment);
 }
 
 template <typename T>
@@ -82,27 +92,13 @@ void queue_alloc(
         + sizeof(size_t) * max_array_count + alignof(size_t) // free
         + sizeof(size_t) * max_array_count + alignof(size_t); // complete
 
-    queue->capacity = capacity;
-    queue->memory = (T *) mem_arena_add(
+    MemoryArena* arena = mem_arena_add(
         mem,
         memory_size,
         max_memory_size,
         alignment
     );
-    queue->head = 0;
-    queue->tail = 0;
-
-    queue->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (queue->memory + capacity)),
-        alignof(size_t)
-    );
-    memset(queue->free, 0, sizeof(size_t) * array_count);
-
-    queue->completed = (size_t *) align_up(
-        (size_t) ((uintptr_t) (queue->free + array_count)),
-        alignof(size_t)
-    );
-    memset(queue->completed, 0, sizeof(size_t) * array_count);
+    queue_init(queue, arena->memory, capacity, alignment);
 }
 
 template <typename T>
@@ -111,52 +107,14 @@ void queue_init(PersistentQueueT<T>* const queue, BufferMemory* const buf, int c
 {
     const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
 
-    queue->capacity = capacity;
-    queue->memory = (T *) memory_get(
+    byte* buffer = memory_get(
         buf,
         sizeof(T) * capacity
         + sizeof(size_t) * array_count + alignof(size_t) // free
         + sizeof(size_t) * array_count + alignof(size_t), // complete
         alignment
     );
-    queue->head = 0;
-    queue->tail = 0;
-
-    queue->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (queue->memory + capacity)),
-        alignof(size_t)
-    );
-    memset(queue->free, 0, sizeof(size_t) * array_count);
-
-    queue->completed = (size_t *) align_up(
-        (size_t) ((uintptr_t) (queue->free + array_count)),
-        alignof(size_t)
-    );
-    memset(queue->completed, 0, sizeof(size_t) * array_count);
-}
-
-template <typename T>
-FORCE_INLINE
-void queue_init(PersistentQueueT<T>* const queue, byte* buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-
-    queue->capacity = capacity;
-    queue->memory = (T *) align_up((uintptr_t) buf, alignment);
-    queue->head = 0;
-    queue->tail = 0;
-
-    queue->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (queue->memory + capacity)),
-        alignof(size_t)
-    );
-    memset(queue->free, 0, sizeof(size_t) * array_count);
-
-    queue->completed = (size_t *) align_up(
-        (size_t) ((uintptr_t) (queue->free + array_count)),
-        alignof(size_t)
-    );
-    memset(queue->completed, 0, sizeof(size_t) * array_count);
+    queue_init(queue, buffer, capacity, alignment);
 }
 
 template <typename T>

@@ -40,7 +40,7 @@ int32 coms_pthread_create(coms_pthread_t* __restrict thread, void*, ThreadJobFun
     ASSERT_TRUE(start_routine);
 
     const uint64 stack_size = 1 * MEGABYTE;
-    thread->stack = platform_alloc_aligned(stack_size, stack_size, ASSUMED_CACHE_LINE_SIZE);
+    thread->stack = (byte *) platform_alloc_aligned(stack_size, stack_size, ASSUMED_CACHE_LINE_SIZE);
 
     int32 flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM;
 

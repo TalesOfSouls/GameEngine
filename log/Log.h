@@ -106,7 +106,8 @@ struct LogMemory {
     uint64 size;
     uint64 pos;
 
-    standalone_spinlock32 lock;
+    alignas(ASSUMED_CACHE_LINE_SIZE) standalone_spinlock32 lock;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(standalone_spinlock32)];
 };
 static LogMemory* _log_memory = NULL;
 

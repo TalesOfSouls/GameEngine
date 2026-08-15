@@ -58,11 +58,11 @@ enum AudioMixerState {
 };
 
 struct AudioMixer {
-    ChunkMemory audio_instances;
-    AudioMixerState state_old;
-
     // type is actually AudioMixerState
     atomic<int32> state_new;
+
+    ChunkMemory audio_instances;
+    AudioMixerState state_old;
 
     uint64 effect;
 

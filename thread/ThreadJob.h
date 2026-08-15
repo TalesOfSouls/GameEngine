@@ -29,7 +29,8 @@ struct PoolWorker {
     atomic<uint32> id;
     atomic<PoolWorkerState> state;
 
-    // After running the task it is automatically removed from the thread queue
+    // After running the task it is automatically removed from the thread queue memory
+    // If this is false the user MUST do this manually by calling the _release() function
     bool automatic_release;
 
     // This can be used either to describe the actual size if arg is a string/byte array,

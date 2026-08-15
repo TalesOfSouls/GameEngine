@@ -8,13 +8,19 @@
 #define COMS_MEMORY_SPSCQUEUE_T_H
 
 #include "../stdlib/Stdlib.h"
+#include "../thread/Atomic.h"
 
 template <typename T>
 struct SPSCQueueT {
     T* memory;
-    T* head;
-    T* tail;
     int capacity;
+
+    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<T*> head;
+    T* tail_cache;
+
+    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<T*> tail;
+    T* head_cache;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(atomic<T*>) - sizeof(T*)];
 };
 
 #endif

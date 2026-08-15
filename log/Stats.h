@@ -67,6 +67,7 @@
 #define MAX_STATS_COUNTER_HISTORY 96
 struct StatCounterHistory {
     standalone_spinlock32 lock;
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(standalone_spinlock32)];
 
     atomic<int32> pos;
     int64 stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE];
