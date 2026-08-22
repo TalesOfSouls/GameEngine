@@ -26,11 +26,11 @@ static void test_chunk_id_from_memory() {
     chunk_free(&mem);
 }
 
-static void test_chunk_get_element() {
+static void test_chunk_element_get() {
     ChunkMemory mem = {0};
     chunk_alloc(&mem, 10, 10, 10);
 
-    TEST_EQUALS(chunk_get_element(&mem, 2), mem.memory + 32);
+    TEST_EQUALS(chunk_element_get(&mem, 2), mem.memory + 32);
 
     chunk_free(&mem);
 }
@@ -117,8 +117,8 @@ static void test_chunk_dump_load() {
     ChunkMemory mem = {0};
     chunk_alloc(&mem, 10, 10, 10);
 
-    uint32* a = (uint32 *) chunk_get_element(&mem, chunk_reserve_one(&mem));
-    uint32* b = (uint32 *) chunk_get_element(&mem, chunk_reserve_one(&mem));
+    uint32* a = (uint32 *) chunk_element_get(&mem, chunk_reserve_one(&mem));
+    uint32* b = (uint32 *) chunk_element_get(&mem, chunk_reserve_one(&mem));
 
     *a = 5;
     *b = 10;
@@ -130,8 +130,8 @@ static void test_chunk_dump_load() {
     chunk_alloc(&mem2, 10, 10, 10);
     chunk_load(&mem2, test_out);
 
-    const uint32* c = (uint32 *) chunk_get_element(&mem2, 0);
-    const uint32* d = (uint32 *) chunk_get_element(&mem2, 1);
+    const uint32* c = (uint32 *) chunk_element_get(&mem2, 0);
+    const uint32* d = (uint32 *) chunk_element_get(&mem2, 1);
 
     TEST_EQUALS(mem.size, mem2.size);
     TEST_EQUALS(*a, *c);
@@ -172,7 +172,7 @@ int main() {
 
     TEST_RUN(test_chunk_alloc);
     TEST_RUN(test_chunk_id_from_memory);
-    TEST_RUN(test_chunk_get_element);
+    TEST_RUN(test_chunk_element_get);
     TEST_RUN(test_chunk_reserve_one);
     TEST_RUN(test_chunk_reserve);
     TEST_RUN(test_chunk_free_elements);

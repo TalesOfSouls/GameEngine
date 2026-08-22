@@ -8,16 +8,14 @@
 #define COMS_COMMAND_BUFFER_GENERAL_PRODUCER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemoryT.cpp"
+#include "../memory/ThrdChunkMemoryT.cpp"
 #include "../thread/ThreadHelper.cpp"
 #include "AppCommand.h"
 
 // General purpose cmd command enqueue
 inline
-void thrd_cmd_insert(ChunkMemoryT<AppCommand>* const __restrict cb, const AppCommand* const __restrict cmd_temp) NO_EXCEPT
+void thrd_cmd_insert(ThrdChunkMemoryT<AppCommand>* const __restrict cb, const AppCommand* const __restrict cmd_temp) NO_EXCEPT
 {
-    // @performance Consider to replace with atomic operations
-    SpinlockGuard _guard(&cb->lock, 0);
     const int32 index = chunk_reserve_one(cb);
     if (index < 0) {
         ASSERT_THROW();
@@ -25,12 +23,13 @@ void thrd_cmd_insert(ChunkMemoryT<AppCommand>* const __restrict cb, const AppCom
         return;
     }
 
-    AppCommand* cmd = (AppCommand *) chunk_get_element(cb, index);
+    AppCommand* cmd = (AppCommand *) chunk_element_get(cb, index);
     memcpy(cmd, cmd_temp, sizeof(AppCommand));
+    chunk_mark_complete(cb, index);
 }
 
 inline
-void thrd_cmd_insert(ChunkMemoryT<AppCommand>* const cb, AppCommandFunction const func) NO_EXCEPT
+void thrd_cmd_insert(ThrdChunkMemoryT<AppCommand>* const cb, AppCommandFunction const func) NO_EXCEPT
 {
     AppCommand cmd;
     cmd.callback = NULL;

@@ -42,8 +42,6 @@ void pool_alloc(DataPool* buf, uint32 capacity, int32 chunk_size, int32 alignmen
     PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Allocating DataPool");
 
-    chunk_size = chunk_size_element(chunk_size, alignment);
-
     const size_t size = capacity * chunk_size
         + sizeof(size_t) * ceil_div(capacity, (uint32) (sizeof(size_t) * 8)) // free
         + sizeof(size_t) * ceil_div(capacity, (uint32) (sizeof(size_t) * 8)) // used
@@ -135,7 +133,7 @@ FORCE_INLINE
 byte* pool_element_get(DataPool* buf, uint32 element) NO_EXCEPT
 {
     OMS_BITARRAY_SET(buf->used, element);
-    return chunk_get_element((ChunkMemory*)buf, element);
+    return chunk_element_get((ChunkMemory*)buf, element);
 }
 
 // Find a unused/unlocked element in the data pool

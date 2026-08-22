@@ -22,10 +22,11 @@ void* cmd_shader_load(AppCmdBuffer*, AppCommand*) NO_EXCEPT
     return NULL;
 }
 
+template <typename T>
 void* cmd_shader_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    ChunkMemory* const __restrict mem,
+    T* const __restrict mem,
     Shader* const __restrict shader,
     const int32* __restrict shader_ids
 ) NO_EXCEPT
@@ -64,8 +65,8 @@ void* cmd_shader_load_sync(
             (char *) shader_asset->self
         );
 
-        shader_asset->state |= ASSET_STATE_RAM_GC;
-        shader_asset->state |= ASSET_STATE_VRAM_GC;
+        shader_asset->state |= ASSET_MEMORY_STATE_RAM_GC;
+        shader_asset->state |= ASSET_MEMORY_STATE_VRAM_GC;
     }
 
     // Make shader/program

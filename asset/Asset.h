@@ -10,11 +10,18 @@
 #include "../stdlib/Stdlib.h"
 #include "AssetType.h"
 
-enum AssetState : byte {
-    ASSET_STATE_IN_RAM = 1 << 0,
-    ASSET_STATE_IN_VRAM = 1 << 1,
-    ASSET_STATE_RAM_GC = 1 << 2,
-    ASSET_STATE_VRAM_GC = 1 << 3,
+enum AssetLoadState : char {
+    ASSET_LOAD_STATE_RESERVING = -2,
+    ASSET_LOAD_STATE_REMOVED = -1,
+    ASSET_LOAD_STATE_EMPTY = 0,
+    ASSET_LOAD_STATE_LOADED = 1,
+};
+
+enum AssetMemoryState : byte {
+    ASSET_MEMORY_STATE_IN_RAM = 1 << 0,
+    ASSET_MEMORY_STATE_IN_VRAM = 1 << 1,
+    ASSET_MEMORY_STATE_RAM_GC = 1 << 2,
+    ASSET_MEMORY_STATE_VRAM_GC = 1 << 3,
 };
 
 struct Asset {
@@ -35,7 +42,8 @@ struct Asset {
     uint16 chunk_count;
 
     // @performance Maybe if we would set the IS_LOADED_STATE in the enum as the highest bit we could use the state variable and check it with >=
-    atomic<int8> is_loaded;
+    // @performance Is this even needed since we changed to Thread asset management?
+    atomic<AssetLoadState> is_loaded;
 
     // Which asset component is used
     // Determined when reserving memory from the AMS or when inserting the asset based on its size

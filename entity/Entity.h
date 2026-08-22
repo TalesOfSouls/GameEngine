@@ -8,7 +8,6 @@
 #define COMS_ENTITY_H
 
 #include "../stdlib/Stdlib.h"
-#include "../stdlib/HashMap.h"
 
 #define MAX_ENTITY_NAME_LENGTH 32
 

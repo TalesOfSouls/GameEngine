@@ -8,12 +8,13 @@
 #define COMS_APP_COMMAND_ASSET_PRODUCER_H
 
 #include "../stdlib/Stdlib.h"
+#include "../memory/ThrdChunkMemoryT.cpp"
 #include "AppCommand.h"
 #include "CmdGeneralProducer.h"
 
 inline
 void thrd_cmd_asset_load(
-    ChunkMemoryT<AppCommand>* const cb,
+    ThrdChunkMemoryT<AppCommand>* const cb,
     int32 asset_id
 ) NO_EXCEPT
 {

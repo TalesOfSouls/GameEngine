@@ -8,13 +8,13 @@
 #define COMS_COMMAND_BUFFER_FONT_PRODUCER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemoryT.cpp"
+#include "../memory/ThrdChunkMemoryT.cpp"
 #include "AppCommand.h"
 #include "CmdGeneralProducer.h"
 
 inline
 void thrd_cmd_font_load(
-    ChunkMemoryT<AppCommand>* const cb,
+    ThrdChunkMemoryT<AppCommand>* const cb,
     int32 asset_id
 ) NO_EXCEPT
 {

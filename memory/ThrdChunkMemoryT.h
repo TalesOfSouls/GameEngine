@@ -4,10 +4,11 @@
  * @link      https://jingga.app
  */
 #pragma once
-#ifndef COMS_MEMORY_CHUNK_MEMORY_H
-#define COMS_MEMORY_CHUNK_MEMORY_H
+#ifndef COMS_MEMORY_THRD_CHUNK_MEMORYT_H
+#define COMS_MEMORY_THRD_CHUNK_MEMORYT_H
 
 #include "../stdlib/Stdlib.h"
+#include "../thread/ThreadDefines.h"
 
 /**
  * This storage system is best used for fixed sized chunks
@@ -17,28 +18,26 @@
  * However, this can lead to fragmentation which is hard to clean up because
  * we can't just defragment the memory since we don't know which chunks are currently in use
  * In use could mean by pointer of id. In use data isn't allowed to move or it would become "invalid"
- * If you need a data structure that can be defragmented use DataPool, which basically builds upon ChunkMemory
- * Fixed sized data structures that use this ChunkMemory can be:
+ * If you need a data structure that can be defragmented use DataPool, which basically builds upon ChunkMemoryT
+ * Fixed sized data structures that use this ChunkMemoryT can be:
  *      1. HashMap
  *      2. Queue
  * Carefull, both examples have alternative use cases which may require variable sized elements
  * WARNING: Changing this struct has effects on other data structures
  */
-struct ChunkMemory {
-    byte* memory;
+template <typename T>
+struct ThrdChunkMemoryT {
+    T* memory;
 
-    size_t size;
-    int32 last_pos;
     int32 capacity;
-    int32 chunk_size;
 
-    // WARNING: The alignment may increase the original chunk size e.g.
-    // element_size = 14, alignment = sizeof(size_t) => chunk_size = 32
-    uint32 alignment;
+    atomic<int32> last_pos;
 
-    // length = count
-    // free describes which locations are used and which are free
-    size_t* free;
+    // Bit field that describes which elements are free/used
+    atomic<size_t>* free;
+
+    // Indicates if an element is fully written
+    atomic<size_t>* completeness;
 };
 
 #endif

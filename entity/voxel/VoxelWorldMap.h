@@ -31,7 +31,7 @@ Voxel voxel_world_map_get(
     while(y >= VOXEL_CHUNK_SIZE) { y -= VOXEL_CHUNK_SIZE; ++chunk_coord.y; }
     while(z >= VOXEL_CHUNK_SIZE) { z -= VOXEL_CHUNK_SIZE; ++chunk_coord.z; }
 
-    HashEntryVoidPKeyInt64* entry = voxel_hashmap_get_entry(map, chunk_coord.x, chunk_coord.y, chunk_coord.z);
+    HashEntryVoidPKeyInt64* entry = voxel_hashmap_entry_get(map, chunk_coord.x, chunk_coord.y, chunk_coord.z);
     if (!entry) {
         // Is air
         return {0, 0};
@@ -359,7 +359,7 @@ void voxel_world_update_pos(VoxelWorld* const vw, const v3_int32& pos) NO_EXCEPT
     // Not all chunks currently in memory may fulfill that (we remove those)
     int32 chunk_id = 0;
     chunk_iterate_start(&vw->map.buf, chunk_id) {
-        HashEntry* entry = (HashEntry *) chunk_get_element(&vw->map.buf, chunk_id);
+        HashEntry* entry = (HashEntry *) chunk_element_get(&vw->map.buf, chunk_id);
         VoxelChunk* chunk = (VoxelChunk *) entry->value;
 
         // Don't add chunks to be removed or outside of our bounding box
@@ -399,7 +399,7 @@ void voxel_world_chunk_update(VoxelWorld* vw) NO_EXCEPT
     // if we have a thread that defragments the datapool we are screwed
     int32 chunk_id = 0;
     chunk_iterate_start(&vw->chunks, chunk_id) {
-        VoxelChunk* chunk = (VoxelChunk *) chunk_get_element((ChunkMemory *) &vw->chunks, chunk_id);
+        VoxelChunk* chunk = (VoxelChunk *) chunk_element_get((ChunkMemory *) &vw->chunks, chunk_id);
 
         if ((chunk->flag & VOXEL_CHUNK_FLAG_SHOULD_REMOVE)
             || (chunk->flag & VOXEL_CHUNK_FLAG_IS_INACTIVE)
@@ -438,7 +438,7 @@ void voxel_world_chunk_update(VoxelWorld* vw) NO_EXCEPT
 inline
 VoxelChunk* voxel_world_chunk_get(HashMap* map, int32 cx, int32 cy, int32 cz) NO_EXCEPT
 {
-    HashEntryVoidPKeyInt64* entry = voxel_hashmap_get_entry(map, cx, cy, cz);
+    HashEntryVoidPKeyInt64* entry = voxel_hashmap_entry_get(map, cx, cy, cz);
     return entry ? (VoxelChunk *) entry->value : NULL;
 }
 
@@ -446,7 +446,7 @@ VoxelChunk* voxel_world_chunk_get(HashMap* map, int32 cx, int32 cy, int32 cz) NO
 static inline
 VoxelChunk* voxel_world_chunk_get_or_create(VoxelWorld* vw, int32 cx, int32 cy, int32 cz) NO_EXCEPT
 {
-    HashEntryVoidPKeyInt64* entry = voxel_hashmap_get_entry(&vw->map, cx, cy, cz);
+    HashEntryVoidPKeyInt64* entry = voxel_hashmap_entry_get(&vw->map, cx, cy, cz);
     if(entry) {
         return (VoxelChunk *) entry->value;
     }

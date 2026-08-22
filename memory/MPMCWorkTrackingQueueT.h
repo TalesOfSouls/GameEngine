@@ -15,6 +15,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
 
+// @todo Implement a function that checks if a slot has been handled but is simply not deleted yet
 template<typename T>
 struct Slot {
     // This is at the beginning to improve loading performance

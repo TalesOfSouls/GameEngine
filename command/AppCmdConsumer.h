@@ -74,7 +74,7 @@
 inline
 void cmd_buffer_create(AppCmdBuffer* const cb, BufferMemory* const buf, int32 command_capacity) NO_EXCEPT
 {
-    thrd_chunk_init(&cb->commands, buf, command_capacity, ASSUMED_CACHE_LINE_SIZE);
+    chunk_init(&cb->commands, buf, command_capacity, ASSUMED_CACHE_LINE_SIZE);
     DEBUG_MEMORY_SUBREGION(
         (uintptr_t) cb->commands.memory,
         command_capacity * sizeof(AppCommand)
@@ -86,7 +86,7 @@ void cmd_buffer_create(AppCmdBuffer* const cb, BufferMemory* const buf, int32 co
 inline
 void cmd_buffer_alloc(AppCmdBuffer* const cb, int32 command_capacity) NO_EXCEPT
 {
-    thrd_chunk_alloc(&cb->commands, command_capacity, command_capacity, ASSUMED_CACHE_LINE_SIZE);
+    chunk_alloc(&cb->commands, command_capacity, command_capacity, ASSUMED_CACHE_LINE_SIZE);
 
     LOG_1("[INFO] Created AppCmdBuffer: %n", {DATA_TYPE_INT32, &cb->commands.capacity});
 }
@@ -94,7 +94,7 @@ void cmd_buffer_alloc(AppCmdBuffer* const cb, int32 command_capacity) NO_EXCEPT
 inline
 void cmd_buffer_free(AppCmdBuffer* const cb) NO_EXCEPT
 {
-    thrd_chunk_free(&cb->commands);
+    chunk_free(&cb->commands);
 }
 
 static inline
@@ -177,8 +177,8 @@ void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_CMD_ITERATE);
     int32 chunk_id = 0;
-    chunk_iterate_start(&cb->commands, chunk_id) {
-        AppCommand* cmd = (AppCommand *) chunk_get_element(&cb->commands, chunk_id);
+    thrd_chunk_iterate_start(&cb->commands, chunk_id) {
+        AppCommand* cmd = (AppCommand *) chunk_element_get(&cb->commands, chunk_id);
 
         // @performance we should have a flag that checks if it needs prior tasks to finish
         //          e.g. run on first time, if it has prerequisites, set to false AND
@@ -196,19 +196,12 @@ void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
         }
 
         chunk_free_element(&cb->commands, chunk_id);
-    } chunk_iterate_end;
+    } thrd_chunk_iterate_end;
 }
 
-// @performance Locking the entire thing during the iteration is horribly slow, fix.
-// Solution 1: Use Queue
-// Solution 2: create a mask for the chunk->free which will be set (and only then locked) after everything is done
-//              This has the risk that if it takes a long time we may run out of free indices for insert
-//              This shouldn't happen since the command buffer shouldn't fill up in just 1-3 frames
-//              Actually, we can just use the completeness flag
 inline
 void thrd_cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
 {
-    SpinlockGuard _guard(&cb->commands.lock, 0);
     cmd_iterate(cb);
 }
 

@@ -8,7 +8,7 @@
 #define COMS_APP_COMMAND_BUFFER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemoryT.h"
+#include "../memory/ThrdChunkMemoryT.h"
 #include "../memory/ChunkMemory.h"
 #include "../audio/AudioMixer.h"
 #include "../asset/AssetArchive.h"
@@ -26,14 +26,11 @@
 struct AppCmdBuffer {
     // @performance A queue would be much faster than ChunkMemory.
     // We only use Chunk memory since we might want to run only certain commands instead of all of them
-    ChunkMemoryT<AppCommand> commands;
+    ThrdChunkMemoryT<AppCommand> commands;
 
-    // @bug Currently we never differentiate between multi threaded and single threaded
-    //      We need to adjust the functions so that they allocate memory accordingly
-    //      Especially the file_read function currently doesn't use a multi threaded ring usage
-    //      We probably need thrd_file_read. I don't like it a file_read overload would be nicer for ThreadedRingMemory,
-    //      but we discarded ThreadedRingMemory and put it in the normal RingMemory.
-    ChunkMemory* mem;
+    // Memory that can be used in threads as MC even though we have only one consumer
+    // Why is it threaded though? -> Well, because we want to avoid too many memory pools
+    ThrdChunkMemory* mem;
     AssetManagementSystem* ams;
     AssetArchive* asset_archives;
     AudioMixer* mixer;

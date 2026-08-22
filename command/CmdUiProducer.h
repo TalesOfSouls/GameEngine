@@ -8,7 +8,7 @@
 #define COMS_COMMAND_BUFFER_UI_PRODUCER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemoryT.h"
+#include "../memory/ThrdChunkMemoryT.h"
 #include "../memory/ChunkMemory.cpp"
 #include "../ui/UILayout.cpp"
 #include "../ui/UITheme.cpp"
@@ -18,7 +18,7 @@
 // @question Why are we passing all this data instead of just cb? this is mental
 inline
 void thrd_cmd_ui_load(
-    ChunkMemoryT<AppCommand>* const __restrict cb,
+    AppCmdBuffer* const __restrict cb,
     void* app,
     AssetManagementSystem* const __restrict ams,
     const wchar_t* const __restrict layout_path,
@@ -26,7 +26,6 @@ void thrd_cmd_ui_load(
     UITheme* const __restrict general_theme,
     SceneInfo* const scene_info,
     GpuApiType gpu_api_type,
-    ChunkMemory* const __restrict mem,
     AppCommandFunction callback
 ) NO_EXCEPT
 {
@@ -44,9 +43,9 @@ void thrd_cmd_ui_load(
 
     cmd.layout_body.scene_info = scene_info;
     cmd.layout_body.gpu_api_type = gpu_api_type;
-    cmd.layout_body.mem = mem;
+    cmd.layout_body.mem = cb->mem;
 
-    thrd_cmd_insert(cb, &cmd);
+    thrd_cmd_insert(&cb->commands, &cmd);
 }
 
 #endif

@@ -93,17 +93,12 @@ UILayout* cmd_ui_load_sync(
 
 static inline
 UILayout* cmd_ui_load(
-    ChunkMemory* const __restrict mem,
+    ThrdChunkMemory* const __restrict mem,
     const AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
-    // @performance I don't like using ChunkMemory here, we only need like 8 MB or even less.
-    //              We should have a BufferMemory for stuff like this
-    byte* temp;
-    THRD_CHUNK_STACK_MEMORY(mem, &temp, 16 * MEGABYTE);
-
     BufferMemory buf;
-    buffer_init(&buf, temp, 16 * MEGABYTE, 8);
+    THRD_CHUNK_STACK_MEMORY(mem, &buf, 16 * MEGABYTE);
 
     return cmd_ui_load_sync(
         &buf,

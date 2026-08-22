@@ -39,7 +39,7 @@ void gpuapi_buffer_persistent_generate(
 ) NO_EXCEPT
 {
     buffer->bo = chunk_reserve(&renderer->buf, ceil_div(buffer->size, renderer->buf.chunk_size)) + 1;
-    buffer->data = chunk_get_element(&renderer->buf, buffer->bo - 1);
+    buffer->data = chunk_element_get(&renderer->buf, buffer->bo - 1);
 
     for (int i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
         if (renderer->descriptor_set_layout[i].binding) {
@@ -62,7 +62,7 @@ inline
 int32 gpuapi_buffer_generate(SoftwareRenderer* const renderer, void* data, int32 size) NO_EXCEPT
 {
     const int32 id = chunk_reserve(&renderer->buf, ceil_div(size, renderer->buf.chunk_size)) + 1;
-    byte* const mem = chunk_get_element(&renderer->buf, id - 1);
+    byte* const mem = chunk_element_get(&renderer->buf, id - 1);
 
     if (data) {
         memcpy(mem, data, size);

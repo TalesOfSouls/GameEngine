@@ -10,7 +10,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../memory/ChunkMemory.cpp"
 #include "../utils/BitUtils.h"
-#include "../stdlib/HashMap.h"
+#include "../stdlib/HashMapT.h"
 #include "../log/DebugMemory.h"
 
 #include "EntityComponentSystem.h"
@@ -54,7 +54,7 @@ Entity* ecs_get_entity(EntityComponentSystem* ecs, int32 entity_id)
     int32 bit_index = MODULO_2(raw_id, 64);
 
     return IS_BIT_SET_64_R2L(ecs->entities[ecs_type].free[byte_index], bit_index) ?
-        (Entity *) chunk_get_element(&ecs->entities[ecs_type], raw_id)
+        (Entity *) chunk_element_get(&ecs->entities[ecs_type], raw_id)
         : NULL;
 }
 
@@ -67,7 +67,7 @@ Entity* ecs_reserve_entity(EntityComponentSystem* ecs, uint32 entity_type)
         return NULL;
     }
 
-    Entity* entity = (Entity *) chunk_get_element(mem, free_entity);
+    Entity* entity = (Entity *) chunk_element_get(mem, free_entity);
 
     // @todo log entity stats (count, ram, vram)
 
@@ -83,7 +83,7 @@ Entity* ecs_insert_entity(EntityComponentSystem* __restrict ecs, const Entity* _
         return NULL;
     }
 
-    Entity* entity = (Entity *) chunk_get_element(mem, free_entity);
+    Entity* entity = (Entity *) chunk_element_get(mem, free_entity);
     memcpy(entity, entity_temp, mem->chunk_size);
 
     // @todo log entity stats (count, ram, vram)

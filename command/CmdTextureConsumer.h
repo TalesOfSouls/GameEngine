@@ -9,6 +9,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/QueueT.cpp"
+#include "../memory/ThrdChunkMemoryT.h"
 #include "../memory/ChunkMemory.h"
 #include "../asset/Asset.h"
 #include "../asset/AssetArchive.cpp"
@@ -48,7 +49,7 @@ Asset* cmd_internal_texture_create(
 
 static inline
 Asset* cmd_texture_load_async(
-    ChunkMemoryT<AppCommand>* const cb,
+    ThrdChunkMemoryT<AppCommand>* const cb,
     AssetManagementSystem* const __restrict ams,
     GpuApiType gpu_api_type,
     AppCommand* const __restrict cmd
@@ -67,11 +68,12 @@ Asset* cmd_texture_load_async(
     return asset;
 }
 
+template <typename T>
 inline
 Asset* cmd_texture_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    ChunkMemory* const __restrict mem,
+    T* const __restrict mem,
     GpuApiType gpu_api_type,
     int32 asset_id
 ) NO_EXCEPT
@@ -165,11 +167,12 @@ Asset* cmd_texture_atlas_load_async(
     return asset;
 }
 
+template <typename T>
 inline
 Asset* cmd_texture_atlas_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    ChunkMemory* const __restrict mem,
+    T* const __restrict mem,
     GpuApiType gpu_api_type,
     int32 asset_id
 ) NO_EXCEPT

@@ -74,11 +74,12 @@ Asset* cmd_font_load_async(
     return asset;
 }
 
+template <typename T>
 inline
 Asset* cmd_font_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    ChunkMemory* const __restrict mem,
+    T* const __restrict mem,
     GpuApiType gpu_api_type,
     int32 asset_id
 ) NO_EXCEPT

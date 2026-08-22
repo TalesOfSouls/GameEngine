@@ -17,7 +17,7 @@ static inline
 Asset* cmd_asset_load(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    ChunkMemory* const __restrict mem,
+    ThrdChunkMemory* const __restrict mem,
     const AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
@@ -30,11 +30,12 @@ Asset* cmd_asset_load(
     );
 }
 
+template <typename T>
 FORCE_INLINE
 Asset* cmd_asset_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    ChunkMemory* const __restrict mem,
+    T* const __restrict mem,
     int32 asset_id
 ) NO_EXCEPT
 {

@@ -80,7 +80,7 @@ void http_request_grow(HttpRequest* __restrict* request, int32 count, ThreadedCh
     HttpRequest* req = *request;
 
     int32 id = thrd_chunk_resize(mem, req->id, req->size, count);
-    req = (HttpRequest*) thrd_chunk_get_element(mem, id);
+    req = (HttpRequest*) thrd_chunk_element_get(mem, id);
     req->id = id;
     req->size = count;
 
@@ -239,7 +239,7 @@ HttpRequest* http_request_create(ThreadedChunkMemory* mem)
 {
     int32 request_buffer_count = ceil_div(sizeof(HttpRequest) + MIN_HTTP_REQUEST_CONTENT, mem->chunk_size);
     int32 request_buffer_id = thrd_chunk_reserve(mem, request_buffer_count);
-    HttpRequest* request = (HttpRequest *) thrd_chunk_get_element(mem, request_buffer_id);
+    HttpRequest* request = (HttpRequest *) thrd_chunk_element_get(mem, request_buffer_id);
 
     request->id = request_buffer_id;
     request->size = request_buffer_count;

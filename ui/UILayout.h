@@ -3,7 +3,7 @@
 #define COMS_UI_LAYOUT_H
 
 #include "../stdlib/Stdlib.h"
-#include "../stdlib/HashMap.h"
+#include "../stdlib/HashMapT.h"
 #include "../stdlib/ArrayVector.h"
 #include "../asset/Asset.h"
 #include "../font/FontSystem.h"

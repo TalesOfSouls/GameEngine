@@ -4,41 +4,34 @@
  * @link      https://jingga.app
  */
 #pragma once
-#ifndef COMS_STDLIB_HASH_MAPT_H
-#define COMS_STDLIB_HASH_MAPT_H
+#ifndef COMS_STDLIB_THRD_HASH_MAPT_H
+#define COMS_STDLIB_THRD_HASH_MAPT_H
 
-#include "Stdlib.h"
-#include "../memory/ChunkMemoryT.h"
-
-// If a hash key is longer than the max key length, we use the last N characters of that key
-// The key length is currently chosen to result in 32 byte size for the common case: HashEntryInt32
-#define HASH_MAP_MAX_KEY_LENGTH 22
-
-typedef uint64 (*HashMapHashFunction)(const void* data) NO_EXCEPT;
+#include "HashMapT.h"
 
 template <typename V>
 struct HashEntryStrT {
     char key[HASH_MAP_MAX_KEY_LENGTH];
-    uint16 next;
+    atomic<uint16> next;
     V value;
 };
 
 template <typename K, typename V>
 struct HashEntryT {
     K key;
-    uint16 next;
+    atomic<uint16> next;
     V value;
 };
 
 template <typename T>
-struct HashMapT {
+struct ThrdHashMapT {
     // Contains the actual data of the hash map (sometimes)
     // Careful, some hash map implementations don't store the value in here but an offset for use in another array
     // In such a case this doesn't store the actual data but the hash entry which in return can simply contain
     // a pointer or index in some arbitrary other array/memory.
     // For such cases we have some additional pointer/offset chasing to do BUT we can handle hash collisions much faster
     // because iterating through the hash map entries is faster since they might be already in L3 or L2 cache.
-    ChunkMemoryT<T> buf;
+    ThrdChunkMemoryT<T> buf;
 
     // In our hash map implementation we have longer chains since we don't have separate buckets as when using a table array
     // What I mean is that a chain in this implementation could even contain hashs that result in different indices

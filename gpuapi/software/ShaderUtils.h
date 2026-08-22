@@ -33,7 +33,7 @@ void gpuapi_descriptor_set_layout_create(
             renderer->descriptor_set_layout[i].name = layout->name;
             renderer->descriptor_set_layout[i].size = ceil_div(layout->size, renderer->buf.chunk_size);
             renderer->descriptor_set_layout[i].binding = chunk_reserve(&renderer->buf, renderer->descriptor_set_layout[i].size) + 1;
-            renderer->descriptor_set_layout[i].data = chunk_get_element(&renderer->buf, renderer->descriptor_set_layout[i].binding - 1);
+            renderer->descriptor_set_layout[i].data = chunk_element_get(&renderer->buf, renderer->descriptor_set_layout[i].binding - 1);
 
             // @todo allow .data to be a reference to existing memory
 
@@ -92,7 +92,7 @@ void gpuapi_descriptor_set_layout_create(
         shader->descriptor_set_layout[i].name = layouts[i].name;
         shader->descriptor_set_layout[i].size = ceil_div(layouts[i].size, renderer->buf.chunk_size);
         shader->descriptor_set_layout[i].binding = chunk_reserve(&renderer->buf, shader->descriptor_set_layout[i].size) + 1;
-        shader->descriptor_set_layout[i].data = chunk_get_element(&renderer->buf, shader->descriptor_set_layout[i].binding - 1);
+        shader->descriptor_set_layout[i].data = chunk_element_get(&renderer->buf, shader->descriptor_set_layout[i].binding - 1);
 
         // @todo allow .data to be a reference to existing memory
     }

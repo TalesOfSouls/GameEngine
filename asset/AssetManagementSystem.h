@@ -8,7 +8,7 @@
 #define COMS_ASSET_MANAGEMENT_SYSTEM_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemory.h"
+#include "../memory/ThrdChunkMemory.h"
 #include "../stdlib/HashMapT.h"
 #include "../thread/ThreadDefines.h"
 #include "Asset.h"
@@ -26,15 +26,11 @@ enum AssetManagementType {
 // All other entities are grouped together in one asset component system
 struct AssetComponent {
     // This is were the actual asset data is stored
-    ChunkMemory asset_memory;
+    ThrdChunkMemory asset_memory;
 
     uint64 ram_size;
     uint64 vram_size;
     uint64 asset_count;
-
-    // @question Do we want to add a mutex to assets. This way we don't have to lock the entire ams.
-    alignas(ASSUMED_CACHE_LINE_SIZE) mutex mtx;
-    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(mutex)];
 };
 
 // @performance This doesn't really have anything to do with the AMS but how we currently operate
@@ -42,6 +38,7 @@ struct AssetComponent {
 // Once core stuff is on the gpu, it should be removed from RAM (at least after n seconds)
 struct AssetManagementSystem {
     // Used to find an asset in any asset component
+    // @bug Needs to be threaded
     HashMapT<HashEntryStrT<Asset>> hash_map;
 
     int32 asset_component_count;

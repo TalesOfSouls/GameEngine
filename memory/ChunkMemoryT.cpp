@@ -59,43 +59,6 @@ void chunk_init(
     PSEUDO_USE(size);
 }
 
-template <typename T>
-inline
-void thrd_chunk_init(
-    ChunkMemoryT<T>* const buf,
-    byte* const data,
-    int32 capacity,
-    int32 alignment = sizeof(size_t)
-) NO_EXCEPT
-{
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-    MAYBE_UNUSED const size_t size = capacity * sizeof(T)
-        + sizeof(size_t) * array_count
-        + sizeof(size_t) * array_count
-        + sizeof(size_t) * 2;
-
-    buf->memory = (T *) align_up((uintptr_t) data, alignment);
-
-    buf->capacity = capacity;
-    buf->last_pos = -1;
-    buf->free = (size_t *) align_up(
-        (size_t) ((uintptr_t) (buf->memory + capacity)),
-        (size_t) alignof(size_t)
-    );
-    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), (size_t) alignof(size_t));
-
-    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
-
-    spinlock_init(&buf->lock);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
-    PSEUDO_USE(size);
-}
-
 // INFO: A chunk count of 2^n is recommended for maximum performance
 template <typename T>
 inline
@@ -121,38 +84,6 @@ void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity,
     );
 
     chunk_init(buf, buffer, capacity, alignment);
-}
-
-template <typename T>
-inline
-void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(max_capacity >= capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    LOG_1("[INFO] Allocating ChunkMemoryT");
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-    const size_t memory_size = capacity * sizeof(T)
-            + sizeof(size_t) * array_count
-            + sizeof(size_t) * array_count
-            + sizeof(size_t) * 2;
-
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
-    const size_t max_memory_size = max_capacity * sizeof(T)
-            + sizeof(size_t) * max_array_count
-            + sizeof(size_t) * max_array_count
-            + sizeof(size_t) * 2;
-
-    byte* buffer = (byte *) platform_alloc_aligned(
-        memory_size,
-        max_memory_size,
-        alignment
-    );
-
-    thrd_chunk_init(buf, buffer, capacity, alignment);
 }
 
 // INFO: A chunk count of 2^n is recommended for maximum performance
@@ -184,38 +115,6 @@ void chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 capac
 
 template <typename T>
 inline
-void thrd_chunk_alloc(ChunkMemoryT<T>* const buf, MemoryArena* const mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(max_capacity >= capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    LOG_1("[INFO] Allocating ChunkMemoryT");
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-    const size_t memory_size = capacity * sizeof(T)
-            + sizeof(size_t) * array_count
-            + sizeof(size_t) * array_count
-            + sizeof(size_t) * 2;
-
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
-    const size_t max_memory_size = max_capacity * sizeof(T)
-            + sizeof(size_t) * max_array_count
-            + sizeof(size_t) * max_array_count
-            + sizeof(size_t) * 2;
-
-    MemoryArena* arena = mem_arena_add(
-        mem,
-        memory_size,
-        max_memory_size,
-        alignment
-    );
-    thrd_chunk_init(buf, arena->memory, capacity, alignment);
-}
-
-template <typename T>
-inline
 void chunk_init(
     ChunkMemoryT<T>* const buf,
     BufferMemory* const data,
@@ -239,30 +138,6 @@ void chunk_init(
 
 template <typename T>
 inline
-void thrd_chunk_init(
-    ChunkMemoryT<T>* const buf,
-    BufferMemory* const data,
-    int32 capacity,
-    int32 alignment = sizeof(size_t)
-) NO_EXCEPT
-{
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-    const size_t size = capacity * sizeof(T)
-        + sizeof(size_t) * array_count
-        + sizeof(size_t) * array_count
-        + sizeof(size_t) * 2;
-
-    byte* buffer = memory_get(data, size, alignment);
-    thrd_chunk_init(buf, buffer, capacity, alignment);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
-}
-
-template <typename T>
-inline
 void chunk_free(ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE(
@@ -281,13 +156,6 @@ void chunk_free(ChunkMemoryT<T>* const buf) NO_EXCEPT
 
 template <typename T>
 inline
-void thrd_chunk_free(ChunkMemoryT<T>* const buf) NO_EXCEPT
-{
-    chunk_free(buf);
-}
-
-template <typename T>
-inline
 void chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* const mem) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, sizeof(T) * buf->capacity + sizeof(size_t) * ceil_div(buf->capacity, (sizeof(size_t) * 8)));
@@ -296,13 +164,6 @@ void chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* const mem) NO_EXCEPT
 
     buf->capacity = 0;
     buf->memory = NULL;
-}
-
-template <typename T>
-inline
-void thrd_chunk_free(ChunkMemoryT<T>* const buf, MemoryArena* const mem) NO_EXCEPT
-{
-    chunk_free(buf, mem);
 }
 
 template <typename T>
@@ -317,7 +178,7 @@ size_t* chunk_find_free_array(const ChunkMemoryT<T>* const buf) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE FORCE_FLATTEN
-T* chunk_get_element(const ChunkMemoryT<T>* const buf, int32 element) NO_EXCEPT
+T* chunk_element_get(const ChunkMemoryT<T>* const buf, int32 element) NO_EXCEPT
 {
     if (element >= buf->capacity) {
         return NULL;
@@ -340,25 +201,9 @@ bool chunk_is_free(const ChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-bool thrd_chunk_is_free(const ChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    return chunk_is_free_internal(buf->free, element);
-}
-
-template <typename T>
-FORCE_INLINE
 int32 chunk_reserve_one(ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     return chunk_reserve_one(buf->free, (uint32) buf->capacity, buf->last_pos);
-}
-
-template <typename T>
-FORCE_INLINE
-int32 thrd_chunk_reserve_one(ChunkMemoryT<T>* const buf) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    return chunk_reserve_one(buf);
 }
 
 // use chunk_reserve_one if possible
@@ -376,14 +221,6 @@ int32 chunk_reserve(ChunkMemoryT<T>* const buf, uint32 elements = 1) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-int32 thrd_chunk_reserve(ChunkMemoryT<T>* const buf, uint32 elements = 1) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    return chunk_reserve(buf, elements);
-}
-
-template <typename T>
-FORCE_INLINE
 void chunk_free_element(ChunkMemoryT<T>* const buf, size_t free_index, int32 bit_index) NO_EXCEPT
 {
     buf->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
@@ -391,14 +228,6 @@ void chunk_free_element(ChunkMemoryT<T>* const buf, size_t free_index, int32 bit
         (uintptr_t) &buf->memory[(free_index * (sizeof(size_t) * 8) + bit_index)],
         sizeof(T)
     );
-}
-
-template <typename T>
-inline
-void thrd_chunk_free_element(ChunkMemoryT<T>* const buf, size_t free_index, int32 bit_index) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    chunk_free_element(buf, free_index, bit_index);
 }
 
 template <typename T>
@@ -416,7 +245,7 @@ template <typename T>
 FORCE_INLINE
 void chunk_free_elements(ChunkMemoryT<T>* const buf, size_t element, uint32 element_count = 1) NO_EXCEPT
 {
-    chunk_free_elements_internal(buf->state, element, element_count);
+    chunk_clear_bit_range_internal(buf->free, element, element_count);
     DEBUG_MEMORY_DELETE((uintptr_t) &buf->memory[element], sizeof(T) * element_count);
 }
 
@@ -425,16 +254,8 @@ FORCE_INLINE
 void chunk_free_elements(ChunkMemoryT<T>* const buf, T* data, uint32 element_count = 1) NO_EXCEPT
 {
     const int32 element = chunk_id_from_memory(buf->memory, data, sizeof(T));
-    chunk_free_elements_internal(buf->state, element, element_count);
+    chunk_clear_bit_range_internal(buf->free, element, element_count);
     DEBUG_MEMORY_DELETE((uintptr_t) &buf->memory[element], sizeof(T) * element_count);
-}
-
-template <typename T>
-FORCE_INLINE
-void thrd_chunk_free_elements(ChunkMemoryT<T>* const buf, size_t element, uint32 element_count = 1) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    chunk_free_elements(buf, element, element_count);
 }
 
 /**
@@ -486,7 +307,7 @@ T* chunk_memory_get(ChunkMemoryT<T>* const buf, uint32 elements) NO_EXCEPT
 {
     const int32 element = chunk_reserve(buf, elements);
 
-    return chunk_get_element(buf, element);
+    return chunk_element_get(buf, element);
 }
 
 template <typename T>
@@ -513,7 +334,7 @@ T* chunk_memory_get_one(ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     const int32 element = chunk_reserve_one(buf);
 
-    return chunk_get_element(buf, element);
+    return chunk_element_get(buf, element);
 }
 
 template <typename T>

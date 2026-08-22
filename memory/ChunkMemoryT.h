@@ -36,13 +36,6 @@ struct ChunkMemoryT {
     // length = count
     // free describes which locations are used and which are free
     size_t* free;
-
-    // Chunk implementation ends here
-    // The completeness indicates if the data is completely written to
-    size_t* completeness;
-
-    alignas(ASSUMED_CACHE_LINE_SIZE) spinlock32 lock;
-    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(spinlock32)];
 };
 
 #endif

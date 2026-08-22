@@ -27,7 +27,7 @@ struct SessionManager {
 
     Session *sessions;
 
-    // Data shared accross sessions
+    // Data shared across sessions
     byte* session_data;
 
     size_t count;

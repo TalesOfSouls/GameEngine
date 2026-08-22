@@ -18,31 +18,10 @@
 #include "../thread/ThreadHelper.cpp"
 
 FORCE_INLINE
-int32 chunk_size_element(int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+size_t chunk_size_total(int32 capacity, int32 element_size) NO_EXCEPT
 {
-    return align_up(element_size, alignment);
-}
-
-FORCE_INLINE
-size_t chunk_size_total(int32 capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    element_size = chunk_size_element(element_size, alignment);
-
     return capacity * element_size
         + sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)) // free
-        + alignof(size_t) * 2; // overhead for alignment
-}
-
-FORCE_INLINE
-size_t thrd_chunk_size_total(int32 capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
-{
-    element_size = chunk_size_element(element_size, alignment);
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-
-    return capacity * element_size
-        + sizeof(size_t) * array_count // free
-        + sizeof(size_t) * array_count // completeness
         + alignof(size_t) * 2; // overhead for alignment
 }
 
@@ -65,9 +44,8 @@ void chunk_alloc(
 
     LOG_1("[INFO] Allocating ChunkMemory");
 
-    element_size = chunk_size_element(element_size, alignment);
-    const size_t size = chunk_size_total(capacity, element_size, alignment);
-    const size_t max_size = chunk_size_total(max_capacity, element_size, alignment);
+    const size_t size = chunk_size_total(capacity, element_size);
+    const size_t max_size = chunk_size_total(max_capacity, element_size);
 
     buf->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
 
@@ -81,49 +59,6 @@ void chunk_alloc(
         (size_t) alignof(size_t)
     );
     memset((void *) buf->free, 0, sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)));
-
-    LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
-}
-
-inline
-void thrd_chunk_alloc(
-    ChunkMemory* const buf,
-    int32 capacity,
-    int32 max_capacity,
-    int32 element_size,
-    int32 alignment = 32,
-    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
-) NO_EXCEPT
-{
-    ASSERT_TRUE(element_size);
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(max_capacity >= capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("[INFO] Allocating ChunkMemory");
-
-    element_size = chunk_size_element(element_size, alignment);
-    const size_t size = thrd_chunk_size_total(capacity, element_size, alignment);
-    const size_t max_size = thrd_chunk_size_total(max_capacity, element_size, alignment);
-
-    buf->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
-
-    buf->capacity = capacity;
-    buf->size = size;
-    buf->chunk_size = element_size;
-    buf->last_pos = -1;
-    buf->alignment = alignment;
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-
-    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
-    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), alignof(size_t));
-
-    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
-
-    spinlock_init(&buf->lock);
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -147,9 +82,8 @@ void chunk_alloc(
 
     LOG_1("[INFO] Allocating ChunkMemory");
 
-    element_size = chunk_size_element(element_size, alignment);
-    const size_t size = chunk_size_total(capacity, element_size, alignment);
-    const size_t max_size = chunk_size_total(max_capacity, element_size, alignment);
+    const size_t size = chunk_size_total(capacity, element_size);
+    const size_t max_size = chunk_size_total(max_capacity, element_size);
 
     MemoryArena* arena = mem_arena_add(mem, size, max_size, start_alignment);
     buf->memory = (byte *) arena->memory;
@@ -169,51 +103,6 @@ void chunk_alloc(
 }
 
 inline
-void thrd_chunk_alloc(
-    ChunkMemory* const buf,
-    MemoryArena* mem,
-    int32 capacity,
-    int32 max_capacity,
-    int32 element_size,
-    int32 alignment = 32,
-    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
-) NO_EXCEPT
-{
-    ASSERT_TRUE(element_size);
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(max_capacity >= capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
-    LOG_1("[INFO] Allocating ChunkMemory");
-
-    element_size = chunk_size_element(element_size, alignment);
-    const size_t size = thrd_chunk_size_total(capacity, element_size, alignment);
-    const size_t max_size = thrd_chunk_size_total(max_capacity, element_size, alignment);
-
-    MemoryArena* arena = mem_arena_add(mem, size, max_size, start_alignment);
-    buf->memory = (byte *) arena->memory;
-
-    buf->capacity = capacity;
-    buf->size = size;
-    buf->chunk_size = element_size;
-    buf->last_pos = -1;
-    buf->alignment = alignment;
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-
-    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
-    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), alignof(size_t));
-
-    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
-
-    spinlock_init(&buf->lock);
-
-    LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
-}
-
-inline
 void chunk_init(
     ChunkMemory* const buf,
     BufferMemory* const data,
@@ -227,9 +116,7 @@ void chunk_init(
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    element_size = chunk_size_element(element_size, alignment);
-
-    const size_t size = chunk_size_total(capacity, element_size, alignment);
+    const size_t size = chunk_size_total(capacity, element_size);
 
     buf->memory = memory_get(data, size, start_alignment);
     memset(buf->memory, 0, size);
@@ -246,46 +133,6 @@ void chunk_init(
 }
 
 inline
-void thrd_chunk_alloc(
-    ChunkMemory* const buf,
-    BufferMemory* const data,
-    int32 capacity,
-    int32 element_size,
-    int32 alignment = sizeof(size_t),
-    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
-)
-{
-    ASSERT_TRUE(element_size);
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    LOG_1("[INFO] Allocating ChunkMemory");
-
-    element_size = chunk_size_element(element_size, alignment);
-    const size_t size = thrd_chunk_size_total(capacity, element_size, alignment);
-
-    buf->memory = memory_get(data, size, start_alignment);
-
-    buf->capacity = capacity;
-    buf->size = size;
-    buf->chunk_size = element_size;
-    buf->last_pos = -1;
-    buf->alignment = alignment;
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-
-    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
-    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), alignof(size_t));
-
-    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
-
-    spinlock_init(&buf->lock);
-
-    LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
-}
-
-inline
 void chunk_init(
     ChunkMemory* const buf,
     byte* const data,
@@ -299,9 +146,7 @@ void chunk_init(
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    element_size = chunk_size_element(element_size, alignment);
-
-    const size_t size = chunk_size_total(capacity, element_size, alignment);
+    const size_t size = chunk_size_total(capacity, element_size);
 
     buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
 
@@ -320,46 +165,6 @@ void chunk_init(
 }
 
 inline
-void thrd_chunk_alloc(
-    ChunkMemory* const buf,
-    byte* const data,
-    int32 capacity,
-    int32 element_size,
-    int32 alignment = sizeof(size_t),
-    int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
-) NO_EXCEPT
-{
-    ASSERT_TRUE(element_size);
-    ASSERT_TRUE(capacity);
-    ASSERT_TRUE(alignment % sizeof(int) == 0);
-
-    LOG_1("[INFO] Allocating ChunkMemory");
-
-    element_size = chunk_size_element(element_size, alignment);
-    const size_t size = thrd_chunk_size_total(capacity, element_size, alignment);
-
-    buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
-
-    buf->capacity = capacity;
-    buf->size = size;
-    buf->chunk_size = element_size;
-    buf->last_pos = -1;
-    buf->alignment = alignment;
-
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
-
-    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
-    buf->completeness = (size_t *) align_up((uintptr_t) (buf->free + array_count), alignof(size_t));
-
-    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
-
-    spinlock_init(&buf->lock);
-
-    LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
-}
-
-inline
 void chunk_free(ChunkMemory* const buf) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->size);
@@ -368,12 +173,6 @@ void chunk_free(ChunkMemory* const buf) NO_EXCEPT
 
     buf->size = 0;
     buf->memory = NULL;
-}
-
-FORCE_INLINE
-void thrd_chunk_free(ChunkMemory* const buf) NO_EXCEPT
-{
-    chunk_free(buf);
 }
 
 inline
@@ -385,12 +184,6 @@ void chunk_free(ChunkMemory* const buf, MemoryArena* mem) NO_EXCEPT
 
     buf->size = 0;
     buf->memory = NULL;
-}
-
-FORCE_INLINE
-void thrd_chunk_free(ChunkMemory* const buf, MemoryArena* mem) NO_EXCEPT
-{
-    chunk_free(buf, mem);
 }
 
 FORCE_INLINE
@@ -415,7 +208,7 @@ uint32 chunk_id_from_memory(void* memory, void* pos, size_t chunk_size) NO_EXCEP
 }
 
 FORCE_INLINE FORCE_FLATTEN
-byte* chunk_get_element(const ChunkMemory* const buf, int32 element) NO_EXCEPT
+byte* chunk_element_get(const ChunkMemory* const buf, int32 element) NO_EXCEPT
 {
     if (element >= buf->capacity) {
         return NULL;
@@ -495,13 +288,6 @@ int32 chunk_reserve_one(size_t* state, uint32 state_count, int32 start_index = 0
 FORCE_INLINE
 int32 chunk_reserve_one(ChunkMemory* const buf) NO_EXCEPT
 {
-    return chunk_reserve_one(buf->free, buf->capacity, buf->last_pos);
-}
-
-FORCE_INLINE
-int32 thrd_chunk_reserve_one(ChunkMemory* const buf) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
     return chunk_reserve_one(buf->free, buf->capacity, buf->last_pos);
 }
 
@@ -629,14 +415,6 @@ int32 chunk_reserve(ChunkMemory* const buf, int32 elements = 1) NO_EXCEPT
     return found;
 }
 
-
-FORCE_INLINE
-int32 thrd_chunk_reserve(ChunkMemory* const buf, int32 elements = 1) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    return chunk_reserve((ChunkMemory *) buf, elements);
-}
-
 FORCE_INLINE
 void chunk_free_element(size_t* const state, size_t free_index, int32 bit_index) NO_EXCEPT
 {
@@ -653,13 +431,6 @@ void chunk_free_element(ChunkMemory* const buf, size_t free_index, int32 bit_ind
     );
 }
 
-inline
-void thrd_chunk_free_element(ChunkMemory* const buf, size_t free_index, int32 bit_index) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    chunk_free_element(buf->free, free_index, bit_index);
-}
-
 FORCE_INLINE
 void chunk_free_element(ChunkMemory* const buf, int32 element) NO_EXCEPT
 {
@@ -674,7 +445,7 @@ void chunk_free_element(ChunkMemory* const buf, int32 element) NO_EXCEPT
 }
 
 HOT_CODE
-void chunk_free_elements_internal(size_t* const state, int32 element, int32 element_count = 1) NO_EXCEPT
+void chunk_clear_bit_range_internal(size_t* const state, int32 element, int32 element_count = 1) NO_EXCEPT
 {
     size_t free_index = element / (sizeof(size_t) * 8);
     uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
@@ -702,7 +473,7 @@ void chunk_free_elements_internal(size_t* const state, int32 element, int32 elem
 HOT_CODE
 void chunk_free_elements(ChunkMemory* const buf, int32 element, int32 element_count = 1) NO_EXCEPT
 {
-    chunk_free_elements_internal(buf->free, element, element_count);
+    chunk_clear_bit_range_internal(buf->free, element, element_count);
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size * element_count);
 }
 
@@ -710,35 +481,8 @@ HOT_CODE
 void chunk_free_elements(ChunkMemory* const buf, byte* data, int32 element_count = 1) NO_EXCEPT
 {
     const int32 element = chunk_id_from_memory(buf->memory, data, buf->chunk_size);
-    chunk_free_elements_internal(buf->free, element, element_count);
+    chunk_clear_bit_range_internal(buf->free, element, element_count);
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size * element_count);
-}
-
-FORCE_INLINE
-void thrd_chunk_free_elements(ChunkMemory* const buf, int32 element, int32 element_count = 1) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    chunk_free_elements((ChunkMemory *) buf, element, element_count);
-}
-
-// @performance We can optimize it by checking if we can just append additional chunks if they are free
-inline
-int32 thrd_chunk_resize(ChunkMemory* const buf, int32 element_id, int32 elements_old, int32 elements_new) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    const byte* data = chunk_get_element(buf, element_id);
-
-    const int32 chunk_id = chunk_reserve(buf, elements_new);
-    byte* data_new = chunk_get_element(buf, chunk_id);
-
-    memcpy(data_new, data, buf->chunk_size * elements_old);
-
-    // @see performance remark above
-    //if (element_id != chunk_id) {
-        chunk_free_elements(buf, element_id, elements_old);
-    //}
-
-    return chunk_id;
 }
 
 inline
@@ -779,7 +523,7 @@ inline HOT_CODE
 byte* chunk_memory_get(ChunkMemory* const buf, int32 elements) NO_EXCEPT
 {
     const int32 element = chunk_reserve(buf, elements);
-    return chunk_get_element(buf, element);
+    return chunk_element_get(buf, element);
 }
 
 inline HOT_CODE
@@ -796,20 +540,6 @@ byte* memory_get_temp(ChunkMemory* const buf, size_t size) NO_EXCEPT
     chunk_free_elements(buf, data, element_count);
 
     return data;
-}
-
-inline HOT_CODE
-byte* thrd_chunk_memory_get(ChunkMemory* const buf, int32 elements) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    return chunk_memory_get(buf, elements);
-}
-
-inline HOT_CODE
-byte* thrd_memory_get(ChunkMemory* const buf, size_t size) NO_EXCEPT
-{
-    SpinlockGuard _guard(&buf->lock, 0);
-    return memory_get(buf, size);
 }
 
 /**
@@ -831,68 +561,27 @@ struct ChunkStackMemory {
         this->element = chunk_reserve(buf, this->count);
         this->buffer = buf;
 
-        *mem = chunk_get_element(buf, this->element);
+        *mem = chunk_element_get(buf, this->element);
     }
 
     HOT_CODE inline
     ~ChunkStackMemory() NO_EXCEPT
     {
-        chunk_free_elements(this->buffer, this->element, this->count);
+        this->buffer->last_pos = this->element - 1;
+        if (this->count == 1) {
+            chunk_free_element(this->buffer, this->element);
+        } else {
+            chunk_free_elements(this->buffer, this->element, this->count);
+        }
     }
 };
 #define CHUNK_STACK_MEMORY(buf, mem, size) ChunkStackMemory __chunk_stack_##__func__##_##__LINE__((buf), (mem), (size))
-
-struct ThrdChunkStackMemory {
-    ChunkMemory* buffer;
-    int32 element;
-    uint32 count;
-
-    HOT_CODE inline
-    explicit ThrdChunkStackMemory(
-        ChunkMemory* buf,
-        byte** mem,
-        size_t size
-    ) NO_EXCEPT
-    {
-        this->count = (uint32) ((size + buf->chunk_size - 1) / buf->chunk_size);
-        this->buffer = buf;
-
-        SpinlockGuard _guard(&buf->lock, 0);
-        this->element = chunk_reserve(buf, this->count);
-        *mem = chunk_get_element(buf, this->element);
-    }
-
-    HOT_CODE inline
-    explicit ThrdChunkStackMemory(
-        ChunkMemory* buf,
-        BufferMemory* mem,
-        size_t size
-    ) NO_EXCEPT
-    {
-        this->count = (uint32) ((size + buf->chunk_size - 1) / buf->chunk_size);
-        this->buffer = buf;
-
-        SpinlockGuard _guard(&buf->lock, 0);
-        this->element = chunk_reserve(buf, this->count);
-        byte* data = chunk_get_element(buf, this->element);
-        _guard.unlock();
-
-        buffer_init(mem, data, size, sizeof(size_t));
-    }
-
-    HOT_CODE inline
-    ~ThrdChunkStackMemory() NO_EXCEPT
-    {
-        thrd_chunk_free_elements(this->buffer, this->element, this->count);
-    }
-};
-#define THRD_CHUNK_STACK_MEMORY(buf, mem, size) ThrdChunkStackMemory __thrd_chunk_stack_##__func__##_##__LINE__((buf), (mem), (size))
 
 inline HOT_CODE
 byte* chunk_memory_get_one(ChunkMemory* const buf) NO_EXCEPT
 {
     const int32 element = chunk_reserve_one(buf);
-    return chunk_get_element(buf, element);
+    return chunk_element_get(buf, element);
 }
 
 inline

@@ -72,7 +72,7 @@ void http_response_grow(HttpResponse* __restrict* response, int32 count, Threade
     HttpResponse* resp = *response;
 
     int32 id = thrd_chunk_resize(mem, resp->id, resp->size, count);
-    resp = (HttpResponse*) thrd_chunk_get_element(mem, id);
+    resp = (HttpResponse*) thrd_chunk_element_get(mem, id);
     resp->id = id;
     resp->size = count;
 
@@ -230,7 +230,7 @@ HttpResponse* http_response_create(ThreadedChunkMemory* mem)
 {
     int32 response_buffer_count = ceil_div(sizeof(HttpResponse) + MIN_HTTP_RESPONSE_CONTENT, mem->chunk_size);
     int32 response_buffer_id = thrd_chunk_reserve(mem, response_buffer_count);
-    HttpResponse* response = (HttpResponse *) thrd_chunk_get_element(mem, response_buffer_id);
+    HttpResponse* response = (HttpResponse *) thrd_chunk_element_get(mem, response_buffer_id);
 
     response->id = response_buffer_id;
     response->size = response_buffer_count;

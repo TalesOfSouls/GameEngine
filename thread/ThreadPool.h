@@ -9,7 +9,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/MPMCWorkTrackingQueueT.h"
-#include "../memory/ChunkMemory.h"
+#include "../memory/ThrdChunkMemory.h"
 #include "../log/DebugMemory.h"
 #include "../log/PerformanceProfiler.h"
 #include "../log/DebugContainer.h"
@@ -62,7 +62,7 @@ struct ThreadPool {
     // From this memory we distribute memory to all the worker threads
     // The distributed memory depends on the requirements of the respective job
     // This means we redistribute memory on a job basis
-    ChunkMemory thrd_mem;
+    ThrdChunkMemory thrd_mem;
 };
 
 #endif

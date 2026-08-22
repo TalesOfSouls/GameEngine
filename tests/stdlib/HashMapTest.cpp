@@ -20,21 +20,21 @@ static void test_hashmap_insert_int32() {
     HashEntryInt32* entry;
 
     hashmap_insert(&hm, "test1", 1);
-    entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "test1");
+    entry = (HashEntryInt32 *) hashmap_entry_get(&hm, "test1");
     TEST_NOT_EQUALS(entry, NULL);
     TEST_EQUALS(entry->value, 1);
 
     hashmap_insert(&hm, "test2", 2);
-    entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "test2");
+    entry = (HashEntryInt32 *) hashmap_entry_get(&hm, "test2");
     TEST_NOT_EQUALS(entry, NULL);
     TEST_EQUALS(entry->value, 2);
 
     hashmap_insert(&hm, "test3", 3);
-    entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "test3");
+    entry = (HashEntryInt32 *) hashmap_entry_get(&hm, "test3");
     TEST_NOT_EQUALS(entry, NULL);
     TEST_EQUALS(entry->value, 3);
 
-    entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "invalid");
+    entry = (HashEntryInt32 *) hashmap_entry_get(&hm, "invalid");
     TEST_EQUALS(entry, NULL);
 
     hashmap_free(&hm);
@@ -47,20 +47,20 @@ static void test_hashmap_remove() {
     HashEntryInt32* entry;
 
     hashmap_insert(&hm, "test1", 1);
-    entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "test1");
+    entry = (HashEntryInt32 *) hashmap_entry_get(&hm, "test1");
     TEST_NOT_EQUALS(entry, NULL);
     TEST_EQUALS(entry->value, 1);
 
     hashmap_insert(&hm, "test2", 2);
-    entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "test2");
+    entry = (HashEntryInt32 *) hashmap_entry_get(&hm, "test2");
     TEST_NOT_EQUALS(entry, NULL);
     TEST_EQUALS(entry->value, 2);
 
     hashmap_remove(&hm, "test2");
-    entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "test2");
+    entry = (HashEntryInt32 *) hashmap_entry_get(&hm, "test2");
     TEST_EQUALS(entry, NULL);
 
-    entry = (HashEntryInt32 *) hashmap_get_entry(&hm, "test1");
+    entry = (HashEntryInt32 *) hashmap_entry_get(&hm, "test1");
     TEST_NOT_EQUALS(entry, NULL);
     TEST_EQUALS(entry->value, 1);
 
@@ -333,7 +333,7 @@ static void _my_hashmap(MAYBE_UNUSED volatile void* val) {
         random_string("ABCDEF0123456789", 16, test_key, 19);
 
         hashmap_insert(&map, test_key, 1);
-        HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&map, test_key);
+        HashEntryInt32* entry = (HashEntryInt32 *) hashmap_entry_get(&map, test_key);
         total += entry->value;
     }
 
@@ -353,7 +353,7 @@ static void _my_hashmap_2(MAYBE_UNUSED volatile void* val) {
         random_string("ABCDEF0123456789", 16, test_key, 19);
 
         hashmap_insert(&map, test_key, 1);
-        HashEntryStrT<int32>* entry = hashmap_get_entry(&map, test_key);
+        HashEntryStrT<int32>* entry = hashmap_entry_get(&map, test_key);
         total += entry->value;
     }
 

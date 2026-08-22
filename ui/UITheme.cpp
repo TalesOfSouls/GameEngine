@@ -17,7 +17,7 @@
 FORCE_INLINE
 UIAttributeGroup* theme_style_group(UITheme* theme, const char* group_name)
 {
-    const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) hashmap_get_entry(&theme->hash_map, group_name);
+    const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) hashmap_entry_get(&theme->hash_map, group_name);
     if (!entry) {
         ASSERT_THROW();
         return NULL;
@@ -312,7 +312,7 @@ int32 theme_from_data(
     // @performance We are iterating the hashmap twice (hashmap_load and here)
     int32 chunk_id = 0;
     chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
-        HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
+        HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_element_get(&theme->hash_map.buf, chunk_id);
         ui_theme_parse_group(entry, theme->data, &in);
     } chunk_iterate_end;
 
@@ -430,7 +430,7 @@ int32 theme_to_data(
     // Layout: first save the size of the group, then save the individual attributes
     int32 chunk_id = 0;
     chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
-        const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
+        const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_element_get(&theme->hash_map.buf, chunk_id);
         ui_theme_serialize_group(entry, theme->data, &out);
     } chunk_iterate_end;
 

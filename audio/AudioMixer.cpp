@@ -57,7 +57,7 @@ void audio_mixer_play(AudioMixer* const mixer, int32 id, Audio* const audio, con
         return;
     }
 
-    AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, index);
+    AudioInstance* instance = (AudioInstance *) chunk_element_get(&mixer->audio_instances, index);
     instance->id = id;
     instance->audio_size = audio->size;
     instance->audio_data = audio->data;
@@ -76,7 +76,7 @@ void audio_mixer_play(AudioMixer* const mixer, const AudioInstance* const settin
         return;
     }
 
-    AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, index);
+    AudioInstance* instance = (AudioInstance *) chunk_element_get(&mixer->audio_instances, index);
     memcpy(instance, settings, sizeof(AudioInstance));
 }
 
@@ -86,7 +86,7 @@ void audio_mixer_play_unique(AudioMixer* mixer, int32 id, Audio* audio, const Au
         // @performance We are not really utilizing chunk memory.
         // Maybe a simple array would be better
         // Or we need to use more chunk functions / maybe even create a chunk_iterate() function?
-        const AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
+        const AudioInstance* instance = (AudioInstance *) chunk_element_get(&mixer->audio_instances, i);
         if (instance->id == id) {
             return;
         }
@@ -101,7 +101,7 @@ void audio_mixer_play_unique(AudioMixer* mixer, const AudioInstance* settings) N
         // @performance We are not really utilizing chunk memory.
         // Maybe a simple array would be better
         // Or we need to use more chunk functions / maybe even create a chunk_iterate() function?
-        const AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
+        const AudioInstance* instance = (AudioInstance *) chunk_element_get(&mixer->audio_instances, i);
         if (instance->id == settings->id) {
             return;
         }
@@ -113,7 +113,7 @@ void audio_mixer_play_unique(AudioMixer* mixer, const AudioInstance* settings) N
 void audio_mixer_remove(AudioMixer* mixer, int32 id) NO_EXCEPT
 {
     for (int32 i = 0; i < mixer->audio_instances.capacity; ++i) {
-        AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
+        AudioInstance* instance = (AudioInstance *) chunk_element_get(&mixer->audio_instances, i);
         if (instance->id == id) {
             instance->id = 0;
             chunk_free_elements(&mixer->audio_instances, i);
@@ -413,7 +413,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
     const f32 volume_scale = mixer->settings.master_volume * mixer->settings.master_volume;
 
     for (int32 i = 0; i < mixer->audio_instances.capacity; ++i) {
-        AudioInstance* const sound = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
+        AudioInstance* const sound = (AudioInstance *) chunk_element_get(&mixer->audio_instances, i);
         if (sound->id == 0) {
             continue;
         }

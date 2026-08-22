@@ -8,7 +8,7 @@
 #define COMS_APP_COMMAND_AUDIO_CONSUMER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemoryT.cpp"
+#include "../memory/ThrdChunkMemoryT.cpp"
 #include "../memory/ChunkMemory.cpp"
 #include "../memory/QueueT.cpp"
 #include "../audio/AudioMixer.cpp"
@@ -45,7 +45,7 @@ Asset* cmd_internal_audio_play_enqueue(
 
 static inline
 Asset* cmd_audio_play_async(
-    ChunkMemoryT<AppCommand>* const cb,
+    ThrdChunkMemoryT<AppCommand>* const cb,
     AssetManagementSystem* const __restrict ams,
     AudioMixer* const __restrict mixer,
     const AppCommand* const __restrict cmd
@@ -71,7 +71,7 @@ Asset* cmd_audio_play(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
     AudioMixer* const __restrict mixer,
-    ChunkMemory* const __restrict mem,
+    ThrdChunkMemory* const __restrict mem,
     int32 asset_id
 ) NO_EXCEPT
 {

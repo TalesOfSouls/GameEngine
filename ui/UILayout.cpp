@@ -41,7 +41,7 @@ UICore* ui_get_element(UILayout* const layout, int32 offset) NO_EXCEPT
 FORCE_INLINE
 UICore* ui_get_element(UILayout* const layout, const char* name) NO_EXCEPT
 {
-    const HashEntryStrT<int32>* entry = hashmap_get_entry(&layout->hash_map, name);
+    const HashEntryStrT<int32>* entry = hashmap_entry_get(&layout->hash_map, name);
     if (!entry) {
         return NULL;
     }
@@ -394,7 +394,7 @@ int32 layout_to_data(
 
     // We don't save the used_data_size because that depends on the respective theme
 
-    out += hashmap_dump(&layout->hash_map, out, MEMBER_SIZEOF(HashEntryInt32, value));
+    out += hashmap_dump(&layout->hash_map, out);
 
     out = write_le(out, layout->ui_element_root.count);
     memcpy(out, layout->ui_element_root.elements, layout->ui_element_root.count);
@@ -432,7 +432,7 @@ int32 layout_from_data(
         align_up((int32) sizeof(HashEntryStrT<int32>), 32)
     );
 
-    layout->used_data_size = (int32) hashmap_load(&layout->hash_map, in, MEMBER_SIZEOF(HashEntryInt32, value));
+    layout->used_data_size = (int32) hashmap_load(&layout->hash_map, in);
     in += layout->used_data_size;
 
     in = read_le(in, &layout->ui_element_root.count);
@@ -558,7 +558,7 @@ void layout_update_element(
         return;
     }
 
-    const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) hashmap_get_entry(
+    const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) hashmap_entry_get(
         &theme->hash_map,
         (const char*) (layout->ui_element_buffer.memory + core->class_name)
     );
@@ -611,7 +611,7 @@ void layout_from_theme(
 
     int32 chunk_id = 0;
     chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
-        const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
+        const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_element_get(&layout->hash_map.buf, chunk_id);
 
         if (!force_update) {
             bool should_skip = true;

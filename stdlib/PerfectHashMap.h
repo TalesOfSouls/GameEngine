@@ -357,7 +357,7 @@ void perfect_hashmap_insert(PerfectHashMap* __restrict hm, const char* __restric
 }
 
 inline
-PerfectHashEntry* perfect_hashmap_get_entry(const PerfectHashMap* __restrict hm, const char* __restrict key) NO_EXCEPT
+PerfectHashEntry* perfect_hashmap_entry_get(const PerfectHashMap* __restrict hm, const char* __restrict key) NO_EXCEPT
 {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntry* entry = (PerfectHashEntry *) (hm->hash_entries + hm->entry_size * index);
@@ -391,7 +391,7 @@ void perfect_hashmap_delete_entry(PerfectHashMap* __restrict hm, const char* __r
     }
 
     // This depends on where we check if an element exists
-    // If we change perfect_hashmap_get_entry this also needs changing
+    // If we change perfect_hashmap_entry_get this also needs changing
     *entry->key = '\0';
 }
 
@@ -455,7 +455,7 @@ bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 
     int32 key_index = 0;
     int32 chunk_id = 0;
     chunk_iterate_start(&hm->buf, chunk_id) {
-        HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, chunk_id);
+        HashEntry* entry = (HashEntry *) chunk_element_get((ChunkMemory *) &hm->buf, chunk_id);
         keys[key_index++] = entry->key;
     } chunk_iterate_end;
 
@@ -468,7 +468,7 @@ bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 
     // Fill perfect hash map
     chunk_id = 0;
     chunk_iterate_start(&hm->buf, chunk_id) {
-        const HashEntry* entry = (const HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, chunk_id);
+        const HashEntry* entry = (const HashEntry *) chunk_element_get((ChunkMemory *) &hm->buf, chunk_id);
         perfect_hashmap_insert(phm, entry->key, entry->value);
     } chunk_iterate_end;
 

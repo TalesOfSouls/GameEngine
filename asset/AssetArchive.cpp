@@ -313,7 +313,7 @@ Asset* const asset_archive_asset_load(
     const AssetArchive* const archive,
     int32 id,
     AssetManagementSystem* const ams,
-    ChunkMemory* const mem,
+    ThrdChunkMemory* const mem,
     bool load_dependencies = true
 ) NO_EXCEPT
 {
@@ -344,8 +344,8 @@ Asset* const asset_archive_asset_load(
     Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
     if (asset) {
         // Prevent garbage collection
-        asset->state &= ~ASSET_STATE_RAM_GC;
-        asset->state &= ~ASSET_STATE_VRAM_GC;
+        asset->state &= ~ASSET_MEMORY_STATE_RAM_GC;
+        asset->state &= ~ASSET_MEMORY_STATE_VRAM_GC;
 
         return asset;
     }
@@ -367,8 +367,6 @@ Asset* const asset_archive_asset_load(
     //              Although, I assume all formats have some form of compression which would make that statement false
     // We are reading into temp memory since we have to perform transformations on the data
     FileBodyAsync file = {0};
-    // @performance I don't like using chunk stack memory here, it is very slow since it well...
-    //              it uses chunks AND is threaded
     THRD_CHUNK_STACK_MEMORY(mem, &file.content, element->length + 1);
     file_read_async(archive->fd_async, &file, element->start, element->length);
 
@@ -384,7 +382,7 @@ Asset* const asset_archive_asset_load(
     asset->official_id = id;
     asset->ram_size = element->uncompressed;
 
-    asset->state |= ASSET_STATE_IN_RAM;
+    asset->state |= ASSET_MEMORY_STATE_IN_RAM;
 
     file_async_wait(archive->fd_async, &file.ov, true);
 
@@ -478,6 +476,7 @@ Asset* const asset_archive_asset_load(
         );
 
         // @performance maybe do in worker threads or AppCmdbuffer? This just feels very slow
+        //          Careful if we do this threaded we cannot use memory_get_temp() above!
         if (load_dependencies) {
             for (uint32 i = 0; i < element->dependency_count; ++i) {
                 asset_archive_asset_load(archive, asset->references[i], ams, mem);

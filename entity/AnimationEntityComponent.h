@@ -55,7 +55,7 @@ void update_animation_entities(ChunkMemory* anim_ec, uint32 time, uint32 delay)
 {
     int32 chunk_id = 0;
     chunk_iterate_start(anim_ec, chunk_id) {
-        AnimationEntityComponent* anim = (AnimationEntityComponent *) chunk_get_element(anim_ec, chunk_id);
+        AnimationEntityComponent* anim = (AnimationEntityComponent *) chunk_element_get(anim_ec, chunk_id);
         if (anim->setting & ANIMATION_SETTING_PAUSE) {
             continue;
         }

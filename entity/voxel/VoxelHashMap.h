@@ -45,16 +45,16 @@ void voxel_hashmap_remove(HashMap* const hm, int32 x, int32 y, int32 z) NO_EXCEP
 }
 
 FORCE_INLINE
-HashEntryVoidPKeyInt64* voxel_hashmap_get_entry(HashMap* const hm, int32 x, int32 y, int32 z) NO_EXCEPT
+HashEntryVoidPKeyInt64* voxel_hashmap_entry_get(HashMap* const hm, int32 x, int32 y, int32 z) NO_EXCEPT
 {
     uint64 key = voxel_chunk_coord_pack(x, y, z);
-    return (HashEntryVoidPKeyInt64 *) hashmap_get_entry(hm, key);
+    return (HashEntryVoidPKeyInt64 *) hashmap_entry_get(hm, key);
 }
 
 FORCE_INLINE
 VoxelChunk* voxel_hashmap_get_value(HashMap* const hm, int32 x, int32 y, int32 z) NO_EXCEPT
 {
-    HashEntryVoidPKeyInt64* entry = (HashEntryVoidPKeyInt64 *) voxel_hashmap_get_entry(hm, x, y, z);
+    HashEntryVoidPKeyInt64* entry = (HashEntryVoidPKeyInt64 *) voxel_hashmap_entry_get(hm, x, y, z);
 
     return entry ? (VoxelChunk *) entry->value : NULL;
 }

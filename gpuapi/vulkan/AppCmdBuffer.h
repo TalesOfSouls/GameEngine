@@ -19,10 +19,11 @@ void* cmd_shader_load(AppCmdBuffer*, AppCommand*) {
     return NULL;
 }
 
+template <typename T>
 void* cmd_shader_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
-    ChunkMemory* const __restrict mem,
+    T* const __restrict mem,
     Shader* const __restrict shader,
     const int32* __restrict shader_ids,
     VkDevice device,
@@ -66,8 +67,8 @@ void* cmd_shader_load_sync(
             shader_asset->ram_size
         );
 
-        shader_asset->state |= ASSET_STATE_RAM_GC;
-        shader_asset->state |= ASSET_STATE_VRAM_GC;
+        shader_asset->state |= ASSET_MEMORY_STATE_RAM_GC;
+        shader_asset->state |= ASSET_MEMORY_STATE_VRAM_GC;
     }
 
     // Make shader/program

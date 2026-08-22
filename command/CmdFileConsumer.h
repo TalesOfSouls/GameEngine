@@ -8,13 +8,13 @@
 #define COMS_COMMAND_BUFFER_PRODUCER_FILE_C
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/ChunkMemory.cpp"
+#include "../memory/ThrdChunkMemory.cpp"
 #include "../system/FileUtils.cpp"
 #include "AppCommand.h"
 
 static inline
 void cmd_file_load(
-    ChunkMemory* const __restrict mem,
+    ThrdChunkMemory* const __restrict mem,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
