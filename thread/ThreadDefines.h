@@ -8,11 +8,7 @@
 #define COMS_THREADS_THREAD_DEFINES_H
 
 #include "../stdlib/Stdlib.h"
-
-#if defined(NO_STDLIB) && NO_STDLIB
-#else
-    #include <atomic>
-#endif
+#include "Atomic.h"
 
 int32 thread_local _thread_local_id = 0;
 int32 thread_local _thread_cpu_id = 0;

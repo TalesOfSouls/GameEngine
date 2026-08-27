@@ -7,8 +7,6 @@
 #ifndef COMS_COMPILER_COMPILER_UTILS_H
 #define COMS_COMPILER_COMPILER_UTILS_H
 
-#include "../utils/Assert.h"
-
 #if defined(_MSC_VER)
     #include "msvc/CompilerUtils.h"
 #elif defined(__GNUC__)

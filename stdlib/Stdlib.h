@@ -63,8 +63,8 @@
  */
 #include "Defines.h"
 #include "Types.h"
-#include "../utils/Assert.h"
 #include "../compiler/CompilerUtils.h"
+#include "../utils/Assert.h"
 
 #include "stdlib_internal.h"
 #if defined(NO_STDLIB) && NO_STDLIB

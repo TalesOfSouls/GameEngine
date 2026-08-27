@@ -11,6 +11,7 @@
 #include "Shader.h"
 #include "../ShaderType.h"
 #include "../GpuAttributeType.h"
+#include "SoftwareRenderer.h"
 
 // NOTE: We don't make it const because we might want to support "compute shaders", which store data in the shader
 // Of course this is kinda stupid anyways in a software renderer but for the sake of somewhat similar behavior between gpu and cpu we keep it

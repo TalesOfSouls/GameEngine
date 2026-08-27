@@ -88,9 +88,11 @@ void vertex_line_create(
     const f32 px = -dy;
     const f32 py = dx;
 
+    thickness *= 0.5f;
+
     // Scale by half-thickness
-    const f32 hx = px * (thickness * 0.5f);
-    const f32 hy = py * (thickness * 0.5f);
+    const f32 hx = px * thickness;
+    const f32 hy = py * thickness;
 
     // Four corners of the line quad
     const v2_f32 v0 = { start.x - hx, start.y - hy };
@@ -98,13 +100,13 @@ void vertex_line_create(
     const v2_f32 v2 = { end.x   - hx, end.y   - hy };
     const v2_f32 v3 = { end.x   + hx, end.y   + hy };
 
-    array_vector_insert(indices, vertices->count);
-    array_vector_insert(indices, vertices->count + 1);
-    array_vector_insert(indices, vertices->count + 3);
+    array_vector_reserve_one(indices) = vertices->count;
+    array_vector_reserve_one(indices) = vertices->count + 1;
+    array_vector_reserve_one(indices) = vertices->count + 3;
 
-    array_vector_insert(indices, vertices->count + 1);
-    array_vector_insert(indices, vertices->count + 2);
-    array_vector_insert(indices, vertices->count + 3);
+    array_vector_reserve_one(indices) = vertices->count + 1;
+    array_vector_reserve_one(indices) = vertices->count + 2;
+    array_vector_reserve_one(indices) = vertices->count + 3;
 
     array_vector_reserve_one(vertices) = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // tl
     array_vector_reserve_one(vertices) = {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // tr
@@ -135,13 +137,13 @@ void vertex_rect_create(
     const f32 y_height = dimension.y + dimension.height;
     const f32 x_width = dimension.x + dimension.width;
 
-    array_vector_insert(indices, vertices->count);
-    array_vector_insert(indices, vertices->count + 1);
-    array_vector_insert(indices, vertices->count + 3);
+    array_vector_reserve_one(indices) = vertices->count;
+    array_vector_reserve_one(indices) = vertices->count + 1;
+    array_vector_reserve_one(indices) = vertices->count + 3;
 
-    array_vector_insert(indices, vertices->count + 1);
-    array_vector_insert(indices, vertices->count + 2);
-    array_vector_insert(indices, vertices->count + 3);
+    array_vector_reserve_one(indices) = vertices->count + 1;
+    array_vector_reserve_one(indices) = vertices->count + 2;
+    array_vector_reserve_one(indices) = vertices->count + 3;
 
     array_vector_reserve_one(vertices) = {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}}; // tl
     array_vector_reserve_one(vertices) = {{x_width, y_height, zindex}, sampler, tex2}; // tr
@@ -197,9 +199,9 @@ void vertex_circle_create(
         const f32 x1 = cx + c * rx;
         const f32 y1 = cy + s * ry;
 
-        array_vector_insert(indices, center_index);
-        array_vector_insert(indices, vertices->count);
-        array_vector_insert(indices, vertices->count + 1);
+        array_vector_reserve_one(indices) = center_index;
+        array_vector_reserve_one(indices) = vertices->count;
+        array_vector_reserve_one(indices) = vertices->count + 1;
 
         // @performance Isn't one of the points on the circle arcs a duplicate same as the center
         //              We fixed it for the center but not for the previous circle arc point
@@ -256,9 +258,9 @@ void vertex_arc_create(
         const f32 x1 = cx + c * rx;
         const f32 y1 = cy + s * ry;
 
-        array_vector_insert(indices, center_index);
-        array_vector_insert(indices, vertices->count);
-        array_vector_insert(indices, vertices->count + 1);
+        array_vector_reserve_one(indices) = center_index;
+        array_vector_reserve_one(indices) = vertices->count;
+        array_vector_reserve_one(indices) = vertices->count + 1;
 
         // @performance Isn't one of the points on the circle arcs a duplicate same as the center
         //              We fixed it for the center but not for the previous circle arc point
@@ -421,13 +423,13 @@ v2_int32 vertex_text_create(
             const f32 x_end_scaled = offset_x + metrics->width * scale;
             const f32 y_end_scaled = offset_y + metrics->height * scale;
 
-            array_vector_insert(indices, vertices->count);
-            array_vector_insert(indices, vertices->count + 1);
-            array_vector_insert(indices, vertices->count + 3);
+            array_vector_reserve_one(indices) = vertices->count;
+            array_vector_reserve_one(indices) = vertices->count + 1;
+            array_vector_reserve_one(indices) = vertices->count + 3;
 
-            array_vector_insert(indices, vertices->count + 1);
-            array_vector_insert(indices, vertices->count + 2);
-            array_vector_insert(indices, vertices->count + 3);
+            array_vector_reserve_one(indices) = vertices->count + 1;
+            array_vector_reserve_one(indices) = vertices->count + 2;
+            array_vector_reserve_one(indices) = vertices->count + 3;
 
             const int32 texture_id = font->base.texture->opengl_texture.texture_id;
             array_vector_reserve_one(vertices) = {{offset_x, y_end_scaled, zindex}, texture_id, glyph->uv_start}; // tl

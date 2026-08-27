@@ -181,7 +181,7 @@ byte* ring_calculate_position(
     byte* head = (byte *) align_up((uintptr_t) ring->head, alignment);
     size = align_up(size, (size_t) alignment);
 
-    if (head + size > ring->end) { UNLIKELY
+    if (head + size > ring->end) UNLIKELY {
         head = (byte *) align_up((uintptr_t) ring->memory, alignment);
     }
 
@@ -223,7 +223,7 @@ void ring_move_pointer(RingMemory* const ring, byte** pos, size_t size, int32 al
     *pos = (byte *) align_up((uintptr_t) *pos, alignment);
     size = align_up(size, (size_t) alignment);
 
-    if (*pos + size > ring->end) { UNLIKELY
+    if (*pos + size > ring->end) UNLIKELY {
         *pos = (byte *) align_up((uintptr_t) ring->memory, alignment);
     }
 
@@ -265,7 +265,7 @@ byte* memory_get(RingMemory* const ring, size_t size, int32 alignment = sizeof(s
     size = align_up(size, (size_t) alignment);
 
     ring->head = (byte *) align_up((uintptr_t) ring->head, alignment);
-    if (ring->head + size > ring->end) { UNLIKELY
+    if (ring->head + size > ring->end) UNLIKELY {
         ring_reset(ring);
 
         ring->head = (byte *) align_up((uintptr_t) ring->head, alignment);
@@ -290,7 +290,7 @@ byte* memory_get_temp(RingMemory* const ring, size_t size, int32 alignment = siz
     size = align_up(size, (size_t) alignment);
 
     byte* head_temp = (byte *) align_up((uintptr_t) ring->head, alignment);
-    if (head_temp + size > ring->end) { UNLIKELY
+    if (head_temp + size > ring->end) UNLIKELY {
         // We are back at the beginning of the ring memory
         head_temp = (byte *) align_up((uintptr_t) ring->memory, alignment);
     }
@@ -318,7 +318,7 @@ byte* ring_memory_get_nomove(RingMemory* const ring, size_t size, int32 alignmen
     byte* pos = (byte *) align_up((uintptr_t) ring->head, alignment);
     size = align_up(size, (size_t) alignment);
 
-    if (pos + size > ring->end) { UNLIKELY
+    if (pos + size > ring->end) UNLIKELY {
         ring_reset(ring);
 
         pos = (byte *) align_up((uintptr_t) pos, alignment);

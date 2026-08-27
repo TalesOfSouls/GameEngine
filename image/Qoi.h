@@ -47,7 +47,7 @@ int32 qoi_encode(const Image* const image, byte* data) NO_EXCEPT
 
     int32 run = 0;
 	for (int32 px_pos = 0; px_pos < px_len; px_pos += channels) {
-		if (channels == 4) { LIKELY
+		if (channels == 4) LIKELY {
 			px.val = SWAP_ENDIAN_LITTLE(*((uint32 *) (image->pixels + px_pos)));
 		} else {
 			px.r = image->pixels[px_pos + 0];

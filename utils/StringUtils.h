@@ -945,9 +945,9 @@ size_t str_count(const char* __restrict str, const char* __restrict substr) NO_E
 inline CONSTEXPR
 int32 is_eol(const char* str) NO_EXCEPT
 {
-    if (*str == '\n') { UNLIKELY
+    if (*str == '\n') UNLIKELY {
         return 1;
-    } else if (*str == '\r' && str[1] == '\n') { UNLIKELY
+    } else if (*str == '\r' && str[1] == '\n') UNLIKELY {
         return 2;
     }
 
@@ -2368,10 +2368,10 @@ int32 sprintf_fast(T* __restrict buffer, const T* __restrict format, ...) NO_EXC
     const T* const start = buffer;
 
     while (*format) {
-        if (*format == T('\\') && format[1] == T('%')) { UNLIKELY
+        if (*format == T('\\') && format[1] == T('%')) UNLIKELY {
             ++format;
             *buffer++ = *format;
-        } else if (*format != T('%')) { LIKELY
+        } else if (*format != T('%')) LIKELY {
             *buffer++ = *format;
         } else {
             // % found
@@ -2511,10 +2511,10 @@ int32 sprintf_fast(T* __restrict buffer, int32 buffer_length, const T* __restric
 
     while (*format && length < buffer_length) {
         int32 offset = 1;
-        if (*format == T('\\') && format[1] == T('%')) { UNLIKELY
+        if (*format == T('\\') && format[1] == T('%')) UNLIKELY {
             ++format;
             *buffer++ = *format;
-        } else if (*format != T('%')) { LIKELY
+        } else if (*format != T('%')) LIKELY {
             *buffer++ = *format;
         } else {
             ++format;

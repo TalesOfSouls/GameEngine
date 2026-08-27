@@ -676,7 +676,7 @@ void mat4_identity(f32 matrix[16]) NO_EXCEPT
     matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR
 void mat4_identity_sparse(f32 matrix[16]) NO_EXCEPT
 {
     matrix[0] = 1.0f; matrix[5] = 1.0f; matrix[10] = 1.0f; matrix[15] = 1.0f;
@@ -1403,7 +1403,7 @@ void mat4_scale(f32 matrix[16], f32 dx, f32 dy, f32 dz) NO_EXCEPT
     matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR
 void mat4_scale_sparse(f32 matrix[16], f32 dx, f32 dy, f32 dz) NO_EXCEPT
 {
     matrix[0] = dx;
@@ -1411,7 +1411,7 @@ void mat4_scale_sparse(f32 matrix[16], f32 dx, f32 dy, f32 dz) NO_EXCEPT
     matrix[10] = dz;
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR
 void mat4_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO_EXCEPT
 {
     transposed[1] = matrix[4];
@@ -1428,7 +1428,7 @@ void mat4_transpose(const f32* __restrict matrix, f32* __restrict transposed) NO
     transposed[14] = matrix[11];
 }
 
-FORCE_INLINE
+FORCE_INLINE CONSTEXPR
 void mat4_transpose(f32 matrix[16]) NO_EXCEPT
 {
     f32 temp;
@@ -1628,6 +1628,15 @@ v16_f32 mat4_load(const f32 a[16], MAYBE_UNUSED int32 steps = 4) {
     #endif
 
     return result;
+}
+
+CONSTEVAL Array<f32, 16> mat4_scaled_transposed(f32 x, f32 y, f32 z) {
+    Array<f32, 16> m{0};
+    mat4_identity_sparse(m.data);
+    mat4_scale_sparse(m.data, x, y, z);
+    mat4_transpose(m.data);
+
+    return m;
 }
 
 #endif

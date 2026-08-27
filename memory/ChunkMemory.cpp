@@ -242,7 +242,7 @@ bool chunk_is_free(const ChunkMemory* const buf, int32 element) NO_EXCEPT
 HOT_CODE FORCE_FLATTEN
 int32 chunk_reserve_one(size_t* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
 {
-    if ((uint32) start_index >= state_count) { UNLIKELY
+    if ((uint32) start_index >= state_count) UNLIKELY {
         start_index = 0;
     }
 
@@ -265,7 +265,7 @@ int32 chunk_reserve_one(size_t* state, uint32 state_count, int32 start_index = 0
             bit_index = compiler_find_first_bit_r2l(~state[free_index]);
 
             const uint32 id = free_index * (sizeof(size_t) * 8) + bit_index;
-            if (id >= state_count) { UNLIKELY
+            if (id >= state_count) UNLIKELY {
                 free_index = 0;
 
                 continue;
@@ -299,7 +299,7 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
     // There is some fundamental problem if this happens
     ASSERT_TRUE(elements < capacity);
 
-    if ((int32) (last_pos + 1) >= capacity) { UNLIKELY
+    if ((int32) (last_pos + 1) >= capacity) UNLIKELY {
         last_pos = -1;
     }
 
@@ -326,7 +326,7 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
             consecutive_free_bits = 0;
 
             continue;
-        } else if (free_index * (sizeof(size_t) * 8) + bit_index + elements - consecutive_free_bits > capacity) { UNLIKELY
+        } else if (free_index * (sizeof(size_t) * 8) + bit_index + elements - consecutive_free_bits > capacity) UNLIKELY {
             // Go to beginning after overflow
             i += capacity - (free_index * (sizeof(size_t) * 8) + bit_index);
             consecutive_free_bits = 0;
@@ -391,7 +391,7 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
         }
     }
 
-    if (free_element < 0) { UNLIKELY
+    if (free_element < 0) UNLIKELY {
         LOG_3("No free chunk memory index found");
 
         // This shouldn't happen in an ideal world and we should adjust our code

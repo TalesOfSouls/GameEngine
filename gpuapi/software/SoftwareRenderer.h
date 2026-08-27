@@ -984,7 +984,7 @@ void soft_render(
                 const PoolWorker job = {
                     0, // .id =
                     POOL_WORKER_STATE_WAITING, // .state =
-                    false, // .atomic_release =
+                    false, // .automatic_release =
                     0, // .arg_size =
                     &args[j], // .arg =
                     thrd_soft_shader, // .func =
@@ -996,7 +996,7 @@ void soft_render(
                 jobs[j] = thread_pool_add_work(renderer->pool, &job);
             }
 
-            thread_pool_join(jobs, MAX_CHUNKS);
+            thread_pool_join(renderer->pool, jobs, MAX_CHUNKS);
         }
 
         const uint32 arg_id = chunk_id_from_memory(

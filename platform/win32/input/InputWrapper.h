@@ -64,7 +64,6 @@ int16 input_kbm_handle(
     uint64 time
 ) NO_EXCEPT
 {
-    // @performance Maybe states should have its own temp memory to handle input data
     switch (mode) {
         case INPUT_MODE_EVENT: {
             return input_raw_handle_buffered(

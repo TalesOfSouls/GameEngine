@@ -7,12 +7,10 @@
 #ifndef COMS_PLATFORM_LINUX_THREADING_SPINLOCK_H
 #define COMS_PLATFORM_LINUX_THREADING_SPINLOCK_H
 
-#include "../../../stdlib/Stdlib.h"
-
 #if defined(NO_STDLIB) && NO_STDLIB
-    typedef volatile int32 spinlock32;
+    typedef volatile int spinlock32;
 #else
-    #include <atomic>
+    #include "../../../thread/Atomic.h"
     typedef atomic<int> spinlock32;
 #endif
 

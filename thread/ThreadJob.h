@@ -35,12 +35,9 @@ struct PoolWorker {
 
     // This can be used either to describe the actual size if arg is a string/byte array,
     // or we can use it to describe the array length if arg is an array
+    // How to interpret arg_size is handled in the function itself
     int32 arg_size;
 
-    // If we have different arg data you must use a wrapper struct that can hold the other data
-    // The queue allows to store fixed data larger than PoolWorker by providing the the element size
-    // This means you could use sizeof(PoolWorker) + 128, make arg point to job + 1
-    // thread_pool_add_work() automatically adds sizeof(PoolWorker) + 128 to the queue
     void* arg;
 
     ThreadPoolJobFunc func;

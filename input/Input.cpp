@@ -492,7 +492,7 @@ void input_hotkey_state_update(Input* const input, uint64 time = 0) NO_EXCEPT
         // Check all possible hotkeys if all of their required keys are active
         for (int16 hotkey_idx = 1; hotkey_idx <= input->hotkey_count; ++hotkey_idx) {
             // We only support a limited amount of active hotkeys
-            if (active_hotkeys >= MAX_KEY_PRESSES) { UNLIKELY
+            if (active_hotkeys >= MAX_KEY_PRESSES) UNLIKELY {
                 i = 2;
                 break;
             }

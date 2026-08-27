@@ -72,7 +72,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
                 }
 
                 LOG_1("Worker %d: about to wait", {DATA_TYPE_INT32, &_thread_local_id});
-                int32 ret = coms_sem_wait(&pool->work_sem);
+                const int32 ret = coms_sem_wait(&pool->work_sem);
                 LOG_1("Worker %d: woke up", {DATA_TYPE_INT32, &_thread_local_id});
                 LOG_1("Worker %d: ret", {DATA_TYPE_INT32, &ret});
             }
@@ -305,7 +305,6 @@ void thread_pool_fix(ThreadPool* const pool) NO_EXCEPT
     }
 }
 
-// @performance Check if adding a function that allows us to add multiple jobs in one go is more efficient
 PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) NO_EXCEPT
 {
     PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
@@ -320,7 +319,34 @@ PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) 
 
     // +1 because otherwise the very first job would be id = 0 which is not a valid id
     uint32 id = ++pool->id_counter;
-    if (!pool->id_counter.load()) { UNLIKELY
+    if (!pool->id_counter.load()) UNLIKELY {
+        // ID of 0 is not allowed
+        id = ++pool->id_counter;
+    }
+
+    temp_job->id.store(id);
+
+    queue_enqueue_end(temp_job);
+    thread_pool_notify_one(pool);
+
+    return temp_job;
+}
+
+PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker& job) NO_EXCEPT
+{
+    PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
+    if (!temp_job) {
+        ASSERT_THROW();
+
+        return NULL;
+    }
+
+    memcpy(temp_job, &job, sizeof(PoolWorker));
+    temp_job->state.store(POOL_WORKER_STATE_WAITING);
+
+    // +1 because otherwise the very first job would be id = 0 which is not a valid id
+    uint32 id = ++pool->id_counter;
+    if (!pool->id_counter.load()) UNLIKELY {
         // ID of 0 is not allowed
         id = ++pool->id_counter;
     }
@@ -348,7 +374,7 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
 
     // +1 because otherwise the very first job would be id = 0 which is not a valid id
     uint32 id = ++pool->id_counter;
-    if (!pool->id_counter) { UNLIKELY
+    if (!pool->id_counter) UNLIKELY {
         // ID of 0 is not allowed
         id = ++pool->id_counter;
     }
@@ -365,10 +391,18 @@ void thread_pool_add_work_end(ThreadPool* const pool, PoolWorker* const job) NO_
     thread_pool_notify_one(pool);
 }
 
+FORCE_INLINE
+void thread_pool_work_release(ThreadPool* const pool, const PoolWorker* job) NO_EXCEPT
+{
+    queue_dequeue_release(&pool->work_queue, job);
+}
+
 // This joins the work not the actual threads in the thread pool
 // We are not marking jobs const since it may change during the joining process (e.g. the state)
+// Returns the mask of the completed tasks or 0xFFFFFFFFFFFFFFFF for all completed
 inline
-bool thread_pool_join(
+uint64 thread_pool_join(
+    ThreadPool* const pool,
     const PoolWorker* const jobs,
     int32 count,
     uint64 sleep_time = 0,
@@ -397,6 +431,11 @@ bool thread_pool_join(
                 || jobs[i].state.load() == POOL_WORKER_STATE_COMPLETED
             ) {
                 completed_mask |= bit;
+
+                // If we don't automatically release we have to do it now
+                if (!jobs[i].automatic_release) {
+                    thread_pool_work_release(pool, &jobs[i]);
+                }
             }
         }
 
@@ -408,12 +447,14 @@ bool thread_pool_join(
 
     ASSERT_TRUE(max_sleep > current_sleep);
 
-    return completed_mask == all_done_mask;
+    return completed_mask == all_done_mask ? 0xFFFFFFFFFFFFFFFF : completed_mask;
 }
 
 // This joins the work not the actual threads in the thread pool
+// Returns the mask of the completed tasks or 0xFFFFFFFFFFFFFFFF for all completed
 inline
-bool thread_pool_join(
+uint64 thread_pool_join(
+    ThreadPool* const pool,
     const PoolWorker* const* const jobs, int32 count,
     uint64 sleep_time = 0, uint64 max_sleep = 0
 ) NO_EXCEPT
@@ -440,11 +481,16 @@ bool thread_pool_join(
                 || jobs[i]->state.load() == POOL_WORKER_STATE_COMPLETED
             ) {
                 completed_mask |= bit;
+
+                // If we don't automatically release we have to do it now
+                if (!jobs[i]->automatic_release) {
+                    thread_pool_work_release(pool, jobs[i]);
+                }
             }
         }
 
         if (completed_mask == all_done_mask) {
-            return true;
+            return 0xFFFFFFFFFFFFFFFF;
         }
 
         if (sleep_time) {
@@ -455,13 +501,7 @@ bool thread_pool_join(
 
     ASSERT_TRUE(max_sleep > current_sleep);
 
-    return false;
-}
-
-FORCE_INLINE
-void thread_pool_work_release(ThreadPool* const pool, const PoolWorker* job) NO_EXCEPT
-{
-    queue_dequeue_release(&pool->work_queue, job);
+    return completed_mask;
 }
 
 #endif

@@ -229,61 +229,7 @@ void asset_archive_load(
     // Find header size (+ 1 to later store \0)
     file.content = memory_get(mem, file.size + 1, alignof(size_t));
 
-    // @bug We only inlined this for easier debugging, revert once solved
-    //file_read(archive->fd, &file, 0, file.size);
-
-        FileHandle fp = archive->fd;
-        FileBody* tfile = &file;
-        uint64 offset = 0;
-        uint64 length = file.size;
-
-        LARGE_INTEGER size;
-        if (!GetFileSizeEx(fp, &size)) {
-            tfile->content = NULL;
-            ASSERT_THROW();
-
-            return;
-        }
-
-        // Ensure the offset and length do not exceed the tfile size
-        const uint64 fsize = size.QuadPart;
-        if (offset >= fsize) {
-            tfile->size = 0;
-            tfile->content = NULL;
-            ASSERT_THROW();
-
-            return;
-        }
-
-        // Adjust the length to read so that it does not exceed the tfile size
-        const uint64 read_length = OMS_MIN(length, fsize - offset);
-
-        // Move the tfile pointer to the offset position
-        LARGE_INTEGER li;
-        li.QuadPart = offset;
-        if (!SetFilePointerEx(fp, li, NULL, FILE_BEGIN)) {
-            tfile->content = NULL;
-            ASSERT_THROW();
-
-            return;
-        }
-
-        DWORD bytes_read;
-        if (!ReadFile(fp, tfile->content, (uint32) read_length, &bytes_read, NULL)) {
-            tfile->content = NULL;
-            ASSERT_THROW();
-
-            return;
-        }
-
-        ASSERT_TRUE(bytes_read <= 2147483648);
-
-        tfile->content[bytes_read] = '\0';
-        tfile->size = bytes_read;
-
-        ASSERT_TRUE(tfile->content[44] == '\0');
-
-
+    file_read(archive->fd, &file, 0, file.size);
     file.size = asset_archive_header_size(archive, file.content);
 
     // WARNING archive->data needs to be already allocated

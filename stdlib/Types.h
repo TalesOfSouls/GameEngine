@@ -393,6 +393,19 @@ inline v2_int32 to_v2_int32(const v2_f32& vec) { return {(int32) vec.x, (int32) 
 inline v3_int32 to_v3_int32(const v3_f32& vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z}; }
 inline v4_int32 to_v4_int32(const v4_f32& vec) { return {(int32) vec.x, (int32) vec.y, (int32) vec.z, (int32) vec.w}; }
 
+template<typename T, size_t N>
+struct Array {
+    T data[N];
+
+    // Accessor for convenience
+    constexpr T& operator[](size_t i) { return data[i]; }
+    constexpr const T& operator[](size_t i) const { return data[i]; }
+
+    // Get raw pointer (useful for C APIs)
+    constexpr T* elements() { return data; }
+    constexpr const T* elements() const { return data; }
+};
+
 // Data type helpers
 // We sometimes need to store data types in binary files or as some kind of descriptor for a byte array,
 // whenever we want to dynamically handle data types

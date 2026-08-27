@@ -47,6 +47,17 @@ v2_int32 input_mouse_position(HWND hwnd) NO_EXCEPT
 }
 
 inline
+v2_int32 input_mouse_position(Window* window) NO_EXCEPT
+{
+    POINT p;
+    if (GetCursorPos(&p) && ScreenToClient(window->platform_window->hwnd, &p)) {
+        return {p.x, p.y};
+    }
+
+    return {0, 0};
+}
+
+inline
 void input_mouse_update(HWND hwnd, Input* input_states) NO_EXCEPT
 {
     v2_int32 mouse_pos = input_mouse_position(hwnd);

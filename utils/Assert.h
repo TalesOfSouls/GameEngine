@@ -7,10 +7,11 @@
 #ifndef COMS_UTILS_TEST_UTILS_H
 #define COMS_UTILS_TEST_UTILS_H
 
+#include "../compiler/CompilerUtils.h"
 #include <stdint.h>
 
 #if defined(DEBUG) && DEBUG
-    #define ASSERT_TRUE(a) if (!(a)) {      \
+    #define ASSERT_TRUE(a) if (!(a)) UNLIKELY {      \
         /* cppcheck-suppress nullPointer */ \
         *(volatile int *)0 = 0;             \
     }

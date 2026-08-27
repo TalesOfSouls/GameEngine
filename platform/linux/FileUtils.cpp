@@ -406,7 +406,7 @@ void file_close_handle(FileHandle fp)
 inline
 void self_path(char* path) {
     size_t len = readlink("/proc/self/exe", path, PATH_MAX_LENGTH);
-    if (len > 0) { LIKELY
+    if (len > 0) LIKELY {
         path[len] = '\0';
     } else {
         path[0] = '\0';

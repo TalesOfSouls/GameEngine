@@ -17,7 +17,7 @@
 #include "HttpHeader.h"
 #include "header/HttpHeaderKey.h"
 #include "../network/SocketConnection.h"
-#include "../memory/ThreadedChunkMemory.cpp"
+#include "../memory/ThrdChunkMemory.cpp"
 
 enum HttpRequestState : byte {
     HTTP_REQUEST_STATE_NONE = 1 << 0,
@@ -75,7 +75,7 @@ struct HttpRequest {
 };
 
 inline
-void http_request_grow(HttpRequest* __restrict* request, int32 count, ThreadedChunkMemory* mem)
+void http_request_grow(HttpRequest* __restrict* request, int32 count, ThrdChunkMemory* mem)
 {
     HttpRequest* req = *request;
 
@@ -91,7 +91,7 @@ void http_header_value_set(
     HttpRequest* __restrict* request,
     HttpHeaderKey key,
     const char* __restrict value,
-    ThreadedChunkMemory* mem,
+    ThrdChunkMemory* mem,
     size_t value_length = 0
 ) {
     HttpRequest* req = *request;
@@ -235,7 +235,7 @@ void http_header_value_set(
     }
 }
 
-HttpRequest* http_request_create(ThreadedChunkMemory* mem)
+HttpRequest* http_request_create(ThrdChunkMemory* mem)
 {
     int32 request_buffer_count = ceil_div(sizeof(HttpRequest) + MIN_HTTP_REQUEST_CONTENT, mem->chunk_size);
     int32 request_buffer_id = thrd_chunk_reserve(mem, request_buffer_count);
@@ -325,7 +325,7 @@ bool http_request_has_file_upload(const HttpRequest* request) {
 
 // @performance we could probably significantly improve this by handling this directly instead of calling the helper functions
 // In the case below we know exactly if additional header elements will follow or not
-void http_header_parse(HttpRequest** http_request, const char* request, ThreadedChunkMemory* mem) {
+void http_header_parse(HttpRequest** http_request, const char* request, ThrdChunkMemory* mem) {
     const char* request_start = request;
     HttpRequest* http_req = *http_request;
 

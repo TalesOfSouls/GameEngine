@@ -371,7 +371,7 @@ static const byte BIT_COUNT_LOOKUP_TABLE[256] = {
 FORCE_INLINE
 byte bits_count(uint64 data, bool use_abm = false) NO_EXCEPT
 {
-    if (use_abm) { UNLIKELY
+    if (use_abm) UNLIKELY {
         return (byte) intrin_bits_count_64(data);
     } else { LIKELY
         return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
@@ -388,7 +388,7 @@ byte bits_count(uint64 data, bool use_abm = false) NO_EXCEPT
 FORCE_INLINE
 byte bits_count(uint32 data, bool use_abm = false) NO_EXCEPT
 {
-    if (use_abm) { UNLIKELY
+    if (use_abm) UNLIKELY {
         return (byte) intrin_bits_count_32(data);
     } else { LIKELY
         return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
