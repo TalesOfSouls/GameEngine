@@ -255,6 +255,7 @@ void asset_archive_load(
 // Maybe we could just accept a int value which we set atomically as a flag that the asset is complete?
 // this way we can check much faster if we can work with this data from the caller?!
 // The only problem is that we need to pass the pointer to this int in the thrd_queue since we queue the files to load there
+// @bug I'm afraid that loading the same asset twice could result in circumstances where it gets added twice
 Asset* const asset_archive_asset_load(
     const AssetArchive* const archive,
     int32 id,
@@ -287,7 +288,7 @@ Asset* const asset_archive_asset_load(
     );
 
     // Check if asset already exists
-    Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
+    Asset* asset = ams_asset_get_wait(ams, id_str);
     if (asset) {
         // Prevent garbage collection
         asset->state &= ~ASSET_MEMORY_STATE_RAM_GC;
@@ -318,7 +319,8 @@ Asset* const asset_archive_asset_load(
 
     // This happens while the file system loads the data
     // The important part is to reserve the uncompressed file size, not the compressed one
-    asset = thrd_ams_reserve_asset(
+    // @bug Don't I have to mark_completed the underlying thread_chunk element? see code of function
+    asset = ams_asset_reserve(
         ams,
         id_str,
         element->uncompressed
@@ -332,9 +334,9 @@ Asset* const asset_archive_asset_load(
 
     file_async_wait(archive->fd_async, &file.ov, true);
 
-    // @bug Couldn't the asset become available from thrd_ams_get_asset_wait to here?
+    // @bug Couldn't the asset become available from ams_asset_get_wait to here?
     // This would mean we are overwriting it
-    // A solution could be a function called thrd_ams_get_reserve_wait() that reserves, if not available
+    // A solution could be a function called ams_get_reserve_wait() that reserves, if not available
     // However, that function would have to lock the ams during that entire time
     switch (element->type) {
         case ASSET_TYPE_GENERAL: {
@@ -403,7 +405,7 @@ Asset* const asset_archive_asset_load(
 
     // Even though dependencies are still being loaded
     // the main program should still be able to do some work if possible
-    thrd_ams_set_loaded(asset);
+    ams_set_loaded(ams, asset);
 
     LOG_2(
         "[INFO] Loaded asset %d from archive %d with %n B compressed and %n B uncompressed",

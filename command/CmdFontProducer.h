@@ -18,8 +18,7 @@ void thrd_cmd_font_load(
     int32 asset_id
 ) NO_EXCEPT
 {
-    AppCommand cmd;
-    cmd.callback = NULL;
+    AppCommand cmd = {0};
     cmd.type = CMD_FONT_LOAD;
     cmd.font_body.asset.asset_id = asset_id;
 

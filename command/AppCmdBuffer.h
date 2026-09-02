@@ -17,6 +17,7 @@
 #include "../memory/QueueT.h"
 #include "../system/FileUtils.h"
 #include "../thread/ThreadDefines.h"
+#include "../thread/ThreadPool.h"
 #include "../camera/Camera.h"
 #include "AppCommand.h"
 
@@ -35,8 +36,15 @@ struct AppCmdBuffer {
     AssetArchive* asset_archives;
     AudioMixer* mixer;
     GpuApiType gpu_api_type;
-
+    ThreadPool* thread_pool;
     Camera* camera;
+};
+
+struct AppCommandPool {
+    AppCmdBuffer* cb;
+    int32 count;
+    int32 chunk_id; // Not always used
+    AppCommand* commands;
 };
 
 #endif

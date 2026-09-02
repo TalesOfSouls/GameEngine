@@ -118,21 +118,21 @@ bool array_vector_insert_safe(ArrayVector<T>* __restrict vec, const T* __restric
 
 template<typename T>
 FORCE_INLINE
-T array_vector_get(ArrayVector<T>* vec, int index) NO_EXCEPT
+T array_vector_get(ArrayVector<T>* const vec, int index) NO_EXCEPT
 {
     return vec->elements[index];
 }
 
 template<typename T>
 FORCE_INLINE
-void array_vector_reset(ArrayVector<T>* vec) NO_EXCEPT
+void array_vector_reset(ArrayVector<T>* const vec) NO_EXCEPT
 {
     vec->count = 0;
 }
 
 template<typename T>
 FORCE_INLINE
-bool array_vector_has_value(ArrayVector<T>* vec, T value) NO_EXCEPT
+bool array_vector_has_value(const ArrayVector<T>* const vec, T value) NO_EXCEPT
 {
     for (int i = 0; i < vec->count; ++i) {
         if (vec->elements[i] == value) {

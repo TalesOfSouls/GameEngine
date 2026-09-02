@@ -28,7 +28,7 @@ Asset* cmd_internal_audio_play_enqueue(
     char id_str[9];
     int_to_hex(cmd->audio_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(ams, id_str);
+    Asset* const asset = ams_asset_get_wait(ams, id_str);
     if (!asset) {
         return NULL;
     }
@@ -44,24 +44,22 @@ Asset* cmd_internal_audio_play_enqueue(
 }
 
 static inline
-Asset* cmd_audio_play_async(
-    ThrdChunkMemoryT<AppCommand>* const cb,
-    AssetManagementSystem* const __restrict ams,
-    AudioMixer* const __restrict mixer,
+Asset* cmd_audio_play(
+    AppCmdBuffer* cb,
     const AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
     char id_str[9];
     int_to_hex(cmd->audio_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(ams, id_str);
-    if (asset) {
-        //@performance The function call below also loads the asset again. That is unnecessary in this specific case
-        //          Maybe we can pass the asset?
-        cmd_internal_audio_play_enqueue(ams, mixer, cmd);
-    } else {
-        thrd_cmd_asset_load(cb, cmd->audio_body.asset.asset_id);
+    Asset* const asset = ams_asset_get_wait(cb->ams, id_str);
+    if (!asset) {
+        cmd_asset_load_sync(cb->asset_archives, cb->ams, cb->mem, cmd->audio_body.asset.asset_id);
     }
+
+    //@performance The function call below also loads the asset again. That is unnecessary in this specific case
+    //          Maybe we can pass the asset?
+    cmd_internal_audio_play_enqueue(cb->ams, cb->mixer, cmd);
 
     return asset;
 }
@@ -79,17 +77,13 @@ Asset* cmd_audio_play(
     char id_str[9];
     int_to_hex(asset_id, id_str);
 
-    Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
-
     // Load asset if not loaded
-    if (!asset) {
-        asset = asset_archive_asset_load(
-            &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
-            asset_id,
-            ams,
-            mem
-        );
-    }
+    Asset* asset = asset_archive_asset_load(
+        &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
+        asset_id,
+        ams,
+        mem
+    );
 
     // @todo How to handle settings = AudioInstance
     audio_mixer_play(

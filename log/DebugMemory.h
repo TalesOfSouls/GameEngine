@@ -56,12 +56,13 @@ struct DebugMemory {
 
     uint32 action_idx;
     uint32 persistent_action_idx;
+
+    // These actions are only stored temporarily until overwritten
     alignas(8) DebugMemoryRange last_action[DEBUG_MEMORY_RANGE_MAX];
 
-    // Persistent actions are also actions that are relevant at all times
-    // Last actions on the other hand are only relevant for a certain amount of time
+    // Persistent actions are actions that are relevant at all times
     // These actions also get modified unlike the last_action which only get added or removed/overwritten
-    // For example we may mark a memory are as in use and later on mark it as no longer in use
+    // This allows us also to define sub-regions in a memory arena
     alignas(8) DebugMemoryRange persistent_action[DEBUG_MEMORY_RANGE_PERS_MAX];
 
     alignas(ASSUMED_CACHE_LINE_SIZE) standalone_spinlock32 lock;

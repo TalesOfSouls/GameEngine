@@ -18,17 +18,189 @@ v2_uint16 monitor_dimensions_get()
     return {(uint16) GetSystemMetrics(SM_CXSCREEN), (uint16) GetSystemMetrics(SM_CYSCREEN)};
 }
 
+FORCE_INLINE
+uint32 window_dpi_get(const Window* const w) NO_EXCEPT
+{
+    HWND hwnd = ((WindowPlatform*) w->platform_window)->hwnd;
+
+    uint32 dpi = GetDpiForWindow(hwnd);
+    if (!dpi) {
+        dpi = 96;
+    }
+
+    return dpi;
+}
+
+FORCE_INLINE
+void physical_resolution_update(Window* const w) {
+    WindowPlatform* const platform_window = (WindowPlatform*) w->platform_window;
+
+    const uint32 dpi = GetDpiForWindow(platform_window->hwnd);
+
+    w->dpi = (byte)(dpi ? dpi : 96);
+    w->state_current.physical_width = w->state_current.client_width;
+    w->state_current.physical_height = w->state_current.client_height;
+}
+
+FORCE_INLINE
+void monitor_resolution(const Window* __restrict w, v2_int32* __restrict resolution) NO_EXCEPT
+{
+    WindowPlatform* const platform_window = (WindowPlatform*)w->platform_window;
+    HWND hwnd = platform_window->hwnd;
+    HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+
+    MONITORINFO monitor_info = {sizeof(MONITORINFO)};
+
+    if (!GetMonitorInfoW(monitor, &monitor_info)) {
+        return;
+    }
+
+    resolution->width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
+    resolution->height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
+}
+
+FORCE_INLINE
+void monitor_resolution(Window* const w) NO_EXCEPT
+{
+    WindowPlatform* const platform_window = (WindowPlatform*)w->platform_window;
+    HWND hwnd = platform_window->hwnd;
+    HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+
+    MONITORINFO monitor_info = {sizeof(MONITORINFO)};
+    if (!GetMonitorInfoW(monitor, &monitor_info)) {
+        return;
+    }
+
+    w->state_current.logical_width = (uint16) (monitor_info.rcMonitor.right - monitor_info.rcMonitor.left);
+    w->state_current.logical_height = (uint16) (monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top);
+
+    physical_resolution_update(w);
+}
+
+bool monitor_dim_get(
+    const Window* const w,
+    v4_int32* const dimension
+) NO_EXCEPT
+{
+    WindowPlatform* const platform_window = (WindowPlatform*)w->platform_window;
+
+    HMONITOR monitor = MonitorFromWindow(
+        platform_window->hwnd,
+        MONITOR_DEFAULTTONEAREST
+    );
+
+    MONITORINFO monitor_info = {sizeof(MONITORINFO)};
+    if (!GetMonitorInfoW(monitor, &monitor_info)) {
+        return false;
+    }
+
+    dimension->x = monitor_info.rcMonitor.left;
+    dimension->y = monitor_info.rcMonitor.top;
+    dimension->width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
+    dimension->height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
+
+    return true;
+}
+
+inline
+void window_resolution_update(Window* const w) NO_EXCEPT
+{
+    WindowPlatform* const platform_window = (WindowPlatform*) w->platform_window;
+
+    HWND hwnd = platform_window->hwnd;
+
+    // Get window dimensions
+    RECT window_rect;
+    if (!GetWindowRect(hwnd, &window_rect)) {
+        return;
+    }
+
+    w->state_current.x = (uint16) window_rect.left;
+    w->state_current.y = (uint16) window_rect.top;
+    w->state_current.logical_width = (uint16) (window_rect.right - window_rect.left);
+    w->state_current.logical_height = (uint16) (window_rect.bottom - window_rect.top);
+
+    // Get client dimensions (window without border, title etc. = drawable area)
+    RECT client_rect;
+    if (!GetClientRect(hwnd, &client_rect)) {
+        return;
+    }
+
+    POINT client_origin = {0, 0};
+    if (!ClientToScreen(hwnd, &client_origin)) {
+        return;
+    }
+
+    // @question We don't have client x/y, do we need it?
+    //w->state_current.x = (uint16) client_origin.x;
+    //w->state_current.y = (uint16) client_origin.y;
+
+    w->state_current.client_width = (uint16)(client_rect.right - client_rect.left);
+    w->state_current.client_height = (uint16)(client_rect.bottom - client_rect.top);
+
+    physical_resolution_update(w);
+
+    if (!w->state_current.client_width
+        || !w->state_current.client_height
+    ) {
+        w->state_flag |= WINDOW_STATE_FLAG_DIMENSIONLESS;
+    } else {
+        w->state_flag &= ~WINDOW_STATE_FLAG_DIMENSIONLESS;
+    }
+}
+
+inline
+void window_fullscreen_apply(Window* const w) NO_EXCEPT
+{
+    WindowPlatform* const platform_window = (WindowPlatform*)w->platform_window;
+
+    HWND hwnd = platform_window->hwnd;
+    v4_int32 monitor_dim;
+    if (!monitor_dim_get(w, &monitor_dim)) {
+        return;
+    }
+
+    LONG_PTR style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+    SetWindowLongPtrW(hwnd, GWL_STYLE, style);
+    SetWindowPos(
+        hwnd,
+        HWND_TOP,
+        monitor_dim.x,
+        monitor_dim.y,
+        monitor_dim.width,
+        monitor_dim.height,
+        SWP_NOACTIVATE | SWP_NOZORDER | SWP_FRAMECHANGED
+    );
+
+    w->state_current.x = (uint16) monitor_dim.x;
+    w->state_current.y = (uint16) monitor_dim.y;
+
+    w->state_current.client_width = (uint16) monitor_dim.width;
+    w->state_current.client_height = (uint16) monitor_dim.height;
+
+    w->state_current.logical_width = w->state_current.client_width;
+    w->state_current.logical_height = w->state_current.client_height;
+
+    physical_resolution_update(w);
+}
+
 /**
  * Removes all window styles effectively turning it into a full screen window
  */
 FORCE_INLINE
 void window_style_remove(Window* const w) NO_EXCEPT
 {
-    WindowPlatform* const platform_window = (WindowPlatform *) w->platform_window;
+    WindowPlatform* const platform_window = (WindowPlatform*) w->platform_window;
+    HWND hwnd = platform_window->hwnd;
+    LONG_PTR style = GetWindowLongPtrW(hwnd, GWL_STYLE);
 
-    LONG_PTR style = GetWindowLongPtrW(platform_window->hwnd, GWL_STYLE);
     style &= ~WS_OVERLAPPEDWINDOW;
-    SetWindowLongPtr(platform_window->hwnd, GWL_STYLE, style);
+    style |= WS_POPUP;
+    SetWindowLongPtrW(hwnd, GWL_STYLE, style);
+
+    window_resolution_update(w);
+
+    // @question Do I need SetWindowPos here with SWP_FRAMECHANGED?
 }
 
 /**
@@ -42,66 +214,8 @@ void window_style_add(Window* const w) NO_EXCEPT
     LONG_PTR style = GetWindowLongPtrW(platform_window->hwnd, GWL_STYLE);
     style |= WS_OVERLAPPEDWINDOW;
     SetWindowLongPtr(platform_window->hwnd, GWL_STYLE, style);
-}
 
-FORCE_INLINE
-void physical_resolution_update(Window* const w) {
-    w->dpi = (byte) GetDpiForWindow(((WindowPlatform *) w->platform_window)->hwnd);
-
-    w->state_current.physical_width = (uint16) (((uint32) w->state_current.logical_width * (uint32) w->dpi) / 96);
-    w->state_current.physical_height = (uint16) (((uint32) w->state_current.logical_height * (uint32) w->dpi) / 96);
-}
-
-FORCE_INLINE
-void monitor_resolution(const Window* __restrict w, v2_int32* __restrict resolution) NO_EXCEPT
-{
-    WindowPlatform* const platform_window = (WindowPlatform *) w->platform_window;
-    resolution->width = GetDeviceCaps(platform_window->hdc, HORZRES);
-    resolution->height = GetDeviceCaps(platform_window->hdc, VERTRES);
-}
-
-FORCE_INLINE
-void monitor_resolution(Window* const w) NO_EXCEPT
-{
-    WindowPlatform* const platform_window = (WindowPlatform *) w->platform_window;
-    w->state_current.logical_width = (uint16) GetDeviceCaps(platform_window->hdc, HORZRES);
-    w->state_current.logical_height = (uint16) GetDeviceCaps(platform_window->hdc, VERTRES);
-
-    physical_resolution_update(w);
-}
-
-FORCE_INLINE
-void window_resolution_update(Window* const w) NO_EXCEPT
-{
-    RECT rect;
-    GetClientRect(((WindowPlatform *) w->platform_window)->hwnd, &rect);
-
-    w->state_current.x = (uint16) rect.left;
-    w->state_current.y = (uint16) rect.top;
-    w->state_current.logical_width = (uint16) (rect.right - rect.left);
-    w->state_current.logical_height = (uint16) (rect.bottom - rect.top);
-
-    physical_resolution_update(w);
-
-    if (!w->state_current.physical_width || !w->state_current.physical_height) {
-        w->state_flag |= WINDOW_STATE_FLAG_DIMENSIONLESS;
-    } else {
-        w->state_flag &= ~WINDOW_STATE_FLAG_DIMENSIONLESS;
-    }
-}
-
-inline
-void window_fullscreen_apply(Window* const w) NO_EXCEPT
-{
-    monitor_resolution(w);
-    w->state_current.x = 0;
-    w->state_current.y = 0;
-
-    SetWindowPos(
-        ((WindowPlatform *) w->platform_window)->hwnd, HWND_TOP, 0, 0,
-        w->state_current.logical_width, w->state_current.logical_height,
-        SWP_NOACTIVATE | SWP_NOZORDER
-    );
+    window_resolution_update(w);
 }
 
 inline
@@ -117,6 +231,59 @@ void window_restore(Window* const w) NO_EXCEPT
         w->state_old.x, w->state_old.y,
         w->state_old.logical_width, w->state_old.logical_height,
         SWP_NOACTIVATE | SWP_NOZORDER
+    );
+
+    window_resolution_update(w);
+}
+
+static
+bool window_client_screen_rect_get(
+    const Window* const w,
+    RECT* const rect
+) NO_EXCEPT
+{
+    WindowPlatform* const platform_window = (WindowPlatform*)w->platform_window;
+    HWND hwnd = platform_window->hwnd;
+
+    RECT client_rect;
+    if (!GetClientRect(hwnd, &client_rect)) {
+        return false;
+    }
+
+    POINT top_left = {client_rect.left, client_rect.top };
+    if (!ClientToScreen(hwnd, &top_left)) {
+        return false;
+    }
+
+    POINT bottom_right = {client_rect.right, client_rect.bottom};
+    if (!ClientToScreen(hwnd, &bottom_right)) {
+        return false;
+    }
+
+    rect->left = top_left.x;
+    rect->top = top_left.y;
+    rect->right = bottom_right.x;
+    rect->bottom = bottom_right.y;
+
+    return true;
+}
+
+FORCE_INLINE
+void window_mouse_clip(Window* const w) NO_EXCEPT
+{
+    RECT rect;
+    if (window_client_screen_rect_get(w, &rect)) {
+        ClipCursor(&rect);
+    }
+}
+
+FORCE_INLINE
+void window_state_backup(Window* const w) NO_EXCEPT
+{
+    memcpy(&w->state_old, &w->state_current, sizeof(w->state_current));
+    w->state_old.style = GetWindowLongPtrW(
+        ((WindowPlatform *) w->platform_window)->hwnd,
+        GWL_STYLE
     );
 }
 
@@ -136,52 +303,65 @@ void window_create(Window* const __restrict window, void* const __restrict proc)
     char_to_wchar(title, window->name, ARRAY_COUNT(title) - 1);
 
     WNDCLASSEXW wc = {
-        sizeof(WNDCLASSEXW), // .cbSize =
-        CS_OWNDC, // .style =
-        wndproc, // .lpfnWndProc =
-        0, // .cbClsExtra =
-        0, // .cbWndExtra =
-        platform_window->hInstance, // .hInstance =
-        NULL, // .hIcon =
-        LoadCursor(NULL, IDC_ARROW), // .hCursor =
-        NULL, // .hbrBackground =
-        NULL, // .lpszMenuName =
-        (LPCWSTR) title, // .lpszClassName =
+        SMN(cbSize) sizeof(WNDCLASSEXW),
+        SMN(style) CS_OWNDC,
+        SMN(lpfnWndProc) wndproc,
+        SMN(cbClsExtra) 0,
+        SMN(cbWndExtra) 0,
+        SMN(hInstance) platform_window->hInstance,
+        SMN(hIcon) NULL,
+        SMN(hCursor) LoadCursor(NULL, IDC_ARROW),
+        SMN(hbrBackground) NULL,
+        SMN(lpszMenuName) NULL,
+        SMN(lpszClassName) (LPCWSTR) title,
     };
 
     if (!RegisterClassExW(&wc)) {
         return;
     }
 
-    if (window->state_flag & WINDOW_STATE_FLAG_FULLSCREEN) {
-        window->state_current.logical_width  = (uint16) GetSystemMetrics(SM_CXSCREEN);
-	    window->state_current.logical_height = (uint16) GetSystemMetrics(SM_CYSCREEN);
-
-        DEVMODE screen_settings;
-
-        memset(&screen_settings, 0, sizeof(screen_settings));
-		screen_settings.dmSize       = sizeof(screen_settings);
-		screen_settings.dmPelsWidth  = (unsigned long) window->state_current.logical_width;
-		screen_settings.dmPelsHeight = (unsigned long) window->state_current.logical_height;
-		screen_settings.dmBitsPerPel = 32;
-		screen_settings.dmFields     = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-
-		ChangeDisplaySettings(&screen_settings, CDS_FULLSCREEN);
-
-        window->state_current.x = 0;
-        window->state_current.y = 0;
+    HDC hdc = GetDC(NULL);
+    int dpi = 96;
+    if (hdc) {
+        dpi = (int) GetDeviceCaps(hdc, LOGPIXELSX);
+        ReleaseDC(NULL, hdc);
     }
+
+    RECT rect = {
+        0,
+        0,
+        (LONG) window->state_current.logical_width,
+        (LONG) window->state_current.logical_height
+    };
+
+    AdjustWindowRectExForDpi(
+        &rect,
+        WS_OVERLAPPEDWINDOW,
+        FALSE,
+        0,
+        dpi
+    );
+
+    const int32 outer_width = rect.right - rect.left;
+    const int32 outer_height = rect.bottom - rect.top;
 
     platform_window->hwnd = CreateWindowExW((DWORD) NULL,
         wc.lpszClassName, NULL,
         WS_OVERLAPPEDWINDOW,
         window->state_current.x, window->state_current.y,
-        window->state_current.logical_width,
-        window->state_current.logical_height,
+        outer_width,
+        outer_height,
         NULL, NULL, platform_window->hInstance, window
     );
 
     window_resolution_update(window);
+
+    if (window->state_flag & WINDOW_STATE_FLAG_FULLSCREEN) {
+        window_state_backup(window);
+        window_fullscreen_apply(window);
+        window->state_flag |= WINDOW_STATE_FLAG_FULLSCREEN;
+        window_resolution_update(window);
+    }
 
     ASSERT_TRUE(platform_window->hwnd);
 }
@@ -234,16 +414,6 @@ HBITMAP CreateBitmapFromRGBA(
     }
 
     return hbitmap;
-}
-
-FORCE_INLINE
-void window_state_backup(Window* const w) NO_EXCEPT
-{
-    memcpy(&w->state_old, &w->state_current, sizeof(w->state_current));
-    w->state_old.style = GetWindowLongPtrW(
-        ((WindowPlatform *) w->platform_window)->hwnd,
-        GWL_STYLE
-    );
 }
 
 #endif

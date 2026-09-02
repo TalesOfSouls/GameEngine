@@ -9,7 +9,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../memory/ThrdChunkMemory.h"
-#include "../stdlib/HashMapT.h"
+#include "../stdlib/ThrdHashMapT.h"
 #include "../thread/ThreadDefines.h"
 #include "Asset.h"
 
@@ -28,9 +28,9 @@ struct AssetComponent {
     // This is were the actual asset data is stored
     ThrdChunkMemory asset_memory;
 
-    uint64 ram_size;
-    uint64 vram_size;
-    uint64 asset_count;
+    atomic<uint64> ram_size;
+    atomic<uint64> vram_size;
+    atomic<uint32> asset_count;
 };
 
 // @performance This doesn't really have anything to do with the AMS but how we currently operate
@@ -39,7 +39,7 @@ struct AssetComponent {
 struct AssetManagementSystem {
     // Used to find an asset in any asset component
     // @bug Needs to be threaded
-    HashMapT<HashEntryStrT<Asset>> hash_map;
+    ThrdHashMapT<ThrdHashEntryStrT<Asset>> hash_map;
 
     int32 asset_component_count;
     AssetComponent* asset_components;

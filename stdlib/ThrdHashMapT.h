@@ -7,17 +7,22 @@
 #ifndef COMS_STDLIB_THRD_HASH_MAPT_H
 #define COMS_STDLIB_THRD_HASH_MAPT_H
 
+#include "Stdlib.h"
 #include "HashMapT.h"
 
+// If a hash key is longer than the max key length, we use the last N characters of that key
+// The key length is currently chosen to result in 32 byte size for the common case: HashEntryInt32
+#define HASH_MAP_MAX_KEY_LENGTH 22
+
 template <typename V>
-struct HashEntryStrT {
+struct ThrdHashEntryStrT {
     char key[HASH_MAP_MAX_KEY_LENGTH];
     atomic<uint16> next;
     V value;
 };
 
 template <typename K, typename V>
-struct HashEntryT {
+struct ThrdHashEntryT {
     K key;
     atomic<uint16> next;
     V value;

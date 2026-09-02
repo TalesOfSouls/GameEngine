@@ -19,6 +19,7 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 
+// @todo implement
 void* cmd_shader_load(AppCmdBuffer*, AppCommand*) {
     return NULL;
 }
@@ -54,15 +55,12 @@ void* cmd_shader_load_sync(
 
         // Load sub asset
         int_to_hex(shader_ids[i], asset_id);
-        Asset* shader_asset = thrd_ams_get_asset_wait(ams, asset_id);
-        if (!shader_asset) {
-            shader_asset = asset_archive_asset_load(
-                &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(shader_ids[i])],
-                shader_ids[i],
-                ams,
-                mem
-            );
-        }
+        Asset* shader_asset = asset_archive_asset_load(
+            &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(shader_ids[i])],
+            shader_ids[i],
+            ams,
+            mem
+        );
 
         // Make sub shader
         shader_assets[i] = gpuapi_shader_make(

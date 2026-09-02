@@ -7,9 +7,9 @@
 #ifndef COMS_STDLIB_THRD_HASH_MAPT_C
 #define COMS_STDLIB_THRD_HASH_MAPT_C
 
-#include "HashMapT.cpp"
 #include "ThrdHashMapT.h"
 #include "../memory/ThrdChunkMemoryT.cpp"
+#include "../hash/GeneralHash.h"
 
 template <typename T>
 inline
@@ -94,7 +94,7 @@ T* hashmap_insert(ThrdHashMapT<T>* const __restrict hm, const char* __restrict k
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one(&hm->buf, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -137,7 +137,7 @@ T* hashmap_insert(ThrdHashMapT<T>* const __restrict hm, const char* __restrict k
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one(&hm->buf, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -183,7 +183,7 @@ T* hashmap_reserve(ThrdHashMapT<T>* const __restrict hm, const char* __restrict 
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
     // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one(&hm->buf, index);
     if (new_index < 0) {
         return NULL;
     }
@@ -223,13 +223,10 @@ T* hashmap_get_reserve(ThrdHashMapT<T>* const __restrict hm, const char* __restr
 {
     const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
 
-    // This is either the place where we insert or the start of the chain we have to follow
-    T* entry = (T *) chunk_element_get(&hm->buf, index);
-
     // Ensure key length
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
 
-    if (!chunk_is_free(&hm-buf, index)) {
+    if (!chunk_is_free(&hm->buf, index)) {
         T* entry = (T *) chunk_element_get(&hm->buf, index);
 
         while (true) {
@@ -331,7 +328,7 @@ T* hashmap_insert(ThrdHashMapT<T>* const hm, K key, V value) NO_EXCEPT
 {
     const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
 
-    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
+    const int32 new_index = chunk_reserve_one(&hm->buf, index);
     if (new_index < 0) {
         return NULL;
     }

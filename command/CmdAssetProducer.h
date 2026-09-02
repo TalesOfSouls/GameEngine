@@ -18,8 +18,7 @@ void thrd_cmd_asset_load(
     int32 asset_id
 ) NO_EXCEPT
 {
-    AppCommand cmd;
-    cmd.callback = NULL;
+    AppCommand cmd = {0};
     cmd.type = CMD_ASSET_LOAD;
     cmd.asset_body.asset_id = asset_id;
 

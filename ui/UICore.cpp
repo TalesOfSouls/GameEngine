@@ -25,7 +25,7 @@ UICore* ui_parent_element_by_type(byte* base, UICore* element, UIElementType typ
     return element;
 }
 
-UICore* ui_parent_element_by_type(byte* base, UICore* element, int32 type_flags) NO_EXCEPT
+UICore* ui_parent_element_by_type(byte* base, UICore* element, uint32 type_flags) NO_EXCEPT
 {
     if (!element) {
         return NULL;
@@ -34,7 +34,7 @@ UICore* ui_parent_element_by_type(byte* base, UICore* element, int32 type_flags)
     element = (UICore*) (((uintptr_t) base) + element->parent_offset);
 
     while (true) {
-        for (int i = 0; i < sizeof(type_flags) * 8; ++i) {
+        for (uint32 i = 0; i < sizeof(type_flags) * 8; ++i) {
             if (!OMS_BIT_SET(type_flags, i)) {
                 continue;
             }
@@ -54,7 +54,7 @@ UICore* ui_parent_element_by_type(byte* base, UICore* element, int32 type_flags)
 
 UICore* ui_custom_create(UILayout* layout, int16 update_func, int16 render_func) NO_EXCEPT
 {
-    UICore* element = (UICore*) BUFFER_ELEMENT_GET(&layout->ui_element_buffer, UICore);
+    UICore* const element = (UICore*) BUFFER_ELEMENT_GET(&layout->ui_element_buffer, UICore);
     MEMORY_ELEMENT_ZERO(element);
 
     element->type = UI_ELEMENT_TYPE_CUSTOM;

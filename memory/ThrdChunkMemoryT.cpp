@@ -197,11 +197,79 @@ inline
 int32 chunk_reserve_one(ThrdChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     const int32 word_count = ceil_div(buf->capacity, (int32) (sizeof(size_t) * 8));
-    if (word_count <= 0) {
-        return -1;
+    const int32 hint = buf->last_pos.load(memory_order_relaxed);
+    const int32 start_word = ((hint < 0 ? 0 : hint) / (sizeof(size_t) * 8)) % word_count;
+
+    for (int32 offset = 0; offset < word_count; ++offset) {
+        const int32 free_index = (start_word + offset) % word_count;
+
+        size_t word = buf->free[free_index].load(memory_order_relaxed);
+        while (true) {
+            const int32 bit_index = chunk_find_first_zero_bit(word);
+            if (bit_index < 0) {
+                // word full, try next word
+                break;
+            }
+
+            const int32 element = free_index * (sizeof(size_t) * 8) + bit_index;
+            if (element >= buf->capacity) {
+                // padding bits past capacity in the final word
+                break;
+            }
+
+            const size_t new_word = word | (OMS_UINT_ONE << bit_index);
+            if (buf->free[free_index].compare_exchange_weak(
+                word, new_word, memory_order_acq_rel, memory_order_relaxed
+            )) {
+                buf->last_pos.store(element, memory_order_relaxed);
+                DEBUG_MEMORY_WRITE((uintptr_t) &buf->memory[element], sizeof(T));
+
+                return element;
+            }
+            // word now holds the fresh value from the failed CAS,
+            // look for another zero bit_index before moving on
+        }
     }
 
-    const int32 hint = buf->last_pos.load(memory_order_relaxed);
+    return -1;
+}
+
+template <typename T>
+inline
+int32 chunk_reserve_one(
+    ThrdChunkMemoryT<T>* const buf,
+    const int32 hint
+) NO_EXCEPT
+{
+    // Try to use hint as index
+    {
+        const int32 bits_per_word = (int32)(sizeof(size_t) * 8);
+        const int32 free_index = hint / bits_per_word;
+        const int32 bit_index  = hint % bits_per_word;
+
+        size_t word = buf->free[free_index].load(memory_order_relaxed);
+
+        // The hinted element is free.
+        if ((word & (OMS_UINT_ONE << bit_index)) == 0) {
+            const size_t new_word = word | (OMS_UINT_ONE << bit_index);
+
+            if (buf->free[free_index].compare_exchange_weak(
+                word, new_word, memory_order_acq_rel, memory_order_relaxed
+            )) {
+                buf->last_pos.store(hint, memory_order_relaxed);
+
+                DEBUG_MEMORY_WRITE(
+                    (uintptr_t)&buf->memory[hint],
+                    sizeof(T)
+                );
+
+                return hint;
+            }
+        }
+    }
+
+    // chunk_reserve_one() function basically
+    const int32 word_count = ceil_div(buf->capacity, (int32) (sizeof(size_t) * 8));
     const int32 start_word = ((hint < 0 ? 0 : hint) / (sizeof(size_t) * 8)) % word_count;
 
     for (int32 offset = 0; offset < word_count; ++offset) {
@@ -327,10 +395,18 @@ void chunk_free_element(ThrdChunkMemoryT<T>* const buf, uint32 element) NO_EXCEP
 
 template <typename T>
 FORCE_INLINE
-void chunk_free_elements(ThrdChunkMemoryT<T>* const buf, size_t element, uint32 element_count = 1) NO_EXCEPT
+void chunk_free_element(ThrdChunkMemoryT<T>* const buf, void* data) NO_EXCEPT
 {
-    chunk_clear_bit_range(buf->completeness, (int32) element, (int32) element_count);
-    chunk_clear_bit_range(buf->free, (int32) element, (int32) element_count);
+    const uint32 element = (uint32) (((uintptr_t) data - (uintptr_t) buf->memory) / sizeof(T));
+    chunk_free_element(buf, element);
+}
+
+template <typename T>
+FORCE_INLINE
+void chunk_free_elements(ThrdChunkMemoryT<T>* const buf, int32 element, uint32 element_count = 1) NO_EXCEPT
+{
+    chunk_clear_bit_range(buf->completeness, element, (int32) element_count);
+    chunk_clear_bit_range(buf->free, element, (int32) element_count);
     DEBUG_MEMORY_DELETE((uintptr_t) &buf->memory[element], sizeof(T) * element_count);
 }
 
@@ -356,6 +432,36 @@ void chunk_mark_complete(ThrdChunkMemoryT<T>* const buf, uint32 element) NO_EXCE
 
 template <typename T>
 FORCE_INLINE
+void chunk_mark_complete(ThrdChunkMemoryT<T>* const buf, void* data) NO_EXCEPT
+{
+    const uint32 element = (uint32) (((uintptr_t) data - (uintptr_t) buf->memory) / sizeof(T));
+    chunk_mark_complete(buf, element);
+}
+
+template <typename T>
+FORCE_INLINE
+void chunk_element_insert(ThrdChunkMemoryT<T>* const __restrict buf, const T* const __restrict element) NO_EXCEPT
+{
+    const int32 element_id = chunk_reserve_one(buf);
+    T* new_element = chunk_element_get(buf, element_id);
+    memcpy(new_element, element, sizeof(T));
+
+    chunk_mark_complete(buf, element_id);
+}
+
+template <typename T>
+FORCE_INLINE
+void chunk_element_insert(ThrdChunkMemoryT<T>* const buf, const T& element) NO_EXCEPT
+{
+    const int32 element_id = chunk_reserve_one(buf);
+    T* new_element = chunk_element_get(buf, element_id);
+    memcpy(new_element, &element, sizeof(T));
+
+    chunk_mark_complete(buf, element_id);
+}
+
+template <typename T>
+FORCE_INLINE
 void chunk_clear_complete(ThrdChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 {
     const uint32 free_index = element / (uint32) (sizeof(size_t) * 8);
@@ -372,6 +478,14 @@ bool chunk_is_complete(const ThrdChunkMemoryT<T>* const buf, uint32 element) NO_
     const uint32 bit_index = element % (uint32) (sizeof(size_t) * 8);
 
     return (buf->completeness[free_index].load(memory_order_acquire) & (OMS_UINT_ONE << bit_index)) != 0;
+}
+
+template <typename T>
+FORCE_INLINE
+bool chunk_is_complete(const ThrdChunkMemoryT<T>* const buf, void* data) NO_EXCEPT
+{
+    const uint32 element = (uint32) (((uintptr_t) data - (uintptr_t) buf->memory) / sizeof(T));
+    return chunk_is_complete(buf, element);
 }
 
 /**

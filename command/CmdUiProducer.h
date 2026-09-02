@@ -29,7 +29,7 @@ void thrd_cmd_ui_load(
     AppCommandFunction callback
 ) NO_EXCEPT
 {
-    AppCommand cmd;
+    AppCommand cmd = {0};
     cmd.type = CMD_UI_LOAD;
     cmd.callback = callback;
 

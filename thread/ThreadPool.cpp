@@ -273,21 +273,16 @@ void thread_pool_destroy(ThreadPool* const pool) NO_EXCEPT
 // Currently this means we are checking if all threads are still "active"
 // Active means that we can use them for work/tasks
 inline
-bool thread_pool_healthy(const ThreadPool* const pool) NO_EXCEPT
+bool thread_pool_healthy(const ThreadPool* const pool, BufferMemory* const mem) NO_EXCEPT
 {
+    // We cannot check a thread pool that uses detached threads
+    ASSERT_TRUE(!pool->is_detached);
+
     if (pool->thread_cnt.load() != pool->size) {
         return false;
     }
 
-    if (!pool->is_detached) {
-        for (int i = 0; i < pool->size; ++i) {
-            if (!coms_pthread_running(pool->thread_handles[i])) {
-                return false;
-            }
-        }
-    }
-
-    return true;
+    return coms_pthreads_running(pool->thread_handles, pool->size, mem);
 }
 
 // Tries to fix threads that are no longer running but should be running

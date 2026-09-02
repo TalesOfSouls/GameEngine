@@ -66,7 +66,10 @@ void ui_vertices_cache(
         );
     }
 
-    if (OMS_HAS_ALPHA(button->label.font.color) && button->label.content) {
+    if (OMS_HAS_ALPHA(button->label.font.color)
+        && button->label.content
+        && *((const char *) (layout->ui_element_buffer.memory + button->label.content)) // Check text != \0
+    ) {
         ui_vertices_cache(
             app,
             &button->label,

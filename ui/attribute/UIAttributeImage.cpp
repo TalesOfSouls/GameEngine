@@ -3,7 +3,7 @@
 #define COMS_UI_ATTRIBUTE_IMAGE_C
 
 #include "UIAttributeImage.h"
-#include "../object/TextureAtlas.cpp"
+#include "../../object/TextureAtlas.cpp"
 #include "../UIAlignment.h"
 
 inline

@@ -10,31 +10,40 @@
 #include "../stdlib/Stdlib.h"
 #include "../system/Allocator.h"
 #include "../thread/Thread.h"
-#include "../memory/PersistentQueueT.h"
+#include "../memory/ThrdChunkMemory.h"
 
 enum TaskScheduleFlag : uint8 {
+    TASK_SCHEDULE_FLAG_NONE = 0,
     TASK_SCHEDULE_FLAG_RUNNING = 1 << 0,
-    TASK_SCHEDULE_FLAG_COMPLETED = 1 << 1,
-    TASK_SCHEDULE_FLAG_REPEAT = 1 << 2, // After completion, reset and run again
-    TASK_SCHEDULE_FLAG_CONTINUOUS = 1 << 3, // Needs to run every iteration or only once until end time
+    TASK_SCHEDULE_FLAG_CANCELLED = 1 << 1,
+    TASK_SCHEDULE_FLAG_PAUSED = 1 << 2,
+
+    // Allows this task to run multiple times even if it is already running
+    TASK_SCHEDULE_FLAG_MULTIPLE = 1 << 3,
 };
 
+struct TaskScheduler;
 struct TaskSchedule {
-    uint64 start;
+    atomic<uint64> next_run;
     uint64 end;
-    uint8 flags;
-    int8 repeat_count; // -1 = infinite
-    uint16 repeat_interval; // 1 = 100 ms, smaller intervals are not required?!
-    uint32 priority;
+    atomic<uint64> previous_run;
+
+    atomic<uint8> flags;
+    atomic<int8> remaining_iteration; // -2 = infinite iterations, default = one run = 0
+
+    // The sign bit allows us to define how to repeat the function
+    // > 0 if next_run = current_time + repeat_interval
+    // < 0 if next_run += repeat_interval;
+    int32 repeat_interval;
+
     ThreadPoolJobFunc task_func;
-    uint64 time;
     void* data;
-    void* scheduler;
+    TaskScheduler* scheduler;
 };
 
 // Multithreading: Single consumer (one thread) multiple producers (multiple threads)
 struct TaskScheduler {
-    PersistentQueueT<TaskSchedule> tasks;
+    ThrdChunkMemoryT<TaskSchedule> tasks;
     ThreadPool* pool;
 };
 

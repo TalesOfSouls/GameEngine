@@ -18,6 +18,7 @@
 #include "../gpuapi/GpuApiType.h"
 #include "AppCommand.h"
 #include "CmdAssetProducer.h"
+#include "CmdAssetConsumer.h"
 
 static inline
 Asset* cmd_internal_texture_create(
@@ -29,7 +30,7 @@ Asset* cmd_internal_texture_create(
     char id_str[9];
     int_to_hex(cmd->texture_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(ams, id_str);
+    Asset* const asset = ams_asset_get_wait(ams, id_str);
     if (!asset) {
         return NULL;
     }
@@ -48,9 +49,8 @@ Asset* cmd_internal_texture_create(
 }
 
 static inline
-Asset* cmd_texture_load_async(
-    ThrdChunkMemoryT<AppCommand>* const cb,
-    AssetManagementSystem* const __restrict ams,
+Asset* cmd_texture_load(
+    AppCmdBuffer* cb,
     GpuApiType gpu_api_type,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
@@ -58,12 +58,12 @@ Asset* cmd_texture_load_async(
     char id_str[9];
     int_to_hex(cmd->texture_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(ams, id_str);
-    if (asset) {
-        cmd_internal_texture_create(ams, gpu_api_type, cmd);
-    } else {
-        thrd_cmd_asset_load(cb, cmd->texture_body.asset.asset_id);
+    Asset* const asset = ams_asset_get_wait(cb->ams, id_str);
+    if (!asset) {
+        cmd_asset_load_sync(cb->asset_archives, cb->ams, cb->mem, cmd->texture_body.asset.asset_id);
     }
+
+    cmd_internal_texture_create(cb->ams, gpu_api_type, cmd);
 
     return asset;
 }
@@ -85,17 +85,13 @@ Asset* cmd_texture_load_sync(
     int_to_hex(asset_id, id_str);
     PROFILE_DEBUG(PROFILE_CMD_ASSET_LOAD_SYNC, id_str, PROFILE_FLAG_SHOULD_LOG);
 
-    Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
-
     // Load asset if not loaded
-    if (!asset) {
-        asset = asset_archive_asset_load(
-            &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
-            asset_id,
-            ams,
-            mem
-        );
-    }
+    Asset* asset = asset_archive_asset_load(
+        &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
+        asset_id,
+        ams,
+        mem
+    );
 
     // Setup basic texture
     Texture* const texture = (Texture *) asset->self;
@@ -122,7 +118,7 @@ Asset* cmd_internal_texture_atlas_create(
     char id_str[9];
     int_to_hex(cmd->texture_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, id_str);
+    Asset* const asset = ams_asset_get_wait(cb->ams, id_str);
     if (!asset) {
         return NULL;
     }
@@ -149,7 +145,7 @@ Asset* cmd_internal_texture_atlas_create(
 }
 
 static inline
-Asset* cmd_texture_atlas_load_async(
+Asset* cmd_texture_atlas_load(
     AppCmdBuffer* cb,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
@@ -157,19 +153,19 @@ Asset* cmd_texture_atlas_load_async(
     char id_str[9];
     int_to_hex(cmd->texture_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, id_str);
-    if (asset) {
-        cmd_internal_texture_atlas_create(cb, cmd);
-    } else {
-        thrd_cmd_asset_load(&cb->commands, cmd->texture_body.asset.asset_id);
+    Asset* const asset = ams_asset_get_wait(cb->ams, id_str);
+    if (!asset) {
+        cmd_asset_load_sync(cb->asset_archives, cb->ams, cb->mem, cmd->texture_body.asset.asset_id);
     }
+
+    cmd_internal_texture_atlas_create(cb, cmd);
 
     return asset;
 }
 
 template <typename T>
 inline
-Asset* cmd_texture_atlas_load_sync(
+Asset* cmd_texture_atlas_load(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
     T* const __restrict mem,
@@ -184,17 +180,13 @@ Asset* cmd_texture_atlas_load_sync(
     int_to_hex(asset_id, id_str);
     PROFILE_DEBUG(PROFILE_CMD_ASSET_LOAD_SYNC, id_str, PROFILE_FLAG_SHOULD_LOG);
 
-    Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
-
     // Load asset if not loaded
-    if (!asset) {
-        asset = asset_archive_asset_load(
-            &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
-            asset_id,
-            ams,
-            mem
-        );
-    }
+    Asset* asset = asset_archive_asset_load(
+        &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
+        asset_id,
+        ams,
+        mem
+    );
 
     Asset* texture_asset = cmd_texture_load_sync(
         asset_archives,

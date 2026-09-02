@@ -28,6 +28,7 @@ enum AppCommandType : uint8 {
     CMD_INTERNAL_AUDIO_ENQUEUE,
     CMD_SHADER_LOAD,
     CMD_UI_LOAD,
+    CMD_GROUP_ASYNC,
 };
 
 typedef void* (*AppCommandFunction)(void* data);
@@ -67,6 +68,19 @@ struct CmdTextureBody {
     CmdAssetBody asset;
 };
 
+struct AppCommand;
+struct CmdGroupAsyncBody {
+    int count;
+
+    // The child commands need to be stored in a persistent memory region
+    // The memory is "released" after the group finished
+    AppCommand* commands;
+
+    // This is used to indicate the producer the state and needs to be stored
+    // in a persistent memory region
+    atomic<size_t>* state;
+};
+
 struct CmdLayoutBody {
     void* app;
     AssetManagementSystem* ams;
@@ -88,6 +102,12 @@ struct AppCommand {
     AppCommandFunction callback;
     AppCommandType type;
 
+    // Should run in a thread pool worker
+    bool run_in_pool;
+
+    // Required for thread pool commands to avoid multiple executions
+    bool is_running;
+
     // This defines the actual size of AppCommand
     union {
         CmdAssetBody asset_body;
@@ -97,6 +117,7 @@ struct AppCommand {
         CmdFileBody file_body;
         CmdTextureBody texture_body;
         CmdLayoutBody layout_body;
+        CmdGroupAsyncBody group_async_body;
     };
 };
 

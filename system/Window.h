@@ -11,11 +11,16 @@
 #include "../platform/win32/Window.h"
 
 struct WindowState {
+    // The client usable content may have different dimensions than the window (size without borders etc.)
+    uint16 client_width;
+    uint16 client_height;
+
     // Logical dimension
     uint16 logical_width;
     uint16 logical_height;
 
     // Physical dimension (a monitor may have more pixels than used in software e.g. retina)
+    // @question Do I even need this? It is currently not really used
     uint16 physical_width;
     uint16 physical_height;
 

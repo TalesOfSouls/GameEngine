@@ -72,7 +72,7 @@ void ui_vertices_cache(
     ui_dimension_calculate(layout, &window_title->core);
 
     if (OMS_HAS_ALPHA(window_title->panel.background_color)) {
-        UIPanel* title_panel = &window_title->panel;
+        const UIPanel* const title_panel = &window_title->panel;
 
         // @question consider to use panel dimensions instead/call panel render function
         //          If we change to panel rendering we should avoid calculating the dimension here
@@ -101,8 +101,10 @@ void ui_vertices_cache(
         &window_title->core.dimension.pos, &window_title->core.dimension.dim, window_title->border
     );
 
-    // @question Do I also need to check for empty text here?
-    if (OMS_HAS_ALPHA(window_title->label.font.color) && window_title->label.content) {
+    if (OMS_HAS_ALPHA(window_title->label.font.color)
+        && window_title->label.content
+        && *((const char *) (layout->ui_element_buffer.memory + window_title->label.content)) // Check text != \0
+    ) {
         ui_vertices_cache(
             app,
             &window_title->label,

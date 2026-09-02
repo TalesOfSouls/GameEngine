@@ -207,6 +207,14 @@ uint32 chunk_id_from_memory(void* memory, void* pos, size_t chunk_size) NO_EXCEP
     return (uint32) (((uintptr_t)pos - (uintptr_t)memory) / chunk_size);
 }
 
+/**
+ * Used to calculate how many chunks we need to reserve size
+ */
+FORCE_INLINE
+int32 chunk_element_count(const ChunkMemory* const buf, size_t size) {
+    return (int32) ((size + buf->chunk_size - 1) / buf->chunk_size);
+}
+
 FORCE_INLINE FORCE_FLATTEN
 byte* chunk_element_get(const ChunkMemory* const buf, int32 element) NO_EXCEPT
 {

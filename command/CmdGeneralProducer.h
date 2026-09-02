@@ -16,23 +16,13 @@
 inline
 void thrd_cmd_insert(ThrdChunkMemoryT<AppCommand>* const __restrict cb, const AppCommand* const __restrict cmd_temp) NO_EXCEPT
 {
-    const int32 index = chunk_reserve_one(cb);
-    if (index < 0) {
-        ASSERT_THROW();
-
-        return;
-    }
-
-    AppCommand* cmd = (AppCommand *) chunk_element_get(cb, index);
-    memcpy(cmd, cmd_temp, sizeof(AppCommand));
-    chunk_mark_complete(cb, index);
+    chunk_element_insert(cb, cmd_temp);
 }
 
 inline
 void thrd_cmd_insert(ThrdChunkMemoryT<AppCommand>* const cb, AppCommandFunction const func) NO_EXCEPT
 {
-    AppCommand cmd;
-    cmd.callback = NULL;
+    AppCommand cmd = {0};
     cmd.type = CMD_FUNC_RUN;
     cmd.func_body.func = func;
 

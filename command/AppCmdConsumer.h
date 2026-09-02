@@ -52,6 +52,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../log/Log.h"
 #include "../thread/ThreadDefines.h"
+#include "../thread/ThreadPool.cpp"
 #include "../memory/ChunkMemory.cpp"
 
 #include "AppCmdBuffer.h"
@@ -109,6 +110,63 @@ void* cmd_func_run(AppCommandFunction func) NO_EXCEPT
     return func(NULL);
 }
 
+static inline void thrd_cmd_group_execute(void*);
+
+static inline
+void cmd_group_async(
+    AppCmdBuffer* cb,
+    AppCommand* const __restrict cmd
+) NO_EXCEPT
+{
+    ASSERT_TRUE(cmd->group_async_body.count);
+
+    // @todo We only chose 16 as an arbitrary number to avoid dynamic memory allocation
+    //      This probably needs revisiting
+    PoolWorker* jobs_ptr[16];
+    ASSERT_TRUE(cmd->group_async_body.count <= ARRAY_COUNT(jobs_ptr));
+
+    const int32 element_count = chunk_element_count(cb->mem, cmd->group_async_body.count * sizeof(AppCommandPool));
+    const int32 element_id = chunk_reserve(cb->mem, element_count);
+    AppCommandPool* pool_args = (AppCommandPool *) chunk_element_get(cb->mem, element_id);
+
+    for (int32 i = 0; i < cmd->group_async_body.count; ++i) {
+        pool_args[i].cb = cb;
+        pool_args[i].commands = &cmd->group_async_body.commands[i];
+        pool_args[i].count = 1;
+
+        chunk_mark_complete(cb->mem, element_id + i);
+
+        const PoolWorker job = {
+            SMN(id) 0,
+            SMN(state) POOL_WORKER_STATE_WAITING,
+            SMN(automatic_release) false,
+            SMN(arg_size) 0,
+            SMN(arg) &pool_args[i],
+            SMN(func) thrd_cmd_group_execute,
+            SMN(callback) NULL,
+            SMN(mem_size) 0,
+            SMN(mem) NULL
+        };
+        jobs_ptr[i] = thread_pool_add_work(cb->thread_pool, &job);
+    }
+
+    const uint64 status = thread_pool_join(
+        cb->thread_pool,
+        jobs_ptr,
+        cmd->group_async_body.count,
+        100, cmd->group_async_body.count * 3 * SEC_MICRO // @todo This should probably depend on the command type?
+    );
+
+    // Release the commands memory
+    int32 cmd_element_count = chunk_element_count(cb->mem, cmd->group_async_body.count * sizeof(AppCommand));
+    chunk_free_elements(cb->mem, (byte *) cmd->group_async_body.commands, cmd_element_count);
+
+    // Release the args memory used for the thread pool args
+    chunk_free_elements(cb->mem, element_id, element_count);
+
+    cmd->group_async_body.state->store(status);
+}
+
 inline
 bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
 {
@@ -126,12 +184,11 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                 cmd_file_load(cb->mem, cmd);
             } break;
         case CMD_TEXTURE_ATLAS_LOAD: {
-                completed = cmd_texture_atlas_load_async(cb, cmd) != NULL;
+                completed = cmd_texture_atlas_load(cb, cmd) != NULL;
             } break;
         case CMD_TEXTURE_LOAD: {
-                completed = cmd_texture_load_async(
-                    &cb->commands,
-                    cb->ams,
+                completed = cmd_texture_load(
+                    cb,
                     cb->gpu_api_type,
                     cmd
                 ) != NULL;
@@ -144,23 +201,26 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                 );
             } break;
         case CMD_FONT_LOAD: {
-                completed = cmd_font_load_async(cb, cmd) != NULL;
+                completed = cmd_font_load(cb, cmd) != NULL;
             } break;
         case CMD_INTERNAL_FONT_CREATE: {
                 cmd_internal_font_create(cb, cmd);
             } break;
         case CMD_AUDIO_PLAY: {
-                completed = cmd_audio_play_async(&cb->commands, cb->ams, cb->mixer, cmd) != NULL;
+                completed = cmd_audio_play(cb, cmd) != NULL;
             } break;
         case CMD_INTERNAL_AUDIO_ENQUEUE: {
                 completed = cmd_internal_audio_play_enqueue(cb->ams, cb->mixer, cmd) != NULL;
             } break;
         case CMD_SHADER_LOAD: {
-                // @todo Not yet implemented
                 completed = cmd_shader_load(cb, cmd) != NULL;
             } break;
         case CMD_UI_LOAD: {
                 cmd_ui_load(cb->mem, cmd);
+            } break;
+        case CMD_GROUP_ASYNC: {
+                // @question Shouldn't this "container" function run in its own thread?
+                cmd_group_async(cb, cmd);
             } break;
         default: {
             UNREACHABLE();
@@ -170,39 +230,67 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
     return completed;
 }
 
-// @question In some cases we don't remove an element if it couldn't get completed
-//          Would it make more sense to remove it and add a new follow up command automatically in such cases?
-//          e.g. couldn't play audio since it isn't loaded -> queue for asset load -> queue for internal play
+static inline
+void thrd_cmd_pool_execute(void* data) {
+    AppCommandPool* pool_cmd = (AppCommandPool*) data;
+
+    cmd_execute(pool_cmd->cb, pool_cmd->commands);
+    chunk_free_element(&pool_cmd->cb->commands, pool_cmd->chunk_id);
+}
+
+// Almost the same as pool_execute with the exception that
+// we don't have to free the chunk element since the parent element is getting automatically removed
+static inline
+void thrd_cmd_group_execute(void* data) {
+    AppCommandPool* pool_cmd = (AppCommandPool*) data;
+    cmd_execute(pool_cmd->cb, pool_cmd->commands);
+}
+
+// Single threaded consumer that may dispatch work to multiple threads
 void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_CMD_ITERATE);
     int32 chunk_id = 0;
+    static const int32 element_count = chunk_element_count(cb->mem, sizeof(AppCommandPool));
+
     thrd_chunk_iterate_start(&cb->commands, chunk_id) {
         AppCommand* cmd = (AppCommand *) chunk_element_get(&cb->commands, chunk_id);
 
-        // @performance we should have a flag that checks if it needs prior tasks to finish
-        //          e.g. run on first time, if it has prerequisites, set to false AND
-        //          tell the sub-tasks somehow to set the flag to completed once done
-        bool remove = cmd_execute(cb, cmd);
+        if (cmd->run_in_pool && !cmd->is_running) {
+            const int32 pool_cmd_id = chunk_reserve(cb->mem, element_count);
+            AppCommandPool* pool_cmd = (AppCommandPool *) chunk_element_get(cb->mem, pool_cmd_id);
 
-        if (!remove) {
-            // @bug This feels like it would cause bugs
-            // @performance It feels also that this is very slow,
-            continue;
+            pool_cmd->chunk_id = chunk_id;
+            pool_cmd->commands = cmd;
+            chunk_mark_complete(cb->mem, pool_cmd_id);
+
+            cmd->is_running = true;
+
+            const PoolWorker job = {
+                SMN(id) 0,
+                SMN(state) POOL_WORKER_STATE_WAITING,
+                SMN(automatic_release) true,
+                SMN(arg_size) 0,
+                SMN(arg) pool_cmd,
+                SMN(func) thrd_cmd_pool_execute,
+                SMN(callback) NULL,
+                SMN(mem_size) 0,
+                SMN(mem) NULL
+            };
+            thread_pool_add_work(cb->thread_pool, &job);
+        } else if (!cmd->run_in_pool) {
+            bool remove = cmd_execute(cb, cmd);
+            if (!remove) {
+                continue;
+            }
+
+            if (cmd->callback) {
+                cmd->callback(cmd);
+            }
+
+            chunk_free_element(&cb->commands, chunk_id);
         }
-
-        if (cmd->callback) {
-            cmd->callback(cmd);
-        }
-
-        chunk_free_element(&cb->commands, chunk_id);
     } thrd_chunk_iterate_end;
-}
-
-inline
-void thrd_cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
-{
-    cmd_iterate(cb);
 }
 
 #endif

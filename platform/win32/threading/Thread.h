@@ -12,6 +12,7 @@
 #include "ThreadDefines.h"
 #include <windows.h>
 #include "../../../log/PerformanceProfiler.h"
+#include "../../../memory/BufferMemory.cpp"
 
 inline
 void coms_thread_affinity_set(coms_pthread_t* const thread, int64 mask) NO_EXCEPT
@@ -43,7 +44,7 @@ int32 coms_pthread_create(
 }
 
 FORCE_INLINE
-int32 coms_pthread_join(coms_pthread_t thread, void**) NO_EXCEPT
+int32 coms_pthread_join(coms_pthread_t& thread, void**) NO_EXCEPT
 {
     WaitForSingleObject(thread.h, INFINITE);
     CloseHandle(thread.h);
@@ -53,18 +54,29 @@ int32 coms_pthread_join(coms_pthread_t thread, void**) NO_EXCEPT
 }
 
 FORCE_INLINE
-bool coms_pthread_running(coms_pthread_t thread) NO_EXCEPT
+bool coms_pthreads_running(const coms_pthread_t* threads, int count, BufferMemory* mem) NO_EXCEPT
 {
-    DWORD result = WaitForSingleObject(thread.h, 0);
-    if (result == WAIT_TIMEOUT) {
-        return true;
+    HANDLE* h_temp;
+    BUFFER_STACK_MEMORY(mem, (byte **) &h_temp, count, alignof(HANDLE));
+
+    for (int i = 0; i < count; ++i) {
+        h_temp[i] = threads->h;
     }
 
-    return false;
+    DWORD result = WaitForMultipleObjects(count, h_temp, false, 0);
+
+    return result == WAIT_TIMEOUT;
 }
 
 FORCE_INLINE
-int32 coms_pthread_detach(coms_pthread_t thread) NO_EXCEPT
+bool coms_pthread_running(const coms_pthread_t& thread) NO_EXCEPT
+{
+    DWORD result = WaitForSingleObject(thread.h, 0);
+    return result == WAIT_TIMEOUT;
+}
+
+FORCE_INLINE
+int32 coms_pthread_detach(coms_pthread_t& thread) NO_EXCEPT
 {
     CloseHandle(thread.h);
 

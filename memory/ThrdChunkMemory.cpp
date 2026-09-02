@@ -9,6 +9,16 @@
 
 #include "ThrdChunkMemory.h"
 
+CONSTEXPR FORCE_INLINE
+size_t thrd_chunk_size(size_t type_size, int max_capacity) NO_EXCEPT
+{
+    const size_t array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
+    return max_capacity * type_size
+        + sizeof(size_t) * array_count
+        + sizeof(size_t) * array_count
+        + sizeof(size_t) * 2;
+}
+
 inline
 void chunk_init(
     ThrdChunkMemory* const buf,
@@ -169,7 +179,7 @@ FORCE_INLINE
 int32 chunk_find_first_zero_bit(size_t word) NO_EXCEPT
 {
     const size_t inverted = ~word;
-    if (inverted == 0) {
+    if (!inverted) {
         return -1;
     }
 
@@ -241,6 +251,14 @@ bool chunk_try_claim_range(atomic<size_t>* free_words, int32 element, int32 elem
     }
 
     return true;
+}
+
+/**
+ * Used to calculate how many chunks we need to reserve size
+ */
+FORCE_INLINE
+int32 chunk_element_count(const ThrdChunkMemory* const buf, size_t size) {
+    return (int32) ((size + buf->chunk_size - 1) / buf->chunk_size);
 }
 
 FORCE_INLINE FORCE_FLATTEN
@@ -335,7 +353,6 @@ int32 chunk_reserve(ThrdChunkMemory* const buf, uint32 elements = 1) NO_EXCEPT
             if (element >= buf->capacity) {
                 // End reached, start at beginning
                 run_start = -1;
-                run_len = 0;
                 break;
             }
 
@@ -397,7 +414,15 @@ void chunk_free_element(ThrdChunkMemory* const buf, uint32 element) NO_EXCEPT
 }
 
 FORCE_INLINE
-void chunk_free_elements(ThrdChunkMemory* const buf, size_t element, uint32 element_count = 1) NO_EXCEPT
+void chunk_free_element(ThrdChunkMemory* const buf, void* data) NO_EXCEPT
+{
+    const uint32 element = (uint32) (((uintptr_t) data - (uintptr_t) buf->memory) / buf->chunk_size);
+    chunk_free_element(buf, element);
+}
+
+
+FORCE_INLINE
+void chunk_free_elements(ThrdChunkMemory* const buf, int32 element, uint32 element_count = 1) NO_EXCEPT
 {
     chunk_clear_bit_range(buf->completeness, (int32) element, (int32) element_count);
     chunk_clear_bit_range(buf->free, (int32) element, (int32) element_count);
@@ -423,6 +448,13 @@ void chunk_mark_complete(ThrdChunkMemory* const buf, uint32 element) NO_EXCEPT
 }
 
 FORCE_INLINE
+void chunk_mark_complete(ThrdChunkMemory* const buf, void* data) NO_EXCEPT
+{
+    const uint32 element = (uint32) (((uintptr_t) data - (uintptr_t) buf->memory) / buf->chunk_size);
+    return chunk_mark_complete(buf, element);
+}
+
+FORCE_INLINE
 void chunk_clear_complete(ThrdChunkMemory* const buf, uint32 element) NO_EXCEPT
 {
     const uint32 free_index = element / (uint32) (sizeof(size_t) * 8);
@@ -438,6 +470,13 @@ bool chunk_is_complete(const ThrdChunkMemory* const buf, uint32 element) NO_EXCE
     const uint32 bit_index = element % (uint32) (sizeof(size_t) * 8);
 
     return (buf->completeness[free_index].load(memory_order_acquire) & (OMS_UINT_ONE << bit_index)) != 0;
+}
+
+FORCE_INLINE
+bool chunk_is_complete(const ThrdChunkMemory* const buf, void* data) NO_EXCEPT
+{
+    const uint32 element = (uint32) (((uintptr_t) data - (uintptr_t) buf->memory) / buf->chunk_size);
+    return chunk_is_complete(buf, element);
 }
 
 /**
@@ -625,7 +664,7 @@ struct ThrdChunkStackMemory {
         const size_t chunk_iter_word = (buf)->free[free_index].load(memory_order_relaxed);           \
         const size_t complete_iter_word = (buf)->completeness[free_index].load(memory_order_relaxed);           \
         /* Check if asset is defined */                                                              \
-        if (!chunk_iter_word || !complete_iter_word) {                                                                       \
+        if ((!chunk_iter_word) | (!complete_iter_word)) {                                                                       \
             /* Skip various elements */                                                              \
             /* @performance Consider to only check 1 byte instead of 8 */                            \
             /* There are probably even better ways by using compiler intrinsics if available */      \

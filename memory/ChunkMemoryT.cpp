@@ -221,6 +221,24 @@ int32 chunk_reserve(ChunkMemoryT<T>* const buf, uint32 elements = 1) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
+void chunk_element_insert(ChunkMemoryT<T>* const buf, const T* const __restrict element) NO_EXCEPT
+{
+    const int32 element_id = chunk_reserve_one(buf);
+    T* new_element = chunk_element_get(buf, element_id);
+    memcpy(new_element, element, sizeof(T));
+}
+
+template <typename T>
+FORCE_INLINE
+void chunk_element_insert(ChunkMemoryT<T>* const buf, const T& element) NO_EXCEPT
+{
+    const int32 element_id = chunk_reserve_one(buf);
+    T* new_element = chunk_element_get(buf, element_id);
+    memcpy(new_element, &element, sizeof(T));
+}
+
+template <typename T>
+FORCE_INLINE
 void chunk_free_element(ChunkMemoryT<T>* const buf, size_t free_index, int32 bit_index) NO_EXCEPT
 {
     buf->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
@@ -243,7 +261,7 @@ void chunk_free_element(ChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 
 template <typename T>
 FORCE_INLINE
-void chunk_free_elements(ChunkMemoryT<T>* const buf, size_t element, uint32 element_count = 1) NO_EXCEPT
+void chunk_free_elements(ChunkMemoryT<T>* const buf, int32 element, uint32 element_count = 1) NO_EXCEPT
 {
     chunk_clear_bit_range_internal(buf->free, element, element_count);
     DEBUG_MEMORY_DELETE((uintptr_t) &buf->memory[element], sizeof(T) * element_count);

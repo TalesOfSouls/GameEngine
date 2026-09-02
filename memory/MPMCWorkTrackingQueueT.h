@@ -15,11 +15,15 @@
 #include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
 
-// @todo Implement a function that checks if a slot has been handled but is simply not deleted yet
 template<typename T>
 struct Slot {
     // This is at the beginning to improve loading performance
     // If we put it after memory, we may have to load additional cache lines
+
+    // The turn variable is used to handle exclusive ownership
+    //      turn = pos = empty and safe to write to
+    //      turn = pos + 1 = fully written
+    //      turn = pos + capacity = again empty to use
     atomic<size_t> turn;
     T memory;
 };

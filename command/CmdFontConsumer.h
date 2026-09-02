@@ -26,7 +26,7 @@ Asset* cmd_internal_font_create(
     char id_str[9];
     int_to_hex(cmd->font_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, id_str);
+    Asset* const asset = ams_asset_get_wait(cb->ams, id_str);
     if (!asset) {
         return asset;
     }
@@ -53,7 +53,7 @@ Asset* cmd_internal_font_create(
 }
 
 static inline
-Asset* cmd_font_load_async(
+Asset* cmd_font_load(
     AppCmdBuffer* cb,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
@@ -61,15 +61,15 @@ Asset* cmd_font_load_async(
     char id_str[9];
     int_to_hex(cmd->font_body.asset.asset_id, id_str);
 
-    Asset* const asset = thrd_ams_get_asset_wait(cb->ams, id_str);
-    if (asset) {
-        //@performance The function call below also loads the asset again.
-        //          That is unnecessary in this specific case
-        //          Maybe we can pass the asset?
-        cmd_internal_font_create(cb, cmd);
-    } else {
-        thrd_cmd_asset_load(&cb->commands, cmd->font_body.asset.asset_id);
+    Asset* const asset = ams_asset_get_wait(cb->ams, id_str);
+    if (!asset) {
+        cmd_asset_load_sync(cb->asset_archives, cb->ams, cb->mem, cmd->font_body.asset.asset_id);
     }
+
+    //@performance The function call below also loads the asset again.
+    //          That is unnecessary in this specific case
+    //          Maybe we can pass the asset?
+    cmd_internal_font_create(cb, cmd);
 
     return asset;
 }
@@ -92,17 +92,13 @@ Asset* cmd_font_load_sync(
 
     PROFILE_DEBUG(PROFILE_CMD_FONT_LOAD_SYNC, id_str, PROFILE_FLAG_SHOULD_LOG);
 
-    Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
-
     // Load asset if not loaded
-    if (!asset) {
-        asset = asset_archive_asset_load(
-            &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
-            asset_id,
-            ams,
-            mem
-        );
-    }
+    Asset* asset = asset_archive_asset_load(
+        &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
+        asset_id,
+        ams,
+        mem
+    );
 
     // Setup font
     Font* const font = (Font *) asset->self;
