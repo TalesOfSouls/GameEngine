@@ -64,6 +64,8 @@ int16 input_kbm_handle(
     uint64 time
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_INPUT_POLL);
+
     switch (mode) {
         case INPUT_MODE_EVENT: {
             return input_raw_handle_buffered(

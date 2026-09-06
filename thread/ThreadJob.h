@@ -47,6 +47,9 @@ struct PoolWorker {
 
     // Pointer to memory to be used by the thread worker
     size_t mem_size;
+
+    // @question should this be a void* for different Memory types
+    //          Alternatively maybe it makes sense to create a MemoryContainer with unions that implements basic wrappers
     byte* mem;
 };
 

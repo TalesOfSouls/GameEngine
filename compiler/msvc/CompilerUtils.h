@@ -245,8 +245,8 @@ void compiler_memcpy_aligned_8(
 ) NO_EXCEPT
 {
     ASSERT_STRICT((size & 7) == 0);
-    ASSERT_STRICT(((uintptr_t) dst) & 7 == 0);
-    ASSERT_STRICT(((uintptr_t) src) & 7 == 0);
+    ASSERT_STRICT((((uintptr_t) dst) & 7) == 0);
+    ASSERT_STRICT((((uintptr_t) src) & 7) == 0);
 
     #ifdef __aarch64__
         memcpy(dst, src, size);
@@ -263,8 +263,8 @@ void compiler_memcpy_aligned_4(
 ) NO_EXCEPT
 {
     ASSERT_STRICT((size & 3) == 0);
-    ASSERT_STRICT(((uintptr_t) dst) & 3 == 0);
-    ASSERT_STRICT(((uintptr_t) src) & 3 == 0);
+    ASSERT_STRICT((((uintptr_t) dst) & 3) == 0);
+    ASSERT_STRICT((((uintptr_t) src) & 3) == 0);
 
     #ifdef __aarch64__
         memcpy(dst, src, size);
@@ -278,7 +278,7 @@ FORCE_INLINE HOT_CODE
 void compiler_memset_aligned_8(void* const dst, int value, size_t size) NO_EXCEPT
 {
     ASSERT_STRICT((size & 7) == 0);
-    ASSERT_STRICT(((uintptr_t) dst) & 7 == 0);
+    ASSERT_STRICT((((uintptr_t) dst) & 7) == 0);
 
     #ifdef __aarch64__
         memset(dst, 0, size);
@@ -291,7 +291,7 @@ FORCE_INLINE HOT_CODE
 void compiler_memset_aligned_4(void* const dst, int value, size_t size) NO_EXCEPT
 {
     ASSERT_STRICT((size & 3) == 0);
-    ASSERT_STRICT(((uintptr_t) dst) & 3 == 0);
+    ASSERT_STRICT((((uintptr_t) dst) & 3) == 0);
 
     #ifdef __aarch64__
         memset(dst, 0, size);

@@ -54,6 +54,10 @@
         PROFILE_PIPELINE_MAKE,
         PROFILE_THREADPOOL_WORK,
 
+        PROFILE_INPUT_POLL,
+        PROFILE_INPUT_UPDATE,
+        PROFILE_INPUT_HANDLE,
+
         PROFILE_UI_UPDATE,
         PROFILE_UI_CACHE,
         PROFILE_UI_CACHE_CUSTOM,
@@ -92,14 +96,40 @@ struct alignas(sizeof(size_t)) PerformanceProfileResult {
 };
 
 // If we call PROFILE_SNAPSHOT after every frame this number is the same as the amount frames can store
-#define MAX_PERFORMANCE_STATS_HISTORY 96
+#define MAX_PERFORMANCE_STATS_HISTORY 95
 struct PerformanceStatHistory {
+    atomic<int32> is_active;
     atomic<int32> pos;
+
+    // This is used to activate/deactivate persistent debugging of a timeframe
+    // See explanation in the comment below
+    atomic<int32> session_active;
+
     // This contains all stats usually per frame in a 1D array
-    alignas(sizeof(size_t)) PerformanceProfileResult perfs[MAX_PERFORMANCE_STATS_HISTORY * PROFILE_SIZE];
+    // Why + 1? This is a trick because the last element will be used for debugging over a manual time frame
+    // The developer basically can start a "debugging" session to record stats over multiple frames without resetting the data
+    // This is useful to analyze information between two points in time (e.g. function call count etc.)
+    alignas(sizeof(size_t)) PerformanceProfileResult perfs[(MAX_PERFORMANCE_STATS_HISTORY + 1) * PROFILE_SIZE];
 };
 static PerformanceStatHistory* _perf_stats = NULL;
-static atomic<int32>* _perf_active = NULL;
+
+FORCE_INLINE
+void profile_performance_session_start() NO_EXCEPT
+{
+    _perf_stats->session_active.store(0);
+    memset(
+        &_perf_stats->perfs[PROFILE_SIZE * MAX_PERFORMANCE_STATS_HISTORY],
+        0,
+        PROFILE_SIZE * sizeof(PerformanceProfileResult)
+    );
+    _perf_stats->session_active.store(1);
+}
+
+FORCE_INLINE
+void profile_performance_session_end() NO_EXCEPT
+{
+    _perf_stats->session_active.store(0);
+}
 
 /**
  * Creates a snapshot of the current performance logs
@@ -109,12 +139,13 @@ static atomic<int32>* _perf_active = NULL;
 FORCE_INLINE
 void profile_performance_snapshot() NO_EXCEPT
 {
-    if (!_perf_stats || !*_perf_active) {
+    if (!_perf_stats || !_perf_stats->is_active.load()) {
         return;
     }
 
     int32 pos = _perf_stats->pos.load(memory_order_acquire);
-    OMS_WRAPPED_INCREMENT(pos, (int32) ARRAY_COUNT(_perf_stats->perfs) / PROFILE_SIZE);
+    OMS_WRAPPED_INCREMENT(pos, (int32) MAX_PERFORMANCE_STATS_HISTORY);
+
     memset(
         &_perf_stats->perfs[pos * PROFILE_SIZE],
         0,
@@ -135,14 +166,16 @@ struct PerformanceThreadHistory {
 struct alignas(ASSUMED_CACHE_LINE_SIZE) PerformanceProfileThread {
     atomic<int32> thread_id;
     atomic<uint32> pos;
-    int32 cpu_id;
 
     // WARNING: This only shows the last tick but when rendering the rendering thread may be way slower
     // As a result you will only output every n-th tick
     atomic<uint64> tick;
+
+    int32 cpu_id;
+
     const char* name;
 
-    PerformanceThreadHistory history[MAX_PERFORMANCE_STATS_HISTORY];
+    PerformanceThreadHistory history[MAX_PERFORMANCE_STATS_HISTORY + 1];
 };
 // How many threads do we support?
 static int32 _perf_thread_history_count = 0;
@@ -222,7 +255,7 @@ struct PerformanceThreadProfiler {
         int32 id
     ) NO_EXCEPT
     {
-        if (!_perf_active || !*_perf_active || !_perf_thread_history_count) {
+        if (!_perf_stats || !_perf_stats->is_active.load() || !_perf_thread_history_count) {
             this->is_active = false;
 
             return;
@@ -296,7 +329,9 @@ void performance_log_to_file_formatted() NO_EXCEPT
     LOG_1("[BEGIN] Formatted performance log (count %d)", {DATA_TYPE_INT32, &count});
     PSEUDO_USE(count);
 
-    const int32 pos = _perf_stats->pos.load() * PROFILE_SIZE;
+    const int32 pos = _perf_stats->session_active.load()
+        ? MAX_PERFORMANCE_STATS_HISTORY * PROFILE_SIZE
+        : _perf_stats->pos.load() * PROFILE_SIZE;
 
     char line[512];
     for (int32 i = 0; i < PROFILE_SIZE; ++i) {
@@ -344,7 +379,7 @@ struct PerformanceProfiler {
         uint32 flags = 0
     ) NO_EXCEPT
     {
-        if (!_perf_active || !*_perf_active) {
+        if (!_perf_stats || !_perf_stats->is_active.load()) {
             this->is_active = false;
 
             return;
@@ -398,6 +433,17 @@ struct PerformanceProfiler {
         perf->name = this->name;
         perf->total_cycle = this->total_cycle;
         perf->self_cycle = this->self_cycle;
+
+        // Yes I know that the code in the if body is not thread safe...
+        // session_active could've changed or in the worst case it could be a new debug session
+        // In this case its fine we don't care
+        if (_perf_stats->session_active.load()) {
+            PerformanceProfileResult* const session_perf = &_perf_stats->perfs[MAX_PERFORMANCE_STATS_HISTORY * PROFILE_SIZE + this->_id];
+            ++session_perf->counter;
+            session_perf->name = this->name;
+            session_perf->total_cycle += this->total_cycle;
+            session_perf->self_cycle += this->self_cycle;
+        }
 
         // Add performance log to thread history
         if (this->_flags & PROFILE_FLAG_ADD_HISTORY && _perf_thread_history_count) {
@@ -473,7 +519,7 @@ struct PerformanceProfiler {
 inline HOT_CODE
 void performance_profiler_start(int32 id, const char* name = NULL) NO_EXCEPT
 {
-    if (!_perf_active || !*_perf_active) {
+    if (!_perf_stats || !_perf_stats->is_active.load()) {
         return;
     }
 
@@ -494,7 +540,7 @@ void performance_profiler_start(int32 id, const char* name = NULL) NO_EXCEPT
 inline HOT_CODE
 void performance_profiler_end(int32 id) NO_EXCEPT
 {
-    if (!_perf_active || !*_perf_active) {
+    if (!_perf_stats || !_perf_stats->is_active.load()) {
         return;
     }
 
@@ -503,6 +549,16 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     PerformanceProfileResult* const perf = &_perf_stats->perfs[pos + id];
     perf->self_cycle += intrin_timestamp_counter();
     perf->total_cycle = perf->self_cycle;
+
+    // Yes I know that the code in the if body is not thread safe...
+    // session_active could've changed or in the worst case it could be a new debug session
+    // In this case its fine we don't care
+    if (_perf_stats->session_active.load()) {
+            PerformanceProfileResult* const session_perf = &_perf_stats->perfs[MAX_PERFORMANCE_STATS_HISTORY * PROFILE_SIZE + id];
+            ++session_perf->counter;
+            session_perf->total_cycle += perf->total_cycle;
+            session_perf->self_cycle += perf->self_cycle;
+        }
 }
 
 #if defined(LOG_LEVEL) && LOG_LEVEL > 0
@@ -531,6 +587,11 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     #define PROFILE_LOG_TO_FILE() performance_log_to_file()
     #define PROFILE_LOG_FORMATTED() performance_log_to_file_formatted()
 
+    // Used for profiling over an arbitrary time frame
+    // Different from normal profiling which gets reset every frame
+    #define PROFILE_SESSION_START() profile_performance_session_start()
+    #define PROFILE_SESSION_END() profile_performance_session_end()
+
     #define THREAD_LOG_CREATE(id, ...) thread_profile_history_create((id), ##__VA_ARGS__)
 
     // Sets the name of a thread by thread id
@@ -553,6 +614,9 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     #define PROFILE_SNAPSHOT() ((void) 0)
     #define PROFILE_LOG_TO_FILE() ((void) 0)
     #define PROFILE_LOG_FORMATTED() ((void) 0)
+
+    #define PROFILE_SESSION_START() ((void) 0)
+    #define PROFILE_SESSION_END() ((void) 0)
 
     #define THREAD_LOG_CREATE(id, ...) ((void) 0)
     #define THREAD_LOG_NAME(id, name) ((void) 0)

@@ -38,7 +38,7 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
     ASSERT_THROW();
 }
 
-#if defined(DEBUG) && DEBUG
+#if (defined(DEBUG) && DEBUG) || (defined(DEBUG_STRICT) && DEBUG_STRICT)
     void gpuapi_error()
     {
         GLenum err;
@@ -86,14 +86,14 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); \
         glDebugMessageCallback(opengl_debug_callback, NULL); \
     }
-    #define LABEL_GPU_API(ref, type, name) glObjectLabel(type, ref, -1, name)
-    #define LABEL_PTR_GPU_API(ref, name) glObjectPtrLabel(ref, -1, name)
-    #define MARKER_GPU_API(name) glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, name)
+    #define LABEL_GPU_API(ref, type, name) glObjectLabel((type), (ref), -1, (name))
+    #define LABEL_PTR_GPU_API(ref, name) glObjectPtrLabel((ref), -1, (name))
+    #define MARKER_GPU_API(name) glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, (name))
     #define MARKER_GPU_API_END() glPopDebugGroup()
 #else
-    #define ASSERT_GPU_API() ((void) 0)
-    #define ENABLE_DEBUG_GPU_API() ((void) 0)
-    #define LABEL_GPU_API() ((void) 0)
+    #define ASSERT_GPU_API(ref, type, name) ((void) 0)
+    #define ENABLE_DEBUG_GPU_API(ref, name) ((void) 0)
+    #define LABEL_GPU_API(name) ((void) 0)
     #define LABEL_PTR_GPU_API() ((void) 0)
 #endif
 

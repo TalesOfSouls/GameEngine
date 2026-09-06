@@ -74,14 +74,11 @@ struct InputEvent {
     InputCallback callback;
 };
 
-// @todo I'm not sure if I like the general input handling
-//      Having separate keyboard_down and mouse_down etc. is a little bit weird in the functions below
-
 enum KeyPressType : byte {
-    KEY_PRESS_TYPE_NONE,
-    KEY_PRESS_TYPE_PRESSED,
-    KEY_PRESS_TYPE_HELD,
-    KEY_PRESS_TYPE_RELEASED,
+    KEY_PRESS_TYPE_NONE = 0,
+    KEY_PRESS_TYPE_PRESSED = 1 << 0,
+    KEY_PRESS_TYPE_HELD = 1 << 1,
+    KEY_PRESS_TYPE_RELEASED = 1 << 2,
 };
 
 // This is probably never used but serves as a general idea how to handle input context
@@ -107,7 +104,9 @@ struct Hotkey {
     // index = hotkey, value = key id
     // https://kbdlayout.info/
     int16 scan_codes[MAX_HOTKEY_COMBINATION];
-    KeyPressType key_state;
+
+    // @type KeyPressType
+    byte key_state;
 
     // Some hotkeys are only available in certain context
     // uses enum InputContext as a baseline
@@ -118,7 +117,13 @@ struct InputKey {
     // @question Do we really need scan_code and virtual_code both?
     uint16 scan_code;
     uint16 virtual_code;
-    KeyPressType key_state;
+
+    // @type KeyPressType
+    byte key_state;
+
+    // This is needed if different hotkey use the same button (e.g. ctrl+s and s =backwards movement)
+    // First we check for the more complex hotkey ctrl+s,
+    // then we set s as handled so it doesn't get handled again for s =backwards movement
     bool is_processed;
     int16 value; // e.g. stick/trigger keys have additional values
     uint64 time; // when was this action performed (useful to decide if key state is held vs pressed)
@@ -146,8 +151,6 @@ struct InputState {
 
 enum GeneralInputState : byte {
     INPUT_STATE_GENERAL_INPUT_CHANGE = 1 << 0,
-
-    INPUT_STATE_GENERAL_TYPING_MODE = 1 << 1, // Used for typing in chat box etc. otherwise we could have conflicts with hotkeys
     INPUT_STATE_GENERAL_HOTKEY_ACTIVE = 1 << 2, // At least one hotkey is active
 };
 
@@ -220,7 +223,7 @@ struct Input {
     // It doesn't hold the actual event but a REFERENCE to it
     // The reason for that is that we don't necessarily need n-to-n events.
     // Usually we need less events than hotkeys (e.g. all movement hotkeys are handled by one movement event function)
-    const InputEvent* const* hotkey_event_list;
+    const InputEvent* hotkey_event_list;
 };
 
 #endif

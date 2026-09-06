@@ -193,13 +193,6 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                     cmd
                 ) != NULL;
             } break;
-        case CMD_INTERNAL_TEXTURE_CREATE: {
-                cmd_internal_texture_create(
-                    cb->ams,
-                    cb->gpu_api_type,
-                    cmd
-                );
-            } break;
         case CMD_FONT_LOAD: {
                 completed = cmd_font_load(cb, cmd) != NULL;
             } break;

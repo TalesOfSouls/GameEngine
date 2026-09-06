@@ -7,6 +7,7 @@
 #ifndef COMS_UTILS_TEST_UTILS_H
 #define COMS_UTILS_TEST_UTILS_H
 
+#include "../stdlib/Defines.h"
 #include "../compiler/CompilerUtils.h"
 #include <stdint.h>
 
@@ -56,7 +57,7 @@
     #define ASSERT_THROW() ((void)0)
 #endif
 
-#if defined(DEBUG) && DEBUG && defined(DEBUG_STRICT) && DEBUG_STRICT
+#if defined(DEBUG_STRICT) && DEBUG_STRICT
     // This macro is only used during strict debugging
     // Strict debugging is a mode that performs a lot of assertions
     // This slows down the application by a lot and is therefore not applicable for normal debugging

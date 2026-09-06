@@ -79,7 +79,7 @@ int32 asset_archive_header_size(
 static inline
 void asset_archive_header_load(
     AssetArchiveHeader* const __restrict header,
-    size_t header_size,
+    MAYBE_UNUSED size_t header_size,
     const byte* __restrict data,
     MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
@@ -93,6 +93,7 @@ void asset_archive_header_load(
         + header->asset_dependency_count * sizeof(int32)
         <= header_size
     );
+    PSEUDO_USE(header_size);
 
     memcpy(header->asset_element, data, header->asset_count * sizeof(AssetArchiveElement));
     data += header->asset_count * sizeof(AssetArchiveElement);
@@ -274,6 +275,16 @@ Asset* const asset_archive_asset_load(
 
     PROFILE_DEBUG(PROFILE_ASSET_ARCHIVE_ASSET_LOAD, id_str, PROFILE_FLAG_SHOULD_LOG);
 
+    // Check if asset already exists
+    Asset* asset = ams_asset_get_wait(ams, id_str);
+    if (asset) {
+        // Prevent garbage collection
+        asset->state &= ~ASSET_MEMORY_STATE_RAM_GC;
+        asset->state &= ~ASSET_MEMORY_STATE_VRAM_GC;
+
+        return asset;
+    }
+
     const AssetArchiveElement* const element = &archive->header.asset_element[ASSET_RAW_ID_FROM_ID(id)];
 
     ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
@@ -286,16 +297,6 @@ Asset* const asset_archive_asset_load(
         {DATA_TYPE_UINT32, &element->length},
         {DATA_TYPE_UINT32, &element->uncompressed}
     );
-
-    // Check if asset already exists
-    Asset* asset = ams_asset_get_wait(ams, id_str);
-    if (asset) {
-        // Prevent garbage collection
-        asset->state &= ~ASSET_MEMORY_STATE_RAM_GC;
-        asset->state &= ~ASSET_MEMORY_STATE_VRAM_GC;
-
-        return asset;
-    }
 
     /**
      * All other types have asset specific loading
@@ -359,13 +360,6 @@ Asset* const asset_archive_asset_load(
 
             asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
             asset->ram_size = asset->vram_size + sizeof(Texture);
-
-            #if (defined(OPENGL) && OPENGL) || (defined(VULKAN) && VULKAN)
-                // If opengl, we always flip
-                if (!(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)) {
-                    image_flip_vertical(&texture->image);
-                }
-            #endif
         } break;
         case ASSET_TYPE_AUDIO: {
             Audio* const audio = (Audio *) asset->self;

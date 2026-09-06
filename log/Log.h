@@ -76,8 +76,6 @@
 
         return ((uint64) (large_int.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
     }
-
-    static HANDLE _log_fp;
 #elif __linux__
     #include <time.h>
     #include <sys/time.h>
@@ -96,12 +94,16 @@
 
         return (uint64) ts.tv_sec * 1000000ULL + (uint64) ts.tv_nsec / 1000ULL;
     }
-
-    static int32 _log_fp;
 #endif
 
 struct LogMemory {
     byte* memory;
+
+    #if _WIN32
+        HANDLE log_fp;
+    #elif __linux__
+        int32 log_fp;
+    #endif
 
     uint64 size;
     uint64 pos;
@@ -167,26 +169,26 @@ byte* log_memory_get() NO_EXCEPT
  */
 void log_to_file(const void* const data, size_t size) NO_EXCEPT
 {
-    if (!_log_memory || !size || !_log_fp) {
+    if (!_log_memory || !size || !_log_memory->log_fp) {
         return;
     }
 
     #if _WIN32
         DWORD written;
         WriteFile(
-            _log_fp,
+            _log_memory->log_fp,
             (char *) data,
             (uint32) size,
             &written,
             NULL
         );
     #else
-        if (_log_fp < 0) {
+        if (_log_memory->log_fp < 0) {
             return;
         }
 
         write(
-            _log_fp,
+            _log_memory->log_fp,
             (char *) data,
             (uint32) size
         );
@@ -201,7 +203,7 @@ void log_to_file(const void* const data, size_t size) NO_EXCEPT
 inline
 void log_flush() NO_EXCEPT
 {
-    if (!_log_memory || _log_memory->pos == 0 || !_log_fp) {
+    if (!_log_memory || _log_memory->pos == 0 || !_log_memory->log_fp) {
         return;
     }
 
@@ -524,11 +526,11 @@ LogDataArray makeLogDataArray(std::initializer_list<LogData> list) NO_EXCEPT
     // By using this macro we at least ensure it gets removed from the release build
     #define DEBUG_VERBOSE(str) compiler_debug_print((str))
     #define DEBUG_FORMAT_VERBOSE(format, ...) \
-    ({ \
-        char debug_str[1024]; \
-        sprintf_fast(&debug_str, 1024, format, __VA_ARGS__); \
-        compiler_debug_print((debug_str)); \
-    })
+    do { \
+        char _debug_str[1024]; \
+        sprintf_fast(_debug_str, 1024, (format), __VA_ARGS__); \
+        compiler_debug_print((_debug_str)); \
+    } while(0)
 #elif LOG_LEVEL == 3
     #define LOG_1(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_2(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
@@ -556,8 +558,13 @@ LogDataArray makeLogDataArray(std::initializer_list<LogData> list) NO_EXCEPT
         uint64 var_name##_duration = (uint64) (intrin_timestamp_counter() - var_name##_start_time); \
         LOG_1((format), {DATA_TYPE_UINT64, &var_name##_duration})
 
-    #define DEBUG_VERBOSE(str) ((void) 0)
-    #define DEBUG_FORMAT_VERBOSE(str, ...) ((void) 0)
+    #define DEBUG_VERBOSE(str) compiler_debug_print((str))
+    #define DEBUG_FORMAT_VERBOSE(format, ...) \
+    do { \
+        char _debug_str[1024]; \
+        sprintf_fast(_debug_str, 1024, (format), __VA_ARGS__); \
+        compiler_debug_print((_debug_str)); \
+    } while(0)
 #elif LOG_LEVEL == 2
     #define LOG_1(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)
     #define LOG_2(format, ...) log((format), makeLogDataArray({__VA_ARGS__}), __FILE__, __func__, __LINE__)

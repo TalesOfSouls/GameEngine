@@ -64,17 +64,47 @@
     };
 #endif
 
-#define MAX_STATS_COUNTER_HISTORY 96
+#define MAX_STATS_COUNTER_HISTORY 95
 struct StatCounterHistory {
+    atomic<int32> is_active;
+
     standalone_spinlock32 lock;
     char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(standalone_spinlock32)];
 
     atomic<int32> pos;
-    int64 stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE];
+
+    // This is used to activate/deactivate persistent debugging of a timeframe
+    // See explanation in the comment below
+    atomic<int32> session_active;
+
+    // This contains all stats usually per frame in a 1D array
+    // Why + 1? This is a trick because the last element will be used for debugging over a manual time frame
+    // The developer basically can start a "debugging" session to record stats over multiple frames without resetting the data
+    // This is useful to analyze information between two points in time (e.g. function call count etc.)
+    int64 stats[(MAX_STATS_COUNTER_HISTORY + 1) * DEBUG_COUNTER_SIZE];
+
+    // These are global stats (e.g. how many active file pointers to we have)
+    atomic<int64> persistent_stats[DEBUG_COUNTER_SIZE];
 };
 static StatCounterHistory* _stats_counter = NULL;
-static atomic<int64>* _stats_counter_persistent = NULL;
-static atomic<int32>* _stats_counter_active = NULL;
+
+FORCE_INLINE
+void stats_session_start() NO_EXCEPT
+{
+    _stats_counter->session_active.store(0);
+    memset(
+        &_stats_counter->stats[DEBUG_COUNTER_SIZE * MAX_STATS_COUNTER_HISTORY],
+        0,
+        PROFILE_SIZE * sizeof(int64)
+    );
+    _stats_counter->session_active.store(1);
+}
+
+FORCE_INLINE
+void stats_session_end() NO_EXCEPT
+{
+    _stats_counter->session_active.store(0);
+}
 
 /**
  * Creates a snapshot of the current stats
@@ -84,7 +114,7 @@ static atomic<int32>* _stats_counter_active = NULL;
 FORCE_INLINE
 void stats_snapshot() NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
@@ -109,12 +139,16 @@ void stats_snapshot() NO_EXCEPT
 inline HOT_CODE
 void stats_set(int32 id, int64 value = 1) NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
     StandaloneSpinlockGuard _guard(&_stats_counter->lock);
     _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] = value;
+
+    if (_stats_counter->session_active.load()) {
+        _stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE] = value;
+    }
 }
 
 /**
@@ -128,12 +162,16 @@ void stats_set(int32 id, int64 value = 1) NO_EXCEPT
 inline HOT_CODE
 void stats_increment(int32 id, int64 by = 1) NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
     StandaloneSpinlockGuard _guard(&_stats_counter->lock);
     _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] += by;
+
+    if (_stats_counter->session_active.load()) {
+        _stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE] += by;
+    }
 }
 
 /**
@@ -147,12 +185,16 @@ void stats_increment(int32 id, int64 by = 1) NO_EXCEPT
 inline HOT_CODE
 void stats_decrement(int32 id, int64 by = 1) NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
     StandaloneSpinlockGuard _guard(&_stats_counter->lock);
     _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] -= by;
+
+    if (_stats_counter->session_active.load()) {
+        _stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE] -= by;
+    }
 }
 
 /**
@@ -166,11 +208,11 @@ void stats_decrement(int32 id, int64 by = 1) NO_EXCEPT
 inline HOT_CODE
 void stats_increment_persistent(int32 id, int64 by = 1) NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
-    _stats_counter_persistent[id].fetch_add(by, memory_order_relaxed);
+    _stats_counter->persistent_stats[id].fetch_add(by, memory_order_relaxed);
 }
 
 /**
@@ -184,11 +226,11 @@ void stats_increment_persistent(int32 id, int64 by = 1) NO_EXCEPT
 inline HOT_CODE
 void stats_decrement_persistent(int32 id, int64 by = 1) NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
-    _stats_counter_persistent[id].fetch_sub(by, memory_order_relaxed);
+    _stats_counter->persistent_stats[id].fetch_sub(by, memory_order_relaxed);
 }
 
 /**
@@ -202,12 +244,12 @@ void stats_decrement_persistent(int32 id, int64 by = 1) NO_EXCEPT
 inline HOT_CODE
 void stats_max_persistent(int32 id, int64 value) NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
-    const int64 old = _stats_counter_persistent[id].load();
-    _stats_counter_persistent[id].store(OMS_MAX(old, value), memory_order_relaxed);
+    const int64 old = _stats_counter->persistent_stats[id].load();
+    _stats_counter->persistent_stats[id].store(OMS_MAX(old, value), memory_order_relaxed);
 }
 
 /**
@@ -221,31 +263,12 @@ void stats_max_persistent(int32 id, int64 value) NO_EXCEPT
 inline HOT_CODE
 void stats_min_persistent(int32 id, int64 value) NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
-    const int64 old = _stats_counter_persistent[id].load();
-    _stats_counter_persistent[id].store(OMS_MIN(old, value), memory_order_relaxed);
-}
-
-/**
- * Sets a counter variable
- *
- * @param int32 id      Stats id
- * @param int64 value   New value
- *
- * @return void
- */
-inline HOT_CODE
-void stats_counter(int32 id, int64 value) NO_EXCEPT
-{
-    if (!_stats_counter_active || !*_stats_counter_active) {
-        return;
-    }
-
-    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
-    _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] = value;
+    const int64 old = _stats_counter->persistent_stats[id].load();
+    _stats_counter->persistent_stats[id].store(OMS_MIN(old, value), memory_order_relaxed);
 }
 
 /**
@@ -259,11 +282,11 @@ void stats_counter(int32 id, int64 value) NO_EXCEPT
 inline HOT_CODE
 void stats_counter_persistent(int32 id, int64 value) NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
-    _stats_counter_persistent[id].store(value, memory_order_relaxed);
+    _stats_counter->persistent_stats[id].store(value, memory_order_relaxed);
 }
 
 /**
@@ -277,7 +300,7 @@ void stats_counter_persistent(int32 id, int64 value) NO_EXCEPT
 inline HOT_CODE
 void stats_max(int32 id, int64 value) NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
@@ -297,7 +320,7 @@ void stats_max(int32 id, int64 value) NO_EXCEPT
 inline HOT_CODE
 void stats_min(int32 id, int64 value) NO_EXCEPT
 {
-    if (!_stats_counter_active || !*_stats_counter_active) {
+    if (!_stats_counter || !_stats_counter->is_active.load()) {
         return;
     }
 
@@ -316,7 +339,7 @@ inline
 void stats_log_to_file() NO_EXCEPT
 {
     // we don't log an empty log pool
-    if (!_stats_counter_active) {
+    if (!_stats_counter) {
         return;
     }
 
@@ -340,7 +363,6 @@ void stats_log_to_file() NO_EXCEPT
         #define STATS_INCREMENT_BY_DEBUG(a, b) stats_increment((a), (b))
         #define STATS_DECREMENT_DEBUG(a) stats_decrement((a), 1)
         #define STATS_DECREMENT_BY_DEBUG(a, b) stats_decrement((a), (b))
-        #define STATS_COUNTER_DEBUG(a, b) stats_counter((a), (b))
         #define STATS_MAX_DEBUG(a, b) stats_max((a), (b))
         #define STATS_MIN_DEBUG(a, b) stats_min((a), (b))
 
@@ -360,7 +382,6 @@ void stats_log_to_file() NO_EXCEPT
         #define STATS_INCREMENT_BY_DEBUG(a, b) ((void) 0)
         #define STATS_DECREMENT_DEBUG(a) ((void) 0)
         #define STATS_DECREMENT_BY_DEBUG(a, b) ((void) 0)
-        #define STATS_COUNTER_DEBUG(a, b) ((void) 0)
         #define STATS_MAX_DEBUG(a, b) ((void) 0)
         #define STATS_MIN_DEBUG(a, b) ((void) 0)
 
@@ -380,7 +401,6 @@ void stats_log_to_file() NO_EXCEPT
     #define STATS_INCREMENT_BY(a, b) stats_increment((a), (b))
     #define STATS_DECREMENT(a) stats_decrement((a), 1)
     #define STATS_DECREMENT_BY(a, b) stats_decrement((a), (b))
-    #define STATS_COUNTER(a, b) stats_counter((a), (b))
     #define STATS_MAX(a, b) stats_max((a), (b))
     #define STATS_MIN(a, b) stats_min((a), (b))
 
@@ -396,6 +416,8 @@ void stats_log_to_file() NO_EXCEPT
     #define STATS_MIN_PERSISTENT(a, b) stats_min_persistent((a), (b))
 
     #define STATS_SNAPSHOT() stats_snapshot()
+    #define STATS_SESSION_START() stats_session_start()
+    #define STATS_SESSION_END() stats_session_end()
 
     // @question Do I want this in release mode?
     #define STATS_LOG_TO_FILE() stats_log_to_file()
@@ -405,7 +427,6 @@ void stats_log_to_file() NO_EXCEPT
     #define STATS_INCREMENT_BY_DEBUG(a, b) ((void) 0)
     #define STATS_DECREMENT_DEBUG(a) ((void) 0)
     #define STATS_DECREMENT_BY_DEBUG(a, b) ((void) 0)
-    #define STATS_COUNTER_DEBUG(a, b) ((void) 0)
     #define STATS_MAX_DEBUG(a, b) ((void) 0)
     #define STATS_MIN_DEBUG(a, b) ((void) 0)
 
@@ -420,6 +441,8 @@ void stats_log_to_file() NO_EXCEPT
     #define STATS_MIN_PERSISTENT_DEBUG(a, b) ((void) 0)
 
     #define STATS_SNAPSHOT() ((void) 0)
+    #define STATS_SESSION_START() ((void) 0)
+    #define STATS_SESSION_END() ((void) 0)
     #define STATS_LOG_TO_FILE() ((void) 0)
 #endif
 

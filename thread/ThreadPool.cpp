@@ -29,15 +29,13 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     ++pool->thread_cnt;
 
     if (pool->debug_container) {
-        _log_fp = pool->debug_container->log_fp;
-        _log_memory = pool->debug_container->log_memory;
         _dmc = pool->debug_container->dmc;
+        _log_memory = pool->debug_container->log_memory;
         _perf_stats = pool->debug_container->perf_stats;
-        _perf_active = pool->debug_container->perf_active;
-        _stats_counter_active = pool->debug_container->stats_counter_active;
-        _dmc_active = pool->debug_container->dmc_active;
         _stats_counter = pool->debug_container->stats_counter;
-        _stats_counter_persistent = pool->debug_container->stats_counter_persistent;
+        _perf_current_scope = pool->debug_container->perf_current_scope;
+        _perf_thread_history_count = pool->debug_container->perf_profile_history_count;
+        _perf_thread_history = pool->debug_container->perf_profile_history;
     }
 
     LOG_2("[INFO] Thread pool worker starting up");

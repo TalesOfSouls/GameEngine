@@ -21,19 +21,18 @@
 #include "CmdAssetConsumer.h"
 
 static inline
-Asset* cmd_internal_texture_create(
-    AssetManagementSystem* const __restrict ams,
+Asset* cmd_texture_load(
+    AppCmdBuffer* cb,
     GpuApiType gpu_api_type,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
-    char id_str[9];
-    int_to_hex(cmd->texture_body.asset.asset_id, id_str);
-
-    Asset* const asset = ams_asset_get_wait(ams, id_str);
-    if (!asset) {
-        return NULL;
-    }
+    Asset* const asset = cmd_asset_load_sync(
+        cb->asset_archives,
+        cb->ams,
+        cb->mem,
+        cmd->texture_body.asset.asset_id
+    );
 
     Texture* const texture = (Texture *) asset->self;
     if ((gpu_api_type == GPU_API_TYPE_OPENGL
@@ -44,26 +43,6 @@ Asset* cmd_internal_texture_create(
     ) {
         image_flip_vertical(&texture->image);
     }
-
-    return asset;
-}
-
-static inline
-Asset* cmd_texture_load(
-    AppCmdBuffer* cb,
-    GpuApiType gpu_api_type,
-    AppCommand* const __restrict cmd
-) NO_EXCEPT
-{
-    char id_str[9];
-    int_to_hex(cmd->texture_body.asset.asset_id, id_str);
-
-    Asset* const asset = ams_asset_get_wait(cb->ams, id_str);
-    if (!asset) {
-        cmd_asset_load_sync(cb->asset_archives, cb->ams, cb->mem, cmd->texture_body.asset.asset_id);
-    }
-
-    cmd_internal_texture_create(cb->ams, gpu_api_type, cmd);
 
     return asset;
 }
@@ -110,19 +89,20 @@ Asset* cmd_texture_load_sync(
 }
 
 static inline
-Asset* cmd_internal_texture_atlas_create(
+Asset* cmd_texture_atlas_load(
     AppCmdBuffer* cb,
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
-    char id_str[9];
-    int_to_hex(cmd->texture_body.asset.asset_id, id_str);
+    // Atlas data
+    Asset* const asset = cmd_asset_load_sync(
+        cb->asset_archives,
+        cb->ams,
+        cb->mem,
+        cmd->texture_body.asset.asset_id
+    );
 
-    Asset* const asset = ams_asset_get_wait(cb->ams, id_str);
-    if (!asset) {
-        return NULL;
-    }
-
+    // Atlas image
     Asset* const texture_asset = cmd_texture_load_sync(
         cb->asset_archives,
         cb->ams,
@@ -140,25 +120,6 @@ Asset* cmd_internal_texture_atlas_create(
     ) {
         atlas_invert_coordinates(atlas);
     }
-
-    return asset;
-}
-
-static inline
-Asset* cmd_texture_atlas_load(
-    AppCmdBuffer* cb,
-    AppCommand* const __restrict cmd
-) NO_EXCEPT
-{
-    char id_str[9];
-    int_to_hex(cmd->texture_body.asset.asset_id, id_str);
-
-    Asset* const asset = ams_asset_get_wait(cb->ams, id_str);
-    if (!asset) {
-        cmd_asset_load_sync(cb->asset_archives, cb->ams, cb->mem, cmd->texture_body.asset.asset_id);
-    }
-
-    cmd_internal_texture_atlas_create(cb, cmd);
 
     return asset;
 }
@@ -181,14 +142,14 @@ Asset* cmd_texture_atlas_load(
     PROFILE_DEBUG(PROFILE_CMD_ASSET_LOAD_SYNC, id_str, PROFILE_FLAG_SHOULD_LOG);
 
     // Load asset if not loaded
-    Asset* asset = asset_archive_asset_load(
+    Asset* const asset = asset_archive_asset_load(
         &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
         asset_id,
         ams,
         mem
     );
 
-    Asset* texture_asset = cmd_texture_load_sync(
+    Asset* const texture_asset = cmd_texture_load_sync(
         asset_archives,
         ams,
         mem,

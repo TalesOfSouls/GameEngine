@@ -58,11 +58,11 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 
 template <typename T>
 FORCE_INLINE CONSTEXPR T align_up(T x, size_t align) NO_EXCEPT
-{ return (T) (((x) + ((align) - 1)) & ~((align) - 1)); }
+{ return (T) ((x + (align - 1)) & ~(align - 1)); }
 
 template <typename T>
 FORCE_INLINE CONSTEXPR T align_down(T x, size_t align) NO_EXCEPT
-{ return (T)((x) & ~((align) - 1)); }
+{ return (T)(x & ~(align - 1)); }
 
 #define OMS_IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
 

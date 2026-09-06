@@ -14,22 +14,10 @@
 
 struct DebugContainer {
     DebugMemoryContainer* dmc;
-
-    #if _WIN32
-        HANDLE log_fp;
-    #elif __linux__
-        int32 log_fp;
-    #endif
-
     LogMemory* log_memory;
-
     StatCounterHistory* stats_counter;
-    atomic<int64>* stats_counter_persistent;
     PerformanceStatHistory* perf_stats;
     PerformanceProfiler** perf_current_scope;
-    atomic<int32>* perf_active;
-    atomic<int32>* stats_counter_active;
-    atomic<int32>* dmc_active;
     int32 perf_profile_history_count;
     PerformanceProfileThread* perf_profile_history;
 };

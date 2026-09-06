@@ -13,46 +13,4 @@
     #include "gcc/CompilerUtils.h"
 #endif
 
-#if !defined(CPP_VERSION) || CPP_VERSION >= 20
-    #define LIKELY [[likely]]
-    #define UNLIKELY [[unlikely]]
-    #define MAYBE_UNUSED [[maybe_unused]]
-
-    #define INITIALIZER
-
-    #define PSEUDO_USE(a) ((void) (a))
-#else
-    #define LIKELY
-    #define UNLIKELY
-    #define MAYBE_UNUSED
-
-    // This is stupid but CONSTEXPR variables in c++17 must be initialized
-    #define INITIALIZER ={0}
-
-    // In c++17 we have to simulate a pseudo variable use since maybe_unused doesn't exist
-    // Otherwise the compiler will complain about a unused variable
-    #define PSEUDO_USE(a) ((void) (a))
-#endif
-
-#if !defined(CPP_VERSION) || CPP_VERSION >= 17
-    #define FALLTHROUGH [[fallthrough]]
-    #define IF_CONSTEXPR(cond) if constexpr (cond)
-    #define CONSTEXPR constexpr
-    #define CONSTEVAL consteval
-    #define CONSTINIT constinit
-#else
-    #define FALLTHROUGH
-    #define CONSTEXPR
-    #define CONSTEVAL
-    #define CONSTINIT
-#endif
-
-/**
- * Constexpr should be possible but someone somewhere messed up.
- * Either the constexpr implementation was bad or the referenced functions inside are not supported
- * We use this comment to highlight and potentially improve our code once the underlying third party issues are resolved
- * IFF they ever get resolved.
- */
-#define CONSTEXPR_DOGSHIT
-
 #endif

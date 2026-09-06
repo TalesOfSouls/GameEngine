@@ -58,13 +58,12 @@ Asset* cmd_font_load(
     AppCommand* const __restrict cmd
 ) NO_EXCEPT
 {
-    char id_str[9];
-    int_to_hex(cmd->font_body.asset.asset_id, id_str);
-
-    Asset* const asset = ams_asset_get_wait(cb->ams, id_str);
-    if (!asset) {
-        cmd_asset_load_sync(cb->asset_archives, cb->ams, cb->mem, cmd->font_body.asset.asset_id);
-    }
+    Asset* const asset = cmd_asset_load_sync(
+        cb->asset_archives,
+        cb->ams,
+        cb->mem,
+        cmd->font_body.asset.asset_id
+    );
 
     //@performance The function call below also loads the asset again.
     //          That is unnecessary in this specific case

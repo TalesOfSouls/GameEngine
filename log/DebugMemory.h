@@ -70,6 +70,8 @@ struct DebugMemory {
 };
 
 struct DebugMemoryContainer {
+    atomic<int32> is_active;
+
     uint32 memory_size;
     uint32 memory_element_idx;
     DebugMemory* memory_stats;
@@ -78,7 +80,6 @@ struct DebugMemoryContainer {
     char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(standalone_spinlock32)];
 };
 static DebugMemoryContainer* _dmc = NULL;
-static atomic<int32>* _dmc_active = NULL;
 
 /**
  * Tries to find a memory region for a pointer where we can add logging information.
@@ -181,7 +182,7 @@ void debug_memory_name(const char* __restrict name, const void* const __restrict
 HOT_CODE
 void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const char* const function) NO_EXCEPT
 {
-    if (!start || !_dmc || !_dmc_active || !*_dmc_active) {
+    if (!start || !_dmc || !_dmc->is_active.load()) {
         return;
     }
 
@@ -218,7 +219,7 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
  */
 void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type, const char* const function) NO_EXCEPT
 {
-    if (!start || !_dmc || !_dmc_active || !*_dmc_active) {
+    if (!start || !_dmc || !_dmc->is_active.load()) {
         return;
     }
 
@@ -250,7 +251,7 @@ void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type,
  */
 void debug_memory_free(uintptr_t start) NO_EXCEPT
 {
-    if (!start || !_dmc || !_dmc_active || !*_dmc_active) {
+    if (!start || !_dmc || !_dmc->is_active.load()) {
         return;
     }
 
@@ -277,7 +278,7 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
 inline
 void debug_memory_reset() NO_EXCEPT
 {
-    if (!_dmc || !_dmc_active || !*_dmc_active) {
+    if (!_dmc || !_dmc->is_active.load()) {
         return;
     }
 

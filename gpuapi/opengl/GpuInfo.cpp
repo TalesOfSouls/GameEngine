@@ -9,6 +9,7 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
+#include "OpenglUtils.h"
 #include "../GPUInfo.h"
 
 uint64 gpu_info_features() {
