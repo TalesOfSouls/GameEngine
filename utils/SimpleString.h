@@ -20,18 +20,4 @@ struct SimpleString {
     C* str;
 };
 
-template <typename C>
-struct alignas(ASSUMED_CACHE_LINE_SIZE) SimpleStackString {
-    int32 length;
-    uint8 char_type;
-
-    // This guarantees that the struct is at most 32 bytes
-    C str[(ASSUMED_CACHE_LINE_SIZE - 8) / sizeof(C)];
-};
-
-enum CharType : uint8 {
-    CHAR_TYPE_CHAR,
-    CHAR_TYPE_WCHAR,
-};
-
 #endif

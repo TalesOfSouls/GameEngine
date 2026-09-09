@@ -64,7 +64,7 @@ static void test_drm_verify_code_integrity() {
     ring_alloc(&ring, 256 * MEGABYTE, 256 * MEGABYTE);
 
     wchar_t exe_path[PATH_MAX_LENGTH];
-    self_file_path(exe_path);
+    self_directory_path(exe_path);
 
     FileBody exe_file = {0};
     file_read(exe_path, &exe_file, &ring);

@@ -10,14 +10,6 @@
 #include "../stdlib/Stdlib.h"
 #include "AssetType.h"
 
-// @todo I don't think I need this any longer
-enum AssetLoadState : char {
-    ASSET_LOAD_STATE_RESERVING = -2,
-    ASSET_LOAD_STATE_REMOVED = -1,
-    ASSET_LOAD_STATE_EMPTY = 0,
-    ASSET_LOAD_STATE_LOADED = 1,
-};
-
 enum AssetMemoryState : byte {
     // Current state
     ASSET_MEMORY_STATE_IN_RAM = 1 << 0,
@@ -34,7 +26,13 @@ struct Asset {
 
     // Describes how much ram/vram the asset uses
     // E.g. vram_size = 0 but ram_size > 0 means that it never uses any gpu memory
+    // ram_size includes the overhead that needed to be allocated because of the underlying alignments and chunk memory sizes
     int32 ram_size;
+
+    // This represents the actual exact data size
+    int32 data_size;
+
+    // This is how much of that data is in vram
     int32 vram_size;
 
     uint32 last_access;

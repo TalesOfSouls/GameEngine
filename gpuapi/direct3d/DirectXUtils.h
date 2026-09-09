@@ -168,7 +168,7 @@ void directx_debug_callback(
     }
     */
 
-    LOG_1(description);
+    LOG_1(simple_string_dynamic((char *) description, (int32) strlen(description)));
     ASSERT_THROW();
 }
 

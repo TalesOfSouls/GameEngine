@@ -26,6 +26,7 @@
  *      * Requires you to release memory once no longer used
  *      * Memory gets fragmented over time/usage
  *      * Impossible to request multiple contiguous chunks
+ *      * Horrible performance for iterating active elements
  */
 struct FragmentMemory {
     byte* memory;
@@ -42,9 +43,6 @@ struct FragmentMemory {
 
     // Array that contains pointers into the free chunks
     int32* free;
-
-    alignas(ASSUMED_CACHE_LINE_SIZE) spinlock32 lock;
-    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(spinlock32)];
 };
 
 static FORCE_INLINE

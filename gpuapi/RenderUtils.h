@@ -417,9 +417,6 @@ v2_int32 vertex_text_create(
             // @bug we cannot pass the rgba here since the rgba overwrites the texture coordinates
             //      we would have to add at least an additional 4 bytes to allow texture coordinates + recoloring
 
-            // @performance We might want to cache the vertex data per glyph
-            //              Then we only need to multiply the x/y coordinates with the scale factor
-            //              But are we even saving anything? We would increase the memory and therefore reduce cache locality
             const f32 x_end_scaled = offset_x + metrics->width * scale;
             const f32 y_end_scaled = offset_y + metrics->height * scale;
 
@@ -601,6 +598,123 @@ v2_int32 vertex_text_create(
         font, glyphs, length,
         size, rgba
     );
+}
+
+#define MAX_STACK_GLYPH_CACHE 32
+struct FontTextCache {
+    char cached_str[MAX_STACK_GLYPH_CACHE];
+    FixedArrayVector<Vertex3DSamplerTextureColor, 4 * MAX_STACK_GLYPH_CACHE> cached_vertices;
+    FixedArrayVector<int32, 6 * MAX_STACK_GLYPH_CACHE> cached_indices;
+    v2_int32 cached_dim;
+};
+
+v2_int32 vertex_text_cached_append(
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices,
+    ArrayVector<int32>* const __restrict indices,
+    const FontTextCache* const __restrict cache,
+    int32 steps = 8
+) NO_EXCEPT
+{
+    const int32 vertex_count = cache->cached_vertices.view.count;
+    const int32 index_count  = cache->cached_indices.view.count;
+    const int32 base_vertex  = vertices->count;
+    const int32 base_index   = indices->count;
+
+    memcpy(
+        vertices->elements + base_vertex,
+        cache->cached_vertices.view.elements,
+        vertex_count * sizeof(Vertex3DSamplerTextureColor)
+    );
+    memcpy(
+        indices->elements + base_index,
+        cache->cached_indices.view.elements,
+        index_count * sizeof(int32)
+    );
+
+    int32* const __restrict dst = indices->elements + base_index;
+    int32 i = 0;
+
+    #if defined(__ARM_FEATURE_SVE)
+        if (steps >= 4) {
+            const svbool_t all = svptrue_b32();
+            const svint32_t offset_sve = svdup_n_s32(base_vertex);
+            for (; i < index_count; i += steps) {
+                svbool_t pg = svwhilelt_b32(i, index_count);
+                svint32_t v = svld1_s32(pg, dst + i);
+                v = svadd_s32_x(pg, v, offset_sve);
+                svst1_s32(pg, dst + i, v);
+            }
+        }
+    #elif defined(__ARM_NEON)
+        if (steps >= 4) {
+            const int32x4_t offset4_neon = vdupq_n_s32(base_vertex);
+            for (; i + 4 <= index_count; i += 4) {
+                int32x4_t v = vld1q_s32(dst + i);
+                v = vaddq_s32(v, offset4_neon);
+                vst1q_s32(dst + i, v);
+            }
+        }
+    #else
+        #if defined(__AVX512F__)
+            if (steps >= 16) {
+                const __m512i offset16 = _mm512_set1_epi32(base_vertex);
+                for (; i + 16 <= index_count; i += 16) {
+                    __m512i v = _mm512_loadu_si512((const void*)(dst + i));
+                    v = _mm512_add_epi32(v, offset16);
+                    _mm512_storeu_si512((void*)(dst + i), v);
+                }
+
+                // Yes, we skip 8
+                steps = 4;
+            }
+        #endif
+
+        #ifdef __AVX2__
+            if (steps >= 8) {
+                const __m256i offset8 = _mm256_set1_epi32(base_vertex);
+                for (; i + 8 <= index_count; i += 8) {
+                    __m256i v = _mm256_loadu_si256((const __m256i*)(dst + i));
+                    v = _mm256_add_epi32(v, offset8);
+                    _mm256_storeu_si256((__m256i*)(dst + i), v);
+                }
+
+                steps = 1;
+            }
+        #endif
+
+        #ifdef __SSE4_2__
+            if (steps >= 4) {
+                const __m128i offset4 = _mm_set1_epi32(base_vertex);
+                for (; i + 4 <= index_count; i += 4) {
+                    __m128i v = _mm_loadu_si128((const __m128i*)(dst + i));
+                    v = _mm_add_epi32(v, offset4);
+                    _mm_storeu_si128((__m128i*)(dst + i), v);
+                }
+            }
+        #endif
+    #endif
+
+    for (; i < index_count; ++i) {
+        dst[i] += base_vertex;
+    }
+
+    vertices->count += vertex_count;
+    indices->count  += index_count;
+
+    return cache->cached_dim;
+}
+
+FORCE_INLINE
+bool vertex_text_is_cached(FontTextCache* __restrict cache, const char* __restrict new_str) NO_EXCEPT
+{
+    if (strcmp(cache->cached_str, new_str) == 0) {
+        return true;
+    }
+
+    cache->cached_vertices.view.count = 0;
+    cache->cached_indices.view.count = 0;
+
+    return false;
 }
 
 #endif

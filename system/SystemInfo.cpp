@@ -112,7 +112,7 @@ void system_info_get(SystemInfo* const info) NO_EXCEPT
     info->country = system_country_code();
 
     wchar_t path[PATH_MAX_LENGTH];
-    self_path(path);
+    self_directory_path(path);
 
     // @bug only works on windows
     wchar_t* temp = path;

@@ -10,7 +10,7 @@
 static CLSID WBEMUUID_CLSID_WbemLocator;
 static IID WBEMUUID_IID_IWbemLocator;
 
-#if COMS_STATIC_LINKING
+#if defined(COMS_IMPLICIT_LINKING) && COMS_IMPLICIT_LINKING
     #pragma comment(lib, "wbemuuid.lib")
 
     #define OLE32_CoInitializeEx CoInitializeEx

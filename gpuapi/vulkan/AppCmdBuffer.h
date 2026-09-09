@@ -61,7 +61,7 @@ void* cmd_shader_load_sync(
         shader_assets[i] = gpuapi_shader_make(
             device,
             (char *) shader_asset->self,
-            shader_asset->ram_size
+            shader_asset->data_size
         );
 
         shader_asset->state |= ASSET_MEMORY_STATE_RAM_GC;

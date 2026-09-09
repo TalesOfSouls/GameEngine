@@ -18,6 +18,15 @@ struct ArrayVector {
     T* elements;
 };
 
+// This allows us to create a vector in global space without separate allocation
+template<typename T, int32 N>
+struct FixedArrayVector {
+    T elements_storage[N];
+    ArrayVector<T> view;
+
+    FixedArrayVector() : view{ N, N, 0, elements_storage } {}
+};
+
 template<typename T>
 FORCE_INLINE
 void array_vector_alloc(ArrayVector<T>* vec, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT

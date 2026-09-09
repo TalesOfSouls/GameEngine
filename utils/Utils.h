@@ -15,7 +15,7 @@
 #endif
 
 #ifdef __aarch64__
-    #ifdef __aarch64___NEON
+    #ifdef __ARM_NEON
         #include "../architecture/arm/neon/utils/Utils.h"
     #else
         #include "../architecture/arm/sve/utils/Utils.h"

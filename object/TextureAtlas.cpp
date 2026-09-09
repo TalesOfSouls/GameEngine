@@ -171,7 +171,7 @@ int32 atlas_from_data(
 
     atlas->uv = (v2_f32 *) align_up(
         (uintptr_t) atlas->elements + sizeof(TextureAtlasElement) * atlas->element_count,
-        alignof(v2_f32)
+        64 // 64 bytes so we can use AVX512 on uv data
     );
     memcpy(atlas->uv, data, sizeof(TextureAtlasElement) * atlas->uv_count);
 
@@ -225,10 +225,91 @@ int32 atlas_to_data(
 // Required depending on the 3D api.
 // Some use top-down, some bottom-up coordinates
 FORCE_INLINE
-void atlas_invert_coordinates(TextureAtlas* const atlas) NO_EXCEPT
+void atlas_invert_coordinates(TextureAtlas* const atlas, int32 steps = 8) NO_EXCEPT
 {
-    for (int32 i = 0; i < atlas->uv_count; ++i) {
-        atlas->uv[i].y = 1.0f - atlas->uv[i].y;
+    f32* const data = (f32*) atlas->uv;
+    const int32 float_count = atlas->uv_count * 2;
+
+    int32 i = 0;
+    #if defined(__ARM_FEATURE_SVE)
+        if (steps >= 4) {
+            const svbool_t all = svptrue_b32();
+            const svuint32_t idx   = svindex_u32(0, 1);
+            const svbool_t is_y    = svcmpeq_n_u32(all, svand_n_u32_x(all, idx, 1), 1);
+            const svfloat32_t mul_p = svsel_f32(is_y, svdup_n_f32(-1.0f), svdup_n_f32(1.0f));
+            const svfloat32_t add_p = svsel_f32(is_y, svdup_n_f32(1.0f),  svdup_n_f32(0.0f));
+
+            for (; i < float_count; i += steps) {
+                svbool_t pg = svwhilelt_b32(i, float_count);
+                svfloat32_t v = svld1_f32(pg, data + i);
+                svfloat32_t r = svmad_f32_x(pg, v, mul_p, add_p); // v*mul + add
+                svst1_f32(pg, data + i, r);
+            }
+        }
+    #elif defined(__ARM_NEON)
+        if (steps >= 4) {
+            const float32x4_t mul4 = {1.0f, -1.0f, 1.0f, -1.0f};
+            const float32x4_t add4 = {0.0f,  1.0f, 0.0f,  1.0f};
+            for (; i + 4 <= float_count; i += 4) {
+                float32x4_t v = vld1q_f32(data + i);
+                float32x4_t r = vfmaq_f32(add4, v, mul4); // add4 + v*mul4
+                vst1q_f32(data + i, r);
+            }
+        }
+    #else
+        #if defined(__AVX512F__)
+            if (steps >= 16) {
+                const __m512 mul16 = _mm512_set_ps(-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1);
+                const __m512 add16 = _mm512_set_ps( 1,0, 1,0, 1,0, 1,0, 1,0, 1,0, 1,0, 1,0);
+                for (; i + 16 <= float_count; i += 16) {
+                    __m512 v = _mm512_load_ps(data + i);
+                    __m512 r = _mm512_fmadd_ps(v, mul16, add16); // AVX-512F implies FMA
+                    _mm512_store_ps(data + i, r);
+                }
+
+                steps = 4;
+            }
+        #endif
+
+        #if defined(__AVX2__)
+            if (steps >= 8) {
+                const __m256 mul8 = _mm256_set_ps(-1,1,-1,1,-1,1,-1,1);
+                const __m256 add8 = _mm256_set_ps( 1,0, 1,0, 1,0, 1,0);
+                for (; i + 8 <= float_count; i += 8) {
+                    __m256 v = _mm256_load_ps(data + i);
+
+                    #if defined(__FMA__)
+                        __m256 r = _mm256_fmadd_ps(v, mul8, add8);
+                    #else
+                        __m256 r = _mm256_add_ps(_mm256_mul_ps(v, mul8), add8);
+                    #endif
+
+                    _mm256_store_ps(data + i, r);
+                }
+            }
+        #endif
+
+        #if defined(__SSE4_2__)
+            if (steps >= 4) {
+                const __m128 mul4 = _mm_set_ps(-1,1,-1,1);
+                const __m128 add4 = _mm_set_ps( 1,0, 1,0);
+                for (; i + 4 <= float_count; i += 4) {
+                    __m128 v = _mm_load_ps(data + i);
+
+                    #if defined(__FMA__)
+                        __m128 r = _mm_fmadd_ps(v, mul4, add4);
+                    #else
+                        __m128 r = _mm_add_ps(_mm_mul_ps(v, mul4), add4);
+                    #endif
+
+                    _mm_store_ps(data + i, r);
+                }
+            }
+        #endif
+    #endif
+
+    for (; i < float_count; i += 2) {
+        data[i + 1] = 1.0f - data[i + 1];
     }
 }
 

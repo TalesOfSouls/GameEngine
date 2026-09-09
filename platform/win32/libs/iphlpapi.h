@@ -11,7 +11,7 @@
 #include <netioapi.h>
 #include "../../../stdlib/Stdlib.h"
 
-#if COMS_STATIC_LINKING
+#if defined(COMS_IMPLICIT_LINKING) && COMS_IMPLICIT_LINKING
     #pragma comment(lib, "iphlpapi.lib")
 
     #define IPHLPAPI_GetAdaptersAddresses GetAdaptersAddresses

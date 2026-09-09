@@ -34,7 +34,7 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
         return;
     }
 
-    LOG_1(message);
+    LOG_1(simple_string_dynamic((char *) message, (int32) strlen(message)));
     ASSERT_THROW();
 }
 

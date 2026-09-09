@@ -9,7 +9,6 @@
 
 #include <stdarg.h>
 #include "../stdlib/Stdlib.h"
-#include "SimpleString.h"
 
 FORCE_INLINE
 size_t str_length(const char* str) NO_EXCEPT
@@ -952,34 +951,6 @@ int32 is_eol(const char* str) NO_EXCEPT
     }
 
     return 0;
-}
-
-template <typename C>
-FORCE_INLINE
-void str_copy(C* __restrict destination, const SimpleString<C>* const __restrict str) NO_EXCEPT
-{
-    memcpy(destination, str->str, sizeof(C) * str->length);
-}
-
-template <typename C>
-FORCE_INLINE
-void str_copy(C* __restrict destination, const SimpleString<C>& str) NO_EXCEPT
-{
-    memcpy(destination, str.str, sizeof(C) * str.length);
-}
-
-template <typename C>
-FORCE_INLINE
-void str_copy(C* __restrict destination, const SimpleString<const C>* const __restrict str) NO_EXCEPT
-{
-    memcpy(destination, str->str, sizeof(C) * str->length);
-}
-
-template <typename C>
-FORCE_INLINE
-void str_copy(C* __restrict destination, const SimpleString<const C>& str) NO_EXCEPT
-{
-    memcpy(destination, str.str, sizeof(C) * str.length);
 }
 
 // Similar to wcscpy but returns length instead of pointer to the beginning

@@ -2,6 +2,8 @@
  * @copyright Jingga
  * @license   OMS License 2.0
  * @link      https://jingga.app
+ *
+ * @performance Check SIMD implementation
  */
 #pragma once
 #ifndef COMS_COMPRESSION_LZ4_H

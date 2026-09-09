@@ -498,4 +498,15 @@ struct is_same<T, T>
     enum { value = 1 };
 };
 
+enum CharType : uint8 {
+    CHAR_TYPE_CHAR,
+    CHAR_TYPE_WCHAR,
+    CHAR_TYPE_UTF32,
+};
+
+template <typename C> struct CharTypeOf;
+template <> struct CharTypeOf<char> { static constexpr uint8 value = CHAR_TYPE_CHAR;  };
+template <> struct CharTypeOf<char32_t> { static constexpr uint8 value = CHAR_TYPE_UTF32; };
+template <> struct CharTypeOf<wchar_t> { static constexpr uint8 value = CHAR_TYPE_WCHAR; };
+
 #endif

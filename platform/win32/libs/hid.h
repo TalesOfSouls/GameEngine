@@ -6,7 +6,7 @@
 #include <hidsdi.h>
 #include "../../../stdlib/Stdlib.h"
 
-#if COMS_STATIC_LINKING
+#if defined(COMS_IMPLICIT_LINKING) && COMS_IMPLICIT_LINKING
     #pragma comment(lib, "hidsdi.lib")
 
     #define HID_HidD_GetHidGuid HidD_GetHidGuid

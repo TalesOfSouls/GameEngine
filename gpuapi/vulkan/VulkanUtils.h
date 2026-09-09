@@ -153,7 +153,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
     if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         || (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     ) {
-        LOG_1(debug_callback_data->pMessage);
+        LOG_1(simple_string_dynamic((char *) debug_callback_data->pMessage, (int32) strlen(debug_callback_data->pMessage)));
         ASSERT_THROW();
     }
 

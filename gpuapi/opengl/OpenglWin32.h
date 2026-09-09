@@ -825,20 +825,21 @@ bool gl_has_extension(const char* name) NO_EXCEPT
     return false;
 }
 
+static inline
+void opengl_init_wgl() NO_EXCEPT
+{
+    wglChoosePixelFormatARB = (wgl_choose_pixel_format_arb *) wglGetProcAddress("wglChoosePixelFormatARB");
+    wglCreateContextAttribsARB = (wgl_create_context_attribs_arb *) wglGetProcAddress("wglCreateContextAttribsARB");
+    wglSwapIntervalEXT = (wgl_swap_interval_ext *) wglGetProcAddress("wglSwapIntervalEXT");
+    wglGetExtensionsStringEXT = (wgl_get_extensions_string_ext *) wglGetProcAddress("wglGetExtensionsStringEXT");
+}
+
 static
 bool gl_extensions_load() NO_EXCEPT
 {
     WNDCLASSW wc = {
-        0, // .style =
-        DefWindowProcW, // .lpfnWndProc =
-        0, // .cbClsExtra =
-        0, // .cbWndExtra =
-        GetModuleHandle(0), // .hInstance =
-        NULL, // .hIcon =
-        NULL, // .hCursor =
-        NULL, // .hbrBackground =
-        NULL, // .lpszMenuName =
-        L"WGLLoader"// .lpszClassName =
+        0, DefWindowProcW, 0, 0, GetModuleHandle(0),
+        NULL, NULL, NULL, NULL, L"WGLLoader"
     };
 
     if (!RegisterClassW(&wc)) {
@@ -846,55 +847,56 @@ bool gl_extensions_load() NO_EXCEPT
     }
 
     HWND const window = CreateWindowExW(
-        0,
-        wc.lpszClassName,
-        L"ExtensionLoader",
-        0,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        0,
-        0,
-        wc.hInstance,
-        0
+        0, wc.lpszClassName, L"ExtensionLoader", 0,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        0, 0, wc.hInstance, 0
     );
 
     HDC const hdc = GetDC(window);
-    set_pixel_format(hdc);
+    set_pixel_format(hdc); // legacy path only, that's fine for a throwaway dummy context
 
     HGLRC const openGLRC = wglCreateContext(hdc);
 
-    if (!wglMakeCurrent(hdc, openGLRC) || !wglGetExtensionsStringEXT) {
+    if (!wglMakeCurrent(hdc, openGLRC)) {
+        wglDeleteContext(openGLRC);
+        ReleaseDC(window, hdc);
+        DestroyWindow(window);
         return false;
     }
 
-    char* extension = (char *) wglGetExtensionsStringEXT();
-    char* pos = extension;
+    // Fetch WGL/GL function pointers HERE, while this context is current.
+    opengl_init_wgl();
 
-    while(*pos) {
-        while(*pos == ' ' || *pos == '\t' || *pos == '\r' || *pos == '\n') {
-            ++pos;
+    bool ok = false;
+    if (wglGetExtensionsStringEXT) {
+        char* extension = (char *) wglGetExtensionsStringEXT();
+        char* pos = extension;
+
+        while (*pos) {
+            while (*pos == ' ' || *pos == '\t' || *pos == '\r' || *pos == '\n') {
+                ++pos;
+            }
+
+            char *end = pos;
+            while (*end && !(*end == ' ' || *end == '\t' || *end == '\r' || *end == '\n')) {
+                ++end;
+            }
+
+            // umm count = end - pos;
+            // OpenGL->SupportsSRGBFramebuffer = strcmp(count, pos, "WGL_EXT_framebuffer_sRGB") == 0 || strcmp(count, pos, "WGL_ARB_framebuffer_sRGB") == 0;
+
+            pos = end;
         }
 
-        char *end = pos;
-        while(*end && !(*end == ' ' || *end == '\t' || *end == '\r' || *end == '\n')) {
-            ++end;
-        }
-
-        // umm count = end - pos;
-        // OpenGL->SupportsSRGBFramebuffer = strcmp(count, pos, "WGL_EXT_framebuffer_sRGB") == 0 || strcmp(count, pos, "WGL_ARB_framebuffer_sRGB") == 0;
-
-        pos = end;
+        ok = true;
     }
 
     wglMakeCurrent(NULL, NULL);
-
     wglDeleteContext(openGLRC);
     ReleaseDC(window, hdc);
     DestroyWindow(window);
 
-    return true;
+    return ok;
 }
 
 const int win32_opengl_attribs[] = {
@@ -904,15 +906,6 @@ const int win32_opengl_attribs[] = {
     WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
     0,
 };
-
-static inline
-void opengl_init_wgl() NO_EXCEPT
-{
-    wglChoosePixelFormatARB = (wgl_choose_pixel_format_arb *) wglGetProcAddress("wglChoosePixelFormatARB");
-    wglCreateContextAttribsARB = (wgl_create_context_attribs_arb *) wglGetProcAddress("wglCreateContextAttribsARB");
-    wglSwapIntervalEXT = (wgl_swap_interval_ext *) wglGetProcAddress("wglSwapIntervalEXT");
-    wglGetExtensionsStringEXT = (wgl_get_extensions_string_ext *) wglGetProcAddress("wglGetExtensionsStringEXT");
-}
 
 static inline
 void opengl_init_gl() NO_EXCEPT
@@ -1071,9 +1064,8 @@ void opengl_destroy(Window* const window) NO_EXCEPT
 void opengl_instance_create(Window* const __restrict window, int32 multisample = 0) NO_EXCEPT
 {
     LOG_1("[INFO] Load opengl");
-    gl_extensions_load();
-
-    opengl_init_wgl();
+    // loading in thread
+    // gl_extensions_load();
 
     WindowPlatform* const platform_window = (WindowPlatform *) window->platform_window;
     OpenglRenderer* const context = (OpenglRenderer *) window->gpu_api_context;

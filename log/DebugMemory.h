@@ -9,7 +9,6 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
-#include "../thread/SpinlockStandalone.h"
 
 #ifndef DEBUG_MEMORY_RANGE_MAX
     // How many memory actions do we store per memory arena?
@@ -46,16 +45,14 @@ struct DebugMemoryRange {
 };
 
 struct DebugMemory {
+    atomic<int64> usage;
+    atomic<int64> max_usage;
+    atomic<uint32> action_idx;
+    atomic<uint32> persistent_action_idx;
+
     uintptr_t start;
-
-    int64 usage;
-    int64 max_usage;
     size_t size;
-
     const char* name;
-
-    uint32 action_idx;
-    uint32 persistent_action_idx;
 
     // These actions are only stored temporarily until overwritten
     alignas(8) DebugMemoryRange last_action[DEBUG_MEMORY_RANGE_MAX];
@@ -64,20 +61,15 @@ struct DebugMemory {
     // These actions also get modified unlike the last_action which only get added or removed/overwritten
     // This allows us also to define sub-regions in a memory arena
     alignas(8) DebugMemoryRange persistent_action[DEBUG_MEMORY_RANGE_PERS_MAX];
-
-    alignas(ASSUMED_CACHE_LINE_SIZE) standalone_spinlock32 lock;
-    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(standalone_spinlock32)];
 };
 
+#ifndef DEBUG_MEMORY_MAX_ALLOC
+    #define DEBUG_MEMORY_MAX_ALLOC 16
+#endif
 struct DebugMemoryContainer {
     atomic<int32> is_active;
-
-    uint32 memory_size;
-    uint32 memory_element_idx;
-    DebugMemory* memory_stats;
-
-    alignas(ASSUMED_CACHE_LINE_SIZE) standalone_spinlock32 lock;
-    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(standalone_spinlock32)];
+    atomic<uint32> memory_element_idx;
+    DebugMemory* memory_stats[DEBUG_MEMORY_MAX_ALLOC];
 };
 static DebugMemoryContainer* _dmc = NULL;
 
@@ -91,11 +83,12 @@ static DebugMemoryContainer* _dmc = NULL;
 static FORCE_INLINE
 DebugMemory* debug_memory_find(uintptr_t start) NO_EXCEPT
 {
-    for (uint32 i = 0; i < _dmc->memory_size; ++i) {
-        if (_dmc->memory_stats[i].start <= start
-            && _dmc->memory_stats[i].start + _dmc->memory_stats[i].size > start
+    const uint32 memory_element_idx = _dmc->memory_element_idx.load();
+    for (uint32 i = 0; i < memory_element_idx; ++i) {
+        if (_dmc->memory_stats[i]->start <= start
+            && _dmc->memory_stats[i]->start + _dmc->memory_stats[i]->size > start
         ) {
-            return &_dmc->memory_stats[i];
+            return _dmc->memory_stats[i];
         }
     }
 
@@ -112,40 +105,32 @@ DebugMemory* debug_memory_find(uintptr_t start) NO_EXCEPT
  */
 void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
 {
-    if (!start || !_dmc || (_dmc->memory_size && !_dmc->memory_stats)) {
+    if (!start || !_dmc) {
         return;
     }
 
-    StandaloneSpinlockGuard _guard(&_dmc->lock, 0);
     const DebugMemory* const mem = debug_memory_find(start);
     if (mem) {
         return;
     }
 
-    if (_dmc->memory_size <= _dmc->memory_element_idx) {
-        const uint32 new_size = _dmc->memory_size + 3;
-        // @performance Can we get rid of this calloc?
-        DebugMemory* const new_stats = (DebugMemory *) calloc(new_size * sizeof(DebugMemory), ASSUMED_CACHE_LINE_SIZE);
-        if (!new_stats) {
-            return;
-        }
-
-        if (_dmc->memory_stats) {
-            memcpy(new_stats, _dmc->memory_stats, _dmc->memory_size * sizeof(DebugMemory));
-            free(_dmc->memory_stats);
-        }
-
-        _dmc->memory_stats = new_stats;
-        _dmc->memory_size = new_size;
+    // @performance Can we get rid of this calloc?
+    DebugMemory* const new_stats = (DebugMemory *) calloc(sizeof(DebugMemory), ASSUMED_CACHE_LINE_SIZE);
+    if (!new_stats) {
+        return;
     }
 
-    DebugMemory* const debug_mem = &_dmc->memory_stats[_dmc->memory_element_idx];
+    const int32 is_active = _dmc->is_active.load();
+    _dmc->is_active.store(0);
+    _dmc->memory_stats[_dmc->memory_element_idx.fetch_add(1)] = new_stats;
+
+    DebugMemory* const debug_mem = new_stats;
     debug_mem->start = start;
     debug_mem->size = size;
-    debug_mem->usage = 0;
-    debug_mem->max_usage = 0;
+    debug_mem->usage.store(0);
+    debug_mem->max_usage.store(0);
 
-    ++_dmc->memory_element_idx;
+    _dmc->is_active.store(is_active);
 }
 
 /**
@@ -157,16 +142,12 @@ void debug_memory_name(const char* __restrict name, const void* const __restrict
         return;
     }
 
-    const uintptr_t addr_temp = (uintptr_t) addr;
-
-    for (uint32 i = 0; i < _dmc->memory_size; ++i) {
-        if (_dmc->memory_stats[i].start <= addr_temp
-            && _dmc->memory_stats[i].start + _dmc->memory_stats[i].size > addr_temp
-        ) {
-            _dmc->memory_stats[i].name = name;
-            return;
-        }
+    DebugMemory* mem = debug_memory_find((uintptr_t) addr);
+    if (!mem) {
+        return;
     }
+
+    mem->name = name;
 }
 
 /**
@@ -186,25 +167,25 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
         return;
     }
 
-    StandaloneSpinlockGuard _guard(&_dmc->lock, 0);
     DebugMemory* const mem = debug_memory_find(start);
     if (!mem) {
         return;
     }
 
-    OMS_WRAPPED_INCREMENT(mem->action_idx, (uint32) ARRAY_COUNT(mem->last_action));
+    const uint32 action_idx = atomic_increment_wrap_acquire_release(
+        mem->action_idx,
+        (uint32) ARRAY_COUNT(mem->last_action)
+    );
 
-    DebugMemoryRange* const dmr = &mem->last_action[mem->action_idx];
+    DebugMemoryRange* const dmr = &mem->last_action[action_idx];
     dmr->type = type;
     dmr->start = start - mem->start;
     dmr->size = size;
-
     dmr->time = intrin_timestamp_counter();
     dmr->function_name = function;
 
-    mem->usage += size * type;
-    mem->usage = OMS_CLAMP(mem->usage, (int64) 0, (int64) mem->size);
-    mem->max_usage = OMS_MAX(mem->usage, mem->max_usage);
+    const int64 usage = mem->usage.fetch_add(size * type);
+    mem->max_usage.store(OMS_MAX(usage, mem->max_usage.load()));
 }
 
 /**
@@ -223,7 +204,6 @@ void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type,
         return;
     }
 
-    StandaloneSpinlockGuard _guard(&_dmc->lock, 0);
     DebugMemory* const mem = debug_memory_find(start);
     if (!mem) {
         return;
@@ -231,13 +211,15 @@ void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type,
 
     // We will most likely overwrite subregions in due time
     // It is what it is
-    OMS_WRAPPED_INCREMENT(mem->persistent_action_idx, (uint32) ARRAY_COUNT(mem->persistent_action));
+    const uint32 action_idx = atomic_increment_wrap_acquire_release(
+        mem->persistent_action_idx,
+        (uint32) ARRAY_COUNT(mem->persistent_action)
+    );
 
-    DebugMemoryRange* const dmr = &mem->persistent_action[mem->persistent_action_idx];
+    DebugMemoryRange* const dmr = &mem->persistent_action[action_idx];
     dmr->type = type;
     dmr->start = start - mem->start;
     dmr->size = size;
-
     dmr->time = intrin_timestamp_counter();
     dmr->function_name = function;
 }
@@ -255,7 +237,6 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
         return;
     }
 
-    StandaloneSpinlockGuard _guard(&_dmc->lock, 0);
     DebugMemory* const mem = debug_memory_find(start);
     if (!mem) {
         return;
@@ -270,53 +251,6 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
     }
 }
 
-/**
- * Reset the memory logs "older" than 1 GHZ
- *
- * @return void
- */
-inline
-void debug_memory_reset() NO_EXCEPT
-{
-    if (!_dmc || !_dmc->is_active.load()) {
-        return;
-    }
-
-    // We remove debug information that are "older" than 1GHz
-    const uint64 time = intrin_timestamp_counter() - 1 * GHZ;
-
-    StandaloneSpinlockGuard _guard(&_dmc->lock, 0);
-    for (uint32 i = 0; i < _dmc->memory_element_idx; ++i) {
-        const int32 last = _dmc->memory_stats[i].action_idx;
-        int32 idx = last;
-
-        for (int32 j = 0; j < DEBUG_MEMORY_RANGE_MAX; ++j) {
-            if (_dmc->memory_stats[i].last_action[idx].time < time) {
-                if (idx <= last) {
-                    memset(
-                        &_dmc->memory_stats[i].last_action[0], 0,
-                        sizeof(DebugMemoryRange) * (idx + 1)
-                    );
-
-                    memset(
-                        &_dmc->memory_stats[i].last_action[last + 1], 0,
-                        sizeof(DebugMemoryRange) * (ARRAY_COUNT(_dmc->memory_stats[i].last_action) - (idx + 1))
-                    );
-                } else {
-                    memset(
-                        &_dmc->memory_stats[i].last_action[last + 1], 0,
-                        sizeof(DebugMemoryRange) * (idx - last)
-                    );
-                }
-
-                break;
-            }
-
-            OMS_WRAPPED_DECREMENT(idx, DEBUG_MEMORY_RANGE_MAX);
-        }
-    }
-}
-
 #if defined(DEBUG) && DEBUG
     #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))
     #define DEBUG_MEMORY_NAME(name, addr) debug_memory_name((name), (addr))
@@ -326,7 +260,6 @@ void debug_memory_reset() NO_EXCEPT
     #define DEBUG_MEMORY_RESERVE(start, size) debug_memory_persistent((start), (size), MEMORY_DEBUG_TYPE_RESERVE, __func__)
     #define DEBUG_MEMORY_SUBREGION(start, size) debug_memory_persistent((start), (size), MEMORY_DEBUG_TYPE_SUBREGION, __func__)
     #define DEBUG_MEMORY_FREE(start) debug_memory_free((start))
-    #define DEBUG_MEMORY_RESET() debug_memory_reset()
 #else
     #define DEBUG_MEMORY_INIT(start, size) ((void) 0)
     #define DEBUG_MEMORY_NAME(name, addr) ((void) 0)
@@ -336,7 +269,6 @@ void debug_memory_reset() NO_EXCEPT
     #define DEBUG_MEMORY_RESERVE(start, size) ((void) 0)
     #define DEBUG_MEMORY_SUBREGION(start, size) ((void) 0)
     #define DEBUG_MEMORY_FREE(start) ((void) 0)
-    #define DEBUG_MEMORY_RESET() ((void) 0)
 #endif
 
 #endif

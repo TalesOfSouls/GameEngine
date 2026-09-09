@@ -71,8 +71,6 @@ void generate_default_tga_references(const FileBody* file, Tga* tga) NO_EXCEPT
 
 void image_header_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
-    // @performance We are generating the struct and then filling the data.
-    //      There is some assignment/copy overhead
     Tga src = {0};
     generate_default_tga_references(src_data, &src);
 
@@ -81,7 +79,6 @@ void image_header_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
     image->pixel_count = image->width * image->height;
 
     const uint32 pixel_bytes = src.header.bits_per_pixel / 8;
-    //const byte alpha_offset = pixel_bytes > 3;
 
     image->image_settings |= (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT) == 0
         ? pixel_bytes
@@ -90,8 +87,6 @@ void image_header_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 
 void image_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
-    // @performance We are generating the struct and then filling the data.
-    //      There is some assignment/copy overhead
     Tga src = {0};
     generate_default_tga_references(src_data, &src);
 

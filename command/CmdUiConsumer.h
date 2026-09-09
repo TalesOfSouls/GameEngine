@@ -100,11 +100,19 @@ UILayout* cmd_ui_load(
     BufferMemory buf;
     THRD_CHUNK_STACK_MEMORY(mem, &buf, 16 * MEGABYTE);
 
+    // @question Do we really want to do the relative_to_absolute here,
+    //          or closer to where it is used?
+    wchar_t layout_path[PATH_MAX_LENGTH];
+    relative_to_absolute(cmd->layout_body.layout_path, layout_path);
+
+    wchar_t theme_path[PATH_MAX_LENGTH];
+    relative_to_absolute(cmd->layout_body.theme_path, theme_path);
+
     return cmd_ui_load_sync(
         &buf,
-        &cmd->layout_body.scene_info->ui_layout, cmd->layout_body.layout_path,
+        &cmd->layout_body.scene_info->ui_layout, layout_path,
         cmd->layout_body.general_theme,
-        &cmd->layout_body.scene_info->ui_theme, cmd->layout_body.theme_path
+        &cmd->layout_body.scene_info->ui_theme, theme_path
     );
 }
 

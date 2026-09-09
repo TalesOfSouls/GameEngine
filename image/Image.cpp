@@ -55,32 +55,13 @@ void image_from_file(Image* __restrict image, const char* __restrict path, RingM
     }
 }
 
-/*
-@performance This version is faster BUT requires more memory since we have to store the entire image twice in memory
-inline
-void image_flip_vertical(RingMemory* const __restrict ring, Image* __restrict image) NO_EXCEPT
-{
-    const uint32 stride = image->width * sizeof(uint32);
-    byte* temp = memory_get(ring, image->pixel_count * sizeof(uint32), sizeof(size_t));
-    memcpy(temp, image->pixels, image->pixel_count * sizeof(uint32));
-
-    // Last row
-    const byte* end = temp + image->pixel_count * sizeof(uint32) - image->width * sizeof(uint32);
-
-    for (uint32 y = 0; y < image->height; ++y) {
-        memcpy(image->pixels + y * stride, end - y * stride, stride);
-    }
-
-    image->image_settings ^= IMAGE_SETTING_BOTTOM_TO_TOP;
-}
-*/
-
-void image_flip_vertical(Image* __restrict image) NO_EXCEPT
+static
+void image_flip_vertical_scalar(Image* const image) NO_EXCEPT
 {
     constexpr size_t TEMP_SIZE = 8 * KILOBYTE;
     alignas(size_t) byte temp[TEMP_SIZE];
 
-    const size_t stride = image->width * sizeof(uint32);
+    const size_t stride = image->width * (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);
 
     for (uint32 y = 0; y < image->height / 2; ++y) {
         byte* top = image->pixels + y * stride;
@@ -99,6 +80,214 @@ void image_flip_vertical(Image* __restrict image) NO_EXCEPT
             offset += chunk;
             remaining -= chunk;
         }
+    }
+}
+
+#if defined(__SSE4_2__)
+static
+void image_flip_vertical_sse(Image* const image)
+{
+    const int32 pixel_size = (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);
+    const size_t stride = image->width * pixel_size;
+
+    for (uint32 y = 0; y < image->height / 2; ++y) {
+        byte* top = image->pixels + y * stride;
+        byte* bottom = image->pixels + (image->height - 1 - y) * stride;
+
+        size_t i = 0;
+        for (; i + 16 <= stride; i += 16) {
+            __m128i t = _mm_load_si128((const __m128i*)(top + i));
+            __m128i b = _mm_load_si128((const __m128i*)(bottom + i));
+            _mm_store_si128((__m128i*)(top + i), b);
+            _mm_store_si128((__m128i*)(bottom + i), t);
+        }
+
+        if (pixel_size == 4) {
+            for (; i < stride; i += pixel_size) {
+                uint32* t = (uint32*)(top + i);
+                uint32* b = (uint32*)(bottom + i);
+                uint32 tmp = *t;
+                *t = *b;
+                *b = tmp;
+            }
+        } else {
+            for (; i < stride; ++i) {
+                byte t = top[i];
+                top[i] = bottom[i];
+                bottom[i] = t;
+            }
+        }
+    }
+}
+#endif
+
+#if defined(__AVX2__)
+static
+void image_flip_vertical_avx2(Image* const image)
+{
+    const int32 pixel_size = (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);
+    const size_t stride = image->width * pixel_size;
+
+    for (uint32 y = 0; y < image->height / 2; ++y) {
+        byte* top = image->pixels + y * stride;
+        byte* bottom = image->pixels + (image->height - 1 - y) * stride;
+
+        size_t i = 0;
+        for (; i + 32 <= stride; i += 32) {
+            __m256i t = _mm256_load_si256((const __m256i*)(top + i));
+            __m256i b = _mm256_load_si256((const __m256i*)(bottom + i));
+            _mm256_store_si256((__m256i*)(top + i), b);
+            _mm256_store_si256((__m256i*)(bottom + i), t);
+        }
+
+        if (pixel_size == 4) {
+            for (; i < stride; i += pixel_size) {
+                uint32* t = (uint32*)(top + i);
+                uint32* b = (uint32*)(bottom + i);
+                uint32 tmp = *t;
+                *t = *b;
+                *b = tmp;
+            }
+        } else {
+            for (; i < stride; ++i) {
+                byte t = top[i];
+                top[i] = bottom[i];
+                bottom[i] = t;
+            }
+        }
+    }
+}
+#endif
+
+#if defined(__AVX512F__)
+static
+void image_flip_vertical_avx512(Image* const image)
+{
+    const int32 pixel_size = (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);
+    const size_t stride = image->width * pixel_size;
+
+    for (uint32 y = 0; y < image->height / 2; ++y) {
+        byte* top = image->pixels + y * stride;
+        byte* bottom = image->pixels + (image->height - 1 - y) * stride;
+
+        size_t i = 0;
+        for (; i + 64 <= stride; i += 64) {
+            __m512i t = _mm512_load_si512((const void*)(top + i));
+            __m512i b = _mm512_load_si512((const void*)(bottom + i));
+            _mm512_store_si512((void*)(top + i), b);
+            _mm512_store_si512((void*)(bottom + i), t);
+        }
+
+        if (pixel_size == 4) {
+            for (; i < stride; i += pixel_size) {
+                uint32* t = (uint32*)(top + i);
+                uint32* b = (uint32*)(bottom + i);
+                uint32 tmp = *t;
+                *t = *b;
+                *b = tmp;
+            }
+        } else {
+            for (; i < stride; ++i) {
+                byte t = top[i];
+                top[i] = bottom[i];
+                bottom[i] = t;
+            }
+        }
+    }
+}
+#endif
+
+#if defined(__ARM_NEON)
+static
+void image_flip_vertical_neon(Image* const image)
+{
+    const int32 pixel_size = (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);
+    const size_t stride = image->width * pixel_size;
+
+    for (uint32 y = 0; y < image->height / 2; ++y) {
+        byte* top = image->pixels + y * stride;
+        byte* bottom = image->pixels + (image->height - 1 - y) * stride;
+
+        size_t i = 0;
+        for (; i + 16 <= stride; i += 16) {
+            uint8x16_t t = vld1q_u8(top + i);
+            uint8x16_t b = vld1q_u8(bottom + i);
+            vst1q_u8(top + i, b);
+            vst1q_u8(bottom + i, t);
+        }
+
+        for (; i < stride; i += pixel_size) {
+            uint32* t = (uint32*)(top + i);
+            uint32* b = (uint32*)(bottom + i);
+            uint32 tmp = *t;
+            *t = *b;
+            *b = tmp;
+        }
+    }
+}
+#endif
+
+#if defined(__ARM_FEATURE_SVE)
+static
+void image_flip_vertical_sve(Image* const image, int32 steps = 8)
+{
+    const int32 pixel_size = (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);
+    const size_t stride = image->width * pixel_size;
+
+    for (uint32 y = 0; y < image->height / 2; ++y) {
+        byte* top = image->pixels + y * stride;
+        byte* bottom = image->pixels + (image->height - 1 - y) * stride;
+
+        size_t i = 0;
+        const size_t vl = steps * pixel_size;
+        for (; i < stride; i += vl) {
+            svbool_t pg = svwhilelt_b8(i, stride);
+            svuint8_t t = svld1_u8(pg, top + i);
+            svuint8_t b = svld1_u8(pg, bottom + i);
+            svst1_u8(pg, top + i, b);
+            svst1_u8(pg, bottom + i, t);
+        }
+    }
+}
+#endif
+
+void image_flip_vertical(Image* image, int32 steps = 8) NO_EXCEPT
+{
+    #if defined(__ARM_FEATURE_SVE)
+        if (steps >= 4) {
+            image_flip_vertical_sve(image, steps);
+            steps = 0;
+        }
+    #elif defined(__ARM_NEON)
+        if (steps >= 4) {
+            image_flip_vertical_neon(image);
+            steps = 0;
+        }
+    #else
+        #if defined(__AVX512F__)
+            if (steps >= 8) {
+                image_flip_vertical_avx2(image);
+                steps = 0;
+            }
+        #endif
+
+        #if defined(__AVX2__)
+            if (steps >= 8) {
+                image_flip_vertical_avx2(image);
+                steps = 0;
+            }
+        #endif
+
+        #if defined(__SSE4_2__)
+            if (steps == 4) {
+                image_flip_vertical_sse(image);
+                steps = 0;
+            }
+        #endif
+    #endif
+
+    if (steps > 0) {
+        image_flip_vertical_scalar(image);
     }
 
     image->image_settings ^= IMAGE_SETTING_BOTTOM_TO_TOP;
@@ -145,7 +334,11 @@ uint32 image_from_data(const byte* __restrict data, Image* __restrict image) NO_
     pos += image_header_from_data(data, image);
 
     int32 image_size;
-    memcpy(image->pixels, pos, image_size = (image_pixel_size_from_type(image->image_settings) * image->pixel_count));
+    memcpy(
+        image->pixels,
+        pos,
+        image_size = (image_pixel_size_from_type(image->image_settings) * image->pixel_count)
+    );
     pos += image_size;
 
     LOG_3("Loaded image");
@@ -174,7 +367,11 @@ uint32 image_to_data(const Image* __restrict image, byte* __restrict data) NO_EX
     pos += image_header_to_data(image, data);
 
     int32 image_size;
-    memcpy(pos, image->pixels, image_size = (image_pixel_size_from_type(image->image_settings) * image->pixel_count));
+    memcpy(
+        pos,
+        image->pixels,
+        image_size = (image_pixel_size_from_type(image->image_settings) * image->pixel_count)
+    );
     pos += image_size;
 
     return (int32) (pos - data);

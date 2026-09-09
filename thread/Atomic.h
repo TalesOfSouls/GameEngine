@@ -36,11 +36,11 @@ inline T atomic_increment_wrap_relaxed(atomic<T>& value, T threshold) noexcept
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_relaxed,
-                memory_order_relaxed))
-        {
+            old,
+            next,
+            memory_order_relaxed,
+            memory_order_relaxed)
+        ) {
             return next;
         }
 
@@ -61,11 +61,11 @@ inline T atomic_increment_wrap_acquire(atomic<T>& value, T threshold) noexcept
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_acquire,
-                memory_order_acquire))
-        {
+            old,
+            next,
+            memory_order_acquire,
+            memory_order_acquire)
+        ) {
             return next;
         }
 
@@ -86,11 +86,11 @@ inline T atomic_increment_wrap_release(atomic<T>& value, T threshold) noexcept
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_release,
-                memory_order_relaxed))
-        {
+            old,
+            next,
+            memory_order_release,
+            memory_order_relaxed)
+        ) {
             return next;
         }
 
@@ -111,11 +111,11 @@ inline T atomic_increment_wrap_acquire_release(atomic<T>& value, T threshold) no
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_acq_rel,
-                memory_order_acquire))
-        {
+            old,
+            next,
+            memory_order_acq_rel,
+            memory_order_acquire)
+        ) {
             return next;
         }
 
@@ -135,11 +135,11 @@ inline uint64 atomic_increment_wrap_acquire_release(atomic<uint64>& value, uint6
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_acq_rel,
-                memory_order_acquire))
-        {
+            old,
+            next,
+            memory_order_acq_rel,
+            memory_order_acquire)
+        ) {
             return next;
         }
 
@@ -160,11 +160,11 @@ inline T* atomic_fetch_increment_wrap_relaxed(atomic<T*>& value, T* start, const
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_relaxed,
-                memory_order_relaxed))
-        {
+            old,
+            next,
+            memory_order_relaxed,
+            memory_order_relaxed)
+        ) {
             return old;
         }
 
@@ -185,11 +185,11 @@ inline T* atomic_fetch_increment_wrap_acquire(atomic<T*>& value, T* start, const
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_acquire,
-                memory_order_acquire))
-        {
+            old,
+            next,
+            memory_order_acquire,
+            memory_order_acquire)
+        ) {
             return old;
         }
 
@@ -210,11 +210,11 @@ inline T* atomic_fetch_increment_wrap_release(atomic<T*>& value, T* start, const
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_release,
-                memory_order_relaxed))
-        {
+            old,
+            next,
+            memory_order_release,
+            memory_order_relaxed)
+        ) {
             return old;
         }
 
@@ -235,11 +235,11 @@ inline T* atomic_fetch_increment_wrap_acquire_release(atomic<T*>& value, T* star
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_acq_rel,
-                memory_order_acquire))
-        {
+            old,
+            next,
+            memory_order_acq_rel,
+            memory_order_acquire)
+        ) {
             return old;
         }
 
@@ -260,11 +260,11 @@ inline T atomic_fetch_increment_wrap_acquire(atomic<T>& value, T start, T end) n
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_acquire,
-                memory_order_acquire))
-        {
+            old,
+            next,
+            memory_order_acquire,
+            memory_order_acquire)
+        ) {
             return old;
         }
 
@@ -285,11 +285,11 @@ inline T atomic_fetch_increment_wrap_release(atomic<T>& value, T start, T end) n
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_release,
-                memory_order_relaxed))
-        {
+            old,
+            next,
+            memory_order_release,
+            memory_order_relaxed)
+        ) {
             return old;
         }
 
@@ -310,11 +310,11 @@ inline T atomic_fetch_increment_wrap_acquire_release(atomic<T>& value, T start, 
         }
 
         if (value.compare_exchange_weak(
-                old,
-                next,
-                memory_order_acq_rel,
-                memory_order_acquire))
-        {
+            old,
+            next,
+            memory_order_acq_rel,
+            memory_order_acquire)
+        ) {
             return old;
         }
 

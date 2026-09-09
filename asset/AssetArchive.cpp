@@ -129,7 +129,7 @@ const AssetArchiveElement* asset_archive_element_find(const AssetArchive* archiv
     return &archive->header.asset_element[id];
 }
 
-static inline
+static CONSTEXPR inline
 uint32 asset_type_size(int32 type) NO_EXCEPT
 {
     switch (type) {
@@ -154,7 +154,7 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
     }
 }
 
-static inline
+static CONSTEXPR inline
 uint32 asset_align_size(int32 type) NO_EXCEPT
 {
     switch (type) {
@@ -179,6 +179,33 @@ uint32 asset_align_size(int32 type) NO_EXCEPT
     }
 }
 
+// Sometimes our asset types have additional data that needs to be aligned
+// Example Image has Image.pixels which has to be at least 4 byte aligned
+static CONSTEXPR inline
+uint32 asset_data_align_size(int32 type) NO_EXCEPT
+{
+    switch (type) {
+        case ASSET_TYPE_GENERAL:
+            return alignof(size_t);
+        case ASSET_TYPE_AUDIO:
+            return alignof(size_t);
+        case ASSET_TYPE_FONT:
+            return alignof(size_t);
+        case ASSET_TYPE_IMAGE:
+            return 64; // 64 bytes so we can use AVX512 on pixels
+        case ASSET_TYPE_TEXTURE_ATLAS:
+            return 64; // 64 bytes so we can use AVX512 on uv data
+        case ASSET_TYPE_OBJ:
+            return alignof(size_t);
+        case ASSET_TYPE_LANGUAGE:
+            return alignof(size_t);
+        case ASSET_TYPE_THEME:
+            return alignof(size_t);
+        default:
+            UNREACHABLE();
+    }
+}
+
 /**
  * Asset archives files remain open from the _load() function
  * They need to be explicitly closed when no longer needed.
@@ -196,7 +223,7 @@ void asset_archive_close(AssetArchive* const archive) {
 
 void asset_archive_load(
     AssetArchive* archive,
-    const wchar_t* path,
+    wchar_t* path,
     BufferMemory* const mem,
     int32 steps = 8
 ) NO_EXCEPT
@@ -251,11 +278,6 @@ void asset_archive_load(
     );
 }
 
-// @question Do we want to allow a callback function?
-// Very often we want to do something with the data (e.g. upload it to the gpu)
-// Maybe we could just accept a int value which we set atomically as a flag that the asset is complete?
-// this way we can check much faster if we can work with this data from the caller?!
-// The only problem is that we need to pass the pointer to this int in the thrd_queue since we queue the files to load there
 // @bug I'm afraid that loading the same asset twice could result in circumstances where it gets added twice
 Asset* const asset_archive_asset_load(
     const AssetArchive* const archive,
@@ -299,24 +321,17 @@ Asset* const asset_archive_asset_load(
     );
 
     /**
-     * All other types have asset specific loading
      * This determins how the data is loaded, decompressed and possibly stored into objects
      */
-
-    // @performance In this case we may want to check if memory mapped regions are better.
-    // 1. I don't think they work together with async loading
-    // 2. Profile which one is faster
-    // 3. The big benefit of mmf would be that we can avoid one memcpy and directly load the data into the object
-    // 4. Of course the disadvantage would be to no longer have async loading
-
-    // @performance Currently loading the data into a temp buffer is universally working
-    //              However, some data types could be directly loaded into the final memory
-    //              This would avoid a memcpy
-    //              Although, I assume all formats have some form of compression which would make that statement false
-    // We are reading into temp memory since we have to perform transformations on the data
+    // We are reading into temp memory since we have to perform transformations/decompression on the data
     FileBodyAsync file = {0};
     THRD_CHUNK_STACK_MEMORY(mem, &file.content, element->length + 1);
     file_read_async(archive->fd_async, &file, element->start, element->length);
+
+    const size_t asset_memory_requirement = element->uncompressed // This is the data that gets stored in our specialized asset struct (e.g. .pixels in Image)
+        + asset_type_size(element->type) // This is the specialized asset struct (e.g. Image, TextureAtlas, ...)
+        + asset_align_size(element->type) // This is how we need to align our asset struct
+        + asset_data_align_size(element->type); // This is how we need to align our data in the asset struct (e.g. .pixels in Image)
 
     // This happens while the file system loads the data
     // The important part is to reserve the uncompressed file size, not the compressed one
@@ -324,13 +339,13 @@ Asset* const asset_archive_asset_load(
     asset = ams_asset_reserve(
         ams,
         id_str,
-        element->uncompressed
-            + asset_type_size(element->type)
-            + asset_align_size(element->type)
+        (uint32) asset_memory_requirement
     );
     asset->official_id = id;
-    asset->ram_size = element->uncompressed;
 
+    ASSERT_TRUE(asset_memory_requirement < asset->ram_size);
+
+    asset->data_size = element->uncompressed;
     asset->state |= ASSET_MEMORY_STATE_IN_RAM;
 
     file_async_wait(archive->fd_async, &file.ov, true);
@@ -353,13 +368,12 @@ Asset* const asset_archive_asset_load(
         } break;
         case ASSET_TYPE_IMAGE: {
             Texture* texture = (Texture *) asset->self;
-            texture->image.pixels = (byte *) (texture + 1);
+            texture->image.pixels = (byte *) align_up((uintptr_t) (texture + 1), 64);
 
             file.content += image_header_from_data(file.content, &texture->image);
             qoi_decode(file.content, &texture->image);
 
             asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
-            asset->ram_size = asset->vram_size + sizeof(Texture);
         } break;
         case ASSET_TYPE_AUDIO: {
             Audio* const audio = (Audio *) asset->self;

@@ -66,7 +66,7 @@ void* cmd_shader_load_sync(
         shader_assets[i] = gpuapi_shader_make(
             d3_shader_type_index((ShaderType) (i + 1)),
             (char *) shader_asset->self,
-            shader_asset->ram_size
+            shader_asset->data_size
         );
 
         shader_asset->state |= ASSET_MEMORY_STATE_RAM_GC;

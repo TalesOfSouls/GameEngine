@@ -11,7 +11,7 @@
 #include <minwindef.h>
 #include "../../../stdlib/Stdlib.h"
 
-#if COMS_STATIC_LINKING
+#if defined(COMS_IMPLICIT_LINKING) && COMS_IMPLICIT_LINKING
     #pragma comment(lib, "Advapi32.lib")
 
     #define ADVAPI32_RegOpenKeyExW RegOpenKeyExW

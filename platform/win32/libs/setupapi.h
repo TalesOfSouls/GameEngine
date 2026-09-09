@@ -6,7 +6,7 @@
 #include <setupapi.h>
 #include "../../../stdlib/Stdlib.h"
 
-#if COMS_STATIC_LINKING
+#if defined(COMS_IMPLICIT_LINKING) && COMS_IMPLICIT_LINKING
     #pragma comment(lib, "setupapi.lib")
 
     #define SETUPAPI_SetupDiGetClassDevsW SetupDiGetClassDevsW

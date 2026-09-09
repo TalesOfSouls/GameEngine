@@ -351,7 +351,7 @@ void stats_log_to_file() NO_EXCEPT
     PSEUDO_USE(size);
 
     // Technically this isn't logging to a file, only if the end of the log buffer is reached
-    LOG_1((const char *) _stats_counter, {DATA_TYPE_BYTE_ARRAY, &size});
+    LOG_1(simple_string_dynamic((char *) _stats_counter, size), {DATA_TYPE_BYTE_ARRAY, &size});
 
     LOG_1("[END] Stats log");
 }
@@ -419,7 +419,6 @@ void stats_log_to_file() NO_EXCEPT
     #define STATS_SESSION_START() stats_session_start()
     #define STATS_SESSION_END() stats_session_end()
 
-    // @question Do I want this in release mode?
     #define STATS_LOG_TO_FILE() stats_log_to_file()
 #else
     #define STATS_SET_DEBUG(a, b) ((void) 0)

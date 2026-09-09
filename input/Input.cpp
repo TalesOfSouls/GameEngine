@@ -539,7 +539,6 @@ int32 input_hotkey_state_update(Input* const input, uint64 time = 0) NO_EXCEPT
                 pos += utf8_decode(characters[i], pos);
             }
 
-            // @bug Doesn't this have to be -1?
             *pos = '\0';
 
             input_clean_state(state_active_keys);
@@ -575,7 +574,6 @@ int32 input_hotkey_state_update(Input* const input, uint64 time = 0) NO_EXCEPT
 
     // @bug how to handle priority? e.g. there might be a hotkey for 1 and one for alt+1
     //      in this case only the hotkey for alt+1 should be triggered
-    // @bug consider context
     // @bug how to handle values (e.g. stick may or may not set the x/y or dx/dy in some situations)
     // @bug how to allow rebinding/swapping of left and right stick? (maybe create handful of events e.g. set dx/dy that fire based on the input?)
     // @bug There is a bug ONLY with the controller, when doing camera look around and holding the stick at and angle

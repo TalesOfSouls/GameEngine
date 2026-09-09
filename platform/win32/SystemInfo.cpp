@@ -356,65 +356,59 @@ void mainboard_info_get(MainboardInfo* const info) {
 }
 
 int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* ring = NULL) {
-    WSADATA wsaData;
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        return 0;
-    }
+    const ULONG flags = GAA_FLAG_SKIP_UNICAST | GAA_FLAG_SKIP_ANYCAST
+        | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
 
-    DWORD dwSize = 0;
-    PIP_ADAPTER_ADDRESSES adapter_address = NULL;
-    PIP_ADAPTER_ADDRESSES adapter = NULL;
-
-    // Get the size of the adapter addresses buffer
-    if (IPHLPAPI_GetAdaptersAddresses(AF_UNSPEC, 0, NULL, NULL, &dwSize) == ERROR_BUFFER_OVERFLOW) {
-        WSACleanup();
-        return 0;
-    }
-
-    if (ring) {
-        adapter_address = (PIP_ADAPTER_ADDRESSES) memory_get(ring, sizeof(*adapter_address), sizeof(size_t));
-    } else {
-        adapter_address = (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
-    }
+    DWORD dwSize = 15 * 1024;
+    PIP_ADAPTER_ADDRESSES adapter_address = ring
+        ? (PIP_ADAPTER_ADDRESSES) memory_get(ring, dwSize, sizeof(size_t))
+        : (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
 
     if (!adapter_address) {
-        WSACleanup();
         return 0;
     }
 
-    // Get the adapter addresses
-    if (IPHLPAPI_GetAdaptersAddresses(AF_UNSPEC, 0, NULL, adapter_address, &dwSize) != NO_ERROR) {
+    DWORD result = IPHLPAPI_GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapter_address, &dwSize);
+    if (result == ERROR_BUFFER_OVERFLOW) {
         if (!ring) {
             free(adapter_address);
         }
 
-        WSACleanup();
+        adapter_address = ring
+            ? (PIP_ADAPTER_ADDRESSES) memory_get(ring, dwSize, sizeof(size_t))
+            : (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
+
+        if (!adapter_address) {
+            return 0;
+        }
+
+        result = IPHLPAPI_GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapter_address, &dwSize);
+    }
+
+    if (result != NO_ERROR) {
+        if (!ring) {
+            free(adapter_address);
+        }
+
         return 0;
     }
 
     int32 i = 0;
-
-    // Iterate over the adapters and print their MAC addresses
-    adapter = adapter_address;
-    while (adapter && i < limit) {
+    for (PIP_ADAPTER_ADDRESSES adapter = adapter_address; adapter && i < limit; adapter = adapter->Next) {
         if (adapter->PhysicalAddressLength != 0) {
             info[i].slot[63] = '\0';
             info[i].mac[23] = '\0';
 
-            memcpy(info[i].mac, adapter->PhysicalAddress, 8);
+            size_t mac_len = adapter->PhysicalAddressLength < 8 ? adapter->PhysicalAddressLength : 8;
+            memcpy(info[i].mac, adapter->PhysicalAddress, mac_len);
             wcstombs(info[i].slot, adapter->FriendlyName, 63);
-
             ++i;
         }
-
-        adapter = adapter->Next;
     }
 
     if (!ring) {
         free(adapter_address);
     }
-
-    WSACleanup();
 
     return i;
 }

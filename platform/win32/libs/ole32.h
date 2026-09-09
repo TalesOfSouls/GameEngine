@@ -11,7 +11,7 @@
 #include <windows.h>
 #include <objbase.h>
 
-#if COMS_STATIC_LINKING
+#if defined(COMS_IMPLICIT_LINKING) && COMS_IMPLICIT_LINKING
     #include <combaseapi.h>
 
     #pragma comment(lib, "ole32.lib")

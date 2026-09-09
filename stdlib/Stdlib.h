@@ -31,6 +31,7 @@
  *              __AVX512F__, __AVX2__, __SSE4_2__
  *                  on Windows you should always define all,
  *                  because it doesn't break the ABI opposite to Linux):
+ *              __FMA__
  *          ARM:
  *              __ARM_FEATURE_SVE, __ARM_NEON
  *
@@ -56,10 +57,11 @@
  *          STEAM_STORE=1, EPIC_GAMES=1, PLAYSTATION_STORE=1, MICROSOFT_STORE=1
  *
  *      Misc.
- *          NO_STDLIB=1 (= disables stdlib usage and uses user/compiler space implementations)
+ *          NO_STDLIB (1 = disables stdlib usage and uses user/compiler space implementations)
  *
  *      LINKING
- *          COMS_STATIC_LINKING (default = 0, 1 = switches to static linking build)
+ *          COMS_IMPLICIT_LINKING (default = 0, 1 = switches to implicit linking build)
+ *              Careful we still implicitly link some VERY basic libs even with 0
  */
 #include "Defines.h"
 #include "Types.h"

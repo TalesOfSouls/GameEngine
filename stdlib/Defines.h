@@ -200,8 +200,8 @@
     #define WASAPI 0
 #endif
 
-#ifndef COMS_STATIC_LINKING
-    #define COMS_STATIC_LINKING 0
+#ifndef COMS_IMPLICIT_LINKING
+    #define COMS_IMPLICIT_LINKING 0
 #endif
 
 #if !defined(CPP_VERSION) || CPP_VERSION >= 20

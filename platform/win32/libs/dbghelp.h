@@ -8,7 +8,7 @@
 #include <windows.h>
 #include <dbghelp.h>
 
-#if COMS_STATIC_LINKING
+#if defined(COMS_IMPLICIT_LINKING) && COMS_IMPLICIT_LINKING
     #pragma comment(lib, "dbghelp.lib")
 
     #define DBGHELP_MiniDumpWriteDump MiniDumpWriteDump

@@ -26,19 +26,17 @@
  *      * Requires you to release memory once no longer used
  *      * Memory gets fragmented over time/usage
  *      * Impossible to request multiple contiguous chunks
+ *      * Horrible performance for iterating active elements
  */
 template <typename T>
 struct FragmentMemoryT {
     T* memory;
 
-    int capacity;
-    int last_pos;
+    int32 capacity;
+    int32 last_pos;
 
     // Array that contains indices into the free chunks
     int32* free;
-
-    alignas(ASSUMED_CACHE_LINE_SIZE) spinlock32 lock;
-    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(spinlock32)];
 };
 
 template <typename T>

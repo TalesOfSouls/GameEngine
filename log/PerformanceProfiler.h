@@ -304,7 +304,7 @@ void performance_log_to_file() NO_EXCEPT
     PSEUDO_USE(count);
 
     MAYBE_UNUSED const int32 size = sizeof(*_perf_stats);
-    LOG_1((const char *) _perf_stats, {DATA_TYPE_BYTE_ARRAY, (void *) &size});
+    LOG_1(simple_string_dynamic((char *) _perf_stats, size), {DATA_TYPE_BYTE_ARRAY, (void *) &size});
     PSEUDO_USE(size);
 
     LOG_1("[END] Performance log");
@@ -343,7 +343,7 @@ void performance_log_to_file_formatted() NO_EXCEPT
                 perf->total_cycle
             );
 
-            LOG_1((const char *) line, {DATA_TYPE_BYTE_ARRAY, (void *) &length});
+            LOG_1(simple_string_dynamic((char *) line, length), {DATA_TYPE_BYTE_ARRAY, (void *) &length});
             PSEUDO_USE(length);
         }
     }
@@ -583,7 +583,7 @@ void performance_profiler_end(int32 id) NO_EXCEPT
 
     // Moves the index of _perf_stats usually called after a completed frame
     #define PROFILE_SNAPSHOT() profile_performance_snapshot()
-    // @question Do I want this in release mode?
+
     #define PROFILE_LOG_TO_FILE() performance_log_to_file()
     #define PROFILE_LOG_FORMATTED() performance_log_to_file_formatted()
 

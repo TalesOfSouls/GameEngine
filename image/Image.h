@@ -14,7 +14,7 @@ enum ImageSettingType : uint8 {
     IMAGE_SETTING_BOTTOM_TO_TOP = 0b01000000, // 0 = ttb, 1 = btt
     IMAGE_SETTING_COLOR_MODE_SRGB = 0b00100000, // 0 = rgb, 1 = srgb
     IMAGE_SETTING_CHANNEL_4_SIZE = 0b00010000, // 0 = 1 byte, 1 = 4 byte (usually float)
-    IMAGE_SETTING_CHANNEL_COUNT = 0b00001111
+    IMAGE_SETTING_CHANNEL_COUNT = 0b00001111,
 };
 
 // This struct also functions as a setting on how to load the image data
