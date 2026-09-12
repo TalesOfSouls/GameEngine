@@ -13,15 +13,14 @@ FORCE_INLINE
 void font_init(Font* const font, byte* data, int count) NO_EXCEPT
 {
     font->glyphs = (Glyph *) data;
-    font->glyph_count = count;
+    font->glyph_count = (uint16) count;
 }
 
-// @performance replace with Eytzinger (obviously we would also have to change the order in the font font file itself)
-inline
-const Glyph* font_glyph_find(const Font* const font, uint32 codepoint) NO_EXCEPT
+static inline
+const Glyph* font_glyph_find_binary(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     const uint32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
-    const uint32 limit = OMS_MIN(perfect_glyph_pos, font->glyph_count - 1);
+    const uint32 limit = OMS_MIN(perfect_glyph_pos, (uint32) (font->glyph_count - 1));
 
     // We try to jump to the correct glyph based on the glyph codepoint
     if (font->glyphs[limit].codepoint == codepoint) {
@@ -46,8 +45,34 @@ const Glyph* font_glyph_find(const Font* const font, uint32 codepoint) NO_EXCEPT
     return NULL;
 }
 
-inline
-const int16 font_glyph_index_find(const Font* const font, uint32 codepoint) NO_EXCEPT
+static inline
+const Glyph* font_glyph_find_eytzinger(const Font* const font, uint32 codepoint) NO_EXCEPT
+{
+    uint32 k = 0;
+    const uint32 n = font->glyph_count;
+
+    while (k < n) {
+        const uint32 gc = font->glyphs[k].codepoint;
+        if (gc == codepoint) {
+            return &font->glyphs[k];
+        }
+
+        k = gc < codepoint ? 2 * k + 2 : 2 * k + 1;
+    }
+
+    return NULL;
+}
+
+FORCE_INLINE
+const Glyph* font_glyph_find(const Font* const font, uint32 codepoint) NO_EXCEPT
+{
+    return font->order_type == FONT_GLYPH_ORDER_TYPE_NORMAL
+        ? font_glyph_find_binary(font, codepoint)
+        : font_glyph_find_eytzinger(font, codepoint);
+}
+
+static inline
+int16 font_glyph_index_find_binary(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     const int16 perfect_glyph_pos = (int16) (codepoint - font->glyphs[0].codepoint);
     const int16 limit = OMS_MIN(perfect_glyph_pos, (int16) (font->glyph_count - 1));
@@ -73,6 +98,85 @@ const int16 font_glyph_index_find(const Font* const font, uint32 codepoint) NO_E
     }
 
     return -1;
+}
+
+static inline
+int16 font_glyph_index_find_eytzinger(const Font* const font, uint32 codepoint) NO_EXCEPT
+{
+    int16 k = 0;
+    const int16 n = (int16) font->glyph_count;
+
+    while (k < n) {
+        const uint32 gc = font->glyphs[k].codepoint;
+        if (gc == codepoint) {
+            return k;
+        }
+
+        k = gc < codepoint ? (int16) (2 * k + 2) : (int16) (2 * k + 1);
+    }
+
+    return -1;
+}
+
+FORCE_INLINE
+int16 font_glyph_index_find(const Font* const font, uint32 codepoint) NO_EXCEPT
+{
+    if (font->glyph_count == 0) {
+        return -1;
+    }
+
+    return font->order_type == FONT_GLYPH_ORDER_TYPE_NORMAL
+        ? font_glyph_index_find_binary(font, codepoint)
+        : font_glyph_index_find_eytzinger(font, codepoint);
+}
+
+static inline
+uint32 font_glyph_eytzinger_build(Glyph* dst, const Glyph* src, uint32 n, uint32 i, uint32 k) NO_EXCEPT
+{
+    if (k < n) {
+        i = font_glyph_eytzinger_build(dst, src, n, i, 2 * k + 1);
+        dst[k] = src[i++];
+        i = font_glyph_eytzinger_build(dst, src, n, i, 2 * k + 2);
+    }
+
+    return i;
+}
+
+inline
+void font_glyphs_to_eytzinger(Glyph* glyphs, uint32 glyph_count, Glyph* tmp) NO_EXCEPT
+{
+    memcpy(tmp, glyphs, sizeof(Glyph) * glyph_count);
+    font_glyph_eytzinger_build(glyphs, tmp, glyph_count, 0, 0);
+}
+
+// Optimizes the glyphs array order for faster access
+inline
+void font_optimize_order(Font* const font, byte* buf) NO_EXCEPT
+{
+    const char* to_validate = "AaZ? 09";
+
+    int success = 0;
+    uint32 codepoint;
+    while (codepoint = *to_validate++) {
+        const int16 perfect_glyph_pos = (int16) (codepoint - font->glyphs[0].codepoint);
+        const int16 limit = OMS_MIN(perfect_glyph_pos, (int16) (font->glyph_count - 1));
+
+        // We either need to perfectly match the codepoint = array index
+        // Or the code point isn't in the array, then it doesn't count
+        success += (int) (font->glyphs[limit].codepoint == codepoint
+            || font_glyph_index_find(font, codepoint) < 0
+        );
+    }
+
+    if (success >= (sizeof(to_validate) - 1) / 2) {
+        font->order_type = FONT_GLYPH_ORDER_TYPE_NORMAL;
+        return;
+    }
+
+    // The glyphs array is sparse/a bad match for direct array access
+    // This means we often have to use binary search which means it is worth to optimize / change the order
+    font_glyphs_to_eytzinger(font->glyphs, font->glyph_count, (Glyph *) buf);
+    font->order_type = FONT_GLYPH_ORDER_TYPE_EYTZINGER;
 }
 
 /*
@@ -145,7 +249,7 @@ void font_from_file_txt(
             image_height = (int32) str_to_int(pos, &pos);
             ++header_completed;
         } else if (strncmp(block_name, "glyph_count", sizeof("glyph_count") - 1) == 0) {
-            font->glyph_count = (uint32) str_to_int(pos, &pos);
+            font->glyph_count = (uint16) str_to_int(pos, &pos);
             ++header_completed;
         }
 
@@ -207,8 +311,8 @@ int32 font_data_size(const Font* const font) NO_EXCEPT
 // this wastes some bytes due to header data but this way we can avoid pre-parsing the data to find the exact required data
 inline
 int32 font_from_data(
-    const byte* const data,
-    Font* const font,
+    byte* __restrict data,
+    Font* const __restrict font,
     MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
 {
@@ -244,6 +348,12 @@ int32 font_from_data(
         steps
     );
     PSEUDO_USE(steps);
+
+    // We are really evil here. We re-purpose the input data buffer as a temp buffer.
+    // We can do this since the original buffer was a temp buffer (hopefully) to begin with and wasn't (hopefully)
+    // used anywhere else.
+    // We don't store the optimized order in file (yet) because we may change the format in the future
+    font_optimize_order(font, data);
 
     return font_data_size(font);
 }

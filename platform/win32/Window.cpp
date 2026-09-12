@@ -389,6 +389,7 @@ inline
 void window_close(Window* const window) NO_EXCEPT
 {
     WindowPlatform* const platform_window = (WindowPlatform *) window->platform_window;
+    PostMessageW(platform_window->hwnd, WM_CLOSE, 0, 0);
     CloseWindow(platform_window->hwnd);
     DestroyWindow(platform_window->hwnd);
 }

@@ -14,7 +14,7 @@
 #include "../../memory/ChunkMemory.cpp"
 #include "../../thread/ThreadPool.cpp"
 #include "SoftwareDescriptorSetLayoutBinding.h"
-#include "Shader.h"
+#include "Pipeline.h"
 #include "../anti_aliasing/AntiAliasingType.h"
 #include "../anti_aliasing/MSAA.h"
 #include <windows.h>
@@ -40,7 +40,7 @@ struct SoftwareRenderer {
     uint32* pixels;
     f32* zbuffer;
 
-    Shader* active_shader;
+    Pipeline* active_pipeline;
 
     AntiAliasingType aa_type;
     int8 aa_details;
@@ -948,8 +948,8 @@ void soft_render(
         const int base = data_count / data_chunks;
         const int remainder = data_count % data_chunks;
 
-        for (int i = 0; i < renderer->active_shader->shader_count; ++i) {
-            ASSERT_TRUE(renderer->active_shader->shader_functions[i]);
+        for (int i = 0; i < renderer->active_pipeline->shader_count; ++i) {
+            ASSERT_TRUE(renderer->active_pipeline->shader_functions[i]);
 
             for (int j = 0; j < data_chunks; ++j) {
                 const int extra = (j < remainder) ? 1 : 0;
@@ -978,7 +978,7 @@ void soft_render(
                     data_indices ? data_indices + index_start : NULL,
                     index_chunk_size,
                     steps,
-                    renderer->active_shader->shader_functions[i]
+                    renderer->active_pipeline->shader_functions[i]
                 };
 
                 const PoolWorker job = {
@@ -1006,8 +1006,8 @@ void soft_render(
         );
         chunk_free_elements(&renderer->buf, arg_id, element_count);
     } else {
-        for (int i = 0; i < renderer->active_shader->shader_count; ++i) {
-            renderer->active_shader->shader_functions[i](
+        for (int i = 0; i < renderer->active_pipeline->shader_count; ++i) {
+            renderer->active_pipeline->shader_functions[i](
                 renderer,
                 i, 0,
                 data, data_count,
@@ -1031,9 +1031,9 @@ void soft_render_instanced(
     int32 steps = 8
 ) NO_EXCEPT
 {
-    for (int i = 0; i < renderer->active_shader->shader_count; ++i) {
+    for (int i = 0; i < renderer->active_pipeline->shader_count; ++i) {
         for (int j = 0; j < data_count; ++j) {
-            renderer->active_shader->shader_functions[i](
+            renderer->active_pipeline->shader_functions[i](
                 renderer,
                 i, j,
                 data, data_count,

@@ -9,7 +9,7 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../../log/PerformanceProfiler.h"
-#include "Shader.h"
+#include "Pipeline.h"
 #include "ShaderUtils.h"
 #include "../ShaderType.h"
 #include "../../asset/Asset.h"
@@ -20,16 +20,16 @@ void* cmd_shader_load(AppCmdBuffer*, AppCommand*) {
 }
 
 template <typename T>
-void* cmd_shader_load_sync(
+void* cmd_pipeline_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
     T* const __restrict mem,
-    Shader* const __restrict shader,
+    Pipeline* const __restrict pipeline,
     const int32* __restrict shader_ids,
     VkDevice device,
     VkRenderPass render_pass,
     VkPipelineLayout* __restrict pipeline_layout,
-    VkPipeline* __restrict pipeline,
+    VkPipeline* __restrict vk_pipeline,
     VkDescriptorSetLayout* __restrict descriptor_set_layouts
 ) NO_EXCEPT
 {
@@ -69,8 +69,8 @@ void* cmd_shader_load_sync(
     }
 
     // Make shader/program
-    shader->id = gpuapi_pipeline_make(
-        device, render_pass, pipeline_layout, pipeline,
+    pipeline->id = gpuapi_pipeline_make(
+        device, render_pass, pipeline_layout, vk_pipeline,
         descriptor_set_layouts,
         shader_assets[0], shader_assets[1], shader_assets[2]
     );

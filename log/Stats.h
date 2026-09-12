@@ -95,7 +95,7 @@ void stats_session_start() NO_EXCEPT
     memset(
         &_stats_counter->stats[DEBUG_COUNTER_SIZE * MAX_STATS_COUNTER_HISTORY],
         0,
-        PROFILE_SIZE * sizeof(int64)
+        DEBUG_COUNTER_SIZE * sizeof(int64)
     );
     _stats_counter->session_active.store(1);
 }

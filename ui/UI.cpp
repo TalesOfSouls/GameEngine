@@ -1,3 +1,18 @@
+/**
+ * How does UI rendering work?
+ *
+ * 1. Load UI components from layout file or create programmatically
+ * 2. Style elements by loading theme from file
+ *
+ * 3. Update state of UI components
+ * 4. (Re-)Create vertices cache of changed UI components (1. stage)
+ *
+ * 5. (Re-)Create and add (2. stage) cache for *some* components to CPU cache (GpuAtlasCache)
+ * 6. Render *some* UI components and elements to a on gpu texture cache
+ * 7. Copy vertices to compact/continuous vertex array on CPU (3. stage)
+ *
+ * 8. Draw vertices/send cache (3. stage) to GPU
+ */
 #pragma once
 #ifndef COMS_UI_C
 #define COMS_UI_C

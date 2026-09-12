@@ -401,6 +401,12 @@ static type_glFramebufferTexture* glFramebufferTexture;
 typedef void WINAPI type_glNamedFramebufferTexture(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level);
 static type_glNamedFramebufferTexture* glNamedFramebufferTexture;
 
+typedef void WINAPI type_glNamedFramebufferDrawBuffer(GLuint framebuffer, GLenum mode);
+static type_glNamedFramebufferDrawBuffer* glNamedFramebufferDrawBuffer;
+
+typedef void WINAPI type_glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, GLfloat* value);
+static type_glClearNamedFramebufferfv* glClearNamedFramebufferfv;
+
 typedef void WINAPI type_glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 static type_glFramebufferTexture2D* glFramebufferTexture2D;
 
@@ -834,7 +840,6 @@ void opengl_init_wgl() NO_EXCEPT
     wglGetExtensionsStringEXT = (wgl_get_extensions_string_ext *) wglGetProcAddress("wglGetExtensionsStringEXT");
 }
 
-static
 bool gl_extensions_load() NO_EXCEPT
 {
     WNDCLASSW wc = {
@@ -861,6 +866,7 @@ bool gl_extensions_load() NO_EXCEPT
         wglDeleteContext(openGLRC);
         ReleaseDC(window, hdc);
         DestroyWindow(window);
+
         return false;
     }
 
@@ -925,6 +931,8 @@ void opengl_init_gl() NO_EXCEPT
     glGenFramebuffers = (type_glGenFramebuffers *) wglGetProcAddress("glGenFramebuffers");
     glFramebufferTexture = (type_glFramebufferTexture *) wglGetProcAddress("glFramebufferTexture");
     glNamedFramebufferTexture = (type_glNamedFramebufferTexture *) wglGetProcAddress("glNamedFramebufferTexture");
+    glNamedFramebufferDrawBuffer = (type_glNamedFramebufferDrawBuffer *) wglGetProcAddress("glNamedFramebufferDrawBuffer");
+    glClearNamedFramebufferfv = (type_glClearNamedFramebufferfv *) wglGetProcAddress("glClearNamedFramebufferfv");
     glFramebufferTexture2D = (type_glFramebufferTexture2D *) wglGetProcAddress("glFramebufferTexture2D");
     glCheckFramebufferStatus = (type_glCheckFramebufferStatus *) wglGetProcAddress("glCheckFramebufferStatus");
     glCheckNamedFramebufferStatus = (type_glCheckNamedFramebufferStatus *) wglGetProcAddress("glCheckNamedFramebufferStatus");

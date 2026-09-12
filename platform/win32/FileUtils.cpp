@@ -269,7 +269,7 @@ void relative_to_absolute(const C* __restrict rel, C* __restrict path) NO_EXCEPT
     }
 
     const C* temp = rel;
-    if (temp[0] == (C) '.' && temp[1] == (C) '/') {
+    if (rel[1] == (C) '/') {
         temp += 2;
     }
 
@@ -293,7 +293,7 @@ void relative_to_absolute(C* path) NO_EXCEPT
     }
 
     const C* temp = path;
-    if (temp[0] == (C) '.' && temp[1] == (C) '/') {
+    if (path[1] == (C) '/') {
         temp += 2;
     }
 

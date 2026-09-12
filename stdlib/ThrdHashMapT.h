@@ -9,6 +9,7 @@
 
 #include "Stdlib.h"
 #include "HashMapT.h"
+#include "../memory/ThrdChunkMemoryT.h"
 
 // If a hash key is longer than the max key length, we use the last N characters of that key
 // The key length is currently chosen to result in 32 byte size for the common case: HashEntryInt32

@@ -41,16 +41,6 @@ quaternion quat_axis_angle(const v3_f32& axis, f32 angle_rad)
 inline
 v3_f32 quat_rotate_vec3(const quaternion& q, const v3_f32& v)
 {
-    /*
-    // v' = q * (v,0) * q^-1
-    const quaternion p = { v.x, v.y, v.z, 0.0f };
-    // inverse for unit quat
-    const quaternion qi = { -q.x, -q.y, -q.z, q.w };
-    const quaternion r = quat_mul(quat_mul(q, p), qi);
-
-    return { r.x, r.y, r.z };
-    */
-
     const v3_f32 qv = { q.x, q.y, q.z };
 
     v3_f32 t = vec3_cross(qv, v);

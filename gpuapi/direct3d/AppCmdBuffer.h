@@ -9,7 +9,7 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../../log/PerformanceProfiler.h"
-#include "Shader.h"
+#include "Pipeline.h"
 #include "ShaderUtils.h"
 #include "../ShaderType.h"
 #include "../../asset/Asset.h"
@@ -25,14 +25,14 @@ void* cmd_shader_load(AppCmdBuffer*, AppCommand*) {
 }
 
 template <typename T>
-void* cmd_shader_load_sync(
+void* cmd_pipeline_load_sync(
     const AssetArchive* const __restrict asset_archives,
     AssetManagementSystem* const __restrict ams,
     T* const __restrict mem,
-    Shader* const __restrict shader,
+    Pipeline* const __restrict pipeline,
     const int32* const __restrict shader_ids,
     ID3D12Device* const __restrict device,
-    ID3D12PipelineState** const __restrict pipeline,
+    ID3D12PipelineState** const __restrict pipeline_state,
     ID3D12RootSignature* const __restrict pipeline_layout,
     D3D12_INPUT_ELEMENT_DESC* const __restrict descriptor_set_layouts,
     int32 layout_count
@@ -74,8 +74,8 @@ void* cmd_shader_load_sync(
     }
 
     // Make shader/program
-    shader->id = gpuapi_pipeline_make(
-        device, pipeline, pipeline_layout,
+    pipeline->id = gpuapi_pipeline_make(
+        device, pipeline_state, pipeline_layout,
         descriptor_set_layouts, layout_count,
         shader_assets[0], shader_assets[1], shader_assets[2]
     );

@@ -21,7 +21,7 @@
 #else
     inline void* cmd_shader_load(AppCmdBuffer*, AppCommand*) NO_EXCEPT
 { return NULL; }
-    inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, const int32*, ...) NO_EXCEPT
+    inline void* cmd_pipeline_load_sync(AppCmdBuffer*, void*, const int32*, ...) NO_EXCEPT
 { return NULL; }
 #endif
 

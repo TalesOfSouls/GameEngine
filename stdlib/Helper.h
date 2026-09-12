@@ -26,6 +26,16 @@
     #define SMN(name)
 #endif
 
+#if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
+    #define DEBUG_VAR_DEF(type, name) type name
+    #define DEBUG_VAR_ASSIGN(name) name =
+    #define DEBUG_VAR_DEF_ASSIGN(type, name) type name =
+#else
+    #define DEBUG_VAR_DEF(type, name)
+    #define DEBUG_VAR_ASSIGN(name)
+    #define DEBUG_VAR_DEF_ASSIGN(type, name)
+#endif
+
 #define MEMORY_OFFSET(high, low) (size_t) ((uintptr_t) (high) - (uintptr_t) (low))
 #define MEMORY_ELEMENT_ZERO(ptr) memset(ptr, 0, sizeof(*ptr))
 
@@ -341,112 +351,35 @@ f64 endian_swap(f64 val) NO_EXCEPT
  * However, that is undefined if the buffer at that position isn't correctly aligned and only memcpy handles that correctly
  * If we are sure that the buffer is aligned we could of course use the above mentioned method which should be faster
  */
+template <typename T> struct le_repr { typedef T type; };
+template <> struct le_repr<int16> { typedef uint16 type; };
+template <> struct le_repr<int32> { typedef uint32 type; };
+template <> struct le_repr<int64> { typedef uint64 type; };
+template <> struct le_repr<f32> { typedef uint32 type; };
+template <> struct le_repr<f64> { typedef uint64 type; };
+
+template <typename T>
 FORCE_INLINE
-byte* write_le(byte* p, uint32 v) NO_EXCEPT
+byte* write_le(byte* p, T v) NO_EXCEPT
 {
-    SWAP_ENDIAN_LITTLE_SELF(v);
-    memcpy(p, &v, sizeof(v));
-
-    return p + sizeof(v);
-}
-
-FORCE_INLINE
-byte* write_le(byte* p, int32 v) NO_EXCEPT
-{
-    return write_le(p, (uint32)v);
-}
-
-FORCE_INLINE
-byte* write_le(byte* p, uint64 v) NO_EXCEPT
-{
-    SWAP_ENDIAN_LITTLE_SELF(v);
-    memcpy(p, &v, sizeof(v));
-
-    return p + sizeof(v);
-}
-
-FORCE_INLINE
-byte* write_le(byte* p, int64 v) NO_EXCEPT
-{
-    return write_le(p, (uint64)v);
-}
-
-FORCE_INLINE
-byte* write_le(byte* p, f32 v) NO_EXCEPT
-{
-    uint32 bits;
+    typename le_repr<T>::type bits;
     memcpy(&bits, &v, sizeof(bits));
+    SWAP_ENDIAN_LITTLE_SELF(bits);
+    memcpy(p, &bits, sizeof(bits));
 
-    return write_le(p, bits);
+    return p + sizeof(bits);
 }
 
+template <typename T>
 FORCE_INLINE
-byte* write_le(byte* p, f64 v) NO_EXCEPT
+const byte* read_le(const byte* __restrict p, T* __restrict out) NO_EXCEPT
 {
-    uint64 bits;
-    memcpy(&bits, &v, sizeof(bits));
-
-    return write_le(p, bits);
-}
-
-FORCE_INLINE
-const byte* read_le(const byte* __restrict p, uint32* __restrict out) NO_EXCEPT
-{
-    uint32 v;
+    typename le_repr<T>::type v;
     memcpy(&v, p, sizeof(v));
-    *out = SWAP_ENDIAN_LITTLE(v);
+    v = SWAP_ENDIAN_LITTLE(v);
+    memcpy(out, &v, sizeof(v));
 
     return p + sizeof(v);
-}
-
-FORCE_INLINE
-const byte* read_le(const byte* __restrict p, int32* __restrict out) NO_EXCEPT
-{
-    uint32 v;
-    p = read_le(p, &v);
-    *out = (int32)v;
-
-    return p;
-}
-
-FORCE_INLINE
-const byte* read_le(const byte* __restrict p, uint64* __restrict out) NO_EXCEPT
-{
-    uint64 v;
-    memcpy(&v, p, sizeof(v));
-    *out = SWAP_ENDIAN_LITTLE(v);
-
-    return p + sizeof(v);
-}
-
-FORCE_INLINE
-const byte* read_le(const byte* __restrict p, int64* __restrict out) NO_EXCEPT
-{
-    uint64 v;
-    p = read_le(p, &v);
-    *out = (int64)v;
-
-    return p;
-}
-
-FORCE_INLINE
-const byte* read_le(const byte* __restrict p, f32* __restrict out) NO_EXCEPT
-{
-    uint32 bits;
-    p = read_le(p, &bits);
-    memcpy(out, &bits, sizeof(bits));
-
-    return p;
-}
-
-FORCE_INLINE
-const byte* read_le(const byte* __restrict p, f64* __restrict out) NO_EXCEPT
-{
-    uint64 bits;
-    p = read_le(p, &bits);
-    memcpy(out, &bits, sizeof(bits));
-
-    return p;
 }
 
 // Used to hash strings used in macros (e.g. __FILE__)

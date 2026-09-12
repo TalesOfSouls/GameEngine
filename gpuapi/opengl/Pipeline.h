@@ -1,4 +1,8 @@
 /**
+ * This is a shader or maybe alternatively a program/pipeline
+ *
+ * This is *NOT* a vertex shader, fragment shader etc.
+ *
  * @copyright Jingga
  * @license   OMS License 2.0
  * @link      https://jingga.app
@@ -10,7 +14,8 @@
 #include "../../stdlib/Stdlib.h"
 #include "OpenglDescriptorSetLayoutBinding.h"
 
-struct Shader {
+// @question Should we rename this to pipeline?
+struct Pipeline {
     uint32 id;
 
     OpenglDescriptorSetLayoutBinding descriptor_set_layout[7];

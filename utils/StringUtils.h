@@ -543,6 +543,12 @@ int64 str_to_int(const char* str, const char** pos = NULL) NO_EXCEPT
     return result * sign;
 }
 
+FORCE_INLINE
+int64 str_to_int(char* str, char** pos = NULL) NO_EXCEPT
+{
+    return str_to_int((const char*) str, (const char**) pos);
+}
+
 inline
 int32 int_length(int64 number) NO_EXCEPT
 {
@@ -2198,6 +2204,12 @@ f32 str_to_float(const char* str, const char** pos = NULL) NO_EXCEPT
     }
 
     return sign * result;
+}
+
+FORCE_INLINE
+f32 str_to_float(char* str, char** pos = NULL) NO_EXCEPT
+{
+    return str_to_float((const char *) str, (const char **) pos);
 }
 
 template <typename T>

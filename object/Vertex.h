@@ -104,7 +104,7 @@ struct VertexRef {
 };
 
 // Data for the text shader
-struct TextShader {
+struct TextPipeline {
     uint32 program_id;
 
     uint32 matrix_id;

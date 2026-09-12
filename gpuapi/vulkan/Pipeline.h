@@ -10,7 +10,7 @@
 #include "../../stdlib/Stdlib.h"
 #include <vulkan/vulkan.h>
 
-struct Shader {
+struct Pipeline {
     // @todo Consider to rename to pipeline (also in opengl, directx) if this makes sense.
     // @question Does this have to be a pointer to the gpuapi->pipeline var?
     VkPipeline id;

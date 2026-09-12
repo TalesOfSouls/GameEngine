@@ -20,4 +20,15 @@ struct SimpleString {
     C* str;
 };
 
+template <typename C, size_t N>
+struct SimpleStringBuffer {
+    int32 length;
+    uint8 char_type;
+    C str[N];
+
+    operator SimpleString<C>() {
+        return SimpleString<C>{ length, char_type, str };
+    }
+};
+
 #endif

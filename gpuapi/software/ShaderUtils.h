@@ -8,7 +8,7 @@
 #define COMS_GPUAPI_SOFTWARE_SHADER_UTILS_H
 
 #include "../../stdlib/Stdlib.h"
-#include "Shader.h"
+#include "Pipeline.h"
 #include "../ShaderType.h"
 #include "../GpuAttributeType.h"
 #include "SoftwareRenderer.h"
@@ -16,9 +16,9 @@
 // NOTE: We don't make it const because we might want to support "compute shaders", which store data in the shader
 // Of course this is kinda stupid anyways in a software renderer but for the sake of somewhat similar behavior between gpu and cpu we keep it
 FORCE_INLINE
-void gpuapi_pipeline_use(SoftwareRenderer* renderer, Shader* shader) NO_EXCEPT
+void gpuapi_pipeline_use(SoftwareRenderer* renderer, Pipeline* pipeline) NO_EXCEPT
 {
-    renderer->active_shader = shader;
+    renderer->active_pipeline = pipeline;
 }
 
 // This sets a global descriptor set layout
@@ -84,16 +84,16 @@ void gpuapi_descriptor_set_layout_set(
 FORCE_INLINE
 void gpuapi_descriptor_set_layout_create(
     SoftwareRenderer* const __restrict renderer,
-    Shader* const __restrict shader,
+    Pipeline* const __restrict pipeline,
     const SoftwareDescriptorSetLayoutBinding* __restrict layouts,
     int32 layout_length
 ) NO_EXCEPT
 {
     for (int i = 0; i < layout_length; ++i) {
-        shader->descriptor_set_layout[i].name = layouts[i].name;
-        shader->descriptor_set_layout[i].size = ceil_div(layouts[i].size, renderer->buf.chunk_size);
-        shader->descriptor_set_layout[i].binding = chunk_reserve(&renderer->buf, shader->descriptor_set_layout[i].size) + 1;
-        shader->descriptor_set_layout[i].data = chunk_element_get(&renderer->buf, shader->descriptor_set_layout[i].binding - 1);
+        pipeline->descriptor_set_layout[i].name = layouts[i].name;
+        pipeline->descriptor_set_layout[i].size = ceil_div(layouts[i].size, renderer->buf.chunk_size);
+        pipeline->descriptor_set_layout[i].binding = chunk_reserve(&renderer->buf, pipeline->descriptor_set_layout[i].size) + 1;
+        pipeline->descriptor_set_layout[i].data = chunk_element_get(&renderer->buf, pipeline->descriptor_set_layout[i].binding - 1);
 
         // @todo allow .data to be a reference to existing memory
     }

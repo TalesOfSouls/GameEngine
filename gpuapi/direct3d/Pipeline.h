@@ -10,7 +10,7 @@
 #include "../../stdlib/Stdlib.h"
 #include <d3d12.h>
 
-struct Shader {
+struct Pipeline {
     ID3D12PipelineState* id;
     uint32 locations[7];
 };

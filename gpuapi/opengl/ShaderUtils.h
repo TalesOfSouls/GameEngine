@@ -1,4 +1,6 @@
 /**
+ * Shader helpers for the GPU API
+ *
  * @copyright Jingga
  * @license   OMS License 2.0
  * @link      https://jingga.app
@@ -13,7 +15,7 @@
 #include "../../log/PerformanceProfiler.h"
 #include "../../object/Vertex.h"
 #include "../../utils/StringUtils.h"
-#include "Shader.h"
+#include "Pipeline.h"
 #include "Opengl.h"
 #include "../ShaderType.h"
 #include "../GpuAttributeType.h"
@@ -53,6 +55,13 @@ FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 location, int32 value) NO_EXCEPT
 {
     glUniform1i(location, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update(uint32 location, int32* value, int32 length) NO_EXCEPT
+{
+    glUniform1iv(location, length, value);
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
@@ -483,14 +492,14 @@ void gpuapi_attribute_setup_static(
 // @performance It should be possible to do this at compile time if we manually parse the shader
 FORCE_INLINE
 void gpuapi_descriptor_set_layout_create(
-    Shader* const __restrict shader,
+    Pipeline* const __restrict pipeline,
     const OpenglDescriptorSetLayoutBinding* const __restrict bindings,
     int32 binding_length
 ) NO_EXCEPT
 {
     for (int32 i = 0; i < binding_length; ++i) {
-        shader->descriptor_set_layout[i].binding = glGetUniformLocation(shader->id, bindings[i].name);
-        shader->descriptor_set_layout[i].name = bindings[i].name;
+        pipeline->descriptor_set_layout[i].binding = glGetUniformLocation(pipeline->id, bindings[i].name);
+        pipeline->descriptor_set_layout[i].name = bindings[i].name;
     }
 }
 

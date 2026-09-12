@@ -372,7 +372,7 @@ template<typename T>
 FORCE_INLINE
 T vec3_fma(T a, T b, f32 scalar) NO_EXCEPT
 {
-    return {a.x + b.x * scalar, a.x + b.x * scalar, a.x + b.x * scalar};
+    return {a.x + b.x * scalar, a.y + b.y * scalar, a.z + b.z * scalar};
 }
 
 template<typename T>
@@ -439,7 +439,7 @@ template<typename T>
 FORCE_INLINE
 f32 vec4_length(const T& vec) NO_EXCEPT
 {
-    return intrin_sqrt_f32(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z + vec->w * vec->w);
+    return intrin_sqrt_f32(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z + vec.w * vec.w);
 }
 
 template<typename T>
@@ -458,7 +458,7 @@ template<typename T>
 FORCE_INLINE
 auto vec4_sum(const T* const vec) NO_EXCEPT -> decltype(vec->x)
 {
-    return vec->x + vec->y + vec->z + + vec.w;
+    return vec->x + vec->y + vec->z + vec.w;
 }
 
 template<typename T>
@@ -1066,19 +1066,19 @@ void mat4vec4_mult_sse(const f32* __restrict matrix, const f32* __restrict vecto
 {
     __m128 vec = _mm_load_ps(vector);
 
-    // Load each row of the 4x4 matrix
     __m128 row0 = _mm_load_ps(&matrix[0]);
     __m128 row1 = _mm_load_ps(&matrix[4]);
     __m128 row2 = _mm_load_ps(&matrix[8]);
     __m128 row3 = _mm_load_ps(&matrix[12]);
 
-    // Multiply and horizontal add (dot product)
-    __m128 res = _mm_set_ps(
-        _mm_cvtss_f32(_mm_dp_ps(row3, vec, 0xF1)), // row3 · vec
-        _mm_cvtss_f32(_mm_dp_ps(row2, vec, 0xF1)), // row2 · vec
-        _mm_cvtss_f32(_mm_dp_ps(row1, vec, 0xF1)), // row1 · vec
-        _mm_cvtss_f32(_mm_dp_ps(row0, vec, 0xF1))  // row0 · vec
-    );
+    __m128 m0 = _mm_mul_ps(row0, vec);
+    __m128 m1 = _mm_mul_ps(row1, vec);
+    __m128 m2 = _mm_mul_ps(row2, vec);
+    __m128 m3 = _mm_mul_ps(row3, vec);
+
+    __m128 sum01 = _mm_hadd_ps(m0, m1);
+    __m128 sum23 = _mm_hadd_ps(m2, m3);
+    __m128 res = _mm_hadd_ps(sum01, sum23);
 
     _mm_store_ps(result, res);
 }

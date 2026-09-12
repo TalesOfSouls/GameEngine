@@ -1,4 +1,6 @@
 /**
+ * General helpers for the GPU API
+ *
  * @copyright Jingga
  * @license   OMS License 2.0
  * @link      https://jingga.app
@@ -18,6 +20,7 @@
 #include "../RenderUtils.h"
 #include "Opengl.h"
 #include "PersistentGpuBuffer.h"
+#include "OpenglAtlasCache.h"
 
 /**
  * OpenGL has a concept called DSA where you can interact with buffers and rendering objects in general
@@ -543,12 +546,14 @@ void gpuapi_buffer_persistent_generate_legacy(int32 type, PersistentGpuBuffer* c
 }
 
 inline
-uint32 gpuapi_buffer_generate(int32 size, const void* data) NO_EXCEPT
+uint32 gpuapi_buffer_generate_static(int32 size, const void* data) NO_EXCEPT
 {
     uint32 bo;
 
     glCreateBuffers(1, &bo);
-    glNamedBufferData(bo, size, data, GL_STATIC_DRAW);
+
+    // Uses fixed size buffer that can be updated
+    glNamedBufferStorage(bo, size, data, GL_DYNAMIC_STORAGE_BIT);
 
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
     STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, size);
@@ -785,7 +790,7 @@ void gpuapi_vertex_array_delete(GLuint buffer) NO_EXCEPT
 }
 
 inline
-int32 get_gpu_free_memory() NO_EXCEPT
+int32 gpuapi_free_memory_get() NO_EXCEPT
 {
     GLint available = 0;
     glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &available);
@@ -799,17 +804,18 @@ int32 get_gpu_free_memory() NO_EXCEPT
     return available;
 }
 
-/*
-void render_9_patch(GLuint texture,
-    int32 imgWidth, int32 imgHeight,
-    int32 img_x1, int32 img_x2,
-    int32 img_y1, int32 img_y2,
-    int32 renderWidth, int32 renderHeight,
-    int32 repeat
-)
+inline
+void gpuapi_binds_cache(int* fbo, int* viewport) NO_EXCEPT
 {
-
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, fbo);
+    glGetIntegerv(GL_VIEWPORT, viewport);
 }
-*/
+
+inline
+void gpuapi_binds_restore(int fbo, int* viewport) NO_EXCEPT
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, (GLuint) fbo);
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+}
 
 #endif

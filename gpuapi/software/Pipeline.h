@@ -13,7 +13,7 @@
 
 // Unfortunately we have to forward declare this since:
 //      The shader func needs this struct
-//      The SoftwareRenderer needs the Shader struct
+//      The SoftwareRenderer needs the Pipeline struct
 // This results in a circular dependency
 struct SoftwareRenderer;
 
@@ -30,7 +30,7 @@ typedef void (*SoftShaderFunc)(
     int32 steps
 ) NO_EXCEPT;
 
-struct Shader {
+struct Pipeline {
     uint32 id;
 
     SoftwareDescriptorSetLayoutBinding descriptor_set_layout[12];

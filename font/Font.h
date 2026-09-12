@@ -29,6 +29,11 @@ struct Glyph {
     v2_f32 uv_end;
 };
 
+enum FontGlyphOrderType : uint16 {
+    FONT_GLYPH_ORDER_TYPE_NORMAL,
+    FONT_GLYPH_ORDER_TYPE_EYTZINGER
+};
+
 struct Font {
     // The data before the glyphs can be considered header data
 
@@ -36,9 +41,8 @@ struct Font {
     char texture_name[32];
     Texture* texture;
 
-    // @question Consider to make 16bit int (we internally don't support more than 2^16 - 1)
-    //          Currently we wouldn't save any bytes due to padding
-    uint32 glyph_count;
+    uint16 glyph_count;
+    FontGlyphOrderType order_type;
 
     // Default font size at which the font renders best
     f32 size;

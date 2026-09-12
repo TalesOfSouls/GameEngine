@@ -24,18 +24,6 @@ void camera_frustum_update(Camera* const camera) NO_EXCEPT
     const v3_f32 up = camera->up;
     const v3_f32 right = camera->right;
 
-    // Near and far plane centers
-    const v3_f32 near_center = {
-        pos.x + front.x * camera->znear,
-        pos.y + front.y * camera->znear,
-        pos.z + front.z * camera->znear
-    };
-    const v3_f32 far_center = {
-        pos.x + front.x * camera->zfar,
-        pos.y + front.y * camera->zfar,
-        pos.z + front.z * camera->zfar
-    };
-
     // Precompute near/far plane half extents
     const f32 tan_fov = tanf(camera->fov * 0.5f);
     const f32 fh = camera->zfar * tan_fov;
@@ -43,24 +31,21 @@ void camera_frustum_update(Camera* const camera) NO_EXCEPT
 
     // Precompute scaled basis vectors to avoid multiple v3_scale calls
     const v3_f32 up_fh = { up.x * fh, up.y * fh, up.z * fh };
-    const v3_f32 up_negfh = { -up_fh.x, -up_fh.y, -up_fh.z };
-
     const v3_f32 right_fw = { right.x * fw, right.y * fw, right.z * fw };
-    const v3_f32 right_negfw = { -right_fw.x, -right_fw.y, -right_fw.z };
 
-    const v3_f32 fc_up = vec3_add(far_center, up_fh);
-    const v3_f32 fc_down = vec3_add(far_center, up_negfh);
+    // front * zfar this is (far_center - pos), so everything built from
+    // it below is already pos-relative and never needs pos added in and
+    // then subtracted back out
+    const v3_f32 front_zfar = { front.x * camera->zfar, front.y * camera->zfar, front.z * camera->zfar };
 
-    // Compute far plane corners using the pre-shifted positions
-    const v3_f32 ftl = vec3_add(fc_up, right_negfw);
-    const v3_f32 ftr = vec3_add(fc_up, right_fw);
-    const v3_f32 fbl = vec3_add(fc_down, right_negfw);
-    const v3_f32 fbr = vec3_add(fc_down, right_fw);
+    const v3_f32 fc_up = vec3_add(front_zfar, up_fh);
+    const v3_f32 fc_down = vec3_sub(front_zfar, up_fh);
 
-    const v3_f32 ftl_r = vec3_sub(ftl, pos);
-    const v3_f32 ftr_r = vec3_sub(ftr, pos);
-    const v3_f32 fbl_r = vec3_sub(fbl, pos);
-    const v3_f32 fbr_r = vec3_sub(fbr, pos);
+    // Far plane corners, relative to pos
+    const v3_f32 ftl_r = vec3_sub(fc_up, right_fw);
+    const v3_f32 ftr_r = vec3_add(fc_up, right_fw);
+    const v3_f32 fbl_r = vec3_sub(fc_down, right_fw);
+    const v3_f32 fbr_r = vec3_add(fc_down, right_fw);
 
     // Left plane: cross( ftl - pos, fbl - pos )
     v3_f32 cross = vec3_cross(ftl_r, fbl_r);
@@ -90,16 +75,21 @@ void camera_frustum_update(Camera* const camera) NO_EXCEPT
         -(cross.x * pos.x + cross.y * pos.y + cross.z * pos.z)
     };
 
+    // front is unit length, so front·(pos + front*d) == front·pos + d
+    // Compute the shared dot product once instead of building
+    // near_center/far_center vectors and dotting each separately
+    const f32 front_dot_pos = vec3_dot(front, pos);
+
     // Near plane: normal = front
     camera->frustum.eq[4] = {
         front.x, front.y, front.z,
-        -(front.x * near_center.x + front.y * near_center.y + front.z * near_center.z)
+        -(front_dot_pos + camera->znear)
     };
 
     // Far plane: normal = -front
     camera->frustum.eq[5] = {
         -front.x, -front.y, -front.z,
-        (front.x * far_center.x + front.y * far_center.y + front.z * far_center.z)
+        front_dot_pos + camera->zfar
     };
 }
 
@@ -160,10 +150,6 @@ void camera_vectors_update(Camera* const camera) NO_EXCEPT
     camera->front = quat_rotate_vec3(q, { 0.0f, 0.0f, -1.0f });
     camera->right = quat_rotate_vec3(q, { 1.0f, 0.0f,  0.0f });
     camera->up    = quat_rotate_vec3(q, { 0.0f, 1.0f,  0.0f });
-
-    vec3_normalize(&camera->front);
-    vec3_normalize(&camera->right);
-    vec3_normalize(&camera->up);
 }
 
 inline HOT_CODE
@@ -178,7 +164,7 @@ void camera_rotate(Camera* const camera, int32 dx, int32 dy) NO_EXCEPT
     const quaternion qyaw = quat_axis_angle(camera->world_up, yaw);
 
     // current right vector (derived from orientation)
-    const v3_f32 right = quat_rotate_vec3(camera->orientation, {1.0f, 0.0f, 0.0f});
+    const v3_f32 right = camera->right;
     const quaternion qpitch = quat_axis_angle(right, pitch);
 
     // orientation = yaw * pitch * current
