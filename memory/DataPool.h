@@ -43,8 +43,8 @@ void pool_alloc(DataPool* buf, uint32 capacity, int32 chunk_size, int32 alignmen
     LOG_1("[INFO] Allocating DataPool");
 
     const size_t size = capacity * chunk_size
-        + sizeof(size_t) * ceil_div(capacity, (uint32) (sizeof(size_t) * 8)) // free
-        + sizeof(size_t) * ceil_div(capacity, (uint32) (sizeof(size_t) * 8)) // used
+        + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity) // free
+        + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity) // used
         + alignof(size_t) * 3; // overhead for alignment
 
     buf->memory = (byte *) platform_alloc_aligned(size, size, alignment);
@@ -55,8 +55,8 @@ void pool_alloc(DataPool* buf, uint32 capacity, int32 chunk_size, int32 alignmen
     buf->last_pos = -1;
     buf->alignment = alignment;
 
-    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * chunk_size), alignof(size_t));
-    buf->used = (size_t *) align_up((uintptr_t) (buf->free + capacity), alignof(size_t));
+    buf->free = (size_t *) ALIGN_UP((uintptr_t) (buf->memory + capacity * chunk_size), alignof(size_t));
+    buf->used = (size_t *) ALIGN_UP((uintptr_t) (buf->free + capacity), alignof(size_t));
 
     memset(buf->memory, 0, buf->size);
 
@@ -69,11 +69,11 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 capacity, int32 chunk_s
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(capacity);
 
-    chunk_size = align_up(chunk_size, alignment);
+    chunk_size = ALIGN_UP(chunk_size, alignment);
 
     size_t size = capacity * chunk_size
-        + sizeof(size_t) * ceil_div(capacity, (uint32) (sizeof(size_t) * 8)) // free
-        + sizeof(size_t) * ceil_div(capacity, (uint32) (sizeof(size_t) * 8)) // used
+        + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity) // free
+        + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity) // used
         + alignof(size_t) * 3; // overhead for alignment
 
     buf->memory = memory_get(data, size);
@@ -84,8 +84,8 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 capacity, int32 chunk_s
     buf->last_pos = -1;
     buf->alignment = alignment;
 
-    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * chunk_size), alignof(size_t));
-    buf->used = (size_t *) align_up((uintptr_t) (buf->free + capacity), alignof(size_t));
+    buf->free = (size_t *) ALIGN_UP((uintptr_t) (buf->memory + capacity * chunk_size), alignof(size_t));
+    buf->used = (size_t *) ALIGN_UP((uintptr_t) (buf->free + capacity), alignof(size_t));
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -96,14 +96,14 @@ void pool_init(DataPool* buf, byte* data, uint32 capacity, int32 chunk_size, int
     ASSERT_TRUE(chunk_size);
     ASSERT_TRUE(capacity);
 
-    chunk_size = align_up(chunk_size, alignment);
+    chunk_size = ALIGN_UP(chunk_size, alignment);
 
     size_t size = capacity * chunk_size
-        + sizeof(size_t) * ceil_div(capacity, (uint32) (sizeof(size_t) * 8)) // free
-        + sizeof(size_t) * ceil_div(capacity, (uint32) (sizeof(size_t) * 8)) // used
+        + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity) // free
+        + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity) // used
         + alignof(size_t) * 3; // overhead for alignment
 
-    buf->memory = align_up(data, alignment);
+    buf->memory = ALIGN_UP(data, alignment);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -111,8 +111,8 @@ void pool_init(DataPool* buf, byte* data, uint32 capacity, int32 chunk_size, int
     buf->last_pos = -1;
     buf->alignment = alignment;
 
-    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * chunk_size), alignof(size_t));
-    buf->used = (size_t *) align_up((uintptr_t) (buf->free + capacity), alignof(size_t));
+    buf->free = (size_t *) ALIGN_UP((uintptr_t) (buf->memory + capacity * chunk_size), alignof(size_t));
+    buf->used = (size_t *) ALIGN_UP((uintptr_t) (buf->free + capacity), alignof(size_t));
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }

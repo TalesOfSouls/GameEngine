@@ -39,12 +39,12 @@ void* platform_alloc_aligned(
         _page_size = (int32)sysconf(_SC_PAGESIZE);
     }
 
-    reserve_size = align_up(
+    reserve_size = ALIGN_UP(
         reserve_size + sizeof(platform_alloc_header) + sizeof(void*) + alignment,
         _page_size
     );
 
-    initial_size = align_up(
+    initial_size = ALIGN_UP(
         initial_size + sizeof(platform_alloc_header) + sizeof(void*) + alignment,
         _page_size
     );
@@ -70,7 +70,7 @@ void* platform_alloc_aligned(
     hdr->committed_size = initial_size;
 
     uintptr_t raw = (uintptr_t)base + sizeof(platform_alloc_header) + sizeof(void*);
-    void* aligned = (void*)align_up(raw, alignment);
+    void* aligned = (void*)ALIGN_UP(raw, alignment);
 
     ((void**)aligned)[-1] = base;
 
@@ -91,7 +91,7 @@ bool platform_alloc_aligned_grow(void* aligned_ptr, size_t new_user_size) NO_EXC
     platform_alloc_header* hdr = (platform_alloc_header *) base;
 
     // Calculate new committed size including header and alignment
-    const size_t new_committed = align_up(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
+    const size_t new_committed = ALIGN_UP(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
 
     ASSERT_TRUE(new_committed > hdr->committed_size);
     ASSERT_TRUE(new_committed <= hdr->reserved_size);
@@ -119,7 +119,7 @@ bool platform_alloc_aligned_shrink(void* aligned_ptr, size_t new_user_size) NO_E
     void* base = ((void**)aligned_ptr)[-1];
     platform_alloc_header* hdr = (platform_alloc_header *) base;
 
-    const size_t new_committed = align_up(new_user_size + sizeof(platform_alloc_header), _page_size);
+    const size_t new_committed = ALIGN_UP(new_user_size + sizeof(platform_alloc_header), _page_size);
 
     ASSERT_TRUE(new_committed < hdr->committed_size);
 
@@ -181,11 +181,11 @@ void* platform_shared_alloc(
     *fd = shm_open(name, O_CREAT | O_RDWR, 0666);
     ASSERT_TRUE(*fd != -1);
 
-    reserve_size = align_up(
+    reserve_size = ALIGN_UP(
         reserve_size + sizeof(platform_alloc_header),
         _page_size
     );
-    initial_size = align_up(
+    initial_size = ALIGN_UP(
         initial_size + sizeof(platform_alloc_header),
         _page_size
     );
@@ -225,7 +225,7 @@ bool platform_shared_alloc_grow(
 
     platform_alloc_header* hdr = (platform_alloc_header*)((uintptr_t)ptr - sizeof(platform_alloc_header));
 
-    const size_t new_committed = align_up(new_size + sizeof(platform_alloc_header), _page_size);
+    const size_t new_committed = ALIGN_UP(new_size + sizeof(platform_alloc_header), _page_size);
 
     ASSERT_TRUE(new_committed > hdr->committed_size);
     ASSERT_TRUE(new_committed <= hdr->reserved_size);
@@ -257,7 +257,7 @@ bool platform_shared_alloc_shrink(
         (platform_alloc_header*)((uintptr_t)ptr - sizeof(platform_alloc_header));
 
     const size_t new_committed =
-        align_up(new_size + sizeof(platform_alloc_header), _page_size);
+        ALIGN_UP(new_size + sizeof(platform_alloc_header), _page_size);
 
     ASSERT_TRUE(new_committed < hdr->committed_size);
 
@@ -289,7 +289,7 @@ void* platform_shared_open(int32* __restrict fd, const char* __restrict name, si
     *fd = shm_open(name, O_RDWR, 0666);
     ASSERT_TRUE(*fd != -1);
 
-    size = align_up(size + sizeof(size_t), _page_size);
+    size = ALIGN_UP(size + sizeof(size_t), _page_size);
 
     void* shm_ptr = mmap(NULL, size, PROT_READ, MAP_SHARED, *fd, 0);
     ASSERT_TRUE(shm_ptr);

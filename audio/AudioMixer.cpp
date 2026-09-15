@@ -130,7 +130,7 @@ int32 apply_speed(int16* buffer, int32 buffer_size, f32 speed) NO_EXCEPT
     }
 
     // Has to be multiple of 2 to ensure stereo is implemented correctly
-    const int new_size = align_up((int) (buffer_size / speed), 2);
+    const int new_size = ALIGN_UP((int) (buffer_size / speed), 2);
 
     // Speed up
     if (speed > 1.0f) {

@@ -326,7 +326,7 @@ void image_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
     image->pixel_count = image->width * image->height;
 
     // rows are 4 bytes multiples in length
-    const uint32 width = align_up(src.dib_header.width, 4);
+    const uint32 width = ALIGN_UP(src.dib_header.width, 4);
 
     const uint32 pixel_bytes = src.dib_header.bits_per_pixel / 8;
     const byte alpha_offset = pixel_bytes > 3;

@@ -237,7 +237,7 @@ void http_header_value_set(
 
 HttpRequest* http_request_create(ThrdChunkMemory* mem)
 {
-    int32 request_buffer_count = ceil_div(sizeof(HttpRequest) + MIN_HTTP_REQUEST_CONTENT, mem->chunk_size);
+    int32 request_buffer_count = CEIL_DIV(sizeof(HttpRequest) + MIN_HTTP_REQUEST_CONTENT, mem->chunk_size);
     int32 request_buffer_id = thrd_chunk_reserve(mem, request_buffer_count);
     HttpRequest* request = (HttpRequest *) thrd_chunk_element_get(mem, request_buffer_id);
 

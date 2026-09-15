@@ -29,7 +29,7 @@ void buffer_init(
     ASSERT_TRUE(size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
+    buf->memory = (byte *) ALIGN_UP((uintptr_t) data, start_alignment);
 
     buf->end = buf->memory + size;
     buf->head = buf->memory;
@@ -55,8 +55,8 @@ void buffer_alloc(
     ASSERT_TRUE(max_size >= size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    size = align_up(size, ASSUMED_CACHE_LINE_SIZE);
-    max_size = align_up(max_size, ASSUMED_CACHE_LINE_SIZE);
+    size = ALIGN_UP(size, ASSUMED_CACHE_LINE_SIZE);
+    max_size = ALIGN_UP(max_size, ASSUMED_CACHE_LINE_SIZE);
     LOG_1("[INFO] Allocating BufferMemory: %n B", {DATA_TYPE_UINT64, &size});
 
     byte* buffer = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
@@ -93,8 +93,8 @@ void buffer_alloc(
     ASSERT_TRUE(max_size >= size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    size = align_up(size, ASSUMED_CACHE_LINE_SIZE);
-    max_size = align_up(max_size, ASSUMED_CACHE_LINE_SIZE);
+    size = ALIGN_UP(size, ASSUMED_CACHE_LINE_SIZE);
+    max_size = ALIGN_UP(max_size, ASSUMED_CACHE_LINE_SIZE);
     LOG_1("[INFO] Allocating BufferMemory: %n B", {DATA_TYPE_UINT64, &size});
 
     MemoryArena* arena = mem_arena_add(
@@ -182,8 +182,8 @@ byte* memory_get(BufferMemory* const buf, size_t size, int32 alignment = sizeof(
 {
     ASSERT_TRUE(size <= buf->size);
 
-    buf->head = (byte *) align_up((uintptr_t) buf->head, alignment);
-    size = align_up(size, alignment);
+    buf->head = (byte *) ALIGN_UP((uintptr_t) buf->head, alignment);
+    size = ALIGN_UP(size, alignment);
 
     ASSERT_TRUE(buf->head + size <= buf->end);
 
@@ -208,8 +208,8 @@ byte* memory_get_temp(BufferMemory* const buf, size_t size, int32 alignment = si
 {
     ASSERT_TRUE(size <= buf->size);
 
-    byte* head_temp = (byte *) align_up((uintptr_t) buf->head, alignment);
-    size = align_up(size, alignment);
+    byte* head_temp = (byte *) ALIGN_UP((uintptr_t) buf->head, alignment);
+    size = ALIGN_UP(size, alignment);
 
     ASSERT_TRUE(head_temp + size <= buf->end);
 

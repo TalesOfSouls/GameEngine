@@ -86,7 +86,7 @@ void theme_from_file_txt(
         &theme->hash_map,
         temp_group_count * 2,
         theme->data,
-        align_up((int32) sizeof(HashEntryStrT<int32>), 32)
+        ALIGN_UP((int32) sizeof(HashEntryStrT<int32>), 32)
     );
     int32 data_offset = (int32) hashmap_size(&theme->hash_map);
 
@@ -140,13 +140,13 @@ void theme_from_file_txt(
                 if (temp_group) {
                     // Before we insert a new group we have to sort the attributes of the PREVIOUS temp_group
                     // since this makes searching them later on more efficient.
-                    UIAttribute* attribute_start = (UIAttribute *) align_up((uintptr_t) (temp_group + 1), alignof(UIAttribute));
+                    UIAttribute* attribute_start = (UIAttribute *) ALIGN_UP((uintptr_t) (temp_group + 1), alignof(UIAttribute));
                     sort_introsort(attribute_start, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
                     // @todo This is where we create the Eytzinger order if we want to use it
                 }
 
                 // Insert new group
-                data_offset = (int32) ((uintptr_t) align_up((uintptr_t) theme->data + data_offset, alignof(UIAttributeGroup))
+                data_offset = (int32) ((uintptr_t) ALIGN_UP((uintptr_t) theme->data + data_offset, alignof(UIAttributeGroup))
                     - (uintptr_t) theme->data);
                 hashmap_insert(&theme->hash_map, block_name, data_offset);
 
@@ -185,7 +185,7 @@ void theme_from_file_txt(
         // Again, currently this if check is redundant but it wasn't in the past and we may need it again in the future.
         if (block_name[0] == '#' || block_name[0] == '.') {
             // Named block
-            UIAttribute* attribute_reference = (UIAttribute *) align_up((uintptr_t) (temp_group + 1), alignof(UIAttribute));
+            UIAttribute* attribute_reference = (UIAttribute *) ALIGN_UP((uintptr_t) (temp_group + 1), alignof(UIAttribute));
             // @question Why are we even doing this? couldn't we just pass this offset to the ui_attribute_parse_value() function?
             // @bug I also think that this is no longer the correct format, Shouldn't it just store the UIElement stuff?
             memcpy(
@@ -204,7 +204,7 @@ void theme_from_file_txt(
     theme->used_data_size = data_offset;
 
     // We still need to sort the last group
-    UIAttribute* attribute_start = (UIAttribute *) align_up((uintptr_t) (temp_group + 1), alignof(UIAttribute));
+    UIAttribute* attribute_start = (UIAttribute *) ALIGN_UP((uintptr_t) (temp_group + 1), alignof(UIAttribute));
     sort_introsort(attribute_start, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
     // @todo This is where we create the Eytzinger order if we want to use it
 }
@@ -219,7 +219,7 @@ void ui_theme_parse_group(const HashEntryStrT<int32>* entry, byte* data, const b
     group->attribute_count = SWAP_ENDIAN_LITTLE(*((int32 *) *in));
     *in += sizeof(group->attribute_count);
 
-    UIAttribute* attribute_reference = (UIAttribute *) align_up((uintptr_t) (group + 1), alignof(UIAttribute));
+    UIAttribute* attribute_reference = (UIAttribute *) ALIGN_UP((uintptr_t) (group + 1), alignof(UIAttribute));
     ASSERT_STRICT(((uintptr_t) attribute_reference) % 4 == 0);
 
     for (int32 j = 0; j < group->attribute_count; ++j) {
@@ -348,7 +348,7 @@ void ui_theme_serialize_group(const HashEntryStrT<int32>* entry, const byte* dat
     *((int32 *) *out) = SWAP_ENDIAN_LITTLE(group->attribute_count);
     *out += sizeof(group->attribute_count);
 
-    UIAttribute* attribute_reference = (UIAttribute *) align_up((uintptr_t) (group + 1), alignof(UIAttribute));
+    UIAttribute* attribute_reference = (UIAttribute *) ALIGN_UP((uintptr_t) (group + 1), alignof(UIAttribute));
     ASSERT_STRICT(((uintptr_t) attribute_reference) % 4 == 0);
 
     f32 tempf32;

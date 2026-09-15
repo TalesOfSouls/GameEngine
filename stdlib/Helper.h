@@ -46,6 +46,11 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 
 #define ARRAY_COUNT_MEMBER(type, member) array_count_helper(((type*)0)->member)
 
+#define OMS_ABS_I8(x) (((int8_t)(x) ^ ((int8_t)(x) >> 7)) - ((int8_t)(x) >> 7))
+#define OMS_ABS_I16(x) (((int16_t)(x) ^ ((int16_t)(x) >> 15)) - ((int16_t)(x) >> 15))
+#define OMS_ABS_I32(x) (((int32_t)(x) ^ ((int32_t)(x) >> 31)) - ((int32_t)(x) >> 31))
+#define OMS_ABS_I64(x) (((int64_t)(x) ^ ((int64_t)(x) >> 63)) - ((int64_t)(x) >> 63))
+
 // Math operations
 // Only useful if n is a variable BUT you as programmer know the form of the value
 #define OMS_POW2_I64(n) (1ULL << (n))
@@ -66,13 +71,8 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 #define OMS_SIGN_32(x) (1 | ((x) >> 31 << 1))
 #define OMS_SIGN_64(x) (1LL | ((x) >> 63 << 1))
 
-template <typename T>
-FORCE_INLINE CONSTEXPR T align_up(T x, size_t align) NO_EXCEPT
-{ return (T) ((x + (align - 1)) & ~(align - 1)); }
-
-template <typename T>
-FORCE_INLINE CONSTEXPR T align_down(T x, size_t align) NO_EXCEPT
-{ return (T)(x & ~(align - 1)); }
+#define ALIGN_UP(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
+#define ALIGN_DOWN(x, align) ((x) & ~((align) - 1))
 
 #define OMS_IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
 

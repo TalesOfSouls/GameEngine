@@ -40,11 +40,11 @@ void* platform_alloc_aligned(
         _page_size = si.dwPageSize;
     }
 
-    initial_size = align_up(
+    initial_size = ALIGN_UP(
         initial_size + sizeof(platform_alloc_header) + sizeof(void*) + alignment,
         _page_size
     );
-    reserve_size = align_up(
+    reserve_size = ALIGN_UP(
         reserve_size + sizeof(platform_alloc_header) + sizeof(void*) + alignment,
         _page_size
     );
@@ -63,7 +63,7 @@ void* platform_alloc_aligned(
     hdr->committed_size = initial_size;
 
     uintptr_t raw = (uintptr_t)base + sizeof(platform_alloc_header) + sizeof(void*);
-    void* aligned = (void*) align_up(raw, alignment);
+    void* aligned = (void*) ALIGN_UP(raw, alignment);
 
     // store base for freeing
     ((void**)aligned)[-1] = base;
@@ -84,7 +84,7 @@ bool platform_alloc_aligned_grow(void* aligned_ptr, size_t new_user_size) NO_EXC
     platform_alloc_header* hdr = (platform_alloc_header *) base;
 
     // Calculate new committed size including header and alignment
-    const size_t new_committed = align_up(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
+    const size_t new_committed = ALIGN_UP(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
 
     ASSERT_TRUE(new_committed > hdr->committed_size);
     ASSERT_TRUE(new_committed <= hdr->reserved_size);
@@ -120,7 +120,7 @@ bool platform_alloc_aligned_shrink(void* aligned_ptr, size_t new_user_size) NO_E
     void* base = ((void**)aligned_ptr)[-1];
     platform_alloc_header* hdr = (platform_alloc_header *) base;
 
-    const size_t new_committed = align_up(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
+    const size_t new_committed = ALIGN_UP(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
 
     ASSERT_TRUE(new_committed < hdr->committed_size);
 
@@ -150,7 +150,7 @@ bool platform_alloc_aligned_resize(void* aligned_ptr, size_t new_user_size) NO_E
     platform_alloc_header* hdr = (platform_alloc_header *) base;
 
     // Calculate new committed size including header and alignment
-    const size_t new_committed = align_up(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
+    const size_t new_committed = ALIGN_UP(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
 
     if (new_committed == hdr->committed_size) {
         return true;
@@ -197,8 +197,8 @@ void* platform_shared_alloc(
         _page_size = si.dwPageSize;
     }
 
-    initial_size = align_up(initial_size + sizeof(platform_alloc_header), _page_size);
-    reserve_size = align_up(reserve_size + sizeof(platform_alloc_header), _page_size);
+    initial_size = ALIGN_UP(initial_size + sizeof(platform_alloc_header), _page_size);
+    reserve_size = ALIGN_UP(reserve_size + sizeof(platform_alloc_header), _page_size);
 
     ASSERT_TRUE(initial_size <= reserve_size);
 
@@ -231,7 +231,7 @@ bool platform_shared_alloc_grow(void* shm_ptr, size_t new_user_size) NO_EXCEPT
     platform_alloc_header* base_hdr = (platform_alloc_header*)((uintptr_t)shm_ptr - sizeof(platform_alloc_header));
     platform_alloc_header* hdr = base_hdr;
 
-    const size_t new_committed = align_up(new_user_size + sizeof(platform_alloc_header), _page_size);
+    const size_t new_committed = ALIGN_UP(new_user_size + sizeof(platform_alloc_header), _page_size);
 
     ASSERT_TRUE(new_committed > hdr->committed_size);
     ASSERT_TRUE(new_committed <= hdr->reserved_size);
@@ -265,7 +265,7 @@ bool platform_shared_alloc_shrink(void* shm_ptr, size_t new_user_size) NO_EXCEPT
     platform_alloc_header* base_hdr = (platform_alloc_header*)((uintptr_t)shm_ptr - sizeof(platform_alloc_header));
     platform_alloc_header* hdr = base_hdr;
 
-    const size_t new_committed = align_up(new_user_size + sizeof(platform_alloc_header), _page_size);
+    const size_t new_committed = ALIGN_UP(new_user_size + sizeof(platform_alloc_header), _page_size);
 
     ASSERT_TRUE(new_committed < hdr->committed_size);
 

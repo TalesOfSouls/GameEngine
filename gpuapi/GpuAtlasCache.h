@@ -19,25 +19,31 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../stdlib/ThrdHashMapT.h"
+#include "../thread/Atomic.h"
+#include "../thread/Spinlock.h"
 
 struct GpuAtlasRect {
-    v2_uint16 dim;
+    v4_uint16 dim;
 
     // References the atlas element
-    uint16 element;
+    // In reality we don't even need this since this is can be calculated by
+    // dim.x and min_dim as its element id is the top left corner of the rect
+    uint32 element_id;
 };
 
 struct GpuAtlasElement {
+    v4_uint16 dim;
     uint16 uv_count;
 
     // Offset into "uv" in the TextureAtlas struct
     uint16 uv_start;
 
     uint16 last_frame_used;
+    atomic<bool> completed;
 };
 
 struct GpuAtlasCache {
-    ThrdHashMapT<ThrdHashEntryT<uint64, uint16>> hm;
+    HashMapT<HashEntryT<uint32, uint16>> hm;
 
     /**
      * The strategy is to divide a large rect into smaller rects whenever we add content.
@@ -58,16 +64,26 @@ struct GpuAtlasCache {
      */
     // The smallest dim defines the smallest chunk which is also used for the box incremental
     // This means the box MUST be a multiple of smallest_dim
-    uint16 smallest_dim;
-    v2_uint16 dim;
+    uint16 min_dim;
+    uint16 dim;
 
-    // The element count is defined by the size of the smallest_dim
-    GpuAtlasRect* free_frects;
+    // element_capacity also represents the length of free_rects
+    uint16 element_capacity;
 
-    int32 element_capacity;
+    // Currently available free rects
+    uint16 free_count;
 
+    uint64* changed;
+
+    // The element count is indirectly defined by the size of the smallest_dim together with the dim
+    // element count = dim.x / smallest_dim
+    GpuAtlasRect* free_rects;
     GpuAtlasElement* elements;
     v2_f32* uv;
+
+    spinlock32 lock;
+
+    // @todo we need a way to track changed elements so we can update the cpu cache only for changed elements
 };
 
 #endif

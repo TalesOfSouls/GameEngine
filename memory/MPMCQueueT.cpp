@@ -19,9 +19,9 @@ void queue_init(MPMCQueueT<T>* const queue, byte* buf, int capacity, uint32 alig
 
     queue->capacity = capacity;
     queue->mask = capacity - 1;
-    queue->memory = (T *) align_up((uintptr_t) buf, alignment);
+    queue->memory = (T *) ALIGN_UP((uintptr_t) buf, alignment);
 
-    queue->sequence = (atomic<size_t> *) align_up(
+    queue->sequence = (atomic<size_t> *) ALIGN_UP(
         queue->memory + queue->capacity * sizeof(T),
         ASSUMED_CACHE_LINE_SIZE
     );

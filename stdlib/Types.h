@@ -165,6 +165,19 @@ struct v4_int16 {
     };
 };
 
+struct v4_uint16 {
+    union {
+        struct {
+            uint16 x, y;
+
+            union { uint16 z, width; };
+            union { uint16 w, height; };
+        };
+
+        uint16 vec[4];
+    };
+};
+
 struct v2_int32 {
     union {
         struct { int32 x, y; };

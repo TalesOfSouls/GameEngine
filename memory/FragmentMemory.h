@@ -48,7 +48,7 @@ struct FragmentMemory {
 static FORCE_INLINE
 int32 fragment_size_element(int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    return align_up(element_size, alignment);
+    return ALIGN_UP(element_size, alignment);
 }
 
 FORCE_INLINE
@@ -90,7 +90,7 @@ void fragment_alloc(
     fragment->chunk_size = element_size;
     fragment->last_pos = count - 1;
     fragment->alignment = alignment;
-    fragment->free = (int32 *) align_up(
+    fragment->free = (int32 *) ALIGN_UP(
         (size_t) ((uintptr_t) (fragment->memory + count * element_size)),
         (size_t) alignof(int32)
     );
@@ -131,7 +131,7 @@ void fragment_alloc(
     fragment->chunk_size = element_size;
     fragment->last_pos = count - 1;
     fragment->alignment = alignment;
-    fragment->free = (int32 *) align_up(
+    fragment->free = (int32 *) ALIGN_UP(
         (size_t) ((uintptr_t) (fragment->memory + count * element_size)),
         (size_t) alignof(int32)
     );

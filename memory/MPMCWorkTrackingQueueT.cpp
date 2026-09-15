@@ -38,7 +38,7 @@ void queue_init(MPMCWorkTrackingQueueT<T>* queue, void* buf, int32 capacity, int
 {
     queue->capacity = queue_next_pow2((uint32) capacity);
     queue->capacity_mask = queue->capacity - 1;
-    queue->memory = (Slot<T> *) align_up((uintptr_t) buf, (size_t) alignment);
+    queue->memory = (Slot<T> *) ALIGN_UP((uintptr_t) buf, (size_t) alignment);
 
     // Initial turn == index means writable/cycle 0
     for (int i = 0; i < queue->capacity; ++i) {

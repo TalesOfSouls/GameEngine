@@ -33,8 +33,8 @@ void ring_init(
     ASSERT_TRUE(size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    size = align_up(size, (size_t) alignment);
-    ring->memory = (byte *) align_up((uintptr_t) buf, (size_t) alignment);
+    size = ALIGN_UP(size, (size_t) alignment);
+    ring->memory = (byte *) ALIGN_UP((uintptr_t) buf, (size_t) alignment);
 
     ring->end = ring->memory + size;
     ring->head = ring->memory;
@@ -53,7 +53,7 @@ void ring_alloc(RingMemory* const ring, size_t size, size_t max_size, int32 alig
     ASSERT_TRUE(alignment % sizeof(int) == 0);
     PROFILE_DEBUG(PROFILE_RING_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
 
-    size = align_up(size, ASSUMED_CACHE_LINE_SIZE);
+    size = ALIGN_UP(size, ASSUMED_CACHE_LINE_SIZE);
     LOG_1("[INFO] Allocating RingMemory: %n B", {DATA_TYPE_UINT64, &size});
 
     byte* buffer = (byte *) platform_alloc_aligned(size, max_size, alignment);
@@ -73,7 +73,7 @@ void ring_alloc(
     ASSERT_TRUE(max_size >= size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    size = align_up(size, (size_t) alignment);
+    size = ALIGN_UP(size, (size_t) alignment);
     MemoryArena* const arena = mem_arena_add(mem, size, max_size, alignment);
     ring_init(ring, arena->memory, size, alignment);
 
@@ -91,7 +91,7 @@ void ring_init(
     ASSERT_TRUE(size);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    size = align_up(size, (size_t) alignment);
+    size = ALIGN_UP(size, (size_t) alignment);
     byte* buffer = memory_get(buf, size, alignment);
     ring_init(ring, buffer, size, alignment);
 
@@ -178,11 +178,11 @@ byte* ring_calculate_position(
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
-    byte* head = (byte *) align_up((uintptr_t) ring->head, alignment);
-    size = align_up(size, (size_t) alignment);
+    byte* head = (byte *) ALIGN_UP((uintptr_t) ring->head, alignment);
+    size = ALIGN_UP(size, (size_t) alignment);
 
     if (head + size > ring->end) UNLIKELY {
-        head = (byte *) align_up((uintptr_t) ring->memory, alignment);
+        head = (byte *) ALIGN_UP((uintptr_t) ring->memory, alignment);
     }
 
     return head;
@@ -220,11 +220,11 @@ void ring_move_pointer(RingMemory* const ring, byte** pos, size_t size, int32 al
     // However, we better do it once here than manually in every place that uses this function
     DEBUG_MEMORY_READ((uintptr_t) *pos, size);
 
-    *pos = (byte *) align_up((uintptr_t) *pos, alignment);
-    size = align_up(size, (size_t) alignment);
+    *pos = (byte *) ALIGN_UP((uintptr_t) *pos, alignment);
+    size = ALIGN_UP(size, (size_t) alignment);
 
     if (*pos + size > ring->end) UNLIKELY {
-        *pos = (byte *) align_up((uintptr_t) ring->memory, alignment);
+        *pos = (byte *) ALIGN_UP((uintptr_t) ring->memory, alignment);
     }
 
     *pos += size;
@@ -262,13 +262,13 @@ byte* memory_get(RingMemory* const ring, size_t size, int32 alignment = sizeof(s
 {
     ASSERT_TRUE(size <= ring->size);
 
-    size = align_up(size, (size_t) alignment);
+    size = ALIGN_UP(size, (size_t) alignment);
 
-    ring->head = (byte *) align_up((uintptr_t) ring->head, alignment);
+    ring->head = (byte *) ALIGN_UP((uintptr_t) ring->head, alignment);
     if (ring->head + size > ring->end) UNLIKELY {
         ring_reset(ring);
 
-        ring->head = (byte *) align_up((uintptr_t) ring->head, alignment);
+        ring->head = (byte *) ALIGN_UP((uintptr_t) ring->head, alignment);
     }
 
     DEBUG_MEMORY_WRITE((uintptr_t) ring->head, size);
@@ -287,12 +287,12 @@ byte* memory_get_temp(RingMemory* const ring, size_t size, int32 alignment = siz
 {
     ASSERT_TRUE(size <= ring->size);
 
-    size = align_up(size, (size_t) alignment);
+    size = ALIGN_UP(size, (size_t) alignment);
 
-    byte* head_temp = (byte *) align_up((uintptr_t) ring->head, alignment);
+    byte* head_temp = (byte *) ALIGN_UP((uintptr_t) ring->head, alignment);
     if (head_temp + size > ring->end) UNLIKELY {
         // We are back at the beginning of the ring memory
-        head_temp = (byte *) align_up((uintptr_t) ring->memory, alignment);
+        head_temp = (byte *) ALIGN_UP((uintptr_t) ring->memory, alignment);
     }
 
     DEBUG_MEMORY_WRITE((uintptr_t) head_temp, size);
@@ -315,13 +315,13 @@ byte* ring_memory_get_nomove(RingMemory* const ring, size_t size, int32 alignmen
 {
     ASSERT_TRUE(size <= ring->size);
 
-    byte* pos = (byte *) align_up((uintptr_t) ring->head, alignment);
-    size = align_up(size, (size_t) alignment);
+    byte* pos = (byte *) ALIGN_UP((uintptr_t) ring->head, alignment);
+    size = ALIGN_UP(size, (size_t) alignment);
 
     if (pos + size > ring->end) UNLIKELY {
         ring_reset(ring);
 
-        pos = (byte *) align_up((uintptr_t) pos, alignment);
+        pos = (byte *) ALIGN_UP((uintptr_t) pos, alignment);
     }
 
     DEBUG_MEMORY_WRITE((uintptr_t) pos, size);

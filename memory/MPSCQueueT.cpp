@@ -16,9 +16,9 @@ FORCE_INLINE
 void queue_init(MPSCQueueT<T>* const queue, byte* buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     queue->capacity = capacity;
-    queue->memory = (T *) align_up((uintptr_t) buf, alignment);
+    queue->memory = (T *) ALIGN_UP((uintptr_t) buf, alignment);
 
-    queue->slot_ready = (atomic<byte> *) align_up(
+    queue->slot_ready = (atomic<byte> *) ALIGN_UP(
         queue->memory + queue->capacity * sizeof(T),
         ASSUMED_CACHE_LINE_SIZE
     );
@@ -94,7 +94,7 @@ void queue_init(MPSCQueueT<T>* const queue, BufferMemory* const buf, int capacit
             + queue->capacity * sizeof(atomic<byte>),
         alignment
     );
-    queue->slot_ready = (atomic<byte> *) align_up(
+    queue->slot_ready = (atomic<byte> *) ALIGN_UP(
         queue->memory + queue->capacity * sizeof(T),
         ASSUMED_CACHE_LINE_SIZE
     );

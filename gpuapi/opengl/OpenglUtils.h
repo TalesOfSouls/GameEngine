@@ -636,7 +636,7 @@ void gpuapi_buffer_persistent_delete(GLuint vbo) NO_EXCEPT
 inline
 void gpuapi_draw_buffer_subregion(void* region_start, int32 frame_index, size_t region_size) NO_EXCEPT
 {
-    region_size = align_up(region_size, 16);
+    region_size = ALIGN_UP(region_size, 16);
     size_t offset = frame_index * region_size;
 
     glDrawArrays(GL_TRIANGLES, 0, vertex_count);

@@ -12,7 +12,7 @@
 CONSTEXPR FORCE_INLINE
 size_t thrd_chunk_size(size_t type_size, int max_capacity) NO_EXCEPT
 {
-    const size_t array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
+    const size_t array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(max_capacity);
     return max_capacity * type_size
         + sizeof(size_t) * array_count
         + sizeof(size_t) * array_count
@@ -32,24 +32,24 @@ void chunk_init(
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+    const size_t array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity);
     MAYBE_UNUSED const size_t size = capacity * element_size
         + sizeof(size_t) * array_count
         + sizeof(size_t) * array_count
         + sizeof(size_t) * 2;
 
-    buf->memory = (byte *) align_up((uintptr_t) data, alignment);
+    buf->memory = (byte *) ALIGN_UP((uintptr_t) data, alignment);
 
     buf->capacity = capacity;
     buf->chunk_size = element_size;
     buf->size = size;
     buf->last_pos.store(-1, memory_order_relaxed);
 
-    buf->free = (atomic<size_t> *) align_up(
+    buf->free = (atomic<size_t> *) ALIGN_UP(
         (size_t) ((uintptr_t) (buf->memory + capacity * element_size)),
         (size_t) alignof(size_t)
     );
-    buf->completeness = (atomic<size_t> *) align_up(
+    buf->completeness = (atomic<size_t> *) ALIGN_UP(
         (uintptr_t) (buf->free + array_count),
         (size_t) alignof(size_t)
     );
@@ -72,13 +72,13 @@ void chunk_alloc(ThrdChunkMemory* const buf, int32 capacity, int32 max_capacity,
 
     LOG_1("[INFO] Allocating ChunkMemoryT");
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+    const size_t array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity);
     const size_t memory_size = capacity * element_size
         + sizeof(size_t) * array_count
         + sizeof(size_t) * array_count
         + sizeof(size_t) * 2;
 
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
+    const size_t max_array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(max_capacity);
     const size_t max_memory_size = max_capacity * element_size
         + sizeof(size_t) * max_array_count
         + sizeof(size_t) * max_array_count
@@ -104,13 +104,13 @@ void chunk_alloc(ThrdChunkMemory* const buf, MemoryArena* const mem, int32 capac
 
     LOG_1("[INFO] Allocating ChunkMemoryT");
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+    const size_t array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity);
     const size_t memory_size = capacity * element_size
         + sizeof(size_t) * array_count
         + sizeof(size_t) * array_count
         + sizeof(size_t) * 2;
 
-    const size_t max_array_count = ceil_div(max_capacity, (int32) (sizeof(size_t) * 8));
+    const size_t max_array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(max_capacity);
     const size_t max_memory_size = max_capacity * element_size
         + sizeof(size_t) * max_array_count
         + sizeof(size_t) * max_array_count
@@ -137,7 +137,7 @@ void chunk_init(
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    const size_t array_count = ceil_div(capacity, (int32) (sizeof(size_t) * 8));
+    const size_t array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity);
     const size_t size = capacity * element_size
         + sizeof(size_t) * array_count
         + sizeof(size_t) * array_count
@@ -154,7 +154,7 @@ void chunk_free(ThrdChunkMemory* const buf) NO_EXCEPT
 {
     DEBUG_MEMORY_DELETE(
         (uintptr_t) buf->memory,
-        buf->chunk_size * buf->capacity + sizeof(size_t) * ceil_div(buf->capacity, (int32) (sizeof(size_t) * 8))
+        buf->chunk_size * buf->capacity + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity)
     );
 
     platform_aligned_free((void **) &buf->memory);
@@ -166,7 +166,7 @@ void chunk_free(ThrdChunkMemory* const buf) NO_EXCEPT
 inline
 void chunk_free(ThrdChunkMemory* const buf, MemoryArena* const mem) NO_EXCEPT
 {
-    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->chunk_size * buf->capacity + sizeof(size_t) * ceil_div(buf->capacity, (int32) (sizeof(size_t) * 8)));
+    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->chunk_size * buf->capacity + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity));
 
     mem_arena_remove(mem, buf->memory);
 
@@ -288,26 +288,32 @@ bool chunk_is_free(const ThrdChunkMemory* const buf, uint32 element) NO_EXCEPT
 inline
 int32 chunk_reserve_one(ThrdChunkMemory* const buf) NO_EXCEPT
 {
-    const int32 word_count = ceil_div(buf->capacity, (int32) (sizeof(size_t) * 8));
+    const int32 bits_per_word = (int32) (sizeof(size_t) * 8);
+    const int32 word_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity);
     if (word_count <= 0) {
         return -1;
     }
 
     const int32 hint = buf->last_pos.load(memory_order_relaxed);
-    const int32 start_word = ((hint < 0 ? 0 : hint) / (sizeof(size_t) * 8)) % word_count;
+    const int32 clamped_hint = hint < 0 ? 0 : hint;
+    const int32 start_word = (clamped_hint / bits_per_word) % word_count;
+    const int32 start_bit = clamped_hint % bits_per_word;
+
+    const size_t low_bits_mask = (start_bit == 0) ? (size_t) 0 : ((OMS_UINT_ONE << start_bit) - 1);
 
     for (int32 offset = 0; offset < word_count; ++offset) {
         const int32 free_index = (start_word + offset) % word_count;
+        const size_t disallowed_mask = (free_index == start_word) ? low_bits_mask : (size_t) 0;
 
         size_t word = buf->free[free_index].load(memory_order_relaxed);
         while (true) {
-            const int32 bit_index = chunk_find_first_zero_bit(word);
+            const int32 bit_index = chunk_find_first_zero_bit(word | disallowed_mask);
             if (bit_index < 0) {
-                // word full, try next word
+                // word full (or nothing eligible here), try next word
                 break;
             }
 
-            const int32 element = free_index * (sizeof(size_t) * 8) + bit_index;
+            const int32 element = free_index * bits_per_word + bit_index;
             if (element >= buf->capacity) {
                 // padding bits past capacity in the final word
                 break;
@@ -323,7 +329,34 @@ int32 chunk_reserve_one(ThrdChunkMemory* const buf) NO_EXCEPT
                 return element;
             }
             // word now holds the fresh value from the failed CAS,
-            // look for another zero bit_index before moving on
+            // look for another eligible zero bit before moving on
+        }
+    }
+
+    // Last resort: the bits before start_bit in the start word,
+    // which were deliberately skipped above.
+    if (low_bits_mask != 0) {
+        size_t word = buf->free[start_word].load(memory_order_relaxed);
+        while (true) {
+            const int32 bit_index = chunk_find_first_zero_bit(word | ~low_bits_mask);
+            if (bit_index < 0) {
+                break;
+            }
+
+            const int32 element = start_word * bits_per_word + bit_index;
+            if (element >= buf->capacity) {
+                break;
+            }
+
+            const size_t new_word = word | (OMS_UINT_ONE << bit_index);
+            if (buf->free[start_word].compare_exchange_weak(
+                word, new_word, memory_order_acq_rel, memory_order_relaxed
+            )) {
+                buf->last_pos.store(element, memory_order_relaxed);
+                DEBUG_MEMORY_WRITE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size);
+
+                return element;
+            }
         }
     }
 
@@ -509,7 +542,7 @@ int64 chunk_dump(const ThrdChunkMemory* const buf, byte* data) NO_EXCEPT
 
     // @todo also store completeness
     const size_t size = buf->capacity * buf->chunk_size
-        + sizeof(size_t) * ceil_div(buf->capacity, (int32) (sizeof(size_t) * 8))
+        + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity)
         + sizeof(size_t);
 
     // All memory is handled in the buffer -> simply copy the buffer
@@ -582,7 +615,7 @@ int64 chunk_load(ThrdChunkMemory* const buf, const byte* data) NO_EXCEPT
 
     // @todo also load completeness
     const size_t size = buf->capacity * buf->chunk_size
-        + sizeof(size_t) * ceil_div(buf->capacity, (int32) (sizeof(size_t) * 8))
+        + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity)
         + sizeof(size_t);
 
     memcpy(buf->memory, data, size);

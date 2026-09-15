@@ -26,37 +26,39 @@
     FORCE_INLINE
     f32 oms_max(f32 a, f32 b) NO_EXCEPT
     {
-        return max_branchless_general(a, b);  // whatever your f32 version is
+        return a + (b - a) * (b > a);
     }
 
     FORCE_INLINE
     f64 oms_max(f64 a, f64 b) NO_EXCEPT
     {
-        return max_branchless_general(a, b);
+        return a + (b - a) * (b > a);
     }
 
     FORCE_INLINE
     f32 oms_min(f32 a, f32 b) NO_EXCEPT
     {
-        return min_branchless_general(a, b);
+        return a + (b - a) * (b < a);
     }
 
     FORCE_INLINE
     f64 oms_min(f64 a, f64 b) NO_EXCEPT
     {
-        return min_branchless_general(a, b);
+        return a + (b - a) * (b < a);
     }
 
     FORCE_INLINE
     f32 oms_clamp(f32 v, f32 lo, f32 hi) NO_EXCEPT
     {
-        return clamp_branchless_general(v, lo, hi);
+        const f32 t = v + (hi - v) * (v > hi);
+        return lo + (t - lo) * (t > lo);
     }
 
     FORCE_INLINE
     f64 oms_clamp(f64 v, f64 lo, f64 hi) NO_EXCEPT
     {
-        return clamp_branchless_general(v, lo, hi);
+        const f64 t = v + (hi - v) * (v > hi);
+        return lo + (t - lo) * (t > lo);
     }
 
     template <typename T>

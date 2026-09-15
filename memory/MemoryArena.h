@@ -59,11 +59,11 @@ MemoryArena* mem_arena_alloc(
 ) {
     PROFILE_DEBUG(PROFILE_ARENA_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
 
-    initial_size += align_up(sizeof(MemoryArena), alignment);
-    reserve_size += align_up(sizeof(MemoryArena), alignment);
+    initial_size += ALIGN_UP(sizeof(MemoryArena), alignment);
+    reserve_size += ALIGN_UP(sizeof(MemoryArena), alignment);
 
     byte* allocated_memory = (byte *) platform_alloc_aligned(initial_size, reserve_size, alignment);
-    byte* memory = (byte *) align_up((uintptr_t) allocated_memory + sizeof(MemoryArena), alignment);
+    byte* memory = (byte *) ALIGN_UP((uintptr_t) allocated_memory + sizeof(MemoryArena), alignment);
 
     /**
      * We need to do this weird align down and negative movement instead of putting it at the beginning of
@@ -80,11 +80,11 @@ MemoryArena* mem_arena_alloc(
      * Keep in mind even allocated_memory is not really the base address since we have additional memory header
      * data stored before allocated_memory. What have we stored before? Well, it is platform_alloc_header
      */
-    MemoryArena* mem = (MemoryArena *) align_down((uintptr_t) memory - sizeof(MemoryArena), sizeof(uintptr_t));
+    MemoryArena* mem = (MemoryArena *) ALIGN_DOWN((uintptr_t) memory - sizeof(MemoryArena), sizeof(uintptr_t));
     mem->base = allocated_memory;
     mem->memory = memory;
     mem->header = (platform_alloc_header *) ((void**) allocated_memory)[-1];
-    mem->memory = (byte *) align_up((uintptr_t) allocated_memory + sizeof(MemoryArena), alignment);
+    mem->memory = (byte *) ALIGN_UP((uintptr_t) allocated_memory + sizeof(MemoryArena), alignment);
 
     return mem;
 }
@@ -129,7 +129,7 @@ void mem_arena_remove(
     byte* remove
 ) NO_EXCEPT
 {
-    MemoryArena* arena = (MemoryArena *) align_down((uintptr_t) remove - sizeof(MemoryArena), sizeof(uintptr_t));
+    MemoryArena* arena = (MemoryArena *) ALIGN_DOWN((uintptr_t) remove - sizeof(MemoryArena), sizeof(uintptr_t));
     mem_arena_remove(mem, arena);
 }
 

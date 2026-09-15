@@ -16,7 +16,7 @@ FORCE_INLINE
 void queue_init(SPSCQueueT<T>* const queue, byte* buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     queue->capacity = capacity;
-    queue->memory = (T *) align_up((uintptr_t) buf, alignment);
+    queue->memory = (T *) ALIGN_UP((uintptr_t) buf, alignment);
 
     queue->head.store(queue->memory, memory_order_relaxed);
     queue->tail.store(queue->memory, memory_order_relaxed);

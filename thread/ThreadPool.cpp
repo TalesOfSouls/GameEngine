@@ -158,7 +158,7 @@ void thread_pool_alloc(
     DEBUG_MEMORY_NAME("Threadpool", pool->work_queue.memory);
 
     if (!pool->is_detached) {
-        pool->thread_handles = (coms_pthread_t *) align_up(
+        pool->thread_handles = (coms_pthread_t *) ALIGN_UP(
             (uintptr_t) (buf + q_size),
             alignof(coms_pthread_t)
         );
@@ -218,7 +218,7 @@ void thread_pool_init(
     DEBUG_MEMORY_NAME("Threadpool", pool->work_queue.memory);
 
     if (!pool->is_detached) {
-        pool->thread_handles = (coms_pthread_t *) align_up(
+        pool->thread_handles = (coms_pthread_t *) ALIGN_UP(
             (uintptr_t) (buffer + q_size),
             alignof(coms_pthread_t)
         );

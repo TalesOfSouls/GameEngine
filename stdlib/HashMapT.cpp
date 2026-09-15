@@ -16,8 +16,8 @@ inline
 void hashmap_alloc(HashMapT<T>* const hm, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     // This ensures 4 byte alignment
-    capacity = align_up(capacity, 2);
-    max_capacity = align_up(max_capacity, 2);
+    capacity = ALIGN_UP(capacity, 2);
+    max_capacity = ALIGN_UP(max_capacity, 2);
 
     LOG_1("[INFO] Allocate HashMapT for %n elements", {DATA_TYPE_INT32, &capacity});
     hm->hash_function = hash_djb2;
@@ -36,8 +36,8 @@ inline
 void hashmap_alloc(HashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     // This ensures 4 byte alignment
-    capacity = align_up(capacity, 2);
-    max_capacity = align_up(max_capacity, 2);
+    capacity = ALIGN_UP(capacity, 2);
+    max_capacity = ALIGN_UP(max_capacity, 2);
 
     LOG_1("[INFO] Allocate HashMapT for %n elements", {DATA_TYPE_INT32, &capacity});
     hm->hash_function = hash_djb2;
@@ -55,7 +55,7 @@ void hashmap_init(HashMapT<T>* const hm, int32 count, byte* const buf, int32 ali
     ASSERT_MEM_ZERO(
         hm->buf.memory,
         count * sizeof(T)
-            + ceil_div(count, (int32) sizeof(size_t) * 8) * sizeof(hm->buf.free)
+            + ceil_div_pow2<(int32) sizeof(size_t) * 8>(count) * sizeof(hm->buf.free)
     );
 }
 
@@ -70,7 +70,7 @@ void hashmap_init(HashMapT<T>* const hm, int32 count, BufferMemory* const buf, i
     ASSERT_MEM_ZERO(
         hm->buf.memory,
         count * sizeof(T)
-            + ceil_div(count, (int32) sizeof(size_t) * 8) * sizeof(hm->buf.free)
+            + ceil_div_pow2<(int32) sizeof(size_t) * 8>(count) * sizeof(hm->buf.free)
     );
 }
 
@@ -188,6 +188,39 @@ T* hashmap_reserve(HashMapT<T>* const __restrict hm, const char* __restrict key)
     strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
+    entry->next = 0;
+
+    return entry;
+}
+
+template <typename T, typename K>
+T* hashmap_reserve(HashMapT<T>* const __restrict hm, K key) NO_EXCEPT
+{
+    // @performance Consider to force a direct conversion (void *) key
+    //              This is obviously insane but it should work as long as the hash_function
+    //              knows what it is doing
+    const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
+
+    // This is either the place where we insert or the start of the chain we have to follow
+    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
+    if (new_index < 0) {
+        return NULL;
+    }
+
+    // This is either the place where we insert or the start of the chain we have to follow
+    T* entry = (T *) chunk_element_get(&hm->buf, index);
+    if (index != new_index) {
+        // Find the previous chain element
+        T* prev = entry;
+        while (prev->next) {
+            prev = (T*) chunk_element_get(&hm->buf, prev->next - 1);
+        }
+
+        prev->next = (uint16) (new_index + 1);
+        entry = (T *) chunk_element_get(&hm->buf, new_index);
+    }
+
+    entry->key = (K) key;
     entry->next = 0;
 
     return entry;

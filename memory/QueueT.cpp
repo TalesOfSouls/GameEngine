@@ -14,7 +14,7 @@ FORCE_INLINE
 void queue_init(QueueT<T>* const queue, byte* buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     queue->capacity = capacity;
-    queue->memory = (T *) align_up((uintptr_t) buf, alignment);
+    queue->memory = (T *) ALIGN_UP((uintptr_t) buf, alignment);
     queue->head = queue->memory;
     queue->tail = queue->memory;
 }

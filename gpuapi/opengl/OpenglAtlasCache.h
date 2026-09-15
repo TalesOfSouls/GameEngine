@@ -12,8 +12,6 @@
 #include "Pipeline.h"
 
 struct OpenglAtlasCache {
-    GpuAtlasCache cache;
-
     uint32 fbo;
     uint32 texture_id;
 

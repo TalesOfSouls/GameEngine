@@ -35,12 +35,12 @@ void db_pool_alloc(DatabasePool* const pool, uint8 count) NO_EXCEPT
     PROFILE_DEBUG(PROFILE_DB_POOL_ALLOC, NULL, false, true);
     LOG_1("[INFO] Allocating DatabasePool for %d connections", {DATA_TYPE_UINT8, &count});
 
-    uint64 size = count * sizeof(DatabaseConnection)
-        + sizeof(uint64) * ceil_div(count, 64) // free
+    const uint64 size = count * sizeof(DatabaseConnection)
+        + sizeof(uint64) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(count) // free
         + 64 * 2; // overhead for alignment
 
     pool->connections = (DatabaseConnection *) platform_alloc_aligned(size, size, ASSUMED_CACHE_LINE_SIZE);
-    pool->free = (uint64 *) align_up((uintptr_t) (pool->connections + count * sizeof(DatabaseConnection)), 64);
+    pool->free = (uint64 *) ALIGN_UP((uintptr_t) (pool->connections + count * sizeof(DatabaseConnection)), 64);
     pool->count = count;
 }
 

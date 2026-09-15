@@ -1,20 +1,52 @@
 /**
- * Example use case:
+ * Example use case for updating individual sections
  *
  * 1. gpuapi_texture_cache_setup()
  * 2. gpuapi_texture_cache_create()
  *
  * 3. gpuapi_binds_cache()
  * 4. glEnable(GL_SCISSOR_TEST)
- * 5. gpuapi_texture_cache_begin()
- *      1. ... draw ...
- * 6. gpuapi_texture_cache_begin()
- *      1. ... draw ...
- * 7. glDisable(GL_SCISSOR_TEST)
- * 8. gpuapi_binds_restore()
- *
+ * 5. gpu_atlas_cache_exists() -> if false
+ * 6. gpuapi_texture_cache_section_begin()
+ *      1. gpu_atlas_cache_reserve()
+ *      2. ... draw ...
+ *      3. gpu_atlas_cache_completed()
+ * 7. gpuapi_texture_cache_section_begin()
+ *      1. gpu_atlas_cache_reserve()
+ *      2. ... draw ...
+ *      3. gpu_atlas_cache_completed()
+ * 8. glDisable(GL_SCISSOR_TEST)
  * 9. gpuapi_binds_restore()
- * 10. gpuapi_texture_cache_delete()
+ *
+ * 10. gpuapi_binds_restore()
+ * 11. gpuapi_texture_cache_delete()
+ *
+ * ========================================================================================
+ *
+ * Alternatively to rendering individual sections which uses 1 draw call each
+ * you may want to call gpuapi_texture_cache_begin() and render all updated elements
+ *
+ * 1. gpuapi_texture_cache_setup()
+ * 2. gpuapi_texture_cache_create()
+ *
+ * 3. gpuapi_binds_cache()
+ * 4. glEnable(GL_SCISSOR_TEST)
+ * 5. gpu_atlas_cache_exists() -> if false
+ * 6. gpuapi_texture_cache_begin()
+ *      1. gpu_atlas_cache_reserve()
+ *      2. gpu_atlas_cache_incompleted()
+ *      3. ... create vertices ...
+ * 7. gpu_atlas_cache_exists() -> if false
+ *      1. gpu_atlas_cache_reserve()
+ *      2. gpu_atlas_cache_incompleted()
+ *      3. ... create vertices ...
+ * 9. glDisable(GL_SCISSOR_TEST)
+ * 10. ... draw ... <- THIS IS THE REAL DIFFERENCE TO EXAMPLE 1, ONLY ONE DRAW
+ * 11. gpu_atlas_cache_completed() on drawn elements
+ * 11. gpuapi_binds_restore()
+ *
+ * 12. gpuapi_binds_restore()
+ * 13. gpuapi_texture_cache_delete()
  *
  * @copyright Jingga
  * @license   OMS License 2.0
@@ -116,24 +148,23 @@ void gpuapi_texture_cache_setup(OpenglAtlasCache* const cache) NO_EXCEPT
 
 // WARNING: You should probably call gpuapi_binds_cache() first
 // WARNING: needs glEnable(GL_SCISSOR_TEST);
-bool gpuapi_texture_cache_begin(
-    OpenglAtlasCache* cache, uint32 cache_id, uint32 frame_id, CacheRect *outRect
+/**
+ * This function needs to be called if you ONLY want to update/cache a small subsection of the cache
+ * For multiple or even a complete cache update use gpuapi_texture_cache_begin
+ */
+bool gpuapi_texture_cache_section_begin(
+    OpenglAtlasCache* const __restrict cache, uint32 cache_id, v4_uint16& rect
 ) NO_EXCEPT
 {
-    const bool is_cached = gpuapi_cache_find(cache->cache, cache_id, frame_id);
-    if (is_cached) {
-        return false;
-    }
+    // This needs to be enabled
+    ASSERT_TRUE(glIsEnabled(GL_SCISSOR_TEST));
 
     // We have to bind, because DSA doesn't support bindless rendering into a framebuffer
     // Draw commands render into whatever is bound
 
-    glBindFramebuffer(GL_FRAMEBUFFER, cache->fbo[outRect->page]);
-    glViewport(outRect->x, outRect->y, outRect->w, outRect->h);
-
-    ASSERT_TRUE(glIsEnabled(GL_SCISSOR_TEST));
-
-    glScissor(outRect->x, outRect->y, outRect->w, outRect->h);
+    glBindFramebuffer(GL_FRAMEBUFFER, cache->fbo);
+    glViewport(rect.x, rect.y, rect.width, rect.height);
+    glScissor(rect.x, rect.y, rect.width, rect.height);
 
     // Clear area before drawing
     static const f32 clear_color[] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -145,6 +176,15 @@ bool gpuapi_texture_cache_begin(
     return true;
 }
 
+void gpuapi_texture_cache_begin(OpenglAtlasCache* const __restrict cache) NO_EXCEPT
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, cache->fbo);
+    static const f32 clear_color[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    glClearNamedFramebufferfv(cache->fbo, GL_COLOR, 0, clear_color);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+}
+
 // WARNING: This is slow, don't use it you should rather use the normal texture rendering
 void gpuapi_texture_cache_blit(
     OpenglAtlasCache* cache, const CacheRect *rect, f32 x, f32 y, f32 w, f32 h,
@@ -152,10 +192,10 @@ void gpuapi_texture_cache_blit(
 ) NO_EXCEPT
 {
     // WARNING: OpenGL's window/framebuffer *storage* is bottom-up
-    f32 uLeft = (f32)rect->x / (f32)cache->pageW;
-    f32 uRight = (f32)(rect->x + rect->w) / (f32)cache->pageW;
-    f32 vTop = (f32)(rect->y + rect->h) / (f32)cache->pageH;
-    f32 vBottom = (f32)rect->y / (f32)cache->pageH;
+    const f32 uLeft = (f32)rect->x / (f32)cache->pageW;
+    const f32 uRight = (f32)(rect->x + rect->w) / (f32)cache->pageW;
+    const f32 vTop = (f32)(rect->y + rect->h) / (f32)cache->pageH;
+    const f32 vBottom = (f32)rect->y / (f32)cache->pageH;
 
     const f32 verts[16] = {
         // pos      uv

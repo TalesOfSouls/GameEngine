@@ -24,7 +24,7 @@ void queue_alloc(
 ) NO_EXCEPT
 {
     ASSERT_TRUE(max_count >= element_count);
-    element_size = align_up(element_size, alignment);
+    element_size = ALIGN_UP(element_size, alignment);
 
     ring_alloc((RingMemory *) queue, element_count * element_size, max_count * element_size, start_alignment);
     queue->element_size = element_size;
@@ -41,7 +41,7 @@ void queue_alloc(
 ) NO_EXCEPT
 {
     ASSERT_TRUE(max_count >= element_count);
-    element_size = align_up(element_size, alignment);
+    element_size = ALIGN_UP(element_size, alignment);
 
     ring_alloc((RingMemory *) queue, mem, element_count * element_size, max_count * element_size, start_alignment);
     queue->element_size = element_size;
@@ -57,7 +57,7 @@ void queue_init(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    element_size = align_up(element_size, alignment);
+    element_size = ALIGN_UP(element_size, alignment);
 
     ring_init((RingMemory *) queue, buf, element_count * element_size, start_alignment);
     queue->element_size = element_size;
@@ -73,7 +73,7 @@ void queue_init(
     int32 start_alignment = ASSUMED_CACHE_LINE_SIZE
 ) NO_EXCEPT
 {
-    element_size = align_up(element_size, alignment);
+    element_size = ALIGN_UP(element_size, alignment);
 
     ring_init((RingMemory *) queue, buf, element_count * element_size, start_alignment);
     queue->element_size = element_size;

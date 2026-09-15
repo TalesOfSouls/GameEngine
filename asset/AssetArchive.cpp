@@ -368,7 +368,7 @@ Asset* const asset_archive_asset_load(
         } break;
         case ASSET_TYPE_IMAGE: {
             Texture* texture = (Texture *) asset->self;
-            texture->image.pixels = (byte *) align_up((uintptr_t) (texture + 1), 64);
+            texture->image.pixels = (byte *) ALIGN_UP((uintptr_t) (texture + 1), 64);
 
             file.content += image_header_from_data(file.content, &texture->image);
             qoi_decode(file.content, &texture->image);

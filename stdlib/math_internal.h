@@ -54,29 +54,6 @@ CONSTEXPR T clamp_branchless(T val, T low, T high) {
     return result;
 }
 
-// WARNING: May overflow for ints
-template <typename T>
-inline T max_branchless_general(T a, T b) NO_EXCEPT
-{
-    return a + (b - a) * (b > a);
-}
-
-// WARNING: May overflow for ints
-template <typename T>
-inline T min_branchless_general(T a, T b) NO_EXCEPT
-{
-    return a + (b - a) * (b < a);
-}
-
-// WARNING: May overflow for ints
-template <typename T>
-inline T clamp_branchless_general(T v, T lo, T hi) NO_EXCEPT
-{
-    const T t = v + (hi - v) * (v > hi);
-
-    return lo + (t - lo) * (t > lo);
-}
-
 // Abs
 FORCE_INLINE
 int8 __internal_abs(int8 a) NO_EXCEPT
@@ -162,10 +139,24 @@ T __internal_round(T x) NO_EXCEPT
         : (T)((int32)(x - 0.5f));
 }
 
-template <typename T>
+#define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
+
+// Used to count the exponent of a pow2 variable
+CONSTEXPR
+unsigned __internal_log2_pow2(size_t v) NO_EXCEPT
+{
+    unsigned k = 0;
+    while (v > 1) { v >>= 1; ++k; }
+    return k;
+}
+
+template <size_t B, typename T>
 FORCE_INLINE CONSTEXPR
-T ceil_div(T a, T b) NO_EXCEPT
-{ return (a + b - 1) / b; }
+T ceil_div_pow2(T a) NO_EXCEPT
+{
+    CONSTEXPR unsigned K = __internal_log2_pow2(B);
+    return (T)((a + (T)(B - 1)) >> K);
+}
 
 template <typename F>
 FORCE_INLINE CONSTEXPR

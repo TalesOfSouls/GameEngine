@@ -169,7 +169,7 @@ int32 atlas_from_data(
     );
     PSEUDO_USE(steps);
 
-    atlas->uv = (v2_f32 *) align_up(
+    atlas->uv = (v2_f32 *) ALIGN_UP(
         (uintptr_t) atlas->elements + sizeof(TextureAtlasElement) * atlas->element_count,
         64 // 64 bytes so we can use AVX512 on uv data
     );

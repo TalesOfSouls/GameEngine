@@ -23,7 +23,7 @@ bool memory_resize(byte**, size_t) NO_EXCEPT
 FORCE_INLINE
 byte* memory_get(byte** data, size_t size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    byte* out = (byte *) align_up((uintptr_t) *data, alignment);
+    byte* out = (byte *) ALIGN_UP((uintptr_t) *data, alignment);
     *data = out + size;
 
     return out;
@@ -32,19 +32,19 @@ byte* memory_get(byte** data, size_t size, int32 alignment = sizeof(size_t)) NO_
 FORCE_INLINE
 byte* memory_get_temp(byte** data, size_t, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    return (byte *) align_up((uintptr_t) *data, alignment);
+    return (byte *) ALIGN_UP((uintptr_t) *data, alignment);
 }
 
 FORCE_INLINE
 byte* memory_get(byte* data, size_t, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    return (byte *) align_up((uintptr_t) data, alignment);
+    return (byte *) ALIGN_UP((uintptr_t) data, alignment);
 }
 
 FORCE_INLINE
 byte* memory_get_temp(byte* data, size_t, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
-    return (byte *) align_up((uintptr_t) data, alignment);
+    return (byte *) ALIGN_UP((uintptr_t) data, alignment);
 }
 
 #endif

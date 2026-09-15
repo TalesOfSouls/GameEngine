@@ -21,7 +21,7 @@ FORCE_INLINE
 size_t chunk_size_total(int32 capacity, int32 element_size) NO_EXCEPT
 {
     return capacity * element_size
-        + sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)) // free
+        + sizeof(size_t) * ceil_div_pow2<(sizeof(size_t) * 8)>(capacity) // free
         + alignof(size_t) * 2; // overhead for alignment
 }
 
@@ -54,11 +54,11 @@ void chunk_alloc(
     buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
-    buf->free = (size_t *) align_up(
+    buf->free = (size_t *) ALIGN_UP(
         (size_t) ((uintptr_t) (buf->memory + capacity * element_size)),
         (size_t) alignof(size_t)
     );
-    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)));
+    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -93,11 +93,11 @@ void chunk_alloc(
     buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
-    buf->free = (size_t *) align_up(
+    buf->free = (size_t *) ALIGN_UP(
         (size_t) ((uintptr_t) (buf->memory + capacity * element_size)),
         (size_t) alignof(size_t)
     );
-    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)));
+    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -126,8 +126,8 @@ void chunk_init(
     buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
-    buf->free = (size_t *) align_up((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
-    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)));
+    buf->free = (size_t *) ALIGN_UP((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
+    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -148,18 +148,18 @@ void chunk_init(
 
     const size_t size = chunk_size_total(capacity, element_size);
 
-    buf->memory = (byte *) align_up((uintptr_t) data, start_alignment);
+    buf->memory = (byte *) ALIGN_UP((uintptr_t) data, start_alignment);
 
     buf->capacity = capacity;
     buf->size = size;
     buf->chunk_size = element_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
-    buf->free = (size_t *) align_up(
+    buf->free = (size_t *) ALIGN_UP(
         (uintptr_t) (buf->memory + capacity * element_size),
         (size_t) alignof(size_t)
     );
-    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div(capacity, (int32) (sizeof(size_t) * 8)));
+    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
 
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
@@ -189,7 +189,7 @@ void chunk_free(ChunkMemory* const buf, MemoryArena* mem) NO_EXCEPT
 FORCE_INLINE
 size_t* chunk_find_free_array(const ChunkMemory* const buf) NO_EXCEPT
 {
-    return (size_t *) align_up(
+    return (size_t *) ALIGN_UP(
         (uintptr_t) (buf->memory + buf->capacity * buf->chunk_size),
         (size_t) alignof(size_t)
     );
@@ -250,12 +250,17 @@ bool chunk_is_free(const ChunkMemory* const buf, int32 element) NO_EXCEPT
 HOT_CODE FORCE_FLATTEN
 int32 chunk_reserve_one(size_t* state, uint32 state_count, int32 start_index = 0) NO_EXCEPT
 {
+    const uint32 bits_per_word = sizeof(size_t) * 8;
+
     if ((uint32) start_index >= state_count) UNLIKELY {
         start_index = 0;
     }
 
-    uint32 free_index = start_index / (sizeof(size_t) * 8);
-    uint32 bit_index = MODULO_2(start_index, (sizeof(size_t) * 8));
+    const uint32 start_free_index = start_index / bits_per_word;
+    const uint32 start_bit_index = MODULO_2(start_index, bits_per_word);
+
+    uint32 free_index = start_free_index;
+    uint32 bit_index = start_bit_index;
 
     // Check standard simple solution
     if (!IS_BIT_SET_R2L(state[free_index], bit_index)) {
@@ -264,15 +269,36 @@ int32 chunk_reserve_one(size_t* state, uint32 state_count, int32 start_index = 0
         return start_index;
     }
 
-    for (uint32 i = 0; i < state_count; i+= (sizeof(size_t) * 8)) {
+    const size_t low_mask = (start_bit_index + 1 >= bits_per_word)
+        ? OMS_UINT_MAX
+        : ((OMS_UINT_ONE << (start_bit_index + 1)) - 1);
+
+    size_t masked_word = state[free_index] | low_mask;
+    if (masked_word != OMS_UINT_MAX) {
+        bit_index = compiler_find_first_bit_r2l(~masked_word);
+
+        const uint32 id = free_index * bits_per_word + bit_index;
+        if (id < state_count) {
+            state[free_index] |= (OMS_UINT_ONE << bit_index);
+
+            return id;
+        }
+    }
+
+    ++free_index;
+    if (free_index * bits_per_word >= state_count) {
+        free_index = 0;
+    }
+
+    for (uint32 i = bits_per_word; i < state_count; i += bits_per_word) {
+        if (free_index == start_free_index) {
+            break;
+        }
+
         if (state[free_index] != OMS_UINT_MAX) {
-            // @bug This doesn't return the next best element in a hash map case
-            // In a hash map we want the next free element AFTER start_index
-            // However, this below may return a previous element since it ignores the start_index
-            // The reason why we want the next best element is because it is faster to iterate (cache locality)
             bit_index = compiler_find_first_bit_r2l(~state[free_index]);
 
-            const uint32 id = free_index * (sizeof(size_t) * 8) + bit_index;
+            const uint32 id = free_index * bits_per_word + bit_index;
             if (id >= state_count) UNLIKELY {
                 free_index = 0;
 
@@ -282,12 +308,22 @@ int32 chunk_reserve_one(size_t* state, uint32 state_count, int32 start_index = 0
             state[free_index] |= (OMS_UINT_ONE << bit_index);
 
             return id;
-        } else {
-            ++free_index;
-            if (free_index * (sizeof(size_t) * 8) >= state_count) {
-                free_index = 0;
-            }
         }
+
+        ++free_index;
+        if (free_index * bits_per_word >= state_count) {
+            free_index = 0;
+        }
+    }
+
+    masked_word = state[start_free_index] | ~low_mask;
+    if (masked_word != OMS_UINT_MAX) {
+        bit_index = compiler_find_first_bit_r2l(~masked_word);
+
+        const uint32 id = start_free_index * bits_per_word + bit_index;
+        state[start_free_index] |= (OMS_UINT_ONE << bit_index);
+
+        return id;
     }
 
     return -1;
@@ -321,6 +357,13 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
         return ++last_pos;
     }
 
+    // Remember where we actually started. The search below must prefer a
+    // range AFTER last_pos in this word (cache locality) and only fall back
+    // to bits before it once we've wrapped all the way back around.
+    const uint32 start_free_index = free_index;
+    const uint32 start_bit_index = bit_index;
+    bool wrapped_around = false;
+
     int32 free_element = -1;
     int32 i = 0;
     int32 consecutive_free_bits = 0;
@@ -340,13 +383,38 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
             consecutive_free_bits = 0;
             free_index = 0;
             bit_index = 0;
+            wrapped_around = true;
 
             continue;
         }
 
-        // Find first free element
+        // Find first free element. On the word containing last_pos + 1, don't
+        // consider bits before it on this first pass, that would return a
+        // range starting earlier than last_pos.
+        // Once we've wrapped fully around back to this same word,
+        // it's the opposite: only the bits before start_bit_index are still
+        // unchecked, since the rest was already tried and failed.
+        size_t candidate_bits = ~state[free_index];
+
+        if (free_index == start_free_index) {
+            const size_t low_bits_mask = (OMS_UINT_ONE << start_bit_index) - 1;
+
+            candidate_bits &= wrapped_around ? low_bits_mask : ~low_bits_mask;
+        }
+
+        if (candidate_bits == 0) {
+            // Nothing usable from the required starting point in this word;
+            // treat it like a full word for now and move on.
+            ++free_index;
+            bit_index = 0;
+            i += (sizeof(size_t) * 8);
+            consecutive_free_bits = 0;
+
+            continue;
+        }
+
         // This MUST find a free element, otherwise we wouldn't have gotten here
-        bit_index = compiler_find_first_bit_r2l(~state[free_index]);
+        bit_index = compiler_find_first_bit_r2l(candidate_bits);
 
         // Let's check if we have enough free space, we need more than just one free bit
         do {
@@ -514,7 +582,7 @@ int64 chunk_dump(const ChunkMemory* const buf, byte* data) NO_EXCEPT
 
     #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
         size_t* free_data = (size_t *) (data + free_offset);
-        for (uint32 i = 0; i < ceil_div(buf->capacity, (uint32) (sizeof(size_t) * 8)); ++i) {
+        for (uint32 i = 0; i < ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity); ++i) {
             *free_data = SWAP_ENDIAN_LITTLE(*free_data);
             ++free_data;
         }
@@ -621,7 +689,7 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
 
     #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
         size_t* free_data = buf->free;
-        for (uint32 i = 0; i < ceil_div(buf->capacity, (uint32) (sizeof(size_t) * 8)); ++i) {
+        for (uint32 i = 0; i < ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity); ++i) {
             *free_data = SWAP_ENDIAN_LITTLE(*free_data);
             ++free_data;
         }

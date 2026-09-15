@@ -16,8 +16,8 @@ inline
 void hashmap_alloc(ThrdHashMapT<T>* const hm, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     // This ensures 4 byte alignment
-    capacity = align_up(capacity, 2);
-    max_capacity = align_up(max_capacity, 2);
+    capacity = ALIGN_UP(capacity, 2);
+    max_capacity = ALIGN_UP(max_capacity, 2);
 
     LOG_1("[INFO] Allocate HashMapT for %n elements", {DATA_TYPE_INT32, &capacity});
     hm->hash_function = hash_djb2;
@@ -36,8 +36,8 @@ inline
 void hashmap_alloc(ThrdHashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int32 max_capacity, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     // This ensures 4 byte alignment
-    capacity = align_up(capacity, 2);
-    max_capacity = align_up(max_capacity, 2);
+    capacity = ALIGN_UP(capacity, 2);
+    max_capacity = ALIGN_UP(max_capacity, 2);
 
     LOG_1("[INFO] Allocate HashMapT for %n elements", {DATA_TYPE_INT32, &capacity});
     hm->hash_function = hash_djb2;
@@ -55,7 +55,7 @@ void hashmap_init(ThrdHashMapT<T>* const hm, int32 count, byte* const buf, int32
     ASSERT_MEM_ZERO(
         hm->buf.memory,
         count * sizeof(T)
-            + ceil_div(count, (int32) sizeof(size_t) * 8) * sizeof(hm->buf.free)
+            + ceil_div_pow2<(int32) sizeof(size_t) * 8>(count) * sizeof(hm->buf.free)
     );
 }
 
@@ -70,7 +70,7 @@ void hashmap_init(ThrdHashMapT<T>* const hm, int32 count, BufferMemory* const bu
     ASSERT_MEM_ZERO(
         hm->buf.memory,
         count * sizeof(T)
-            + ceil_div(count, (int32) sizeof(size_t) * 8) * sizeof(hm->buf.free)
+            + ceil_div_pow2<(int32) sizeof(size_t) * 8>(count) * sizeof(hm->buf.free)
     );
 }
 
@@ -129,6 +129,32 @@ T* hashmap_insert(ThrdHashMapT<T>* const __restrict hm, const char* __restrict k
     chunk_mark_complete(&hm->buf, new_index);
 
     return entry;
+}
+
+// Marks a hashmap_reserve element as completed
+template <typename T, typename V>
+void hashmap_mark_completed(ThrdHashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
+{
+    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    if (chunk_is_free(&hm->buf, index)) {
+        return NULL;
+    }
+
+    T* entry = (T *) chunk_element_get(&hm->buf, index);
+
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
+    while (entry) {
+        if (strcmp(entry->key, key) == 0) {
+            chunk_mark_complete(&hm->buf, entry);
+
+            return;
+        }
+
+        const uint16 next = entry->next.load();
+        entry = next ? (T *) chunk_element_get(&hm->buf, next - 1) : NULL;
+    }
 }
 
 template <typename T, typename V>
@@ -263,6 +289,10 @@ T* hashmap_entry_get(const ThrdHashMapT<T>* const __restrict hm, const char* __r
 
     while (entry) {
         if (strcmp(entry->key, key) == 0) {
+            if (!chunk_is_complete(&hm->buf, entry)) {
+                return NULL;
+            }
+
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(T));
             return entry;
         }

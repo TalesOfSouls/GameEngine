@@ -38,7 +38,7 @@ void gpuapi_buffer_persistent_generate(
     const char* name, PersistentGpuBuffer* buffer
 ) NO_EXCEPT
 {
-    buffer->bo = chunk_reserve(&renderer->buf, ceil_div(buffer->size, renderer->buf.chunk_size)) + 1;
+    buffer->bo = chunk_reserve(&renderer->buf, CEIL_DIV(buffer->size, renderer->buf.chunk_size)) + 1;
     buffer->data = chunk_element_get(&renderer->buf, buffer->bo - 1);
 
     for (int i = 0; i < ARRAY_COUNT(renderer->descriptor_set_layout); ++i) {
@@ -48,7 +48,7 @@ void gpuapi_buffer_persistent_generate(
 
         renderer->descriptor_set_layout[i].binding = buffer->bo;
         renderer->descriptor_set_layout[i].name = name;
-        renderer->descriptor_set_layout[i].size = ceil_div(buffer->size, renderer->buf.chunk_size);
+        renderer->descriptor_set_layout[i].size = CEIL_DIV(buffer->size, renderer->buf.chunk_size);
         renderer->descriptor_set_layout[i].data = buffer->data;
 
         break;
@@ -61,7 +61,7 @@ void gpuapi_buffer_persistent_generate(
 inline
 int32 gpuapi_buffer_generate_static(SoftwareRenderer* const renderer, void* data, int32 size) NO_EXCEPT
 {
-    const int32 id = chunk_reserve(&renderer->buf, ceil_div(size, renderer->buf.chunk_size)) + 1;
+    const int32 id = chunk_reserve(&renderer->buf, CEIL_DIV(size, renderer->buf.chunk_size)) + 1;
     byte* const mem = chunk_element_get(&renderer->buf, id - 1);
 
     if (data) {

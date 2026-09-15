@@ -363,7 +363,7 @@ void layout_from_file_txt(
         &layout->hash_map,
         temp_element_count * 2,
         layout->data,
-        align_up((int32) sizeof(HashEntryStrT<int32>), 32)
+        ALIGN_UP((int32) sizeof(HashEntryStrT<int32>), 32)
     );
     ASSERT_TRUE(layout->data_size >= hashmap_size(&layout->hash_map));
 
@@ -429,7 +429,7 @@ int32 layout_from_data(
         &layout->hash_map,
         (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)),
         layout->data,
-        align_up((int32) sizeof(HashEntryStrT<int32>), 32)
+        ALIGN_UP((int32) sizeof(HashEntryStrT<int32>), 32)
     );
 
     layout->used_data_size = (int32) hashmap_load(&layout->hash_map, in);
@@ -563,7 +563,7 @@ void layout_update_element(
         (const char*) (layout->ui_element_buffer.memory + core->class_name)
     );
     const UIAttributeGroup* attr_group = (UIAttributeGroup *) (theme->data + entry->value);
-    const UIAttribute* attributes = (UIAttribute*) align_up((uintptr_t) (attr_group + 1), alignof(UIAttribute));
+    const UIAttribute* attributes = (UIAttribute*) ALIGN_UP((uintptr_t) (attr_group + 1), alignof(UIAttribute));
 
     // @todo We should first update the skeleton
     //      then inherit the skeleton style
