@@ -154,8 +154,8 @@ void thread_pool_alloc(
         alignment
     );
     queue_init(&pool->work_queue, buf, worker_capacity, alignment);
-
-    DEBUG_MEMORY_NAME("Threadpool", pool->work_queue.memory);
+    DEBUG_MEMORY_INIT((uintptr_t) buf, q_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t));
+    DEBUG_MEMORY_NAME("ThreadPool", buf);
 
     if (!pool->is_detached) {
         pool->thread_handles = (coms_pthread_t *) ALIGN_UP(
@@ -214,8 +214,10 @@ void thread_pool_init(
         alignment
     );
     queue_init(&pool->work_queue, buffer, worker_capacity, alignment);
-
-    DEBUG_MEMORY_NAME("Threadpool", pool->work_queue.memory);
+    DEBUG_MEMORY_SUBREGION(
+        (uintptr_t) buffer,
+        q_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t)
+    );
 
     if (!pool->is_detached) {
         pool->thread_handles = (coms_pthread_t *) ALIGN_UP(
@@ -225,11 +227,6 @@ void thread_pool_init(
 
         memset(pool->thread_handles, 0, sizeof(coms_pthread_t) * thread_count);
     }
-
-    DEBUG_MEMORY_SUBREGION(
-        (uintptr_t) pool->work_queue.memory,
-        sizeof(PoolWorker) * worker_capacity + sizeof(coms_pthread_t) * thread_count
-    );
 
     coms_sem_init(&pool->work_sem, 0);
     pool->sleeping_cnt.store(0);

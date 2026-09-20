@@ -68,7 +68,7 @@ int32 utf8_encode(uint32 codepoint, char* out) NO_EXCEPT
     return -1;
 }
 
-inline
+CONSTEXPR inline
 int32 utf8_decode(const char* __restrict in, uint32* __restrict codepoint) NO_EXCEPT
 {
     const byte ch = (const byte) *in;
@@ -136,11 +136,21 @@ inline
 int32 utf8_strlen(const char* in) NO_EXCEPT
 {
     int32 length = 0;
-    uint32 codepoint;
 
+    // We only check the leading byte to get the sequence length per "char"
     while (*in) {
-        int32 bytes = utf8_decode(in, &codepoint);
-        if (bytes < 0) {
+        const unsigned char c = (unsigned char) *in;
+        int32 bytes;
+
+        if (c < 0x80) {
+            bytes = 1;
+        } else if ((c & 0xE0) == 0xC0) {
+            bytes = 2;
+        } else if ((c & 0xF0) == 0xE0) {
+            bytes = 3;
+        } else if ((c & 0xF8) == 0xF0) {
+            bytes = 4;
+        } else {
             return -1;
         }
 
@@ -447,11 +457,13 @@ bool str_starts_with_num(const char* str) NO_EXCEPT
 
     bool decimal = false;
     while (*str != '\0' && *str != ' ') {
-        if (!isdigit(*str) || (decimal && *str == '.')) {
+        const unsigned char c = (unsigned char) *str;
+
+        if (!isdigit(c) || (decimal && c == '.')) {
             return false;
         }
 
-        if (*str == '.') {
+        if (c == '.') {
             decimal = true;
         }
 
@@ -562,56 +574,50 @@ int32 int_length(int64 number) NO_EXCEPT
         number = -number;
     }
 
+    /*
     while (number > 0) {
         number /= 10;
         ++len;
     }
 
     return len;
+    */
+    const uint64 n = (uint64) number;
+
+    if (n < 10ULL) { return len + 1; }
+    if (n < 100ULL) { return len + 2; }
+    if (n < 1000ULL) { return len + 3; }
+    if (n < 10000ULL) { return len + 4; }
+    if (n < 100000ULL) { return len + 5; }
+    if (n < 1000000ULL) { return len + 6; }
+    if (n < 10000000ULL) { return len + 7; }
+    if (n < 100000000ULL) { return len + 8; }
+    if (n < 1000000000ULL) { return len + 9; }
+    if (n < 10000000000ULL) { return len + 10; }
+    if (n < 100000000000ULL) { return len + 11; }
+    if (n < 1000000000000ULL) { return len + 12; }
+    if (n < 10000000000000ULL) { return len + 13; }
+    if (n < 100000000000000ULL) { return len + 14; }
+    if (n < 1000000000000000ULL) { return len + 15; }
+    if (n < 10000000000000000ULL) { return len + 16; }
+    if (n < 100000000000000000ULL) { return len + 17; }
+    if (n < 1000000000000000000ULL) { return len + 18; }
+    if (n < 10000000000000000000ULL) { return len + 19; }
+
+    return len + 20;
 }
 
-template <typename T>
-inline int32 int_to_str(int64 number, T str[15], T thousands) NO_EXCEPT
-{
-    if (number == 0) {
-        *str++ = T('0');
-        *str = T('\0');
-        return 1;
-    }
-
-    int32 i = 0;
-    int32 digit_count = 0;
-    const int64 sign = number;
-
-    if (number < 0) {
-        number = -number;
-    }
-
-    while (number > 0) {
-        if (digit_count && digit_count % 3 == 0) {
-            str[i++] = thousands;
-        }
-
-        str[i++] = T(number % 10 + '0');
-        number /= 10;
-        ++digit_count;
-    }
-
-    if (sign < 0) {
-        str[i++] = T('-');
-    }
-
-    // reverse the buffer
-    for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
-        const T temp = str[j];
-        str[j] = str[k];
-        str[k] = temp;
-    }
-
-    str[i] = T('\0');
-
-    return i;
-}
+static CONSTEXPR const char DIGIT_PAIRS[201] =
+    "00010203040506070809"
+    "10111213141516171819"
+    "20212223242526272829"
+    "30313233343536373839"
+    "40414243444546474849"
+    "50515253545556575859"
+    "60616263646566676869"
+    "70717273747576777879"
+    "80818283848586878889"
+    "90919293949596979899";
 
 template <typename T>
 inline CONSTEXPR
@@ -624,10 +630,20 @@ int32 int_to_str(int64 number, T str[12]) NO_EXCEPT
         number = -number;
     }
 
-    do {
-        str[++i] = number % 10 + T('0');
-        number /= 10;
-    } while (number > 0);
+    while (number >= 100) {
+        const int32 pos = (int32) ((number % 100) * 2);
+        number /= 100;
+        str[++i] = T(DIGIT_PAIRS[pos + 1]);
+        str[++i] = T(DIGIT_PAIRS[pos]);
+    }
+
+    if (number < 10) {
+        str[++i] = T(number + '0');
+    } else {
+        const int32 pos = (int32) (number * 2);
+        str[++i] = T(DIGIT_PAIRS[pos + 1]);
+        str[++i] = T(DIGIT_PAIRS[pos]);
+    }
 
     if (sign < 0) {
         str[++i] = T('-');
@@ -650,10 +666,20 @@ int32 int_to_str(uint64 number, T str[12]) NO_EXCEPT
 {
     int32 i = -1;
 
-    do {
-        str[++i] = number % 10 + T('0');
-        number /= 10;
-    } while (number > 0);
+    while (number >= 100) {
+        const int32 pos = (int32) ((number % 100) * 2);
+        number /= 100;
+        str[++i] = T(DIGIT_PAIRS[pos + 1]);
+        str[++i] = T(DIGIT_PAIRS[pos]);
+    }
+
+    if (number < 10) {
+        str[++i] = T(number + '0');
+    } else {
+        const int32 pos = (int32) (number * 2);
+        str[++i] = T(DIGIT_PAIRS[pos + 1]);
+        str[++i] = T(DIGIT_PAIRS[pos]);
+    }
 
     for (int32 j = 0, k = i; j < k; ++j, --k) {
         const T temp = str[j];
@@ -662,6 +688,87 @@ int32 int_to_str(uint64 number, T str[12]) NO_EXCEPT
     }
 
     str[++i] = T('\0');
+
+    return i;
+}
+
+template <typename T>
+inline int32 int_to_str(int64 number, T str[15], T thousands) NO_EXCEPT
+{
+    if (number == 0) {
+        *str++ = T('0');
+        *str = T('\0');
+
+        return 1;
+    }
+
+    int32 i = 0;
+    int32 digit_count = 0;
+    const int64 sign = number;
+
+    if (number < 0) {
+        number = -number;
+    }
+
+    while (number >= 100) {
+        const int32 pos = (int32) ((number % 100) * 2);
+        number /= 100;
+
+        const T tens = T(DIGIT_PAIRS[pos]);
+        const T ones = T(DIGIT_PAIRS[pos + 1]);
+
+        if (digit_count && digit_count % 3 == 0) {
+            str[i++] = thousands;
+        }
+        str[i++] = ones;
+        ++digit_count;
+
+        if (digit_count % 3 == 0) {
+            str[i++] = thousands;
+        }
+        str[i++] = tens;
+        ++digit_count;
+    }
+
+    if (number < 10) {
+        if (digit_count && digit_count % 3 == 0) {
+            str[i++] = thousands;
+        }
+
+        str[i++] = T(number + '0');
+        ++digit_count;
+    } else {
+        const int32 pos = (int32) (number * 2);
+        const T tens = T(DIGIT_PAIRS[pos]);
+        const T ones = T(DIGIT_PAIRS[pos + 1]);
+
+        if (digit_count && digit_count % 3 == 0) {
+            str[i++] = thousands;
+        }
+
+        str[i++] = ones;
+        ++digit_count;
+
+        if (digit_count % 3 == 0) {
+            str[i++] = thousands;
+        }
+
+        str[i++] = tens;
+        ++digit_count;
+    }
+
+    if (sign < 0) {
+        str[i++] = T('-');
+    }
+
+    // reverse the buffer
+    for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
+        const T temp = str[j];
+        str[j] = str[k];
+        str[k] = temp;
+    }
+
+    str[i] = T('\0');
 
     return i;
 }
@@ -677,10 +784,20 @@ int32 int_to_str(int32 number, T str[12]) NO_EXCEPT
         number = -number;
     }
 
-    do {
-        str[++i] = number % 10 + T('0');
-        number /= 10;
-    } while (number > 0);
+    while (number >= 100) {
+        const int32 pos = (number % 100) * 2;
+        number /= 100;
+        str[++i] = T(DIGIT_PAIRS[pos + 1]);
+        str[++i] = T(DIGIT_PAIRS[pos]);
+    }
+
+    if (number < 10) {
+        str[++i] = T(number + '0');
+    } else {
+        const int32 pos = number * 2;
+        str[++i] = T(DIGIT_PAIRS[pos + 1]);
+        str[++i] = T(DIGIT_PAIRS[pos]);
+    }
 
     if (sign < 0) {
         str[++i] = T('-');
@@ -703,10 +820,20 @@ int32 int_to_str(uint32 number, T str[12]) NO_EXCEPT
 {
     int32 i = -1;
 
-    do {
-        str[++i] = number % 10 + T('0');
-        number /= 10;
-    } while (number > 0);
+    while (number >= 100) {
+        const int32 pos = (int32) (number % 100) * 2;
+        number /= 100;
+        str[++i] = T(DIGIT_PAIRS[pos + 1]);
+        str[++i] = T(DIGIT_PAIRS[pos]);
+    }
+
+    if (number < 10) {
+        str[++i] = T(number + '0');
+    } else {
+        const int32 pos = (int32) number * 2;
+        str[++i] = T(DIGIT_PAIRS[pos + 1]);
+        str[++i] = T(DIGIT_PAIRS[pos]);
+    }
 
     for (int32 j = 0, k = i; j < k; ++j, --k) {
         const T temp = str[j];
@@ -1001,6 +1128,16 @@ int32 str_copy(char* __restrict dest, const char* __restrict src) NO_EXCEPT
     return (int32) (dest - start);
 }
 
+template <typename C>
+inline
+int32 str_copy(C* __restrict dest, const C* __restrict src, int32 length) NO_EXCEPT
+{
+    memcpy(dest, src, sizeof(C) * length);
+    dest[length] = (C) 0;
+
+    return length;
+}
+
 // Similar to wcscpy but returns length instead of pointer to the beginning
 inline
 int32 str_copy(
@@ -1045,6 +1182,19 @@ int32 str_copy(
     }
 
     return (int32)(dest - start);
+}
+
+template <typename C>
+inline
+int32 str_append(
+    C* __restrict dest, int32 dest_length,
+    const C* __restrict src, int32 src_length
+) NO_EXCEPT
+{
+    memcpy(dest + dest_length, src, sizeof(C) * src_length);
+    dest[dest_length + src_length] = (C) 0;
+
+    return dest_length + src_length;
 }
 
 inline
@@ -1110,7 +1260,7 @@ int32 str_copy_until(wchar_t* __restrict dest, const wchar_t* __restrict src, wc
 
     const size_t wchar_t_bits = sizeof(wchar_t) * 8;
     size_t delim_mask = 0;
-    for (size_t i = 0; i < sizeof(size_t) / sizeof(wchar_t); ++i) {
+    for (size_t i = 0; i < (sizeof(size_t) >> div_pow2(sizeof(wchar_t))); ++i) {
         delim_mask |= (size_t)delim << (i * wchar_t_bits);
     }
 
@@ -1122,7 +1272,7 @@ int32 str_copy_until(wchar_t* __restrict dest, const wchar_t* __restrict src, wc
         // Detect either null or delimiter
         if (OMS_HAS_ZERO_WCHAR(v) || OMS_HAS_ZERO_WCHAR(v ^ delim_mask)) {
             const wchar_t* cp = (const wchar_t *) wptr;
-            for (size_t i = 0; i < sizeof(size_t) / sizeof(wchar_t); ++i) {
+            for (size_t i = 0; i < (sizeof(size_t) >> div_pow2(sizeof(wchar_t))); ++i) {
                 if (cp[i] == L'\0' || cp[i] == delim) {
                     const size_t len = cp + i - src;
                     for (size_t j = 0; j < len; ++j) {
@@ -1325,8 +1475,28 @@ str_concat_new(
     *dst = T('\0');
 }
 
+template <typename C>
+inline
+int32 str_concat_new(
+    C* dst,
+    const C* src1, int32 src1_length,
+    const C* src2, int32 src2_length
+) NO_EXCEPT
+{
+    memcpy(dst, src1, sizeof(C) * src1_length);
+    // +1 for \0
+    memcpy(dst + src1_length, src2, sizeof(C) * (src2_length + 1));
+
+    return src1_length + src2_length;
+}
+
 inline void
-str_concat_new(char* __restrict dst, const char* __restrict src1, const char* __restrict src2, const char* src3) NO_EXCEPT
+str_concat_new(
+    char* __restrict dst,
+    const char* __restrict src1,
+    const char* __restrict src2,
+    const char* src3
+) NO_EXCEPT
 {
     const char* sources[3] = { src1, src2, src3 };
 
@@ -1495,6 +1665,22 @@ void str_insert(wchar_t* __restrict dst, size_t insert_pos, const wchar_t* __res
 
     memmove(dst + insert_pos + src_length, dst + insert_pos, (dst_length - insert_pos + 1) * sizeof(wchar_t));
     memcpy(dst + insert_pos, src, src_length * sizeof(wchar_t));
+}
+
+template <typename C>
+inline
+int32 str_insert(
+    C* __restrict dst, int32 dst_length,
+    int32 insert_pos,
+    const C* __restrict src, int32 src_length
+) NO_EXCEPT
+{
+    memmove(dst + insert_pos + src_length, dst + insert_pos, (dst_length - insert_pos + 1) * sizeof(C));
+    memcpy(dst + insert_pos, src, src_length * sizeof(C));
+
+    dst[dst_length + src_length] = (C) 0;
+
+    return dst_length + src_length;
 }
 
 inline
@@ -1895,7 +2081,7 @@ void str_move_to(const wchar_t** str, wchar_t delim) NO_EXCEPT
     const size_t wchar_t_bits = sizeof(wchar_t) * 8;
     size_t delim_mask = 0;
 
-    for (size_t i = 0; i < sizeof(size_t) / sizeof(wchar_t); ++i) {
+    for (size_t i = 0; i < (sizeof(size_t) >> div_pow2(sizeof(wchar_t))); ++i) {
         delim_mask |= (size_t)delim << (i * wchar_t_bits);
     }
 

@@ -70,6 +70,16 @@ T& array_vector_reserve_one(ArrayVector<T>* vec) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
+T* array_vector_reserve(ArrayVector<T>* vec, int32 count) NO_EXCEPT
+{
+    T* v = &vec->elements[vec->count];
+    vec->count += count;
+
+    return v;
+}
+
+template<typename T>
+FORCE_INLINE
 void array_vector_insert(ArrayVector<T>* __restrict vec, const T* __restrict element) NO_EXCEPT
 {
     memcpy(vec->elements + vec->count, element, sizeof(T));

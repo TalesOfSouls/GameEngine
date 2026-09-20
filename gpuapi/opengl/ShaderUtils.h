@@ -29,7 +29,7 @@ struct OpenglVertexInputAttributeDescription {
 };
 
 inline
-int32 ogl_shader_type_index(ShaderType type) NO_EXCEPT
+int32 gpuapi_shader_type_index(ShaderType type) NO_EXCEPT
 {
     switch (type) {
         case SHADER_TYPE_VERTEX:
@@ -41,9 +41,7 @@ int32 ogl_shader_type_index(ShaderType type) NO_EXCEPT
     }
 }
 
-// Set value based on uniform location
-// @todo change naming to gpuapi_uniform_buffer_update (same as vulkan)
-// @todo change from upload to uniform upload since it is a special form of upload
+// Set value based on uniform location for the currently bound program
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 location, bool value) NO_EXCEPT
 {
@@ -59,7 +57,7 @@ void gpuapi_uniform_buffer_update(uint32 location, int32 value) NO_EXCEPT
 }
 
 FORCE_INLINE
-void gpuapi_uniform_buffer_update(uint32 location, int32* value, int32 length) NO_EXCEPT
+void gpuapi_uniform_buffer_update(uint32 location, const int32* value, int32 length) NO_EXCEPT
 {
     glUniform1iv(location, length, value);
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
@@ -132,6 +130,98 @@ FORCE_INLINE
 void gpuapi_uniform_buffer_update_m4(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniformMatrix4fv(location, 1, GL_FALSE, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 16);
+}
+
+// These versions are the DSA versions that don't require a program to be bound
+FORCE_INLINE
+void gpuapi_uniform_buffer_update(uint32 program, uint32 location, bool value) NO_EXCEPT
+{
+    glProgramUniform1i(program, location, (int32) value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update(uint32 program, uint32 location, int32 value) NO_EXCEPT
+{
+    glProgramUniform1i(program, location, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update(uint32 program, uint32 location, const int32* value, int32 length) NO_EXCEPT
+{
+    glProgramUniform1iv(program, location, length, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * length);
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update(uint32 program, uint32 location, uint32 value) NO_EXCEPT
+{
+    glProgramUniform1ui(program, location, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update(uint32 program, uint32 location, f32 value) NO_EXCEPT
+{
+    glProgramUniform1f(program, location, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update_v2(uint32 program, uint32 location, const f32* value) NO_EXCEPT
+{
+    glProgramUniform2fv(program, location, 1, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 2);
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update_v3(uint32 program, uint32 location, const f32* value) NO_EXCEPT
+{
+    glProgramUniform3fv(program, location, 1, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 3);
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update(uint32 program, uint32 location, v3_f32 value) NO_EXCEPT
+{
+    glProgramUniform3fv(program, location, 1, value.vec);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 3);
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update_v4(uint32 program, uint32 location, const f32* value) NO_EXCEPT
+{
+    glProgramUniform4fv(program, location, 1, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 4);
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update(uint32 program, uint32 location, v4_f32 value) NO_EXCEPT
+{
+    glProgramUniform4fv(program, location, 1, value.vec);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 4);
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update_m2(uint32 program, uint32 location, const f32* value) NO_EXCEPT
+{
+    glProgramUniformMatrix2fv(program, location, 1, GL_FALSE, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 4);
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update_m3(uint32 program, uint32 location, const f32* value) NO_EXCEPT
+{
+    glProgramUniformMatrix3fv(program, location, 1, GL_FALSE, value);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 9);
+}
+
+FORCE_INLINE
+void gpuapi_uniform_buffer_update_m4(uint32 program, uint32 location, const f32* value) NO_EXCEPT
+{
+    glProgramUniformMatrix4fv(program, location, 1, GL_FALSE, value);
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 16);
 }
 
@@ -261,7 +351,7 @@ GLuint gpuapi_shader_make(GLenum type, const char* source) NO_EXCEPT
             length = OMS_MIN(length, (GLint) (ARRAY_COUNT(info) - 1));
             info[length] = '\0';
             glGetShaderInfoLog(shader, length, NULL, info);
-            LOG_1(simple_string_dynamic((char *) info, length));
+            LOG_1(simple_string_init((char *) info, length));
 
             ASSERT_THROW();
         }
@@ -314,7 +404,7 @@ GLuint gpuapi_pipeline_make(
             length = OMS_MIN(length, (GLint) (ARRAY_COUNT(info) - 1));
             info[length] = '\0';
             glGetProgramInfoLog(program, length, NULL, info);
-            LOG_1(simple_string_dynamic((char *) info, length));
+            LOG_1(simple_string_init((char *) info, length));
 
             ASSERT_THROW();
         }
@@ -489,17 +579,105 @@ void gpuapi_attribute_setup_static(
     }
 }
 
-// @performance It should be possible to do this at compile time if we manually parse the shader
+/**
+ * We simulate descriptors that exist for other GPU APIs like vulkan and DirectX
+ */
 FORCE_INLINE
 void gpuapi_descriptor_set_layout_create(
     Pipeline* const __restrict pipeline,
-    const OpenglDescriptorSetLayoutBinding* const __restrict bindings,
-    int32 binding_length
+    const OpenglDescriptorSetLayoutBinding* const __restrict bindings, int32 binding_length
 ) NO_EXCEPT
 {
     for (int32 i = 0; i < binding_length; ++i) {
         pipeline->descriptor_set_layout[i].binding = glGetUniformLocation(pipeline->id, bindings[i].name);
         pipeline->descriptor_set_layout[i].name = bindings[i].name;
+    }
+}
+
+// Checks if a character is a valid var name character
+static inline bool gpuapi_is_var_name(char c) NO_EXCEPT
+{
+    return (c >= 'a' && c <= 'z')
+        || (c >= 'A' && c <= 'Z')
+        || (c >= '0' && c <= '9')
+        || c == '_';
+}
+
+// Returns layout(location = N) of uniform name
+static int32 gpuapi_uniform_location(const char* __restrict src, const char* __restrict name) NO_EXCEPT
+{
+    size_t name_len = strlen(name);
+
+    for (const char* u = strstr(src, "uniform"); u; u = strstr(u + 7, "uniform")) {
+        if ((u > src && gpuapi_is_var_name(u[-1])) || gpuapi_is_var_name(u[7])) {
+            continue;
+        }
+
+        const char* end = strchr(u, ';');
+        if (!end) {
+            break;
+        }
+
+        bool found = false;
+        for (const char* p = strstr(u + 7, name); p && p < end; p = strstr(p + 1, name)) {
+            if (!gpuapi_is_var_name(p[-1])
+                && !gpuapi_is_var_name(p[name_len])
+            ) {
+                found = true; break;
+            }
+        }
+
+        if (!found) {
+            continue;
+        }
+
+        // Walk back to the start of the statement and look for "location = N"
+        const char* start = u;
+        while (start > src && start[-1] != ';' && start[-1] != '}') {
+            --start;
+        }
+
+        const char* loc = strstr(start, "location");
+        if (!loc || loc > u) {
+            return -1;
+        }
+
+        loc = strchr(loc, '=');
+
+        return loc ? atoi(loc + 1) : -1;
+    }
+
+    return -1;
+}
+
+/**
+ * Instead of using GPU api functions to create the descriptor we parse the shader itself
+ * This avoids one GPU interaction.
+ * However, that means you need to have the shader as string in memory at this point.
+ * If you don't want this you can use the version that uses the GPU api
+ *
+ * WARNING: If you use this your uniforms MUST have an explicit location e.g.
+ *          layout (location = N) ...;
+ */
+FORCE_INLINE
+void gpuapi_descriptor_set_layout_create(
+    Pipeline* const __restrict pipeline,
+    const OpenglDescriptorSetLayoutBinding* const __restrict bindings, int32 binding_length,
+    const char* const* __restrict shader_sources, int32 shader_count
+) NO_EXCEPT
+{
+    for (int32 i = 0; i < binding_length; ++i) {
+        pipeline->descriptor_set_layout[i].name = bindings[i].name;
+        pipeline->descriptor_set_layout[i].binding = -1;
+
+        for (int32 s = 0; s < shader_count && pipeline->descriptor_set_layout[i].binding < 0; ++s) {
+            pipeline->descriptor_set_layout[i].binding = gpuapi_uniform_location(
+                shader_sources[s],
+                bindings[i].name
+            );
+        }
+
+        ASSERT_TRUE(pipeline->descriptor_set_layout[i].binding >= 0);
     }
 }
 

@@ -74,7 +74,6 @@ void* platform_alloc_aligned(
 
     ((void**)aligned)[-1] = base;
 
-    DEBUG_MEMORY_INIT((uintptr_t)aligned, initial_size);
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, initial_size);
 
     return aligned;
@@ -100,7 +99,6 @@ bool platform_alloc_aligned_grow(void* aligned_ptr, size_t new_user_size) NO_EXC
         mprotect(hdr, new_committed, PROT_READ | PROT_WRITE) == 0
     );
 
-    DEBUG_MEMORY_INIT((uintptr_t)aligned_ptr + hdr->committed_size, new_committed - hdr->committed_size);
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, new_committed - hdr->committed_size);
 
     hdr->committed_size = new_committed;
@@ -156,7 +154,6 @@ void platform_aligned_free(void** aligned_ptr) NO_EXCEPT
     void* base = ((void**)(*aligned_ptr))[-1];
     platform_alloc_header* hdr = (platform_alloc_header*)base;
 
-    DEBUG_MEMORY_FREE((uintptr_t)*aligned_ptr);
     munmap(base, hdr->reserved_size);
 
     *aligned_ptr = NULL;
@@ -308,8 +305,6 @@ void platform_shared_free(int32 fd, const char* name, void** ptr) NO_EXCEPT
     }
 
     platform_alloc_header* hdr = (platform_alloc_header*)((uintptr_t)(*ptr) - sizeof(platform_alloc_header));
-
-    DEBUG_MEMORY_FREE((uintptr_t)hdr);
 
     munmap(hdr, hdr->reserved_size);
 

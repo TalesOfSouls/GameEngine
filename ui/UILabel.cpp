@@ -38,21 +38,12 @@ void ui_vertices_cache(
 
     void* label_content = layout->ui_element_buffer.memory + label->content;
 
-    if (label->char_type == CHAR_TYPE_CHAR) {
-        vertex_text_create(
-            &layout->ui_vertex_cache, &layout->ui_index_cache, zindex,
-            {label->core.dimension.pos.x, label->core.dimension.pos.y - font->base.line_height * font_size, 0.0f, 0.0f}, label->core.dimension.alignment,
-            font, (const char* const) label_content, label->font.size, label->font.color,
-            mem
-        );
-    } else {
-        vertex_text_create(
-            &layout->ui_vertex_cache, &layout->ui_index_cache, zindex,
-            {label->core.dimension.pos.x, label->core.dimension.pos.y - font->base.line_height * font_size, 0.0f, 0.0f}, label->core.dimension.alignment,
-            font, (const wchar_t* const) label_content, label->font.size, label->font.color,
-            mem
-        );
-    }
+    vertex_text_create(
+        &layout->ui_vertex_cache, &layout->ui_index_cache, zindex,
+        {label->core.dimension.pos.x, label->core.dimension.pos.y - font->base.line_height * font_size, 0.0f, 0.0f}, label->core.dimension.alignment,
+        font, (const char* const) label_content, label->font.size, label->font.color,
+        mem
+    );
 
     label->core.vertex_count = (int16) (layout->ui_vertex_cache.count - label->core.vertices);
 

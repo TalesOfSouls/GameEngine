@@ -40,13 +40,13 @@ void adjust_aligned_position(
     if (alignment & UI_ALIGN_H_RIGHT) {
         *x -= width;
     } else if (alignment & UI_ALIGN_H_CENTER) {
-        *x -= width / 2.0f;
+        *x -= width * 0.5f;
     }
 
     if (alignment & UI_ALIGN_V_TOP) {
         *y -= height;
     } else if (alignment & UI_ALIGN_V_CENTER) {
-        *y -= height / 2.0f;
+        *y -= height * 0.5f;
     }
 }
 
@@ -59,19 +59,20 @@ void adjust_aligned_position(
     if (alignment & UI_ALIGN_H_RIGHT) {
         vec->x -= vec->width;
     } else if (alignment & UI_ALIGN_H_CENTER) {
-        vec->x -= vec->width / 2.0f;
+        vec->x -= vec->width * 0.5f;
     }
 
     if (alignment & UI_ALIGN_V_TOP) {
         vec->y -= vec->height;
     } else if (alignment & UI_ALIGN_V_CENTER) {
-        vec->y -= vec->height / 2.0f;
+        vec->y -= vec->height * 0.5f;
     }
 }
 
 inline
 void vertex_line_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices,
+    ArrayVector<int32>* const __restrict indices, f32 zindex,
     v2_f32 start, v2_f32 end, f32 thickness,
     uint32 rgba = 0
 ) NO_EXCEPT
@@ -84,15 +85,11 @@ void vertex_line_create(
     dx *= len;
     dy *= len;
 
-    // Perpendicular vector (normalized)
-    const f32 px = -dy;
-    const f32 py = dx;
-
     thickness *= 0.5f;
 
-    // Scale by half-thickness
-    const f32 hx = px * thickness;
-    const f32 hy = py * thickness;
+    // Perpendicular vector (normalized) and then scaled by half-thickness
+    const f32 hx = -dy * thickness;
+    const f32 hy = dx * thickness;
 
     // Four corners of the line quad
     const v2_f32 v0 = { start.x - hx, start.y - hy };
@@ -100,23 +97,27 @@ void vertex_line_create(
     const v2_f32 v2 = { end.x   - hx, end.y   - hy };
     const v2_f32 v3 = { end.x   + hx, end.y   + hy };
 
-    array_vector_reserve_one(indices) = vertices->count;
-    array_vector_reserve_one(indices) = vertices->count + 1;
-    array_vector_reserve_one(indices) = vertices->count + 3;
+    int32* const __restrict i = array_vector_reserve(indices, 6);
+    const int32 vertex_count = vertices->count;
+    i[0] = vertex_count;
+    i[1] = vertex_count + 1;
+    i[2] = vertex_count + 3;
 
-    array_vector_reserve_one(indices) = vertices->count + 1;
-    array_vector_reserve_one(indices) = vertices->count + 2;
-    array_vector_reserve_one(indices) = vertices->count + 3;
+    i[3] = vertex_count + 1;
+    i[4] = vertex_count + 2;
+    i[5] = vertex_count + 3;
 
-    array_vector_reserve_one(vertices) = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // tl
-    array_vector_reserve_one(vertices) = {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // tr
-    array_vector_reserve_one(vertices) = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // br
-    array_vector_reserve_one(vertices) = {{v0.x, v0.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // bl
+    Vertex3DSamplerTextureColor* const __restrict v = array_vector_reserve(vertices, 4);
+    v[0] = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // tl
+    v[1] = {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // tr
+    v[2] = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // br
+    v[3] = {{v0.x, v0.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // bl
 }
 
 inline HOT_CODE
 void vertex_rect_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices,
+    ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     uint32 rgba = 0, v2_f32 tex1 = {}, v2_f32 tex2 = {}
 ) NO_EXCEPT
@@ -137,18 +138,21 @@ void vertex_rect_create(
     const f32 y_height = dimension.y + dimension.height;
     const f32 x_width = dimension.x + dimension.width;
 
-    array_vector_reserve_one(indices) = vertices->count;
-    array_vector_reserve_one(indices) = vertices->count + 1;
-    array_vector_reserve_one(indices) = vertices->count + 3;
+    int32* const __restrict i = array_vector_reserve(indices, 6);
+    const int32 vertex_count = vertices->count;
+    i[0] = vertex_count;
+    i[1] = vertex_count + 1;
+    i[2] = vertex_count + 3;
 
-    array_vector_reserve_one(indices) = vertices->count + 1;
-    array_vector_reserve_one(indices) = vertices->count + 2;
-    array_vector_reserve_one(indices) = vertices->count + 3;
+    i[3] = vertex_count + 1;
+    i[4] = vertex_count + 2;
+    i[5] = vertex_count + 3;
 
-    array_vector_reserve_one(vertices) = {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}}; // tl
-    array_vector_reserve_one(vertices) = {{x_width, y_height, zindex}, sampler, tex2}; // tr
-    array_vector_reserve_one(vertices) = {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}}; // br
-    array_vector_reserve_one(vertices) = {{dimension.x, dimension.y, zindex}, sampler, tex1}; // bl
+    Vertex3DSamplerTextureColor* const __restrict v = array_vector_reserve(vertices, 4);
+    v[0] = {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}}; // tl
+    v[1] = {{x_width, y_height, zindex}, sampler, tex2}; // tr
+    v[2] = {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}}; // br
+    v[3] = {{dimension.x, dimension.y, zindex}, sampler, tex1}; // bl
 }
 
 inline
@@ -279,11 +283,11 @@ v2_f32 text_calculate_dimensions(
     f32 y = line_height;
     f32 offset_x = 0;
 
-    const Glyph* const base_glyphs = font->base.glyphs;
-    const Glyph* const extended_glyphs = font->extended.glyphs;
+    const Glyph* const __restrict tables[] = { font->base.glyphs, font->extended.glyphs };
 
     for (int i = 0; i < length; ++i) {
-        if (glyphs[i] == font->newline_id) {
+        const uint16 g = glyphs[i];
+        if (g == font->newline_id) {
             // @performance calculating a new x after a line break seems wrong
             x = max_branched(x, offset_x);
             y += line_height;
@@ -293,9 +297,7 @@ v2_f32 text_calculate_dimensions(
             continue;
         }
 
-        const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &base_glyphs[glyphs[i]]
-            : &extended_glyphs[glyphs[i] & 0x7FFF];
+        const Glyph* const __restrict glyph = &tables[g >> 15][g & 0x7FFF];
 
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
@@ -311,11 +313,11 @@ f32 text_calculate_dimensions_width(
     f32 x = 0;
     f32 offset_x = 0;
 
-    const Glyph* const base_glyphs = font->base.glyphs;
-    const Glyph* const extended_glyphs = font->extended.glyphs;
+    const Glyph* const __restrict tables[] = { font->base.glyphs, font->extended.glyphs };
 
     for (int i = 0; i < length; ++i) {
-        if (glyphs[i] == font->newline_id) {
+        const uint16 g = glyphs[i];
+        if (g == font->newline_id) {
             // @performance calculating a new x after a new line feels wrong
             x = max_branched(x, offset_x);
             offset_x = 0;
@@ -323,9 +325,7 @@ f32 text_calculate_dimensions_width(
             continue;
         }
 
-        const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &base_glyphs[glyphs[i]]
-            : &extended_glyphs[glyphs[i] & 0x7FFF];
+        const Glyph* const __restrict glyph = &tables[g >> 15][g & 0x7FFF];
 
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
@@ -335,16 +335,15 @@ f32 text_calculate_dimensions_width(
 
 static
 f32 text_calculate_dimensions_height(
-    const FontSystem* const __restrict font, const int16* const glyphs, int32 length, f32 scale
+    const FontSystem* const __restrict font, const int16* const glyphs, int32 length, f32 line_height_scaled
 ) NO_EXCEPT
 {
-    const f32 line_height = font->base.line_height * scale;
-    f32 y = line_height;
+    f32 y = line_height_scaled;
 
     // Now we just count how often that newline character exists
     for (int i = 0; i < length; ++i) {
         if (glyphs[i] == font->newline_id) {
-            y += line_height;
+            y += line_height_scaled;
         }
     }
 
@@ -362,11 +361,15 @@ v2_int32 vertex_text_create(
     PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
     PSEUDO_USE(rgba);
 
-    const Font* const font_base = &font->base;
+    const Font* const __restrict font_base = &font->base;
     const f32 scale = size / font_base->size;
+    const f32 line_height_scaled = font_base->line_height * scale;
 
-    // @performance I don't like that we have to iterate the glyphs twice, do we really need this?
-    // If we do a different alignment we need to pre-calculate the width and height
+    // The code below (if it is executed) results in an additional iteration over the glyphs array.
+    // We tried to pull this out into the previous function call where we are generating the glyphs array.
+    // We thought that this would improve the performance, because this way we could avoid one iteration over glyphs.
+    // However, as it turns out this would only improve the performance in debug builds
+    // BUT make it slower in release builds.
     if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
         if ((alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER))
             && (alignment & (UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER))
@@ -377,24 +380,21 @@ v2_int32 vertex_text_create(
         } else if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER)) {
             dimension.width = text_calculate_dimensions_width(font, glyphs, length, scale);
         } else {
-            dimension.height = text_calculate_dimensions_height(font, glyphs, length, scale);
+            dimension.height = text_calculate_dimensions_height(font, glyphs, length, line_height_scaled);
         }
 
         adjust_aligned_position(&dimension, alignment);
     }
 
-    const f32 line_height_scaled = font_base->line_height * scale;
-
     f32 rendered_width = 0;
     f32 rendered_height = line_height_scaled;
 
     f32 offset_x = dimension.x;
-
-    const Glyph* const base_glyphs = font->base.glyphs;
-    const Glyph* const extended_glyphs = font->extended.glyphs;
+    const Glyph* const __restrict tables[] = { font->base.glyphs, font->extended.glyphs };
 
     for (int32 i = 0; i < length; ++i) {
-        if (glyphs[i] == font->newline_id) {
+        const uint16 g = glyphs[i];
+        if (g == font->newline_id) {
             rendered_height += line_height_scaled;
             rendered_width = max_branched(rendered_width, offset_x - dimension.x);
 
@@ -404,11 +404,9 @@ v2_int32 vertex_text_create(
             continue;
         }
 
-        const Glyph* const glyph = !(glyphs[i] & 0x8000)
-            ? &base_glyphs[glyphs[i]]
-            : &extended_glyphs[glyphs[i] & 0x7FFF];
+        const Glyph* const __restrict glyph = &tables[g >> 15][g & 0x7FFF];
 
-        const GlyphMetrics* const metrics = &glyph->metrics;
+        const GlyphMetrics* const __restrict metrics = &glyph->metrics;
         const f32 offset_y = dimension.y + metrics->offset_y * scale;
         offset_x += metrics->offset_x * scale;
         rendered_width += metrics->offset_x * scale;
@@ -420,19 +418,21 @@ v2_int32 vertex_text_create(
             const f32 x_end_scaled = offset_x + metrics->width * scale;
             const f32 y_end_scaled = offset_y + metrics->height * scale;
 
-            array_vector_reserve_one(indices) = vertices->count;
-            array_vector_reserve_one(indices) = vertices->count + 1;
-            array_vector_reserve_one(indices) = vertices->count + 3;
+            int32* const idx = array_vector_reserve(indices, 6);
+            const int32 vertex_count = vertices->count;
+            idx[0] = vertex_count;
+            idx[1] = vertex_count + 1;
+            idx[2] = vertex_count + 3;
 
-            array_vector_reserve_one(indices) = vertices->count + 1;
-            array_vector_reserve_one(indices) = vertices->count + 2;
-            array_vector_reserve_one(indices) = vertices->count + 3;
+            idx[3] = vertex_count + 1;
+            idx[4] = vertex_count + 2;
+            idx[5] = vertex_count + 3;
 
-            const int32 texture_id = font->base.texture->opengl_texture.texture_id;
-            array_vector_reserve_one(vertices) = {{offset_x, y_end_scaled, zindex}, texture_id, glyph->uv_start}; // tl
-            array_vector_reserve_one(vertices) = {{x_end_scaled, y_end_scaled, zindex}, texture_id, {glyph->uv_end.x, glyph->uv_start.y}}; // tr
-            array_vector_reserve_one(vertices) = {{x_end_scaled, offset_y, zindex}, texture_id, glyph->uv_end}; // br
-            array_vector_reserve_one(vertices) = {{offset_x, offset_y, zindex}, texture_id, {glyph->uv_start.x, glyph->uv_end.y}}; // bl
+            Vertex3DSamplerTextureColor* const __restrict v = array_vector_reserve(vertices, 4);
+            v[0] = {{offset_x, y_end_scaled, zindex}, 1, glyph->uv_start}; // tl
+            v[1] = {{x_end_scaled, y_end_scaled, zindex}, 1, {glyph->uv_end.x, glyph->uv_start.y}}; // tr
+            v[2] = {{x_end_scaled, offset_y, zindex}, 1, glyph->uv_end}; // br
+            v[3] = {{offset_x, offset_y, zindex}, 1, {glyph->uv_start.x, glyph->uv_end.y}}; // bl
         }
 
         const f32 add_offset = (metrics->width + metrics->advance_x) * scale;
@@ -449,80 +449,6 @@ v2_int32 vertex_text_create(
     return {(int32) rendered_width, (int32) rendered_height};
 }
 
-// @todo It is stupid that we effectively have the same function twice and the only difference is how we calculate int32 character
-template <typename T>
-HOT_CODE
-v2_int32 vertex_text_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
-    const v4_f32& dimension, byte alignment,
-    FontSystem* const __restrict font, const wchar_t* const __restrict text,
-    f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
-) NO_EXCEPT
-{
-    PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
-    PSEUDO_USE(rgba);
-
-    size_t length;
-    if (!text || (length = wcslen(text)) < 1) {
-        return {};
-    }
-
-    // Try to find all the necessary glyphs
-    // We use offsets instead of pointer chasing
-    // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* const glyphs = (int16*) memory_get_temp(mem, length * sizeof(int16), alignof(uintptr_t));
-    //alignas(alignof(size_t)) int16 glyphs[10000];
-    for (int32 i = 0; i < length; ++i) {
-        const int32 character = text[i];
-
-        // @question Do I even want to handle this in a special way?
-        //          This is no longer required if we force \n to be part of the glyph file
-        if (character == '\n') {
-            glyphs[i] = font->newline_id;
-            continue;
-        }
-
-        glyphs[i] = font_glyph_index_find(&font->base, character);
-        if (glyphs[i] < 0 && font->has_extended) {
-            //glyphs[i] = hashmap_get(&font->font_map, character);
-
-            //if (glyphs[i] < 0) {
-                const int16 extended_glyph = font_glyph_index_find(&font->extended, character);
-                if (extended_glyph < 0) {
-                    //glyphs[i] = -1;
-                    continue;
-                }
-
-                // @bug Not correct:
-                //      1. we need to add the value not the pointer.
-                //      2. we need to find a free spot in the texture or replace old ones
-                //      3. we need to update the uv values to the new position
-                //      4. we need to create a custom _insert function
-                //      5. we probably need a custom struct for the hash map to also contain the priority for replacing elements
-                //hashmap_insert(&font->font_map, extended_glyph->codepoint, extended_glyph);
-
-                glyphs[i] = extended_glyph | 0x8000;
-
-                font->has_changes = true;
-            //} else {
-                // @todo update glyph priority
-            //}
-        }
-
-        if (glyphs[i] < 0) {
-            // @todo add unknown character glyph
-            glyphs[i] = 0;
-        }
-    }
-
-    return vertex_text_create(
-        vertices, indices, zindex,
-        dimension, alignment,
-        font, glyphs, (int32) length,
-        size, rgba
-    );
-}
-
 template <typename T>
 HOT_CODE
 v2_int32 vertex_text_create(
@@ -535,74 +461,148 @@ v2_int32 vertex_text_create(
     PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
     PSEUDO_USE(rgba);
 
-    int32 length;
-    if (!text || (length = utf8_strlen(text)) < 1) {
-        return {};
-    }
-
-    const bool is_ascii = (int32) strlen(text) == length;
+    const int32 codepoint_count = (int32) utf8_strlen(text) - 1;
 
     // Try to find all the necessary glyphs
     // We use offsets instead of pointer chasing
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* const glyphs = (int16*) memory_get_temp(mem, length * sizeof(int16), alignof(uintptr_t));
-    for (int32 i = 0; i < length; ++i) {
-        const int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
+    int16* const __restrict glyphs = (int16*) memory_get_temp(mem, codepoint_count * sizeof(int16), alignof(uintptr_t));
+    int32 glyph_count = 0;
 
-        // @question Do I even want to handle this in a special way?
-        //          This is no longer required if we force \n to be part of the glyph file
-        if (character == '\n') {
-            glyphs[i] = font->newline_id;
+    int32 i = 0;
+    while (text[i] != '\0') {
+        uint32 codepoint;
+        const int32 byte_len = utf8_decode(text + i, &codepoint);
+
+        if (byte_len == 0) {
+            ++i;
             continue;
         }
 
-        // @performance Do I really want to use an index array instead of a pointer array?
-        //              Indices are smaller (4x) but require an additional if statement to decide between base and extended later on
-        //              Pointers are larger but no additional if required
-        glyphs[i] = font_glyph_index_find(&font->base, character);
-        if (glyphs[i] < 0 && font->has_extended) {
-            //glyphs[i] = hashmap_get(&font->font_map, character);
+        i += byte_len;
 
-            //if (glyphs[i] < 0) {
-                const int16 extended_glyph = font_glyph_index_find(&font->extended, character);
-                if (extended_glyph < 0) {
-                    //glyphs[i] = -1;
-                    continue;
-                }
+        // The performance difference of using pointers directly or smaller indices (current implementation)
+        // is very small. Some tests show that the index version is approx. 0-5% faster.
+        // If we ever need more than 16 bit of font data we have to re-check
+        int16 glyph = font_glyph_index_find(&font->base, codepoint);
+        if (glyph < 0 && font->has_extended) {
+            const int16 extended_glyph = font_glyph_index_find(&font->extended, codepoint);
+            if (extended_glyph < 0) {
+                continue;
+            }
 
-                // @bug Not correct:
-                //      1. we need to add the value not the pointer.
-                //      2. we need to find a free spot in the texture or replace old ones
-                //      3. we need to update the uv values to the new position
-                //      4. we need to create a custom _insert function
-                //      5. we probably need a custom struct for the hash map to also contain the priority for replacing elements
-                //hashmap_insert(&font->font_map, extended_glyph->codepoint, extended_glyph);
+            // @bug Not correct:
+            //      1. we need to add the value not the pointer.
+            //      2. we need to find a free spot in the texture or replace old ones
+            //      3. we need to update the uv values to the new position
+            //      4. we need to create a custom _insert function
+            //      5. we probably need a custom struct for the hash map to also contain the priority for replacing elements
+            glyph = extended_glyph | 0x8000;
 
-                glyphs[i] = extended_glyph | 0x8000;
-
-                font->has_changes = true;
-            //} else {
-                // @todo update glyph priority
-            //}
+            font->has_changes = true;
         }
 
-        if (glyphs[i] < 0) {
-            // @todo add unknown character glyph, conflicts with \n
-            glyphs[i] = 0;
+        if (glyph < 0) {
+            // The 0 index character MUST be the special character for nothing found
+            glyph = 0;
         }
+
+        glyphs[glyph_count++] = glyph;
     }
 
     return vertex_text_create(
         vertices, indices, zindex,
         dimension, alignment,
-        font, glyphs, length,
+        font, glyphs, glyph_count,
         size, rgba
     );
 }
 
+template <typename T>
+HOT_CODE
+v2_int32 vertex_text_create(
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
+    const v4_f32& dimension, byte alignment,
+    FontSystem* const __restrict font, const Utf8String& text,
+    f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
+) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
+    PSEUDO_USE(rgba);
+
+    // Try to find all the necessary glyphs
+    // We use offsets instead of pointer chasing
+    // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
+    int16* const __restrict glyphs = (int16*) memory_get_temp(mem, text.length * sizeof(int16), alignof(uintptr_t));
+    int32 glyph_count = 0;
+
+    int32 i = 0;
+    int32 c = 0;
+
+    while (c < text.length) {
+        uint32 codepoint;
+        const int32 byte_len = utf8_decode(text.str + i, &codepoint);
+
+        if (byte_len == 0) {
+            ++i;
+            ++c;
+            continue;
+        }
+
+        i += byte_len;
+        ++c;
+
+        int16 glyph = font_glyph_index_find(&font->base, codepoint);
+        if (glyph < 0 && font->has_extended) {
+            const int16 extended_glyph = font_glyph_index_find(&font->extended, codepoint);
+            if (extended_glyph < 0) {
+                continue;
+            }
+
+            glyph = extended_glyph | 0x8000;
+            font->has_changes = true;
+        }
+
+        if (glyph < 0) {
+            glyph = 0;
+        }
+
+        glyphs[glyph_count++] = glyph;
+    }
+
+    return vertex_text_create(
+        vertices, indices, zindex,
+        dimension, alignment,
+        font, glyphs, glyph_count,
+        size, rgba
+    );
+}
+
+/*
+Example use case for the FontTextCache below:
+
+static FontTextCache origin_cached;
+CONSTEXPR const Utf8String utf8_origin = utf8_string_literal("Origin");
+if (!vertex_text_is_cached(origin_cached, utf8_origin)) {
+    origin_cached.cached_dim = vertex_text_create(
+        &origin_cached.cached_vertices.view, &origin_cached.cached_indices.view, zindex,
+        {1.0f, top, 0.0f, 0.0f}, UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM,
+        font, utf8_origin, font_size, COLOR_WHITE_RGBA,
+        glyph_buffer
+    );
+    memcpy(&origin_cached.cached_str, &utf8_origin, sizeof(utf8_origin));
+}
+text_dim = vertex_text_cached_append(vertices, indices, &origin_cached, zindex);
+*/
 #define MAX_STACK_GLYPH_CACHE 32
 struct FontTextCache {
-    char cached_str[MAX_STACK_GLYPH_CACHE];
+    Utf8String cached_str;
+    // We could significantly reduce the size (currently almost 4KB)
+    // "Simply" create a global arena for the two vectors which then the FontTextCache
+    // or the algorithm below reference.
+    // Why does this safe memory?
+    // Well we no longer require a fixed size per FontTextCache and can make use of the fact,
+    // that usually the string length is shorter
     FixedArrayVector<Vertex3DSamplerTextureColor, 4 * MAX_STACK_GLYPH_CACHE> cached_vertices;
     FixedArrayVector<int32, 6 * MAX_STACK_GLYPH_CACHE> cached_indices;
     v2_int32 cached_dim;
@@ -612,13 +612,24 @@ v2_int32 vertex_text_cached_append(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices,
     ArrayVector<int32>* const __restrict indices,
     const FontTextCache* const __restrict cache,
+    float zindex,
     int32 steps = 8
 ) NO_EXCEPT
 {
     const int32 vertex_count = cache->cached_vertices.view.count;
-    const int32 index_count  = cache->cached_indices.view.count;
-    const int32 base_vertex  = vertices->count;
-    const int32 base_index   = indices->count;
+    const int32 index_count = cache->cached_indices.view.count;
+    const int32 base_vertex = vertices->count;
+    const int32 base_index = indices->count;
+
+    // We may have to update the zindex
+    if (vertex_count > 0
+        && cache->cached_vertices.view.elements[0].position.z != zindex
+    ) {
+        Vertex3DSamplerTextureColor* const cached_vertices = cache->cached_vertices.view.elements;
+        for (int32 v = 0; v < vertex_count; ++v) {
+            cached_vertices[v].position.z = zindex;
+        }
+    }
 
     memcpy(
         vertices->elements + base_vertex,
@@ -631,7 +642,7 @@ v2_int32 vertex_text_cached_append(
         index_count * sizeof(int32)
     );
 
-    int32* const __restrict dst = indices->elements + base_index;
+    int32* const dst = indices->elements + base_index;
     int32 i = 0;
 
     #if defined(__ARM_FEATURE_SVE)
@@ -705,14 +716,16 @@ v2_int32 vertex_text_cached_append(
 }
 
 FORCE_INLINE
-bool vertex_text_is_cached(FontTextCache* __restrict cache, const char* __restrict new_str) NO_EXCEPT
+bool vertex_text_is_cached(FontTextCache& __restrict cache, const Utf8String& __restrict new_str) NO_EXCEPT
 {
-    if (strcmp(cache->cached_str, new_str) == 0) {
+    if (cache.cached_str.length == new_str.length
+        && memcmp(cache.cached_str.str, new_str.str, new_str.length) == 0
+    ) {
         return true;
     }
 
-    cache->cached_vertices.view.count = 0;
-    cache->cached_indices.view.count = 0;
+    cache.cached_vertices.view.count = 0;
+    cache.cached_indices.view.count = 0;
 
     return false;
 }

@@ -33,7 +33,8 @@ void ams_create(AssetManagementSystem* const ams, BufferMemory* const buf, int32
 }
 
 // Different AMS components can have different chunk sizes
-// This is useful for components that only contain textures, audio, 3d object data, etc. to avoid massive unused data or very small memory chunks for all situations which makes chunk allocation slower
+// This is useful for components that only contain textures, audio, 3d object data, etc.
+// to avoid massive unused data or very small memory chunks for all situations which makes chunk allocation slower
 inline
 void ams_component_create(AssetComponent* ac, BufferMemory* const buf, int32 chunk_size, int32 count) NO_EXCEPT
 {
@@ -94,12 +95,6 @@ void ams_free(AssetManagementSystem* const ams) NO_EXCEPT
     for (int32 i = 0; i < ams->asset_component_count; ++i) {
         ams_component_free(&ams->asset_components[i]);
     }
-}
-
-FORCE_INLINE
-uint16 ams_calculate_chunks(const AssetComponent* ac, int32 byte_size, int32 overhead) NO_EXCEPT
-{
-    return (uint16) CEIL_DIV(byte_size + overhead, ac->asset_memory.chunk_size);
 }
 
 /**
@@ -211,7 +206,7 @@ Asset* ams_asset_get_reserve_wait(AssetManagementSystem* const ams, byte type, c
     }
 
     AssetComponent* const ac = &ams->asset_components[type];
-    const uint16 elements = ams_calculate_chunks(ac, size, overhead);
+    const uint16 elements = (uint16) chunk_element_count(&ac->asset_memory, size + overhead);
     const int32 free_data = chunk_reserve(&ac->asset_memory, elements);
 
     byte* const data = chunk_element_get(&ac->asset_memory, free_data);
@@ -366,7 +361,7 @@ Asset* ams_asset_reserve(
     const byte type = ams_component_find_type(ams, size, overhead);
 
     AssetComponent* const ac = &ams->asset_components[type];
-    const uint16 elements = ams_calculate_chunks(ac, size, overhead);
+    const uint16 elements = (uint16) chunk_element_count(&ac->asset_memory, size + overhead);
 
     // Required for guard
     const int32 free_data = chunk_reserve(&ac->asset_memory, elements);

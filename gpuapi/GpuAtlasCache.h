@@ -1,7 +1,7 @@
 /**
  * A cache for gpu renders
  *
- * In some cases we need to or can cache renderings on the gpu. Examples are:
+ * In some cases we need to or can cache rendering on the gpu. Examples are:
  *
  *      Rendered text (not individual glyphs, full text)
  *      Completely rendered UI components or sub-components (e.g. button with text)
@@ -82,8 +82,6 @@ struct GpuAtlasCache {
     v2_f32* uv;
 
     spinlock32 lock;
-
-    // @todo we need a way to track changed elements so we can update the cpu cache only for changed elements
 };
 
 #endif

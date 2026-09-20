@@ -128,8 +128,6 @@ void chunk_init(
     buf->alignment = alignment;
     buf->free = (size_t *) ALIGN_UP((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
     memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
@@ -160,8 +158,6 @@ void chunk_init(
         (size_t) alignof(size_t)
     );
     memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
@@ -233,7 +229,7 @@ byte* chunk_element_get(const ChunkMemory* const buf, int32 element) NO_EXCEPT
 FORCE_INLINE
 bool chunk_is_free_internal(const size_t* const state, int32 element) NO_EXCEPT
 {
-    const uint32 free_index = element / (sizeof(size_t) * 8);
+    const uint32 free_index = element >> div_pow2(sizeof(size_t) * 8);
     const uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
 
     return !IS_BIT_SET_R2L(state[free_index], bit_index);
@@ -347,7 +343,7 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
         last_pos = -1;
     }
 
-    uint32 free_index = (last_pos + 1) / (sizeof(size_t) * 8);
+    uint32 free_index = (last_pos + 1) >> div_pow2(sizeof(size_t) * 8);
     uint32 bit_index = MODULO_2(last_pos + 1, (sizeof(size_t) * 8));
 
     // Check standard simple solution
@@ -437,7 +433,7 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
         // Do we have enough free bits?
         if (consecutive_free_bits == elements) {
             free_element = free_index * (sizeof(size_t) * 8) + bit_index - elements;
-            const uint32 possible_free_index = free_element / (sizeof(size_t) * 8);
+            const uint32 possible_free_index = free_element >> div_pow2(sizeof(size_t) * 8);
             const uint32 possible_bit_index = MODULO_2(free_element, (sizeof(size_t) * 8));
 
             // Mark as used
@@ -510,7 +506,7 @@ void chunk_free_element(ChunkMemory* const buf, size_t free_index, int32 bit_ind
 FORCE_INLINE
 void chunk_free_element(ChunkMemory* const buf, int32 element) NO_EXCEPT
 {
-    const size_t free_index = element / (sizeof(size_t) * 8);
+    const size_t free_index = element >> div_pow2(sizeof(size_t) * 8);
     const uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
     buf->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
 
@@ -523,7 +519,7 @@ void chunk_free_element(ChunkMemory* const buf, int32 element) NO_EXCEPT
 HOT_CODE
 void chunk_clear_bit_range_internal(size_t* const state, int32 element, int32 element_count = 1) NO_EXCEPT
 {
-    size_t free_index = element / (sizeof(size_t) * 8);
+    size_t free_index = element >> div_pow2(sizeof(size_t) * 8);
     uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
 
     if (element == 1) {
@@ -733,7 +729,7 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
 #define chunk_iterate_end_internal_n(n) {                 \
         if (bit_index > (sizeof(size_t) * 8 - 1)) {     \
             bit_index %= (sizeof(size_t) * 8);          \
-            free_index += ((n) / (sizeof(size_t) * 8)); \
+            free_index += ((n) >> div_pow2(sizeof(size_t) * 8)); \
         }                                                 \
     }
 

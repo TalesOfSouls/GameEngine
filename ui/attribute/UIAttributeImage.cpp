@@ -32,8 +32,11 @@ void ui_vertices_cache(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertex_cache, ArrayVector<int32>* const __restrict index_cache, f32 zindex
 ) NO_EXCEPT
 {
+    // @todo in the past we used image->texture_id - 1 for the sampler_id
+    //      BUT if you look at ui.fs that number isn't really the sampler_id nor the texture_id
+    //      It is the index of the different textures
     vertex_rect_create(
-        vertex_cache, index_cache, zindex, image->texture_id - 1,
+        vertex_cache, index_cache, zindex, 2,
         {image->dimension.pos.x, image->dimension.pos.y, image->dimension.dim.width, image->dimension.dim.height},
         UI_ALIGN_V_TOP | UI_ALIGN_H_LEFT,
         0, image->tex_coord[3], image->tex_coord[1]

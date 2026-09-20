@@ -297,14 +297,17 @@ Asset* const asset_archive_asset_load(
 
     PROFILE_DEBUG(PROFILE_ASSET_ARCHIVE_ASSET_LOAD, id_str, PROFILE_FLAG_SHOULD_LOG);
 
-    // Check if asset already exists
-    Asset* asset = ams_asset_get_wait(ams, id_str);
-    if (asset) {
-        // Prevent garbage collection
-        asset->state &= ~ASSET_MEMORY_STATE_RAM_GC;
-        asset->state &= ~ASSET_MEMORY_STATE_VRAM_GC;
+    Asset* asset;
+    if (ams) {
+        // Check if asset already exists
+        asset = ams_asset_get_wait(ams, id_str);
+        if (asset) {
+            // Prevent garbage collection
+            asset->state &= ~ASSET_MEMORY_STATE_RAM_GC;
+            asset->state &= ~ASSET_MEMORY_STATE_VRAM_GC;
 
-        return asset;
+            return asset;
+        }
     }
 
     const AssetArchiveElement* const element = &archive->header.asset_element[ASSET_RAW_ID_FROM_ID(id)];
@@ -336,14 +339,26 @@ Asset* const asset_archive_asset_load(
     // This happens while the file system loads the data
     // The important part is to reserve the uncompressed file size, not the compressed one
     // @bug Don't I have to mark_completed the underlying thread_chunk element? see code of function
-    asset = ams_asset_reserve(
-        ams,
-        id_str,
-        (uint32) asset_memory_requirement
-    );
-    asset->official_id = id;
+    if (ams) {
+        asset = ams_asset_reserve(
+            ams,
+            id_str,
+            (uint32) asset_memory_requirement
+        );
+        asset->official_id = id;
+    } else {
+        asset = (Asset *) memory_get(mem, sizeof(Asset) + ASSUMED_CACHE_LINE_SIZE + asset_memory_requirement);
+        memset(asset, 0, sizeof(Asset) + ASSUMED_CACHE_LINE_SIZE + asset_memory_requirement);
+        asset->data_size = (int32) asset_memory_requirement;
+        asset->ram_size = (int32) (sizeof(Asset) + ASSUMED_CACHE_LINE_SIZE + asset_memory_requirement);
+        asset->self = (byte *) ALIGN_UP((uintptr_t) (asset + 1), ASSUMED_CACHE_LINE_SIZE);
+        asset->chunk_count = (uint16) chunk_element_count(
+            mem,
+            sizeof(Asset) + ASSUMED_CACHE_LINE_SIZE + asset_memory_requirement
+        );
+    }
 
-    ASSERT_TRUE(asset_memory_requirement < asset->ram_size);
+    ASSERT_TRUE(asset_memory_requirement <= asset->ram_size);
 
     asset->data_size = element->uncompressed;
     asset->state |= ASSET_MEMORY_STATE_IN_RAM;
@@ -413,7 +428,9 @@ Asset* const asset_archive_asset_load(
 
     // Even though dependencies are still being loaded
     // the main program should still be able to do some work if possible
-    ams_set_loaded(ams, asset);
+    if (ams) {
+        ams_set_loaded(ams, asset);
+    }
 
     LOG_2(
         "[INFO] Loaded asset %d from archive %d with %n B compressed and %n B uncompressed",
@@ -433,7 +450,8 @@ Asset* const asset_archive_asset_load(
 
         // @performance maybe do in worker threads or AppCmdbuffer? This just feels very slow
         //          Careful if we do this threaded we cannot use memory_get_temp() above!
-        if (load_dependencies) {
+        // @question how to handle references if we use this in a temp way = without AMS
+        if (load_dependencies && ams) {
             for (uint32 i = 0; i < element->dependency_count; ++i) {
                 asset_archive_asset_load(archive, asset->references[i], ams, mem);
             }

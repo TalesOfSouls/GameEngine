@@ -12,7 +12,7 @@
 #include "AudioSetting.h"
 #include "AudioWrapper.h"
 #include "../utils/Utils.h"
-#include "../memory/ChunkMemory.cpp"
+#include "../memory/ChunkMemoryT.cpp"
 #include "../math/matrix/Matrix.h"
 #include "../thread/Atomic.h"
 #include "AudioMixer.h"

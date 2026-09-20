@@ -111,6 +111,7 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
 
     const DebugMemory* const mem = debug_memory_find(start);
     if (mem) {
+        ASSERT_TRUE(!mem);
         return;
     }
 
@@ -119,6 +120,8 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
     if (!new_stats) {
         return;
     }
+
+    ASSERT_TRUE(size > 64 * KILOBYTE);
 
     const int32 is_active = _dmc->is_active.load();
     _dmc->is_active.store(0);
@@ -144,6 +147,7 @@ void debug_memory_name(const char* __restrict name, const void* const __restrict
 
     DebugMemory* mem = debug_memory_find((uintptr_t) addr);
     if (!mem) {
+        ASSERT_TRUE(mem);
         return;
     }
 
@@ -169,6 +173,7 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
 
     DebugMemory* const mem = debug_memory_find(start);
     if (!mem) {
+        ASSERT_TRUE(mem);
         return;
     }
 
@@ -183,9 +188,13 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
     dmr->size = size;
     dmr->time = intrin_timestamp_counter();
     dmr->function_name = function;
+    ASSERT_TRUE(dmr->start + dmr->size <= mem->size);
 
-    const int64 usage = mem->usage.fetch_add(size * type);
+    const int64 usage = OMS_MIN(mem->usage.load() + size * type, mem->size);
+    mem->usage.store(usage);
     mem->max_usage.store(OMS_MAX(usage, mem->max_usage.load()));
+
+    ASSERT_TRUE(usage <= (int64) mem->size);
 }
 
 /**
@@ -222,6 +231,18 @@ void debug_memory_persistent(uintptr_t start, size_t size, MemoryDebugType type,
     dmr->size = size;
     dmr->time = intrin_timestamp_counter();
     dmr->function_name = function;
+
+    #if defined(DEBUG) && DEBUG
+    // We shouldn't ever log the same subregion that is a logic error
+    // If this happens we probably called the log on the same region multiple times
+    for (uint32 i = 0; i < action_idx; ++i) {
+        ASSERT_TRUE(
+            (dmr->start != mem->persistent_action[i].start
+                || mem->persistent_action[i].type != type)
+            && (dmr->start + dmr->size <= mem->size)
+        );
+    }
+    #endif
 }
 
 /**
@@ -251,6 +272,21 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
     }
 }
 
+void debug_memory_reset(uintptr_t start) NO_EXCEPT
+{
+    if (!start || !_dmc || !_dmc->is_active.load()) {
+        return;
+    }
+
+    DebugMemory* const mem = debug_memory_find(start);
+    if (!mem) {
+        return;
+    }
+
+    mem->usage.store(0);
+    mem->max_usage.store(0);
+}
+
 #if defined(DEBUG) && DEBUG
     #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))
     #define DEBUG_MEMORY_NAME(name, addr) debug_memory_name((name), (addr))
@@ -260,6 +296,7 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
     #define DEBUG_MEMORY_RESERVE(start, size) debug_memory_persistent((start), (size), MEMORY_DEBUG_TYPE_RESERVE, __func__)
     #define DEBUG_MEMORY_SUBREGION(start, size) debug_memory_persistent((start), (size), MEMORY_DEBUG_TYPE_SUBREGION, __func__)
     #define DEBUG_MEMORY_FREE(start) debug_memory_free((start))
+    #define DEBUG_MEMORY_RESET(start) debug_memory_reset((start))
 #else
     #define DEBUG_MEMORY_INIT(start, size) ((void) 0)
     #define DEBUG_MEMORY_NAME(name, addr) ((void) 0)
@@ -269,6 +306,7 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
     #define DEBUG_MEMORY_RESERVE(start, size) ((void) 0)
     #define DEBUG_MEMORY_SUBREGION(start, size) ((void) 0)
     #define DEBUG_MEMORY_FREE(start) ((void) 0)
+    #define DEBUG_MEMORY_RESET(start) ((void) 0)
 #endif
 
 #endif

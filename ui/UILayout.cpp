@@ -289,7 +289,7 @@ char* ui_layout_element_parse(
             sizeof(char) * UI_LAYOUT_MAX_CLASS_NAME_LENGTH,
             alignof(size_t)
         );
-        str_copy(inserted_class_name, class_name);
+        str_copy(inserted_class_name, class_name.str, class_name.length);
 
         element->class_name = (int32) MEMORY_OFFSET(inserted_class_name, layout->ui_element_buffer.memory);
     }

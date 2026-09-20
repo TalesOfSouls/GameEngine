@@ -28,4 +28,26 @@ enum UIAnchor : byte {
     UI_ANCHOR_V_TOP = 1 << 5,
 };
 
+/*
+enum UIAlignAnchor : byte {
+    // Align
+    // If none of the following two is set -> UI_ALIGN_H_LEFT
+    UI_ALIGN_H_CENTER = 1 << 0,
+    UI_ALIGN_H_RIGHT = 1 << 1,
+
+    // If none of the following two is set -> UI_ALIGN_V_TOP
+    UI_ALIGN_V_BOTTOM = 1 << 2,
+    UI_ALIGN_V_CENTER = 1 << 3,
+
+    // Anchor
+    // If none of the following two is set -> UI_ANCHOR_H_LEFT
+    UI_ANCHOR_H_CENTER = 1 << 4,
+    UI_ANCHOR_H_RIGHT = 1 << 5,
+
+    // If none of the following two is set -> UI_ANCHOR_V_TOP
+    UI_ANCHOR_V_BOTTOM = 1 << 6,
+    UI_ANCHOR_V_CENTER = 1 << 7,
+};
+*/
+
 #endif

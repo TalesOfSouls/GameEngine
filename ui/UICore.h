@@ -64,8 +64,7 @@ struct UICore {
     int16 update_func;
     int16 render_func;
 
-    // @question Consider to pull out into this struct to reduce alignment paddings
-    //          We are currently wasting at least 3 bytes after opacity due to alignment
+    // @question Consider to pull out into this struct to reduce alignment paddings (no issue right now but maybe in the future?)
     UIAttributeDimension dimension;
 
     // Defines the style it uses
@@ -74,6 +73,7 @@ struct UICore {
     // Offset of the parent element (absolute position)
     int32 parent_offset;
 
+    // @performance We could drop down to uint16 most likely but we wouldn't gain anything at the moment
     int32 vertex_count;
     int32 vertices;
 

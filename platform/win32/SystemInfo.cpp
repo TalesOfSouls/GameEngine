@@ -69,6 +69,7 @@ f64 system_cpu_benchmark(int iterations)
 FORCE_INLINE
 uint64 system_private_memory_usage() NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_SYS_CALL);
     PROCESS_MEMORY_COUNTERS_EX pmc;
     const HANDLE process = GetCurrentProcess();
 
@@ -174,6 +175,8 @@ void system_cpu_usage(f32* const __restrict usage, int32 core_count, RingMemory*
 inline
 uint32 system_stack_usage()
 {
+    PROFILE_DEBUG(PROFILE_SYS_CALL);
+
     static thread_local const char* stack_base = NULL;
 
     if (!stack_base) {

@@ -13,7 +13,7 @@
 
 typedef void (*ThreadPoolJobFunc)(void*);
 
-enum PoolWorkerState : int32 {
+enum PoolWorkerState : int8 {
     POOL_WORKER_STATE_CANCEL = -1,
     POOL_WORKER_STATE_COMPLETED = 0,
     POOL_WORKER_STATE_WAITING = 1,
@@ -24,8 +24,6 @@ enum PoolWorkerState : int32 {
  * Worker for the thread pool
  */
 struct PoolWorker {
-    // @performance We could reduce the size of id and state down to u16
-    //              Due to alignments this wouldn't have any effect currently
     atomic<uint32> id;
     atomic<PoolWorkerState> state;
 

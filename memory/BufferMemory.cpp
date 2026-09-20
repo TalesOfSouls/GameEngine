@@ -37,8 +37,6 @@ void buffer_init(
     buf->alignment = alignment;
 
     memset(buf->memory, 0, buf->size);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
@@ -213,7 +211,7 @@ byte* memory_get_temp(BufferMemory* const buf, size_t size, int32 alignment = si
 
     ASSERT_TRUE(head_temp + size <= buf->end);
 
-    DEBUG_MEMORY_WRITE((uintptr_t) head_temp, size);
+    DEBUG_MEMORY_WRITE((uintptr_t) buf->head, size);
 
     byte* const offset = head_temp;
     head_temp += size;
@@ -222,6 +220,8 @@ byte* memory_get_temp(BufferMemory* const buf, size_t size, int32 alignment = si
     ASSERT_STRICT((uintptr_t) offset + size < (uintptr_t) buf->end);
     STATS_MAX_PERSISTENT_DEBUG(DEBUG_COUNTER_BUFFER_MAX_REQUEST, size);
     STATS_MAX_PERSISTENT_DEBUG(DEBUG_COUNTER_BUFFER_MAX_USAGE, head_temp - buf->memory);
+
+    DEBUG_MEMORY_DELETE((uintptr_t) head_temp, (size_t) ((uintptr_t) head_temp - (uintptr_t) buf->head));
 
     return offset;
 }
@@ -305,8 +305,6 @@ void buffer_init(
     buf->alignment = alignment;
 
     memset(buf->memory, 0, buf->size);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline

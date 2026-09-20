@@ -16,16 +16,16 @@
 
 void generate_feature_points_2d(v2_f32* points, int feature_points, int rows, int cols) {
     for (int i = 0; i < rows * cols * feature_points; ++i) {
-        points[i].x = (float) rand() / RAND_MAX;
-        points[i].y = (float) rand() / RAND_MAX;
+        points[i].x = (float) rand() * DIV_RECIPROCAL_F32(RAND_MAX);
+        points[i].y = (float) rand() * DIV_RECIPROCAL_F32(RAND_MAX);
     }
 }
 
 void generate_feature_points_3d(v3_f32* points, int feature_points, int rows, int cols, int depth) {
     for (int i = 0; i < rows * cols * depth * feature_points; ++i) {
-        points[i].x = (float) rand() / RAND_MAX;
-        points[i].y = (float) rand() / RAND_MAX;
-        points[i].z = (float) rand() / RAND_MAX;
+        points[i].x = (float) rand() * DIV_RECIPROCAL_F32(RAND_MAX);
+        points[i].y = (float) rand() * DIV_RECIPROCAL_F32(RAND_MAX);
+        points[i].z = (float) rand() * DIV_RECIPROCAL_F32(RAND_MAX);
     }
 }
 

@@ -92,7 +92,7 @@ bool drm_check_process_name(const utf16** process_names, int32 count) NO_EXCEPT
         return false;
     }
 
-    for (uint32 i = 0; i < cb_needed / sizeof(DWORD); ++i) {
+    for (uint32 i = 0; i < cb_needed >> div_pow2(sizeof(DWORD)); ++i) {
         HANDLE process_handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processes[i]);
         if (!process_handle) {
             continue;
@@ -104,7 +104,7 @@ bool drm_check_process_name(const utf16** process_names, int32 count) NO_EXCEPT
         if (EnumProcessModules(process_handle, &mod_handle, sizeof(mod_handle), &cb_needed_mod)) {
             utf16 process_name[PATH_MAX_LENGTH] = L"<unknown>";
 
-            GetModuleBaseNameW(process_handle, mod_handle, process_name, sizeof(process_name) / sizeof(char));
+            GetModuleBaseNameW(process_handle, mod_handle, process_name, sizeof(process_name));
             for (int32 j = 0; j < count; ++j) {
                 if (str_contains(process_name, process_names[j]) == 0) {
                     CloseHandle(process_handle);

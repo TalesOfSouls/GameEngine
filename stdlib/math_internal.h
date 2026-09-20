@@ -200,15 +200,18 @@ T floor_div(T a, T b) NO_EXCEPT
 
 // Trig
 FORCE_INLINE
+CONSTEXPR
 f32 deg2rad(f32 angle) NO_EXCEPT
 { return angle * OMS_PI_F32 / 180.0f; }
 
 FORCE_INLINE
+CONSTEXPR
 f32 rad2deg(f32 angle) NO_EXCEPT
 { return angle * 180.0f / OMS_PI_F32; }
 
 // -pi / pi
 FORCE_INLINE
+CONSTEXPR
 f32 normalize_rad(f32 angle) NO_EXCEPT
 {
     return angle - OMS_TAU_F32 * __internal_floor((angle + OMS_PI_F32) / OMS_TAU_F32);

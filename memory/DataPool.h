@@ -86,8 +86,6 @@ void pool_init(DataPool* buf, BufferMemory* data, uint32 capacity, int32 chunk_s
 
     buf->free = (size_t *) ALIGN_UP((uintptr_t) (buf->memory + capacity * chunk_size), alignof(size_t));
     buf->used = (size_t *) ALIGN_UP((uintptr_t) (buf->free + capacity), alignof(size_t));
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
@@ -113,8 +111,6 @@ void pool_init(DataPool* buf, byte* data, uint32 capacity, int32 chunk_size, int
 
     buf->free = (size_t *) ALIGN_UP((uintptr_t) (buf->memory + capacity * chunk_size), alignof(size_t));
     buf->used = (size_t *) ALIGN_UP((uintptr_t) (buf->free + capacity), alignof(size_t));
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 FORCE_INLINE
@@ -178,10 +174,10 @@ void pool_defragment(DataPool* buf) NO_EXCEPT
     int32 dst = 0;
     int32 src = buf->capacity - 1;
 
-    uint32 free_index = dst / (sizeof(size_t) * 8);
+    uint32 free_index = dst >> div_pow2(sizeof(size_t) * 8);
     uint32 bit_index = MODULO_2(dst, (sizeof(size_t) * 8));
 
-    int32 free_src_index = src / (sizeof(size_t) * 8);
+    int32 free_src_index = src >> div_pow2(sizeof(size_t) * 8);
     int32 bit_src_index = MODULO_2(src, (sizeof(size_t) * 8));
 
     while (true) {
@@ -245,7 +241,7 @@ void pool_defragment(DataPool* buf) NO_EXCEPT
     }
 
     // Recompute last_pos
-    uint32 last_free_index = buf->capacity - 1 / (sizeof(size_t) * 8);
+    uint32 last_free_index = buf->capacity - 1 >> div_pow2(sizeof(size_t) * 8);
     uint32 last_bit_index = MODULO_2(buf->capacity - 1, (sizeof(size_t) * 8));
 
     buf->last_pos = -1;

@@ -311,7 +311,7 @@ void log(
     char temp[MAX_LOG_LENGTH];
     wchar_to_char(temp, str.str, MAX_LOG_LENGTH);
 
-    log(simple_string_dynamic(temp, str.length / sizeof(wchar_t)), file, function, line);
+    log(simple_string_init(temp, str.length >> div_pow2(sizeof(wchar_t))), file, function, line);
 }
 
 /**
@@ -461,7 +461,7 @@ void log(
     char temp[MAX_LOG_LENGTH];
     wchar_to_char(temp, format.str, MAX_LOG_LENGTH);
 
-    log(simple_string_dynamic(temp, format.length / sizeof(wchar_t)), data, file, function, line);
+    log(simple_string_init(temp, format.length >> div_pow2(sizeof(wchar_t))), data, file, function, line);
 }
 
 #define LOG_TO_FILE() log_to_file(_log_memory->memory, _log_memory->pos)

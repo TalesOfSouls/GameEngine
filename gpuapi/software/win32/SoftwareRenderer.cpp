@@ -49,6 +49,7 @@ void soft_renderer_update(
             64,
             ASSUMED_CACHE_LINE_SIZE
         );
+        DEBUG_MEMORY_INIT((uintptr_t) renderer->buf.memory, vram / 64);
         DEBUG_MEMORY_NAME("Soft.VRAM", renderer->buf.memory);
     }
 

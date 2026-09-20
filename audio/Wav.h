@@ -135,7 +135,7 @@ void wav_from_data(const byte* data, uint32 size, Audio* audio, RingMemory* cons
     }
 
     audio->sample_rate = (uint16) src.header.frequency;
-    audio->sample_size = (byte) ((src.header.bits_per_sample / 8) * src.header.nbr_channels);
+    audio->sample_size = (byte) ((src.header.bits_per_sample >> div_pow2(8)) * src.header.nbr_channels);
     audio->channels = (byte) src.header.nbr_channels;
     audio->byte_per_sec = (uint32) src.header.byte_per_sec;
     audio->bloc_size = (byte) src.header.bloc_size;

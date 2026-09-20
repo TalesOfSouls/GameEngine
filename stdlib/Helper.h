@@ -442,4 +442,58 @@ template <> struct CharTypeOf<char> { static constexpr uint8 value = CHAR_TYPE_C
 template <> struct CharTypeOf<char32_t> { static constexpr uint8 value = CHAR_TYPE_UTF32; };
 template <> struct CharTypeOf<wchar_t> { static constexpr uint8 value = CHAR_TYPE_WCHAR; };
 
+template <typename C>
+inline constexpr CharType CharTypeOf_v = CharTypeOf<C>::value;
+
+/**
+ * This is a micro optimization for debug builds.
+ * MSVC doesn't optimize this with /Od while other compilers optimize it even with O0.
+ */
+CONSTEVAL
+inline uint32 div_pow2(size_t value) NO_EXCEPT
+{
+    // First elements ordered by likelihood
+    if (value == 8) return 3;
+    if (value == 4) return 2;
+
+    if (value == 2) return 1;
+    if (value == 16) return 4;
+    if (value == 32) return 5;
+    if (value == 64) return 6;
+    if (value == 128) return 7;
+    if (value == 256) return 8;
+    if (value == 512) return 9;
+    if (value == 1024) return 10;
+    if (value == 2048) return 11;
+    if (value == 4096) return 12;
+    if (value == 8192) return 13;
+    if (value == 16384) return 14;
+    if (value == 32768) return 15;
+    if (value == 65536) return 16;
+    if (value == 131072) return 17;
+    if (value == 262144) return 18;
+    if (value == 524288) return 19;
+    if (value == 1048576) return 20;
+    if (value == 2097152) return 21;
+    if (value == 4194304) return 22;
+    if (value == 8388608) return 23;
+    if (value == 16777216) return 24;
+    if (value == 33554432) return 25;
+    if (value == 67108864) return 26;
+    if (value == 134217728) return 27;
+    if (value == 268435456) return 28;
+    if (value == 536870912) return 29;
+    if (value == 1073741824) return 30;
+
+    ASSERT_TRUE_CONST(false);
+
+    return 0;
+}
+
+// Even if value is a compile time known value C++ doesn't automatically use the reciprocal
+// This only happens with fast math or reciprocal math enabled
+// This function allows us to always use it if we want to use it even without these compiler arguments
+#define DIV_RECIPROCAL_F32(value) (1.0f / (value))
+#define DIV_RECIPROCAL_F64(value) (1.0 / (value))
+
 #endif

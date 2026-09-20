@@ -2,7 +2,7 @@
  * Example use case for updating individual sections
  *
  * 1. gpuapi_texture_cache_setup()
- * 2. gpuapi_texture_cache_create()
+ * 2. gpuapi_texture_blit_create()
  *
  * 3. gpuapi_binds_cache()
  * 4. glEnable(GL_SCISSOR_TEST)
@@ -27,7 +27,7 @@
  * you may want to call gpuapi_texture_cache_begin() and render all updated elements
  *
  * 1. gpuapi_texture_cache_setup()
- * 2. gpuapi_texture_cache_create()
+ * 2. gpuapi_texture_blit_create()
  *
  * 3. gpuapi_binds_cache()
  * 4. glEnable(GL_SCISSOR_TEST)
@@ -65,31 +65,44 @@
 #include "../../log/PerformanceProfiler.h"
 #include "../../system/FileUtils.cpp"
 #include "../RenderUtils.h"
+#include "../GpuAtlasCache.h"
 #include "Opengl.h"
 #include "OpenglAtlasCache.h"
 #include "PersistentGpuBuffer.h"
 #include "OpenglUtils.h"
 #include "ShaderUtils.h"
 
-void gpuapi_texture_cache_create(
-    OpenglAtlasCache* const __restrict cache
+void gpuapi_texture_blit_create(
+    OpenglAtlasBlitter* const __restrict cache,
     const char* const __restrict vertex_shader,
-    const char* const __restrict fragment_shader,
+    const char* const __restrict fragment_shader
 ) NO_EXCEPT
 {
     // Setup program
     {
-        GLuint vs_id = gpuapi_shader_make(..., );
-        GLuint fs_id = gpuapi_shader_make(..., );
+        const GLuint vs_id = gpuapi_shader_make(
+            gpuapi_shader_type_index(SHADER_TYPE_VERTEX),
+            vertex_shader
+        );
+        const GLuint fs_id = gpuapi_shader_make(
+            gpuapi_shader_type_index(SHADER_TYPE_FRAGMENT),
+            fragment_shader
+        );
         cache->blit_pipeline.id = gpuapi_pipeline_make(vs_id, fs_id, -1);
+        LABEL_GPU_API(cache->blit_pipeline.id, GL_PROGRAM, "AtlasCachePipeline");
 
+        const char* const shader_table[] = { vertex_shader, fragment_shader };
         OpenglDescriptorSetLayoutBinding bindings[] = {
             {0, "uProj"},
             {0, "uPos"},
             {0, "uSize"},
             {0, "SamplerId"},
         };
-        gpuapi_descriptor_set_layout_create(&cache->blit_pipeline, bindings, ARRAY_COUNT(bindings));
+        gpuapi_descriptor_set_layout_create(
+            &cache->blit_pipeline,
+            bindings, ARRAY_COUNT(bindings),
+            shader_table, ARRAY_COUNT(shader_table)
+        );
     }
 
     cache->blit_vao = gpuapi_vertex_buffer_create();
@@ -97,6 +110,8 @@ void gpuapi_texture_cache_create(
         _GPUAPI_ATTRIBUTE_STRIDE[GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE],
         NULL
     );
+    LABEL_GPU_API(cache->blit_vao, GL_VERTEX_ARRAY, "AtlasCacheVAO");
+    LABEL_GPU_API(cache->blit_vbo, GL_BUFFER, "AtlasCacheBuffer");
 
     glVertexArrayVertexBuffer(
         cache->blit_vao, 0,
@@ -116,31 +131,42 @@ void gpuapi_texture_cache_create(
     ASSERT_GPU_API();
 }
 
-void gpuapi_texture_cache_delete(OpenglAtlasCache* const cache) NO_EXCEPT
+void gpuapi_texture_blit_delete(OpenglAtlasBlitter* const cache) NO_EXCEPT
 {
-    glDeleteFramebuffers(1, &cache->fbo);
-    glDeleteTextures(1, &cache->texture_id);
-
-    glDeleteProgram(cache->blit_pipeline);
+    glDeleteProgram(cache->blit_pipeline.id);
     glDeleteVertexArrays(1, &cache->blit_vao);
     glDeleteBuffers(1, &cache->blit_vbo);
 }
 
-void gpuapi_texture_cache_setup(OpenglAtlasCache* const cache) NO_EXCEPT
+void gpuapi_texture_cache_delete(OpenglAtlasCache* const cache) NO_EXCEPT
 {
-    glCreateTextures(GL_TEXTURE_2D, 1, &cache->texture_id);
-    glTextureStorage2D(cache->texture_id, 1, GL_RGBA8, cache->cache.dim.width, cache->cache.dim.height);
-    glTextureParameteri(cache->texture_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(cache->texture_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTextureParameteri(cache->texture_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(cache->texture_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glDeleteFramebuffers(1, &cache->fbo);
+    glDeleteTextures(1, &cache->texture.texture_id);
+}
 
-    glCreateFramebuffers(1, &cache->fbo);
-    glNamedFramebufferTexture(cache->fbo, GL_COLOR_ATTACHMENT0, cache->texture_id, 0);
+void gpuapi_texture_cache_setup(
+    OpenglAtlasCache* const __restrict gpu_cache,
+    const GpuAtlasCache* const __restrict cpu_cache
+) NO_EXCEPT
+{
+    ASSERT_TRUE(cpu_cache->dim > 0);
 
-    glNamedFramebufferDrawBuffer(cache->fbo, GL_COLOR_ATTACHMENT0);
+    glCreateTextures(GL_TEXTURE_2D, 1, &gpu_cache->texture.texture_id);
+    glTextureStorage2D(gpu_cache->texture.texture_id, 1, GL_RGBA8, cpu_cache->dim, cpu_cache->dim);
+    glTextureParameteri(gpu_cache->texture.texture_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTextureParameteri(gpu_cache->texture.texture_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(gpu_cache->texture.texture_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(gpu_cache->texture.texture_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    DEBUG_VAR_DEF_ASSIGN(const GLenum, status) glCheckNamedFramebufferStatus(cache->fbo, GL_FRAMEBUFFER);
+    glCreateFramebuffers(1, &gpu_cache->fbo);
+    glNamedFramebufferTexture(gpu_cache->fbo, GL_COLOR_ATTACHMENT0, gpu_cache->texture.texture_id, 0);
+
+    LABEL_GPU_API(gpu_cache->fbo, GL_FRAMEBUFFER, "AtlasCacheFramebuffer");
+    LABEL_GPU_API(gpu_cache->texture.texture_id, GL_TEXTURE, "AtlasCacheTexture");
+
+    glNamedFramebufferDrawBuffer(gpu_cache->fbo, GL_COLOR_ATTACHMENT0);
+
+    DEBUG_VAR_DEF_ASSIGN(const GLenum, status) glCheckNamedFramebufferStatus(gpu_cache->fbo, GL_FRAMEBUFFER);
     ASSERT_TRUE(status == GL_FRAMEBUFFER_COMPLETE);
 
     ASSERT_GPU_API();
@@ -153,7 +179,7 @@ void gpuapi_texture_cache_setup(OpenglAtlasCache* const cache) NO_EXCEPT
  * For multiple or even a complete cache update use gpuapi_texture_cache_begin
  */
 bool gpuapi_texture_cache_section_begin(
-    OpenglAtlasCache* const __restrict cache, uint32 cache_id, v4_uint16& rect
+    OpenglAtlasCache* const __restrict cache, v4_uint16& rect
 ) NO_EXCEPT
 {
     // This needs to be enabled
@@ -167,7 +193,7 @@ bool gpuapi_texture_cache_section_begin(
     glScissor(rect.x, rect.y, rect.width, rect.height);
 
     // Clear area before drawing
-    static const f32 clear_color[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    f32 clear_color[] = {0.0f, 0.0f, 0.0f, 0.0f};
     glClearNamedFramebufferfv(cache->fbo, GL_COLOR, 0, clear_color);
 
     glEnable(GL_BLEND);
@@ -179,7 +205,7 @@ bool gpuapi_texture_cache_section_begin(
 void gpuapi_texture_cache_begin(OpenglAtlasCache* const __restrict cache) NO_EXCEPT
 {
     glBindFramebuffer(GL_FRAMEBUFFER, cache->fbo);
-    static const f32 clear_color[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    f32 clear_color[] = {0.0f, 0.0f, 0.0f, 0.0f};
     glClearNamedFramebufferfv(cache->fbo, GL_COLOR, 0, clear_color);
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -187,15 +213,18 @@ void gpuapi_texture_cache_begin(OpenglAtlasCache* const __restrict cache) NO_EXC
 
 // WARNING: This is slow, don't use it you should rather use the normal texture rendering
 void gpuapi_texture_cache_blit(
-    OpenglAtlasCache* cache, const CacheRect *rect, f32 x, f32 y, f32 w, f32 h,
-    f32 r, f32 g, f32 b, f32 a, int screenW, int screenH
+    OpenglAtlasCache* gpu_cache,
+    GpuAtlasCache* cpu_cache,
+    OpenglAtlasBlitter* blit,
+    const GpuAtlasRect* rect, v4_f32 dim,
+    v2_f32 screen_dim
 ) NO_EXCEPT
 {
     // WARNING: OpenGL's window/framebuffer *storage* is bottom-up
-    const f32 uLeft = (f32)rect->x / (f32)cache->pageW;
-    const f32 uRight = (f32)(rect->x + rect->w) / (f32)cache->pageW;
-    const f32 vTop = (f32)(rect->y + rect->h) / (f32)cache->pageH;
-    const f32 vBottom = (f32)rect->y / (f32)cache->pageH;
+    const f32 uLeft = (f32)rect->dim.x / (f32)cpu_cache->dim;
+    const f32 uRight = (f32)(rect->dim.x + rect->dim.width) / (f32)cpu_cache->dim;
+    const f32 vTop = (f32)(rect->dim.y + rect->dim.height) / (f32)cpu_cache->dim;
+    const f32 vBottom = (f32)rect->dim.y / (f32)cpu_cache->dim;
 
     const f32 verts[16] = {
         // pos      uv
@@ -207,28 +236,44 @@ void gpuapi_texture_cache_blit(
 
     // @question Is this really correct?
     const f32 proj[16] = {
-        2.0f / screenW, 0.0f, 0.0f, 0.0f,
-        0.0f, -2.0f / screenH, 0.0f, 0.0f,
+        2.0f / screen_dim.width, 0.0f, 0.0f, 0.0f,
+        0.0f, -2.0f / screen_dim.height, 0.0f, 0.0f,
         0.0f, 0.0f, -1.0f, 0.0f,
         -1.0f, 1.0f, 0.0f, 1.0f
     };
 
-    glProgramUniformMatrix4fv(cache->blit_program, cache->uProj, 1, GL_FALSE, proj);
-    glProgramUniform2f(cache->blit_program, cache->uPos, x, y);
-    glProgramUniform2f(cache->blit_program, cache->uSize, w, h);
-    glProgramUniform1i(cache->blit_program, cache->uTex, 0);
+    gpuapi_uniform_buffer_update_m4( // uProj
+        blit->blit_pipeline.id,
+        blit->blit_pipeline.descriptor_set_layout[0].binding,
+        proj
+    );
+    gpuapi_uniform_buffer_update_v2( // uPos
+        blit->blit_pipeline.id,
+        blit->blit_pipeline.descriptor_set_layout[1].binding,
+        &dim.x
+    );
+    gpuapi_uniform_buffer_update_v2( // uSize
+        blit->blit_pipeline.id,
+        blit->blit_pipeline.descriptor_set_layout[2].binding,
+        &dim.width
+    );
+    gpuapi_uniform_buffer_update( // SamplerId
+        blit->blit_pipeline.id,
+        blit->blit_pipeline.descriptor_set_layout[3].binding,
+        (int32) 0 // @question why is this 0?
+    );
 
     // Binds to texture unit 0 by name,
     // which is the DSA replacement for glActiveTexture(GL_TEXTURE0) + glBindTexture(GL_TEXTURE_2D, ..)
     // @question is it really GL_TEXTURE0? or do we need a different unit?
-    glBindTextureUnit(0, cache->texture_id);
-    glNamedBufferSubData(cache->blit_vbo, 0, sizeof(verts), verts);
+    glBindTextureUnit(0, gpu_cache->texture.texture_id);
+    glNamedBufferSubData(blit->blit_vbo, 0, sizeof(verts), verts);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
-    glUseProgram(cache->blit_program);
-    glBindVertexArray(cache->blit_vao);
+    glUseProgram(blit->blit_pipeline.id);
+    glBindVertexArray(blit->blit_vao);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     glBindVertexArray(0);
 }

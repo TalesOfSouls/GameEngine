@@ -41,8 +41,6 @@ void ring_init(
     ring->tail = ring->memory;
     ring->size = size;
     ring->alignment = alignment;
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
 }
 
 inline
@@ -76,8 +74,6 @@ void ring_alloc(
     size = ALIGN_UP(size, (size_t) alignment);
     MemoryArena* const arena = mem_arena_add(mem, size, max_size, alignment);
     ring_init(ring, arena->memory, size, alignment);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
 }
 
 inline
@@ -94,8 +90,6 @@ void ring_init(
     size = ALIGN_UP(size, (size_t) alignment);
     byte* buffer = memory_get(buf, size, alignment);
     ring_init(ring, buffer, size, alignment);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
 }
 
 FORCE_INLINE

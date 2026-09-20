@@ -68,13 +68,16 @@ struct MetalMeshData {
 struct OpenGLTextureData {
     uint32 texture_id;
     int32 sampler;
+
+    // @question sometimes I need a different kind of ID
+    //              see ui.fs for that case where I need to define the index in a texture array
+    //              consider to implement such a thing
 };
 
 struct SoftwareTextureData {
     uint32 texture_id;
     uint32 sampler;
 };
-
 
 struct VulkanTextureData {
     void* image; // VkImage

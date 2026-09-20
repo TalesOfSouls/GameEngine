@@ -18,7 +18,7 @@ int32 process_id_enum(uint32* pids, int32 max_count) NO_EXCEPT
         return -1; // failure
     }
 
-    return OMS_MIN((int32) (bytes_needed / sizeof(DWORD)), max_count);
+    return OMS_MIN((int32) (bytes_needed >> div_pow2(sizeof(DWORD))), max_count);
 }
 
 FORCE_INLINE

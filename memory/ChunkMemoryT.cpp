@@ -54,8 +54,6 @@ void chunk_init(
         (size_t) alignof(size_t)
     );
     memset(buf->free, 0, sizeof(size_t) * array_count);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
     PSEUDO_USE(size);
 }
 
@@ -133,7 +131,6 @@ void chunk_init(
 
     byte* buffer = memory_get(data, size, alignment);
     chunk_init(buf, buffer, capacity, alignment);
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
 }
 
 template <typename T>
@@ -253,7 +250,7 @@ template <typename T>
 FORCE_INLINE
 void chunk_free_element(ChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 {
-    const size_t free_index = element / (sizeof(size_t) * 8);
+    const size_t free_index = element >> div_pow2(sizeof(size_t) * 8);
     const uint32 bit_index = MODULO_2(element, (sizeof(size_t) * 8));
     buf->free[free_index] &= ~(OMS_UINT_ONE << bit_index);
 
@@ -309,7 +306,7 @@ int64 chunk_dump(const ChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
     SWAP_ENDIAN_LITTLE_SIMD(
         (size_t *) (data + free_offset),
         (size_t *) (data + free_offset),
-        buf->capacity / sizeof(size_t),
+        buf->capacity >> div_pow2(sizeof(size_t)),
         8
     );
 
@@ -382,7 +379,7 @@ int64 chunk_load(ChunkMemoryT<T>* const buf, const byte* data) NO_EXCEPT
     SWAP_ENDIAN_LITTLE_SIMD(
         buf->free,
         buf->free,
-        buf->capacity / sizeof(size_t),
+        buf->capacity >> div_pow2(sizeof(size_t)),
         8
     );
 

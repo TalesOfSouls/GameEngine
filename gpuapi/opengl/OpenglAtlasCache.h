@@ -9,12 +9,17 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../GpuAtlasCache.h"
+#include "../GpuAssetType.h"
 #include "Pipeline.h"
 
+// Per cache
 struct OpenglAtlasCache {
     uint32 fbo;
-    uint32 texture_id;
+    OpenGLTextureData texture;
+};
 
+// All caches use the same pipeline
+struct OpenglAtlasBlitter {
     Pipeline blit_pipeline;
 
     uint32 blit_vao;

@@ -216,7 +216,6 @@ int64 perfect_hashmap_size(const PerfectHashMap* hm)
     return hm->entry_size * hm->map_count;
 }
 
-// @bug the insert functions don't handle too long keys like the HashMap does
 inline
 void perfect_hashmap_insert(PerfectHashMap* __restrict hm, const char* __restrict key, int32 value) NO_EXCEPT
 {

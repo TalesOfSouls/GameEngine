@@ -359,6 +359,36 @@ extern "C" {
 typedef const GLubyte* WINAPI type_glGetStringi(GLenum name, GLuint index);
 static type_glGetStringi* glGetStringi;
 
+typedef void WINAPI type_glProgramUniform1i(GLuint program, GLint location, GLint v0);
+static type_glProgramUniform1i* glProgramUniform1i;
+
+typedef void WINAPI type_glProgramUniform1iv(GLuint program, GLint location, GLsizei count, const GLint* value);
+static type_glProgramUniform1iv* glProgramUniform1iv;
+
+typedef void WINAPI type_glProgramUniform1ui(GLuint program, GLint location, GLuint v0);
+static type_glProgramUniform1ui* glProgramUniform1ui;
+
+typedef void WINAPI type_glProgramUniform1f(GLuint program, GLint location, GLfloat v0);
+static type_glProgramUniform1f* glProgramUniform1f;
+
+typedef void WINAPI type_glProgramUniform2fv(GLuint program, GLint location, GLsizei count, const GLfloat* value);
+static type_glProgramUniform2fv* glProgramUniform2fv;
+
+typedef void WINAPI type_glProgramUniform3fv(GLuint program, GLint location, GLsizei count, const GLfloat* value);
+static type_glProgramUniform3fv* glProgramUniform3fv;
+
+typedef void WINAPI type_glProgramUniform4fv(GLuint program, GLint location, GLsizei count, const GLfloat* value);
+static type_glProgramUniform4fv* glProgramUniform4fv;
+
+typedef void WINAPI type_glProgramUniformMatrix2fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
+static type_glProgramUniformMatrix2fv* glProgramUniformMatrix2fv;
+
+typedef void WINAPI type_glProgramUniformMatrix3fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
+static type_glProgramUniformMatrix3fv* glProgramUniformMatrix3fv;
+
+typedef void WINAPI type_glProgramUniformMatrix4fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
+static type_glProgramUniformMatrix4fv* glProgramUniformMatrix4fv;
+
 typedef void WINAPI type_glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations);
 static type_glTexImage2DMultisample* glTexImage2DMultisample;
 
@@ -418,6 +448,9 @@ static type_glCheckNamedFramebufferStatus* glCheckNamedFramebufferStatus;
 
 typedef void WINAPI type_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
 static type_glBlitFramebuffer* glBlitFramebuffer;
+
+typedef void WINAPI type_glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer, GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
+static type_glBlitNamedFramebuffer* glBlitNamedFramebuffer;
 
 typedef void WINAPI type_glAttachShader(GLuint program, GLuint shader);
 static type_glAttachShader* glAttachShader;
@@ -917,6 +950,16 @@ static inline
 void opengl_init_gl() NO_EXCEPT
 {
     glGetStringi = (type_glGetStringi *) wglGetProcAddress("glGetStringi");
+    glProgramUniform1i = (type_glProgramUniform1i *) wglGetProcAddress("glProgramUniform1i");
+    glProgramUniform1iv = (type_glProgramUniform1iv *) wglGetProcAddress("glProgramUniform1iv");
+    glProgramUniform1ui = (type_glProgramUniform1ui *) wglGetProcAddress("glProgramUniform1ui");
+    glProgramUniform1f = (type_glProgramUniform1f *) wglGetProcAddress("glProgramUniform1f");
+    glProgramUniform2fv = (type_glProgramUniform2fv *) wglGetProcAddress("glProgramUniform2fv");
+    glProgramUniform3fv = (type_glProgramUniform3fv *) wglGetProcAddress("glProgramUniform3fv");
+    glProgramUniform4fv = (type_glProgramUniform4fv *) wglGetProcAddress("glProgramUniform4fv");
+    glProgramUniformMatrix2fv = (type_glProgramUniformMatrix2fv *) wglGetProcAddress("glProgramUniformMatrix2fv");
+    glProgramUniformMatrix3fv = (type_glProgramUniformMatrix3fv *) wglGetProcAddress("glProgramUniformMatrix3fv");
+    glProgramUniformMatrix4fv = (type_glProgramUniformMatrix4fv *) wglGetProcAddress("glProgramUniformMatrix4fv");
     glTexImage2DMultisample = (type_glTexImage2DMultisample *) wglGetProcAddress("glTexImage2DMultisample");
     glCreateTextures = (type_glCreateTextures *) wglGetProcAddress("glCreateTextures");
     glTextureStorage2D = (type_glTextureStorage2D *) wglGetProcAddress("glTextureStorage2D");
@@ -937,6 +980,7 @@ void opengl_init_gl() NO_EXCEPT
     glCheckFramebufferStatus = (type_glCheckFramebufferStatus *) wglGetProcAddress("glCheckFramebufferStatus");
     glCheckNamedFramebufferStatus = (type_glCheckNamedFramebufferStatus *) wglGetProcAddress("glCheckNamedFramebufferStatus");
     glBlitFramebuffer = (type_glBlitFramebuffer *) wglGetProcAddress("glBlitFramebuffer");
+    glBlitNamedFramebuffer = (type_glBlitNamedFramebuffer *) wglGetProcAddress("glBlitNamedFramebuffer");
     glAttachShader = (type_glAttachShader *) wglGetProcAddress("glAttachShader");
     glCompileShader = (type_glCompileShader *) wglGetProcAddress("glCompileShader");
     glCreateProgram = (type_glCreateProgram *) wglGetProcAddress("glCreateProgram");

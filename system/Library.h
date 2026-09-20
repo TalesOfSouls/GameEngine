@@ -20,8 +20,8 @@ struct Library {
 
     bool is_valid;
 
-    wchar_t dir[PATH_MAX_LENGTH];
-    wchar_t dst[64];
+    SimpleStringBuffer<wchar_t, PATH_MAX_LENGTH> dir;
+    SimpleStringBuffer<wchar_t, 64> dst;
 
     #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
         uint64 last_load;

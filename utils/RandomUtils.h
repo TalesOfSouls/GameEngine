@@ -58,7 +58,7 @@ uint32 rand_fast_32() NO_EXCEPT
 FORCE_INLINE
 f32 rand_fast_percent() NO_EXCEPT
 {
-    return (f32) rand_fast_32() / (f32) MAX_UINT32;
+    return (f32) rand_fast_32() * DIV_RECIPROCAL_F32((f32) MAX_UINT32);
 }
 
 inline

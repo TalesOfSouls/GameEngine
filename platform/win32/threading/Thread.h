@@ -57,7 +57,7 @@ FORCE_INLINE
 bool coms_pthreads_running(const coms_pthread_t* threads, int count, BufferMemory* mem) NO_EXCEPT
 {
     HANDLE* h_temp;
-    BUFFER_STACK_MEMORY(mem, (byte **) &h_temp, count, alignof(HANDLE));
+    BUFFER_STACK_MEMORY(mem, (byte **) &h_temp, count * sizeof(HANDLE), alignof(HANDLE));
 
     for (int i = 0; i < count; ++i) {
         h_temp[i] = threads->h;

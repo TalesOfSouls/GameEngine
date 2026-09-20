@@ -37,7 +37,7 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
         return;
     }
 
-    LOG_1(simple_string_dynamic((char *) message, (int32) strlen(message)));
+    LOG_1(simple_string_init((char *) message, (int32) strlen(message)));
     ASSERT_THROW();
 }
 
@@ -230,6 +230,8 @@ FORCE_INLINE
 void gpuapi_prepare_texture_legacy(Texture* const texture) NO_EXCEPT
 {
     const uint32 texture_data_type = gpuapi_texture_data_type(texture->texture_data_type);
+
+    ASSERT_TRUE(texture->opengl_texture.sampler < 31);
 
     glGenTextures(1, (GLuint *) &texture->opengl_texture.texture_id);
     glActiveTexture(GL_TEXTURE0 + texture->opengl_texture.sampler);

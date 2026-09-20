@@ -22,6 +22,7 @@
         PROFILE_SLEEP, // Used to time sleep (careful, also used in spinlocks)
         PROFILE_MEMORY_ALLOC,
         PROFILE_FILE_UTILS,
+        PROFILE_SYS_CALL, // Used to profile a wide arrange of sys calls
         PROFILE_ARENA_ALLOC,
         PROFILE_BUFFER_ALLOC,
         PROFILE_CHUNK_ALLOC,
@@ -304,7 +305,7 @@ void performance_log_to_file() NO_EXCEPT
     PSEUDO_USE(count);
 
     MAYBE_UNUSED const int32 size = sizeof(*_perf_stats);
-    LOG_1(simple_string_dynamic((char *) _perf_stats, size), {DATA_TYPE_BYTE_ARRAY, (void *) &size});
+    LOG_1(simple_string_init((char *) _perf_stats, size), {DATA_TYPE_BYTE_ARRAY, (void *) &size});
     PSEUDO_USE(size);
 
     LOG_1("[END] Performance log");
@@ -343,7 +344,7 @@ void performance_log_to_file_formatted() NO_EXCEPT
                 perf->total_cycle
             );
 
-            LOG_1(simple_string_dynamic((char *) line, length), {DATA_TYPE_BYTE_ARRAY, (void *) &length});
+            LOG_1(simple_string_init((char *) line, length), {DATA_TYPE_BYTE_ARRAY, (void *) &length});
             PSEUDO_USE(length);
         }
     }

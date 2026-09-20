@@ -16,18 +16,31 @@
 template <typename C>
 struct SimpleString {
     int32 length;
-    uint8 char_type;
     C* str;
 };
 
 template <typename C, size_t N>
 struct SimpleStringBuffer {
     int32 length;
-    uint8 char_type;
     C str[N];
 
     operator SimpleString<C>() {
-        return SimpleString<C>{ length, char_type, str };
+        return SimpleString<C>{ length, str };
+    }
+};
+
+struct Utf8String {
+    int32 length;
+    char* str;
+};
+
+template <size_t N>
+struct Utf8StringBuffer {
+    int32 length;
+    char str[N];
+
+    operator Utf8String() {
+        return Utf8String{ length, str };
     }
 };
 

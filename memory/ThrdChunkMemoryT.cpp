@@ -44,8 +44,6 @@ void chunk_init(
 
     memset((void *) buf->free, 0, sizeof(size_t) * array_count);
     memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
     PSEUDO_USE(size);
 }
 
@@ -135,8 +133,6 @@ void chunk_init(
 
     byte* buffer = memory_get(data, size, alignment);
     chunk_init(buf, buffer, capacity, alignment);
-
-    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, size);
 }
 
 template <typename T>
@@ -477,7 +473,7 @@ int64 chunk_dump(const ThrdChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
     SWAP_ENDIAN_LITTLE_SIMD(
         (size_t *) (data + free_offset),
         (size_t *) (data + free_offset),
-        buf->capacity / sizeof(size_t),
+        buf->capacity >> div_pow2(sizeof(size_t)),
         8
     );
 
@@ -554,7 +550,7 @@ int64 chunk_load(ThrdChunkMemoryT<T>* const buf, const byte* data) NO_EXCEPT
     SWAP_ENDIAN_LITTLE_SIMD(
         buf->free,
         buf->free,
-        buf->capacity / sizeof(size_t),
+        buf->capacity >> div_pow2(sizeof(size_t)),
         8
     );
 

@@ -27,7 +27,6 @@ void* cmd_shader_load(AppCmdBuffer*, AppCommand*) {
 template <typename T>
 void* cmd_pipeline_load_sync(
     const AssetArchive* const __restrict asset_archives,
-    AssetManagementSystem* const __restrict ams,
     T* const __restrict mem,
     Pipeline* const __restrict pipeline,
     const int32* const __restrict shader_ids,
@@ -41,10 +40,13 @@ void* cmd_pipeline_load_sync(
     PROFILE_DEBUG(PROFILE_CMD_SHADER_LOAD_SYNC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     char asset_id[9];
 
-    ID3DBlob* shader_assets[SHADER_TYPE_SIZE];
+    ID3DBlob* shader_assets_id[SHADER_TYPE_SIZE];
     for (int32 i = 0; i < SHADER_TYPE_SIZE; ++i) {
-        shader_assets[i] = NULL;
+        shader_assets_id[i] = NULL;
     }
+
+    int shader_count = 0;
+    Asset* shader_assets[SHADER_TYPE_SIZE];
 
     for (int32 i = 0; i < SHADER_TYPE_SIZE; ++i) {
         if (!shader_ids[i]) {
@@ -55,30 +57,37 @@ void* cmd_pipeline_load_sync(
 
         // Load sub asset
         int_to_hex(shader_ids[i], asset_id);
-        Asset* shader_asset = asset_archive_asset_load(
+        shader_assets[i] = asset_archive_asset_load(
             &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(shader_ids[i])],
             shader_ids[i],
-            ams,
+            NULL,
             mem
         );
 
         // Make sub shader
-        shader_assets[i] = gpuapi_shader_make(
+        shader_assets_id[i] = gpuapi_shader_make(
             d3_shader_type_index((ShaderType) (i + 1)),
-            (char *) shader_asset->self,
-            shader_asset->data_size
+            (char *) shader_assets[i]->self,
+            shader_assets[i]->data_size
         );
 
-        shader_asset->state |= ASSET_MEMORY_STATE_RAM_GC;
-        shader_asset->state |= ASSET_MEMORY_STATE_VRAM_GC;
+        shader_assets[i]->state |= ASSET_MEMORY_STATE_RAM_GC;
+        shader_assets[i]->state |= ASSET_MEMORY_STATE_VRAM_GC;
+
+        ++shader_count;
     }
 
     // Make shader/program
     pipeline->id = gpuapi_pipeline_make(
         device, pipeline_state, pipeline_layout,
         descriptor_set_layouts, layout_count,
-        shader_assets[0], shader_assets[1], shader_assets[2]
+        shader_assets_id[0], shader_assets_id[1], shader_assets_id[2]
     );
+
+    // We don't need the shader any longer in memory
+    for (int i = 0; i < shader_count; ++i) {
+        chunk_free_elements(mem, (byte *) shader_assets[i], shader_assets[i]->chunk_count);
+    }
 
     // @question do I release shader_assets[..]?
 

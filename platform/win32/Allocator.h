@@ -68,7 +68,6 @@ void* platform_alloc_aligned(
     // store base for freeing
     ((void**)aligned)[-1] = base;
 
-    DEBUG_MEMORY_INIT((uintptr_t)aligned, initial_size);
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, initial_size);
 
     return aligned;
@@ -102,7 +101,6 @@ bool platform_alloc_aligned_grow(void* aligned_ptr, size_t new_user_size) NO_EXC
         return false;
     }
 
-    DEBUG_MEMORY_INIT((uintptr_t)aligned_ptr + hdr->committed_size, new_committed - hdr->committed_size);
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, new_committed - hdr->committed_size);
 
     hdr->committed_size = new_committed;
@@ -171,8 +169,6 @@ void platform_aligned_free(void** aligned_ptr) NO_EXCEPT
     // Base address stored just before aligned pointer
     void* base = ((void**)(*aligned_ptr))[-1];
 
-    DEBUG_MEMORY_FREE((uintptr_t)(*aligned_ptr));
-
     // Free the entire reserved region
     VirtualFree(base, 0, MEM_RELEASE);
 
@@ -217,7 +213,6 @@ void* platform_shared_alloc(
 
     void* user_ptr = (void*)((uintptr_t)base + sizeof(platform_alloc_header));
 
-    DEBUG_MEMORY_INIT((uintptr_t)user_ptr, initial_size);
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, initial_size);
 
     return user_ptr;
@@ -248,7 +243,6 @@ bool platform_shared_alloc_grow(void* shm_ptr, size_t new_user_size) NO_EXCEPT
         return false;
     }
 
-    DEBUG_MEMORY_INIT((uintptr_t)shm_ptr + hdr->committed_size, new_committed - hdr->committed_size);
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, new_committed - hdr->committed_size);
 
     hdr->committed_size = new_committed;
@@ -311,8 +305,6 @@ void platform_shared_free(HANDLE fd, const char*, void** ptr) NO_EXCEPT
     }
 
     platform_alloc_header* base_hdr = (platform_alloc_header*)((uintptr_t)(*ptr) - sizeof(platform_alloc_header));
-
-    DEBUG_MEMORY_FREE((uintptr_t)*ptr);
 
     UnmapViewOfFile(base_hdr);
     CloseHandle(fd);

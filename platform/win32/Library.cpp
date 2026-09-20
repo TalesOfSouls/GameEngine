@@ -57,40 +57,46 @@ void* library_get_symbol(Library* lib, const char* symbol) NO_EXCEPT
 inline
 bool library_load(Library* const lib) NO_EXCEPT
 {
-    wchar_t dst[PATH_MAX_LENGTH];
-    str_concat_new(dst, lib->dir, lib->dst);
+    SimpleStringBuffer<wchar_t, PATH_MAX_LENGTH> dst;
+    dst.length = str_concat_new(
+        dst.str,
+        lib->dir.str, lib->dir.length,
+        lib->dst.str, lib->dst.length
+    );
 
     // In debug mode, we create a copy at runtime, so we can recompile & reload it
     #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
-        wchar_t src[PATH_MAX_LENGTH];
-        const size_t dst_len = wcslen(dst);
+        SimpleStringBuffer<wchar_t, PATH_MAX_LENGTH> src;
+        str_copy(src.str, dst.str, dst.length);
+        str_insert(
+            dst.str, dst.length,
+            dst.length - (sizeof(".dll") - 1),
+            L"_temp", (sizeof("_temp") - 1)
+        );
 
-        memcpy(src, dst, (dst_len + 1) * sizeof(wchar_t));
-        str_insert(dst, dst_len - (sizeof(".dll") - 1), L"_temp");
-
-        lib->last_load = file_last_modified(src);
-        file_copy(src, dst);
+        lib->last_load = file_last_modified(src.str);
+        file_copy(src.str, dst.str);
     #endif
 
     // Make sure the dll is actually unloaded (Windows caches this)
-    if (GetModuleHandleW((LPCWSTR) dst)) {
-        while (GetModuleHandleW((LPCWSTR) dst) && lib->handle) {
+    if (GetModuleHandleW((LPCWSTR) dst.str)) {
+        while (GetModuleHandleW((LPCWSTR) dst.str) && lib->handle) {
             FreeLibrary(lib->handle);
             Sleep(100);
         }
 
         int32 i = -1;
-        while (GetModuleHandleW((LPCWSTR) dst) && ++i < 10) {
+        while (GetModuleHandleW((LPCWSTR) dst.str) && ++i < 10) {
             Sleep(100);
         }
     }
 
-    lib->handle = LoadLibraryW((LPCWSTR) dst);
+    lib->handle = LoadLibraryW((LPCWSTR) dst.str);
     if (!lib->handle) {
         lib->is_valid = false;
         ASSERT_THROW();
 
-        LOG_1("[ERROR] Couldn't load library %s", {DATA_TYPE_CHAR_STR, (void *) dst});
+        LOG_1("[ERROR] Couldn't load library %s", {DATA_TYPE_CHAR_STR, (void *) dst.str});
 
         return lib->is_valid;
     }

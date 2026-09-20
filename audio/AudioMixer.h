@@ -11,7 +11,7 @@
 #include "Audio.h"
 #include "AudioSetting.h"
 #include "AudioWrapper.h"
-#include "../memory/ChunkMemory.h"
+#include "../memory/ChunkMemoryT.h"
 
 enum AudioEffect {
     AUDIO_EFFECT_NONE,
@@ -61,7 +61,7 @@ struct AudioMixer {
     // type is actually AudioMixerState
     atomic<int32> state_new;
 
-    ChunkMemory audio_instances;
+    ChunkMemoryT<AudioInstance> audio_instances;
     AudioMixerState state_old;
 
     uint64 effect;

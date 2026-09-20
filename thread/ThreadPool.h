@@ -18,7 +18,7 @@
 #include "ThreadJob.h"
 #include "../utils/RandomUtils.h"
 
-enum ThreadPoolState : int16 {
+enum ThreadPoolState : int8 {
     THREAD_POOL_STATE_CANCELING = -1,
     THREAD_POOL_STATE_COMPLETED = 0,
     THREAD_POOL_STATE_WAITING = 1,
@@ -41,10 +41,9 @@ struct ThreadPool {
     // enqueueing work under load (workers already busy, none sleeping) never
     // uses the mutex at all
     atomic<int32> sleeping_cnt;
+    sem work_sem;
 
     MPMCWorkTrackingQueueT<PoolWorker> work_queue;
-
-    sem work_sem;
 
     // This is where we store the handles IFF we are using
     // none-detached threads
