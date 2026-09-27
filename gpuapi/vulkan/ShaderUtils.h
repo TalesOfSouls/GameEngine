@@ -190,6 +190,43 @@ void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeD
                 offsetof(Vertex3DSamplerTextureColor, texture_color) // .offset =
             };
         } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE: {
+            attr[0] = {
+                0, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32_SFLOAT, // .format =
+                offsetof(Vertex2DTexture, position) // .offset =
+            };
+
+            attr[1] = {
+                2, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32_SFLOAT, // .format =
+                offsetof(Vertex2DTexture, tex_coord) // .offset =
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_2D_SAMPLER_TEXTURE_COLOR: {
+            attr[0] = {
+                0, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32_SFLOAT, // .format =
+                offsetof(Vertex2DSamplerTextureColor, position) // .offset =
+            };
+
+            attr[1] = {
+                1, // .location =
+                0, // .binding =
+                VK_FORMAT_R32_SINT, // .format =
+                offsetof(Vertex2DSamplerTextureColor, sampler) // .offset =
+            };
+
+            attr[2] = {
+                2, // .location =
+                0, // .binding =
+                VK_FORMAT_R32G32_SFLOAT, // .format =
+                offsetof(Vertex2DSamplerTextureColor, texture_color) // .offset =
+            };
+        } return;
         default:
             UNREACHABLE();
     };

@@ -14,7 +14,6 @@
 #include "../../stdlib/Stdlib.h"
 #include "OpenglDescriptorSetLayoutBinding.h"
 
-// @question Should we rename this to pipeline?
 struct Pipeline {
     uint32 id;
 

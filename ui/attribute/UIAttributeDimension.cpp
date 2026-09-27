@@ -32,18 +32,18 @@ void ui_dimension_calculate(
     // Resolve anchor point from parent
     ////////////////////////////////////////////////////////
     v2_f32 anchor_point;
-    if (dim->anchor & UI_ANCHOR_H_RIGHT) {
+    if (dim->align_anchor & UI_ANCHOR_H_RIGHT) {
         anchor_point.x = parent_dim->pos.x + parent_dim->dim.x;
-    } else if (dim->anchor & UI_ANCHOR_H_CENTER) {
+    } else if (dim->align_anchor & UI_ANCHOR_H_CENTER) {
         anchor_point.x = parent_dim->pos.x + (parent_dim->pos.x - parent_dim->dim.x) * 0.5f;
     } else {
         // UI_ANCHOR_H_LEFT (default)
         anchor_point.x = parent_dim->pos.x;
     }
 
-    if (dim->anchor & UI_ANCHOR_V_TOP) {
+    if (dim->align_anchor & UI_ANCHOR_V_TOP) {
         anchor_point.y = parent_dim->pos.y;
-    } else if (dim->anchor & UI_ANCHOR_V_CENTER) {
+    } else if (dim->align_anchor & UI_ANCHOR_V_CENTER) {
         anchor_point.y = parent_dim->pos.y + (parent_dim->pos.y - parent_dim->dim.y) * 0.5f;
     } else {
         // UI_ANCHOR_V_BOTTOM (default)
@@ -73,8 +73,8 @@ void ui_dimension_calculate(
         pos_offset.y = dim->pos_raw.y;
     }
 
-    const f32 sign_x = (dim->anchor & UI_ANCHOR_H_RIGHT) ? -1.0f : 1.0f;
-    const f32 sign_y = (dim->anchor & UI_ANCHOR_V_TOP) ? -1.0f : 1.0f;
+    const f32 sign_x = (dim->align_anchor & UI_ANCHOR_H_RIGHT) ? -1.0f : 1.0f;
+    const f32 sign_y = (dim->align_anchor & UI_ANCHOR_V_TOP) ? -1.0f : 1.0f;
 
     const v2_f32 base_pos = {
         anchor_point.x + pos_offset.x * sign_x,
@@ -84,10 +84,10 @@ void ui_dimension_calculate(
     // Resolve alignment
     ////////////////////////////////////////////////////////
     f32 final_x;
-    if (dim->alignment & UI_ALIGN_H_RIGHT) {
+    if (dim->align_anchor & UI_ALIGN_H_RIGHT) {
         // element extends left from base_pos
         final_x = base_pos.x - dim->dim.x;
-    } else if (dim->alignment & UI_ALIGN_H_CENTER) {
+    } else if (dim->align_anchor & UI_ALIGN_H_CENTER) {
         final_x = base_pos.x - dim->dim.x * 0.5f;
     } else {
         // UI_ALIGN_H_LEFT (default)
@@ -96,10 +96,10 @@ void ui_dimension_calculate(
     }
 
     f32 final_y;
-    if (dim->alignment & UI_ALIGN_V_TOP) {
+    if (dim->align_anchor & UI_ALIGN_V_TOP) {
         // element extends up from base_pos
         final_y = base_pos.y - dim->dim.y;
-    } else if (dim->alignment & UI_ALIGN_V_CENTER) {
+    } else if (dim->align_anchor & UI_ALIGN_V_CENTER) {
         final_y = base_pos.y - dim->dim.y * 0.5f;
     } else {
         // UI_ALIGN_V_BOTTOM (default)

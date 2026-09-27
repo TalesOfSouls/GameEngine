@@ -59,7 +59,7 @@ void ui_uber_from_txt(
         } else if (strncmp(value, "topright", sizeof("topright") - 1) == 0) {
             uber->anchor = UI_ANCHOR_V_TOP | UI_ANCHOR_H_RIGHT;
         } else if (strncmp(value, "bottomleft", sizeof("bottomleft") - 1) == 0) {
-            uber->anchor = UI_ANCHOR_V_BOTTOM | UI_ANCHOR_H_LEFT;
+            uber->anchor = UI_ALIGN_DEFAULT;
         } else if (strncmp(value, "bottomright", sizeof("bottomright") - 1) == 0) {
             uber->anchor = UI_ANCHOR_V_BOTTOM | UI_ANCHOR_H_RIGHT;
         }

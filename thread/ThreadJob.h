@@ -25,17 +25,20 @@ enum PoolWorkerState : int8 {
  */
 struct PoolWorker {
     atomic<uint32> id;
+
     atomic<PoolWorkerState> state;
 
     // After running the task it is automatically removed from the thread queue memory
     // If this is false the user MUST do this manually by calling the _release() function
     bool automatic_release;
 
+    // This is up here instead of down where void* mem is defined to reduce the alignment overhead
+    uint32 mem_size;
+
     // This can be used either to describe the actual size if arg is a string/byte array,
     // or we can use it to describe the array length if arg is an array
     // How to interpret arg_size is handled in the function itself
     int32 arg_size;
-
     void* arg;
 
     ThreadPoolJobFunc func;
@@ -43,12 +46,12 @@ struct PoolWorker {
     // Callback for when the job completes
     ThreadPoolJobFunc callback;
 
-    // Pointer to memory to be used by the thread worker
-    size_t mem_size;
+    // External state to be updated.
+    // This is helpful for jobs that get removed after completion so we can know that it got completed
+    atomic<PoolWorkerState>* state_external;
 
-    // @question should this be a void* for different Memory types
-    //          Alternatively maybe it makes sense to create a MemoryContainer with unions that implements basic wrappers
-    byte* mem;
+    // Pointer to memory to be used by the thread worker
+    void* mem;
 };
 
 /**

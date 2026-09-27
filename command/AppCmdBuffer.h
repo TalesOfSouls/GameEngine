@@ -42,8 +42,14 @@ struct AppCmdBuffer {
 
 struct AppCommandPool {
     AppCmdBuffer* cb;
+
+    // How many commands should run
     int32 count;
-    int32 chunk_id; // Not always used
+
+    // Not always used
+    int32 chunk_id;
+
+    // Commands to run
     AppCommand* commands;
 };
 

@@ -73,11 +73,11 @@ void scheduler_run(TaskScheduler* const scheduler, uint64 current_time) NO_EXCEP
             SMN(id) 0,
             SMN(state) POOL_WORKER_STATE_WAITING,
             SMN(automatic_release) true,
+            SMN(mem_size) 0,
             SMN(arg_size) 0,
             SMN(arg) task,
             SMN(func) task->task_func,
             SMN(callback) NULL,
-            SMN(mem_size) 0,
             SMN(mem) NULL
         };
         thread_pool_add_work(scheduler->pool, &job);

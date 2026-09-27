@@ -79,9 +79,10 @@ struct Vertex2DTexture {
 
 struct Vertex2DSamplerTextureColor {
     v2_f32 position;
-    v2_f32 tex_coord;
     int32 sampler;
-    uint32 color;
+
+    // If negative = color, positive = texture
+    v2_f32 texture_color;
 };
 
 struct Vertex2DColor {
@@ -129,7 +130,8 @@ const CONSTEXPR int32 _GPUAPI_ATTRIBUTE_STRIDE[] = {
     sizeof(Vertex3DColor), // GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR
     sizeof(Vertex3DTextureColor), // GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR
     sizeof(Vertex3DSamplerTextureColor), // GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR
-    sizeof(Vertex2DTexture)  // GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE
+    sizeof(Vertex2DTexture), // GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE
+    sizeof(Vertex2DSamplerTextureColor), // GPU_ATTRIBUTE_TYPE_VERTEX_2D_SAMPLER_TEXTURE_COLOR
 };
 
 #endif

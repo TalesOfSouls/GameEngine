@@ -58,7 +58,6 @@ struct Asset {
     uint16 reference_count;
 
     // Address to the data OR the object that holds the data (e.g. Image, Audio, ...)
-    // @question Consider to rename to data. self makes little sense
     byte* self;
 
     // An asset can reference up to N other assets

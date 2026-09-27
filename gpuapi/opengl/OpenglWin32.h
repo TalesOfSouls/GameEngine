@@ -356,402 +356,165 @@ extern "C" {
     WINGDIAPI void APIENTRY glViewport (GLint x, GLint y, GLsizei width, GLsizei height);
 }
 
-typedef const GLubyte* WINAPI type_glGetStringi(GLenum name, GLuint index);
-static type_glGetStringi* glGetStringi;
-
-typedef void WINAPI type_glProgramUniform1i(GLuint program, GLint location, GLint v0);
-static type_glProgramUniform1i* glProgramUniform1i;
-
-typedef void WINAPI type_glProgramUniform1iv(GLuint program, GLint location, GLsizei count, const GLint* value);
-static type_glProgramUniform1iv* glProgramUniform1iv;
-
-typedef void WINAPI type_glProgramUniform1ui(GLuint program, GLint location, GLuint v0);
-static type_glProgramUniform1ui* glProgramUniform1ui;
-
-typedef void WINAPI type_glProgramUniform1f(GLuint program, GLint location, GLfloat v0);
-static type_glProgramUniform1f* glProgramUniform1f;
-
-typedef void WINAPI type_glProgramUniform2fv(GLuint program, GLint location, GLsizei count, const GLfloat* value);
-static type_glProgramUniform2fv* glProgramUniform2fv;
-
-typedef void WINAPI type_glProgramUniform3fv(GLuint program, GLint location, GLsizei count, const GLfloat* value);
-static type_glProgramUniform3fv* glProgramUniform3fv;
-
-typedef void WINAPI type_glProgramUniform4fv(GLuint program, GLint location, GLsizei count, const GLfloat* value);
-static type_glProgramUniform4fv* glProgramUniform4fv;
-
-typedef void WINAPI type_glProgramUniformMatrix2fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
-static type_glProgramUniformMatrix2fv* glProgramUniformMatrix2fv;
-
-typedef void WINAPI type_glProgramUniformMatrix3fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
-static type_glProgramUniformMatrix3fv* glProgramUniformMatrix3fv;
-
-typedef void WINAPI type_glProgramUniformMatrix4fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
-static type_glProgramUniformMatrix4fv* glProgramUniformMatrix4fv;
-
-typedef void WINAPI type_glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations);
-static type_glTexImage2DMultisample* glTexImage2DMultisample;
-
-typedef void WINAPI type_glCreateTextures(GLenum target, GLsizei n, GLuint* textures);
-static type_glCreateTextures* glCreateTextures;
-
-typedef void WINAPI type_glTextureStorage2D(GLuint texture, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
-static type_glTextureStorage2D* glTextureStorage2D;
-
-typedef void WINAPI type_glTextureSubImage2D(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels);
-static type_glTextureSubImage2D* glTextureSubImage2D;
-
-typedef GLsync WINAPI type_glFenceSync(GLenum condition, GLbitfield flags);
-static type_glFenceSync* glFenceSync;
-
-typedef GLenum WINAPI type_glClientWaitSync(GLsync GLsync, GLbitfield flags, GLuint64 timeout);
-static type_glClientWaitSync* glClientWaitSync;
-
-typedef void WINAPI type_glDeleteSync(GLsync GLsync);
-static type_glDeleteSync* glDeleteSync;
-
-typedef void WINAPI type_glCreateFramebuffers(GLsizei n, GLuint* framebuffers);
-static type_glCreateFramebuffers* glCreateFramebuffers;
-
-typedef void WINAPI type_glCreateRenderbuffers(GLsizei n, GLuint* renderbuffers);
-static type_glCreateRenderbuffers* glCreateRenderbuffers;
-
-typedef void WINAPI type_glBindTextureUnit(GLuint unit, GLuint texture);
-static type_glBindTextureUnit* glBindTextureUnit;
-
-typedef void WINAPI type_glBindFramebuffer(GLenum target, GLuint framebuffer);
-static type_glBindFramebuffer* glBindFramebuffer;
-
-typedef void WINAPI type_glGenFramebuffers(GLsizei n, GLuint* framebuffers);
-static type_glGenFramebuffers* glGenFramebuffers;
-
-typedef void WINAPI type_glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level);
-static type_glFramebufferTexture* glFramebufferTexture;
-
-typedef void WINAPI type_glNamedFramebufferTexture(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level);
-static type_glNamedFramebufferTexture* glNamedFramebufferTexture;
-
-typedef void WINAPI type_glNamedFramebufferDrawBuffer(GLuint framebuffer, GLenum mode);
-static type_glNamedFramebufferDrawBuffer* glNamedFramebufferDrawBuffer;
-
-typedef void WINAPI type_glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, GLfloat* value);
-static type_glClearNamedFramebufferfv* glClearNamedFramebufferfv;
-
-typedef void WINAPI type_glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
-static type_glFramebufferTexture2D* glFramebufferTexture2D;
-
-typedef GLenum WINAPI type_glCheckFramebufferStatus(GLenum target);
-static type_glCheckFramebufferStatus* glCheckFramebufferStatus;
-
-typedef GLenum WINAPI type_glCheckNamedFramebufferStatus(GLuint framebuffer, GLenum target);
-static type_glCheckNamedFramebufferStatus* glCheckNamedFramebufferStatus;
-
-typedef void WINAPI type_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
-static type_glBlitFramebuffer* glBlitFramebuffer;
-
-typedef void WINAPI type_glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer, GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
-static type_glBlitNamedFramebuffer* glBlitNamedFramebuffer;
-
-typedef void WINAPI type_glAttachShader(GLuint program, GLuint shader);
-static type_glAttachShader* glAttachShader;
-
-typedef void WINAPI type_glCompileShader(GLuint shader);
-static type_glCompileShader* glCompileShader;
-
-typedef GLuint WINAPI type_glCreateProgram(void);
-static type_glCreateProgram* glCreateProgram;
-
-typedef GLuint WINAPI type_glCreateShader(GLenum type);
-static type_glCreateShader* glCreateShader;
-
-typedef void WINAPI type_glLinkProgram(GLuint program);
-static type_glLinkProgram* glLinkProgram;
-
-typedef void WINAPI type_glShaderSource(GLuint shader, GLsizei count, GLchar **string, GLint *length);
-static type_glShaderSource* glShaderSource;
-
-typedef void WINAPI type_glUseProgram(GLuint program);
-static type_glUseProgram* glUseProgram;
-
-typedef void WINAPI type_glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
-static type_glGetProgramInfoLog* glGetProgramInfoLog;
-
-typedef void WINAPI type_glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
-static type_glGetShaderInfoLog* glGetShaderInfoLog;
-
-typedef void WINAPI type_glValidateProgram(GLuint program);
-static type_glValidateProgram* glValidateProgram;
-
-typedef void WINAPI type_glGetProgramiv(GLuint program, GLenum pname, GLint *params);
-static type_glGetProgramiv* glGetProgramiv;
-
-typedef GLint WINAPI type_glGetUniformLocation(GLuint program, const GLchar *name);
-static type_glGetUniformLocation* glGetUniformLocation;
-
-typedef void WINAPI type_glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
-static type_glUniform4fv* glUniform4fv;
-
-typedef void WINAPI type_glUniform4i(GLint location, GLint v0, GLint v1, GLint v2, GLint v3);
-static type_glUniform4i* glUniform4i;
-
-typedef void WINAPI type_glUniform4ui(GLint location, GLint v0, GLint v1, GLint v2, GLint v3);
-static type_glUniform4ui* glUniform4ui;
-
-typedef void WINAPI type_glUniform1i(GLint location, GLint v0);
-static type_glUniform1i* glUniform1i;
-
-typedef void WINAPI type_glUniform1ui(GLint location, GLint v0);
-static type_glUniform1ui* glUniform1ui;
-
-typedef void WINAPI type_glUniform1iv(GLint location, GLsizei count, const GLint* value);
-static type_glUniform1iv* glUniform1iv;
-
-typedef void WINAPI type_glUniform1f(GLint location, GLfloat v0);
-static type_glUniform1f* glUniform1f;
-
-typedef void WINAPI type_glUniform1fv(GLint location, GLsizei count, const GLfloat* value);
-static type_glUniform1fv* glUniform1fv;
-
-typedef void WINAPI type_glUniform2fv(GLint location, GLsizei count, const GLfloat* value);
-static type_glUniform2fv* glUniform2fv;
-
-typedef void WINAPI type_glUniform3fv(GLint location, GLsizei count, const GLfloat* value);
-static type_glUniform3fv* glUniform3fv;
-
-typedef void WINAPI type_glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
-static type_glUniform3f* glUniform3f;
-
-typedef void WINAPI type_glUniform3iv(GLint location, GLsizei count, const GLint* value);
-static type_glUniform3iv* glUniform3iv;
-
-typedef void WINAPI type_glUniform3i(GLint location, GLint v0, GLint v1, GLint v2);
-static type_glUniform3i* glUniform3i;
-
-typedef void WINAPI type_glEnableVertexAttribArray(GLuint index);
-static type_glEnableVertexAttribArray* glEnableVertexAttribArray;
-
-typedef void WINAPI type_glEnableVertexArrayAttrib(GLuint vaobj, GLuint index);
-static type_glEnableVertexArrayAttrib* glEnableVertexArrayAttrib;
-
-typedef void WINAPI type_glVertexArrayAttribIFormat(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset);
-static type_glVertexArrayAttribIFormat* glVertexArrayAttribIFormat;
-
-typedef void WINAPI type_glVertexAttribBinding(GLuint attribindex, GLuint bindingindex);
-static type_glVertexAttribBinding* glVertexAttribBinding;
-
-typedef void WINAPI type_glVertexArrayAttribBinding(GLuint vaobj, GLuint attribindex, GLuint bindingindex);
-static type_glVertexArrayAttribBinding* glVertexArrayAttribBinding;
-
-typedef void WINAPI type_glDisableVertexAttribArray(GLuint index);
-static type_glDisableVertexAttribArray* glDisableVertexAttribArray;
-
-typedef GLint WINAPI type_glGetAttribLocation(GLuint program, const GLchar *name);
-static type_glGetAttribLocation* glGetAttribLocation;
-
-typedef void WINAPI type_glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
-static type_glVertexAttribPointer* glVertexAttribPointer;
-
-typedef void WINAPI type_glVertexAttribIPointer (GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer);
-static type_glVertexAttribIPointer* glVertexAttribIPointer;
-
-typedef void WINAPI type_glBindVertexArray(GLuint array);
-static type_glBindVertexArray* glBindVertexArray;
-
-typedef void WINAPI type_glGenVertexArrays(GLsizei n, GLuint* arrays);
-static type_glGenVertexArrays* glGenVertexArrays;
-
-typedef void WINAPI type_glCreateVertexArrays(GLsizei n, GLuint* arrays);
-static type_glCreateVertexArrays* glCreateVertexArrays;
-
-typedef void WINAPI type_glVertexArrayVertexBuffer(GLuint vaobj, GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride);
-static type_glVertexArrayVertexBuffer* glVertexArrayVertexBuffer;
-
-typedef void WINAPI type_glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer);
-static type_glVertexArrayElementBuffer* glVertexArrayElementBuffer;
-
-typedef void WINAPI type_glCreateBuffers(GLsizei n, GLuint* buffers);
-static type_glCreateBuffers* glCreateBuffers;
-
-typedef void WINAPI type_glBindBuffer(GLenum target, GLuint buffer);
-static type_glBindBuffer* glBindBuffer;
-
-typedef void WINAPI type_glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride);
-static type_glBindVertexBuffer* glBindVertexBuffer;
-
-typedef void WINAPI type_glBindBufferBase(GLenum target, GLuint index, GLuint buffer);
-static type_glBindBufferBase* glBindBufferBase;
-
-typedef void WINAPI type_glBufferSubData(GLenum target, GLuint offset, GLsizeiptr size, const void* data);
-static type_glBufferSubData* glBufferSubData;
-
-typedef void WINAPI type_glNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data);
-static type_glNamedBufferSubData* glNamedBufferSubData;
-
-typedef void WINAPI type_glGenBuffers(GLsizei n, GLuint* buffers);
-static type_glGenBuffers* glGenBuffers;
-
-typedef void WINAPI type_glGenRenderbuffers(GLsizei n, GLuint* renderbuffers);
-static type_glGenRenderbuffers* glGenRenderbuffers;
-
-typedef void WINAPI type_glBindRenderbuffer(GLenum target, GLuint renderbuffer);
-static type_glBindRenderbuffer* glBindRenderbuffer;
-
-typedef void WINAPI type_glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
-static type_glRenderbufferStorage* glRenderbufferStorage;
-
-typedef void WINAPI type_glNamedRenderbufferStorage(GLuint renderbuffer, GLenum internalformat, GLsizei width, GLsizei height);
-static type_glNamedRenderbufferStorage* glNamedRenderbufferStorage;
-
-typedef void WINAPI type_glRenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
-static type_glRenderbufferStorageMultisample* glRenderbufferStorageMultisample;
-
-typedef void WINAPI type_glNamedRenderbufferStorageMultisample(GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
-static type_glNamedRenderbufferStorageMultisample* glNamedRenderbufferStorageMultisample;
-
-typedef void WINAPI type_glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
-static type_glFramebufferRenderbuffer* glFramebufferRenderbuffer;
-
-typedef void WINAPI type_glNamedFramebufferRenderbuffer(GLuint framebuffer, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
-static type_glNamedFramebufferRenderbuffer* glNamedFramebufferRenderbuffer;
-
-typedef void WINAPI type_glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage);
-static type_glBufferData* glBufferData;
-
-typedef void WINAPI type_glNamedBufferData(GLuint buffer, GLsizeiptr size, const void *data, GLenum usage);
-static type_glNamedBufferData* glNamedBufferData;
-
-typedef void WINAPI type_glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
-static type_glBufferStorage* glBufferStorage;
-
-typedef void WINAPI type_glNamedBufferStorage(GLuint buffer, GLsizeiptr size, const void *data, GLbitfield flags);
-static type_glNamedBufferStorage* glNamedBufferStorage;
-
-typedef void* WINAPI type_glMapBufferRange(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access);
-static type_glMapBufferRange* glMapBufferRange;
-
-typedef void* WINAPI type_glMapNamedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
-static type_glMapNamedBufferRange* glMapNamedBufferRange;
-
-typedef void* WINAPI type_glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size);
-static type_glBindBufferRange* glBindBufferRange;
-
-typedef void WINAPI type_glCopyBufferSubData(GLenum readtarget, GLenum writetarget, GLintptr readoffset, GLintptr writeoffset, GLsizeiptr size);
-static type_glCopyBufferSubData* glCopyBufferSubData;
-
-typedef void WINAPI type_glUnmapBuffer(GLenum target);
-static type_glUnmapBuffer* glUnmapBuffer;
-
-typedef GLboolean WINAPI type_glUnmapNamedBuffer(GLuint buffer);
-static type_glUnmapNamedBuffer* glUnmapNamedBuffer;
-
-typedef void WINAPI type_glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length);
-static type_glFlushMappedBufferRange* glFlushMappedBufferRange;
-
-typedef void WINAPI type_glFlushMappedNamedBufferRange(GLuint buffer, GLintptr offset, GLsizeiptr length);
-static type_glFlushMappedNamedBufferRange* glFlushMappedNamedBufferRange;
-
-typedef void WINAPI type_glActiveTexture(GLenum texture);
-static type_glActiveTexture* glActiveTexture;
-
-typedef void WINAPI type_glDeleteProgram(GLuint program);
-static type_glDeleteProgram* glDeleteProgram;
-
-typedef void WINAPI type_glDeleteVertexArrays(GLsizei n, const GLuint* arrays);
-static type_glDeleteVertexArrays* glDeleteVertexArrays;
-
-typedef void WINAPI type_glDeleteShader(GLuint shader);
-static type_glDeleteShader* glDeleteShader;
-
-typedef void WINAPI type_glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers);
-static type_glDeleteFramebuffers* glDeleteFramebuffers;
-
-typedef void WINAPI type_glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers);
-static type_glDeleteRenderbuffers* glDeleteRenderbuffers;
-
-typedef void WINAPI type_glDrawBuffers(GLsizei n, const GLenum *bufs);
-static type_glDrawBuffers* glDrawBuffers;
-
-typedef void WINAPI type_glTexImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels);
-static type_glTexImage3D* glTexImage3D;
-
-typedef void WINAPI type_glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels);
-static type_glTexSubImage3D* glTexSubImage3D;
-
-typedef void WINAPI type_glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex);
-static type_glDrawElementsBaseVertex* glDrawElementsBaseVertex;
-
-typedef void WINAPI type_glGenerateMipmap(GLenum target);
-static type_glGenerateMipmap* glGenerateMipmap;
-
-typedef void WINAPI type_glGenerateTextureMipmap(GLuint texture);
-static type_glGenerateTextureMipmap* glGenerateTextureMipmap;
-
-typedef void WINAPI type_glDetachShader(GLuint program, GLuint shader);
-static type_glDetachShader* glDetachShader;
-
-typedef void WINAPI type_glDeleteBuffers(GLsizei n, const GLuint* buffers);
-static type_glDeleteBuffers* glDeleteBuffers;
-
-typedef void WINAPI type_glUniformMatrix2fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
-static type_glUniformMatrix2fv* glUniformMatrix2fv;
-
-typedef void WINAPI type_glUniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
-static type_glUniformMatrix3fv* glUniformMatrix3fv;
-
-typedef void WINAPI type_glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
-static type_glUniformMatrix4fv* glUniformMatrix4fv;
-
-typedef void WINAPI type_glGetShaderiv(GLuint shader, GLenum pname, GLint* param);
-static type_glGetShaderiv* glGetShaderiv;
-
-typedef void WINAPI type_glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount);
-static type_glDrawArraysInstanced* glDrawArraysInstanced;
-
-typedef void WINAPI type_glDrawElementsInstanced(GLenum mode, GLint count, GLenum type, const void* indices, GLsizei instancecount);
-static type_glDrawElementsInstanced* glDrawElementsInstanced;
-
-typedef void WINAPI type_glProgramParameteri(GLuint program, GLenum pname, GLint value);
-static type_glProgramParameteri* glProgramParameteri;
-
-typedef void WINAPI type_glTextureParameteri(GLuint texture, GLenum pname, GLint param);
-static type_glTextureParameteri* glTextureParameteri;
-
+#if defined (DEBUG) && DEBUG
+    #define GL_FUNC_DEFINE(ret, name, params)          \
+        typedef ret WINAPI type_##name params;  \
+        static type_##name* name;               \
+        static_assert(__COUNTER__ >= 0)
+#else
+    #define GL_FUNC_DEFINE(ret, name, params)          \
+        typedef ret WINAPI type_##name params;  \
+        static type_##name* name
+#endif
+
+#if defined (DEBUG) && DEBUG
+    static const int _GL_FUNC_START = __COUNTER__;
+#endif
+
+GL_FUNC_DEFINE(const GLubyte*, glGetStringi, (GLenum name, GLuint index));
+GL_FUNC_DEFINE(void, glProgramUniform1i, (GLuint program, GLint location, GLint v0));
+GL_FUNC_DEFINE(void, glProgramUniform1iv, (GLuint program, GLint location, GLsizei count, const GLint* value));
+GL_FUNC_DEFINE(void, glProgramUniform1ui, (GLuint program, GLint location, GLuint v0));
+GL_FUNC_DEFINE(void, glProgramUniform1f, (GLuint program, GLint location, GLfloat v0));
+GL_FUNC_DEFINE(void, glProgramUniform2fv, (GLuint program, GLint location, GLsizei count, const GLfloat* value));
+GL_FUNC_DEFINE(void, glProgramUniform3fv, (GLuint program, GLint location, GLsizei count, const GLfloat* value));
+GL_FUNC_DEFINE(void, glProgramUniform4fv, (GLuint program, GLint location, GLsizei count, const GLfloat* value));
+GL_FUNC_DEFINE(void, glProgramUniformMatrix2fv, (GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value));
+GL_FUNC_DEFINE(void, glProgramUniformMatrix3fv, (GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value));
+GL_FUNC_DEFINE(void, glProgramUniformMatrix4fv, (GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat* value));
+GL_FUNC_DEFINE(void, glTexImage2DMultisample, (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations));
+GL_FUNC_DEFINE(void, glCreateTextures, (GLenum target, GLsizei n, GLuint* textures));
+GL_FUNC_DEFINE(void, glTextureStorage2D, (GLuint texture, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height));
+GL_FUNC_DEFINE(void, glTextureSubImage2D, (GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels));
+GL_FUNC_DEFINE(GLsync, glFenceSync, (GLenum condition, GLbitfield flags));
+GL_FUNC_DEFINE(GLenum, glClientWaitSync, (GLsync GLsync, GLbitfield flags, GLuint64 timeout));
+GL_FUNC_DEFINE(void, glDeleteSync, (GLsync GLsync));
+GL_FUNC_DEFINE(void, glCreateFramebuffers, (GLsizei n, GLuint* framebuffers));
+GL_FUNC_DEFINE(void, glCreateRenderbuffers, (GLsizei n, GLuint* renderbuffers));
+GL_FUNC_DEFINE(void, glBindTextureUnit, (GLuint unit, GLuint texture));
+GL_FUNC_DEFINE(void, glBindFramebuffer, (GLenum target, GLuint framebuffer));
+GL_FUNC_DEFINE(void, glGenFramebuffers, (GLsizei n, GLuint* framebuffers));
+GL_FUNC_DEFINE(void, glFramebufferTexture, (GLenum target, GLenum attachment, GLuint texture, GLint level));
+GL_FUNC_DEFINE(void, glNamedFramebufferTexture, (GLuint framebuffer, GLenum attachment, GLuint texture, GLint level));
+GL_FUNC_DEFINE(void, glNamedFramebufferDrawBuffer, (GLuint framebuffer, GLenum mode));
+GL_FUNC_DEFINE(void, glClearNamedFramebufferfv, (GLuint framebuffer, GLenum buffer, GLint drawbuffer, GLfloat* value));
+GL_FUNC_DEFINE(void, glFramebufferTexture2D, (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level));
+GL_FUNC_DEFINE(GLenum, glCheckFramebufferStatus, (GLenum target));
+GL_FUNC_DEFINE(GLenum, glCheckNamedFramebufferStatus, (GLuint framebuffer, GLenum target));
+GL_FUNC_DEFINE(void, glBlitFramebuffer, (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter));
+GL_FUNC_DEFINE(void, glBlitNamedFramebuffer, (GLuint readFramebuffer, GLuint drawFramebuffer, GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter));
+GL_FUNC_DEFINE(void, glAttachShader, (GLuint program, GLuint shader));
+GL_FUNC_DEFINE(void, glCompileShader, (GLuint shader));
+GL_FUNC_DEFINE(GLuint, glCreateProgram, (void));
+GL_FUNC_DEFINE(GLuint, glCreateShader, (GLenum type));
+GL_FUNC_DEFINE(void, glLinkProgram, (GLuint program));
+GL_FUNC_DEFINE(void, glShaderSource, (GLuint shader, GLsizei count, GLchar **string, GLint *length));
+GL_FUNC_DEFINE(void, glUseProgram, (GLuint program));
+GL_FUNC_DEFINE(void, glGetProgramInfoLog, (GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog));
+GL_FUNC_DEFINE(void, glGetShaderInfoLog, (GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog));
+GL_FUNC_DEFINE(void, glValidateProgram, (GLuint program));
+GL_FUNC_DEFINE(void, glGetProgramiv, (GLuint program, GLenum pname, GLint *params));
+GL_FUNC_DEFINE(GLint, glGetUniformLocation, (GLuint program, const GLchar *name));
+GL_FUNC_DEFINE(void, glUniform4fv, (GLint location, GLsizei count, const GLfloat* value));
+GL_FUNC_DEFINE(void, glUniform4i, (GLint location, GLint v0, GLint v1, GLint v2, GLint v3));
+GL_FUNC_DEFINE(void, glUniform4ui, (GLint location, GLint v0, GLint v1, GLint v2, GLint v3));
+GL_FUNC_DEFINE(void, glUniform1i, (GLint location, GLint v0));
+GL_FUNC_DEFINE(void, glUniform1ui, (GLint location, GLint v0));
+GL_FUNC_DEFINE(void, glUniform1iv, (GLint location, GLsizei count, const GLint* value));
+GL_FUNC_DEFINE(void, glUniform1f, (GLint location, GLfloat v0));
+GL_FUNC_DEFINE(void, glUniform1fv, (GLint location, GLsizei count, const GLfloat* value));
+GL_FUNC_DEFINE(void, glUniform2fv, (GLint location, GLsizei count, const GLfloat* value));
+GL_FUNC_DEFINE(void, glUniform3fv, (GLint location, GLsizei count, const GLfloat* value));
+GL_FUNC_DEFINE(void, glUniform3f, (GLint location, GLfloat v0, GLfloat v1, GLfloat v2));
+GL_FUNC_DEFINE(void, glUniform3iv, (GLint location, GLsizei count, const GLint* value));
+GL_FUNC_DEFINE(void, glUniform3i, (GLint location, GLint v0, GLint v1, GLint v2));
+GL_FUNC_DEFINE(void, glEnableVertexAttribArray, (GLuint index));
+GL_FUNC_DEFINE(void, glEnableVertexArrayAttrib, (GLuint vaobj, GLuint index));
+GL_FUNC_DEFINE(void, glVertexArrayAttribIFormat, (GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset));
+GL_FUNC_DEFINE(void, glVertexAttribBinding, (GLuint attribindex, GLuint bindingindex));
+GL_FUNC_DEFINE(void, glVertexArrayAttribBinding, (GLuint vaobj, GLuint attribindex, GLuint bindingindex));
+GL_FUNC_DEFINE(void, glDisableVertexAttribArray, (GLuint index));
+GL_FUNC_DEFINE(GLint, glGetAttribLocation, (GLuint program, const GLchar *name));
+GL_FUNC_DEFINE(void, glVertexAttribPointer, (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer));
+GL_FUNC_DEFINE(void, glVertexAttribIPointer,  (GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer));
+GL_FUNC_DEFINE(void, glBindVertexArray, (GLuint array));
+GL_FUNC_DEFINE(void, glGenVertexArrays, (GLsizei n, GLuint* arrays));
+GL_FUNC_DEFINE(void, glCreateVertexArrays, (GLsizei n, GLuint* arrays));
+GL_FUNC_DEFINE(void, glVertexArrayVertexBuffer, (GLuint vaobj, GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride));
+GL_FUNC_DEFINE(void, glVertexArrayElementBuffer, (GLuint vaobj, GLuint buffer));
+GL_FUNC_DEFINE(void, glCreateBuffers, (GLsizei n, GLuint* buffers));
+GL_FUNC_DEFINE(void, glBindBuffer, (GLenum target, GLuint buffer));
+GL_FUNC_DEFINE(void, glBindVertexBuffer, (GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride));
+GL_FUNC_DEFINE(void, glBindBufferBase, (GLenum target, GLuint index, GLuint buffer));
+GL_FUNC_DEFINE(void, glBufferSubData, (GLenum target, GLuint offset, GLsizeiptr size, const void* data));
+GL_FUNC_DEFINE(void, glNamedBufferSubData, (GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data));
+GL_FUNC_DEFINE(void, glGenBuffers, (GLsizei n, GLuint* buffers));
+GL_FUNC_DEFINE(void, glGenRenderbuffers, (GLsizei n, GLuint* renderbuffers));
+GL_FUNC_DEFINE(void, glBindRenderbuffer, (GLenum target, GLuint renderbuffer));
+GL_FUNC_DEFINE(void, glRenderbufferStorage, (GLenum target, GLenum internalformat, GLsizei width, GLsizei height));
+GL_FUNC_DEFINE(void, glNamedRenderbufferStorage, (GLuint renderbuffer, GLenum internalformat, GLsizei width, GLsizei height));
+GL_FUNC_DEFINE(void, glRenderbufferStorageMultisample, (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height));
+GL_FUNC_DEFINE(void, glNamedRenderbufferStorageMultisample, (GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height));
+GL_FUNC_DEFINE(void, glFramebufferRenderbuffer, (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer));
+GL_FUNC_DEFINE(void, glNamedFramebufferRenderbuffer, (GLuint framebuffer, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer));
+GL_FUNC_DEFINE(void, glBufferData, (GLenum target, GLsizeiptr size, const void *data, GLenum usage));
+GL_FUNC_DEFINE(void, glNamedBufferData, (GLuint buffer, GLsizeiptr size, const void *data, GLenum usage));
+GL_FUNC_DEFINE(void, glBufferStorage, (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags));
+GL_FUNC_DEFINE(void, glNamedBufferStorage, (GLuint buffer, GLsizeiptr size, const void *data, GLbitfield flags));
+GL_FUNC_DEFINE(void*, glMapBufferRange, (GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access));
+GL_FUNC_DEFINE(void*, glMapNamedBufferRange, (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access));
+GL_FUNC_DEFINE(void*, glBindBufferRange, (GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size));
+GL_FUNC_DEFINE(void, glCopyBufferSubData, (GLenum readtarget, GLenum writetarget, GLintptr readoffset, GLintptr writeoffset, GLsizeiptr size));
+GL_FUNC_DEFINE(void, glUnmapBuffer, (GLenum target));
+GL_FUNC_DEFINE(GLboolean, glUnmapNamedBuffer, (GLuint buffer));
+GL_FUNC_DEFINE(void, glFlushMappedBufferRange, (GLenum target, GLintptr offset, GLsizeiptr length));
+GL_FUNC_DEFINE(void, glFlushMappedNamedBufferRange, (GLuint buffer, GLintptr offset, GLsizeiptr length));
+GL_FUNC_DEFINE(void, glActiveTexture, (GLenum texture));
+GL_FUNC_DEFINE(void, glDeleteProgram, (GLuint program));
+GL_FUNC_DEFINE(void, glDeleteVertexArrays, (GLsizei n, const GLuint* arrays));
+GL_FUNC_DEFINE(void, glDeleteShader, (GLuint shader));
+GL_FUNC_DEFINE(void, glDeleteFramebuffers, (GLsizei n, const GLuint* framebuffers));
+GL_FUNC_DEFINE(void, glDeleteRenderbuffers, (GLsizei n, const GLuint* renderbuffers));
+GL_FUNC_DEFINE(void, glDrawBuffers, (GLsizei n, const GLenum *bufs));
+GL_FUNC_DEFINE(void, glTexImage3D, (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels));
+GL_FUNC_DEFINE(void, glTexSubImage3D, (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels));
+GL_FUNC_DEFINE(void, glDrawElementsBaseVertex, (GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex));
+GL_FUNC_DEFINE(void, glGenerateMipmap, (GLenum target));
+GL_FUNC_DEFINE(void, glGenerateTextureMipmap, (GLuint texture));
+GL_FUNC_DEFINE(void, glDetachShader, (GLuint program, GLuint shader));
+GL_FUNC_DEFINE(void, glDeleteBuffers, (GLsizei n, const GLuint* buffers));
+GL_FUNC_DEFINE(void, glUniformMatrix2fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat* value));
+GL_FUNC_DEFINE(void, glUniformMatrix3fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat* value));
+GL_FUNC_DEFINE(void, glUniformMatrix4fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat* value));
+GL_FUNC_DEFINE(void, glGetShaderiv, (GLuint shader, GLenum pname, GLint* param));
+GL_FUNC_DEFINE(void, glDrawArraysInstanced, (GLenum mode, GLint first, GLsizei count, GLsizei instancecount));
+GL_FUNC_DEFINE(void, glDrawElementsInstanced, (GLenum mode, GLint count, GLenum type, const void* indices, GLsizei instancecount));
+GL_FUNC_DEFINE(void, glProgramParameteri, (GLuint program, GLenum pname, GLint value));
+GL_FUNC_DEFINE(void, glTextureParameteri, (GLuint texture, GLenum pname, GLint param));
 typedef void WINAPI gl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
-typedef void WINAPI type_glDebugMessageCallback(gl_debug_callback* callback, const void* userParam);
-static type_glDebugMessageCallback* glDebugMessageCallback;
+GL_FUNC_DEFINE(void, glDebugMessageCallback, (gl_debug_callback* callback, const void* userParam));
+GL_FUNC_DEFINE(void, glMakeBufferResidentNV, (GLenum target, GLenum access));
+GL_FUNC_DEFINE(void, glMakeBufferNonResidentNV, (GLenum target));
+GL_FUNC_DEFINE(void, glGetBufferParameterui64vNV, (GLenum target, GLenum pname, GLuint64EXT* params));
+GL_FUNC_DEFINE(void, glVertexAttribFormatNV, (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride));
+GL_FUNC_DEFINE(void, glVertexAttribFormat, (GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset));
+GL_FUNC_DEFINE(void, glVertexArrayAttribFormat, (GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset));
+GL_FUNC_DEFINE(void, glVertexAttribIFormat, (GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset));
+GL_FUNC_DEFINE(void, glObjectLabel, (GLenum identifier, GLuint name, GLsizei length, const GLchar* label));
+GL_FUNC_DEFINE(void, glObjectPtrLabel, (void* identifier, GLsizei length, const GLchar* label));
+GL_FUNC_DEFINE(void, glPushDebugGroup, (GLenum source, GLuint id, GLsizei length, const GLchar * message));
+GL_FUNC_DEFINE(void, glPopDebugGroup, ());
 
-typedef void WINAPI type_glMakeBufferResidentNV(GLenum target, GLenum access);
-static type_glMakeBufferResidentNV* glMakeBufferResidentNV;
+GL_FUNC_DEFINE(HGLRC, wglCreateContextAttribsARB, (HDC hDC, HGLRC hShareContext, const int *attribList));
+GL_FUNC_DEFINE(BOOL, wglGetPixelFormatAttribivARB, (HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, int *piValues));
+GL_FUNC_DEFINE(BOOL, wglGetPixelFormatAttribfvARB, (HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, FLOAT *pfValues));
+GL_FUNC_DEFINE(BOOL, wglChoosePixelFormatARB, (HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats));
+GL_FUNC_DEFINE(BOOL, wglSwapIntervalEXT, (int interval));
+GL_FUNC_DEFINE(const char*, wglGetExtensionsStringEXT, (void));
 
-typedef void WINAPI type_glMakeBufferNonResidentNV(GLenum target);
-static type_glMakeBufferNonResidentNV* glMakeBufferNonResidentNV;
-
-typedef void WINAPI type_glGetBufferParameterui64vNV(GLenum target, GLenum pname, GLuint64EXT* params);
-static type_glGetBufferParameterui64vNV* glGetBufferParameterui64vNV;
-
-typedef void WINAPI type_glVertexAttribFormatNV(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride);
-static type_glVertexAttribFormatNV* glVertexAttribFormatNV;
-
-typedef void WINAPI type_glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset);
-static type_glVertexAttribFormat* glVertexAttribFormat;
-
-typedef void WINAPI type_glVertexArrayAttribFormat(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset);
-static type_glVertexArrayAttribFormat* glVertexArrayAttribFormat;
-
-typedef void WINAPI type_glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset);
-static type_glVertexAttribIFormat* glVertexAttribIFormat;
-
-typedef void WINAPI type_glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar* label);
-static type_glObjectLabel* glObjectLabel;
-
-typedef void WINAPI type_glObjectPtrLabel(void* identifier, GLsizei length, const GLchar* label);
-static type_glObjectPtrLabel* glObjectPtrLabel;
-
-typedef void WINAPI type_glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar * message);
-static type_glPushDebugGroup* glPushDebugGroup;
-
-typedef void WINAPI type_glPopDebugGroup();
-static type_glPopDebugGroup* glPopDebugGroup;
+#if defined (DEBUG) && DEBUG
+    static const int _GL_FUNC_COUNT = __COUNTER__ - _GL_FUNC_START - 1;
+#endif
 
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
@@ -784,24 +547,6 @@ static type_glPopDebugGroup* glPopDebugGroup;
 
 #define WGL_SAMPLE_BUFFERS_ARB 0x2041
 #define WGL_SAMPLES_ARB 0x2042
-
-typedef HGLRC WINAPI wgl_create_context_attribs_arb(HDC hDC, HGLRC hShareContext, const int *attribList);
-static wgl_create_context_attribs_arb* wglCreateContextAttribsARB;
-
-typedef BOOL WINAPI wgl_get_pixel_format_attrib_iv_arb(HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, int *piValues);
-static wgl_get_pixel_format_attrib_iv_arb* wglGetPixelFormatAttribivARB;
-
-typedef BOOL WINAPI wgl_get_pixel_format_attrib_fv_arb(HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, FLOAT *pfValues);
-static wgl_get_pixel_format_attrib_fv_arb* wglGetPixelFormatAttribfvARB;
-
-typedef BOOL WINAPI wgl_choose_pixel_format_arb(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
-static wgl_choose_pixel_format_arb* wglChoosePixelFormatARB;
-
-typedef BOOL WINAPI wgl_swap_interval_ext(int interval);
-static wgl_swap_interval_ext* wglSwapIntervalEXT;
-
-typedef const char* WINAPI wgl_get_extensions_string_ext(void);
-static wgl_get_extensions_string_ext* wglGetExtensionsStringEXT;
 
 struct OpenglRenderer {
     HGLRC openGLRC;
@@ -867,10 +612,10 @@ bool gl_has_extension(const char* name) NO_EXCEPT
 static inline
 void opengl_init_wgl() NO_EXCEPT
 {
-    wglChoosePixelFormatARB = (wgl_choose_pixel_format_arb *) wglGetProcAddress("wglChoosePixelFormatARB");
-    wglCreateContextAttribsARB = (wgl_create_context_attribs_arb *) wglGetProcAddress("wglCreateContextAttribsARB");
-    wglSwapIntervalEXT = (wgl_swap_interval_ext *) wglGetProcAddress("wglSwapIntervalEXT");
-    wglGetExtensionsStringEXT = (wgl_get_extensions_string_ext *) wglGetProcAddress("wglGetExtensionsStringEXT");
+    wglChoosePixelFormatARB = (type_wglChoosePixelFormatARB *) wglGetProcAddress("wglChoosePixelFormatARB");
+    wglCreateContextAttribsARB = (type_wglCreateContextAttribsARB *) wglGetProcAddress("wglCreateContextAttribsARB");
+    wglSwapIntervalEXT = (type_wglSwapIntervalEXT *) wglGetProcAddress("wglSwapIntervalEXT");
+    wglGetExtensionsStringEXT = (type_wglGetExtensionsStringEXT *) wglGetProcAddress("wglGetExtensionsStringEXT");
 }
 
 bool gl_extensions_load() NO_EXCEPT
@@ -938,7 +683,7 @@ bool gl_extensions_load() NO_EXCEPT
     return ok;
 }
 
-const int win32_opengl_attribs[] = {
+const int _win32_opengl_attribs[] = {
     WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
     WGL_CONTEXT_MINOR_VERSION_ARB, 6,
     WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
@@ -1127,7 +872,7 @@ void opengl_instance_create(Window* const __restrict window, int32 multisample =
 
     context->openGLRC = 0;
     if (wglCreateContextAttribsARB) {
-        context->openGLRC = wglCreateContextAttribsARB(platform_window->hdc, 0, win32_opengl_attribs);
+        context->openGLRC = wglCreateContextAttribsARB(platform_window->hdc, 0, _win32_opengl_attribs);
     }
 
     if (!context->openGLRC) {

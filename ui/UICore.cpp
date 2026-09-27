@@ -59,8 +59,7 @@ UICore* ui_custom_create(UILayout* layout, int16 update_func, int16 render_func)
 
     element->type = UI_ELEMENT_TYPE_CUSTOM;
     element->parent_offset = (int32) MEMORY_OFFSET(layout->ui_root, layout->ui_element_buffer.memory);
-    element->dimension.anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP;
-    element->dimension.alignment = UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM;
+    element->dimension.align_anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP | UI_ALIGN_DEFAULT;
     element->update_func = update_func;
     element->render_func = render_func;
 

@@ -648,9 +648,11 @@ struct ThrdChunkStackMemory {
     {
         this->count = (uint32) ((size + buf->chunk_size - 1) / buf->chunk_size);
         this->element = chunk_reserve(buf, this->count);
-        this->buffer = buf;
 
-        *mem = chunk_element_get(buf, this->element);
+        if (this->element >= 0) {
+            this->buffer = buf;
+            *mem = chunk_element_get(buf, this->element);
+        }
     }
 
     HOT_CODE inline
@@ -664,14 +666,20 @@ struct ThrdChunkStackMemory {
         this->buffer = buf;
 
         this->element = chunk_reserve(buf, this->count);
-        byte* data = chunk_element_get(buf, this->element);
 
-        buffer_init(mem, data, size, sizeof(size_t));
+        if (this->element >= 0) {
+            byte* data = chunk_element_get(buf, this->element);
+            buffer_init(mem, data, size, sizeof(size_t));
+        }
     }
 
     HOT_CODE inline
     ~ThrdChunkStackMemory() NO_EXCEPT
     {
+        if (this->element < 0) {
+            return;
+        }
+
         this->buffer->last_pos.store(this->element - 1);
         if (this->count == 1) {
             chunk_free_element(this->buffer, this->element);
@@ -682,59 +690,17 @@ struct ThrdChunkStackMemory {
 };
 #define THRD_CHUNK_STACK_MEMORY(buf, mem, size) ThrdChunkStackMemory __chunk_stack_##__func__##_##__LINE__((buf), (mem), (size))
 
-// @performance Is _BitScanForward faster?
-// @performance We could probably even reduce the number of iterations by only iterating until popcount is reached?
-#define thrd_chunk_iterate_start(buf, chunk_id) {                                                        \
-    uint32 free_index = 0;                                                                          \
-    uint32 bit_index = 0;                                                                            \
-                                                                                                       \
-    /* Iterate the chunk memory */                                                                    \
-    for (; chunk_id < (buf)->capacity; ++chunk_id) {                                                 \
-        const size_t chunk_iter_word = (buf)->free[free_index].load(memory_order_relaxed);           \
-        const size_t complete_iter_word = (buf)->completeness[free_index].load(memory_order_relaxed);           \
-        /* Check if asset is defined */                                                              \
-        if ((!chunk_iter_word) | (!complete_iter_word)) {                                                                       \
-            /* Skip various elements */                                                              \
-            /* @performance Consider to only check 1 byte instead of 8 */                            \
-            /* There are probably even better ways by using compiler intrinsics if available */      \
-            bit_index += (sizeof(size_t) * 8 - 1); /* +64 - 1 since the loop also increases by 1 */ \
-            chunk_id += (sizeof(size_t) * 8 - 1);                                                    \
-        } else if ((chunk_iter_word & (OMS_UINT_ONE << bit_index)) && complete_iter_word & (OMS_UINT_ONE << bit_index))
-
-// INTERNAL: Not intended for use by any programmer
-#define thrd_chunk_iterate_end_internal {                    \
-        ++bit_index;                                    \
-        if (bit_index > (sizeof(size_t) * 8 - 1)) {      \
-            bit_index = 0;                               \
-            ++free_index;                                \
-        }                                                \
-    }
-
-// This is needed because if bit_index can be larger than 127 we need to skip multiple free_index
-// But even for less than 127 we still may have to change the bit_index to a value != 0
-// bit_index = 0 is only allowed for a 1 skip or (sizeof(size_t) * 8) skip (as used in thrd_chunk_iterate_end_internal)
-// INTERNAL: Not intended for use by any programmer
-#define thrd_chunk_iterate_end_internal_n(n) {                   \
-        if (bit_index > (sizeof(size_t) * 8 - 1)) {          \
-            bit_index %= (sizeof(size_t) * 8);                \
-            free_index += ((n) >> div_pow2(sizeof(size_t) * 8));       \
-        }                                                    \
-    }
-
-// Breaks out of the iteration (uses break, like you would use in a normal loop)
-// #define thrd_chunk_iterate_break break
+#define thrd_chunk_iterate_start(buf, chunk_id) thrd_bit_iterate_start((buf)->free, (buf)->completeness, (buf)->capacity, chunk_id)
 
 // Skip this element (uses continue, like you would use in a normal loop)
-#define thrd_chunk_iterate_continue thrd_chunk_iterate_end_internal continue
+#define thrd_chunk_iterate_continue bit_iterate_continue
 
 // This is the fix to the skip from chunk_iterate_small_skip.
 // Use only when actually needed.
 // If the skip is guaranteed by the algorithm to be <=elements use chunk_iterate_small_skip
-#define thrd_chunk_iterate_continue_n(n) {            \
-        bit_index += (n);                        \
-    } thrd_chunk_iterate_end_internal_n((n)) continue
+#define thrd_chunk_iterate_continue_n(n) bit_iterate_continue_n(n)
 
 // Ends the for loop from chunk_iterate_start
-#define thrd_chunk_iterate_end thrd_chunk_iterate_end_internal }}
+#define thrd_chunk_iterate_end bit_iterate_end
 
 #endif

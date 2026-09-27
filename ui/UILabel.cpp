@@ -40,7 +40,7 @@ void ui_vertices_cache(
 
     vertex_text_create(
         &layout->ui_vertex_cache, &layout->ui_index_cache, zindex,
-        {label->core.dimension.pos.x, label->core.dimension.pos.y - font->base.line_height * font_size, 0.0f, 0.0f}, label->core.dimension.alignment,
+        {label->core.dimension.pos.x, label->core.dimension.pos.y - font->base.line_height * font_size, 0.0f, 0.0f}, label->core.dimension.align_anchor,
         font, (const char* const) label_content, label->font.size, label->font.color,
         mem
     );

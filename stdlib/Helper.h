@@ -231,7 +231,71 @@ static inline To bitcast(From src)
 
 #define iterator_end \
         ++obj;       \
-    }}               \
+    }}
+
+#define bit_iterate_start(_bit_field, _capacity, _bit_id) {                                                     \
+    uint32 _field_index = (uint32) (_bit_id / (sizeof(size_t) * 8));                                             \
+    uint32 _bit_index = (uint32) (_bit_id & (sizeof(size_t) * 8 - 1));                                          \
+                                                                                                                 \
+    for (; _bit_id < _capacity; ++_bit_id) {                                                                     \
+        const size_t _bf_rest = _bit_field[_field_index] >> _bit_index;                                          \
+        if (!_bf_rest) {                                                                                         \
+            /* Skip rest of this word, end_internal wraps to the next field */                                   \
+            _bit_id += (uint32) (sizeof(size_t) * 8 - 1 - _bit_index); /* -1 since the loop also increases by 1 */ \
+            _bit_index += (uint32) (sizeof(size_t) * 8 - 1 - _bit_index);                                        \
+        } else {                                                                                                 \
+            const uint32 _bf_skip = compiler_find_first_bit_r2l(_bf_rest);                                       \
+            _bit_id += _bf_skip;                                                                                 \
+            _bit_index += _bf_skip;                                                                              \
+        }                                                                                                        \
+                                                                                                                 \
+        if (_bf_rest && _bit_id < _capacity)
+
+// The completeness field specifies if the element is even completely written (important for lockless threaded content)
+#define thrd_bit_iterate_start(_bit_field, _completeness_field, _capacity, _bit_id) {                           \
+    uint32 _field_index = (uint32) (_bit_id / (sizeof(size_t) * 8));                                             \
+    uint32 _bit_index = (uint32) (_bit_id & (sizeof(size_t) * 8 - 1));                                          \
+                                                                                                                 \
+    for (; _bit_id < _capacity; ++_bit_id) {                                                                     \
+        const size_t chunk_iter_word = _bit_field[_field_index].load(memory_order_relaxed);                      \
+        const size_t complete_iter_word = _completeness_field[_field_index].load(memory_order_relaxed);          \
+                                                                                                                 \
+        const size_t _bf_rest = (chunk_iter_word & complete_iter_word) >> _bit_index;                            \
+        if (!_bf_rest) {                                                                                         \
+            /* Skip rest of this word, end_internal wraps to the next field */                                   \
+            _bit_id += (uint32) (sizeof(size_t) * 8 - 1 - _bit_index); /* -1 since the loop also increases by 1 */ \
+            _bit_index += (uint32) (sizeof(size_t) * 8 - 1 - _bit_index);                                        \
+        } else {                                                                                                 \
+            const uint32 _bf_skip = compiler_find_first_bit_r2l(_bf_rest);                                       \
+            _bit_id += _bf_skip;                                                                                 \
+            _bit_index += _bf_skip;                                                                              \
+        }                                                                                                        \
+                                                                                                                 \
+        if (_bf_rest && _bit_id < _capacity)
+
+// INTERNAL: Not intended for use by any programmer
+#define bit_iterate_end_internal {                  \
+        if (++_bit_index > (sizeof(size_t) * 8 - 1)) { \
+            _bit_index = 0;                            \
+            ++_field_index;                             \
+        }                                             \
+    }
+
+// Skip this element (uses continue, like you would use in a normal loop)
+#define bit_iterate_continue bit_iterate_end_internal continue
+
+// This is the fix to the skip from bit_iterate_small_skip.
+// Use only when actually needed.
+// If the skip is guaranteed by the algorithm to be <=elements use bit_iterate_small_skip
+#define bit_iterate_continue_n(n) {            \
+        _bit_index += (n);                        \
+        _field_index += _bit_index / (sizeof(size_t) * 8);                        \
+        _bit_index &= ((sizeof(size_t) * 8) - 1); \
+        _bit_id += (n) - 1; \
+    } continue
+
+// Ends the for loop from bit_iterate_start
+#define bit_iterate_end bit_iterate_end_internal }}
 
 /*
 #define SWAP_ENDIAN_16(val) ((((val) << 8) | ((val) >> 8)))

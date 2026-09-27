@@ -57,7 +57,7 @@ void gpu_atlas_cache_init(GpuAtlasCache* cache, uint16 dim, uint16 min_dim, Buff
     );
 
     // The default free rect is always the original box
-    cache->free_rects[0] = {dim, 0};
+    cache->free_rects[0] = { {0, 0, dim, dim}, 0 };
     cache->free_count = 1;
 
     spinlock_init(&cache->lock);
@@ -82,6 +82,16 @@ bool gpu_atlas_cache_exists(GpuAtlasCache* cache, uint32 cache_id) NO_EXCEPT
     SpinlockGuard _guard = SpinlockGuard(&cache->lock);
 
     return (bool) hashmap_entry_get(&cache->hm, cache_id);
+}
+
+static inline
+uint32 gpu_atlas_id_from_pos(
+    const GpuAtlasCache* const __restrict cache,
+    const v2_uint16& pos
+) NO_EXCEPT {
+    const int height_count = cache->dim / cache->min_dim;
+
+    return height_count * pos.y / cache->min_dim + pos.x / cache->min_dim;
 }
 
 GpuAtlasElement* gpu_atlas_cache_reserve(
@@ -131,7 +141,8 @@ GpuAtlasElement* gpu_atlas_cache_reserve(
     }
 
     GpuAtlasElement* const element = &cache->elements[best_match->element_id];
-    element->dim = best_match->dim;
+    element->completed.store(false);
+    element->dim = { best_match->dim.x, best_match->dim.y, rect.width, rect.height };
 
     const uint32 changed_index = best_match->element_id >> div_pow2(sizeof(size_t) * 8);
     const uint32 bit_index = MODULO_2(best_match->element_id, (sizeof(size_t) * 8));
@@ -142,8 +153,6 @@ GpuAtlasElement* gpu_atlas_cache_reserve(
     // This is either a split in 2 or 3 parts
     //  A: 1 used 1 free (if one axis is a perfect match)
     //  B: 1 used, 2 free if no axis is a perfect match
-
-    const int height_count = cache->dim / cache->min_dim;
 
     if (best_match->dim.width == rect.width && best_match->dim.height == rect.height) {
         if (best_match_id != cache->free_count - 1) {
@@ -159,16 +168,12 @@ GpuAtlasElement* gpu_atlas_cache_reserve(
         // We can just replace the free_rects entry with the split rect
         best_match->dim.y += rect.height;
         best_match->dim.height -= rect.height;
-
-        best_match->element_id = height_count * ((best_match->dim.height - cache->min_dim) / cache->min_dim)
-            + best_match->dim.x / cache->min_dim;
+        best_match->element_id = gpu_atlas_id_from_pos(cache, *((v2_uint16 *) &best_match->dim));
     } else if (rect.height == best_match->dim.height) {
         // We can just replace the free_rects entry with the split rect
         best_match->dim.x += rect.width;
         best_match->dim.width -= rect.width;
-
-        best_match->element_id = height_count * ((best_match->dim.height - cache->min_dim) / cache->min_dim)
-            + best_match->dim.x / cache->min_dim;
+        best_match->element_id = gpu_atlas_id_from_pos(cache, *((v2_uint16 *) &best_match->dim));
     } else {
         // We need to add one additional free rect due to the split
         GpuAtlasRect* new_rect = &cache->free_rects[cache->free_count];
@@ -178,10 +183,7 @@ GpuAtlasElement* gpu_atlas_cache_reserve(
             best_match->dim.width,
             (uint16) (best_match->dim.height - rect.height)
         };
-        new_rect->element_id = 0;
-
-        new_rect->element_id = height_count * ((new_rect->dim.height - cache->min_dim) / cache->min_dim)
-            + new_rect->dim.x / cache->min_dim;
+        new_rect->element_id = gpu_atlas_id_from_pos(cache, *((v2_uint16 *) &new_rect->dim));
 
         ++cache->free_count;
 
@@ -189,9 +191,7 @@ GpuAtlasElement* gpu_atlas_cache_reserve(
         best_match->dim.x += rect.width;
         best_match->dim.width -= rect.width;
         best_match->dim.height = rect.height;
-
-        best_match->element_id = height_count * ((best_match->dim.height - cache->min_dim) / cache->min_dim)
-            + best_match->dim.x / cache->min_dim;
+        best_match->element_id = gpu_atlas_id_from_pos(cache, *((v2_uint16 *) &best_match->dim));
     }
 
     HashEntryT<uint32, uint16>* entry = hashmap_reserve(&cache->hm, cache_id);

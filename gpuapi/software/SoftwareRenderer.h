@@ -982,15 +982,15 @@ void soft_render(
                 };
 
                 const PoolWorker job = {
-                    0, // .id =
-                    POOL_WORKER_STATE_WAITING, // .state =
-                    false, // .automatic_release =
-                    0, // .arg_size =
-                    &args[j], // .arg =
-                    thrd_soft_shader, // .func =
-                    NULL, // .callback =
-                    0, // .mem_size =
-                    NULL // .mem =
+                    SMN(id) 0,
+                    SMN(state) POOL_WORKER_STATE_WAITING,
+                    SMN(automatic_release) false,
+                    SMN(mem_size) 0,
+                    SMN(arg_size) 0,
+                    SMN(arg) &args[j],
+                    SMN(func) thrd_soft_shader,
+                    SMN(callback) NULL,
+                    SMN(mem) NULL
                 };
 
                 jobs[j] = thread_pool_add_work(renderer->pool, &job);

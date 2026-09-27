@@ -303,6 +303,37 @@ void gpuapi_attribute_info_create(GpuAttributeType type, D3D12_INPUT_ELEMENT_DES
                 0, // .InstanceDataStepRate =
             };
         } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_2D_SAMPLER_TEXTURE_COLOR: {
+            attr[0] = {
+                NULL, // .SemanticName =
+                0, // .SemanticIndex =
+                DXGI_FORMAT_R32G32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex2DSamplerTextureColor, position), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
+            };
+
+            attr[1] = {
+                NULL, // .SemanticName =
+                1, // .SemanticIndex =
+                DXGI_FORMAT_R32_SINT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex2DSamplerTextureColor, sampler), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
+            };
+
+            attr[2] = {
+                NULL, // .SemanticName =
+                2, // .SemanticIndex =
+                DXGI_FORMAT_R32G32_FLOAT, // .Format =
+                0, // .InputSlot
+                offsetof(Vertex2DSamplerTextureColor, texture_color), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
+            };
+        } return;
         default:
             UNREACHABLE();
     };

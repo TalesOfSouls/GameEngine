@@ -83,15 +83,23 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
 
         ++pool->working_cnt;
         work->state.store(POOL_WORKER_STATE_RUNNING);
+        if (work->state_external) {
+            work->state_external->store(POOL_WORKER_STATE_RUNNING);
+        }
 
         LOG_3("[INFO] ThreadPool worker started");
         {
             PROFILE_DEBUG(PROFILE_THREADPOOL_WORK, (char *) NULL, PROFILE_FLAG_ADD_HISTORY);
             STATS_INCREMENT_DEBUG(DEBUG_COUNTER_THREAD_ACTIVE);
-            if (work->mem_size) {
-                // @bug we need to wait if we don't have enough memory available
-                THRD_CHUNK_STACK_MEMORY(&pool->thrd_mem, &work->mem, work->mem_size);
-                work->func(work);
+            if (work->mem_size && !work->mem) {
+                // We try to allocate the requested memory until we can get it
+                ASSERT_TRUE(work->mem_size < pool->thrd_mem.size);
+                do {
+                    THRD_CHUNK_STACK_MEMORY(&pool->thrd_mem, (byte **) &work->mem, work->mem_size);
+                    if (work->mem) {
+                        work->func(work);
+                    }
+                } while (!work->mem);
             } else {
                 work->func(work);
             }
@@ -104,6 +112,9 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
         }
 
         work->state.store(POOL_WORKER_STATE_COMPLETED);
+        if (work->state_external) {
+            work->state_external->store(POOL_WORKER_STATE_COMPLETED);
+        }
         if (work->automatic_release) {
             queue_dequeue_release(&pool->work_queue, work);
         }
@@ -304,6 +315,10 @@ PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) 
         return NULL;
     }
 
+    if (job->state_external) {
+        job->state_external->store(POOL_WORKER_STATE_WAITING);
+    }
+
     memcpy(temp_job, job, sizeof(PoolWorker));
     temp_job->state.store(POOL_WORKER_STATE_WAITING);
 
@@ -329,6 +344,10 @@ PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker& job) 
         ASSERT_THROW();
 
         return NULL;
+    }
+
+    if (job.state_external) {
+        job.state_external->store(POOL_WORKER_STATE_WAITING);
     }
 
     memcpy(temp_job, &job, sizeof(PoolWorker));
@@ -377,11 +396,15 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
 inline
 void thread_pool_add_work_end(ThreadPool* const pool, PoolWorker* const job) NO_EXCEPT
 {
+    if (job->state_external) {
+        job->state_external->store(POOL_WORKER_STATE_WAITING);
+    }
+
     queue_enqueue_end(job);
     thread_pool_notify_one(pool);
 }
 
-FORCE_INLINE
+static FORCE_INLINE
 void thread_pool_work_release(ThreadPool* const pool, const PoolWorker* job) NO_EXCEPT
 {
     queue_dequeue_release(&pool->work_queue, job);

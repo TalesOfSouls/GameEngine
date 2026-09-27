@@ -16,8 +16,8 @@ UICore* ui_root_create(UILayout* layout, f32 width, f32 height) NO_EXCEPT
 
     // We MUST define y = height since our y is always the top left corner even for other elements e.g. window, label, ...
     element->core.dimension.pos = {0, height};
-    element->core.dimension.alignment = UI_ALIGN_H_LEFT | UI_ALIGN_V_TOP;
-    element->core.dimension.anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP;
+    element->core.dimension.align_anchor = UI_ALIGN_H_LEFT | UI_ALIGN_V_TOP
+        | UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP;
 
     return &element->core;
 }

@@ -4,50 +4,41 @@
 
 #include "../stdlib/Stdlib.h"
 
-// @performance We could probably remove H_LEFT and V_TOP in the following two enums
-//      Why? because if _CENTER AND _RIGHT are not set it is automatically _LEFT/_TOP
-//      If we do this we could even combine align and anchor into one byte
+// Default alignment is BOTTOM + LEFT
+#define UI_ALIGN_DEFAULT 0
+#define UI_ANCHOR_DEFAULT 0
 
-enum UIAlign : byte {
-    UI_ALIGN_H_LEFT = 1 << 0,
-    UI_ALIGN_H_CENTER = 1 << 1,
-    UI_ALIGN_H_RIGHT = 1 << 2,
+#define UI_ALIGN_V_BOTTOM 0
+#define UI_ALIGN_H_LEFT 0
+#define UI_ANCHOR_H_LEFT 0
+#define UI_ANCHOR_V_BOTTOM 0
 
-    UI_ALIGN_V_BOTTOM = 1 << 3,
-    UI_ALIGN_V_CENTER = 1 << 4,
-    UI_ALIGN_V_TOP = 1 << 5,
-};
-
-enum UIAnchor : byte {
-    UI_ANCHOR_H_LEFT = 1 << 0,
-    UI_ANCHOR_H_CENTER = 1 << 1,
-    UI_ANCHOR_H_RIGHT = 1 << 2,
-
-    UI_ANCHOR_V_BOTTOM = 1 << 3,
-    UI_ANCHOR_V_CENTER = 1 << 4,
-    UI_ANCHOR_V_TOP = 1 << 5,
-};
-
-/*
 enum UIAlignAnchor : byte {
     // Align
     // If none of the following two is set -> UI_ALIGN_H_LEFT
     UI_ALIGN_H_CENTER = 1 << 0,
     UI_ALIGN_H_RIGHT = 1 << 1,
+    // Helper to check for !/not the above two
+    UI_ALIGN_H_LEFT_NOT = UI_ALIGN_H_CENTER | UI_ALIGN_H_RIGHT,
 
     // If none of the following two is set -> UI_ALIGN_V_TOP
-    UI_ALIGN_V_BOTTOM = 1 << 2,
+    UI_ALIGN_V_TOP = 1 << 2,
     UI_ALIGN_V_CENTER = 1 << 3,
+    // Helper to check for !/not the above two
+    UI_ALIGN_V_BOTTOM_NOT = UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER,
 
     // Anchor
     // If none of the following two is set -> UI_ANCHOR_H_LEFT
     UI_ANCHOR_H_CENTER = 1 << 4,
     UI_ANCHOR_H_RIGHT = 1 << 5,
+    // Helper to check for !/not the above two
+    UI_ANCHOR_H_LEFT_NOT = UI_ANCHOR_H_CENTER | UI_ANCHOR_H_RIGHT,
 
     // If none of the following two is set -> UI_ANCHOR_V_TOP
-    UI_ANCHOR_V_BOTTOM = 1 << 6,
+    UI_ANCHOR_V_TOP = 1 << 6,
     UI_ANCHOR_V_CENTER = 1 << 7,
+    // Helper to check for !/not the above two
+    UI_ANCHOR_V_BOTTOM_NOT = UI_ANCHOR_V_TOP | UI_ANCHOR_V_CENTER,
 };
-*/
 
 #endif

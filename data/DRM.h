@@ -36,6 +36,11 @@ int main() {
 }
 */
 
+struct DRMDecodedSignature {
+    const byte* data;
+    size_t length;
+};
+
 struct DRMSignature {
     const char* name;
     size_t length;
@@ -120,5 +125,42 @@ static const wchar_t* _evil_window_names[] = {
     L"Q2hlYXQgRW5naW5l", // Cheat Engine
     L"VHJhaW5lcg==" // Trainer
 };
+
+CONSTEVAL inline
+size_t drm_patterns_total_len(const DRMSignature* patterns, size_t count) NO_EXCEPT
+{
+    size_t total = 0;
+    for (size_t i = 0; i < count; ++i) {
+        total += patterns[i].length;
+    }
+    return total;
+}
+
+static CONSTEXPR const size_t DRM_PATTERN_COUNT = ARRAY_COUNT(_drm_patterns);
+static CONSTEXPR const size_t DRM_DECODED_BYTES = drm_patterns_total_len(_drm_patterns, DRM_PATTERN_COUNT);
+static byte _drm_decoded_bytes[DRM_DECODED_BYTES];
+static DRMDecodedSignature _drm_decoded_sigs[DRM_PATTERN_COUNT];
+static size_t _drm_decoded_max_len = 0;
+
+void drm_decode_all() NO_EXCEPT
+{
+    size_t off = 0;
+    for (size_t p = 0; p < DRM_PATTERN_COUNT; ++p) {
+        drm_decode(
+            _drm_decoded_bytes + off,
+            _drm_patterns[p].encrypted_pattern,
+            _drm_patterns[p].length
+        );
+
+        _drm_decoded_sigs[p].data   = _drm_decoded_bytes + off;
+        _drm_decoded_sigs[p].length = _drm_patterns[p].length;
+
+        if (_drm_patterns[p].length > _drm_decoded_max_len) {
+            _drm_decoded_max_len = _drm_patterns[p].length;
+        }
+
+        off += _drm_patterns[p].length;
+    }
+}
 
 #endif

@@ -16,6 +16,7 @@
 #include "../../../memory/BufferMemory.cpp"
 #include "controller/DualShock4.h"
 #include <winDNS.h>
+#include <hidusage.h>
 
 static inline
 bool rawinput_extract_vid_pid(
@@ -113,6 +114,7 @@ uint32 rawinput_kbm_init(
                 // Remember one physical device may have multiple logical devices
                 // We need to group them together as one device
                 int32 found_state = -1;
+                // @todo we often use hardcoded 4, which is not what we want. pass in a counter for the states
                 for (int32 c = 0; c < 4; ++c) {
                     if (memcmp(states[c].mouse.device_name, device_id, sizeof(device_id)) == 0) {
                         found_state = c;
@@ -198,16 +200,16 @@ uint32 rawinput_kbm_init(
         alignas(8) RAWINPUTDEVICE rid[2];
 
         // Mouse
-        rid[0].usUsagePage = 0x01;
-        rid[0].usUsage     = 0x02;
-        rid[0].dwFlags     = RIDEV_DEVNOTIFY;
-        rid[0].hwndTarget  = hwnd;
+        rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+        rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+        rid[0].dwFlags = RIDEV_DEVNOTIFY;
+        rid[0].hwndTarget = hwnd;
 
         // Keyboard
-        rid[1].usUsagePage = 0x01;
-        rid[1].usUsage     = 0x06;
-        rid[1].dwFlags     = RIDEV_DEVNOTIFY;
-        rid[1].hwndTarget  = hwnd;
+        rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+        rid[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+        rid[1].dwFlags = RIDEV_DEVNOTIFY;
+        rid[1].hwndTarget = hwnd;
 
         if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 2, sizeof(RAWINPUTDEVICE))) {
             LOG_1("[WARNING] Couldn't register keyboard raw input device");
@@ -256,7 +258,7 @@ uint32 rawinput_init_controllers(
 
         switch (rdi.dwType) {
             case RIM_TYPEHID: {
-                if (rdi.hid.usUsage == 0x05) {
+                if (rdi.hid.usUsage == HID_USAGE_GENERIC_GAMEPAD) {
                     if (states[controller_found].controller.handle != NULL) {
                         ++controller_found;
                     }
@@ -284,16 +286,16 @@ uint32 rawinput_init_controllers(
                     }
 
                     // Gamepad
-                    rid[0].usUsagePage = 0x01;
-                    rid[0].usUsage	   = 0x05;
-                    rid[0].dwFlags     = RIDEV_DEVNOTIFY;
+                    rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+                    rid[0].usUsage = HID_USAGE_GENERIC_GAMEPAD;
+                    rid[0].dwFlags = RIDEV_DEVNOTIFY;
                     rid[0].hwndTarget = hwnd;
 
                     if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
                         LOG_1("[WARNING] Couldn't register gamepad raw input device");
                         ASSERT_THROW();
                     }
-                } else if (rdi.hid.usUsage == 0x04) {
+                } else if (rdi.hid.usUsage == HID_USAGE_GENERIC_JOYSTICK) {
                     if (states[controller_found].controller.handle != NULL) {
                         ++controller_found;
                     }
@@ -304,9 +306,9 @@ uint32 rawinput_init_controllers(
                     states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
 
                     // Joystick
-                    rid[0].usUsagePage = 0x01;
-                    rid[0].usUsage	   = 0x04;
-                    rid[0].dwFlags     = RIDEV_DEVNOTIFY;
+                    rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+                    rid[0].usUsage = HID_USAGE_GENERIC_JOYSTICK;
+                    rid[0].dwFlags = RIDEV_DEVNOTIFY;
                     rid[0].hwndTarget = hwnd;
 
                     if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {

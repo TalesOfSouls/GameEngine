@@ -112,6 +112,9 @@ void* cmd_func_run(AppCommandFunction func) NO_EXCEPT
 
 static inline void thrd_cmd_group_execute(void*);
 
+/**
+ * Runs a group of commands each in their own worker thread
+ */
 static inline
 void cmd_group_async(
     AppCmdBuffer* cb,
@@ -131,6 +134,7 @@ void cmd_group_async(
 
     for (int32 i = 0; i < cmd->group_async_body.count; ++i) {
         pool_args[i].cb = cb;
+        // This makes it clear that every command in the group is run async
         pool_args[i].commands = &cmd->group_async_body.commands[i];
         pool_args[i].count = 1;
 
@@ -140,11 +144,11 @@ void cmd_group_async(
             SMN(id) 0,
             SMN(state) POOL_WORKER_STATE_WAITING,
             SMN(automatic_release) false,
+            SMN(mem_size) 0,
             SMN(arg_size) 0,
             SMN(arg) &pool_args[i],
             SMN(func) thrd_cmd_group_execute,
             SMN(callback) NULL,
-            SMN(mem_size) 0,
             SMN(mem) NULL
         };
         jobs_ptr[i] = thread_pool_add_work(cb->thread_pool, &job);
@@ -158,7 +162,10 @@ void cmd_group_async(
     );
 
     // Release the commands memory
-    int32 cmd_element_count = chunk_element_count(cb->mem, cmd->group_async_body.count * sizeof(AppCommand));
+    const int32 cmd_element_count = chunk_element_count(
+        cb->mem,
+        cmd->group_async_body.count * sizeof(AppCommand)
+    );
     chunk_free_elements(cb->mem, (byte *) cmd->group_async_body.commands, cmd_element_count);
 
     // Release the args memory used for the thread pool args
@@ -223,6 +230,13 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
     return completed;
 }
 
+/**
+ * Runs a command or multiple commands in a worker thread
+ *
+ * @param void* data AppCommandPool
+ *
+ * @return void
+ */
 static inline
 void thrd_cmd_pool_execute(void* data) {
     AppCommandPool* pool_cmd = (AppCommandPool*) data;
@@ -240,6 +254,7 @@ void thrd_cmd_group_execute(void* data) {
 }
 
 // Single threaded consumer that may dispatch work to multiple threads
+// @todo We need a function that allows us to forcefully run every command in its own worker thread
 void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_CMD_ITERATE);
@@ -249,6 +264,7 @@ void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
     thrd_chunk_iterate_start(&cb->commands, chunk_id) {
         AppCommand* cmd = (AppCommand *) chunk_element_get(&cb->commands, chunk_id);
 
+        // This allows the command itself to decide if it wants to run async or not
         if (cmd->run_in_pool && !cmd->is_running) {
             const int32 pool_cmd_id = chunk_reserve(cb->mem, element_count);
             AppCommandPool* pool_cmd = (AppCommandPool *) chunk_element_get(cb->mem, pool_cmd_id);
@@ -263,11 +279,11 @@ void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
                 SMN(id) 0,
                 SMN(state) POOL_WORKER_STATE_WAITING,
                 SMN(automatic_release) true,
+                SMN(mem_size) 0,
                 SMN(arg_size) 0,
                 SMN(arg) pool_cmd,
                 SMN(func) thrd_cmd_pool_execute,
                 SMN(callback) NULL,
-                SMN(mem_size) 0,
                 SMN(mem) NULL
             };
             thread_pool_add_work(cb->thread_pool, &job);

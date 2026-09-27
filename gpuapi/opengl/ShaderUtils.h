@@ -688,7 +688,7 @@ struct OpenglVertexInputAttributeDescriptionArray
 };
 
 template<GpuAttributeType T>
-CONSTEXPR
+CONSTEVAL
 auto gpuapi_attribute_info_create() NO_EXCEPT
 {
     OpenglVertexInputAttributeDescriptionArray<_GPUAPI_ATTRIBUTE_COUNT[T]> attr = {};
@@ -818,6 +818,31 @@ auto gpuapi_attribute_info_create() NO_EXCEPT
                 SMN(format) GL_FLOAT,
                 SMN(stride) sizeof(Vertex2DTexture),
                 SMN(offset) (int32) offsetof(Vertex2DTexture, tex_coord)
+            };
+        } break;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_2D_SAMPLER_TEXTURE_COLOR: {
+            attr.data[0] = {
+                SMN(location) 0,
+                SMN(count) 2,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex2DSamplerTextureColor),
+                SMN(offset) (int32) offsetof(Vertex2DSamplerTextureColor, position)
+            };
+
+            attr.data[1] = {
+                SMN(location) 1,
+                SMN(count) 1,
+                SMN(format) GL_INT,
+                SMN(stride) sizeof(Vertex2DSamplerTextureColor),
+                SMN(offset) (int32) offsetof(Vertex2DSamplerTextureColor, sampler)
+            };
+
+            attr.data[2] = {
+                SMN(location) 2,
+                SMN(count) 2,
+                SMN(format) GL_FLOAT,
+                SMN(stride) sizeof(Vertex2DSamplerTextureColor),
+                SMN(offset) (int32) offsetof(Vertex2DSamplerTextureColor, texture_color)
             };
         } break;
         default:

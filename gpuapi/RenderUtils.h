@@ -34,18 +34,18 @@ static inline
 void adjust_aligned_position(
     f32* const __restrict x, f32* const __restrict y,
     f32 width, f32 height,
-    byte alignment
+    byte align_anchor
 ) NO_EXCEPT
 {
-    if (alignment & UI_ALIGN_H_RIGHT) {
+    if (align_anchor & UI_ALIGN_H_RIGHT) {
         *x -= width;
-    } else if (alignment & UI_ALIGN_H_CENTER) {
+    } else if (align_anchor & UI_ALIGN_H_CENTER) {
         *x -= width * 0.5f;
     }
 
-    if (alignment & UI_ALIGN_V_TOP) {
+    if (align_anchor & UI_ALIGN_V_TOP) {
         *y -= height;
-    } else if (alignment & UI_ALIGN_V_CENTER) {
+    } else if (align_anchor & UI_ALIGN_V_CENTER) {
         *y -= height * 0.5f;
     }
 }
@@ -53,18 +53,18 @@ void adjust_aligned_position(
 static FORCE_INLINE
 void adjust_aligned_position(
     v4_f32* const vec,
-    byte alignment
+    byte align_anchor
 ) NO_EXCEPT
 {
-    if (alignment & UI_ALIGN_H_RIGHT) {
+    if (align_anchor & UI_ALIGN_H_RIGHT) {
         vec->x -= vec->width;
-    } else if (alignment & UI_ALIGN_H_CENTER) {
+    } else if (align_anchor & UI_ALIGN_H_CENTER) {
         vec->x -= vec->width * 0.5f;
     }
 
-    if (alignment & UI_ALIGN_V_TOP) {
+    if (align_anchor & UI_ALIGN_V_TOP) {
         vec->y -= vec->height;
-    } else if (alignment & UI_ALIGN_V_CENTER) {
+    } else if (align_anchor & UI_ALIGN_V_CENTER) {
         vec->y -= vec->height * 0.5f;
     }
 }
@@ -107,32 +107,30 @@ void vertex_line_create(
     i[4] = vertex_count + 2;
     i[5] = vertex_count + 3;
 
+    const v2_f32 color = {-1.0f, BITCAST(rgba, f32)};
     Vertex3DSamplerTextureColor* const __restrict v = array_vector_reserve(vertices, 4);
-    v[0] = {{v1.x, v1.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // tl
-    v[1] = {{v3.x, v3.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // tr
-    v[2] = {{v2.x, v2.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // br
-    v[3] = {{v0.x, v0.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}}; // bl
+    v[0] = {{v1.x, v1.y, zindex}, -1, color}; // tl
+    v[1] = {{v3.x, v3.y, zindex}, -1, color}; // tr
+    v[2] = {{v2.x, v2.y, zindex}, -1, color}; // br
+    v[3] = {{v0.x, v0.y, zindex}, -1, color}; // bl
 }
 
 inline HOT_CODE
 void vertex_rect_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices,
     ArrayVector<int32>* const __restrict indices, f32 zindex, int32 sampler,
-    v4_f32 dimension, byte alignment,
+    v4_f32 dimension, byte align_anchor,
     uint32 rgba = 0, v2_f32 tex1 = {}, v2_f32 tex2 = {}
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_VERTEX_RECT_CREATE);
-    if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
-        adjust_aligned_position(&dimension, alignment);
+    if (align_anchor & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
+        adjust_aligned_position(&dimension, align_anchor);
     }
 
     if (rgba) {
-        tex1.x = -1.0f;
-        tex1.y = BITCAST(rgba, f32);
-
-        tex2.x = -1.0f;
-        tex2.y = BITCAST(rgba, f32);
+        tex1 = {-1.0f, BITCAST(rgba, f32)};
+        tex2 = tex1;
     }
 
     const f32 y_height = dimension.y + dimension.height;
@@ -160,21 +158,18 @@ void vertex_circle_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices,
     f32 zindex, int32 sampler,
     v4_f32 dimension,
-    byte alignment,
+    byte align_anchor,
     int32 segments, // defines the detail (should be a multiple of 4)
     uint32 rgba = 0, v2_f32 tex_center = {}, v2_f32 tex_edge = {}
 ) NO_EXCEPT
 {
-    if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
-        adjust_aligned_position(&dimension, alignment);
+    if (align_anchor & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
+        adjust_aligned_position(&dimension, align_anchor);
     }
 
     if (rgba) {
-        tex_center.x = -1.0f;
-        tex_center.y = BITCAST(rgba, f32);
-
-        tex_edge.x = -1.0f;
-        tex_edge.y = BITCAST(rgba, f32);
+        tex_center = {-1.0f, BITCAST(rgba, f32)};
+        tex_edge = tex_center;
     }
 
     // Circle center + radii
@@ -219,23 +214,20 @@ void vertex_arc_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices,
     f32 zindex, int32 sampler,
     v4_f32 dimension,
-    byte alignment,
+    byte align_anchor,
     int32 segments,  // number of subdivisions (should be >= 3)
     f32 start_angle, // radians where the arc starts
     f32 arc_angle,   // radians how wide the arc is (e.g. OMS_PI_F32 for semicircle)
     uint32 rgba = 0, v2_f32 tex_center = {}, v2_f32 tex_edge = {}
 ) NO_EXCEPT
 {
-    if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
-        adjust_aligned_position(&dimension, alignment);
+    if (align_anchor & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
+        adjust_aligned_position(&dimension, align_anchor);
     }
 
     if (rgba) {
-        tex_center.x = -1.0f;
-        tex_center.y = BITCAST(rgba, f32);
-
-        tex_edge.x = -1.0f;
-        tex_edge.y = BITCAST(rgba, f32);
+        tex_center = {-1.0f, BITCAST(rgba, f32)};
+        tex_edge = tex_center;
     }
 
     // Circle center + radii
@@ -353,7 +345,7 @@ f32 text_calculate_dimensions_height(
 HOT_CODE
 v2_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
-    v4_f32 dimension, byte alignment,
+    v4_f32 dimension, byte align_anchor,
     FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length,
     f32 size, MAYBE_UNUSED uint32 rgba
 ) NO_EXCEPT
@@ -370,20 +362,20 @@ v2_int32 vertex_text_create(
     // We thought that this would improve the performance, because this way we could avoid one iteration over glyphs.
     // However, as it turns out this would only improve the performance in debug builds
     // BUT make it slower in release builds.
-    if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
-        if ((alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER))
-            && (alignment & (UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER))
+    if (align_anchor & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
+        if ((align_anchor & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER))
+            && (align_anchor & (UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER))
         ) {
             const v2_f32 dim = text_calculate_dimensions(font, glyphs, length, scale);
             dimension.width = dim.width;
             dimension.height = dim.height;
-        } else if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER)) {
+        } else if (align_anchor & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER)) {
             dimension.width = text_calculate_dimensions_width(font, glyphs, length, scale);
         } else {
             dimension.height = text_calculate_dimensions_height(font, glyphs, length, line_height_scaled);
         }
 
-        adjust_aligned_position(&dimension, alignment);
+        adjust_aligned_position(&dimension, align_anchor);
     }
 
     f32 rendered_width = 0;
@@ -444,7 +436,7 @@ v2_int32 vertex_text_create(
     //      We could just prepare the entire text here but then decide what to render later?
     // @todo If width or height (usually just width) > 0 we use those values for automatic wrapping
     //      This way we can ensure no overflow easily
-    // @todo implement line alignment, currently only total alignment is considered
+    // @todo implement line align_anchor, currently only total align_anchor is considered
 
     return {(int32) rendered_width, (int32) rendered_height};
 }
@@ -453,7 +445,7 @@ template <typename T>
 HOT_CODE
 v2_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
-    const v4_f32& dimension, byte alignment,
+    const v4_f32& dimension, byte align_anchor,
     FontSystem* const __restrict font, const char* const __restrict text,
     f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
 ) NO_EXCEPT
@@ -512,7 +504,7 @@ v2_int32 vertex_text_create(
 
     return vertex_text_create(
         vertices, indices, zindex,
-        dimension, alignment,
+        dimension, align_anchor,
         font, glyphs, glyph_count,
         size, rgba
     );
@@ -522,7 +514,7 @@ template <typename T>
 HOT_CODE
 v2_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
-    const v4_f32& dimension, byte alignment,
+    const v4_f32& dimension, byte align_anchor,
     FontSystem* const __restrict font, const Utf8String& text,
     f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
 ) NO_EXCEPT
@@ -572,7 +564,7 @@ v2_int32 vertex_text_create(
 
     return vertex_text_create(
         vertices, indices, zindex,
-        dimension, alignment,
+        dimension, align_anchor,
         font, glyphs, glyph_count,
         size, rgba
     );
@@ -586,7 +578,7 @@ CONSTEXPR const Utf8String utf8_origin = utf8_string_literal("Origin");
 if (!vertex_text_is_cached(origin_cached, utf8_origin)) {
     origin_cached.cached_dim = vertex_text_create(
         &origin_cached.cached_vertices.view, &origin_cached.cached_indices.view, zindex,
-        {1.0f, top, 0.0f, 0.0f}, UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM,
+        {1.0f, top, 0.0f, 0.0f}, UI_ALIGN_DEFAULT,
         font, utf8_origin, font_size, COLOR_WHITE_RGBA,
         glyph_buffer
     );

@@ -100,7 +100,6 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
     #define LABEL_PTR_GPU_API() ((void) 0)
 #endif
 
-
 FORCE_INLINE
 GpuFence gpuapi_fence_create() NO_EXCEPT
 {
@@ -120,6 +119,11 @@ void gpuapi_fence_lock(GpuFence* const fence) NO_EXCEPT
 FORCE_INLINE
 void gpuapi_fence_unlock(GpuFence* const fence) NO_EXCEPT
 {
+    // Fence already exists
+    if (*fence) {
+        return;
+    }
+
     *fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
 
@@ -131,7 +135,8 @@ bool gpuapi_fence_is_unlocked(GpuFence* const fence) NO_EXCEPT
         return true;
     }
 
-    const GLenum res = glClientWaitSync(*fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0); /* timeout 0 -> poll */
+    // timeout 0 == poll
+    const GLenum res = glClientWaitSync(*fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
     if (res == GL_ALREADY_SIGNALED || res == GL_CONDITION_SATISFIED) {
         // GPU is done; delete sync and mark slot free
         glDeleteSync(*fence);

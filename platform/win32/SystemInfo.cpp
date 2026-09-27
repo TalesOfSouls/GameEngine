@@ -9,6 +9,7 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
+#include "../../utils/Utils.h"
 #include "../../system/SystemInfo.h"
 #include "../../architecture/CpuInfo.cpp"
 #include "../../hash/Sha1.h"

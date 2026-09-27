@@ -26,14 +26,8 @@ struct UIAttributeDimension {
     // @see UIDimensionFlag
     byte flag;
 
-    // @performance see the enum definitions we could combine the two bit fields
-    //              Due to padding I don't see us saving any space
-
-    // @see UIAlign
-    byte alignment;
-
-    // @see UIAnchor
-    byte anchor;
+    // @see UIAlignAnchor
+    byte align_anchor;
 
     // This is the calculated position/dimension
     v2_f32 pos;

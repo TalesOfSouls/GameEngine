@@ -48,13 +48,12 @@ UICursor* ui_cursor_create(
     cursor->core.type = UI_ELEMENT_TYPE_CURSOR;
     cursor->core.dimension.flag = UI_DIMENSION_POS_X_PX | UI_DIMENSION_POS_Y_PX
         | UI_DIMENSION_DIM_X_PX | UI_DIMENSION_DIM_Y_PX;
-    cursor->core.dimension.anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP;
-    cursor->core.dimension.alignment = UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM;
+    cursor->core.dimension.align_anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP | UI_ALIGN_DEFAULT;
 
     cursor->image.dimension.flag = UI_DIMENSION_POS_X_RELATIVE | UI_DIMENSION_POS_Y_RELATIVE
         | UI_DIMENSION_DIM_X_RELATIVE | UI_DIMENSION_DIM_Y_RELATIVE;
     cursor->image.dimension.dim_raw = {1.0f, 1.0f};
-    cursor->image.dimension.anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP;
+    cursor->image.dimension.align_anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP;
 
     cursor->core.parent_offset = (int32) MEMORY_OFFSET(layout->ui_root, layout->ui_element_buffer.memory);
 
