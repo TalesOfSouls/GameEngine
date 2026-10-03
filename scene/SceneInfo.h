@@ -7,7 +7,15 @@
 #include "../ui/UITheme.h"
 
 struct SceneInfo {
-    atomic<int32> scene_setup_state;
+    // This variable is only written to and read from by the update loop and potentially some helper worker threads
+    // This helper worker threads however are "owned" by the update loop
+    atomic<int32> scene_update_setup_state;
+
+    // This variable is only written by the render loop and potentially some helper worker threads
+    // This helper worker threads however are "owned" by the update loop
+    // The reading however also happens from the update loop because the update loop needs to know if it can send
+    // Scene specific data for the new scene
+    atomic<int32> scene_render_setup_state;
 
     // Scene specific state
     int32 scene_state;

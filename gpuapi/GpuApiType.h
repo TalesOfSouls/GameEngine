@@ -15,6 +15,9 @@ enum GpuApiType : byte {
     GPU_API_TYPE_VULKAN,
     GPU_API_TYPE_DIRECTX_11,
     GPU_API_TYPE_DIRECTX_12,
+    GPU_API_TYPE_METAL,
+
+    GPU_API_TYPE_SIZE,
 };
 
 #endif

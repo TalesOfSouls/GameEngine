@@ -16,6 +16,7 @@
 template <typename C>
 struct SimpleString {
     int32 length;
+    int32 max_length;
     C* str;
 };
 
@@ -25,12 +26,13 @@ struct SimpleStringBuffer {
     C str[N];
 
     operator SimpleString<C>() {
-        return SimpleString<C>{ length, str };
+        return SimpleString<C>{ length, length, str };
     }
 };
 
 struct Utf8String {
     int32 length;
+    int32 max_length;
     char* str;
 };
 
@@ -40,7 +42,7 @@ struct Utf8StringBuffer {
     char str[N];
 
     operator Utf8String() {
-        return Utf8String{ length, str };
+        return Utf8String{ length, length, str };
     }
 };
 

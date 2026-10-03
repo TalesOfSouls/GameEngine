@@ -8,6 +8,7 @@
 #define COMS_PLATFORM_WIN32_WINDOW_H
 
 #include "../../stdlib/Stdlib.h"
+#include <windows.h>
 #include <WinUser.h>
 
 typedef HINSTANCE WindowInstance;

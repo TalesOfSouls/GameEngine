@@ -19,6 +19,18 @@ SimpleString<C> simple_string_literal(const C (&str)[N]) NO_EXCEPT
 {
     return SimpleString<C>{
         (int32) (N - 1),
+        (int32) (N - 1),
+        (C*) str
+    };
+}
+
+template <typename C, size_t N>
+CONSTEVAL
+SimpleString<C> simple_string_literal(const C (&str)[N], int32 length) NO_EXCEPT
+{
+    return SimpleString<C>{
+        (int32) (length),
+        (int32) (N - 1),
         (C*) str
     };
 }
@@ -27,21 +39,29 @@ template <typename C>
 FORCE_INLINE CONSTEXPR
 SimpleString<C> simple_string_init(C* str, int32 length) NO_EXCEPT
 {
-    return SimpleString<C>{ length, str };
+    return SimpleString<C>{ length, length, str };
+}
+
+template <typename C>
+FORCE_INLINE CONSTEXPR
+SimpleString<C> simple_string_init(C* str, int32 length, int32 max_length) NO_EXCEPT
+{
+    return SimpleString<C>{ length, max_length, str };
 }
 
 template <typename C>
 FORCE_INLINE CONSTEXPR
 SimpleString<C> simple_string_init(C* str) NO_EXCEPT
 {
-    return SimpleString<C>{ str_length(str), str };
+    int32 length = str_length(str);
+    return SimpleString<C>{ length, length, str };
 }
 
 template <typename C>
 FORCE_INLINE CONSTEXPR
 SimpleString<C> simple_string_empty_init() NO_EXCEPT
 {
-    return SimpleString<C>{ 0, NULL };
+    return SimpleString<C>{ 0, 0, NULL };
 }
 
 template <typename C>
@@ -66,13 +86,19 @@ Utf8String utf8_string_literal(const char (&str)[N]) NO_EXCEPT
         length += 1;
     }
 
-    return Utf8String{ length, (char*) str };
+    return Utf8String{ length, length, (char*) str };
 }
 
 FORCE_INLINE CONSTEXPR
 Utf8String utf8_string_init(char* str, int32 length) NO_EXCEPT
 {
-    return Utf8String{ length, str };
+    return Utf8String{ length, length, str };
+}
+
+FORCE_INLINE CONSTEXPR
+Utf8String utf8_string_init(char* str, int32 length, int32 max_length) NO_EXCEPT
+{
+    return Utf8String{ length, max_length, str };
 }
 
 FORCE_INLINE CONSTEXPR
@@ -89,13 +115,13 @@ Utf8String utf8_string_init(char* str) NO_EXCEPT
         length += 1;
     }
 
-    return Utf8String{ length, str };
+    return Utf8String{ length, length, str };
 }
 
 FORCE_INLINE CONSTEXPR
 Utf8String utf8_string_empty_init() NO_EXCEPT
 {
-    return Utf8String{ 0, NULL };
+    return Utf8String{ 0, 0, NULL };
 }
 
 CONSTEXPR FORCE_INLINE

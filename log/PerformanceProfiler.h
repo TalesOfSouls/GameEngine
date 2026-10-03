@@ -16,7 +16,7 @@
 #ifndef PERFORMANCE_PROFILE_STATS
     // Defining the standard timing stat types if not already defined by the user
     #define PERFORMANCE_PROFILE_STATS 1
-    enum TimingStats {
+    enum ProfileStats : uint16 {
         PROFILE_TEMP,
 
         PROFILE_SLEEP, // Used to time sleep (careful, also used in spinlocks)
@@ -66,6 +66,7 @@
         PROFILE_UI_CACHE_CHROMA_CODES,
 
         PROFILE_MAIN, // Used to profile the main loop
+        PROFILE_RENDER, // Used to profile the render loop
         PROFILE_GPU, // Used to profile the total gpu time
 
         PROFILE_SIZE
