@@ -807,7 +807,10 @@ void camera_init(Camera* const camera, GpuApiType gpu_api_type) NO_EXCEPT
 }
 
 inline
-bool aabb_intersects_frustum(const AABB_f32* const __restrict box, const Frustum* const __restrict frustum) NO_EXCEPT
+bool aabb_intersects_frustum(
+    const AABB_f32* const __restrict box,
+    const Frustum* const __restrict frustum
+) NO_EXCEPT
 {
     for(int32 i = 0; i < 6; ++i) {
         const v4_f32 eq = frustum->eq[i];

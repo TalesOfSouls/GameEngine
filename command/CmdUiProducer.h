@@ -24,7 +24,8 @@ void thrd_cmd_ui_load(
     const wchar_t layout_path[64],
     const wchar_t theme_path[64],
     UITheme* const __restrict general_theme,
-    SceneInfo* const scene_info,
+    UILayout* const __restrict layout,
+    UITheme* const __restrict theme,
     GpuApiType gpu_api_type,
     AppCommandFunction callback
 ) NO_EXCEPT
@@ -41,7 +42,9 @@ void thrd_cmd_ui_load(
 
     cmd.layout_body.general_theme = general_theme;
 
-    cmd.layout_body.scene_info = scene_info;
+    cmd.layout_body.layout = layout;
+    cmd.layout_body.theme = theme;
+
     cmd.layout_body.gpu_api_type = gpu_api_type;
     cmd.layout_body.mem = cb->mem;
 

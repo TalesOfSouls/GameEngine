@@ -110,9 +110,9 @@ UILayout* cmd_ui_load(
 
     return cmd_ui_load_sync(
         &buf,
-        &cmd->layout_body.scene_info->ui_layout, layout_path,
+        cmd->layout_body.layout, layout_path,
         cmd->layout_body.general_theme,
-        &cmd->layout_body.scene_info->ui_theme, theme_path
+        cmd->layout_body.theme, theme_path
     );
 }
 

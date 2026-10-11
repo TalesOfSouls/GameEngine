@@ -10,7 +10,6 @@
 #include "../stdlib/Stdlib.h"
 #include "../ui/UILayout.h"
 #include "../ui/UITheme.h"
-#include "../scene/SceneInfo.h"
 #include "../asset/AssetManagementSystem.h"
 
 // WARNING: INTERNAL types are only intended for internal use (not by other programmers/systems)
@@ -90,7 +89,8 @@ struct CmdLayoutBody {
     wchar_t layout_path[64];
     wchar_t theme_path[64];
 
-    SceneInfo* scene_info;
+    UILayout* layout;
+    UITheme* theme;
 
     GpuApiType gpu_api_type;
 

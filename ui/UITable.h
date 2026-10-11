@@ -17,8 +17,6 @@ struct UITableHead {
     // For the head we optimize the default case where the title is only simple text elements
     int16 column_length;
     int32 column_start;
-
-
 };
 
 struct UITableBody {
