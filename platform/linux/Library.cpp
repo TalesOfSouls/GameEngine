@@ -40,7 +40,7 @@ bool library_load(Library* lib)
     if (lib->handle) {
         dlclose(lib->handle);
         lib->handle = NULL;
-        usleep(100000); // 100 ms
+        thread_usleep(100000); // 100 ms
     }
 
     lib->handle = dlopen(dst, RTLD_LAZY);

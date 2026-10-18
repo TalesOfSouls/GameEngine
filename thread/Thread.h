@@ -44,8 +44,10 @@ void thread_stop(ThreadWorker* worker) NO_EXCEPT
 
 struct TripleBufferIndex {
     alignas(ASSUMED_CACHE_LINE_SIZE) atomic<uint32> middle;
-    alignas(ASSUMED_CACHE_LINE_SIZE) uint32 write;
-    alignas(ASSUMED_CACHE_LINE_SIZE) uint32 read;
+
+    // 2x because of Intel, which is sometimes loading 2 x 64
+    alignas(2 * ASSUMED_CACHE_LINE_SIZE) uint32 write;
+    alignas(2 * ASSUMED_CACHE_LINE_SIZE) uint32 read;
 };
 
 void triple_buffer_init(TripleBufferIndex* const buffer) NO_EXCEPT
@@ -55,26 +57,58 @@ void triple_buffer_init(TripleBufferIndex* const buffer) NO_EXCEPT
     buffer->read = 2;
 }
 
+void triple_buffer_init(
+    uint32* __restrict write,
+    atomic<uint32>* __restrict middle,
+    uint32* __restrict read
+) NO_EXCEPT
+{
+    *write = 0;
+    middle->store(1);
+    *read = 2;
+}
+
 void triple_buffer_publish(TripleBufferIndex* const buffer) NO_EXCEPT
 {
-    uint32 old = buffer->middle.exchange(
+    const uint32 old = buffer->middle.exchange(
         buffer->write | TB_NEW_FLAG, memory_order_acq_rel
     );
 
     buffer->write = old & TB_INDEX_MASK;
 }
 
+void triple_buffer_publish(uint32* __restrict write, atomic<uint32>* __restrict middle) NO_EXCEPT
+{
+    const uint32 old = middle->exchange(
+        *write | TB_NEW_FLAG, memory_order_acq_rel
+    );
+
+    *write = old & TB_INDEX_MASK;
+}
+
 // This returns either a new index if one is available or the previous one
 uint32 triple_buffer_acquire(TripleBufferIndex* const buffer) NO_EXCEPT
 {
     if (buffer->middle.load(memory_order_relaxed) & TB_NEW_FLAG) {
-        uint32 old = buffer->middle.exchange(
+        const uint32 old = buffer->middle.exchange(
             buffer->read, memory_order_acq_rel
         );
         buffer->read = old & TB_INDEX_MASK;
     }
 
     return buffer->read;
+}
+
+uint32 triple_buffer_acquire(atomic<uint32>* __restrict middle, uint32* __restrict read) NO_EXCEPT
+{
+    if (middle->load(memory_order_relaxed) & TB_NEW_FLAG) {
+        const uint32 old = middle->exchange(
+            *read, memory_order_acq_rel
+        );
+        *read = old & TB_INDEX_MASK;
+    }
+
+    return *read;
 }
 
 // is a new index available?

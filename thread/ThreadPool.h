@@ -43,6 +43,10 @@ struct ThreadPool {
     atomic<int32> sleeping_cnt;
     sem work_sem;
 
+    // @performance We need to profile if this is really the best solution or if we should have separate queues
+    //      work_queue
+    //      working_queue
+    //      done_queue
     MPMCWorkTrackingQueueT<PoolWorker> work_queue;
 
     // This is where we store the handles IFF we are using

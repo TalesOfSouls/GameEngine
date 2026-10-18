@@ -10,6 +10,7 @@
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
 #include "../../utils/Utils.h"
+#include "../../utils/TimeUtils.h"
 #include "../../system/SystemInfo.h"
 #include "../../architecture/CpuInfo.cpp"
 #include "../../hash/Sha1.h"
@@ -150,7 +151,7 @@ void system_cpu_usage(f32* const __restrict usage, int32 core_count, RingMemory*
         NULL
     );
 
-    Sleep(100);
+    thread_usleep(100 * MILLI_MICRO);
 
     NtQuerySystemInformation(
         SystemProcessorPerformanceInformation,

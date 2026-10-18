@@ -17,47 +17,7 @@ thread_local static LARGE_INTEGER _performance_frequency = []{
     return f;
 }();
 
-// WARNING: this is a busy sleep, use thread_usleep for idle sleep
-inline
-void usleep(uint64 microseconds) NO_EXCEPT
-{
-    PROFILE_DEBUG(PROFILE_SLEEP, (char *) NULL, PROFILE_FLAG_ADD_HISTORY);
-
-    LARGE_INTEGER start, end;
-    QueryPerformanceCounter(&start);
-
-    const long long target = start.QuadPart
-        + (microseconds * _performance_frequency.QuadPart)
-        / 1000000ULL;
-
-    do {
-        QueryPerformanceCounter(&end);
-    } while (end.QuadPart < target);
-}
-
-// Accurate on windows within +/- 0.5ms. Using an error margin of 500 is advised
-void thread_usleep(uint64 us) NO_EXCEPT
-{
-    static thread_local HANDLE timer = NULL;
-    static thread_local bool timer_init = false;
-
-    if (!timer_init) {
-        timer_init = true;
-        timer = CreateWaitableTimerExW(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
-    }
-
-    if (timer) {
-        LARGE_INTEGER due;
-        due.QuadPart = -((LONGLONG) us * 10);
-
-        if (SetWaitableTimer(timer, &due, 0, NULL, NULL, FALSE)) {
-            WaitForSingleObject(timer, INFINITE);
-            return;
-        }
-    }
-
-    Sleep((DWORD) (us / 1000));
-}
+#include "Sleep.h"
 
 inline
 uint64 system_time() NO_EXCEPT

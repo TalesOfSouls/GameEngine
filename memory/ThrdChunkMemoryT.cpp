@@ -182,8 +182,8 @@ template <typename T>
 FORCE_INLINE
 bool chunk_is_free(const ThrdChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 {
-    const uint32 free_index = element / (uint32) (sizeof(size_t) * 8);
-    const uint32 bit_index = element % (uint32) (sizeof(size_t) * 8);
+    const uint32 free_index = element >> div_pow2((uint32) (sizeof(size_t) * 8));
+    const uint32 bit_index = MODULO_2(element, (uint32) (sizeof(size_t) * 8));
 
     return !(buf->free[free_index].load(memory_order_relaxed) & (OMS_UINT_ONE << bit_index));
 }
@@ -330,8 +330,8 @@ template <typename T>
 FORCE_INLINE
 void chunk_free_element(ThrdChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 {
-    const uint32 free_index = element / (uint32) (sizeof(size_t) * 8);
-    const uint32 bit_index = element % (uint32) (sizeof(size_t) * 8);
+    const uint32 free_index = element >> div_pow2((uint32) (sizeof(size_t) * 8));
+    const uint32 bit_index = MODULO_2(element, (uint32) (sizeof(size_t) * 8));
 
     buf->completeness[free_index].fetch_and(~(OMS_UINT_ONE << bit_index), memory_order_acq_rel);
     buf->free[free_index].fetch_and(~(OMS_UINT_ONE << bit_index), memory_order_acq_rel);
@@ -370,8 +370,10 @@ template <typename T>
 FORCE_INLINE
 void chunk_mark_complete(ThrdChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 {
-    const uint32 free_index = element / (uint32) (sizeof(size_t) * 8);
-    const uint32 bit_index = element % (uint32) (sizeof(size_t) * 8);
+    ASSERT_TRUE(buf->capacity > (int32) element);
+
+    const uint32 free_index = element >> div_pow2((uint32) (sizeof(size_t) * 8));
+    const uint32 bit_index = MODULO_2(element, (uint32) (sizeof(size_t) * 8));
 
     buf->completeness[free_index].fetch_or(OMS_UINT_ONE << bit_index, memory_order_release);
 }
@@ -410,8 +412,8 @@ template <typename T>
 FORCE_INLINE
 void chunk_clear_complete(ThrdChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 {
-    const uint32 free_index = element / (uint32) (sizeof(size_t) * 8);
-    const uint32 bit_index = element % (uint32) (sizeof(size_t) * 8);
+    const uint32 free_index = element >> div_pow2((uint32) (sizeof(size_t) * 8));
+    const uint32 bit_index = MODULO_2(element, (uint32) (sizeof(size_t) * 8));
 
     buf->completeness[free_index].fetch_and(~(OMS_UINT_ONE << bit_index), memory_order_relaxed);
 }
@@ -420,8 +422,8 @@ template <typename T>
 FORCE_INLINE
 bool chunk_is_complete(const ThrdChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 {
-    const uint32 free_index = element / (uint32) (sizeof(size_t) * 8);
-    const uint32 bit_index = element % (uint32) (sizeof(size_t) * 8);
+    const uint32 free_index = element >> div_pow2((uint32) (sizeof(size_t) * 8));
+    const uint32 bit_index = MODULO_2(element, (uint32) (sizeof(size_t) * 8));
 
     return (buf->completeness[free_index].load(memory_order_acquire) & (OMS_UINT_ONE << bit_index)) != 0;
 }

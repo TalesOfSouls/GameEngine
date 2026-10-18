@@ -12,7 +12,7 @@
 #include "../compiler/CompilerUtils.h"
 
 // Counts the elements in an array IFF its size is defined at compile time
-#define ARRAY_COUNT(a) ((a) == NULL ? 0 : (sizeof(a) / sizeof((a)[0])))
+#define ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))
 
 // Gets the size of a struct member
 #define MEMBER_SIZEOF(type, member) (sizeof(((type *)0)->member))
@@ -30,10 +30,12 @@
     #define DEBUG_VAR_DEF(type, name) type name
     #define DEBUG_VAR_ASSIGN(name) name =
     #define DEBUG_VAR_DEF_ASSIGN(type, name) type name =
+    #define DEBUG_VAR_INIT(type, name, value) type name = (value)
 #else
-    #define DEBUG_VAR_DEF(type, name)
-    #define DEBUG_VAR_ASSIGN(name)
-    #define DEBUG_VAR_DEF_ASSIGN(type, name)
+    #define DEBUG_VAR_DEF(type, name) ((void) 0)
+    #define DEBUG_VAR_ASSIGN(name) ((void) 0)
+    #define DEBUG_VAR_DEF_ASSIGN(type, name) ((void) 0)
+    #define DEBUG_VAR_INIT(type, name, value) ((void) 0)
 #endif
 
 #define MEMORY_OFFSET(high, low) (size_t) ((uintptr_t) (high) - (uintptr_t) (low))
@@ -222,7 +224,7 @@ static inline To bitcast(From src)
 #define BITCAST(x, new_type) bitcast<new_type>(x)
 
 // Modulo function when b is a power of 2
-#define MODULO_2(a, b) ((a) & (b - 1))
+#define MODULO_2(a, b) ((a) & ((b) - 1))
 
 // Simple iterator implementation
 #define iterator_start(start, end, obj) {   \

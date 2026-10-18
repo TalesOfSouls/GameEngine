@@ -21,6 +21,8 @@
     // In some places it is not really feasible to use runtime cache line size
     // By using this macro we can at least define a semi sensible value,
     // which we can modify during compilation for different platforms
+    // WARNING: Depending on the CPU you may have to use 2x cache line size to avoid false sharing
+    //          Some CPUs read multiple lines
     #define ASSUMED_CACHE_LINE_SIZE 64
 #endif
 

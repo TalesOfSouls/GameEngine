@@ -86,7 +86,7 @@ Utf8String utf8_string_literal(const char (&str)[N]) NO_EXCEPT
         length += 1;
     }
 
-    return Utf8String{ length, length, (char*) str };
+    return Utf8String{ length, N - 1, (char*) str };
 }
 
 FORCE_INLINE CONSTEXPR

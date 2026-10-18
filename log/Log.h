@@ -64,16 +64,16 @@
     static inline HOT_CODE
     uint64 log_sys_time() NO_EXCEPT
     {
-        SYSTEMTIME sys_time;
         FILETIME file_time;
+        FILETIME local_time;
         ULARGE_INTEGER large_int;
 
-        GetLocalTime(&sys_time);
-        SystemTimeToFileTime(&sys_time, &file_time);
+        GetSystemTimeAsFileTime(&file_time);
+        FileTimeToLocalFileTime(&file_time, &local_time);
 
         // Convert FILETIME to a 64-bit integer
-        large_int.LowPart = file_time.dwLowDateTime;
-        large_int.HighPart = file_time.dwHighDateTime;
+        large_int.LowPart = local_time.dwLowDateTime;
+        large_int.HighPart = local_time.dwHighDateTime;
 
         return ((uint64) (large_int.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
     }

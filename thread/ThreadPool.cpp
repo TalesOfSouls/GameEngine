@@ -285,6 +285,8 @@ bool thread_pool_healthy(const ThreadPool* const pool, BufferMemory* const mem) 
     ASSERT_TRUE(!pool->is_detached);
 
     if (pool->thread_cnt.load() != pool->size) {
+        ASSERT_THROW();
+
         return false;
     }
 
@@ -375,6 +377,8 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
 {
     PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
     if (!temp_job) {
+        ASSERT_THROW();
+
         return NULL;
     }
 

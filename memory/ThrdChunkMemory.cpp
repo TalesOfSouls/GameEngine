@@ -286,9 +286,8 @@ int32 chunk_reserve_one(ThrdChunkMemory* const buf) NO_EXCEPT
 {
     const int32 bits_per_word = (int32) (sizeof(size_t) * 8);
     const int32 word_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity);
-    if (word_count <= 0) {
-        return -1;
-    }
+
+    ASSERT_TRUE(word_count > 0);
 
     const int32 hint = buf->last_pos.load(memory_order_relaxed);
     const int32 clamped_hint = hint < 0 ? 0 : hint;
@@ -367,6 +366,8 @@ int32 chunk_reserve(ThrdChunkMemory* const buf, uint32 elements = 1) NO_EXCEPT
     }
 
     if ((int32) elements > buf->capacity) {
+        ASSERT_THROW();
+
         return -1;
     }
 

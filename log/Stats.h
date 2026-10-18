@@ -5,6 +5,12 @@
 #include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
 
+#if _WIN32
+    #include "../platform/win32/threading/Atomic.h"
+#elif __linux__
+    #include "../platform/linux/threading/Atomic.h"
+#endif
+
 #ifndef DEBUG_COUNTER
     // Defining the standard counter stat types if not already defined by the user
     #define DEBUG_COUNTER 1
@@ -119,7 +125,6 @@ void stats_snapshot() NO_EXCEPT
         return;
     }
 
-    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
     atomic_increment_wrap_release(_stats_counter->pos, MAX_STATS_COUNTER_HISTORY);
 
     memset(
@@ -144,11 +149,10 @@ void stats_set(int32 id, int64 value = 1) NO_EXCEPT
         return;
     }
 
-    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
-    _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] = value;
+    atomic_set_relaxed(&_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id], value);
 
-    if (_stats_counter->session_active.load()) {
-        _stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE] = value;
+    if (_stats_counter->session_active.load(memory_order_relaxed)) {
+        atomic_set_relaxed(&_stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE + id], value);
     }
 }
 
@@ -167,11 +171,10 @@ void stats_increment(int32 id, int64 by = 1) NO_EXCEPT
         return;
     }
 
-    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
-    _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] += by;
+    atomic_add_relaxed(&_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id], by);
 
-    if (_stats_counter->session_active.load()) {
-        _stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE] += by;
+    if (_stats_counter->session_active.load(memory_order_relaxed)) {
+        atomic_add_relaxed(&_stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE + id], by);
     }
 }
 
@@ -190,11 +193,10 @@ void stats_decrement(int32 id, int64 by = 1) NO_EXCEPT
         return;
     }
 
-    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
-    _stats_counter->stats[_stats_counter->pos.load() * DEBUG_COUNTER_SIZE + id] -= by;
+    atomic_sub_relaxed(&_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id], by);
 
-    if (_stats_counter->session_active.load()) {
-        _stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE] -= by;
+    if (_stats_counter->session_active.load(memory_order_relaxed)) {
+        atomic_sub_relaxed(&_stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE + id], by);
     }
 }
 
@@ -305,9 +307,16 @@ void stats_max(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
-    const int32 pos = _stats_counter->pos.load() * DEBUG_COUNTER_SIZE;
-    _stats_counter->stats[pos + id] = OMS_MAX(_stats_counter->stats[pos + id], value);
+    int64* const stat = &_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id];
+    int64 old = atomic_get_relaxed(stat);
+    while (value > old) {
+        const int64 prev = atomic_compare_exchange_strong_relaxed(stat, old, value);
+        if (prev == old) {
+            break;
+        }
+
+        old = prev;
+    }
 }
 
 /**
@@ -325,9 +334,16 @@ void stats_min(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    StandaloneSpinlockGuard _guard(&_stats_counter->lock);
-    const int32 pos = _stats_counter->pos.load() * DEBUG_COUNTER_SIZE;
-    _stats_counter->stats[pos + id] = OMS_MIN(_stats_counter->stats[pos + id], value);
+    int64* const stat = &_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id];
+    int64 old = atomic_get_relaxed(stat);
+    while (value < old) {
+        const int64 prev = atomic_compare_exchange_strong_relaxed(stat, old, value);
+        if (prev == old) {
+            break;
+        }
+
+        old = prev;
+    }
 }
 
 /**

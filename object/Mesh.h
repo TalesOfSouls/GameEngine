@@ -12,6 +12,14 @@
 
 #define MESH_VERSION 1
 
+union MeshRender {
+    OpenGLMeshData opengl_mesh;
+    VulkanMeshData vulkan_mesh;
+    D3D12MeshData d12_mesh;
+    MetalMeshData metal_mesh;
+    SoftwareMeshData soft_mesh;
+};
+
 // @todo how to handle different objects and groups?
 //      maybe make a mesh hold other meshes?
 // @todo handle vertices arrays where for example no texture coordinates are defined/used

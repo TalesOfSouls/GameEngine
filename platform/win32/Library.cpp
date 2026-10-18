@@ -11,6 +11,7 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
+#include "../../utils/TimeUtils.h"
 #include "../../system/Library.h"
 #include "../../system/FileUtils.cpp"
 
@@ -82,12 +83,12 @@ bool library_load(Library* const lib) NO_EXCEPT
     if (GetModuleHandleW((LPCWSTR) dst.str)) {
         while (GetModuleHandleW((LPCWSTR) dst.str) && lib->handle) {
             FreeLibrary(lib->handle);
-            Sleep(100);
+            thread_usleep(100 * MILLI_MICRO);
         }
 
         int32 i = -1;
         while (GetModuleHandleW((LPCWSTR) dst.str) && ++i < 10) {
-            Sleep(100);
+            thread_usleep(100 * MILLI_MICRO);
         }
     }
 

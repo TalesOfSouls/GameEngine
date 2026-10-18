@@ -13,12 +13,18 @@
 
 struct RenderSettings {
     uint32 fps_limit;
-    uint32 debug_visibility_flags;
     uint32 ui_visibility_flags;
     AntiAliasingType anti_aliasing;
     int8 anti_aliasing_detail;
     byte color_deficiency;
     byte atlas_caching;
+
+    // Swap interval (0 = off, 1 = on, -1 = adaptive if supported)
+    int8 vsync;
+
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
+        uint32 debug_visibility_flags;
+    #endif
 };
 
 struct RenderFrameUi {
@@ -49,8 +55,8 @@ struct RenderFrame {
     uint16 settings_version;
     uint16 camera_version;
     uint16 ui_version;
-    Camera camera;
     RenderSettings settings;
+    Camera camera;
     RenderFrameUi ui;
 
     byte data[3904];

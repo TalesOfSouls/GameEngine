@@ -111,8 +111,7 @@ struct UILayout {
     //          This would mean that we store it effectively twice (binary format in element_buffer and here text format)
     byte* data;
 
-    // Used for the vao, vbo, ...
-    // @todo It's stupid that we use Asset for this, fix
+    // Used for the string representation
     Asset* ui_asset;
 
     // Every element in this array is an offset to a changed element
@@ -131,10 +130,11 @@ struct UILayout {
     // When rendering we iterate over these root elements
     // and internally then over all children of these root elements
     // The order of elements in this array also define the rendering order
+    // @question Do I even need this or is ui_root enough?
     ArrayVector<int32> ui_element_root;
 
     // This is where we actually store the elements
-    // It has to be an arbitrary buffer since the element size is not uniform
+    // It has to use an arbitrary buffer size per element since the element size is not uniform
     BufferMemory ui_element_buffer;
 
     // Stores all of the vertex data (even for different states e.g. hover, ...)

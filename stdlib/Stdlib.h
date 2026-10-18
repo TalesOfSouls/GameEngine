@@ -62,6 +62,14 @@
  *      LINKING
  *          COMS_IMPLICIT_LINKING (default = 0, 1 = switches to implicit linking build)
  *              Careful we still implicitly link some VERY basic libs even with 0
+ *
+ * Custom comment tag overview
+ *      @todo           Something to change
+ *      @bug            A bug
+ *      @performance    Possible performance issue / improvement
+ *      @question       Something to check / re-evaluate
+ *      @security       A security issue
+ *      @legacy         Implementation for legacy systems
  */
 #include "Defines.h"
 #include "Types.h"

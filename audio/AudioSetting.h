@@ -26,7 +26,7 @@ struct AudioSetting {
     uint16 sample_index;
 
     SoundApiType type;
-    byte latency;
+    uint16 latency;
 
     // bytes per bloc
     // channel count * bit
