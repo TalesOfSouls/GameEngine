@@ -83,14 +83,6 @@ void ui_vertices_cache(
         );
 
         *zindex = camera_step_closer(gpu_api_type, *zindex);
-
-        if (window_title->core.change_type & UI_ELEMENT_CHANGE_CHROMA_CODE) {
-            ui_chroma_codes_update(
-                (int32) MEMORY_OFFSET(&window_title->core, layout->ui_element_buffer.memory),
-                &window_title->core,
-                &layout->chroma_codes
-            );
-        }
     }
 
     // Border
@@ -139,14 +131,6 @@ void ui_vertices_cache(
         );
 
         zindex = camera_step_closer(gpu_api_type, zindex);
-
-        if (window->core.change_type & UI_ELEMENT_CHANGE_CHROMA_CODE) {
-            ui_chroma_codes_update(
-                (int32) MEMORY_OFFSET(&window->core, layout->ui_element_buffer.memory),
-                &window->core,
-                &layout->chroma_codes
-            );
-        }
     }
 
     // @todo make border part of panel

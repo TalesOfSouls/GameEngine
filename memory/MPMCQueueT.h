@@ -19,17 +19,18 @@ struct MPMCQueueT {
     int mask;
 
     // The sequence number helps us to handle multiple producers/consumers and flag
-    // when a slot is empty/used
-    // Empty state: sequence[i] = i + (k * N)     where k is even (0, 2, 4, ...)
-    // Full state:  sequence[i] = i + (k * N)     where k is odd (1, 3, 5, ...)
-    alignas(ASSUMED_CACHE_LINE_SIZE) atomic<size_t>* sequence;
+    // when a slot is empty/used. For the position pos that maps to slot i:
+    //      sequence[i] == pos       slot is empty, a producer may claim it
+    //      sequence[i] == pos + 1   slot is full, a consumer may claim it
+    // Dequeueing sets it to pos + capacity (= empty for the next lap)
+    atomic<size_t>* sequence;
 
     // Contended across all producer threads
     alignas(ASSUMED_CACHE_LINE_SIZE) atomic<size_t> head;
 
     // Contended across all consumer threads
     alignas(ASSUMED_CACHE_LINE_SIZE) atomic<size_t> tail;
-    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(atomic<size>)];
+    char _pad[ASSUMED_CACHE_LINE_SIZE - sizeof(atomic<size_t>)];
 };
 
 #endif

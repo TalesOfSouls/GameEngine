@@ -24,13 +24,7 @@ enum PoolWorkerState : int8 {
  * Worker for the thread pool
  */
 struct PoolWorker {
-    atomic<uint32> id;
-
-    atomic<PoolWorkerState> state;
-
-    // After running the task it is automatically removed from the thread queue memory
-    // If this is false the user MUST do this manually by calling the _release() function
-    bool automatic_release;
+    uint64 id;
 
     // This is up here instead of down where void* mem is defined to reduce the alignment overhead
     uint32 mem_size;
@@ -46,8 +40,12 @@ struct PoolWorker {
     // Callback for when the job completes
     ThreadPoolJobFunc callback;
 
-    // External state to be updated.
-    // This is helpful for jobs that get removed after completion so we can know that it got completed
+    // Completion target for the callback (e.g. a result queue or a simple int array etc.)
+    // @optional
+    void* sink;
+
+    // External state to be updated
+    // @optional
     atomic<PoolWorkerState>* state_external;
 
     // Pointer to memory to be used by the thread worker

@@ -8,7 +8,7 @@
 #include "UIElementType.h"
 
 enum UIElementFlag : byte {
-    UI_ELEMENT_FLAG_HITBOX = 1 << 0, // Used to to create the chroma code (e.g. can be clicked to change focus)
+    UI_ELEMENT_FLAG_HITBOX = 1 << 0, // e.g. can be clicked to change focus
     UI_ELEMENT_FLAG_INTERACTABLE = 1 << 1, // Used for interaction (e.g. drop down, button, ...)
     UI_ELEMENT_FLAG_MOVABLE = 1 << 2, // Used for draggable areas (e.g. window title)
     UI_ELEMENT_FLAG_RESIZABLE = 1 << 3, // Used for resizable elements (e.g. window border)
@@ -40,12 +40,6 @@ enum UIElementChangeType : byte {
     // This is the most complex change since it also results in different vertex counts
     // We now have to change the entire vertex cache/index cache after this element as well
     UI_ELEMENT_CHANGE_CONTENT = 1 << 4,
-
-    // We use this to check if the chroma code needs to get recreated
-    UI_ELEMENT_CHANGE_CHROMA_CODE = UI_ELEMENT_CHANGE_DIM_LARGER
-        | UI_ELEMENT_CHANGE_DIM_OTHER
-        | UI_ELEMENT_CHANGE_POS
-        | UI_ELEMENT_CHANGE_ORDER,
 };
 
 struct UICore {

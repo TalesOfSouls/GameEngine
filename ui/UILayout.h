@@ -82,12 +82,6 @@ struct UIElementChange {
 
 // Modified for every scene
 struct UILayout {
-    // We use a simple RGBA image to detect what kind of UI component the mouse his currently hovering
-    // every UI component has an ID that is translated into RGBA values
-    // The color code 0 represents no element
-    // the code itself also represents the offset position into ui_offset_buffer making a lookup extremely fast
-    UIChromaCodes chroma_codes;
-
     // @question It feels weird that this is here, especially considering we could have multiple fonts
     // Maybe we should have an array of fonts (e.g. allow up to 3 fonts per theme?)
     FontSystem* font;

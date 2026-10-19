@@ -8,15 +8,61 @@
 #define COMS_THREADS_THREAD_POOL_C
 
 #include "ThreadPool.h"
-#include "../memory/MPMCWorkTrackingQueueT.cpp"
+#include "../memory/MPMCQueueT.cpp"
 
 // Notifies the thread pool that a worker is about to become idle
 static FORCE_INLINE
 void thread_pool_notify_one(ThreadPool* const pool) NO_EXCEPT
 {
-    if (pool->sleeping_cnt.load() > 0) {
+    atomic_thread_fence(memory_order_seq_cst);
+    if (pool->sleeping_cnt.load(memory_order_relaxed) > 0) {
         coms_sem_post(&pool->work_sem);
     }
+}
+
+// Runs a single job on the calling thread
+// job points to a local copy, the queue slot is already released
+static inline
+void thread_pool_execute(ThreadPool* const pool, PoolWorker* const job) NO_EXCEPT
+{
+    ++pool->working_cnt;
+
+    if (job->state_external) {
+        job->state_external->store(POOL_WORKER_STATE_RUNNING, memory_order_relaxed);
+    }
+
+    LOG_3("[INFO] ThreadPool worker started");
+    {
+        PROFILE_DEBUG(PROFILE_THREADPOOL_WORK, (char *) NULL, PROFILE_FLAG_ADD_HISTORY);
+        STATS_INCREMENT_DEBUG(DEBUG_COUNTER_THREAD_ACTIVE);
+        if (job->mem_size && !job->mem) {
+            // We try to allocate the requested memory until we can get it
+            ASSERT_TRUE(job->mem_size < pool->thrd_mem.size);
+            do {
+                THRD_CHUNK_STACK_MEMORY(&pool->thrd_mem, (byte **) &job->mem, job->mem_size);
+                if (job->mem) {
+                    job->func(job);
+                } else {
+                    YieldProcessor();
+                }
+            } while (!job->mem);
+        } else {
+            job->func(job);
+        }
+        STATS_DECREMENT_DEBUG(DEBUG_COUNTER_THREAD_ACTIVE);
+    }
+    LOG_3("[INFO] ThreadPool worker ended");
+
+    if (job->state_external) {
+        job->state_external->store(POOL_WORKER_STATE_COMPLETED, memory_order_release);
+    }
+
+    // Must be the last access to anything the job references
+    if (job->callback) {
+        job->callback(job);
+    }
+
+    --pool->working_cnt;
 }
 
 static inline
@@ -25,8 +71,6 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     THREAD_CURRENT_ID(_thread_local_id);
     THREAD_CPU_ID(_thread_cpu_id);
     ThreadPool* const pool = (ThreadPool *) arg;
-
-    ++pool->thread_cnt;
 
     if (pool->debug_container) {
         _dmc = pool->debug_container->dmc;
@@ -44,108 +88,142 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     // Setting up thread local rng state
     rand_setup();
 
-    PoolWorker* work;
+    PoolWorker job;
 
     while (true) {
         THREAD_TICK(_thread_local_id);
 
-        work = queue_dequeue_keep(&pool->work_queue);
-        if (!work) {
-            if (pool->state.load() == THREAD_POOL_STATE_CANCELING) {
-                --pool->sleeping_cnt;
-                break;
-            }
+        // Fast path = work available, no sleeping involved
+        if (queue_dequeue(&pool->work_queue, &job)) {
+            thread_pool_execute(pool, &job);
+            continue;
+        }
 
-            // We mark this worker as asleep
-            ++pool->sleeping_cnt;
+        if (pool->state.load() == THREAD_POOL_STATE_CANCELING) {
+            break;
+        }
 
-            // This avoids missing an enqueue
-            work = queue_dequeue_keep(&pool->work_queue);
-            if (work) {
-                coms_sem_trywait(&pool->work_sem);
-            } else {
-                if (pool->state.load() == THREAD_POOL_STATE_CANCELING) {
-                    --pool->sleeping_cnt;
-                    break;
-                }
+        // We mark this worker as asleep
+        ++pool->sleeping_cnt;
+        atomic_thread_fence(memory_order_seq_cst);
 
-                LOG_1("Worker %d: about to wait", {DATA_TYPE_INT32, &_thread_local_id});
-                const int32 ret = coms_sem_wait(&pool->work_sem);
-                LOG_1("Worker %d: woke up", {DATA_TYPE_INT32, &_thread_local_id});
-                LOG_1("Worker %d: ret", {DATA_TYPE_INT32, &ret});
-            }
-
+        // Re-check after announcing ourselves = this avoids missing an enqueue
+        if (queue_dequeue(&pool->work_queue, &job)) {
             --pool->sleeping_cnt;
-            if (!work) {
-                continue;
-            }
+            thread_pool_execute(pool, &job);
+
+            continue;
         }
 
-        ++pool->working_cnt;
-        work->state.store(POOL_WORKER_STATE_RUNNING);
-        if (work->state_external) {
-            work->state_external->store(POOL_WORKER_STATE_RUNNING);
+        if (pool->state.load() == THREAD_POOL_STATE_CANCELING) {
+            --pool->sleeping_cnt;
+            break;
         }
 
-        LOG_3("[INFO] ThreadPool worker started");
-        {
-            PROFILE_DEBUG(PROFILE_THREADPOOL_WORK, (char *) NULL, PROFILE_FLAG_ADD_HISTORY);
-            STATS_INCREMENT_DEBUG(DEBUG_COUNTER_THREAD_ACTIVE);
-            if (work->mem_size && !work->mem) {
-                // We try to allocate the requested memory until we can get it
-                ASSERT_TRUE(work->mem_size < pool->thrd_mem.size);
-                do {
-                    THRD_CHUNK_STACK_MEMORY(&pool->thrd_mem, (byte **) &work->mem, work->mem_size);
-                    if (work->mem) {
-                        work->func(work);
-                    }
-                } while (!work->mem);
-            } else {
-                work->func(work);
-            }
-            STATS_DECREMENT_DEBUG(DEBUG_COUNTER_THREAD_ACTIVE);
-        }
-        LOG_3("[INFO] ThreadPool worker ended");
+        LOG_4("Worker %d: about to wait", {DATA_TYPE_INT32, &_thread_local_id});
+        coms_sem_wait(&pool->work_sem);
+        LOG_4("Worker %d: woke up", {DATA_TYPE_INT32, &_thread_local_id});
 
-        if (work->callback) {
-            work->callback(work);
-        }
-
-        work->state.store(POOL_WORKER_STATE_COMPLETED);
-        if (work->state_external) {
-            work->state_external->store(POOL_WORKER_STATE_COMPLETED);
-        }
-        if (work->automatic_release) {
-            queue_dequeue_release(&pool->work_queue, work);
-        }
-
-        --pool->working_cnt;
+        --pool->sleeping_cnt;
     }
-
-    // We tell the thread pool that this worker thread is shutting down
-    --pool->thread_cnt;
 
     LOG_2("[INFO] Thread pool worker shutting down");
     STATS_DECREMENT_DEBUG(DEBUG_COUNTER_THREAD);
+
+    // We tell the thread pool that this worker thread is shutting down
+    --pool->thread_cnt;
 
     return (THREAD_RETURN_BODY) NULL;
 }
 
 static FORCE_INLINE CONSTEXPR
+int32 thread_pool_next_pow2(int32 v) NO_EXCEPT
+{
+    --v;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+
+    return v + 1;
+}
+
+// The job slots are cache line aligned (PoolWorker is one cache line) to avoid false sharing
+static FORCE_INLINE CONSTEXPR
+int32 thread_pool_alignment(int32 alignment) NO_EXCEPT
+{
+    return alignment < ASSUMED_CACHE_LINE_SIZE ? ASSUMED_CACHE_LINE_SIZE : alignment;
+}
+
+static FORCE_INLINE CONSTEXPR
 size_t thread_pool_size(
     int32 thread_count,
-    int32 worker_capacity
+    int32 worker_capacity,
+    int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
-    return queue_size(sizeof(PoolWorker), worker_capacity)
-        + sizeof(coms_pthread_t) * thread_count
-        + alignof(coms_pthread_t);
+    return (size_t) thread_pool_alignment(alignment) // queue_init() aligns the slots up
+        + sizeof(PoolWorker) * thread_pool_next_pow2(worker_capacity)
+        + ASSUMED_CACHE_LINE_SIZE // queue_init() aligns the sequence array up
+        + sizeof(atomic<size_t>) * thread_pool_next_pow2(worker_capacity)
+        + alignof(coms_pthread_t)
+        + sizeof(coms_pthread_t) * thread_count;
+}
+
+static
+void thread_pool_setup(
+    ThreadPool* const pool,
+    byte* const buf,
+    int32 thread_count,
+    int32 worker_capacity,
+    int32 alignment
+) NO_EXCEPT
+{
+    queue_init(&pool->work_queue, buf, worker_capacity, (uint32) alignment);
+
+    pool->thread_handles = NULL;
+    if (!pool->is_detached) {
+        pool->thread_handles = (coms_pthread_t *) ALIGN_UP(
+            (uintptr_t) (pool->work_queue.sequence + worker_capacity),
+            alignof(coms_pthread_t)
+        );
+
+        memset(pool->thread_handles, 0, sizeof(coms_pthread_t) * thread_count);
+    }
+
+    pool->working_cnt.store(0);
+    pool->thread_cnt.store(0);
+    pool->sleeping_cnt.store(0);
+    coms_sem_init(&pool->work_sem, 0);
+
+    pool->state.store(THREAD_POOL_STATE_RUNNING);
+
+    coms_pthread_t thread;
+    for (pool->size = 0; pool->size < thread_count; ++pool->size) {
+        ++pool->thread_cnt;
+        coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        THREAD_LOG_NAME(thread.id, "pool");
+
+        if (pool->is_detached) {
+            coms_pthread_detach(thread);
+        } else {
+            pool->thread_handles[pool->size] = thread;
+        }
+    }
+
+    LOG_2(
+        "[INFO] %d threads running",
+        {DATA_TYPE_INT64, (void *) &_stats_counter->stats[
+            _stats_counter->pos * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD
+        ]}
+    );
 }
 
 void thread_pool_alloc(
     ThreadPool* const pool,
     int32 thread_count,
-    int worker_capacity,
+    int32 worker_capacity,
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
@@ -156,57 +234,22 @@ void thread_pool_alloc(
         {DATA_TYPE_INT32, &worker_capacity}
     );
 
-    worker_capacity = queue_next_pow2(worker_capacity);
+    worker_capacity = thread_pool_next_pow2(worker_capacity);
+    alignment = thread_pool_alignment(alignment);
 
-    const size_t q_size = queue_size(sizeof(PoolWorker), worker_capacity);
-    byte* buf = (byte *) platform_alloc_aligned(
-        q_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t),
-        q_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t),
-        alignment
-    );
-    queue_init(&pool->work_queue, buf, worker_capacity, alignment);
-    DEBUG_MEMORY_INIT((uintptr_t) buf, q_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t));
+    const size_t size = thread_pool_size(thread_count, worker_capacity, alignment);
+    byte* const buf = (byte *) platform_alloc_aligned(size, size, alignment);
+    DEBUG_MEMORY_INIT((uintptr_t) buf, size);
     DEBUG_MEMORY_NAME("ThreadPool", buf);
 
-    if (!pool->is_detached) {
-        pool->thread_handles = (coms_pthread_t *) ALIGN_UP(
-            (uintptr_t) (buf + q_size),
-            alignof(coms_pthread_t)
-        );
-
-        memset(pool->thread_handles, 0, sizeof(coms_pthread_t) * thread_count);
-    }
-
-    coms_sem_init(&pool->work_sem, 0);
-    pool->sleeping_cnt.store(0);
-
-    coms_pthread_t thread;
-    for (pool->size = 0; pool->size < thread_count; ++pool->size) {
-        coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
-        THREAD_LOG_NAME(thread.id, "pool");
-
-        if (pool->is_detached) {
-            coms_pthread_detach(thread);
-        } else {
-            pool->thread_handles[pool->size] = thread;
-        }
-    }
-
-    pool->state.store(THREAD_POOL_STATE_RUNNING);
-
-    LOG_2(
-        "[INFO] %d threads running",
-        {DATA_TYPE_INT64, (void *) &_stats_counter->stats[
-            _stats_counter->pos * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD
-        ]}
-    );
+    thread_pool_setup(pool, buf, thread_count, worker_capacity, alignment);
 }
 
 void thread_pool_init(
     ThreadPool* const pool,
     BufferMemory* const buf,
     int32 thread_count,
-    int worker_capacity,
+    int32 worker_capacity,
     int32 alignment = sizeof(size_t)
 ) NO_EXCEPT
 {
@@ -217,58 +260,34 @@ void thread_pool_init(
         {DATA_TYPE_INT32, &worker_capacity}
     );
 
-    worker_capacity = queue_next_pow2(worker_capacity);
+    worker_capacity = thread_pool_next_pow2(worker_capacity);
+    alignment = thread_pool_alignment(alignment);
 
-    const size_t q_size = queue_size(sizeof(PoolWorker), worker_capacity);
-    byte* buffer = (byte *) memory_get(buf,
-        q_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t),
-        alignment
-    );
-    queue_init(&pool->work_queue, buffer, worker_capacity, alignment);
-    DEBUG_MEMORY_SUBREGION(
-        (uintptr_t) buffer,
-        q_size + sizeof(coms_pthread_t) * thread_count + alignof(coms_pthread_t)
-    );
+    const size_t size = thread_pool_size(thread_count, worker_capacity, alignment);
+    byte* const buffer = (byte *) memory_get(buf, size, alignment);
+    DEBUG_MEMORY_SUBREGION((uintptr_t) buffer, size);
 
-    if (!pool->is_detached) {
-        pool->thread_handles = (coms_pthread_t *) ALIGN_UP(
-            (uintptr_t) (buffer + q_size),
-            alignof(coms_pthread_t)
-        );
-
-        memset(pool->thread_handles, 0, sizeof(coms_pthread_t) * thread_count);
-    }
-
-    coms_sem_init(&pool->work_sem, 0);
-    pool->sleeping_cnt.store(0);
-
-    coms_pthread_t thread;
-    for (pool->size = 0; pool->size < thread_count; ++pool->size) {
-        coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
-        THREAD_LOG_NAME(thread.id, "pool");
-
-        if (pool->is_detached) {
-            coms_pthread_detach(thread);
-        } else {
-            pool->thread_handles[pool->size] = thread;
-        }
-    }
-
-    pool->state.store(THREAD_POOL_STATE_RUNNING);
-
-    LOG_2(
-        "[INFO] %d threads running",
-        {DATA_TYPE_INT64, (void *) &_stats_counter->stats[
-            _stats_counter->pos * DEBUG_COUNTER_SIZE + DEBUG_COUNTER_THREAD
-        ]}
-    );
+    thread_pool_setup(pool, buffer, thread_count, worker_capacity, alignment);
 }
 
+// Finishes all queued jobs, then shuts down the workers
 void thread_pool_destroy(ThreadPool* const pool) NO_EXCEPT
 {
     pool->state.store(THREAD_POOL_STATE_CANCELING);
-    for (int i = 0; i < pool->size; ++i) {
-        coms_pthread_join(pool->thread_handles[i], NULL);
+
+    // Wake every potential sleeper.
+    for (int32 i = 0; i < pool->size; ++i) {
+        coms_sem_post(&pool->work_sem);
+    }
+
+    if (pool->is_detached) {
+        while (pool->thread_cnt.load() > 0) {
+            YieldProcessor();
+        }
+    } else {
+        for (int32 i = 0; i < pool->size; ++i) {
+            coms_pthread_join(pool->thread_handles[i], NULL);
+        }
     }
 
     pool->state.store(THREAD_POOL_STATE_COMPLETED);
@@ -300,225 +319,168 @@ void thread_pool_fix(ThreadPool* const pool) NO_EXCEPT
     // We cannot fix a thread pool that uses detached threads
     ASSERT_TRUE(!pool->is_detached);
 
-    for (int i = 0; i < pool->size; ++i) {
+    for (int32 i = 0; i < pool->size; ++i) {
         if (!coms_pthread_running(pool->thread_handles[i])) {
+            ++pool->thread_cnt;
             coms_pthread_create(&pool->thread_handles[i], NULL, thread_pool_worker, pool);
             THREAD_LOG_NAME(pool->thread_handles[i].id, "pool");
         }
     }
 }
 
-PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker* job) NO_EXCEPT
-{
-    PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
-    if (!temp_job) {
-        ASSERT_THROW();
-
-        return NULL;
-    }
-
-    if (job->state_external) {
-        job->state_external->store(POOL_WORKER_STATE_WAITING);
-    }
-
-    memcpy(temp_job, job, sizeof(PoolWorker));
-    temp_job->state.store(POOL_WORKER_STATE_WAITING);
-
-    // +1 because otherwise the very first job would be id = 0 which is not a valid id
-    uint32 id = ++pool->id_counter;
-    if (!pool->id_counter.load()) UNLIKELY {
-        // ID of 0 is not allowed
-        id = ++pool->id_counter;
-    }
-
-    temp_job->id.store(id);
-
-    queue_enqueue_end(temp_job);
-    thread_pool_notify_one(pool);
-
-    return temp_job;
-}
-
-PoolWorker* thread_pool_add_work(ThreadPool* const pool, const PoolWorker& job) NO_EXCEPT
-{
-    PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
-    if (!temp_job) {
-        ASSERT_THROW();
-
-        return NULL;
-    }
-
-    if (job.state_external) {
-        job.state_external->store(POOL_WORKER_STATE_WAITING);
-    }
-
-    memcpy(temp_job, &job, sizeof(PoolWorker));
-    temp_job->state.store(POOL_WORKER_STATE_WAITING);
-
-    // +1 because otherwise the very first job would be id = 0 which is not a valid id
-    uint32 id = ++pool->id_counter;
-    if (!pool->id_counter.load()) UNLIKELY {
-        // ID of 0 is not allowed
-        id = ++pool->id_counter;
-    }
-
-    temp_job->id.store(id);
-
-    queue_enqueue_end(temp_job);
-    thread_pool_notify_one(pool);
-
-    return temp_job;
-}
-
-// This is basically the same as thread_pool_add_work but allows us to directly write into the memory in the caller
-// This makes it faster, since we can avoid a memcpy
+// Zero-copy enqueue: claim a slot, fill it in place, then publish it with thread_pool_add_work_end()
+// The slot is zeroed and job->id is already assigned
+// Returns NULL if the queue is full
+// WARNING: Keep the time between start and end short.
+//      Consumers can't see this slot, or any slot claimed after it, until it is published
 inline
 PoolWorker* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
 {
-    PoolWorker* const temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
-    if (!temp_job) {
-        ASSERT_THROW();
-
+    PoolWorker* const slot = queue_enqueue_start(&pool->work_queue);
+    if (!slot) {
         return NULL;
     }
 
-    memset(temp_job, 0, sizeof(PoolWorker));
-    temp_job->state.store(POOL_WORKER_STATE_WAITING);
+    memset(slot, 0, sizeof(PoolWorker));
+    slot->id = (uint64) queue_enqueue_position(&pool->work_queue, slot) + 1;
 
-    // +1 because otherwise the very first job would be id = 0 which is not a valid id
-    uint32 id = ++pool->id_counter;
-    if (!pool->id_counter) UNLIKELY {
-        // ID of 0 is not allowed
-        id = ++pool->id_counter;
-    }
-
-    temp_job->id.store(id);
-
-    return temp_job;
+    return slot;
 }
 
+// Like thread_pool_add_work_start() but waits until a slot is free
+inline
+PoolWorker* thread_pool_add_work_start_wait(ThreadPool* const pool) NO_EXCEPT
+{
+    PoolWorker* const slot = queue_enqueue_start_wait(&pool->work_queue);
+
+    memset(slot, 0, sizeof(PoolWorker));
+    slot->id = (uint64) queue_enqueue_position(&pool->work_queue, slot) + 1;
+
+    return slot;
+}
+
+// WARNING: job must not be accessed after this call, it may already be consumed and reused
 inline
 void thread_pool_add_work_end(ThreadPool* const pool, PoolWorker* const job) NO_EXCEPT
 {
     if (job->state_external) {
-        job->state_external->store(POOL_WORKER_STATE_WAITING);
+        job->state_external->store(POOL_WORKER_STATE_WAITING, memory_order_relaxed);
     }
 
-    queue_enqueue_end(job);
+    queue_enqueue_end(&pool->work_queue, job);
     thread_pool_notify_one(pool);
 }
 
-static FORCE_INLINE
-void thread_pool_work_release(ThreadPool* const pool, const PoolWorker* job) NO_EXCEPT
+// Returns the job id or 0 if the queue is full
+static inline
+uint64 thread_pool_add_work(ThreadPool* const pool, const PoolWorker* const job) NO_EXCEPT
 {
-    queue_dequeue_release(&pool->work_queue, job);
+    PoolWorker* const slot = queue_enqueue_start(&pool->work_queue);
+    if (!slot) {
+        return 0;
+    }
+
+    *slot = *job;
+    slot->id = (uint64) queue_enqueue_position(&pool->work_queue, slot) + 1;
+
+    // Must be read before publishing, afterwards the slot may already be reused
+    const uint64 id = slot->id;
+    thread_pool_add_work_end(pool, slot);
+
+    return id;
 }
 
-// This joins the work not the actual threads in the thread pool
-// We are not marking jobs const since it may change during the joining process (e.g. the state)
-// Returns the mask of the completed tasks or 0xFFFFFFFFFFFFFFFF for all completed
 inline
-uint64 thread_pool_join(
-    ThreadPool* const pool,
-    const PoolWorker* const jobs,
-    int32 count,
+uint64 thread_pool_add_work(ThreadPool* const pool, const PoolWorker& job) NO_EXCEPT
+{
+    return thread_pool_add_work(pool, &job);
+}
+
+// Like thread_pool_add_work() but waits until a slot is free, always succeeds
+static inline
+uint64 thread_pool_add_work_wait(ThreadPool* const pool, const PoolWorker* const job) NO_EXCEPT
+{
+    PoolWorker* const slot = queue_enqueue_start_wait(&pool->work_queue);
+
+    *slot = *job;
+    slot->id = (uint64) queue_enqueue_position(&pool->work_queue, slot) + 1;
+
+    const uint64 id = slot->id;
+    thread_pool_add_work_end(pool, slot);
+
+    return id;
+}
+
+inline
+uint64 thread_pool_add_work_wait(ThreadPool* const pool, const PoolWorker& job) NO_EXCEPT
+{
+    return thread_pool_add_work_wait(pool, &job);
+}
+
+// sink = atomic<int32>*, the caller initializes it to the number of jobs and waits for 0
+// Use with thread_pool_wait()
+inline
+void thread_pool_complete_counter(void* arg) NO_EXCEPT
+{
+    const PoolWorker* const job = (const PoolWorker *) arg;
+    ((atomic<int32> *) job->sink)->fetch_sub(1, memory_order_release);
+}
+
+// sink = MPMCQueueT<PoolWorker>*, pushes a copy of the completed job (blocks while full)
+// Result data should be referenced through job->arg, not job->mem (already released)
+// For an MPSC result queue write the same 2 lines with your MPSC enqueue
+inline
+void thread_pool_complete_queue(void* arg) NO_EXCEPT
+{
+    const PoolWorker* const job = (const PoolWorker *) arg;
+    queue_enqueue_wait((MPMCQueueT<PoolWorker> *) job->sink, job);
+}
+
+/**
+ * Waits until counter reaches 0 (see thread_pool_complete_counter)
+ *
+ * help_pool: If not NULL, the waiting thread executes queued jobs of that pool while waiting.
+ *      This is required if you wait from inside a job (otherwise all workers may end up
+ *      waiting on each other), and it generally reduces latency.
+ *      WARNING: The jobs then run on the caller thread (its thread locals, rng state, ...)
+ *      WARNING: A helped job may itself wait and help, so nested waits nest on the stack
+ *          (depth is bounded by the number of waiting jobs in the queue)
+ * sleep_time: 0 = spin with YieldProcessor(), otherwise usleep(sleep_time) between checks
+ * max_sleep: 0 = wait forever, otherwise give up after sleeping that long (needs sleep_time > 0)
+ *
+ * Returns true if the counter reached 0
+ */
+inline
+bool thread_pool_wait(
+    const atomic<int32>* const counter,
+    ThreadPool* const help_pool = NULL,
     uint64 sleep_time = 0,
     uint64 max_sleep = 0
 ) NO_EXCEPT
 {
-    ASSERT_TRUE(count <= 64);
+    uint64 slept = 0;
+    PoolWorker job;
 
-    uint64 completed_mask = 0;
-    const uint64 all_done_mask = (count == 64 ? UINT64_MAX : ((1ULL << count) - 1));
-
-    uint64 current_sleep = 0;
-
-    // Loop until all jobs have been marked completed
-    // We use a bitmask to avoid re-checking already validated jobs
-    // If we wouldn't do that we may risk that a job got re-used for a new job giving a false negative.
-    while (completed_mask != all_done_mask && max_sleep > current_sleep) {
-        for (int32 i = 0; i < count; ++i) {
-            const uint64 bit = 1ULL << i;
-
-            if (completed_mask & bit) {
-                continue;
-            }
-
-            if (!jobs[i].id
-                || jobs[i].state.load() == POOL_WORKER_STATE_COMPLETED
-            ) {
-                completed_mask |= bit;
-
-                // If we don't automatically release we have to do it now
-                if (!jobs[i].automatic_release) {
-                    thread_pool_work_release(pool, &jobs[i]);
-                }
-            }
+    while (counter->load(memory_order_acquire) > 0) {
+        if (help_pool && queue_dequeue(&help_pool->work_queue, &job)) {
+            thread_pool_execute(help_pool, &job);
+            continue;
         }
 
-        if (sleep_time && completed_mask != all_done_mask) {
-            usleep(sleep_time);
-            current_sleep += sleep_time;
+        if (!sleep_time) {
+            YieldProcessor();
+            continue;
         }
+
+        if (max_sleep && slept >= max_sleep) {
+            return false;
+        }
+
+        usleep(sleep_time);
+        slept += sleep_time;
     }
 
-    ASSERT_TRUE(max_sleep > current_sleep);
-
-    return completed_mask == all_done_mask ? 0xFFFFFFFFFFFFFFFF : completed_mask;
-}
-
-// This joins the work not the actual threads in the thread pool
-// Returns the mask of the completed tasks or 0xFFFFFFFFFFFFFFFF for all completed
-inline
-uint64 thread_pool_join(
-    ThreadPool* const pool,
-    const PoolWorker* const* const jobs, int32 count,
-    uint64 sleep_time = 0, uint64 max_sleep = 0
-) NO_EXCEPT
-{
-    ASSERT_TRUE(count <= 64);
-
-    uint64 completed_mask = 0;
-    const uint64 all_done_mask = (count == 64 ? UINT64_MAX : ((1ULL << count) - 1));
-
-    uint64 current_sleep = 0;
-
-    // Loop until all jobs have been marked completed
-    // We use a bitmask to avoid re-checking already validated jobs
-    // If we wouldn't do that we may risk that a job got re-used for a new job giving a false negative.
-    while (max_sleep >= current_sleep) {
-        for (int32 i = 0; i < count; ++i) {
-            const uint64 bit = 1ULL << i;
-
-            if (completed_mask & bit) {
-                continue;
-            }
-
-            if (!jobs[i] || !jobs[i]->id
-                || jobs[i]->state.load() == POOL_WORKER_STATE_COMPLETED
-            ) {
-                completed_mask |= bit;
-
-                // If we don't automatically release we have to do it now
-                if (!jobs[i]->automatic_release) {
-                    thread_pool_work_release(pool, jobs[i]);
-                }
-            }
-        }
-
-        if (completed_mask == all_done_mask) {
-            return 0xFFFFFFFFFFFFFFFF;
-        }
-
-        if (sleep_time) {
-            usleep(sleep_time);
-            current_sleep += sleep_time;
-        }
-    }
-
-    ASSERT_TRUE(max_sleep > current_sleep);
-
-    return completed_mask;
+    return true;
 }
 
 #endif

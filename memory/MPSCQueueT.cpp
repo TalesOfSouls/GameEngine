@@ -19,7 +19,7 @@ void queue_init(MPSCQueueT<T>* const queue, byte* buf, int capacity, uint32 alig
     queue->memory = (T *) ALIGN_UP((uintptr_t) buf, alignment);
 
     queue->slot_ready = (atomic<byte> *) ALIGN_UP(
-        queue->memory + queue->capacity * sizeof(T),
+        queue->memory + queue->capacity,
         ASSUMED_CACHE_LINE_SIZE
     );
 
@@ -95,7 +95,7 @@ void queue_init(MPSCQueueT<T>* const queue, BufferMemory* const buf, int capacit
         alignment
     );
     queue->slot_ready = (atomic<byte> *) ALIGN_UP(
-        queue->memory + queue->capacity * sizeof(T),
+        queue->memory + queue->capacity,
         ASSUMED_CACHE_LINE_SIZE
     );
 

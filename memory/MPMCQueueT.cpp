@@ -19,10 +19,10 @@ void queue_init(MPMCQueueT<T>* const queue, byte* buf, int capacity, uint32 alig
 
     queue->capacity = capacity;
     queue->mask = capacity - 1;
-    queue->memory = (T *) ALIGN_UP((uintptr_t) buf, alignment);
+    queue->memory = (T *) ALIGN_UP((uintptr_t) buf, (size_t) alignment);
 
     queue->sequence = (atomic<size_t> *) ALIGN_UP(
-        queue->memory + queue->capacity * sizeof(T),
+        (uintptr_t) (queue->memory + queue->capacity),
         ASSUMED_CACHE_LINE_SIZE
     );
 
@@ -177,6 +177,14 @@ T* queue_enqueue_start_wait(MPMCQueueT<T>* const queue) NO_EXCEPT
     }
 
     return slot;
+}
+
+// WARNING: only valid between queue_enqueue_start() and queue_enqueue_end()
+template <typename T>
+FORCE_INLINE
+size_t queue_enqueue_position(const MPMCQueueT<T>* const queue, const T* const slot) NO_EXCEPT
+{
+    return queue->sequence[slot - queue->memory].load(memory_order_relaxed);
 }
 
 // WARNING: only call with a slot returned by queue_enqueue_start()/

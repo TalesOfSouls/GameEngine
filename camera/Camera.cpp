@@ -156,7 +156,7 @@ void camera_vectors_update(Camera* const camera) NO_EXCEPT
 
     camera->front = quat_rotate_vec3(q, { 0.0f, 0.0f, -1.0f });
     camera->right = quat_rotate_vec3(q, { 1.0f, 0.0f,  0.0f });
-    camera->up    = quat_rotate_vec3(q, { 0.0f, 1.0f,  0.0f });
+    camera->up = quat_rotate_vec3(q, { 0.0f, 1.0f,  0.0f });
 }
 
 inline HOT_CODE
@@ -774,32 +774,16 @@ void camera_init(Camera* const camera, GpuApiType gpu_api_type) NO_EXCEPT
     switch (gpu_api_type) {
         case GPU_API_TYPE_SOFTWARE: {
             camera_init_rh_opengl(camera);
-            //camera_projection_matrix_rh_opengl(camera);
-            //camera_orth_matrix_rh_software(camera);
-            //camera_view_matrix_rh_opengl(camera);
-            //camera_frustum_update(camera);
         } break;
         case GPU_API_TYPE_OPENGL: {
             camera_init_rh_opengl(camera);
-            //camera_projection_matrix_rh_opengl(camera);
-            //camera_orth_matrix_rh_opengl(camera);
-            //camera_view_matrix_rh_opengl(camera);
-            //camera_frustum_update(camera);
         } break;
         case GPU_API_TYPE_VULKAN: {
             camera_init_rh_vulkan(camera);
-            //camera_projection_matrix_rh_vulkan(camera);
-            //camera_orth_matrix_rh_vulkan(camera);
-            //camera_view_matrix_rh_vulkan(camera);
-            //camera_frustum_update(camera);
         } break;
         case GPU_API_TYPE_DIRECTX_11:
         case GPU_API_TYPE_DIRECTX_12: {
             camera_init_lh(camera);
-            //camera_projection_matrix_lh(camera);
-            //camera_orth_matrix_lh(camera);
-            //camera_view_matrix_lh(camera);
-            //camera_frustum_update(camera);
         } break;
         default:
             UNREACHABLE();

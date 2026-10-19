@@ -8,7 +8,7 @@
 #define COMS_THREADS_THREAD_POOL_H
 
 #include "../stdlib/Stdlib.h"
-#include "../memory/MPMCWorkTrackingQueueT.h"
+#include "../memory/MPMCQueueT.h"
 #include "../memory/ThrdChunkMemory.h"
 #include "../log/DebugMemory.h"
 #include "../log/PerformanceProfiler.h"
@@ -31,27 +31,6 @@ enum ThreadPoolState : int8 {
 struct ThreadPool {
     // @performance Which variables need padding to avoid false sharing?
     atomic<ThreadPoolState> state;
-    // By design the working_cnt is <= thread_cnt
-    atomic<int32> working_cnt;
-    atomic<int32> thread_cnt;
-    atomic<uint32> id_counter;
-
-    // How many worker threads are currently parked/asleep
-    // Producers only take work_mutex/signal work_cond when this is > 0, so
-    // enqueueing work under load (workers already busy, none sleeping) never
-    // uses the mutex at all
-    atomic<int32> sleeping_cnt;
-    sem work_sem;
-
-    // @performance We need to profile if this is really the best solution or if we should have separate queues
-    //      work_queue
-    //      working_queue
-    //      done_queue
-    MPMCWorkTrackingQueueT<PoolWorker> work_queue;
-
-    // This is where we store the handles IFF we are using
-    // none-detached threads
-    coms_pthread_t* thread_handles;
 
     // thread_cnt should be the same as size UNLESS a thread shut down for whatever reason
     // We use the size to check the "healthyness" of the pool and may spin up new worker threads
@@ -60,7 +39,24 @@ struct ThreadPool {
 
     bool is_detached;
 
+    // This is where we store the handles IFF we are using
+    // none-detached threads
+    coms_pthread_t* thread_handles;
+
     DebugContainer* debug_container;
+
+    // How many worker threads are currently parked/asleep
+    // Producers only take work_mutex/signal work_cond when this is > 0, so
+    // enqueueing work under load (workers already busy, none sleeping) never
+    // uses the mutex at all
+    atomic<int32> sleeping_cnt;
+    sem work_sem;
+
+    // By design the working_cnt is <= thread_cnt
+    atomic<int32> working_cnt;
+    atomic<int32> thread_cnt;
+
+    MPMCQueueT<PoolWorker> work_queue;
 
     // From this memory we distribute memory to all the worker threads
     // The distributed memory depends on the requirements of the respective job

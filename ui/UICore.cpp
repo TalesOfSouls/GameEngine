@@ -66,29 +66,4 @@ UICore* ui_custom_create(UILayout* layout, int16 update_func, int16 render_func)
     return element;
 }
 
-inline
-void ui_chroma_codes_update(
-    int32 id,
-    UICore* const __restrict core,
-    UIChromaCodes* const __restrict chroma_codes
-) NO_EXCEPT
-{
-    PROFILE_DEBUG(PROFILE_UI_CACHE_CHROMA_CODES);
-
-    const uint16 width = chroma_codes->width;
-    uint32* codes = chroma_codes->codes;
-
-    const int x0 = (int) core->dimension.pos.x;
-    const int y0 = (int) core->dimension.pos.y;
-    const int w  = (int) core->dimension.dim.x;
-    const int h  = (int) core->dimension.dim.y;
-
-    for (int y = 0; y < h; ++y) {
-        uint32* dst = codes + (y0 + y) * width + x0;
-        for (int x = 0; x < w; ++x) {
-            *dst++ = id;
-        }
-    }
-}
-
 #endif

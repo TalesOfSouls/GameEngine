@@ -37,6 +37,13 @@ struct RenderFrameUi {
     uint32 index_count;
 };
 
+// @todo Instead of passing these things as fixed part of the RenderFrame,
+//      we might want to pass them as part of a queue element
+union RenderFrameMessage {
+    RenderFrameUi ui;
+    RenderSettings settings;
+};
+
 /**
  * Created by the update loop and read by the render loop
  */

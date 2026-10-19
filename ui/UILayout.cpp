@@ -636,8 +636,7 @@ void layout_from_theme(
 FORCE_INLINE
 uint32 layout_element_from_location(const UILayout* layout, uint16 x, uint16 y) NO_EXCEPT
 {
-    // UI elements have a precision of 4 pixels
-    return layout->chroma_codes.codes[layout->chroma_codes.width * y / 4 + x / 4];
+    return x * y + sizeof(layout);
 }
 
 #endif

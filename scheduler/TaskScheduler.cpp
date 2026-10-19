@@ -47,6 +47,13 @@ void scheduler_free(TaskScheduler* const scheduler) NO_EXCEPT
     chunk_free(&scheduler->tasks);
 }
 
+static inline
+void scheduler_task_done(void* arg) NO_EXCEPT
+{
+    const PoolWorker* const job = (const PoolWorker *) arg;
+    ((TaskSchedule *) job->arg)->flags.fetch_and((uint8) ~TASK_SCHEDULE_FLAG_RUNNING);
+}
+
 void scheduler_run(TaskScheduler* const scheduler, uint64 current_time) NO_EXCEPT
 {
     int32 chunk_id = 0;
@@ -54,15 +61,24 @@ void scheduler_run(TaskScheduler* const scheduler, uint64 current_time) NO_EXCEP
         TaskSchedule* const task = chunk_element_get(&scheduler->tasks, chunk_id);
 
         const uint8 flags = task->flags.load();
-        if (task->next_run <= current_time) {
-            continue;
-        } else if ((task->end != 0 && task->end <= current_time)
+
+        // Expired/cancelled tasks are removed, but only once no job is using them anymore
+        if ((task->end != 0 && task->end <= current_time)
             || (task->remaining_iteration.load() == -1)
             || (flags & TASK_SCHEDULE_FLAG_CANCELLED)
         ) {
-            chunk_free_element(&scheduler->tasks, chunk_id);
+            if (!(flags & TASK_SCHEDULE_FLAG_RUNNING)) {
+                chunk_free_element(&scheduler->tasks, chunk_id);
+            }
             continue;
-        } else if ((flags & TASK_SCHEDULE_FLAG_PAUSED)
+        }
+
+        // Not due yet
+        if (task->next_run > current_time) {
+            continue;
+        }
+
+        if ((flags & TASK_SCHEDULE_FLAG_PAUSED)
             || (flags & (TASK_SCHEDULE_FLAG_RUNNING | TASK_SCHEDULE_FLAG_MULTIPLE)) == TASK_SCHEDULE_FLAG_RUNNING
         ) {
             continue;
@@ -71,16 +87,20 @@ void scheduler_run(TaskScheduler* const scheduler, uint64 current_time) NO_EXCEP
         task->flags.fetch_or(TASK_SCHEDULE_FLAG_RUNNING);
         const PoolWorker job = {
             SMN(id) 0,
-            SMN(state) POOL_WORKER_STATE_WAITING,
-            SMN(automatic_release) true,
             SMN(mem_size) 0,
             SMN(arg_size) 0,
             SMN(arg) task,
             SMN(func) task->task_func,
-            SMN(callback) NULL,
+            SMN(callback) scheduler_task_done,
+            SMN(sink) NULL,
+            SMN(state_external) NULL,
             SMN(mem) NULL
         };
-        thread_pool_add_work(scheduler->pool, &job);
+
+        // If the queue is full we simply retry on the next scheduler tick
+        if (!thread_pool_add_work(scheduler->pool, &job)) {
+            task->flags.fetch_and((uint8) ~TASK_SCHEDULE_FLAG_RUNNING);
+        }
     } thrd_chunk_iterate_end;
 }
 

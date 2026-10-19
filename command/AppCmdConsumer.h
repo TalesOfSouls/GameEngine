@@ -123,14 +123,12 @@ void cmd_group_async(
 {
     ASSERT_TRUE(cmd->group_async_body.count);
 
-    // @todo We only chose 16 as an arbitrary number to avoid dynamic memory allocation
-    //      This probably needs revisiting
-    PoolWorker* jobs_ptr[16];
-    ASSERT_TRUE(cmd->group_async_body.count <= ARRAY_COUNT(jobs_ptr));
-
     const int32 element_count = chunk_element_count(cb->mem, cmd->group_async_body.count * sizeof(AppCommandPool));
     const int32 element_id = chunk_reserve(cb->mem, element_count);
     AppCommandPool* pool_args = (AppCommandPool *) chunk_element_get(cb->mem, element_id);
+
+    atomic<int32> remaining;
+    remaining.store(cmd->group_async_body.count);
 
     for (int32 i = 0; i < cmd->group_async_body.count; ++i) {
         pool_args[i].cb = cb;
@@ -142,24 +140,24 @@ void cmd_group_async(
 
         const PoolWorker job = {
             SMN(id) 0,
-            SMN(state) POOL_WORKER_STATE_WAITING,
-            SMN(automatic_release) false,
             SMN(mem_size) 0,
             SMN(arg_size) 0,
             SMN(arg) &pool_args[i],
             SMN(func) thrd_cmd_group_execute,
-            SMN(callback) NULL,
+            SMN(callback) thread_pool_complete_counter,
+            SMN(sink) &remaining,
+            SMN(state_external) NULL,
             SMN(mem) NULL
         };
-        jobs_ptr[i] = thread_pool_add_work(cb->thread_pool, &job);
+        thread_pool_add_work_wait(cb->thread_pool, &job);
     }
 
-    const uint64 status = thread_pool_join(
+    const bool group_done = thread_pool_wait(
+        &remaining,
         cb->thread_pool,
-        jobs_ptr,
-        cmd->group_async_body.count,
         100, cmd->group_async_body.count * 3 * SEC_MICRO // @todo This should probably depend on the command type?
     );
+    ASSERT_TRUE(group_done);
 
     // Release the commands memory
     const int32 cmd_element_count = chunk_element_count(
@@ -171,7 +169,7 @@ void cmd_group_async(
     // Release the args memory used for the thread pool args
     chunk_free_elements(cb->mem, element_id, element_count);
 
-    cmd->group_async_body.state->store(status);
+    cmd->group_async_body.state->store((uint32) group_done);
 }
 
 inline
@@ -277,16 +275,16 @@ void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
 
             const PoolWorker job = {
                 SMN(id) 0,
-                SMN(state) POOL_WORKER_STATE_WAITING,
-                SMN(automatic_release) true,
                 SMN(mem_size) 0,
                 SMN(arg_size) 0,
                 SMN(arg) pool_cmd,
                 SMN(func) thrd_cmd_pool_execute,
                 SMN(callback) NULL,
+                SMN(sink) NULL,
+                SMN(state_external) NULL,
                 SMN(mem) NULL
             };
-            thread_pool_add_work(cb->thread_pool, &job);
+            thread_pool_add_work_wait(cb->thread_pool, &job);
         } else if (!cmd->run_in_pool) {
             bool remove = cmd_execute(cb, cmd);
             if (!remove) {

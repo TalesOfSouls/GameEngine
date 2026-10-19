@@ -95,6 +95,10 @@ struct StatCounterHistory {
 };
 static StatCounterHistory* _stats_counter = NULL;
 
+/**
+ * Sessions are for manual time frames
+ * e.g. the programmer would like to log stats during a manually chose start and end time, likely across frames
+ */
 FORCE_INLINE
 void stats_session_start() NO_EXCEPT
 {
@@ -149,10 +153,16 @@ void stats_set(int32 id, int64 value = 1) NO_EXCEPT
         return;
     }
 
-    atomic_set_relaxed(&_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id], value);
+    atomic_set_relaxed(
+        &_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id],
+        value
+    );
 
     if (_stats_counter->session_active.load(memory_order_relaxed)) {
-        atomic_set_relaxed(&_stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE + id], value);
+        atomic_set_relaxed(
+            &_stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE + id],
+            value
+        );
     }
 }
 
@@ -171,10 +181,16 @@ void stats_increment(int32 id, int64 by = 1) NO_EXCEPT
         return;
     }
 
-    atomic_add_relaxed(&_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id], by);
+    atomic_add_relaxed(
+        &_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id],
+        by
+    );
 
     if (_stats_counter->session_active.load(memory_order_relaxed)) {
-        atomic_add_relaxed(&_stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE + id], by);
+        atomic_add_relaxed(
+            &_stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE + id],
+            by
+        );
     }
 }
 
@@ -193,10 +209,16 @@ void stats_decrement(int32 id, int64 by = 1) NO_EXCEPT
         return;
     }
 
-    atomic_sub_relaxed(&_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id], by);
+    atomic_sub_relaxed(
+        &_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id],
+        by
+    );
 
     if (_stats_counter->session_active.load(memory_order_relaxed)) {
-        atomic_sub_relaxed(&_stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE + id], by);
+        atomic_sub_relaxed(
+            &_stats_counter->stats[MAX_STATS_COUNTER_HISTORY * DEBUG_COUNTER_SIZE + id],
+            by
+        );
     }
 }
 
@@ -307,7 +329,9 @@ void stats_max(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    int64* const stat = &_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id];
+    int64* const stat = &_stats_counter->stats[
+        _stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id
+    ];
     int64 old = atomic_get_relaxed(stat);
     while (value > old) {
         const int64 prev = atomic_compare_exchange_strong_relaxed(stat, old, value);
@@ -334,7 +358,9 @@ void stats_min(int32 id, int64 value) NO_EXCEPT
         return;
     }
 
-    int64* const stat = &_stats_counter->stats[_stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id];
+    int64* const stat = &_stats_counter->stats[
+        _stats_counter->pos.load(memory_order_relaxed) * DEBUG_COUNTER_SIZE + id
+    ];
     int64 old = atomic_get_relaxed(stat);
     while (value < old) {
         const int64 prev = atomic_compare_exchange_strong_relaxed(stat, old, value);
