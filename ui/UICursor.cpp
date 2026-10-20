@@ -2,62 +2,48 @@
 #ifndef COMS_UI_CURSOR_C
 #define COMS_UI_CURSOR_C
 
+#include "../stdlib/Stdlib.h"
+#include "attribute/UIAttributeDimension.cpp"
+#include "attribute/UIAttributeImage.cpp"
+#include "UIAlignment.h"
+#include "UICore.cpp"
 #include "UILayout.h"
 #include "UICursor.h"
-#include "attribute/UIAttributeImage.cpp"
-#include "attribute/UIAttributeDimension.cpp"
 
-void ui_vertices_cache(
-    void* app,
-    UICursor* cursor,
-    UILayout* const layout
-) NO_EXCEPT
-{
-    ArrayVector<Vertex3DSamplerTextureColor>* const vertex_cache = &layout->ui_vertex_cache;
-    ArrayVector<int32>* const index_cache = &layout->ui_index_cache;
+// The cursor is always rendered in front of everything else
+#define UI_CURSOR_ZINDEX 1.0f
 
-    // @performance Do I really want to do it here or somewhere else, maybe separate from the caching
-    //              But that would mean iterating the elements twice
-    if (cursor->core.update_func) {
-        layout->update[cursor->core.update_func - 1](app, layout, &cursor->core);
-    }
-
-    // @performance This is slow, we shouldn't do this for cursor
-    ui_dimension_calculate(layout, &cursor->core);
-
-    // @performance aren't we recalculating the dimension.dim unnecessarily
-    ui_dimension_calculate(&cursor->core.dimension, &cursor->image.dimension);
-    ui_vertices_cache(
-        &cursor->image, vertex_cache, index_cache, 1.0f
-    );
-}
-
+/**
+ * The position is the mouse position (pos_raw = window coordinates, y-down) relative to the top left of the root
+ * The size is the image size unless set otherwise
+ *
+ * @param parent NULL = root
+ */
 static
-UICursor* ui_cursor_create(
-    UILayout* layout,
-    UICore* element = NULL
-) NO_EXCEPT
+UICursor* ui_cursor_create(UILayout* const layout, UICore* parent = NULL) NO_EXCEPT
 {
-    UICursor* cursor = (UICursor *) element;
+    UICursor* const cursor = UI_ELEMENT_ALLOC(layout, UI_ELEMENT_TYPE_CURSOR, UICursor, parent);
+    cursor->core.dimension.align_anchor = UI_ANCHOR_ALIGN_TOP_LEFT;
 
-    if (!cursor) {
-        cursor = (UICursor*) BUFFER_ELEMENT_GET(&layout->ui_element_buffer, UICursor);
-        MEMORY_ELEMENT_ZERO(cursor);
-    }
+    // The cursor is always at the mouse position -> it would always be the hit element
+    cursor->core.flags = UI_ELEMENT_FLAG_IGNORE_HIT | UI_ELEMENT_FLAG_ALWAYS_ON_TOP;
 
-    cursor->core.type = UI_ELEMENT_TYPE_CURSOR;
-    cursor->core.dimension.flag = UI_DIMENSION_POS_X_PX | UI_DIMENSION_POS_Y_PX
-        | UI_DIMENSION_DIM_X_PX | UI_DIMENSION_DIM_Y_PX;
-    cursor->core.dimension.align_anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP | UI_ALIGN_DEFAULT;
-
-    cursor->image.dimension.flag = UI_DIMENSION_POS_X_RELATIVE | UI_DIMENSION_POS_Y_RELATIVE
-        | UI_DIMENSION_DIM_X_RELATIVE | UI_DIMENSION_DIM_Y_RELATIVE;
-    cursor->image.dimension.dim_raw = {1.0f, 1.0f};
-    cursor->image.dimension.align_anchor = UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP;
-
-    cursor->core.parent_offset = (int32) MEMORY_OFFSET(layout->ui_root, layout->ui_element_buffer.memory);
+    layout->cursor = cursor;
 
     return cursor;
+}
+
+void ui_cursor_cache(UICursor* const cursor, UILayout* const layout) NO_EXCEPT
+{
+    ui_dimension_calculate(layout, &cursor->core, {(f32) cursor->image.width, (f32) cursor->image.height});
+
+    if (cursor->image.sampler) {
+        ui_image_vertices(
+            &cursor->image, ui_dimension_rect(&cursor->core.dimension),
+            &layout->ui_vertex_cache, &layout->ui_index_cache,
+            UI_CURSOR_ZINDEX
+        );
+    }
 }
 
 #endif

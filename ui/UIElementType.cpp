@@ -18,6 +18,9 @@
 #include "UITab.h"
 #include "UICursor.h"
 #include "UICustom.h"
+#include "UICheckbox.h"
+#include "UISlider.h"
+#include "UIColorPicker.h"
 
 CONSTEXPR
 int32 ui_element_type_size(UIElementType e) NO_EXCEPT
@@ -53,17 +56,36 @@ int32 ui_element_type_size(UIElementType e) NO_EXCEPT
             return sizeof(UICustom);
         case UI_ELEMENT_TYPE_MANUAL:
             return sizeof(UICustom);
+        case UI_ELEMENT_TYPE_CHECKBOX:
+            return sizeof(UICheckbox);
+        case UI_ELEMENT_TYPE_RADIO:
+            return sizeof(UIRadio);
+        case UI_ELEMENT_TYPE_SLIDER:
+            return sizeof(UISlider);
+        case UI_ELEMENT_TYPE_OPTION_LIST:
+            return sizeof(UIOptionList);
+        case UI_ELEMENT_TYPE_COLOR_PICKER:
+            return sizeof(UIColorPicker);
+        case UI_ELEMENT_TYPE_COLOR_PANEL:
+            return sizeof(UIColorPanel);
         default: {
             UNREACHABLE();
         }
     }
 }
 
+// WARNING: The order matters since we only compare the prefix (e.g. textarea before text)
 static
 int32 ui_element_type_to_id(const char* str) NO_EXCEPT
 {
     if (strncmp("button", str, sizeof("button") - 1) == 0) {
         return UI_ELEMENT_TYPE_BUTTON;
+    } else if (strncmp("optionlist", str, sizeof("optionlist") - 1) == 0) {
+        return UI_ELEMENT_TYPE_OPTION_LIST;
+    } else if (strncmp("colorpicker", str, sizeof("colorpicker") - 1) == 0) {
+        return UI_ELEMENT_TYPE_COLOR_PICKER;
+    } else if (strncmp("colorpanel", str, sizeof("colorpanel") - 1) == 0) {
+        return UI_ELEMENT_TYPE_COLOR_PANEL;
     } else if (strncmp("select", str, sizeof("select") - 1) == 0) {
         return UI_ELEMENT_TYPE_SELECT;
     } else if (strncmp("input", str, sizeof("input") - 1) == 0) {
@@ -92,6 +114,12 @@ int32 ui_element_type_to_id(const char* str) NO_EXCEPT
         return UI_ELEMENT_TYPE_CUSTOM;
     } else if (strncmp("manual", str, sizeof("manual") - 1) == 0) {
         return UI_ELEMENT_TYPE_MANUAL;
+    } else if (strncmp("checkbox", str, sizeof("checkbox") - 1) == 0) {
+        return UI_ELEMENT_TYPE_CHECKBOX;
+    } else if (strncmp("radio", str, sizeof("radio") - 1) == 0) {
+        return UI_ELEMENT_TYPE_RADIO;
+    } else if (strncmp("slider", str, sizeof("slider") - 1) == 0) {
+        return UI_ELEMENT_TYPE_SLIDER;
     }
 
     ASSERT_THROW();

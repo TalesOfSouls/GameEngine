@@ -25,6 +25,20 @@ enum UIElementType : byte {
     // Doesn't do anything is handled completely manual
     UI_ELEMENT_TYPE_MANUAL,
 
+    // WARNING: New types are appended to keep the values of layout files stable
+    UI_ELEMENT_TYPE_CHECKBOX,
+    UI_ELEMENT_TYPE_RADIO,
+    UI_ELEMENT_TYPE_SLIDER,
+
+    // Option list in the popup of a select (@see UISelect)
+    UI_ELEMENT_TYPE_OPTION_LIST,
+
+    // Color swatch that opens a color popup (@see UIColorPicker)
+    UI_ELEMENT_TYPE_COLOR_PICKER,
+
+    // Gradient or palette area in the popup of a color picker
+    UI_ELEMENT_TYPE_COLOR_PANEL,
+
     UI_ELEMENT_TYPE_SIZE,
 };
 

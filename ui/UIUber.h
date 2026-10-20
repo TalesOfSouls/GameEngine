@@ -5,35 +5,28 @@
 #include "../stdlib/Stdlib.h"
 #include "../utils/SimpleString.h"
 #include "UICore.h"
-#include "attribute/UIAttributeBorder.h"
-#include "attribute/UIAttributeShadow.h"
 #include "attribute/UIAttributeFont.h"
 #include "UIAlignment.h"
 
-// A Uber element that is very versatile and can hold basically all possible atributes
-// Using this type is not encouraged since it is expensive in memory and when rendering
+// A Uber element that is very versatile and can hold basically all possible attributes
+// It is only used as temporary storage while parsing a layout file
 struct UIUber {
     UICore core;
 
-    // UIAnchor
-    int32 anchor;
-
-    // UIAlign
-    int32 align;
-
     CharType char_type;
-    int32 pattern_length;
-    SimpleString<const wchar_t> pattern;
 
+    // Reserved length incl. \0
+    int32 pattern_length;
+    SimpleString<const char> pattern;
+
+    // Reserved length incl. \0
     int32 content_length;
-    SimpleString<const wchar_t> content;
+    SimpleString<const char> content;
 
     UIAttributeFont font;
 
-    uint32 background;
-    UIAttributeBorder border;
-    UIAttributeShadow shadow_outer;
-    UIAttributeShadow shadow_inner;
+    // RGBA
+    uint32 background_color;
 };
 
 #endif

@@ -6,6 +6,7 @@
 #include "attribute/UIAttributeImage.h"
 #include "UICore.h"
 
+// 76 bytes
 struct UICursor {
     UICore core;
     UIAttributeImage image;

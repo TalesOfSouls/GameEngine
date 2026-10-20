@@ -11,8 +11,15 @@
 #include "InputConnectionType.h"
 #include "ControllerType.h"
 
-// How many concurrent primary key/button presses can be handled?
-#define MAX_KEY_PRESSES 5
+// How many concurrent key/button presses can be handled (per input device)?
+// Realistic worst cases are higher than it seems:
+//      keyboard + mouse: 2 movement keys (diagonal) + modifier + skill key + 2 mouse buttons
+//                        + mouse move + wheel (both are "fake" keys for one tick) = 8
+//      controller:       every analog axis outside of the deadzone is an active key
+//                        -> 2 sticks (4 axes) + 2 triggers + 2 buttons = 8
+// Released keys also stay in their slot until the next tick (@see input_frame_begin).
+// 16 slots = 256 bytes = 4 cache lines, the lookups are simple linear scans.
+#define MAX_KEY_PRESSES 16
 
 // How many keys/buttons do we support for the devices
 #define MAX_KEYBOARD_KEYS 255
@@ -92,7 +99,11 @@ enum InputContext : byte {
     // Different game modes
     HOTKEY_CONTEXT_INGAME_1 = 1 << 3,
     HOTKEY_CONTEXT_INGAME_2 = 1 << 4,
-    HOTKEY_CONTEXT_INGAME_3 = 1 << 5,
+
+    // The ui has the keyboard/controller focus (e.g. tab navigation, open popup)
+    // UI navigation hotkeys (next/prev element, confirm, ...) are usually bound to this context
+    // so the same keys can be used for game hotkeys while the ui isn't focused (e.g. tab = tab target)
+    HOTKEY_CONTEXT_UI = 1 << 5,
 
     HOTKEY_CONTEXT_EDITOR_MODE = 1 << 6,
     HOTKEY_CONTEXT_ADMIN_MODE = 1 << 7
@@ -108,11 +119,31 @@ struct Hotkey {
     // @type KeyPressType
     byte key_state;
 
-    // Some hotkeys are only available in certain context
-    // uses enum InputContext as a baseline
+    // Some hotkeys are only available in certain context (@see InputContext)
+    //      0 = always available (but a hotkey of the current context with the same keys has priority)
+    //      only managed contexts (@see Input::managed_contexts) = the input must be in at least one of them
+    //      any unmanaged context bit = treated like 0 (backwards compatible, contexts used to be ignored)
     byte context;
 };
 
+enum InputKeyFlag : byte {
+    // This is needed if different hotkey use the same button (e.g. ctrl+s and s =backwards movement)
+    // First we check for the more complex hotkey ctrl+s,
+    // then we set s as handled so it doesn't get handled again for s =backwards movement
+    INPUT_KEY_FLAG_PROCESSED = 1 << 0,
+
+    // The key produced text (@see InputState::text)
+    // While typing (HOTKEY_CONTEXT_TYPING) such keys don't trigger hotkeys
+    INPUT_KEY_FLAG_TEXT = 1 << 1,
+};
+
+/**
+ * Key state lifecycle (@see input_frame_begin):
+ *      PRESSED             = went down this tick
+ *      HELD                = went down in an earlier tick and is still down
+ *      RELEASED            = went up this tick (removed at the beginning of the next tick)
+ *      PRESSED | RELEASED  = went down AND up within this tick (e.g. very fast click)
+ */
 struct InputKey {
     // @question Do we really need scan_code and virtual_code both?
     uint16 scan_code;
@@ -121,16 +152,49 @@ struct InputKey {
     // @type KeyPressType
     byte key_state;
 
-    // This is needed if different hotkey use the same button (e.g. ctrl+s and s =backwards movement)
-    // First we check for the more complex hotkey ctrl+s,
-    // then we set s as handled so it doesn't get handled again for s =backwards movement
-    bool is_processed;
+    // @type InputKeyFlag
+    byte flags;
+
     int16 value; // e.g. stick/trigger keys have additional values
     uint64 time; // when was this action performed (useful to decide if key state is held vs pressed)
 };
 
 // @question Maybe we should also add a third key_down array for controllers and some special controller functions here to just handle everything in one struct
 //      Or think about completely splitting all states (mouse, keyboard, other)
+
+// Text input codes that are not unicode characters (outside of the unicode range)
+// Control characters that ToUnicode already returns are used as is (backspace, tab, enter, escape)
+enum InputTextControl : uint32 {
+    INPUT_TEXT_BACKSPACE = 0x08,
+    INPUT_TEXT_TAB = 0x09,
+    INPUT_TEXT_ENTER = 0x0D,
+    INPUT_TEXT_ESCAPE = 0x1B,
+    INPUT_TEXT_DELETE = 0x7F,
+
+    INPUT_TEXT_LEFT = 0x110000,
+    INPUT_TEXT_RIGHT,
+    INPUT_TEXT_UP,
+    INPUT_TEXT_DOWN,
+    INPUT_TEXT_HOME,
+    INPUT_TEXT_END,
+
+    // ctrl + a/c/x/v (layout independent since they are based on the generated control characters)
+    INPUT_TEXT_SELECT_ALL,
+    INPUT_TEXT_COPY,
+    INPUT_TEXT_CUT,
+    INPUT_TEXT_PASTE,
+
+    // Modifier bits, only set on navigation codes (LEFT ... END) and BACKSPACE/DELETE
+    // e.g. INPUT_TEXT_LEFT | INPUT_TEXT_MOD_SHIFT = extend the selection by one character
+    //      INPUT_TEXT_LEFT | INPUT_TEXT_MOD_CTRL = jump one word
+    INPUT_TEXT_MOD_CTRL = 1U << 29,
+    INPUT_TEXT_MOD_SHIFT = 1U << 30,
+    INPUT_TEXT_MOD_MASK = INPUT_TEXT_MOD_CTRL | INPUT_TEXT_MOD_SHIFT,
+};
+
+// Max text codes per tick and input device (more are dropped, e.g. during a long frame)
+#define INPUT_TEXT_MAX_CODES 16
+
 struct InputState {
     // Active hotkeys
     // @bug This should also contain the time of when the hotkey got activated
@@ -147,6 +211,12 @@ struct InputState {
 
     int16 x[3];
     int16 y[3];
+
+    // Text typed this tick (only while HOTKEY_CONTEXT_TYPING is set)
+    // Unicode codepoints or InputTextControl values in the order the key events arrived
+    // Every key event (incl. OS key repeat) produces text exactly once -> independent from the frame rate
+    int32 text_count;
+    uint32 text[INPUT_TEXT_MAX_CODES];
 };
 
 enum GeneralInputState : byte {
@@ -188,6 +258,11 @@ struct Input {
     // InputContext
     byte context;
 
+    // Contexts the application actually sets/removes in Input::context (@see Hotkey::context)
+    // Hotkeys with context bits outside of this mask are general hotkeys -> old configs with unused context values keep working
+    // Default = HOTKEY_CONTEXT_UI (@see input_init)
+    byte managed_contexts;
+
     // ControllerType
     ControllerType controller_type;
 
@@ -207,6 +282,12 @@ struct Input {
     // @todo this should probably be somewhere else
     // @todo don't we need multiple deadzones? triggers, sticks
     int32 deadzone;
+
+    // Controller axes (ControllerButton) that create the pointer movement (InputState::dx/dy)
+    // [0] = dx[0], [1] = dy[0] (e.g. camera / virtual cursor), [2] = dx[1], [3] = dy[1] (e.g. movement)
+    // 0xFF = not mapped
+    // @see input_controller_axes_default()
+    byte controller_axes[4];
 
     // Buffer for text (e.g. text copy/clipboard)
     // In case of multiple Input elements we may even reference the same buffer

@@ -198,9 +198,11 @@ void vertex_circle_create(
         const f32 x1 = cx + c * rx;
         const f32 y1 = cy + s * ry;
 
+        // WARNING: Clockwise order (center -> next -> current) like all other primitives (e.g. vertex_rect_create)
+        //          The renderer uses glFrontFace(GL_CW) + back face culling -> counter clockwise triangles are invisible
         array_vector_reserve_one(indices) = center_index;
-        array_vector_reserve_one(indices) = vertices->count;
         array_vector_reserve_one(indices) = vertices->count + 1;
+        array_vector_reserve_one(indices) = vertices->count;
 
         // @performance Isn't one of the points on the circle arcs a duplicate same as the center
         //              We fixed it for the center but not for the previous circle arc point
@@ -254,9 +256,11 @@ void vertex_arc_create(
         const f32 x1 = cx + c * rx;
         const f32 y1 = cy + s * ry;
 
+        // WARNING: Clockwise order (center -> next -> current) like all other primitives (e.g. vertex_rect_create)
+        //          The renderer uses glFrontFace(GL_CW) + back face culling -> counter clockwise triangles are invisible
         array_vector_reserve_one(indices) = center_index;
-        array_vector_reserve_one(indices) = vertices->count;
         array_vector_reserve_one(indices) = vertices->count + 1;
+        array_vector_reserve_one(indices) = vertices->count;
 
         // @performance Isn't one of the points on the circle arcs a duplicate same as the center
         //              We fixed it for the center but not for the previous circle arc point
@@ -441,25 +445,24 @@ v2_int32 vertex_text_create(
     return {(int32) rendered_width, (int32) rendered_height};
 }
 
+/**
+ * Converts an utf8 string to glyph indices of the font
+ * 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
+ *
+ * The glyphs array is temporary memory (memory_get_temp) of mem
+ */
 template <typename T>
-HOT_CODE
-v2_int32 vertex_text_create(
-    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
-    const v4_f32& dimension, byte align_anchor,
+int16* text_to_glyphs(
     FontSystem* const __restrict font, const char* const __restrict text,
-    f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
+    T* const __restrict mem, int32* const __restrict glyph_count
 ) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
-    PSEUDO_USE(rgba);
-
     const int32 codepoint_count = (int32) utf8_strlen(text) - 1;
 
     // Try to find all the necessary glyphs
     // We use offsets instead of pointer chasing
-    // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* const __restrict glyphs = (int16*) memory_get_temp(mem, codepoint_count * sizeof(int16), alignof(uintptr_t));
-    int32 glyph_count = 0;
+    int16* const __restrict glyphs = (int16*) memory_get_temp(mem, (codepoint_count + 2) * sizeof(int16), alignof(uintptr_t));
+    int32 count = 0;
 
     int32 i = 0;
     while (text[i] != '\0') {
@@ -499,8 +502,28 @@ v2_int32 vertex_text_create(
             glyph = 0;
         }
 
-        glyphs[glyph_count++] = glyph;
+        glyphs[count++] = glyph;
     }
+
+    *glyph_count = count;
+
+    return glyphs;
+}
+
+template <typename T>
+HOT_CODE
+v2_int32 vertex_text_create(
+    ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
+    const v4_f32& dimension, byte align_anchor,
+    FontSystem* const __restrict font, const char* const __restrict text,
+    f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
+) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
+    PSEUDO_USE(rgba);
+
+    int32 glyph_count;
+    const int16* const glyphs = text_to_glyphs(font, text, mem, &glyph_count);
 
     return vertex_text_create(
         vertices, indices, zindex,

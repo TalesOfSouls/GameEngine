@@ -864,7 +864,7 @@ static CONSTEXPR const bool HEX_LOOKUP_TABLE[256] = {
     false, false, false, false, false, false, false, false, // 72-79 ('H'-'O')
     false, false, false, false, false, false, false, false, // 80-87 ('P'-'W')
     false, false, false, false, false, false, false, false, // 88-95 ('X'-'Z', others)
-    false, false, false, false, false, false, false, false, // 96-103 ('a'-'g')
+    false, true,  true,  true,  true,  true,  true,  false, // 96-103 ('a'-'g')
     false, false, false, false, false, false, false, false, // 104-111 ('h'-'o')
     false, false, false, false, false, false, false, false, // 112-119 ('p'-'w')
     false, false, false, false, false, false, false, false, // 120-127 ('x'-'z', others)

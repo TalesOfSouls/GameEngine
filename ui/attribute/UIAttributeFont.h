@@ -3,26 +3,28 @@
 #define COMS_UI_ATTRIBUTE_FONT_H
 
 #include "../../stdlib/Stdlib.h"
-#include "UIAttributeShadow.h"
 
 enum UIFontDecoration : byte {
     UI_FONT_DECORATION_UNDERLINE = 1 << 0,
     UI_FONT_DECORATION_ITALIC = 1 << 1,
 };
 
+// Only contains what the text rendering actually uses
+// Outline/weight/shadow can be added again once the text rendering supports them
+// 16 bytes
 struct UIAttributeFont {
     f32 size;
+
+    // 0 = use the line height of the font
     f32 line_height;
+
+    // RGBA
     uint32 color;
-    f32 weight;
 
-    uint32 outline_color;
-    f32 outline_weight;
-    UIAttributeShadow shadow_outer;
-
+    // @see UIFontDecoration
     byte decoration;
 
-    // @question Do we even need this? Isn't this handled in UICore::dimension.alignment?
+    // Text alignment inside of the element (@see UIAlignAnchor, only the UI_ALIGN_* bits are used)
     byte alignment;
 };
 

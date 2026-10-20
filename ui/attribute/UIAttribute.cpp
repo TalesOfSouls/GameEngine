@@ -5,13 +5,14 @@
 #include "UIAttribute.h"
 #include "../UIUber.h"
 
-UIAttribute* ui_attribute_from_group(const UIAttributeGroup* const group, UIAttributeType type)
+const UIAttribute* ui_attribute_from_group(const UIAttributeGroup* const group, UIAttributeType type)
 {
     if (!group->attribute_count) {
         return NULL;
     }
 
-    UIAttribute* attributes = (UIAttribute *) (group + 1);
+    // The attributes start aligned after the group (@see theme_from_file_txt)
+    const UIAttribute* attributes = (const UIAttribute *) ALIGN_UP((uintptr_t) (group + 1), alignof(UIAttribute));
 
     // The following code is an optimized binary search
     // @performance Consider to use EytzingerSearch for even better performance
@@ -25,48 +26,88 @@ UIAttribute* ui_attribute_from_group(const UIAttributeGroup* const group, UIAttr
     return attributes->attribute_id == type ? attributes : NULL;
 }
 
+// Parses a color in the format #RRGGBBAA or #RRGGBB
+static inline
+uint32 ui_color_from_str(const char* value) NO_EXCEPT
+{
+    if (*value == '#') {
+        ++value;
+    }
+
+    int32 length = 0;
+    while (HEX_LOOKUP_TABLE[(byte) value[length]]) {
+        ++length;
+    }
+
+    uint32 color = (uint32) hex_to_int(value);
+
+    // No alpha defined -> opaque
+    if (length <= 6) {
+        color = (color << 8) | 0xFF;
+    }
+
+    return color;
+}
+
+static inline
+byte ui_anchor_align_from_str(const char* value) NO_EXCEPT
+{
+    if (strncmp(value, "topleft", sizeof("topleft") - 1) == 0) {
+        return UI_ANCHOR_ALIGN_TOP_LEFT;
+    } else if (strncmp(value, "topright", sizeof("topright") - 1) == 0) {
+        return UI_ANCHOR_ALIGN_TOP_RIGHT;
+    } else if (strncmp(value, "bottomleft", sizeof("bottomleft") - 1) == 0) {
+        return UI_ANCHOR_ALIGN_BOTTOM_LEFT;
+    } else if (strncmp(value, "bottomright", sizeof("bottomright") - 1) == 0) {
+        return UI_ANCHOR_ALIGN_BOTTOM_RIGHT;
+    } else if (strncmp(value, "center", sizeof("center") - 1) == 0) {
+        return UI_ANCHOR_ALIGN_CENTER;
+    }
+
+    return UI_ANCHOR_ALIGN_TOP_LEFT;
+}
+
+/**
+ * Parses a single "name: value" line of a layout file into the temporary uber element
+ * The string values point into the file content (not copied)
+ */
 inline
 void ui_uber_from_txt(
     UIUber* __restrict uber,
     const char* __restrict value_type,
-    const char* __restrict value
+    const char* value
 ) NO_EXCEPT
 {
     if (strcmp(value_type, "pattern_length") == 0) {
         uber->pattern_length = (int32) str_to_int(value, &value);
     } else if (strcmp(value_type, "pattern") == 0) {
-        // @bug How to write wchar_t in a text file when everything else is ascii?
-        uber->pattern.str = (const wchar_t *) value;
+        // @todo How to write wchar_t in a text file when everything else is ascii?
+        uber->pattern.str = value;
         str_move_to(&value, "\r\n");
         uber->pattern.length = (int32) ((uintptr_t) value - (uintptr_t) uber->pattern.str);
-        // @bug Code above may need to use char instead depending on the char_type
     } else if (strcmp(value_type, "content_length") == 0) {
-        // @bug How to write wchar_t in a text file when everything else is ascii?
-        uber->content.str = (const wchar_t *) value;
-        str_move_to(&value, "\r\n");
-        uber->content.length = (int32) ((uintptr_t) value - (uintptr_t) uber->content.str);
+        uber->content_length = (int32) str_to_int(value, &value);
     } else if (strcmp(value_type, "content") == 0) {
-        // @bug How to write wchar_t in a text file when everything else is ascii?
-        uber->content.str = (const wchar_t *) value;
+        // @todo How to write wchar_t in a text file when everything else is ascii?
+        uber->content.str = value;
         str_move_to(&value, "\r\n");
         uber->content.length = (int32) ((uintptr_t) value - (uintptr_t) uber->content.str);
-        // @bug Code above may need to use char instead depending on the char_type
     } else if (strcmp(value_type, "font_size") == 0) {
         uber->font.size = (f32) str_to_float(value, &value);
+    } else if (strcmp(value_type, "font_color") == 0) {
+        uber->font.color = ui_color_from_str(value);
+    } else if (strcmp(value_type, "background_color") == 0) {
+        uber->background_color = ui_color_from_str(value);
     } else if (strcmp(value_type, "anchor") == 0) {
-        if (strncmp(value, "topleft", sizeof("topleft") - 1) == 0) {
-            uber->anchor = UI_ANCHOR_V_TOP | UI_ANCHOR_H_LEFT;
-        } else if (strncmp(value, "topright", sizeof("topright") - 1) == 0) {
-            uber->anchor = UI_ANCHOR_V_TOP | UI_ANCHOR_H_RIGHT;
-        } else if (strncmp(value, "bottomleft", sizeof("bottomleft") - 1) == 0) {
-            uber->anchor = UI_ALIGN_DEFAULT;
-        } else if (strncmp(value, "bottomright", sizeof("bottomright") - 1) == 0) {
-            uber->anchor = UI_ANCHOR_V_BOTTOM | UI_ANCHOR_H_RIGHT;
-        }
+        uber->core.dimension.align_anchor = ui_anchor_align_from_str(value);
     } else if (strcmp(value_type, "x") == 0) {
-        uber->core.dimension.pos.x = (f32) str_to_float(value, &value);
+        uber->core.dimension.pos_raw.x = (f32) str_to_float(value, &value);
     } else if (strcmp(value_type, "y") == 0) {
-        uber->core.dimension.pos.y = (f32) str_to_float(value, &value);
+        uber->core.dimension.pos_raw.y = (f32) str_to_float(value, &value);
+    } else if (strcmp(value_type, "width") == 0) {
+        uber->core.dimension.dim_raw.x = (f32) str_to_float(value, &value);
+    } else if (strcmp(value_type, "height") == 0) {
+        uber->core.dimension.dim_raw.y = (f32) str_to_float(value, &value);
     } else if (strcmp(value_type, "update") == 0) {
         uber->core.update_func = (int16) str_to_int(value, &value);
     }
@@ -166,7 +207,6 @@ int32 ui_attribute_type_to_id(const char* attribute_name) NO_EXCEPT
 
     size_t left = 0;
     size_t right = count;
-    size_t index = count;
 
     // Binary search for any entry starting with c
     // @performance If we ever make this a runtime function instead of build time we could heavily optimize this
@@ -189,7 +229,7 @@ int32 ui_attribute_type_to_id(const char* attribute_name) NO_EXCEPT
     }
 
     // Scan forward until the first character changes
-    for (size_t i = index;
+    for (size_t i = left;
         i < count &&
         attribute_string_type_map[i].name[0] == c;
         ++i
@@ -243,21 +283,39 @@ void ui_theme_assign_f32(f32* a, const UIAttribute* const attr)
     }
 }
 
+/**
+ * Converts the attribute value to a RGBA color
+ * Colors are parsed as v4_f32 (0.0 - 1.0) from the theme text file (@see ui_attribute_parse_value)
+ */
+inline
+uint32 ui_theme_color(const UIAttribute* const attr)
+{
+    if (attr->datatype == UI_ATTRIBUTE_DATA_TYPE_V4_F32) {
+        return ((uint32) (attr->value_v4_f32.r * 255.0f + 0.5f) << 24)
+            | ((uint32) (attr->value_v4_f32.g * 255.0f + 0.5f) << 16)
+            | ((uint32) (attr->value_v4_f32.b * 255.0f + 0.5f) << 8)
+            | (uint32) (attr->value_v4_f32.a * 255.0f + 0.5f);
+    }
+
+    return attr->value_uint;
+}
+
+// Themes define the raw values, the calculated values are created by ui_dimension_calculate()
 inline
 void ui_theme_assign_dimension(UIAttributeDimension* const dimension, const UIAttribute* const attr)
 {
     switch (attr->attribute_id) {
         case UI_ATTRIBUTE_TYPE_POSITION_X: {
-                ui_theme_assign_f32(&dimension->pos.x, attr);
+                ui_theme_assign_f32(&dimension->pos_raw.x, attr);
             } break;
         case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH: {
-                ui_theme_assign_f32(&dimension->dim.width, attr);
+                ui_theme_assign_f32(&dimension->dim_raw.x, attr);
             } break;
         case UI_ATTRIBUTE_TYPE_POSITION_Y: {
-                ui_theme_assign_f32(&dimension->pos.y, attr);
+                ui_theme_assign_f32(&dimension->pos_raw.y, attr);
             } break;
         case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
-                ui_theme_assign_f32(&dimension->dim.height, attr);
+                ui_theme_assign_f32(&dimension->dim_raw.y, attr);
             } break;
         default: {
             UNREACHABLE();
@@ -269,23 +327,17 @@ inline
 void ui_theme_assign_font(UIAttributeFont* const font, const UIAttribute* const attr)
 {
     switch (attr->attribute_id) {
-        case UI_ATTRIBUTE_TYPE_FONT_NAME: {
-                UNREACHABLE();
-            } break;
         case UI_ATTRIBUTE_TYPE_FONT_COLOR: {
-                font->color = attr->value_uint;
+                font->color = ui_theme_color(attr);
             } break;
         case UI_ATTRIBUTE_TYPE_FONT_SIZE: {
-                font->size = attr->value_float;
-            } break;
-        case UI_ATTRIBUTE_TYPE_FONT_WEIGHT: {
-                font->weight = attr->value_float;
+                ui_theme_assign_f32(&font->size, attr);
             } break;
         case UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT: {
-                font->line_height = attr->value_float;
+                ui_theme_assign_f32(&font->line_height, attr);
             } break;
         default: {
-            UNREACHABLE();
+            // @todo FONT_NAME, FONT_WEIGHT are not supported by the text rendering yet
         }
     }
 }

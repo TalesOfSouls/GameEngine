@@ -324,6 +324,113 @@ uint32 rawinput_init_controllers(
     return i;
 }
 
+////////////////////////////////////////////////////////////////
+// Text input
+////////////////////////////////////////////////////////////////
+// WARNING: Requires the virtual key codes (don't define NOVIRTUALKEYCODES before windows.h)
+
+// Maps non character keys that are relevant for text editing to InputTextControl values (0 = none)
+inline
+uint32 rawinput_key_to_text_control(byte vkey) NO_EXCEPT
+{
+    switch (vkey) {
+        case VK_LEFT: return INPUT_TEXT_LEFT;
+        case VK_RIGHT: return INPUT_TEXT_RIGHT;
+        case VK_UP: return INPUT_TEXT_UP;
+        case VK_DOWN: return INPUT_TEXT_DOWN;
+        case VK_HOME: return INPUT_TEXT_HOME;
+        case VK_END: return INPUT_TEXT_END;
+        case VK_DELETE: return INPUT_TEXT_DELETE;
+        case VK_BACK: return INPUT_TEXT_BACKSPACE; // e.g. ctrl + backspace doesn't create 0x08
+        default: return 0;
+    }
+}
+
+/**
+ * Converts a keyboard key event into text (@see InputState::text)
+ * MUST be called for every key down event (incl. key repeat) AFTER input_set_state() so that modifiers are known
+ * The key event itself doesn't need an active key slot -> text is never lost if many keys are pressed
+ *
+ * Only call this while typing (HOTKEY_CONTEXT_TYPING), the conversion is not free and may change the dead key state
+ *
+ * @return true if the key is a text key (the caller should set INPUT_KEY_FLAG_TEXT on the active key)
+ */
+inline
+bool input_text_add(InputState* const __restrict state, const InputKey* const __restrict key) NO_EXCEPT
+{
+    // Modifier state (e.g. shift, alt gr) for the character conversion
+    byte keyboard_state[256] = {0};
+    for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
+        const InputKey* const active = &state->active_keys[i];
+        if ((active->scan_code & INPUT_KEYBOARD_PREFIX)
+            && !(active->key_state & KEY_PRESS_TYPE_RELEASED)
+        ) {
+            keyboard_state[active->virtual_code & 0x00FF] = 0x80;
+        }
+    }
+
+    // Caps lock is a toggle and not part of the pressed keys
+    keyboard_state[VK_CAPITAL] = (byte) (GetKeyState(VK_CAPITAL) & 0x01);
+
+    const byte vkey = (byte) (key->virtual_code & 0x00FF);
+
+    // ctrl + alt = alt gr -> creates normal characters on many keyboard layouts
+    const bool shift = (keyboard_state[VK_SHIFT] & 0x80) != 0;
+    const bool ctrl = (keyboard_state[VK_CONTROL] & 0x80) && !(keyboard_state[VK_MENU] & 0x80);
+
+    uint32 code = key_to_unicode((byte) (key->scan_code & 0x00FF), vkey, keyboard_state);
+
+    if (ctrl) {
+        // ctrl + letter creates the control characters 0x01 - 0x1A
+        switch (code) {
+            case 0x01: code = INPUT_TEXT_SELECT_ALL; break;
+            case 0x03: code = INPUT_TEXT_COPY; break;
+            case 0x16: code = INPUT_TEXT_PASTE; break;
+            case 0x18: code = INPUT_TEXT_CUT; break;
+            default: {
+                // Other ctrl combinations are not text (e.g. ctrl + s = save hotkey)
+                // ctrl + backspace = 0x7F is handled as backspace below
+                if (code < 0x20 || code == 0x7F) {
+                    code = 0;
+                }
+            }
+        }
+    } else if (code < 0x20
+        && code != INPUT_TEXT_BACKSPACE && code != INPUT_TEXT_TAB
+        && code != INPUT_TEXT_ENTER && code != INPUT_TEXT_ESCAPE
+    ) {
+        // Control characters except the ones used for editing are not text
+        code = 0;
+    }
+
+    if (!code) {
+        code = rawinput_key_to_text_control(vkey);
+    }
+
+    // Modifiers for navigation/editing keys (e.g. shift + left = select, shift + tab = previous element)
+    if ((code >= INPUT_TEXT_LEFT && code <= INPUT_TEXT_END)
+        || code == INPUT_TEXT_BACKSPACE || code == INPUT_TEXT_DELETE || code == INPUT_TEXT_TAB
+    ) {
+        if (shift) {
+            code |= INPUT_TEXT_MOD_SHIFT;
+        }
+
+        if (ctrl) {
+            code |= INPUT_TEXT_MOD_CTRL;
+        }
+    }
+
+    if (!code) {
+        return false;
+    }
+
+    if (state->text_count < INPUT_TEXT_MAX_CODES) {
+        state->text[state->text_count++] = code;
+    }
+
+    return true;
+}
+
 static
 int16 input_raw_handle(
     const RAWINPUT* const __restrict raw,
@@ -349,7 +456,7 @@ int16 input_raw_handle(
         }
 
         if (raw->data.mouse.usButtonFlags) {
-            InputKey key;
+            InputKey key = {};
 
             if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) {
                 key.key_state = KEY_PRESS_TYPE_PRESSED;
@@ -437,7 +544,7 @@ int16 input_raw_handle(
                 SMN(scan_code) INPUT_MOUSE_PREFIX | INPUT_MOUSE_MOVE,
                 SMN(virtual_code) 0,
                 SMN(key_state) KEY_PRESS_TYPE_RELEASED,
-                SMN(is_processed) false,
+                SMN(flags) 0,
                 SMN(value) 0,
                 SMN(time) time
             };
@@ -478,15 +585,27 @@ int16 input_raw_handle(
 
         ++input_count;
 
-        // @todo we need to support vkey and MakeCode/ScanCode for input mode -> typing and recognizing the respective unicode
+        Input* const input = &states[input_handle.vec[0]];
+
         const InputKey key = {
             (uint16) (raw->data.keyboard.MakeCode | INPUT_KEYBOARD_PREFIX),
             (uint16) (raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX),
-            new_state, false, 0, time
+            new_state, 0, 0, time
         };
 
-        input_set_state(states[input_handle.vec[0]].state.active_keys, &key);
-        states[input_handle.vec[0]].general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
+        InputKey* const active_key = input_set_state(input->state.active_keys, &key);
+        input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
+
+        // Text is created directly from the key event (also for OS key repeat events)
+        // -> every event produces text exactly once, independent from the frame rate
+        // Text keys don't trigger hotkeys while typing (@see INPUT_KEY_FLAG_TEXT)
+        if (new_state == KEY_PRESS_TYPE_PRESSED
+            && (input->context & HOTKEY_CONTEXT_TYPING)
+            && input_text_add(&input->state, &key)
+            && active_key
+        ) {
+            active_key->flags |= INPUT_KEY_FLAG_TEXT;
+        }
     } else if (raw->header.dwType == RIM_TYPEHID
         && raw->header.dwSize > sizeof(RAWINPUT)
     ) {

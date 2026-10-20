@@ -36,7 +36,11 @@ UILayout* cmd_layout_load_sync(
         return NULL;
     }
 
-    layout_from_data(layout_file.content, layout);
+    if (layout_from_data(layout_file.content, layout) < 0) {
+        // e.g. layout file was created with an older layout version -> needs to be rebuilt
+        LOG_1("[WARNING] Incompatible layout file");
+        return NULL;
+    }
 
     return layout;
 }

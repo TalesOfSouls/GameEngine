@@ -3,18 +3,12 @@
 #define COMS_UI_CUSTOM_H
 
 #include "../stdlib/Stdlib.h"
-#include "attribute/UIAttribute.h"
-#include "attribute/UIAttributeDimension.h"
-#include "UIStyleType.h"
-#include "UILayout.h"
+#include "UICore.h"
 
-struct UICustomState {
-};
-
-// Very basic custom element that only must have dimension information
-// All other information must be defined programatically
+// Very basic custom element that only has the core data
+// Rendering and updating is handled by callbacks (@see UICore::render_func, UICore::update_func)
 struct UICustom {
-    UIAttributeDimension dimension;
+    UICore core;
 };
 
 #endif
