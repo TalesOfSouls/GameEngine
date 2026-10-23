@@ -75,7 +75,6 @@ int32 ui_element_type_size(UIElementType e) NO_EXCEPT
 }
 
 // WARNING: The order matters since we only compare the prefix (e.g. textarea before text)
-static
 int32 ui_element_type_to_id(const char* str) NO_EXCEPT
 {
     if (strncmp("button", str, sizeof("button") - 1) == 0) {

@@ -10,6 +10,14 @@
 #include <mmeapi.h>
 #include <dsound.h>
 
+#ifdef NOCTLMGR
+    #error "NOCTLMGR Must not be defined"
+#endif
+
+#ifdef NOGDI
+    #error "NOGDI Must not be defined"
+#endif
+
 struct DirectSoundSetting {
     LPDIRECTSOUND8 direct_sound_handle;
     LPDIRECTSOUNDBUFFER primary_buffer;

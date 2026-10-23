@@ -89,6 +89,9 @@ struct CmdLayoutBody {
     wchar_t layout_path[64];
     wchar_t theme_path[64];
 
+    // empty = default language
+    wchar_t language[6];
+
     UILayout* layout;
     UITheme* theme;
 

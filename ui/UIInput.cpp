@@ -6,6 +6,7 @@
 #include "../gpuapi/RenderUtils.h"
 #include "../camera/Camera.cpp"
 #include "../input/Input.h"
+#include "../system/Clipboard.h"
 #include "attribute/UIAttributeDimension.cpp"
 #include "attribute/UIAttributeBorder.cpp"
 #include "UIAlignment.h"
@@ -394,32 +395,28 @@ int32 ui_input_insert(
 // Clipboard
 ////////////////////////////////////////////////////////////////
 
-// The clipboard is provided by the platform layer (@see UILayout::clipboard_set)
+// The clipboard functions come from the platform layer (@see system/Clipboard.h)
 inline
-void ui_input_copy(const UILayout* const layout, const UIInput* const input, const char* const text) NO_EXCEPT
+void ui_input_copy(const UIInput* const input, const char* const text) NO_EXCEPT
 {
-    if (!layout->clipboard_set || !ui_input_has_selection(input)) {
+    if (!ui_input_has_selection(input)) {
         return;
     }
 
     int32 start, end;
     ui_input_selection(input, &start, &end);
 
-    layout->clipboard_set(text + start, end - start);
+    clipboard_set(text + start, end - start);
 }
 
 /**
  * @return Inserted bytes
  */
 inline
-int32 ui_input_paste(const UILayout* const layout, UIInput* const input, char* const text, int32* const length) NO_EXCEPT
+int32 ui_input_paste(UIInput* const input, char* const text, int32* const length) NO_EXCEPT
 {
-    if (!layout->clipboard_get) {
-        return 0;
-    }
-
     char clipboard[UI_INPUT_PASTE_MAX];
-    const int32 clipboard_length = layout->clipboard_get(clipboard, (int32) sizeof(clipboard));
+    const int32 clipboard_length = clipboard_get(clipboard, (int32) sizeof(clipboard));
 
     if (clipboard_length <= 0) {
         return 0;
@@ -763,17 +760,17 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
             input->caret = length;
         } break;
         case INPUT_TEXT_COPY: {
-            ui_input_copy(layout, input, text);
+            ui_input_copy(input, text);
         } break;
         case INPUT_TEXT_CUT: {
-            ui_input_copy(layout, input, text);
+            ui_input_copy(input, text);
             text_changed = ui_input_delete_selection(input, text, &length);
         } break;
         case INPUT_TEXT_PASTE: {
             const int32 old_length = length;
 
             // Replaces the selection if the clipboard contains text
-            text_changed = ui_input_paste(layout, input, text, &length) > 0 || length != old_length;
+            text_changed = ui_input_paste(input, text, &length) > 0 || length != old_length;
         } break;
         case INPUT_TEXT_ENTER: {
             if (!multiline) {
@@ -785,7 +782,7 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
             }
 
             code = '\n';
-        } [[fallthrough]];
+        } FALLTHROUGH;
         default: {
             // Ignore all other control characters and codes (e.g. tab, escape)
             if ((code < 0x20 && code != '\n') || code >= 0x110000 || code == 0x7F) {
@@ -838,6 +835,8 @@ void ui_input_cache(
     BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_INPUT);
+
     ui_dimension_calculate(layout, &input->core);
     const UIAttributeDimension* const dim = &input->core.dimension;
     const v4_f32 rect = ui_dimension_rect(dim);

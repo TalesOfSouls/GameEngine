@@ -35,6 +35,8 @@ UICursor* ui_cursor_create(UILayout* const layout, UICore* parent = NULL) NO_EXC
 
 void ui_cursor_cache(UICursor* const cursor, UILayout* const layout) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_CURSOR);
+
     ui_dimension_calculate(layout, &cursor->core, {(f32) cursor->image.width, (f32) cursor->image.height});
 
     if (cursor->image.sampler) {

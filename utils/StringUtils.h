@@ -1922,7 +1922,7 @@ int32 str_compare_caseless(const char* str1, const char* str2, size_t n) NO_EXCE
 }
 
 inline CONSTEXPR
-bool str_ends_with(const char* __restrict str, const char* __restrict suffix) NO_EXCEPT
+bool str_ends_with(const char* const __restrict str, const char* __restrict suffix) NO_EXCEPT
 {
     if (!str || !suffix) {
         return false;
@@ -1936,6 +1936,23 @@ bool str_ends_with(const char* __restrict str, const char* __restrict suffix) NO
     }
 
     return strncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
+}
+
+inline CONSTEXPR
+bool str_ends_with(const wchar_t* __restrict str, const wchar_t* __restrict suffix) NO_EXCEPT
+{
+    if (!str || !suffix) {
+        return false;
+    }
+
+    const size_t str_len = wcslen(str);
+    const size_t suffix_len = wcslen(suffix);
+
+    if (suffix_len > str_len) {
+        return false;
+    }
+
+    return wcsncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
 }
 
 // WARNING: result needs to have the correct length
@@ -2164,6 +2181,12 @@ void str_skip_whitespace(const char** str) NO_EXCEPT
     while (**str && (**str == ' ' || **str == '\t'))  {
         ++(*str);
     }
+}
+
+FORCE_INLINE
+bool str_is_space(const char str) NO_EXCEPT
+{
+    return str == ' ' || str == '\t' || str == '\r';
 }
 
 FORCE_INLINE

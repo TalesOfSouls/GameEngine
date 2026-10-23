@@ -460,6 +460,8 @@ void ui_select_cache(
     BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_SELECT);
+
     ui_dimension_calculate(layout, &select->core);
     const UIAttributeDimension* const dim = &select->core.dimension;
     const v4_f32 rect = ui_dimension_rect(dim);
@@ -526,6 +528,8 @@ void ui_option_list_cache(
     BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_OPTION_LIST);
+
     const UISelect* const select = ui_option_list_select(layout, list);
     const f32 row_height = ui_select_row_height(select);
     const int32 count = ui_select_filtered_count(layout, select);

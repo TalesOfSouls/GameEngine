@@ -72,6 +72,8 @@ struct SystemInfo {
 enum RamChannelType : byte {
     RAM_CHANNEL_TYPE_FAILED,
     RAM_CHANNEL_TYPE_SINGLE_CHANNEL,
+
+    // Multiple modules but all of them in the same channel (another slot would enable dual channel)
     RAM_CHANNEL_TYPE_CAN_UPGRADE,
     RAM_CHANNEL_TYPE_DUAL_CHANNEL,
 };

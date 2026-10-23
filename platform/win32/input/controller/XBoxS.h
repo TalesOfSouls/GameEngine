@@ -81,10 +81,10 @@ void input_map_xboxs(
     ++data;
 
     // --- Triggers ---
-    controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = *data++;
+    controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = (int8) (*data++ >> 1); // 0 - 255 -> 0 - 127
     controller->is_analog[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = true;
 
-    controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = *data++;
+    controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = (int8) (*data++ >> 1); // 0 - 255 -> 0 - 127
     controller->is_analog[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = true;
 
     // --- No gyro on Xbox controllers ---

@@ -8,13 +8,9 @@
 #define COMS_SOUND_WASAPI_C
 
 #include <windows.h>
-#include "Wasapi.h"
 #include <mmdeviceapi.h>
-#include <endpointvolume.h>
-#include <commdlg.h>
-#include <stdio.h>
-#include "../../../system/Library.h"
-#include "../../../system/Library.cpp"
+#include <audioclient.h>
+#include "Wasapi.h"
 
 #include "../../../stdlib/Stdlib.h"
 #include "../../../audio/AudioSetting.h"
@@ -23,37 +19,54 @@
 
 #include "../libs/ole32.h"
 
-//#pragma comment(lib, "avrt.lib")
+// NOTE: WASAPI is a pure COM API. The device enumerator, device and audio client functions are
+//      interface (vtable) methods and NOT dll exports. That's why we don't load any wasapi dll.
+//      The only dll function we need is CoCreateInstance (ole32), which is dynamically loaded in ole32.h
+static int _wasapi_ref_count = 0;
 
-// BEGIN: Dynamically load DirectSound
-typedef HRESULT (WINAPI *IMMDeviceEnumerator_GetDefaultAudioEndpoint_t)(IMMDeviceEnumerator*, EDataFlow, ERole, IMMDevice**);
-typedef HRESULT (WINAPI *IMMDevice_Activate_t)(IMMDevice*, REFIID, DWORD, PROPVARIANT*, void**);
-
-typedef HRESULT (WINAPI *IAudioClient_GetMixFormat_t)(IAudioClient*, WAVEFORMATEX**);
-typedef HRESULT (WINAPI *IAudioClient_Initialize_t)(IAudioClient*, AUDCLNT_SHAREMODE, DWORD, REFERENCE_TIME, REFERENCE_TIME, WAVEFORMATEX*, void*);
-typedef HRESULT (WINAPI *IAudioClient_Start_t)(IAudioClient*);
-typedef HRESULT (WINAPI *IAudioClient_Stop_t)(IAudioClient*);
-typedef HRESULT (WINAPI *IAudioClient_GetService_t)(IAudioClient*, REFIID, void**);
-
-static IMMDeviceEnumerator_GetDefaultAudioEndpoint_t IMMDeviceEnumerator_GetDefaultAudioEndpoint = NULL;
-static IMMDevice_Activate_t IMMDevice_Activate = NULL;
-static IAudioClient_GetMixFormat_t pIAudioClient_GetMixFormat = NULL;
-static IAudioClient_Initialize_t pIAudioClient_Initialize = NULL;
-static IAudioClient_Start_t pIAudioClient_Start = NULL;
-static IAudioClient_Stop_t pIAudioClient_Stop = NULL;
-static IAudioClient_GetService_t pIAudioClient_GetService = NULL;
-
-static LibraryHandle _mmdevapi_lib;
-static LibraryHandle _audioclient_lib;
-
-static int _mmdevapi_lib_ref_count = 0;
-static int _audioclient_lib_ref_count = 0;
-// END: Dynamically load DirectSound
+// REFERENCE_TIME is in 100ns units
+#define WASAPI_REFTIMES_PER_SEC 10000000
 
 static inline
-bool wasapi_settings_load(WasapiSetting* const __restrict api_setting) {
-    IMMDeviceEnumerator* enumerator;
-    IMMDevice* device;
+void wasapi_settings_free(WasapiSetting* const __restrict api_setting) NO_EXCEPT
+{
+    if (api_setting->wasapi_handle) {
+        api_setting->wasapi_handle->Stop();
+    }
+
+    if (api_setting->render_client) {
+        api_setting->render_client->Release();
+        api_setting->render_client = NULL;
+    }
+
+    if (api_setting->wasapi_handle) {
+        api_setting->wasapi_handle->Release();
+        api_setting->wasapi_handle = NULL;
+    }
+
+    api_setting->buffer_frame_count = 0;
+
+    if (api_setting->com_initialized) {
+        OLE32_CoUninitialize();
+        api_setting->com_initialized = false;
+    }
+}
+
+static inline
+bool wasapi_settings_load(
+    const AudioSetting* const __restrict setting,
+    WasapiSetting* const __restrict api_setting
+) NO_EXCEPT
+{
+    // COM must be initialized on the thread that uses WASAPI (= the audio thread, not the main thread)
+    // S_FALSE = already initialized on this thread (still needs a matching CoUninitialize)
+    // RPC_E_CHANGED_MODE = already initialized with a different mode (usable, but no CoUninitialize)
+    // WARNING: Requires a successful ole32_init() (see *_load())
+    const HRESULT hr_com = OLE32_CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    api_setting->com_initialized = SUCCEEDED(hr_com);
+
+    IMMDeviceEnumerator* enumerator = NULL;
+    IMMDevice* device = NULL;
 
     HRESULT hr = OLE32_CoCreateInstance(
         __uuidof(MMDeviceEnumerator),
@@ -64,86 +77,108 @@ bool wasapi_settings_load(WasapiSetting* const __restrict api_setting) {
     );
 
     if (FAILED(hr)) {
-        LOG_1("[ERROR] Wasapi: Wasapi CreateInstance failed");
+        LOG_1("[ERROR] Wasapi: CreateInstance failed");
+        wasapi_settings_free(api_setting);
 
         return false;
     }
 
-    hr  = IMMDeviceEnumerator_GetDefaultAudioEndpoint(enumerator, eRender, eConsole, &device);
-    if (FAILED(hr)) {
-        LOG_1("[ERROR] Wasapi: Wasapi DefaultAudioEndpoint failed");
-
-        enumerator->Release();
-
-        return false;
-    }
-
-    hr = IMMDevice_Activate(device, __uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **) &api_setting->wasapi_handle);
-    if (FAILED(hr)) {
-        LOG_1("[ERROR] Wasapi: Wasapi DeviceActivate failed");
-
-        device->Release();
-        enumerator->Release();
-
-        return false;
-    }
-
-    device->Release();
+    hr = enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &device);
     enumerator->Release();
 
-    // Initializing the audio client
-    WAVEFORMATEX *pwfx = NULL;
-    api_setting->wasapi_handle->GetMixFormat(&pwfx);
-    api_setting->wasapi_handle->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, 0, 0, pwfx, NULL);
-    api_setting->wasapi_handle->GetService(__uuidof(IAudioRenderClient), (void **) &api_setting->render_client);
+    if (FAILED(hr)) {
+        LOG_1("[ERROR] Wasapi: DefaultAudioEndpoint failed");
+        wasapi_settings_free(api_setting);
+
+        return false;
+    }
+
+    hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **) &api_setting->wasapi_handle);
+    device->Release();
+
+    if (FAILED(hr)) {
+        LOG_1("[ERROR] Wasapi: DeviceActivate failed");
+        api_setting->wasapi_handle = NULL;
+        wasapi_settings_free(api_setting);
+
+        return false;
+    }
+
+    // We provide the same format as our mixer output (16 bit stereo PCM)
+    // The device mix format is usually 32 bit float (and maybe a different sample rate/channel count)
+    // -> We let WASAPI convert it for us (AUTOCONVERTPCM + SRC_DEFAULT_QUALITY)
+    WAVEFORMATEX wf = {
+        WAVE_FORMAT_PCM, // .wFormatTag =
+        2, // .nChannels =
+        setting->sample_rate, // .nSamplesPerSec =
+        (DWORD) (setting->sample_rate * 4), // .nAvgBytesPerSec =
+        (WORD) 4, // .nBlockAlign =
+        16, // .wBitsPerSample =
+        0
+    };
+
+    // We poll the buffer from the audio thread -> no AUDCLNT_STREAMFLAGS_EVENTCALLBACK
+    // (event callback requires SetEventHandle(), otherwise Start() fails)
+    // The buffer must be able to hold at least 2x our latency so we can stay "latency" ahead of the device
+    const REFERENCE_TIME buffer_duration = (REFERENCE_TIME) WASAPI_REFTIMES_PER_SEC * 2 * setting->latency / setting->sample_rate;
+
+    hr = api_setting->wasapi_handle->Initialize(
+        AUDCLNT_SHAREMODE_SHARED,
+        AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
+        buffer_duration,
+        0,
+        &wf,
+        NULL
+    );
+
+    if (FAILED(hr)) {
+        LOG_1("[ERROR] Wasapi: Initialize failed");
+        wasapi_settings_free(api_setting);
+
+        return false;
+    }
+
+    hr = api_setting->wasapi_handle->GetBufferSize(&api_setting->buffer_frame_count);
+    if (FAILED(hr)) {
+        LOG_1("[ERROR] Wasapi: GetBufferSize failed");
+        wasapi_settings_free(api_setting);
+
+        return false;
+    }
+
+    hr = api_setting->wasapi_handle->GetService(__uuidof(IAudioRenderClient), (void **) &api_setting->render_client);
+    if (FAILED(hr)) {
+        LOG_1("[ERROR] Wasapi: GetService failed");
+        api_setting->render_client = NULL;
+        wasapi_settings_free(api_setting);
+
+        return false;
+    }
 
     return true;
 }
 
-bool wasapi_load(WasapiSetting* const __restrict api_setting) {
+bool wasapi_load(
+    const AudioSetting* const __restrict setting,
+    WasapiSetting* const __restrict api_setting
+) NO_EXCEPT
+{
     LOG_1("[INFO] Load audio API WASAPI");
 
-    if (_mmdevapi_lib && _audioclient_lib) {
-        wasapi_settings_load(api_setting);
-        ++_mmdevapi_lib;
-        ++_audioclient_lib;
-        return true;
-    }
-
-    bool success = library_dyn_load(&_mmdevapi_lib, L"mmdevapi.dll");
-    if (!success) {
+    // Ensures OLE32_CoCreateInstance/OLE32_CoInitializeEx are available
+    if (!ole32_init()) {
         return false;
     }
 
-    IMMDeviceEnumerator_GetDefaultAudioEndpoint = (IMMDeviceEnumerator_GetDefaultAudioEndpoint_t) library_dyn_proc(_mmdevapi_lib, "IMMDeviceEnumerator_GetDefaultAudioEndpoint");
-    IMMDevice_Activate = (IMMDevice_Activate_t) library_dyn_proc(_mmdevapi_lib, "IMMDevice_Activate");
-    if (!IMMDeviceEnumerator_GetDefaultAudioEndpoint || !IMMDevice_Activate) {
+    if (!wasapi_settings_load(setting, api_setting)) {
+        ole32_free();
+
         return false;
     }
 
-    success = library_dyn_load(&_audioclient_lib, L"audioclient.dll");
-    if (!success) {
-        return false;
-    }
+    ++_wasapi_ref_count;
 
-    pIAudioClient_GetMixFormat = (IAudioClient_GetMixFormat_t) library_dyn_proc(_audioclient_lib, "IAudioClient_GetMixFormat");
-    pIAudioClient_Initialize = (IAudioClient_Initialize_t) library_dyn_proc(_audioclient_lib, "IAudioClient_Initialize");
-    pIAudioClient_Start = (IAudioClient_Start_t) library_dyn_proc(_audioclient_lib, "IAudioClient_Start");
-    pIAudioClient_Stop = (IAudioClient_Stop_t) library_dyn_proc(_audioclient_lib, "IAudioClient_Stop");
-    pIAudioClient_GetService = (IAudioClient_GetService_t) library_dyn_proc(_audioclient_lib, "IAudioClient_GetService");
-    if (!pIAudioClient_GetMixFormat
-        || !pIAudioClient_Initialize
-        || !pIAudioClient_Start
-        || !pIAudioClient_Stop
-        || !pIAudioClient_GetService
-    ) {
-        return false;
-    }
-
-    ++_mmdevapi_lib_ref_count;
-    ++_audioclient_lib_ref_count;
-
-    return wasapi_settings_load(api_setting);
+    return true;
 }
 
 inline
@@ -163,58 +198,93 @@ void wasapi_stop(WasapiSetting* __restrict api_setting) NO_EXCEPT
 inline
 void wasapi_free(WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
-    if (_mmdevapi_lib_ref_count > 1 && _audioclient_lib_ref_count > 1) {
-        --_mmdevapi_lib_ref_count;
-        --_audioclient_lib_ref_count;
+    // Every audio setting has its own audio client -> always release it
+    wasapi_settings_free(api_setting);
+    ole32_free();
 
-        return;
+    if (_wasapi_ref_count > 0) {
+        --_wasapi_ref_count;
     }
-
-    if (!api_setting->render_client) {
-        api_setting->render_client->Release();
-    }
-
-    if (!api_setting->wasapi_handle) {
-        api_setting->wasapi_handle->Release();
-    }
-
-    library_dyn_unload(&_audioclient_lib);
-    library_dyn_unload(&_mmdevapi_lib);
-
-    --_mmdevapi_lib_ref_count;
-    --_audioclient_lib_ref_count;
-
 }
 
+/**
+ * Calculates the bytes to generate for the buffer
+ *
+ * We try to stay "latency" samples ahead of the device
+ */
 inline
-uint32 wasapi_buffer_fillable(const WasapiSetting* __restrict api_setting) NO_EXCEPT
+uint32 wasapi_buffer_fillable(const AudioSetting* __restrict setting, const WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_AUDIO_BUFFER_FILLABLE);
-    if (!api_setting->wasapi_handle) {
+    if (!api_setting->wasapi_handle || !api_setting->render_client) {
         return 0;
     }
 
-    uint32 buffer_frame_count;
-    api_setting->wasapi_handle->GetBufferSize(&buffer_frame_count);
-
     uint32 frames_padding;
-    api_setting->wasapi_handle->GetCurrentPadding(&frames_padding);
+    if (FAILED(api_setting->wasapi_handle->GetCurrentPadding(&frames_padding))) {
+        return 0;
+    }
 
-    return buffer_frame_count - frames_padding;
+    // Padding = frames that are queued but not yet played
+    const uint32 target_frames = OMS_MIN((uint32) setting->latency, api_setting->buffer_frame_count);
+    if (frames_padding >= target_frames) {
+        return 0;
+    }
+
+    uint32 frames = target_frames - frames_padding;
+
+    // Our mixer buffer can only hold buffer_size bytes
+    frames = OMS_MIN(frames, setting->buffer_size / setting->sample_size);
+
+    // The mixer works in bytes, NOT in frames
+    return frames * setting->sample_size;
 }
 
 inline
 void wasapi_play_buffer(AudioSetting* __restrict setting, WasapiSetting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_AUDIO_PLAY_BUFFER);
-    if (!api_setting->wasapi_handle || setting->sample_buffer_size == 0) {
+    if (!api_setting->render_client || setting->sample_buffer_size == 0) {
         return;
     }
 
-    byte* buffer;
-    api_setting->render_client->GetBuffer(setting->sample_buffer_size / setting->sample_size, (byte **) &buffer);
+    const uint32 frames = setting->sample_buffer_size / setting->sample_size;
+    setting->sample_buffer_size = 0;
 
-    memcpy(buffer, setting->buffer, setting->sample_buffer_size);
+    byte* buffer;
+    if (FAILED(api_setting->render_client->GetBuffer(frames, &buffer))) {
+        // E.g. AUDCLNT_E_BUFFER_TOO_LARGE if the device consumed less than expected
+        return;
+    }
+
+    memcpy(buffer, setting->buffer, frames * setting->sample_size);
+
+    // Without releasing the buffer nothing is ever played
+    api_setting->render_client->ReleaseBuffer(frames, 0);
+}
+
+/**
+ * Frames that are queued but not played yet + the latency of the audio stream (= delay of the audio that is mixed now)
+ */
+inline
+uint32 wasapi_buffer_delay(const AudioSetting* __restrict setting, const WasapiSetting* __restrict api_setting) NO_EXCEPT
+{
+    if (!api_setting->wasapi_handle) {
+        return 0;
+    }
+
+    uint32 frames_padding;
+    if (FAILED(api_setting->wasapi_handle->GetCurrentPadding(&frames_padding))) {
+        return 0;
+    }
+
+    // Latency of the stream in 100 ns units (e.g. the device period)
+    REFERENCE_TIME stream_latency;
+    if (FAILED(api_setting->wasapi_handle->GetStreamLatency(&stream_latency))) {
+        stream_latency = 0;
+    }
+
+    return frames_padding + (uint32) ((uint64) stream_latency * setting->sample_rate / 10000000ULL);
 }
 
 #endif

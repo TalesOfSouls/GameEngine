@@ -9,6 +9,7 @@
 
 #include "ThreadPool.h"
 #include "../memory/MPMCQueueT.cpp"
+#include "../memory/ThrdChunkMemory.cpp"
 
 // Notifies the thread pool that a worker is about to become idle
 static FORCE_INLINE

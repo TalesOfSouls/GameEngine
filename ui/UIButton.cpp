@@ -45,6 +45,8 @@ void ui_button_cache(
     f32* const zindex
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_BUTTON);
+
     // Without a defined dimension the button uses the image size
     const v2_f32 content_dim = button->image.sampler
         ? v2_f32{(f32) button->image.width, (f32) button->image.height}

@@ -141,6 +141,14 @@ Asset* cmd_texture_atlas_load(
     int_to_hex(asset_id, id_str);
     PROFILE_DEBUG(PROFILE_CMD_ASSET_LOAD_SYNC, id_str, PROFILE_FLAG_SHOULD_LOG);
 
+    // Already loaded -> already set up (the setup below must only happen once, e.g. the coordinates are flipped)
+    Asset* const loaded = ams_asset_get_wait(ams, id_str);
+    if (loaded) {
+        loaded->state &= ~ASSET_MEMORY_STATE_RAM_GC;
+
+        return loaded;
+    }
+
     // Load asset if not loaded
     Asset* const asset = asset_archive_asset_load(
         &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],

@@ -28,6 +28,18 @@ UICore* ui_element_get(const UILayout* const layout, int32 offset) NO_EXCEPT
     return (UICore *) (layout->ui_element_buffer.memory + offset);
 }
 
+/**
+ * The output of the element changed -> re-cache
+ * Needed for custom elements (UI_ELEMENT_TYPE_CUSTOM) whose content comes from outside of the ui
+ * (e.g. a chart of external data), normal elements do this in their setters (e.g. ui_label_set_text)
+ */
+FORCE_INLINE
+void ui_element_mark_changed(UILayout* const layout, UICore* const element) NO_EXCEPT
+{
+    element->change_type |= UI_ELEMENT_CHANGE_CONTENT;
+    layout->dirty = true;
+}
+
 FORCE_INLINE
 int32 ui_element_offset(const UILayout* const layout, const void* const element) NO_EXCEPT
 {

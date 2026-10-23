@@ -9,7 +9,7 @@
 
 #include "../stdlib/Stdlib.h"
 
-enum ControllerButton {
+enum ControllerButton : byte {
     CONTROLLER_BUTTON_STICK_LEFT_BUTTON,
     CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL,
     CONTROLLER_BUTTON_STICK_LEFT_VERTICAL,

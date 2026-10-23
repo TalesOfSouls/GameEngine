@@ -46,7 +46,7 @@ void audio_load(
                 }
             } break;
             case SOUND_API_TYPE_WASAPI: {
-                success = wasapi_load(&api_setting->wasapi_setting);
+                success = wasapi_load(setting, &api_setting->wasapi_setting);
                 if (!success) {
                     setting->type = SOUND_API_TYPE_XAUDIO2;
                     LOG_1("[WARNING] Failed loading WASAPI");
@@ -93,7 +93,7 @@ uint32 audio_buffer_fillable(
             return xaudio2_buffer_fillable(setting, &api_setting->xaudio2_setting);
         } break;
         case SOUND_API_TYPE_WASAPI: {
-            return wasapi_buffer_fillable(&api_setting->wasapi_setting);
+            return wasapi_buffer_fillable(setting, &api_setting->wasapi_setting);
         } break;
         default:
             UNREACHABLE();
@@ -119,6 +119,42 @@ void audio_play_buffer(
         default:
             UNREACHABLE();
     }
+}
+
+/**
+ * Get delay of the buffer in sample rate
+ */
+inline
+uint32 audio_buffer_delay(
+    const AudioSetting* const __restrict setting,
+    const ApiAudioSetting* const __restrict api_setting
+) NO_EXCEPT
+{
+    switch (setting->type) {
+        case SOUND_API_TYPE_DIRECT_SOUND: {
+            return direct_sound_buffer_delay(setting, &api_setting->direct_sound_setting);
+        } break;
+        case SOUND_API_TYPE_XAUDIO2: {
+            return xaudio2_buffer_delay(&api_setting->xaudio2_setting);
+        } break;
+        case SOUND_API_TYPE_WASAPI: {
+            return wasapi_buffer_delay(setting, &api_setting->wasapi_setting);
+        } break;
+        default:
+            UNREACHABLE();
+    }
+}
+
+// Get delay oof the buffer in microseconds
+FORCE_INLINE
+int64 audio_buffer_delay_us(
+    const AudioSetting* const __restrict setting,
+    const ApiAudioSetting* const __restrict api_setting
+) NO_EXCEPT
+{
+    return setting->sample_rate
+        ? (int64) audio_buffer_delay(setting, api_setting) * 1000000 / setting->sample_rate
+        : 0;
 }
 
 inline

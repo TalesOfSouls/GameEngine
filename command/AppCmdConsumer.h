@@ -214,7 +214,7 @@ bool cmd_execute(AppCmdBuffer* const cb, AppCommand* cmd) NO_EXCEPT
                 completed = cmd_shader_load(cb, cmd) != NULL;
             } break;
         case CMD_UI_LOAD: {
-                cmd_ui_load(cb->mem, cmd);
+                cmd_ui_load(cb, cmd);
             } break;
         case CMD_GROUP_ASYNC: {
                 // @question Shouldn't this "container" function run in its own thread?

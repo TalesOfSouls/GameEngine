@@ -27,7 +27,8 @@ void thrd_cmd_ui_load(
     UILayout* const __restrict layout,
     UITheme* const __restrict theme,
     GpuApiType gpu_api_type,
-    AppCommandFunction callback
+    AppCommandFunction callback,
+    const wchar_t* const language_code = NULL
 ) NO_EXCEPT
 {
     AppCommand cmd = {0};
@@ -39,6 +40,10 @@ void thrd_cmd_ui_load(
 
     wcscpy(cmd.layout_body.layout_path, layout_path);
     wcscpy(cmd.layout_body.theme_path, theme_path);
+
+    if (language_code) {
+        wcsncpy(cmd.layout_body.language, language_code, ARRAY_COUNT(cmd.layout_body.language) - 1);
+    }
 
     cmd.layout_body.general_theme = general_theme;
 

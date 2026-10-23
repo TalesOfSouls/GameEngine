@@ -9,6 +9,7 @@
 #include "tests/memory/BufferMemoryTest.cpp"
 #include "tests/memory/QueueTest.cpp"
 #include "tests/stdlib/HashMapTest.cpp"
+#include "tests/localization/LanguageTest.cpp"
 #include "tests/ui/UILayoutTest.cpp"
 #include "tests/ui/UIThemeTest.cpp"
 #include "tests/utils/BitUtilsTest.cpp"
@@ -39,8 +40,9 @@ int main() {
     MemoryBufferMemoryTest();
     QueueTest();
     StdlibHashMapTest();
-    //UIUILayoutTest();
-    //UIUIThemeTest();
+    LocalizationLanguageTest();
+    UIUILayoutTest();
+    UIUIThemeTest();
     UtilsBitUtilsTest();
     UtilsEndianUtilsTest();
     UtilsStringUtilsTest();

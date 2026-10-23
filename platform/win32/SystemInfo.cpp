@@ -27,7 +27,6 @@
 #include <oleauto.h>
 
 #include "libs/ole32.h"
-//#include "libs/cfgmgr32.h"
 #include "libs/setupapi.h"
 #include "libs/iphlpapi.h"
 #include "libs/wbemuuid.h"
@@ -35,12 +34,12 @@
 #include "libs/hid.h"
 
 #include <intrin.h>
-//#pragma comment(lib, "wbemuuid.lib")
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "Ws2_32.lib")
-//#pragma comment(lib, "cfgmgr32.lib")
 #pragma comment(lib, "ntdll.lib")
+
+// @question can we remove this and make it manual loaded?
 #pragma comment(lib, "oleaut32.lib")
 
 f64 system_cpu_benchmark(int iterations)
@@ -496,87 +495,167 @@ void ram_info_get(RamInfo* const info) {
     info->memory = (uint32) (statex.ullTotalPhys / (1024 * 1024));
 }
 
-RamChannelType ram_channel_info() {
-    IWbemLocator* pLoc = NULL;
-    HRESULT hres = OLE32_CoCreateInstance(WBEMUUID_CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, WBEMUUID_IID_IWbemLocator, (LPVOID *)&pLoc);
-    if (FAILED(hres)) {
-
-        return RAM_CHANNEL_TYPE_FAILED;
+/**
+ * Memory channel of a ram module from its WMI description, e.g.
+ *      BankLabel:      "P0 CHANNEL A", "CHANNEL B"
+ *      DeviceLocator:  "ChannelA-DIMM0", "DIMM_A1", "DIMMB2"
+ *
+ * @return Channel letter ('A', 'B', ...), 0 = unknown
+ */
+static inline
+wchar_t ram_module_channel(const wchar_t* str) NO_EXCEPT
+{
+    if (!str) {
+        return 0;
     }
 
-    IWbemServices* pSvc = NULL;
-    BSTR ns = SysAllocString(L"ROOT\\CIMV2");
-    hres = pLoc->ConnectServer(ns, NULL, NULL, 0, NULL, 0, 0, &pSvc);
-    if (FAILED(hres)) {
-        pLoc->Release();
-        SysFreeString(ns);
+    for (; *str; ++str) {
+        // "CHANNEL X", "Channel_X", "ChannelX"
+        const wchar_t* channel = L"CHANNEL";
+        const wchar_t* pos = str;
+        while (*channel && (*pos == *channel || *pos == *channel + (L'a' - L'A'))) {
+            ++pos;
+            ++channel;
+        }
 
-        return RAM_CHANNEL_TYPE_FAILED;
-    }
-
-    hres = OLE32_CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
-    if (FAILED(hres)) {
-        pSvc->Release();
-        pLoc->Release();
-        SysFreeString(ns);
-
-        return RAM_CHANNEL_TYPE_FAILED;
-    }
-
-    IEnumWbemClassObject* enumerator = NULL;
-    BSTR queryLanguage = SysAllocString(L"WQL");
-    BSTR query = SysAllocString(L"SELECT * FROM Win32_PhysicalMemory");
-
-    hres = pSvc->ExecQuery(queryLanguage, query, WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator);
-    if (FAILED(hres)) {
-        pSvc->Release();
-        pLoc->Release();
-
-        SysFreeString(queryLanguage);
-        SysFreeString(query);
-        SysFreeString(ns);
-
-        return RAM_CHANNEL_TYPE_FAILED;
-    }
-
-    IWbemClassObject* pclsObj = NULL;
-    ULONG ret = 0;
-    int32 ram_module_count = 0;
-    int32 dual_channel_capable = 0;
-
-    while (enumerator) {
-        enumerator->Next(WBEM_INFINITE, 1, &pclsObj, &ret);
-        if (ret == 0) break;
-
-        VARIANT vtProp;
-        hres = pclsObj->Get(L"BankLabel", 0, &vtProp, 0, 0);
-        if (SUCCEEDED(hres)) {
-            ++ram_module_count;
-            if (wcscmp(vtProp.bstrVal, L"BANK 0") == 0 || wcscmp(vtProp.bstrVal, L"BANK 1") == 0) {
-                dual_channel_capable = 1;
+        if (!*channel) {
+            while (*pos == L' ' || *pos == L'_' || *pos == L'-') {
+                ++pos;
             }
 
-            VariantClear(&vtProp);
+            if (*pos >= L'a' && *pos <= L'z') {
+                return (wchar_t) (*pos - (L'a' - L'A'));
+            } else if ((*pos >= L'A' && *pos <= L'Z') || (*pos >= L'0' && *pos <= L'9')) {
+                return *pos;
+            }
+
+            return 0;
         }
-        pclsObj->Release();
+
+        // "DIMM_A1", "DIMMA1" (letter = channel, number = slot)
+        const wchar_t* dimm = L"DIMM";
+        pos = str;
+        while (*dimm && (*pos == *dimm || *pos == *dimm + (L'a' - L'A'))) {
+            ++pos;
+            ++dimm;
+        }
+
+        if (!*dimm) {
+            if (*pos == L'_') {
+                ++pos;
+            }
+
+            if (*pos >= L'A' && *pos <= L'H' && pos[1] >= L'0' && pos[1] <= L'9') {
+                return *pos;
+            }
+        }
     }
 
-    pSvc->Release();
-    pLoc->Release();
-    SysFreeString(queryLanguage);
+    return 0;
+}
+
+/**
+ * Checks if the ram modules use more than one memory channel
+ *
+ * The result is only an estimate based on the module descriptions of the bios (WMI Win32_PhysicalMemory)
+ * If the channels can't be identified we assume that multiple modules are in dual channel (no false warnings)
+ *
+ * Can be called from any thread (initializes COM for the calling thread if necessary)
+ * WARNING: Requires ole32_init() + wmi_guid_init()
+ */
+RamChannelType ram_channel_info() NO_EXCEPT
+{
+    // S_FALSE = already initialized on this thread (still needs a matching CoUninitialize)
+    // RPC_E_CHANGED_MODE = already initialized with a different mode (usable, but no CoUninitialize)
+    const bool com_initialized = SUCCEEDED(OLE32_CoInitializeEx(NULL, COINIT_MULTITHREADED));
+
+    RamChannelType result = RAM_CHANNEL_TYPE_FAILED;
+
+    IWbemLocator* locator = NULL;
+    IWbemServices* services = NULL;
+    IEnumWbemClassObject* enumerator = NULL;
+
+    BSTR ns = SysAllocString(L"ROOT\\CIMV2");
+    BSTR query_language = SysAllocString(L"WQL");
+    BSTR query = SysAllocString(L"SELECT BankLabel, DeviceLocator FROM Win32_PhysicalMemory");
+
+    if (SUCCEEDED(OLE32_CoCreateInstance(WBEMUUID_CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, WBEMUUID_IID_IWbemLocator, (LPVOID *) &locator))
+        && SUCCEEDED(locator->ConnectServer(ns, NULL, NULL, 0, 0, 0, 0, &services))
+        && SUCCEEDED(OLE32_CoSetProxyBlanket(services, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE))
+        && SUCCEEDED(services->ExecQuery(query_language, query, WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator))
+    ) {
+        int32 module_count = 0;
+
+        // Channel of the first module, all_same_channel = every module has a known channel and it is the same one
+        wchar_t first_channel = 0;
+        bool all_same_channel = true;
+
+        while (true) {
+            IWbemClassObject* object = NULL;
+            ULONG returned = 0;
+            if (FAILED(enumerator->Next(WBEM_INFINITE, 1, &object, &returned)) || returned == 0) {
+                break;
+            }
+
+            ++module_count;
+
+            wchar_t channel = 0;
+            VARIANT value;
+
+            if (SUCCEEDED(object->Get(L"BankLabel", 0, &value, 0, 0))) {
+                if (value.vt == VT_BSTR) {
+                    channel = ram_module_channel(value.bstrVal);
+                }
+
+                VariantClear(&value);
+            }
+
+            if (!channel && SUCCEEDED(object->Get(L"DeviceLocator", 0, &value, 0, 0))) {
+                if (value.vt == VT_BSTR) {
+                    channel = ram_module_channel(value.bstrVal);
+                }
+
+                VariantClear(&value);
+            }
+
+            if (module_count == 1) {
+                first_channel = channel;
+            }
+
+            all_same_channel = all_same_channel && channel && channel == first_channel;
+
+            object->Release();
+        }
+
+        if (module_count == 1) {
+            result = RAM_CHANNEL_TYPE_SINGLE_CHANNEL;
+        } else if (module_count > 1) {
+            // Multiple modules in the same channel -> moving one of them to another slot enables dual channel
+            result = all_same_channel ? RAM_CHANNEL_TYPE_CAN_UPGRADE : RAM_CHANNEL_TYPE_DUAL_CHANNEL;
+        }
+    }
+
+    if (enumerator) {
+        enumerator->Release();
+    }
+
+    if (services) {
+        services->Release();
+    }
+
+    if (locator) {
+        locator->Release();
+    }
+
     SysFreeString(query);
+    SysFreeString(query_language);
     SysFreeString(ns);
-    OLE32_CoUninitialize();
 
-    if (ram_module_count == 1) {
-        return RAM_CHANNEL_TYPE_SINGLE_CHANNEL;
-    } else if (ram_module_count == 2 && dual_channel_capable) {
-        return RAM_CHANNEL_TYPE_DUAL_CHANNEL;
-    } else if (ram_module_count == 2 && !dual_channel_capable) {
-        return RAM_CHANNEL_TYPE_CAN_UPGRADE;
-    } else {
-        return RAM_CHANNEL_TYPE_FAILED;
+    if (com_initialized) {
+        OLE32_CoUninitialize();
     }
+
+    return result;
 }
 
 inline
@@ -638,53 +717,62 @@ int32 display_info_get(DisplayInfo* const info, int32 limit = 4) {
     return i;
 }
 
+/**
+ * Checks if a monitor is connected to a dedicated gpu
+ *
+ * Returns false if the monitor is connected to the mainboard (integrated gpu) even if a dedicated gpu exists
+ * (also the case for most laptops with hybrid graphics)
+ */
 inline
-bool is_dedicated_gpu_connected() {
-    DISPLAY_DEVICEW display_device;
-    display_device.cb = sizeof(DISPLAY_DEVICEW);
-    for (int32 i = 0; EnumDisplayDevicesW(NULL, i, &display_device, 0); ++i) {
-        if (display_device.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) {
-            DISPLAY_DEVICEW gpuDevice;
-            gpuDevice.cb = sizeof(DISPLAY_DEVICEW);
-            if (EnumDisplayDevicesW(display_device.DeviceName, 0, &gpuDevice, 0)) {
-                if (gpuDevice.DeviceID
-                    && (str_contains(gpuDevice.DeviceID, L"PCI\\VEN_10DE") // Nvidia
-                        || str_contains(gpuDevice.DeviceID, L"PCI\\VEN_1002") // AMD
-                        || (str_contains(gpuDevice.DeviceID, L"PCI\\VEN_8086") && str_contains(gpuDevice.DeviceID, L"DEV_56")) // Intel
-                        || str_contains(gpuDevice.DeviceID, L"PCI\\VEN_1E4E") // Moore Threads
-                        || str_contains(gpuDevice.DeviceID, L"PCI\\VEN_1DBA") // Innosilicon
-                        || str_contains(gpuDevice.DeviceID, L"PCI\\VEN_1D17") // Zhaoxin
-                        // @todo what about Biren?
-                    )
-                ) {
-                    return true;
-                }
-            }
+bool is_dedicated_gpu_connected() NO_EXCEPT
+{
+    DISPLAY_DEVICEW adapter;
+    adapter.cb = sizeof(DISPLAY_DEVICEW);
+
+    // The first level of EnumDisplayDevicesW returns the adapters (gpu outputs), their DeviceID is the pci id
+    // (the second level would return the monitors with "MONITOR\..." ids)
+    for (DWORD i = 0; EnumDisplayDevicesW(NULL, i, &adapter, 0); ++i) {
+        if (!(adapter.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP)) {
+            continue;
+        }
+
+        if (str_contains(adapter.DeviceID, L"PCI\\VEN_10DE") // Nvidia
+            || str_contains(adapter.DeviceID, L"PCI\\VEN_1002") // AMD
+            || (str_contains(adapter.DeviceID, L"PCI\\VEN_8086") && str_contains(adapter.DeviceID, L"DEV_56")) // Intel Arc
+            || str_contains(adapter.DeviceID, L"PCI\\VEN_1E4E") // Moore Threads
+            || str_contains(adapter.DeviceID, L"PCI\\VEN_1DBA") // Innosilicon
+            || str_contains(adapter.DeviceID, L"PCI\\VEN_1D17") // Zhaoxin
+            // @todo what about Biren and Intel Arc B-series (DEV_E2..)?
+        ) {
+            return true;
         }
     }
 
     return false;
 }
 
-bool monitor_supports_higher_hz()
+/**
+ * Checks if the primary monitor supports a higher refresh rate than the current one at the current resolution
+ */
+bool monitor_supports_higher_hz() NO_EXCEPT
 {
-    DEVMODE current = {0};
-    current.dmSize = sizeof(DEVMODE);
+    DEVMODEW current = {};
+    current.dmSize = sizeof(DEVMODEW);
 
-    if (!EnumDisplaySettingsW(NULL, ENUM_CURRENT_SETTINGS, &current)) {
+    if (!EnumDisplaySettingsW(NULL, ENUM_CURRENT_SETTINGS, &current) || current.dmDisplayFrequency <= 1) {
+        // 0 and 1 = hardware default refresh rate
         return false;
     }
 
-    const DWORD current_hz = current.dmDisplayFrequency;
-    if (current_hz <= 0) {
-        return false;
-    }
+    DEVMODEW mode = {};
+    mode.dmSize = sizeof(DEVMODEW);
 
-    DEVMODE mode = {0};
-    mode.dmSize = sizeof(DEVMODE);
-
-    for (int i = 0; EnumDisplaySettingsW(NULL, i, &mode); ++i) {
-        if (mode.dmDisplayFrequency > current_hz) {
+    // Higher refresh rates at a lower resolution don't count (e.g. 4k@60 vs 1080p@120)
+    for (DWORD i = 0; EnumDisplaySettingsW(NULL, i, &mode); ++i) {
+        if (mode.dmPelsWidth == current.dmPelsWidth
+            && mode.dmPelsHeight == current.dmPelsHeight
+            && mode.dmDisplayFrequency > current.dmDisplayFrequency
+        ) {
             return true;
         }
     }

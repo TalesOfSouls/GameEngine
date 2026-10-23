@@ -406,6 +406,8 @@ void ui_panel_cache(
     f32* const zindex
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_PANEL);
+
     if (panel->panel_flags & UI_PANEL_FLAG_SCROLL_CONTENT) {
         // The content of a scroll panel fills the viewport and is moved by the scroll offset
         const UIPanel* const scroll_panel = (const UIPanel *) ui_element_get(layout, panel->core.parent_offset);
@@ -453,6 +455,8 @@ bool ui_panel_scroll_finish(
     bool scrollbar_active_y
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_SCROLLBAR);
+
     const v2_f32 content_size = ui_panel_content_extent(layout, panel);
     const bool changed = content_size.x != panel->content_size.x || content_size.y != panel->content_size.y;
     panel->content_size = content_size;

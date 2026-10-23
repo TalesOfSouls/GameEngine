@@ -394,8 +394,15 @@ Asset* const asset_archive_asset_load(
             Audio* const audio = (Audio *) asset->self;
             audio->data = (byte *) (audio + 1);
 
-            file.content += audio_header_from_data(file.content, audio);
-            qoa_decode(file.content, audio);
+            const uint32 header_size = audio_header_from_data(file.content, audio);
+            file.content += header_size;
+
+            const uint32 decoded = qoa_decode(file.content, audio, (uint32) (element->length - header_size));
+            // Never play uninitialized memory if the asset is shorter than its header claims
+            if (decoded < audio->size) {
+                LOG_1("[WARNING] Audio asset %d only decoded %n of %n B", {DATA_TYPE_INT32, &id}, {DATA_TYPE_UINT32, (void *) &decoded}, {DATA_TYPE_UINT32, &audio->size});
+                audio->size = decoded;
+            }
         } break;
         case ASSET_TYPE_OBJ: {
             Mesh* const mesh = (Mesh *) asset->self;

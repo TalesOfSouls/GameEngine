@@ -76,7 +76,7 @@ enum UIElementChangeType : byte {
  * All links are byte offsets into ui_element_buffer (no pointers) -> the buffer can be saved/loaded/copied as is
  * Offset 0 is ALWAYS the root element. Since nothing can link to the root, 0 is also used as "no element"
  *
- * 60 bytes
+ * 96 bytes
  */
 struct UICore {
     UIElementType type;
@@ -111,6 +111,23 @@ struct UICore {
     // Offset to the class name string (0 = no class)
     // Only needed when applying a theme
     int32 class_name;
+
+    // Incremental caching (@see ui_cache)
+    // Where the vertices of this element are in the output of the last ui_cache() (= UILayout::ui_vertex_total)
+    // These members MUST stay at the end, they are not part of the change detection (@see ui_element_cache_hash)
+    // Only valid if cache_frame == UILayout::cache_frame of the last ui_cache()
+    uint32 cache_frame;
+    int32 cache_vertex_start;
+    int32 cache_vertex_count;
+    int32 cache_index_start;
+    int32 cache_index_count;
+
+    // zindex of the first vertex and the zindex after the element
+    f32 cache_zindex_start;
+    f32 cache_zindex_end;
+
+    // Hash of everything the vertices depend on (@see ui_element_cache_hash)
+    uint64 cache_hash;
 };
 
 #endif

@@ -47,6 +47,10 @@
         // Asset information
         DEBUG_COUNTER_AUDIO_COUNT,
 
+        // Delay of the audio that is mixed now in microseconds (queued in the sound api but not played yet)
+        // Max of all mixers, only written when the mixers run (0 = no value)
+        DEBUG_COUNTER_AUDIO_DELAY,
+
         // Used to describe the open handles
         DEBUG_COUNTER_FILE_HANDLE_COUNT,
         DEBUG_COUNTER_LIB_HANDLE_COUNT,

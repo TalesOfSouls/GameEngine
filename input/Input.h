@@ -10,6 +10,7 @@
 #include "../stdlib/Stdlib.h"
 #include "InputConnectionType.h"
 #include "ControllerType.h"
+#include "ControllerInput.h"
 
 // How many concurrent key/button presses can be handled (per input device)?
 // Realistic worst cases are higher than it seems:
@@ -18,7 +19,6 @@
 //      controller:       every analog axis outside of the deadzone is an active key
 //                        -> 2 sticks (4 axes) + 2 triggers + 2 buttons = 8
 // Released keys also stay in their slot until the next tick (@see input_frame_begin).
-// 16 slots = 256 bytes = 4 cache lines, the lookups are simple linear scans.
 #define MAX_KEY_PRESSES 16
 
 // How many keys/buttons do we support for the devices
@@ -30,15 +30,24 @@
 
 // These values are used as bit flags to hint32 if a "key" is a keyboard/primary or mouse/secondary input
 // When adding a keybind the "key" can only be uint8 but we expand it to an int and set the first bit accordingly
+// IMPORTANT: The parentheses are required, e.g. ~INPUT_CONTROLLER_PREFIX would otherwise be (~1U) << 14
 #define INPUT_MOUSE_PREFIX 0
-#define INPUT_KEYBOARD_PREFIX 1U << 13
-#define INPUT_CONTROLLER_PREFIX 1U << 14
+#define INPUT_KEYBOARD_PREFIX (1U << 13)
+#define INPUT_CONTROLLER_PREFIX (1U << 14)
 
 enum InputType : byte {
     INPUT_TYPE_NONE = 0,
     INPUT_TYPE_MOUSE_KEYBOARD = 1 << 0,
     INPUT_TYPE_CONTROLLER = 1 << 1,
     INPUT_TYPE_OTHER = 1 << 2,
+};
+
+// Physical device kinds that can be (dis-)connected individually
+// One Input may have one device of every kind (e.g. keyboard + mouse + controller of the same player)
+enum InputDeviceKind : byte {
+    INPUT_DEVICE_KIND_KEYBOARD,
+    INPUT_DEVICE_KIND_MOUSE,
+    INPUT_DEVICE_KIND_CONTROLLER,
 };
 
 // @todo This should probably be a setting
@@ -105,6 +114,7 @@ enum InputContext : byte {
     // so the same keys can be used for game hotkeys while the ui isn't focused (e.g. tab = tab target)
     HOTKEY_CONTEXT_UI = 1 << 5,
 
+    // @question Do I even need this?
     HOTKEY_CONTEXT_EDITOR_MODE = 1 << 6,
     HOTKEY_CONTEXT_ADMIN_MODE = 1 << 7
 };
@@ -155,12 +165,16 @@ struct InputKey {
     // @type InputKeyFlag
     byte flags;
 
-    int16 value; // e.g. stick/trigger keys have additional values
-    uint64 time; // when was this action performed (useful to decide if key state is held vs pressed)
+    // e.g. stick/trigger keys have additional values
+    int16 value;
+
+    // when was this action performed (useful to decide if key state is held vs pressed)
+    uint64 time;
 };
 
-// @question Maybe we should also add a third key_down array for controllers and some special controller functions here to just handle everything in one struct
-//      Or think about completely splitting all states (mouse, keyboard, other)
+// @question Maybe we should also add a third key_down array for controllers and some special controller functions here
+//          to just handle everything in one struct
+//          Or think about completely splitting all states (mouse, keyboard, other)
 
 // Text input codes that are not unicode characters (outside of the unicode range)
 // Control characters that ToUnicode already returns are used as is (backspace, tab, enter, escape)
@@ -221,7 +235,7 @@ struct InputState {
 
 enum GeneralInputState : byte {
     INPUT_STATE_GENERAL_INPUT_CHANGE = 1 << 0,
-    INPUT_STATE_GENERAL_HOTKEY_ACTIVE = 1 << 2, // At least one hotkey is active
+    INPUT_STATE_GENERAL_HOTKEY_ACTIVE = 1 << 1, // At least one hotkey is active
 };
 
 #ifdef _WIN32
@@ -232,25 +246,69 @@ enum GeneralInputState : byte {
 #endif
 
 struct KBMDevice {
-    wchar_t device_name[128];
+    // Identifies the physical device (hash of the VID/PID part of the device name, @see rawinput_device_id)
+    //      * groups the logical devices (handles) of one physical device
+    //      * stays set after a disconnect -> the same device reconnects to the same Input
+    // 0 = no device was ever connected
+    uint64 device_id;
 
     // Windows is nuts, one device can have multiple handles
     // Sometimes to simulate additional buttons additional devices are created
     // There are probably more insane reasons
+    // handle[0] == NULL -> no device of this kind connected (the list is always compact)
     InputHandle handle[8];
 };
 
-union ControllerDevice {
+// Max size of a controller input report
+//      DS4/DualSense bluetooth = 78 bytes
+//      usb = 64 bytes
+#define INPUT_CONTROLLER_REPORT_SIZE 128
+
+struct ControllerDevice {
+    // Connection of the controller itself
+    // The Input may still have a keyboard/mouse connected if this is NONE
+    InputConnectionType connection_type;
+
+    // API that handles this controller
+    ControllerInputType api;
+
+    // A new report is available in report (only used by raw input, @see input_controller_poll)
+    bool has_report;
+
+    // HID only: an async read is in flight
+    bool read_pending;
+
+    // Size of a single input report
+    uint16 report_size;
+
+    // Identifies the physical device (e.g. hash of the device path, xinput slot)
+    // Stays set after a disconnect -> the same controller reconnects to the same Input
+    uint64 device_id;
+
     #ifdef _WIN32
-        int32 id; // used by XInput
-        InputHandle handle; // used by raw input controller
+        int32 id; // used by XInput (user index)
+        InputHandle handle; // used by hid (file handle) and raw input (device handle) controllers
         LPDIRECTINPUTDEVICE8* direct; // used by direct input controller
+
+        // HID only: async (overlapped) reads -> polling never blocks
+        // WARNING: The Input must not be moved/copied while a read is pending
+        OVERLAPPED overlapped;
+        byte read_buffer[INPUT_CONTROLLER_REPORT_SIZE];
     #endif
+
+    // Latest complete input report
+    byte report[INPUT_CONTROLLER_REPORT_SIZE];
 };
 
 struct Input {
     // Device
+    // NONE = no device connected to this input at all (@see input_state_connection_update)
     InputConnectionType connection_type;
+
+    // InputType flags of the devices that were assigned to this input at some point
+    // Used to decide which hotkey mappings the input needs (kbm, controller or both)
+    // Not reset on disconnect -> the hotkeys stay valid for a reconnect
+    byte device_types;
 
     // GeneralInputState
     byte general_states;
@@ -259,8 +317,9 @@ struct Input {
     byte context;
 
     // Contexts the application actually sets/removes in Input::context (@see Hotkey::context)
-    // Hotkeys with context bits outside of this mask are general hotkeys -> old configs with unused context values keep working
-    // Default = HOTKEY_CONTEXT_UI (@see input_init)
+    // Hotkeys with context bits outside of this mask are general hotkeys
+    // Default = HOTKEY_CONTEXT_UI
+    // InputContext
     byte managed_contexts;
 
     // ControllerType
@@ -270,11 +329,9 @@ struct Input {
 
     KBMDevice keyboard;
     KBMDevice mouse;
-
     ControllerDevice controller;
 
     f32 cursor_sensitivity;
-    f32 controller_sensitivity[6];
 
     InputState state;
     uint64 time_last_input_check;
@@ -283,21 +340,20 @@ struct Input {
     // @todo don't we need multiple deadzones? triggers, sticks
     int32 deadzone;
 
-    // Controller axes (ControllerButton) that create the pointer movement (InputState::dx/dy)
+    // Controller axes (ControllerButton) that create the pointer movement
     // [0] = dx[0], [1] = dy[0] (e.g. camera / virtual cursor), [2] = dx[1], [3] = dy[1] (e.g. movement)
     // 0xFF = not mapped
-    // @see input_controller_axes_default()
-    byte controller_axes[4];
+    ControllerButton controller_axes[4];
 
     // Buffer for text (e.g. text copy/clipboard)
     // In case of multiple Input elements we may even reference the same buffer
+    // Used in input_text_add()
     char* text;
 
     // We allow a hotkey to be mapped in two different ways = allow alternative hotkey combination
     // This allows to use controller + keyboard or alternative hotkey mapping but not both at the same time
     // This trade off seems fine since both situations are edge cases
-    Hotkey* input_mapping1;
-    Hotkey* input_mapping2;
+    Hotkey* input_mappings[2];
 
     // This contains a full list off REFERENCES to hotkey events
     // The length of this array is the exact amount of possible hotkeys
@@ -305,6 +361,25 @@ struct Input {
     // The reason for that is that we don't necessarily need n-to-n events.
     // Usually we need less events than hotkeys (e.g. all movement hotkeys are handled by one movement event function)
     const InputEvent* hotkey_event_list;
+};
+
+// Application wide input device data (one instance per application, not per player like Input)
+struct InputDeviceManager {
+    #ifdef _WIN32
+        // Registration of the hid device notifications (WM_DEVICECHANGE)
+        // Keyboards/mice (raw input) have their own notification (WM_INPUT_DEVICE_CHANGE)
+        // but hid/XInput controllers don't -> without this we wouldn't notice controller connects/disconnects
+        // @see input_device_notification_register
+        HDEVNOTIFY device_notification;
+
+        // Remaining delayed XInput rescans after a device change (WM_TIMER)
+        // XInput has no connect events and a new controller is only available a little bit after WM_DEVICECHANGE
+        // -> we check a couple of times for new controllers (@see input_controllers_rescan)
+        int32 rescan_count;
+    #else
+        // Empty structs are not allowed in C
+        byte unused;
+    #endif
 };
 
 #endif

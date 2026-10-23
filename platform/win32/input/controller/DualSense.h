@@ -26,27 +26,23 @@ void input_map_dualsense(
     // 0 is not the origin -> need to shift
     ++data;
 
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = (int8) ((int32) *data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = true;
 
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = (int8) ((int32) *data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = true;
 
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = (int8) ((int32) *data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = true;
 
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = (int8) ((int32) *data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = true;
 
     if (connection_type == INPUT_CONNECTION_TYPE_USB) {
-        controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = *data++;
+        controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = (int8) (*data++ >> 1); // 0 - 255 -> 0 - 127
         controller->is_analog[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = true;
 
-        controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = *data++;
+        controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = (int8) (*data++ >> 1); // 0 - 255 -> 0 - 127
         controller->is_analog[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = true;
 
         // Some counter
@@ -126,10 +122,10 @@ void input_map_dualsense(
     ++data;
 
     if (connection_type == INPUT_CONNECTION_TYPE_BLUETOOTH) {
-        controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = *data++;
+        controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = (int8) (*data++ >> 1); // 0 - 255 -> 0 - 127
         controller->is_analog[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = true;
 
-        controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = *data++;
+        controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = (int8) (*data++ >> 1); // 0 - 255 -> 0 - 127
         controller->is_analog[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = true;
     }
 

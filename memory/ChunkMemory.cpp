@@ -611,6 +611,8 @@ byte* memory_get_temp(ChunkMemory* const buf, size_t size) NO_EXCEPT
     byte* data = chunk_memory_get(buf, element_count);
     chunk_free_elements(buf, data, element_count);
 
+    STATS_MAX_PERSISTENT_DEBUG(DEBUG_COUNTER_BUFFER_MAX_REQUEST, element_count * buf->chunk_size);
+
     return data;
 }
 

@@ -108,6 +108,8 @@ void ui_checkbox_cache(
     f32* const zindex
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_CHECKBOX);
+
     // The size includes the label, so clicking the label also toggles the checkbox
     // The label size is from the last ui_cache() since children are calculated after their parent
     v2_f32 content_dim = {UI_CHECKBOX_BOX_SIZE, UI_CHECKBOX_BOX_SIZE};

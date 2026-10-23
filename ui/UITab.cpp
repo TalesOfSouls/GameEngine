@@ -207,6 +207,8 @@ void ui_tab_cache(
     BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_TAB);
+
     ui_dimension_calculate(layout, &tab->core);
     const UIAttributeDimension* const dim = &tab->core.dimension;
 

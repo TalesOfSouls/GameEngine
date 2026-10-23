@@ -26,6 +26,8 @@ UIImage* ui_image_create(UILayout* const layout, UICore* parent = NULL) NO_EXCEP
 
 void ui_image_cache(UIImage* const image, UILayout* const layout, f32 zindex) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_IMAGE);
+
     ui_dimension_calculate(layout, &image->core, {(f32) image->image.width, (f32) image->image.height});
 
     if (image->image.sampler) {

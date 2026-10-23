@@ -249,14 +249,42 @@ void direct_sound_play_buffer(AudioSetting* __restrict setting, DirectSoundSetti
     if (region2_size > 0) {
         memcpy(
             (void *) region2,
-            (void *) (setting->buffer + region1_size),
+            // setting->buffer is int16* -> offset must be calculated in bytes
+            (void *) ((byte *) setting->buffer + region1_size),
             region2_size
         );
     }
 
     api_setting->secondary_buffer->Unlock(region1, region1_size, region2, region2_size);
-    setting->sample_index += (uint16) (setting->sample_buffer_size / setting->sample_size);
+    // sample_index must wrap at the ring buffer size (in samples)
+    // Otherwise the uint16 overflow (65536 is no multiple of the buffer sample count) results in a jump of the write position
+    const uint32 buffer_samples = setting->buffer_size / setting->sample_size;
+    setting->sample_index = (uint16) (
+        ((uint32) setting->sample_index + setting->sample_buffer_size / setting->sample_size) % buffer_samples
+    );
     setting->sample_buffer_size = 0;
+}
+
+/**
+ * Frames between the play cursor and our write position (= delay of the audio that is mixed now)
+ */
+inline
+uint32 direct_sound_buffer_delay(const AudioSetting* __restrict setting, const DirectSoundSetting* __restrict api_setting) NO_EXCEPT
+{
+    if (!api_setting->secondary_buffer) {
+        return 0;
+    }
+
+    DWORD player_cursor;
+    DWORD write_cursor;
+    if (!SUCCEEDED(api_setting->secondary_buffer->GetCurrentPosition(&player_cursor, &write_cursor))) {
+        return 0;
+    }
+
+    const DWORD write_position = (setting->sample_index * setting->sample_size) % setting->buffer_size;
+    const DWORD queued_bytes = (write_position + setting->buffer_size - player_cursor) % setting->buffer_size;
+
+    return queued_bytes / setting->sample_size;
 }
 
 #endif

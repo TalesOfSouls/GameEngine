@@ -21,28 +21,22 @@ void input_map_dualshock4(
     const byte* data
 ) NO_EXCEPT
 {
-    // 0 is not the origin -> need to shift
-    ++data;
+    // The report id decides the layout, not the connection type:
+    //      0x01 = usb and bluetooth "simple" report -> data starts at byte 1
+    //      0x11 = bluetooth extended report         -> data starts at byte 3, otherwise identical
+    PSEUDO_USE(connection_type);
+    data += (data[0] == 0x11) ? 3 : 1;
 
-    // @question Do we even need this? This might not be send on Windows
-    if (connection_type == INPUT_CONNECTION_TYPE_BLUETOOTH) {
-        ++data;
-    }
-
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = (int8) OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = (int8) ((int32) *data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = true;
 
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = (int8) OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = (int8) ((int32) *data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = true;
 
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = (int8) OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = (int8) ((int32) *data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = true;
 
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = *data++;
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = (int8) OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] - 128, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = (int8) ((int32) *data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = true;
 
     controller->button[CONTROLLER_BUTTON_T] = BITS_GET_8_L2R(*data, 0, 1);
@@ -100,8 +94,9 @@ void input_map_dualshock4(
 
     ++data;
 
-    controller->button[CONTROLLER_BUTTON_STICK_LEFT_BUTTON] = BITS_GET_8_L2R(*data, 0, 1);
-    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_BUTTON] = BITS_GET_8_L2R(*data, 1, 1);
+    // bit 7 = R3, bit 6 = L3
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_BUTTON] = BITS_GET_8_L2R(*data, 0, 1);
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_BUTTON] = BITS_GET_8_L2R(*data, 1, 1);
 
     controller->button[CONTROLLER_BUTTON_OTHER_0] = BITS_GET_8_L2R(*data, 2, 1); // option
     controller->button[CONTROLLER_BUTTON_OTHER_1] = BITS_GET_8_L2R(*data, 3, 1); // share
@@ -116,11 +111,12 @@ void input_map_dualshock4(
 
     ++data;
 
-    controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = *data++;
-    controller->is_analog[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = true;
-
-    controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = *data++;
+    // L2 comes before R2
+    controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = (int8) (*data++ >> 1); // 0 - 255 -> 0 - 127
     controller->is_analog[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = true;
+
+    controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = (int8) (*data++ >> 1); // 0 - 255 -> 0 - 127
+    controller->is_analog[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = true;
 
     data += 3;
 

@@ -672,6 +672,8 @@ void ui_color_picker_cache(
     f32* const zindex
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_COLOR_PICKER);
+
     ui_dimension_calculate(layout, &picker->core);
     const v4_f32 rect = ui_dimension_rect(&picker->core.dimension);
 
@@ -702,6 +704,8 @@ void ui_color_panel_cache(
     f32* const zindex
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_COLOR_PANEL);
+
     ui_dimension_calculate(layout, &panel->core);
     const UIAttributeDimension* const dim = &panel->core.dimension;
     const UIColorPicker* const picker = ui_color_panel_picker(layout, panel);

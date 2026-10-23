@@ -45,6 +45,10 @@ struct AudioInstance {
 
     uint64 effect;
     uint32 sample_index;
+
+    // Linear gain of this instance (0.0 - 1.0), applied on top of the mixer volume
+    f32 volume;
+
     sbyte channels;
 
     // @todo How to implement audio that is only supposed to be played after a certain other sound file is finished

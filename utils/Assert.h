@@ -22,6 +22,8 @@
         *(volatile int *)0 = 0;                          \
     }
 
+    #define ASSERT_TRUE_STATIC(a) static_assert((a))
+
     #define ASSERT_MEM_ZERO(ptr, size) do {    \
         const char *p_ = (const char *)(ptr);  \
         size_t chunk_size = (size);            \
@@ -53,6 +55,7 @@
 #else
     #define ASSERT_TRUE(a) ((void)0)
     #define ASSERT_TRUE_CONST(a) ((void)0)
+    #define ASSERT_TRUE_STATIC(a) ((void)0)
     #define ASSERT_MEM_ZERO(ptr, size) ((void)0)
     #define ASSERT_THROW() ((void)0)
 #endif

@@ -179,6 +179,8 @@ void ui_vertices_clip_or_remove(
     const UIClipRect& clip
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_CLIP);
+
     if ((int32) vertices->count <= vertex_start) {
         return;
     }

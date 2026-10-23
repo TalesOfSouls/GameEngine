@@ -128,6 +128,8 @@ void ui_label_cache(
     BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_LABEL);
+
     FontSystem* const font = layout->font;
 
     // @todo Support wchar_t labels (requires a wchar_t version of text_to_glyphs)

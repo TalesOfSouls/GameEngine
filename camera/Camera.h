@@ -15,6 +15,9 @@
 #define CAMERA_MIN_FOV  25.0f
 #define CAMERA_MAX_FOV 100.0f
 
+// Rotation per mouse count (before sensitivity), ~0.14 degrees
+#define CAMERA_RADIANS_PER_COUNT 0.0025f
+
 /**
  * Gpu API coordinate information
  *
@@ -63,6 +66,7 @@ struct Camera {
 
     v2_f32 viewport;
 
+    // FOV is defined horizontally
     f32 fov;
     f32 znear;
     f32 zfar;

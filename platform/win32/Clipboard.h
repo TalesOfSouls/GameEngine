@@ -11,6 +11,22 @@
 #include "../../utils/StringUtils.h"
 #include <windows.h>
 
+#ifdef NOVIRTUALKEYCODES
+    #error "NOVIRTUALKEYCODES Must not be defined"
+#endif
+
+#ifdef NOCLIPBOARD
+    #error "NOCLIPBOARD Must not be defined"
+#endif
+
+#ifdef NONLS
+    #error "NONLS Must not be defined"
+#endif
+
+#ifdef NOMEMMGR
+    #error "NOMEMMGR Must not be defined"
+#endif
+
 /**
  * Reads the clipboard text as utf8
  *

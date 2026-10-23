@@ -357,6 +357,35 @@ int32 ui_table_row_at(const UITable* const table, f32 x, f32 y) NO_EXCEPT
     return row < table->row_count ? row : -1;
 }
 
+/**
+ * Column at the x position (e.g. the clicked cell is ui_table_row_at() + ui_table_column_at())
+ *
+ * @return Column or -1 if the position is outside of the columns (e.g. scrollbar)
+ */
+inline
+int32 ui_table_column_at(const UILayout* const layout, const UITable* const table, f32 x) NO_EXCEPT
+{
+    const v4_f32 body = ui_table_body_rect(table);
+    if (!table->column_widths || x < body.x) {
+        return -1;
+    }
+
+    // Same width as the rendering (without the scrollbar @see ui_table_cache)
+    UIScrollInfo info;
+    const f32 width = body.width - (ui_table_scroll_info(table, &info) ? UI_SCROLLBAR_SIZE : 0.0f);
+
+    const f32* const widths = (const f32 *) (layout->ui_element_buffer.memory + table->column_widths);
+    f32 right = body.x;
+    for (int32 column = 0; column < table->column_count; ++column) {
+        right += widths[column] * width;
+        if (x < right) {
+            return column;
+        }
+    }
+
+    return -1;
+}
+
 inline
 bool ui_table_hover(UILayout* const layout, UITable* const table, int32 row) NO_EXCEPT
 {
@@ -458,6 +487,8 @@ void ui_table_cache(
     BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_TABLE);
+
     ui_dimension_calculate(layout, &table->core);
     const UIAttributeDimension* const dim = &table->core.dimension;
 

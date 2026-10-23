@@ -64,6 +64,37 @@
         PROFILE_UI_CACHE_CUSTOM,
         PROFILE_UI_CACHE_WINDOW,
         PROFILE_UI_CACHE_CHROMA_CODES,
+        PROFILE_UI_CACHE_ELEMENT_HASH,
+        PROFILE_UI_CACHE_ELEMENT_COPY,
+        PROFILE_UI_CACHE_ELEMENT_GENERATE,
+        PROFILE_UI_CACHE_TOTAL_COPY,
+        PROFILE_UI_CACHE_CLIP,
+        PROFILE_UI_CACHE_SCROLLBAR,
+        PROFILE_UI_CACHE_POPUP_LAYOUT,
+        PROFILE_UI_CACHE_BUTTON,
+        PROFILE_UI_CACHE_LABEL,
+        PROFILE_UI_CACHE_IMAGE,
+        PROFILE_UI_CACHE_PANEL,
+        PROFILE_UI_CACHE_CURSOR,
+        PROFILE_UI_CACHE_CHECKBOX,
+        PROFILE_UI_CACHE_SLIDER,
+        PROFILE_UI_CACHE_INPUT,
+        PROFILE_UI_CACHE_SELECT,
+        PROFILE_UI_CACHE_OPTION_LIST,
+        PROFILE_UI_CACHE_TAB,
+        PROFILE_UI_CACHE_TABLE,
+        PROFILE_UI_CACHE_COLOR_PICKER,
+        PROFILE_UI_CACHE_COLOR_PANEL,
+
+        // UI input handling
+        PROFILE_UI_INPUT_POINTER,
+        PROFILE_UI_INPUT_CODE,
+        PROFILE_UI_INPUT_TEXT,
+        PROFILE_UI_INPUT_NAVIGATE,
+
+        // UI text files
+        PROFILE_UI_LAYOUT_FROM_TXT,
+        PROFILE_UI_THEME_FROM_TXT,
 
         PROFILE_MAIN, // Used to profile the main loop
         PROFILE_RENDER, // Used to profile the render loop
@@ -563,14 +594,18 @@ void performance_profiler_end(int32 id) NO_EXCEPT
         }
 }
 
+// Unique variable name per line for the profiler scopes (2 levels are needed so that __LINE__ gets expanded)
+#define PROFILE_CONCAT_INTERNAL(a, b) a##b
+#define PROFILE_CONCAT(a, b) PROFILE_CONCAT_INTERNAL(a, b)
+
 #if defined(LOG_LEVEL) && LOG_LEVEL > 0
     // Only these function can properly handle self-time calculation
     // Use these whenever you want to profile an entire function
     #if ((defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL))
-        #define PROFILE_DEBUG(id, ...) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, ##__VA_ARGS__)
+        #define PROFILE_DEBUG(id, ...) PerformanceProfiler PROFILE_CONCAT(__profile_scope_, __LINE__)((id), __func__, ##__VA_ARGS__)
         #define PROFILE_START_DEBUG(id, ...) performance_profiler_start((id), ##__VA_ARGS__)
         #define PROFILE_END_DEBUG(id) performance_profiler_end((id))
-        #define PROFILE_SCOPE_DEBUG(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
+        #define PROFILE_SCOPE_DEBUG(id, name) PerformanceProfiler PROFILE_CONCAT(__profile_scope_, __LINE__)((id), (name))
     #else
         #define PROFILE_DEBUG(id, ...) ((void) 0)
         #define PROFILE_START_DEBUG(id, ...) ((void) 0)
@@ -578,10 +613,10 @@ void performance_profiler_end(int32 id) NO_EXCEPT
         #define PROFILE_SCOPE_DEBUG(id, name) ((void) 0)
     #endif
 
-    #define PROFILE(id, ...) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, ##__VA_ARGS__)
+    #define PROFILE(id, ...) PerformanceProfiler PROFILE_CONCAT(__profile_scope_, __LINE__)((id), __func__, ##__VA_ARGS__)
     #define PROFILE_START(id, ...) performance_profiler_start((id), ##__VA_ARGS__)
     #define PROFILE_END(id) performance_profiler_end((id))
-    #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
+    #define PROFILE_SCOPE(id, name) PerformanceProfiler PROFILE_CONCAT(__profile_scope_, __LINE__)((id), (name))
 
     // Moves the index of _perf_stats usually called after a completed frame
     #define PROFILE_SNAPSHOT() profile_performance_snapshot()
@@ -601,7 +636,7 @@ void performance_profiler_end(int32 id) NO_EXCEPT
     #define THREAD_LOG_DELETE(id) thread_profile_history_delete((id))
 
     // Starts a new thread tick which is used to measure how long a frame/thread cycle is
-    #define THREAD_TICK(id) PerformanceThreadProfiler __profile_thread_##__func__##_##__LINE__((id))
+    #define THREAD_TICK(id) PerformanceThreadProfiler PROFILE_CONCAT(__profile_thread_, __LINE__)((id))
 #else
     #define PROFILE_DEBUG(id, ...) ((void) 0)
     #define PROFILE_START_DEBUG(id, ...) ((void) 0)

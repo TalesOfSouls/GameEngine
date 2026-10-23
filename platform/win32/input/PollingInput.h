@@ -63,6 +63,11 @@ void input_mouse_update(HWND hwnd, Input* input_states) NO_EXCEPT
     v2_int32 mouse_pos = input_mouse_position(hwnd);
     Input* const input = input_kbm_find(input_states, INPUT_DEVICE_COUNT);
 
+    // All keyboards/mice may be disconnected
+    if (!input) {
+        return;
+    }
+
     input->state.x[0] = (int16) mouse_pos.x;
     input->state.y[0] = (int16) mouse_pos.y;
 }

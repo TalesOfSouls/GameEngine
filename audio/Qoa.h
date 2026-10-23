@@ -412,17 +412,24 @@ uint32 qoa_decode_frame(const byte* bytes, uint32 channels, QoaLms* lms, int16* 
 	return (uint32) (bytes - start);
 }
 
-uint32 qoa_decode(const byte* data, Audio* audio)
+// @param data_size Size of the compressed data (NOT the uncompressed audio->size)
+uint32 qoa_decode(const byte* data, Audio* audio, uint32 data_size = UINT32_MAX)
 {
 	LOG_3("QOA decode audio");
     uint32 p = 0;
     byte* sample_ptr = audio->data;
+    const byte* const sample_end = audio->data + audio->size;
 
     QoaLms lms[QOA_MAX_CHANNELS];
 
-    uint32 limit = 4 + QOA_LMS_LEN * 4 * audio->channels;
+    const uint32 limit = 4 + QOA_LMS_LEN * 4 * audio->channels;
 
-	while (p < audio->size && audio->size - p >= limit) {
+    // p is the position in the compressed data -> it must be bound by data_size
+    // The output must be bound by audio->size, otherwise we write past the audio data
+	while (p < data_size
+        && data_size - p >= limit
+        && sample_ptr < sample_end
+    ) {
 		ASSERT_TRUE(p % 4 == 0);
 
 		uint32 frame_samples;
@@ -431,6 +438,14 @@ uint32 qoa_decode(const byte* data, Audio* audio)
 		SWAP_ENDIAN_LITTLE_SELF(frame_samples);
 
 		const uint32 out_bytes = frame_samples * audio->channels * sizeof(int16);
+		if (frame_samples == 0
+            || frame_samples > QOA_FRAME_LEN
+            || out_bytes > (uint32) (sample_end - sample_ptr)
+        ) {
+            // Corrupt data or the asset was encoded with different audio settings
+            break;
+        }
+
 		const uint32 consumed = qoa_decode_frame(data + p, audio->channels, lms, (int16*)sample_ptr);
 
 		if (consumed == 0) {

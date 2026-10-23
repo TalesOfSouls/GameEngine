@@ -58,14 +58,20 @@ void audio_mixer_play(AudioMixer* const mixer, int32 id, Audio* const audio, con
     }
 
     AudioInstance* instance = (AudioInstance *) chunk_element_get(&mixer->audio_instances, index);
+
+    // The chunk element may still contain data from a previously removed instance
+    memset(instance, 0, sizeof(AudioInstance));
+
     instance->id = id;
     instance->audio_size = audio->size;
     instance->audio_data = audio->data;
     instance->channels = audio->channels;
+    instance->volume = 1.0f;
 
     if (settings) {
         memcpy(&instance->origin, &settings->origin, sizeof(AudioLocationSetting));
         instance->effect = settings->effect;
+        instance->volume = settings->volume;
     }
 }
 
@@ -405,8 +411,11 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
     PROFILE_DEBUG(PROFILE_AUDIO_MIXER_MIX);
     memset(mixer->settings.buffer, 0, size);
 
-    mixer->settings.sample_buffer_size = 0;
     const uint32 limit_max = size / mixer->settings.sample_size;
+
+    // The buffer is zeroed above -> we always output the full requested size (silence if no sound is playing)
+    // Otherwise the audio API cursor and our write position drift apart and old buffer content gets replayed
+    mixer->settings.sample_buffer_size = limit_max * mixer->settings.sample_size;
 
     const bool has_location = !is_empty((byte *) &mixer->camera.audio_location, sizeof(mixer->camera.audio_location));
 
@@ -425,7 +434,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
         uint32 limit = limit_max;
 
         // Compute the vector from the player to the sound's origin
-        f32 total_attenuation = 1.0f;
+        f32 total_attenuation = sound->volume;
         const bool has_origin = !is_empty((byte *) &sound->origin.audio_location, sizeof(sound->origin.audio_location));
 
         if (has_location && has_origin) {
@@ -439,7 +448,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
                 f32 alignment = vec3_dot(mixer->camera.audio_lookat, to_sound);
                 f32 directional_attenuation = max_branched(0.0f, alignment);
 
-                total_attenuation = distance_attenuation * directional_attenuation;
+                total_attenuation = sound->volume * distance_attenuation * directional_attenuation;
             }
         }
 
@@ -474,8 +483,10 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
             }
 
             // Apply effects based on sound's effect type
-            if (sound->effect && sound->effect != AUDIO_EFFECT_REPEAT) {
-                const int32 sample_adjustment = mixer_effects_mono(mixer, sound->effect, sound_sample_index);
+            // AUDIO_EFFECT_REPEAT is not a buffer effect, it is handled above
+            if (sound->effect & ~((uint64) AUDIO_EFFECT_REPEAT)) {
+                // The effects work on the samples in buffer_temp (= limit), NOT on the position in the sound file
+                const int32 sample_adjustment = mixer_effects_mono(mixer, sound->effect, limit);
                 sound_sample_index += sample_adjustment;
                 limit += sample_adjustment;
             }
@@ -500,8 +511,8 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
             }
 
             // Apply effects based on sound's effect type
-            if (sound->effect && sound->effect != AUDIO_EFFECT_REPEAT) {
-                const int32 sample_adjustment = mixer_effects_stereo() / 2;;
+            if (sound->effect & ~((uint64) AUDIO_EFFECT_REPEAT)) {
+                const int32 sample_adjustment = mixer_effects_stereo() / 2;
                 sound_sample_index += sample_adjustment;
                 limit += sample_adjustment;
             }
@@ -522,11 +533,6 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) NO_EXCEPT
                 mixer->settings.buffer[j] += mixer->buffer_temp[j];
             }
         }
-
-        mixer->settings.sample_buffer_size = OMS_MAX(
-            mixer->settings.sample_buffer_size,
-            limit * mixer->settings.sample_size
-        );
     }
 
     if (mixer->effect) {

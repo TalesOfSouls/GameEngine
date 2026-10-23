@@ -2,6 +2,14 @@
  * @copyright Jingga
  * @license   OMS License 2.0
  * @link      https://jingga.app
+ *
+ * Raw input (keyboard, mouse and optionally controllers)
+ *
+ * Connects/disconnects:
+ *      All devices are registered with RIDEV_DEVNOTIFY -> the window receives WM_INPUT_DEVICE_CHANGE
+ *      GIDC_ARRIVAL = rawinput_device_add(), GIDC_REMOVAL = rawinput_device_remove() (@see InputWrapper.h)
+ *      WARNING: Windows also sends GIDC_ARRIVAL for all present devices right after the registration
+ *               -> adding a device is idempotent
  */
 #pragma once
 #ifndef COMS_PLATFORM_WIN32_INPUT_RAW_H
@@ -14,9 +22,13 @@
 #include "../../../input/ControllerType.h"
 #include "../../../input/ControllerInput.h"
 #include "../../../memory/BufferMemory.cpp"
-#include "controller/DualShock4.h"
+#include "InputDevice.h"
+#include "ControllerReport.h"
 #include <winDNS.h>
 #include <hidusage.h>
+
+// Max raw input devices we look at during the initialization (usually < 30)
+#define RAWINPUT_MAX_DEVICES 256
 
 static inline
 bool rawinput_extract_vid_pid(
@@ -44,7 +56,7 @@ bool rawinput_extract_vid_pid(
     ++id;
 
     int32 len = 0;
-    while (*id != L'}' && *id != L'\0' && len < 32) {
+    while (*id != L'}' && *id != L'\0' && len < 31) {
         out_id[len++] = *id;
         ++id;
     }
@@ -52,302 +64,482 @@ bool rawinput_extract_vid_pid(
     return true;
 }
 
-uint32 rawinput_kbm_init(
-    HWND hwnd,
-    Input* __restrict states,
-    BufferMemory* const __restrict mem
+/**
+ * Identifies the physical device of a raw input device handle
+ *
+ * Remember one physical device may have multiple logical devices (e.g. additional keys = additional keyboard)
+ * They all have the same id -> we group them together as one device
+ *
+ * @param out_id 32 characters, zero filled
+ */
+static inline
+bool rawinput_device_id(HANDLE device, wchar_t* const out_id, wchar_t* const out_name = NULL, uint32 out_name_length = 0) NO_EXCEPT
+{
+    wchar_t device_name[512];
+
+    // WARNING: For RIDI_DEVICENAME the size is in characters, not bytes
+    UINT name_size = ARRAY_COUNT(device_name);
+    if (GetRawInputDeviceInfoW(device, RIDI_DEVICENAME, device_name, &name_size) == (UINT) -1) {
+        return false;
+    }
+
+    device_name[ARRAY_COUNT(device_name) - 1] = L'\0';
+
+    memset(out_id, 0, 32 * sizeof(wchar_t));
+    if (!rawinput_extract_vid_pid(device_name, out_id)) {
+        // Fallback = use the beginning of the name
+        wcsncpy(out_id, device_name, 31);
+    }
+
+    if (out_name && out_name_length) {
+        wcsncpy(out_name, device_name, out_name_length - 1);
+        out_name[out_name_length - 1] = L'\0';
+    }
+
+    return true;
+}
+
+/**
+ * Adds a keyboard/mouse to an input
+ *
+ * @return Input index (-1 = not added)
+ */
+static
+int32 rawinput_kbm_add(
+    Input* const __restrict states, int32 count,
+    HANDLE device,
+    InputDeviceKind kind,
+    const byte* const __restrict preferred_types
 ) NO_EXCEPT
 {
-    uint32 device_count;
-    GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
-    if (device_count == 0 || device_count > 1000) {
-        return 0;
+    // Already added
+    for (int32 i = 0; i < count; ++i) {
+        const KBMDevice* const kbm = kind == INPUT_DEVICE_KIND_KEYBOARD
+            ? &states[i].keyboard
+            : &states[i].mouse;
+
+        for (int32 h = 0; h < ARRAY_COUNT(kbm->handle) && kbm->handle[h]; ++h) {
+            if (kbm->handle[h] == device) {
+                return -1;
+            }
+        }
     }
 
-    PRAWINPUTDEVICELIST pRawInputDeviceList;
-    BUFFER_STACK_MEMORY(
-        mem,
-        (byte **) &pRawInputDeviceList,
-        sizeof(RAWINPUTDEVICELIST) * device_count,
-        alignof(RAWINPUTDEVICELIST)
+    wchar_t device_name_id[32];
+    if (!rawinput_device_id(device, device_name_id)) {
+        return -1;
+    }
+
+    // We only store a hash, the name itself isn't needed
+    const uint64 device_id = input_device_path_hash(device_name_id);
+
+    // Same physical device as an already connected/previously connected device
+    // -> add the logical device to that input (also handles reconnects)
+    int32 index = -1;
+    for (int32 i = 0; i < count; ++i) {
+        const KBMDevice* const kbm = kind == INPUT_DEVICE_KIND_KEYBOARD
+            ? &states[i].keyboard
+            : &states[i].mouse;
+
+        if (kbm->device_id == device_id) {
+            index = i;
+
+            // Connected devices have priority over previously connected devices
+            if (kbm->handle[0]) {
+                break;
+            }
+        }
+    }
+
+    if (index < 0) {
+        index = input_state_assign(states, count, kind, preferred_types);
+    }
+
+    if (index < 0) {
+        LOG_1("[INFO] No free input for keyboard/mouse");
+        return -1;
+    }
+
+    Input* const input = &states[index];
+    KBMDevice* const kbm = kind == INPUT_DEVICE_KIND_KEYBOARD ? &input->keyboard : &input->mouse;
+
+    // A different physical device took over the input slot
+    if (!kbm->handle[0]) {
+        kbm->device_id = device_id;
+    }
+
+    if (!input_kbm_handle_add(kbm, device)) {
+        // Too many logical devices, the input of this logical device is ignored
+        return -1;
+    }
+
+    input->device_types |= INPUT_TYPE_MOUSE_KEYBOARD;
+    input_state_connection_update(input);
+
+    return index;
+}
+
+/**
+ * Adds a controller (only used if raw input is the controller api)
+ *
+ * @return Input index (-1 = not added)
+ */
+static
+int32 rawinput_controller_add(
+    Input* const __restrict states, int32 count,
+    HANDLE device,
+    const RID_DEVICE_INFO* const __restrict rdi,
+    const byte* const __restrict preferred_types
+) NO_EXCEPT
+{
+    if (input_controller_find_by_handle(states, count, device).vec[0] >= 0) {
+        return -1;
+    }
+
+    wchar_t device_id[32];
+    wchar_t device_name[512];
+    if (!rawinput_device_id(device, device_id, device_name, ARRAY_COUNT(device_name))) {
+        return -1;
+    }
+
+    const uint64 id = input_device_path_hash(device_name);
+
+    int32 index = input_controller_find_by_device_id(states, count, id);
+    if (index < 0 || states[index].controller.connection_type) {
+        index = input_state_assign(states, count, INPUT_DEVICE_KIND_CONTROLLER, preferred_types);
+    }
+
+    if (index < 0) {
+        LOG_1("[INFO] No free input for raw input controller");
+        return -1;
+    }
+
+    Input* const input = &states[index];
+    ControllerDevice* const controller = &input->controller;
+
+    controller->api = CONTROLLER_INPUT_TYPE_RAWINPUT;
+    controller->device_id = id;
+    controller->handle = device;
+    controller->has_report = false;
+    controller->report_size = 0;
+    controller->connection_type = input_device_path_connection(device_name);
+
+    input->controller_type = input_controller_type_get(rdi->hid.dwVendorId, rdi->hid.dwProductId);
+    input->device_types |= INPUT_TYPE_CONTROLLER;
+    input_state_connection_update(input);
+
+    LOG_1(
+        "[INFO] Raw input controller connected to input %d (type %d)",
+        {DATA_TYPE_INT32, &index}, {DATA_TYPE_INT32, &input->controller_type}
     );
-    device_count = GetRawInputDeviceList(pRawInputDeviceList, &device_count, sizeof(RAWINPUTDEVICELIST));
 
-    // We always want at least one empty input device slot
-    // @todo Change so that we store the actual number of devices
-    if (device_count == 0 || device_count > 1000) {
+    return index;
+}
+
+/**
+ * Adds a raw input device (e.g. GIDC_ARRIVAL)
+ *
+ * @param controllers       Also add controllers (= raw input is the controller api)
+ * @param preferred_types   InputType flags per input (@see input_state_assign), may be NULL
+ *
+ * @return Input index the device was added to (-1 = not added, e.g. already known)
+ */
+int32 rawinput_device_add(
+    Input* const __restrict states, int32 count,
+    HANDLE device,
+    bool controllers,
+    const byte* const __restrict preferred_types = NULL
+) NO_EXCEPT
+{
+    RID_DEVICE_INFO rdi;
+    rdi.cbSize = sizeof(RID_DEVICE_INFO);
+    UINT cb_size = sizeof(RID_DEVICE_INFO);
+    if (GetRawInputDeviceInfoW(device, RIDI_DEVICEINFO, &rdi, &cb_size) == (UINT) -1) {
+        return -1;
+    }
+
+    switch (rdi.dwType) {
+        case RIM_TYPEMOUSE:
+            return rawinput_kbm_add(states, count, device, INPUT_DEVICE_KIND_MOUSE, preferred_types);
+        case RIM_TYPEKEYBOARD:
+            return rawinput_kbm_add(states, count, device, INPUT_DEVICE_KIND_KEYBOARD, preferred_types);
+        case RIM_TYPEHID: {
+            if (!controllers
+                || rdi.hid.usUsagePage != HID_USAGE_PAGE_GENERIC
+                || (rdi.hid.usUsage != HID_USAGE_GENERIC_GAMEPAD && rdi.hid.usUsage != HID_USAGE_GENERIC_JOYSTICK)
+            ) {
+                return -1;
+            }
+
+            return rawinput_controller_add(states, count, device, &rdi, preferred_types);
+        }
+        default:
+            return -1;
+    }
+}
+
+/**
+ * Removes a raw input device (e.g. GIDC_REMOVAL)
+ * The device handle is already invalid at this point -> only handle comparisons
+ *
+ * The active keys of the device are released (no stuck keys)
+ *
+ * @param kind Kind of the removed device (output, optional)
+ *
+ * @return Input index the device was removed from (-1 = unknown device)
+ */
+int32 rawinput_device_remove(
+    Input* const __restrict states, int32 count,
+    HANDLE device,
+    InputDeviceKind* const __restrict kind = NULL
+) NO_EXCEPT
+{
+    for (int32 i = 0; i < count; ++i) {
+        Input* const input = &states[i];
+
+        if (input_kbm_handle_remove(&input->keyboard, device)) {
+            if (!input->keyboard.handle[0]) {
+                input_release_keys(input, INPUT_DEVICE_KIND_KEYBOARD);
+            }
+
+            input_state_connection_update(input);
+
+            if (kind) {
+                *kind = INPUT_DEVICE_KIND_KEYBOARD;
+            }
+
+            return i;
+        }
+
+        if (input_kbm_handle_remove(&input->mouse, device)) {
+            if (!input->mouse.handle[0]) {
+                input_release_keys(input, INPUT_DEVICE_KIND_MOUSE);
+            }
+
+            input_state_connection_update(input);
+
+            if (kind) {
+                *kind = INPUT_DEVICE_KIND_MOUSE;
+            }
+
+            return i;
+        }
+
+        if (input->controller.connection_type
+            && input->controller.api == CONTROLLER_INPUT_TYPE_RAWINPUT
+            && input->controller.handle == device
+        ) {
+            input->controller.connection_type = INPUT_CONNECTION_TYPE_NONE;
+            input->controller.handle = NULL;
+            input->controller.has_report = false;
+            input_release_keys(input, INPUT_DEVICE_KIND_CONTROLLER);
+            input_state_connection_update(input);
+
+            if (kind) {
+                *kind = INPUT_DEVICE_KIND_CONTROLLER;
+            }
+
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+/**
+ * Adds all present raw input devices
+ *
+ * @return Amount of devices added
+ */
+static
+int32 rawinput_devices_add_all(
+    Input* const __restrict states, int32 count,
+    bool controllers,
+    const byte* const __restrict preferred_types
+) NO_EXCEPT
+{
+    RAWINPUTDEVICELIST device_list[RAWINPUT_MAX_DEVICES];
+    UINT device_count = ARRAY_COUNT(device_list);
+
+    const UINT found = GetRawInputDeviceList(device_list, &device_count, sizeof(RAWINPUTDEVICELIST));
+    if (found == (UINT) -1) {
+        LOG_1("[WARNING] Couldn't get raw input device list");
         return 0;
     }
 
-    int32 mouse_found = 0;
-    int32 keyboard_found = 0;
+    int32 added = 0;
+    for (UINT i = 0; i < found; ++i) {
+        if (rawinput_device_add(
+            states,
+            count,
+            device_list[i].hDevice,
+            controllers,
+            preferred_types) >= 0
+        ) {
+            ++added;
+        }
+    }
 
-    uint32 i;
+    return added;
+}
+
+/**
+ * Registers keyboard + mouse raw input and adds all present devices
+ *
+ * The registration also happens if no device is present -> devices connected later on are handled
+ *
+ * @return false = raw input couldn't be registered (-> use polling)
+ */
+bool rawinput_kbm_init(
+    HWND hwnd,
+    Input* const __restrict states, int32 count,
+    const byte* const __restrict preferred_types = NULL
+) NO_EXCEPT
+{
+    alignas(8) RAWINPUTDEVICE rid[2];
+
+    // Mouse
+    rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+    rid[0].dwFlags = RIDEV_DEVNOTIFY;
+    rid[0].hwndTarget = hwnd;
+
+    // Keyboard
+    rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    rid[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+    rid[1].dwFlags = RIDEV_DEVNOTIFY;
+    rid[1].hwndTarget = hwnd;
+
+    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 2, sizeof(RAWINPUTDEVICE))) {
+        LOG_1("[WARNING] Couldn't register keyboard/mouse raw input device");
+        return false;
+    }
 
     // @test Test with 5 devices connected
-    for (i = 0; i < device_count; ++i) {
-        uint32 cb_size = sizeof(RID_DEVICE_INFO);
-        RID_DEVICE_INFO rdi;
-        GetRawInputDeviceInfoW(pRawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cb_size);
+    rawinput_devices_add_all(states, count, false, preferred_types);
 
-        switch (rdi.dwType) {
-            case RIM_TYPEMOUSE: {
-                // Extract device ID
-                wchar_t device_name[512];
-                UINT name_size = sizeof(device_name);
-
-                GetRawInputDeviceInfoW(
-                    pRawInputDeviceList[i].hDevice,
-                    RIDI_DEVICENAME,
-                    device_name,
-                    &name_size
-                );
-
-                wchar_t device_id[32] = {0};
-                if (!rawinput_extract_vid_pid(device_name, device_id)) {
-                    ASSERT_THROW();
-
-                    continue;
-                }
-
-                // We now check if the device is already bound
-                // Remember one physical device may have multiple logical devices
-                // We need to group them together as one device
-                int32 found_state = -1;
-                // @todo we often use hardcoded 4, which is not what we want. pass in a counter for the states
-                for (int32 c = 0; c < 4; ++c) {
-                    if (memcmp(states[c].mouse.device_name, device_id, sizeof(device_id)) == 0) {
-                        found_state = c;
-                        break;
-                    }
-                }
-
-                if (found_state >= 0) {
-                    // Physical device already bound
-                    // We need to add the handle to the handle list of that device
-
-                    // Find empty handle
-                    for (int32 c = 0; c < ARRAY_COUNT(states[found_state].mouse.handle); ++c) {
-                        if (!states[found_state].mouse.handle[c]) {
-                            states[found_state].mouse.handle[c] = pRawInputDeviceList[i].hDevice;
-                            break;
-                        }
-                    }
-                } else {
-                    // New device added
-                    memcpy(states[mouse_found].mouse.device_name, device_id, sizeof(device_id));
-
-                    states[mouse_found].mouse.handle[0] = pRawInputDeviceList[i].hDevice;
-                    states[mouse_found].connection_type = INPUT_CONNECTION_TYPE_USB;
-                    ++mouse_found;
-                }
-            } break;
-            case RIM_TYPEKEYBOARD: {
-                // Extract device ID
-                wchar_t device_name[512];
-                UINT name_size = sizeof(device_name);
-
-                GetRawInputDeviceInfoW(
-                    pRawInputDeviceList[i].hDevice,
-                    RIDI_DEVICENAME,
-                    device_name,
-                    &name_size
-                );
-
-                wchar_t device_id[32] = {0};
-                if (!rawinput_extract_vid_pid(device_name, device_id)) {
-                    ASSERT_THROW();
-
-                    continue;
-                }
-
-                // We now check if the device is already bound
-                // Remember one physical device may have multiple logical devices
-                // We need to group them together as one device
-                int32 found_state = -1;
-                for (int32 c = 0; c < 4; ++c) {
-                    if (memcmp(states[c].keyboard.device_name, device_id, sizeof(device_id)) == 0) {
-                        found_state = c;
-                        break;
-                    }
-                }
-
-                if (found_state >= 0) {
-                    // Physical device already bound
-                    // We need to add the handle to the handle list of that device
-
-                    // Find empty handle
-                    for (int32 c = 0; c < ARRAY_COUNT(states[found_state].keyboard.handle); ++c) {
-                        if (!states[found_state].keyboard.handle[c]) {
-                            states[found_state].keyboard.handle[c] = pRawInputDeviceList[i].hDevice;
-                            break;
-                        }
-                    }
-                } else {
-                    // New device added
-                    memcpy(states[keyboard_found].keyboard.device_name, device_id, sizeof(device_id));
-
-                    states[keyboard_found].keyboard.handle[0] = pRawInputDeviceList[i].hDevice;
-                    states[keyboard_found].connection_type = INPUT_CONNECTION_TYPE_USB;
-                    ++keyboard_found;
-                }
-            } break;
-            default: break;
-        }
-    }
-
-    if (mouse_found || keyboard_found) {
-        alignas(8) RAWINPUTDEVICE rid[2];
-
-        // Mouse
-        rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-        rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
-        rid[0].dwFlags = RIDEV_DEVNOTIFY;
-        rid[0].hwndTarget = hwnd;
-
-        // Keyboard
-        rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
-        rid[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
-        rid[1].dwFlags = RIDEV_DEVNOTIFY;
-        rid[1].hwndTarget = hwnd;
-
-        if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 2, sizeof(RAWINPUTDEVICE))) {
-            LOG_1("[WARNING] Couldn't register keyboard raw input device");
-            ASSERT_THROW();
-        }
-    }
-
-    return i;
+    return true;
 }
 
-// WARNING: While this works we highly recommend to use hid_init_controllers
-uint32 rawinput_init_controllers(
+/**
+ * Registers gamepad + joystick raw input and adds all present controllers
+ *
+ * WARNING: While this works we highly recommend to use hid_init_controllers
+ *          Many controllers constantly send reports (gyro etc.) -> floods the raw input buffer
+ *
+ * @return Amount of controllers found
+ */
+int32 rawinput_init_controllers(
     HWND hwnd,
-    Input* __restrict states,
-    RingMemory* const __restrict ring
+    Input* const __restrict states, int32 count,
+    const byte* const __restrict preferred_types = NULL
 ) NO_EXCEPT
 {
-    uint32 device_count;
-    GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
-    if (device_count == 0 || device_count > 1000) {
+    alignas(8) RAWINPUTDEVICE rid[2];
+
+    // Gamepad
+    rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    rid[0].usUsage = HID_USAGE_GENERIC_GAMEPAD;
+    rid[0].dwFlags = RIDEV_DEVNOTIFY;
+    rid[0].hwndTarget = hwnd;
+
+    // Joystick
+    rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    rid[1].usUsage = HID_USAGE_GENERIC_JOYSTICK;
+    rid[1].dwFlags = RIDEV_DEVNOTIFY;
+    rid[1].hwndTarget = hwnd;
+
+    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 2, sizeof(RAWINPUTDEVICE))) {
+        LOG_1("[WARNING] Couldn't register gamepad/joystick raw input device");
         return 0;
     }
 
-    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) memory_get(
-        ring,
-        sizeof(RAWINPUTDEVICELIST) * device_count,
-        alignof(RAWINPUTDEVICELIST)
-    );
-    device_count = GetRawInputDeviceList(pRawInputDeviceList, &device_count, sizeof(RAWINPUTDEVICELIST));
-
-    // We always want at least one empty input device slot
-    if (device_count == 0 || device_count > 1000) {
-        LOG_1("[WARNING] Found %d raw input devices", {DATA_TYPE_INT32, &device_count});
+    int32 found = 0;
+    RAWINPUTDEVICELIST device_list[RAWINPUT_MAX_DEVICES];
+    UINT device_count = ARRAY_COUNT(device_list);
+    const UINT listed = GetRawInputDeviceList(device_list, &device_count, sizeof(RAWINPUTDEVICELIST));
+    if (listed == (UINT) -1) {
         return 0;
     }
 
-    int32 controller_found = 0;
-
-    uint32 i;
-    for (i = 0; i < device_count; ++i) {
-        uint32 cb_size = sizeof(RID_DEVICE_INFO);
-        RID_DEVICE_INFO rdi;
-        GetRawInputDeviceInfoW(pRawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cb_size);
-
-        alignas(8) RAWINPUTDEVICE rid[1];
-
-        switch (rdi.dwType) {
-            case RIM_TYPEHID: {
-                if (rdi.hid.usUsage == HID_USAGE_GENERIC_GAMEPAD) {
-                    if (states[controller_found].controller.handle != NULL) {
-                        ++controller_found;
-                    }
-
-                    states[controller_found].controller.handle = pRawInputDeviceList[i].hDevice;
-                    // @bug This is not always true, how to check?
-                    states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
-
-                    if (rdi.hid.dwVendorId == 0x054C
-                        && (rdi.hid.dwProductId == 0x05C4 || rdi.hid.dwProductId == 0x09CC)
-                    ) {
-                        states[controller_found].controller_type = CONTROLLER_TYPE_DUALSHOCK4;
-                    } else if (rdi.hid.dwVendorId == 0x054C
-                        && (rdi.hid.dwProductId == 0x0CE6 || rdi.hid.dwProductId == 0x0DF2)
-                    ) {
-                        states[controller_found].controller_type = CONTROLLER_TYPE_DUALSENSE;
-                    } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x02E0) {
-                        states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_360;
-                    } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x02FF) {
-                        states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_ONE;
-                    } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x028E) {
-                        states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_S;
-                    } else {
-                        states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
-                    }
-
-                    // Gamepad
-                    rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-                    rid[0].usUsage = HID_USAGE_GENERIC_GAMEPAD;
-                    rid[0].dwFlags = RIDEV_DEVNOTIFY;
-                    rid[0].hwndTarget = hwnd;
-
-                    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
-                        LOG_1("[WARNING] Couldn't register gamepad raw input device");
-                        ASSERT_THROW();
-                    }
-                } else if (rdi.hid.usUsage == HID_USAGE_GENERIC_JOYSTICK) {
-                    if (states[controller_found].controller.handle != NULL) {
-                        ++controller_found;
-                    }
-
-                    states[controller_found].controller.handle = pRawInputDeviceList[i].hDevice;
-                    // @bug This is not always true, how to check?
-                    states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
-                    states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
-
-                    // Joystick
-                    rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
-                    rid[0].usUsage = HID_USAGE_GENERIC_JOYSTICK;
-                    rid[0].dwFlags = RIDEV_DEVNOTIFY;
-                    rid[0].hwndTarget = hwnd;
-
-                    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
-                        LOG_1("[WARNING] Couldn't register joystick raw input device");
-                        ASSERT_THROW();
-                    }
-                }
-            } break;
-            default: {}
+    for (UINT i = 0; i < listed; ++i) {
+        if (device_list[i].dwType == RIM_TYPEHID
+            && rawinput_device_add(states, count, device_list[i].hDevice, true, preferred_types) >= 0
+        ) {
+            ++found;
         }
     }
 
-    return i;
+    return found;
 }
 
-////////////////////////////////////////////////////////////////
-// Text input
-////////////////////////////////////////////////////////////////
-// WARNING: Requires the virtual key codes (don't define NOVIRTUALKEYCODES before windows.h)
+// Stops the raw input for controllers (e.g. switching to a different controller api)
+inline
+void rawinput_controllers_unregister() NO_EXCEPT
+{
+    alignas(8) RAWINPUTDEVICE rid[2];
+
+    rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    rid[0].usUsage = HID_USAGE_GENERIC_GAMEPAD;
+    rid[0].dwFlags = RIDEV_REMOVE;
+    rid[0].hwndTarget = NULL;
+
+    rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    rid[1].usUsage = HID_USAGE_GENERIC_JOYSTICK;
+    rid[1].dwFlags = RIDEV_REMOVE;
+    rid[1].hwndTarget = NULL;
+
+    RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 2, sizeof(RAWINPUTDEVICE));
+}
+
+#ifdef NOVIRTUALKEYCODES
+    #error "NOVIRTUALKEYCODES Must not be defined"
+#endif
+
+// Key code without the device prefix (@see INPUT_KEYBOARD_PREFIX), = scan code / virtual key code of the OS
+#define RAWINPUT_KEY_CODE_MASK 0x00FF
+
+// Bits of a key in the keyboard state array of ToUnicode/GetKeyState
+#define RAWINPUT_KEY_STATE_DOWN 0x80 // key is pressed
+#define RAWINPUT_KEY_STATE_TOGGLED 0x01 // toggle key is on (e.g. caps lock)
+
+// Character codes ToUnicode creates for some key combinations
+#define RAWINPUT_CHAR_CTRL_A 0x01 // ctrl + a
+#define RAWINPUT_CHAR_CTRL_C 0x03 // ctrl + c
+#define RAWINPUT_CHAR_CTRL_V 0x16 // ctrl + v
+#define RAWINPUT_CHAR_CTRL_X 0x18 // ctrl + x
+#define RAWINPUT_CHAR_FIRST_PRINTABLE 0x20 // space, everything below is a control character
+#define RAWINPUT_CHAR_CTRL_BACKSPACE 0x7F // ctrl + backspace (DEL character)
 
 // Maps non character keys that are relevant for text editing to InputTextControl values (0 = none)
 inline
 uint32 rawinput_key_to_text_control(byte vkey) NO_EXCEPT
 {
     switch (vkey) {
-        case VK_LEFT: return INPUT_TEXT_LEFT;
-        case VK_RIGHT: return INPUT_TEXT_RIGHT;
-        case VK_UP: return INPUT_TEXT_UP;
-        case VK_DOWN: return INPUT_TEXT_DOWN;
-        case VK_HOME: return INPUT_TEXT_HOME;
-        case VK_END: return INPUT_TEXT_END;
-        case VK_DELETE: return INPUT_TEXT_DELETE;
-        case VK_BACK: return INPUT_TEXT_BACKSPACE; // e.g. ctrl + backspace doesn't create 0x08
-        default: return 0;
+        case VK_LEFT:
+            return INPUT_TEXT_LEFT;
+        case VK_RIGHT:
+            return INPUT_TEXT_RIGHT;
+        case VK_UP:
+            return INPUT_TEXT_UP;
+        case VK_DOWN:
+            return INPUT_TEXT_DOWN;
+        case VK_HOME:
+            return INPUT_TEXT_HOME;
+        case VK_END:
+            return INPUT_TEXT_END;
+        case VK_DELETE:
+            return INPUT_TEXT_DELETE;
+        case VK_BACK:
+            // e.g. ctrl + backspace doesn't create 0x08
+            return INPUT_TEXT_BACKSPACE;
+        default:
+            return 0;
     }
 }
 
 /**
- * Converts a keyboard key event into text (@see InputState::text)
+ * Converts a keyboard key event into text
  * MUST be called for every key down event (incl. key repeat) AFTER input_set_state() so that modifiers are known
  * The key event itself doesn't need an active key slot -> text is never lost if many keys are pressed
  *
@@ -365,37 +557,46 @@ bool input_text_add(InputState* const __restrict state, const InputKey* const __
         if ((active->scan_code & INPUT_KEYBOARD_PREFIX)
             && !(active->key_state & KEY_PRESS_TYPE_RELEASED)
         ) {
-            keyboard_state[active->virtual_code & 0x00FF] = 0x80;
+            keyboard_state[active->virtual_code & RAWINPUT_KEY_CODE_MASK] = RAWINPUT_KEY_STATE_DOWN;
         }
     }
 
     // Caps lock is a toggle and not part of the pressed keys
-    keyboard_state[VK_CAPITAL] = (byte) (GetKeyState(VK_CAPITAL) & 0x01);
+    keyboard_state[VK_CAPITAL] = (byte) (GetKeyState(VK_CAPITAL) & RAWINPUT_KEY_STATE_TOGGLED);
 
-    const byte vkey = (byte) (key->virtual_code & 0x00FF);
+    const byte vkey = (byte) (key->virtual_code & RAWINPUT_KEY_CODE_MASK);
 
     // ctrl + alt = alt gr -> creates normal characters on many keyboard layouts
-    const bool shift = (keyboard_state[VK_SHIFT] & 0x80) != 0;
-    const bool ctrl = (keyboard_state[VK_CONTROL] & 0x80) && !(keyboard_state[VK_MENU] & 0x80);
+    const bool shift = (keyboard_state[VK_SHIFT] & RAWINPUT_KEY_STATE_DOWN) != 0;
+    const bool ctrl = (keyboard_state[VK_CONTROL] & RAWINPUT_KEY_STATE_DOWN)
+        && !(keyboard_state[VK_MENU] & RAWINPUT_KEY_STATE_DOWN);
 
-    uint32 code = key_to_unicode((byte) (key->scan_code & 0x00FF), vkey, keyboard_state);
+    uint32 code = key_to_unicode((byte) (key->scan_code & RAWINPUT_KEY_CODE_MASK), vkey, keyboard_state);
 
     if (ctrl) {
         // ctrl + letter creates the control characters 0x01 - 0x1A
         switch (code) {
-            case 0x01: code = INPUT_TEXT_SELECT_ALL; break;
-            case 0x03: code = INPUT_TEXT_COPY; break;
-            case 0x16: code = INPUT_TEXT_PASTE; break;
-            case 0x18: code = INPUT_TEXT_CUT; break;
+            case RAWINPUT_CHAR_CTRL_A: {
+                code = INPUT_TEXT_SELECT_ALL;
+            } break;
+            case RAWINPUT_CHAR_CTRL_C: {
+                code = INPUT_TEXT_COPY;
+            } break;
+            case RAWINPUT_CHAR_CTRL_V: {
+                code = INPUT_TEXT_PASTE;
+            } break;
+            case RAWINPUT_CHAR_CTRL_X: {
+                code = INPUT_TEXT_CUT;
+            } break;
             default: {
                 // Other ctrl combinations are not text (e.g. ctrl + s = save hotkey)
-                // ctrl + backspace = 0x7F is handled as backspace below
-                if (code < 0x20 || code == 0x7F) {
+                // ctrl + backspace is handled as backspace below (rawinput_key_to_text_control)
+                if (code < RAWINPUT_CHAR_FIRST_PRINTABLE || code == RAWINPUT_CHAR_CTRL_BACKSPACE) {
                     code = 0;
                 }
             }
         }
-    } else if (code < 0x20
+    } else if (code < RAWINPUT_CHAR_FIRST_PRINTABLE
         && code != INPUT_TEXT_BACKSPACE && code != INPUT_TEXT_TAB
         && code != INPUT_TEXT_ENTER && code != INPUT_TEXT_ESCAPE
     ) {
@@ -443,11 +644,18 @@ int16 input_raw_handle(
     int16 input_count = 0;
 
     if (raw->header.dwType == RIM_TYPEMOUSE) {
-        const v2_int16 input_handle = input_mouse_find_by_handle(
+        v2_int16 input_handle = input_mouse_find_by_handle(
             states,
             state_count,
             raw->header.hDevice
         );
+
+        // Injected/synthesized input has no device (e.g. remote desktop, touch emulation)
+        // -> belongs to the primary keyboard + mouse
+        if (!raw->header.hDevice) {
+            const Input* const kbm = input_kbm_find(states, state_count);
+            input_handle.vec[0] = kbm ? (int16) (kbm - states) : -1;
+        }
 
         if (input_handle.vec[0] < 0
             || !states[input_handle.vec[0]].connection_type
@@ -559,11 +767,17 @@ int16 input_raw_handle(
             //                  bottom left = 0;height
         }
     } else if (raw->header.dwType == RIM_TYPEKEYBOARD) {
-        const v2_int16 input_handle = input_keyboard_find_by_handle(
+        v2_int16 input_handle = input_keyboard_find_by_handle(
             states,
             state_count,
             raw->header.hDevice
         );
+
+        // Injected/synthesized input has no device (e.g. SendInput, on screen keyboard)
+        if (!raw->header.hDevice) {
+            const Input* const kbm = input_kbm_find(states, state_count);
+            input_handle.vec[0] = kbm ? (int16) (kbm - states) : -1;
+        }
 
         if (input_handle.vec[0] < 0
             || !states[input_handle.vec[0]].connection_type
@@ -597,8 +811,8 @@ int16 input_raw_handle(
         input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
 
         // Text is created directly from the key event (also for OS key repeat events)
-        // -> every event produces text exactly once, independent from the frame rate
-        // Text keys don't trigger hotkeys while typing (@see INPUT_KEY_FLAG_TEXT)
+        // Every event produces text exactly once, independent from the frame rate
+        // Text keys don't trigger hotkeys while typing
         if (new_state == KEY_PRESS_TYPE_PRESSED
             && (input->context & HOTKEY_CONTEXT_TYPING)
             && input_text_add(&input->state, &key)
@@ -606,14 +820,9 @@ int16 input_raw_handle(
         ) {
             active_key->flags |= INPUT_KEY_FLAG_TEXT;
         }
-    } else if (raw->header.dwType == RIM_TYPEHID
-        && raw->header.dwSize > sizeof(RAWINPUT)
-    ) {
-        // @performance This shouldn't be done every time, it should be polling based
-        // Controllers often CONSTANTLY send data -> really bad
-        // Maybe we can add timer usage instead of polling?
-        // But we would still need to register them, right?
-        // Ideally we wouldn't even have to register them then because they would still pollute the general buffer
+    } else if (raw->header.dwType == RIM_TYPEHID) {
+        // Controllers often CONSTANTLY send data (gyro, timestamps)
+        // We only store the latest report here, it is mapped once per tick
         const v2_int16 input_handle = input_controller_find_by_handle(
             states,
             state_count,
@@ -621,24 +830,28 @@ int16 input_raw_handle(
         );
 
         if (input_handle.vec[0] < 0
-            || !states[input_handle.vec[0]].connection_type
-            || time - states[input_handle.vec[0]].time_last_input_check < 5
+            || states[input_handle.vec[0]].controller.api != CONTROLLER_INPUT_TYPE_RAWINPUT
+            || raw->data.hid.dwCount == 0
+            || raw->data.hid.dwSizeHid == 0
         ) {
             return 0;
         }
 
-        ControllerInput controller = {0};
-        switch(states[input_handle.vec[0]].controller_type) {
-            case CONTROLLER_TYPE_DUALSHOCK4: {
-                input_map_dualshock4(&controller, states[input_handle.vec[0]].connection_type, raw->data.hid.bRawData);
-            } break;
-            default: {
-            };
-        }
-        input_set_controller_state(&states[input_handle.vec[0]], &controller, time);
+        ControllerDevice* const controller = &states[input_handle.vec[0]].controller;
 
-        states[input_handle.vec[0]].general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
-        states[input_handle.vec[0]].time_last_input_check = time;
+        // One message may contain multiple reports, the last one is the latest
+        const uint32 report_size = OMS_MIN(
+            (uint32) raw->data.hid.dwSizeHid,
+            (uint32) INPUT_CONTROLLER_REPORT_SIZE
+        );
+        memcpy(
+            controller->report,
+            raw->data.hid.bRawData + (raw->data.hid.dwCount - 1) * raw->data.hid.dwSizeHid,
+            report_size
+        );
+
+        controller->report_size = (uint16) report_size;
+        controller->has_report = true;
     }
 
     return input_count;
@@ -701,9 +914,8 @@ int16 input_raw_handle_buffered(
 
         PRAWINPUT pri = raw_input;
         for (uint32 i = 0; i < input; ++i) {
-            if (!pri->header.hDevice) {
-                break;
-            }
+            // WARNING: Messages without a device (injected input) must not stop the loop
+            //          otherwise the rest of the buffer is lost
 
             // @performance Instead of passing all input states we should only pass the state that actually matters
             input_count += input_raw_handle(pri, states, state_count, window_dim, time);

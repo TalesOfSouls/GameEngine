@@ -8,273 +8,424 @@
 #include "../stdlib/HashMapT.cpp"
 #include "../font/Font.cpp"
 #include "../system/FileUtils.cpp"
-#include "../sort/Sort.h"
 #include "UITheme.h"
+#include "UIDocument.h"
+#include "../localization/Language.cpp"
 
-#include "attribute/UIAttribute.cpp"
-#include "UIElementType.h"
+/**
+ * Theme file (.themetxt), version 2
+ *
+ * A theme is a list of named styles. A style is a set of element properties (@see UILayoutTxt.cpp)
+ * that is applied to elements, it can also style the parts of an element ($title of a window, ...).
+ *
+ *      version 2
+ *
+ *      // Type default: applied to every element of this type (before the element styles)
+ *      @button
+ *          background_color: #444444FF
+ *          background_color_hover: #2E7D32FF
+ *
+ *      // Named style: applied to elements with "style: window_default" in the layout file
+ *      window_default
+ *          background_color: #262626FF
+ *          $title
+ *              background_color: #00FF00FF
+ *          $title_label
+ *              text: @window_title         <- string of the theme language (@see ui_theme_language_from_txt)
+ *
+ * Style names are limited to HASH_MAP_MAX_KEY_LENGTH - 1 characters
+ *
+ * Language: themes/<theme>/lang/<language>/<name>.theme.langtxt (@see ui_theme_language_load, Language.cpp)
+ *
+ * Assets: the "@theme" block defines the assets of the theme as hex asset ids (@see the generated asset id headers)
+ *      @theme
+ *          font: 04000000      <- font (.fonttxt asset), e.g. AA_ID_UI_FONT_FONTTXT = 0 | (4 << 24)
+ *          atlas: 04000002     <- ui texture atlas (.atlastxt asset) for the images of the layouts
+ * The archive is part of the id (high byte) -> a theme can use its own assets or the assets of the application
+ * Not defined = the font/atlas of another theme is used (e.g. a scene theme uses the general theme font)
+ * The assets are loaded or re-used (if already loaded) by the theme loader (@see cmd_theme_load_sync)
+ */
 
+#define UI_THEME_HASHMAP_ALIGNMENT ALIGN_UP((int32) sizeof(HashEntryStrT<int32>), 32)
+
+// Runtime data at the end of theme->data (not part of the binary theme)
+#define UI_THEME_RUNTIME_SIZE ((int32) ALIGN_UP(sizeof(FontSystem), 64) + 64)
+
+// Usable size for the theme data (without the runtime data)
 FORCE_INLINE
-UIAttributeGroup* theme_style_group(UITheme* theme, const char* group_name)
+int32 ui_theme_capacity(const UITheme* const theme) NO_EXCEPT
 {
-    const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) hashmap_entry_get(&theme->hash_map, group_name);
-    if (!entry) {
-        ASSERT_THROW();
-        return NULL;
+    return theme->data_size - UI_THEME_RUNTIME_SIZE;
+}
+
+/**
+ * Asset id of the "@theme" block: hex, optional 0x (e.g. 04000002)
+ *
+ * @return UI_THEME_ASSET_NONE if the value is not a valid hex id
+ */
+static inline
+int32 ui_theme_asset_id_parse(const char* value) NO_EXCEPT
+{
+    if (value[0] == '0' && (value[1] == 'x' || value[1] == 'X')) {
+        value += 2;
     }
 
-    ASSERT_STRICT(((uintptr_t) (theme->data + entry->value)) % 4 == 0);
+    uint32 id = 0;
+    int32 digits = 0;
+    for (; *value && *value != ' ' && *value != '\t'; ++value, ++digits) {
+        const char c = *value;
+        uint32 digit;
+        if (c >= '0' && c <= '9') {
+            digit = (uint32) (c - '0');
+        } else if (c >= 'a' && c <= 'f') {
+            digit = (uint32) (c - 'a' + 10);
+        } else if (c >= 'A' && c <= 'F') {
+            digit = (uint32) (c - 'A' + 10);
+        } else {
+            return UI_THEME_ASSET_NONE;
+        }
 
-    return (UIAttributeGroup *) (theme->data + entry->value);
+        id = (id << 4) | digit;
+    }
+
+    // Asset ids are positive int32 values (archive id in the high byte)
+    return digits > 0 && digits <= 8 && id <= 0x7FFFFFFFU ? (int32) id : UI_THEME_ASSET_NONE;
 }
 
-static FORCE_INLINE
-int compare_by_attribute_id(const void* __restrict a, const void* __restrict b) NO_EXCEPT
+/**
+ * Asset ids of the "@theme" block (@see the format description above)
+ */
+static inline
+void ui_theme_assets_parse(const UIDocument* const doc, UIThemeData* const header) NO_EXCEPT
 {
-    const UIAttribute* attr_a = (UIAttribute *) a;
-    const UIAttribute* attr_b = (UIAttribute *) b;
+    header->font_asset_id = UI_THEME_ASSET_NONE;
+    header->atlas_asset_id = UI_THEME_ASSET_NONE;
 
-    return attr_a->attribute_id - attr_b->attribute_id;
+    for (int32 i = doc->first_node; i >= 0; i = doc->nodes[i].next_sibling) {
+        const UIDocumentNode* const node = &doc->nodes[i];
+        if (node->kind != UI_DOCUMENT_NODE_BLOCK || !ui_document_equals(doc, node->type, "@theme")) {
+            continue;
+        }
+
+        for (int32 p = node->first_property; p >= 0; p = doc->properties[p].next) {
+            const UIDocumentProperty* const property = &doc->properties[p];
+
+            char value[32];
+            ui_document_copy(doc, property->value, value, sizeof(value));
+            const int32 id = ui_theme_asset_id_parse(value);
+
+            int32* target = NULL;
+            if (ui_document_equals(doc, property->key, "font")) {
+                target = &header->font_asset_id;
+            } else if (ui_document_equals(doc, property->key, "atlas")) {
+                target = &header->atlas_asset_id;
+            } else {
+                LOG_1("[WARNING] Theme: unknown asset in line %d", {DATA_TYPE_INT32, (int32 *) &property->line});
+                continue;
+            }
+
+            if (id == UI_THEME_ASSET_NONE) {
+                LOG_1("[WARNING] Theme: invalid asset id in line %d", {DATA_TYPE_INT32, (int32 *) &property->line});
+                continue;
+            }
+
+            *target = id;
+        }
+    }
 }
 
-// File layout - text
-// version
-// #group_name
-//      attributes ...
-//      attributes ...
-//      attributes ...
-// #group_name
-//      attributes ...
-//      attributes ...
-//      attributes ...
+// The document data starts after the hash map
+static inline
+UIThemeData* ui_theme_data_header(const UITheme* const theme) NO_EXCEPT
+{
+    const size_t hashmap_bytes = chunk_size(sizeof(HashEntryStrT<int32>), theme->hash_map.buf.capacity)
+        + UI_THEME_HASHMAP_ALIGNMENT;
 
-// WARNING: theme needs to have memory already reserved and assigned to data
+    return (UIThemeData *) (theme->data + ALIGN_UP(hashmap_bytes, sizeof(size_t)));
+}
+
+// Restores the document pointers after loading/copying the theme data
+static inline
+void ui_theme_document_restore(UITheme* const theme) NO_EXCEPT
+{
+    const UIThemeData* const header = ui_theme_data_header(theme);
+
+    theme->document.text = (const char *) (theme->data + header->text_offset);
+    theme->document.text_length = header->text_length;
+    theme->document.version = header->version;
+    theme->document.nodes = (UIDocumentNode *) (theme->data + header->node_offset);
+    theme->document.node_count = header->node_count;
+    theme->document.properties = (UIDocumentProperty *) (theme->data + header->property_offset);
+    theme->document.property_count = header->property_count;
+    theme->document.first_node = header->first_node;
+
+    theme->font_asset_id = header->font_asset_id;
+    theme->atlas_asset_id = header->atlas_asset_id;
+
+    theme->language.data = header->language_size ? theme->data + header->language_offset : NULL;
+    theme->language.size = header->language_size;
+    theme->language.count = header->language_size
+        ? ((const LanguageHeader *) theme->language.data)->count
+        : 0;
+}
+
+/**
+ * Parses a theme from text
+ * The text is copied into theme->data
+ *
+ * WARNING: theme->data and theme->data_size need to be set
+ *
+ * @return false if theme->data is too small
+ */
+inline
+bool ui_theme_from_txt(UITheme* const __restrict theme, const char* __restrict text, int32 length) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_UI_THEME_FROM_TXT, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
+
+    LOG_1("[INFO] Parse theme");
+
+    // Upper bound for the amount of styles = lines without indentation
+    int32 style_count = 0;
+    for (int32 i = 0; i < length; ++i) {
+        if ((i == 0 || text[i - 1] == '\n') && text[i] > ' ' && text[i] != '/') {
+            ++style_count;
+        }
+    }
+
+    const int32 line_count = ui_document_line_count(text, length);
+
+    // Hash map (zeroed memory required)
+    // * 2 to avoid too many hash collisions
+    const int32 capacity = max_branched(style_count * 2, (int32) 2);
+    const size_t hashmap_bytes = chunk_size(sizeof(HashEntryStrT<int32>), capacity) + UI_THEME_HASHMAP_ALIGNMENT;
+
+    const size_t header_offset = ALIGN_UP(hashmap_bytes, sizeof(size_t));
+    const size_t text_offset = header_offset + sizeof(UIThemeData);
+    const size_t node_offset = ALIGN_UP(text_offset + length + 1, sizeof(size_t));
+    const size_t total = node_offset + ui_document_memory_size(line_count);
+
+    if ((int64) total > ui_theme_capacity(theme)) {
+        int64 needed = (int64) total;
+        LOG_1("[ERROR] Theme data too small: %n B needed", {DATA_TYPE_INT64, &needed});
+        ASSERT_TRUE(false);
+
+        return false;
+    }
+
+    memset(theme->data, 0, hashmap_bytes);
+    hashmap_init(&theme->hash_map, capacity, theme->data, UI_THEME_HASHMAP_ALIGNMENT);
+
+    char* const text_copy = (char *) (theme->data + text_offset);
+    memcpy(text_copy, text, length);
+    text_copy[length] = '\0';
+
+    UIDocument document;
+    ui_document_parse(&document, text_copy, length, theme->data + node_offset);
+
+    UIThemeData* const header = ui_theme_data_header(theme);
+    header->text_offset = (int32) text_offset;
+    header->text_length = length;
+    header->node_offset = (int32) node_offset;
+    header->node_count = document.node_count;
+    header->property_offset = (int32) ((byte *) document.properties - theme->data);
+    header->property_count = document.property_count;
+    header->first_node = document.first_node;
+    header->version = document.version;
+    header->language_offset = 0;
+    header->language_size = 0;
+    ui_theme_assets_parse(&document, header);
+
+    theme->used_data_size = (int32) ((byte *) (document.properties + document.property_count) - theme->data);
+    ui_theme_document_restore(theme);
+
+    // The assets are loaded by the theme loader (@see cmd_theme_load_sync)
+    theme->font = NULL;
+    theme->atlas = NULL;
+
+    if (document.version != UI_THEME_VERSION) {
+        LOG_1("[WARNING] Theme file version %d is not supported", {DATA_TYPE_INT32, &document.version});
+    }
+
+    // Style name -> node
+    for (int32 i = theme->document.first_node; i >= 0; i = theme->document.nodes[i].next_sibling) {
+        const UIDocumentNode* const node = &theme->document.nodes[i];
+
+        if (node->type.length >= HASH_MAP_MAX_KEY_LENGTH) {
+            LOG_1("[WARNING] Theme style name too long in line %d", {DATA_TYPE_INT32, (int32 *) &node->line});
+            continue;
+        }
+
+        char name[HASH_MAP_MAX_KEY_LENGTH];
+        ui_document_copy(&theme->document, node->type, name, sizeof(name));
+        hashmap_insert(&theme->hash_map, name, i);
+    }
+
+    return true;
+}
+
+/**
+ * Adds the language of the theme (strings referenced with "@key" in the theme file)
+ * The language is stored in theme->data after the document -> it is part of the binary theme (@see theme_to_data)
+ *
+ * WARNING: Must be called after ui_theme_from_txt(), replaces an existing language
+ *
+ * @return false if theme->data is too small
+ */
+inline
+bool ui_theme_language_from_txt(UITheme* const __restrict theme, const char* __restrict text, int32 length) NO_EXCEPT
+{
+    UIThemeData* const header = ui_theme_data_header(theme);
+
+    // Replace an existing language
+    if (header->language_size) {
+        theme->used_data_size = header->language_offset;
+    }
+
+    const int32 offset = ALIGN_UP(theme->used_data_size, (int32) sizeof(size_t));
+
+    Language language = {};
+    language.data = theme->data + offset;
+
+    if (language_from_txt(&language, text, length, ui_theme_capacity(theme) - offset) < 0) {
+        header->language_offset = 0;
+        header->language_size = 0;
+        ui_theme_document_restore(theme);
+
+        return false;
+    }
+
+    header->language_offset = offset;
+    header->language_size = language.size;
+    theme->used_data_size = offset + language.size;
+    ui_theme_document_restore(theme);
+
+    return true;
+}
+
+/**
+ * Loads the language file of a theme file (falls back to LANGUAGE_DEFAULT_CODE)
+ *      ./themes/default/general.themetxt -> ./themes/default/lang/<language_code>/general.theme.langtxt
+ *
+ * @param mem Temporary memory for the file content
+ *
+ * @return false if the theme has no language file
+ */
+template <typename M>
+bool ui_theme_language_load(
+    UITheme* const __restrict theme,
+    const wchar_t* __restrict theme_path,
+    const wchar_t* __restrict language_code,
+    M* const __restrict mem
+) NO_EXCEPT
+{
+    wchar_t path[PATH_MAX_LENGTH];
+    // build path and check if file exists
+    // @performance this can be optimized heavily
+    {
+        wcscpy(path, theme_path);
+        wchar_t* pos = str_right(path, L'.');
+        if (pos) {
+            *pos = L'\0';
+        }
+        str_insert(path, wcslen(path), L".langtxt");
+        pos = str_right(path, L'/');
+        const size_t dir_end = pos ? (size_t) (pos - path) + 1 : 0;
+        str_insert(path, dir_end, L"/");
+        str_insert(path, dir_end, language_code);
+        str_insert(path, dir_end, L"lang/");
+
+        if (!file_exists(path)) {
+            return false;
+        }
+    }
+
+    FileBody file = {0};
+    file_read(path, &file, mem);
+    if (!file.content) {
+        return false;
+    }
+
+    return ui_theme_language_from_txt(theme, (const char *) file.content, (int32) file.size);
+}
+
+/**
+ * Index of a style node in theme->document.nodes
+ *
+ * @param name Style name or "@type" for the type default
+ *
+ * @return -1 if the theme doesn't define the style
+ */
+inline
+int32 ui_theme_style(const UITheme* const theme, const char* const name) NO_EXCEPT
+{
+    if (!theme || !theme->hash_map.buf.memory) {
+        return -1;
+    }
+
+    const HashEntryStrT<int32>* const entry = hashmap_entry_get(&theme->hash_map, name);
+
+    return entry ? entry->value : -1;
+}
+
+/**
+ * Loads a theme text file (e.g. used by the theme builder)
+ *
+ * WARNING: theme->data and theme->data_size need to be set
+ */
+inline
 void theme_from_file_txt(
-    UITheme* theme,
+    UITheme* const theme,
     const char* path,
     RingMemory* const ring
-) {
+) NO_EXCEPT
+{
     FileBody file = {0};
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
 
-    const char* pos = (char *) file.content;
-
-    // skip version
-    str_skip_line(&pos);
-
-    // We have to find how many groups are defined in the theme file.
-    // Therefore we have to do an initial iteration
-    int32 temp_group_count = 0;
-    while (*pos != '\0') {
-        // Skip all white spaces
-        str_skip_empty(&pos);
-
-        // Is group name
-        if (*pos == '#' || *pos == '.') {
-            ++temp_group_count;
-        }
-
-        // Go to the next line
-        str_move_past(&pos, '\n');
-    }
-
-    ASSERT_TRUE(temp_group_count > 0);
-
-    // We reserve * 2 memory to avoid too many hash collisions
-    hashmap_init(
-        &theme->hash_map,
-        temp_group_count * 2,
-        theme->data,
-        ALIGN_UP((int32) sizeof(HashEntryStrT<int32>), 32)
-    );
-    int32 data_offset = (int32) hashmap_size(&theme->hash_map);
-
-    ASSERT_TRUE(data_offset <= theme->data_size);
-
-    UIAttributeGroup* temp_group = NULL;
-
-    pos = (char *) file.content;
-
-    // move past "version" string
-    str_move_past(&pos, '\n');
-
-    char* attribute_name;
-
-    // This one cannot be a pointer directly to the existing string like attribute_name since we may have a suffix like :hover
-    // In that case the : of course is not allowed to be overwritten
-    char block_name[128]; // HASH_MAP_MAX_KEY_LENGTH would probably result in a buffer overflow
-    bool last_token_newline = false;
-    bool block_open = false;
-    while (*pos != '\0') {
-        str_skip_whitespace(&pos);
-
-        if (is_eol(pos)) {
-            pos += is_eol(pos);
-
-            // 2 new lines => closing block
-            if (last_token_newline) {
-                block_open = false;
-            }
-            last_token_newline = !last_token_newline;
-
-            continue;
-        }
-
-        last_token_newline = false;
-
-        // Handle new group
-        /////////////////////////////////////////////////////////
-        if (!block_open) {
-            str_copy_move_until(block_name, &pos, " \r\n");
-            // @bug handle block_name length >= HASH_MAP_MAX_KEY_LENGTH
-            // Why? well because we only store HASH_MAP_MAX_KEY_LENGTH - 1 in the hash map key
-            // That means we could overwrite existing keys e.g. #btn_SOME_LONGER_NAME vs #ipt_SAME_LONG_NAME
-            // In the above case the key uses the last HASH_MAP_MAX_KEY_LENGTH - 1 characters therefore ignoring the prefix
-
-            // All blocks need to start with #. In the past this wasn't the case and may not be in the future. This is why we keep this if here.
-            if (*block_name == '#' || *block_name == '.') {
-                // Named style
-                block_open = true;
-
-                if (temp_group) {
-                    // Before we insert a new group we have to sort the attributes of the PREVIOUS temp_group
-                    // since this makes searching them later on more efficient.
-                    UIAttribute* attribute_start = (UIAttribute *) ALIGN_UP((uintptr_t) (temp_group + 1), alignof(UIAttribute));
-                    sort_introsort(attribute_start, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
-                    // @todo This is where we create the Eytzinger order if we want to use it
-                }
-
-                // Insert new group
-                data_offset = (int32) ((uintptr_t) ALIGN_UP((uintptr_t) theme->data + data_offset, alignof(UIAttributeGroup))
-                    - (uintptr_t) theme->data);
-                hashmap_insert(&theme->hash_map, block_name, data_offset);
-
-                temp_group = (UIAttributeGroup *) (theme->data + data_offset);
-                temp_group->attribute_count = 0;
-                data_offset += sizeof(UIAttributeGroup);
-            }
-
-            if (strlen(block_name) + 1 > HASH_MAP_MAX_KEY_LENGTH) {
-                LOG_1("Identifier %s too long", {DATA_TYPE_CHAR_STR, block_name});
-            }
-
-            continue;
-        }
-
-        // Handle new attribute for previously found group
-        /////////////////////////////////////////////////////////
-        attribute_name = (char *) pos; // Yes, we are forcing a const -> none-const changes
-        str_move_to(&pos, " :\n");
-        attribute_name[pos++ - attribute_name] = '\0';
-
-        // Skip any white spaces or other delimeter
-        str_skip_list(&pos, " \t:", sizeof(" \t:") - 1);
-
-        // Parse attribute value
-        UIAttribute attribute = {0};
-        ui_attribute_parse_value(&attribute, attribute_name, pos);
-
-        // @bug How to handle "anim"
-        // We currently just end the block if we encounter it
-        if (attribute.attribute_id == UI_ATTRIBUTE_TYPE_ANIMATION) {
-            block_open = false;
-            continue;
-        }
-
-        // Again, currently this if check is redundant but it wasn't in the past and we may need it again in the future.
-        if (block_name[0] == '#' || block_name[0] == '.') {
-            // Named block
-            UIAttribute* attribute_reference = (UIAttribute *) ALIGN_UP((uintptr_t) (temp_group + 1), alignof(UIAttribute));
-            // @question Why are we even doing this? couldn't we just pass this offset to the ui_attribute_parse_value() function?
-            // @bug I also think that this is no longer the correct format, Shouldn't it just store the UIElement stuff?
-            memcpy(
-                attribute_reference + temp_group->attribute_count,
-                &attribute,
-                sizeof(attribute)
-            );
-
-            data_offset += sizeof(attribute);
-            ++temp_group->attribute_count;
-        }
-
-        str_move_to(&pos, '\n');
-    }
-
-    theme->used_data_size = data_offset;
-
-    // We still need to sort the last group
-    UIAttribute* attribute_start = (UIAttribute *) ALIGN_UP((uintptr_t) (temp_group + 1), alignof(UIAttribute));
-    sort_introsort(attribute_start, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
-    // @todo This is where we create the Eytzinger order if we want to use it
+    ui_theme_from_txt(theme, (const char *) file.content, (int32) file.size);
 }
 
-// from data
-static inline
-void ui_theme_parse_group(const HashEntryStrT<int32>* entry, byte* data, const byte** in)
+/**
+ * Binary representation:
+ *
+ * 00 01 02 03 = version (UI_THEME_BINARY_VERSION)
+ * .. .. .. .. = hash map
+ * .. .. .. .. = size of the document data
+ * .. .. .. .. = document data (UIThemeData, text, nodes, properties, language)
+ */
+int32 theme_to_data(
+    const UITheme* __restrict theme,
+    byte* __restrict data
+) NO_EXCEPT
 {
-    UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
-    ASSERT_STRICT(((uintptr_t) group) % 4 == 0);
+    byte* out = data;
 
-    group->attribute_count = SWAP_ENDIAN_LITTLE(*((int32 *) *in));
-    *in += sizeof(group->attribute_count);
+    out = write_le(out, (int32) UI_THEME_BINARY_VERSION);
+    out += hashmap_dump(&theme->hash_map, out);
 
-    UIAttribute* attribute_reference = (UIAttribute *) ALIGN_UP((uintptr_t) (group + 1), alignof(UIAttribute));
-    ASSERT_STRICT(((uintptr_t) attribute_reference) % 4 == 0);
+    // The document data (incl. the language) is position independent (offsets relative to theme->data)
+    const UIThemeData* const header = ui_theme_data_header(theme);
+    const int32 document_offset = (int32) ((const byte *) header - theme->data);
+    const int32 document_size = theme->used_data_size - document_offset;
 
-    for (int32 j = 0; j < group->attribute_count; ++j) {
-        attribute_reference[j].attribute_id = (UIAttributeType) SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
-        *in += sizeof(attribute_reference[j].attribute_id);
+    out = write_le(out, document_size);
+    memcpy(out, header, document_size);
+    out += document_size;
 
-        attribute_reference[j].datatype = *((UIAttributeDataType *) *in);
-        *in += sizeof(attribute_reference[j].datatype);
-
-        if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
-            attribute_reference[j].value_int = SWAP_ENDIAN_LITTLE(*((int32 *) *in));
-            *in += sizeof(attribute_reference[j].value_int);
-        } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_F32) {
-            attribute_reference[j].value_float = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
-            *in += sizeof(attribute_reference[j].value_float);
-        } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
-            memcpy(attribute_reference[j].value_str, *in, sizeof(attribute_reference[j].value_str));
-            *in += sizeof(attribute_reference[j].value_str);
-        } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_V4_F32) {
-            attribute_reference[j].value_v4_f32.x = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
-            *in += sizeof(attribute_reference[j].value_v4_f32.x);
-
-            attribute_reference[j].value_v4_f32.y = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
-            *in += sizeof(attribute_reference[j].value_v4_f32.y);
-
-            attribute_reference[j].value_v4_f32.z = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
-            *in += sizeof(attribute_reference[j].value_v4_f32.z);
-
-            attribute_reference[j].value_v4_f32.w = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
-            *in += sizeof(attribute_reference[j].value_v4_f32.w);
-        }
-    }
+    return (int32) (out - data);
 }
 
-// Memory layout (data)
-// Hashmap
-// [alignment - UIAttributeGroup]
-// UIAttributeGroup - This is where the pointers point to (or what the offset represents)
-//      [alignment - Attributes]
-//      Attributes ...
-//      Attributes ...
-//      Attributes ...
-// [alignment - UIAttributeGroup]
-// UIAttributeGroup
-//      [alignment - Attributes]
-//      Attributes ...
-//      Attributes ...
-//      Attributes ...
-
-// The size of theme->data should be the file size.
-// Yes, this means we have a little too much data but not by a lot
+/**
+ * WARNING: theme->data and theme->data_size need to be set
+ *
+ * @return Bytes read or -1 if the data is not a compatible theme
+ */
 int32 theme_from_data(
     const byte* __restrict data,
     UITheme* __restrict theme
-) {
+) NO_EXCEPT
+{
     PROFILE_DEBUG(PROFILE_THEME_FROM_THEME, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Load theme");
 
@@ -283,158 +434,46 @@ int32 theme_from_data(
     int32 version;
     in = read_le(in, &version);
 
-    // This information is written to the data by the hashmap_dump = chunk_dump
-    // We don't move the *in pointer since that happens later with hashmap_load
-    // However, we need to pre-load that information now so we can initialize the hashmap
-    // We could in theory not do that and hard-code a fixed allowed number here.
-    // @question Consider the fixed amount idea from above.
-    int32 count;
-    read_le(in, &count);
-    SWAP_ENDIAN_LITTLE_SELF(count);
+    if (version != UI_THEME_BINARY_VERSION) {
+        LOG_1("[WARNING] Incompatible theme version %d", {DATA_TYPE_INT32, &version});
 
-    // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
-    // Of course we still need to populate the data using hashmap_load()
-    // The value is a int64 (because this is the value of the chunk buffer size but the hashmap only allows int32)
-    hashmap_init(
-        &theme->hash_map,
-        count,
-        theme->data,
-        alignof(HashEntryStrT<int32>)
-    );
+        return -1;
+    }
 
-    ASSERT_TRUE(sizeof(HashEntryStrT<int32>) * count <= theme->data_size);
+    // The capacity is the first value of the hash map data (@see hashmap_dump)
+    int32 capacity;
+    read_le(in, &capacity);
+    SWAP_ENDIAN_LITTLE_SELF(capacity);
 
-    theme->used_data_size = (int32) hashmap_load(&theme->hash_map, in);
-    in += theme->used_data_size;
+    const size_t hashmap_bytes = chunk_size(sizeof(HashEntryStrT<int32>), capacity) + UI_THEME_HASHMAP_ALIGNMENT;
+    memset(theme->data, 0, hashmap_bytes);
+    hashmap_init(&theme->hash_map, capacity, theme->data, UI_THEME_HASHMAP_ALIGNMENT);
+    in += hashmap_load(&theme->hash_map, in);
 
-    // theme data
-    // Layout: first load the size of the group, then load the individual attributes
-    // @performance We are iterating the hashmap twice (hashmap_load and here)
-    int32 chunk_id = 0;
-    chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
-        HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_element_get(&theme->hash_map.buf, chunk_id);
-        ui_theme_parse_group(entry, theme->data, &in);
-    } chunk_iterate_end;
+    int32 document_size;
+    in = read_le(in, &document_size);
+
+    UIThemeData* const header = ui_theme_data_header(theme);
+    if ((byte *) header + document_size > theme->data + ui_theme_capacity(theme)) {
+        LOG_1("[ERROR] Theme data too small: %d B needed", {DATA_TYPE_INT32, &document_size});
+        ASSERT_TRUE(false);
+
+        return -1;
+    }
+
+    memcpy(header, in, document_size);
+    in += document_size;
+
+    theme->used_data_size = (int32) ((byte *) header - theme->data) + document_size;
+    ui_theme_document_restore(theme);
+
+    // The assets are loaded by the theme loader (@see cmd_theme_load_sync)
+    theme->font = NULL;
+    theme->atlas = NULL;
 
     LOG_1("[INFO] Loaded theme");
 
     return (int32) (in - data);
-}
-
-// Calculates the maximum theme size
-// Not every group has all the attributes (most likely only a small subset)
-// However, an accurate calculation is probably too slow and not needed most of the time
-FORCE_INLINE
-int64 theme_data_size_max(const UITheme* theme)
-{
-    return hashmap_size(&theme->hash_map)
-        + theme->hash_map.buf.capacity * UI_ATTRIBUTE_TYPE_SIZE * sizeof(UIAttribute);
-}
-
-// to data
-static inline
-void ui_theme_serialize_group(const HashEntryStrT<int32>* entry, const byte* data, byte** out)
-{
-    // @performance Are we sure the data is nicely aligned?
-    // Probably depends on the from_txt function and the start of theme->data
-    UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
-    ASSERT_STRICT(((uintptr_t) group) % 4 == 0);
-
-    // Careful this serializes the group to a different offset than it is currently in memory
-    // This means the entry->value (which represents the offset) is no longer correct when we load it
-    // As a solution when we load the theme we move it back to the memory position where it was originally located
-    // @question alternatively we could do out + entry->value as the storage location?
-    //  If we would do that the loading might be faster since we don't have to jump in memory and can just load it in order?
-    *((int32 *) *out) = SWAP_ENDIAN_LITTLE(group->attribute_count);
-    *out += sizeof(group->attribute_count);
-
-    UIAttribute* attribute_reference = (UIAttribute *) ALIGN_UP((uintptr_t) (group + 1), alignof(UIAttribute));
-    ASSERT_STRICT(((uintptr_t) attribute_reference) % 4 == 0);
-
-    f32 tempf32;
-
-    for (int32 j = 0; j < group->attribute_count; ++j) {
-        *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].attribute_id);
-        *out += sizeof(attribute_reference[j].attribute_id);
-
-        *((byte *) *out) = attribute_reference[j].datatype;
-        *out += sizeof(attribute_reference[j].datatype);
-
-        // Careful the sizeof() below returns the actual value size but the union size is actually larger
-        // This is fine as long as we remember when loading the data to zero out the other bytes
-        if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
-            *((int32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_int);
-            *out += sizeof(attribute_reference[j].value_int);
-        } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_F32) {
-            *((f32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_float);
-            *out += sizeof(attribute_reference[j].value_float);
-        } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
-            memcpy(*out, attribute_reference[j].value_str, sizeof(attribute_reference[j].value_str));
-            *out += sizeof(attribute_reference[j].value_str);
-        } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_V4_F32) {
-            tempf32 = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.x);
-            memcpy(*out, &tempf32, sizeof(tempf32));
-            *out += sizeof(attribute_reference[j].value_v4_f32.x);
-
-            tempf32 = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.y);
-            memcpy(*out, &tempf32, sizeof(tempf32));
-            *out += sizeof(attribute_reference[j].value_v4_f32.y);
-
-            tempf32 = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.z);
-            memcpy(*out, &tempf32, sizeof(tempf32));
-            *out += sizeof(attribute_reference[j].value_v4_f32.z);
-
-            tempf32 = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.w);
-            memcpy(*out, &tempf32, sizeof(tempf32));
-            *out += sizeof(attribute_reference[j].value_v4_f32.w);
-        }
-    }
-}
-
-// File layout - binary
-// version
-// hashmap size
-// Hashmap (includes offsets to the individual groups)
-// #group_name (this line doesn't really exist in file, it's more like the pointer offset in the hashmap)
-//      size
-//      attributes ...
-//      attributes ...
-//      attributes ...
-// #group_name
-//      size
-//      attributes ...
-//      attributes ...
-//      attributes ...
-
-/**
- * Binary representation:
- *
- * 00 01 02 03 = version
- * 00 .. .. 0F = hash map header
- * 10 .. .. .. = hash map data
- * .. .. .. .. = theme data
- */
-int32 theme_to_data(
-    const UITheme* __restrict theme,
-    byte* __restrict data
-) {
-    byte* out = data;
-
-    // version
-    out = write_le(out, UI_THEME_VERSION);
-
-    // hashmap
-    out += hashmap_dump(&theme->hash_map, out);
-
-    // theme data
-    // Layout: first save the size of the group, then save the individual attributes
-    int32 chunk_id = 0;
-    chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
-        const HashEntryStrT<int32>* entry = (HashEntryStrT<int32> *) chunk_element_get(&theme->hash_map.buf, chunk_id);
-        ui_theme_serialize_group(entry, theme->data, &out);
-    } chunk_iterate_end;
-
-    return (int32) (out - data);
 }
 
 #endif

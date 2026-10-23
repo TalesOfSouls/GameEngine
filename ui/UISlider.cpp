@@ -83,6 +83,8 @@ void ui_slider_cache(
     f32* const zindex
 ) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_SLIDER);
+
     ui_dimension_calculate(layout, &slider->core);
     const UIAttributeDimension* const dim = &slider->core.dimension;
 

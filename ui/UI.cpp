@@ -39,8 +39,10 @@
 #include "UITab.cpp"
 #include "UITable.cpp"
 #include "UIColorPicker.cpp"
+#include "UITooltip.cpp"
 #include "UIClip.h"
 #include "UIScrollbar.h"
+#include "../hash/GeneralHash.h"
 
 // Starting z index of the UI, every element moves a step closer to the camera
 #define UI_ZINDEX_START 10.0f
@@ -59,7 +61,7 @@
 FORCE_INLINE
 bool ui_layout_needs_cache(const UILayout* const layout) NO_EXCEPT
 {
-    return layout->dirty || layout->has_custom_render;
+    return layout->dirty;
 }
 
 // Is the element and all of its parents visible?
@@ -110,7 +112,10 @@ bool ui_update(void* app, UILayout* const layout) NO_EXCEPT
             byte snapshot[UI_UPDATE_SNAPSHOT_SIZE];
             char text_snapshot[UI_UPDATE_SNAPSHOT_SIZE];
 
-            const int32 element_size = min_branched(ui_element_type_size(element->type), (int32) sizeof(snapshot));
+            const int32 element_size = min_branched(
+                ui_element_type_size(element->type),
+                (int32) sizeof(snapshot)
+            );
             memcpy(snapshot, element, element_size);
 
             const char* text = NULL;
@@ -118,7 +123,10 @@ bool ui_update(void* app, UILayout* const layout) NO_EXCEPT
             if (element->type == UI_ELEMENT_TYPE_LABEL && ((UILabel *) element)->content) {
                 const UILabel* const label = (UILabel *) element;
                 text = (const char *) (layout->ui_element_buffer.memory + label->content);
-                text_size = min_branched(label->content_length * ui_char_type_size(label->char_type), (int32) sizeof(text_snapshot));
+                text_size = min_branched(
+                    label->content_length * ui_char_type_size(label->char_type),
+                    (int32) sizeof(text_snapshot)
+                );
                 memcpy(text_snapshot, text, text_size);
             }
 
@@ -153,7 +161,12 @@ bool ui_update(void* app, UILayout* const layout) NO_EXCEPT
  * @return false if the element can't scroll in this axis (or the content fits)
  */
 inline
-bool ui_element_scroll_info(const UILayout* const layout, const UICore* const element, UIScrollAxis axis, UIScrollInfo* const info) NO_EXCEPT
+bool ui_element_scroll_info(
+    const UILayout* const layout,
+    const UICore* const element,
+    UIScrollAxis axis,
+    UIScrollInfo* const info
+) NO_EXCEPT
 {
     switch (element->type) {
         case UI_ELEMENT_TYPE_VIEW_PANEL:
@@ -200,6 +213,8 @@ bool ui_element_scroll_set(UILayout* const layout, UICore* const element, UIScro
 inline
 void ui_popup_layout(UILayout* const layout, UIPanel* const popup) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_CACHE_POPUP_LAYOUT);
+
     v2_f32 size = popup->core.dimension.dim_raw;
 
     if (popup->popup_owner) {
@@ -224,6 +239,367 @@ struct UICacheClip {
     UIClipRect clip;
 };
 
+////////////////////////////////////////////////////////////////
+// Incremental caching
+////////////////////////////////////////////////////////////////
+// Generating the vertices (especially text) is the expensive part of ui_cache().
+// Most of the time only a few elements change (e.g. a label of the hud, a hovered button)
+// -> ui_cache() copies the vertices of unchanged elements from the output of the last ui_cache()
+//
+//      ui_vertex_total/ui_index_total  = copy of the output of the last ui_cache()
+//      UICore::cache_*                 = vertex/index range + zindex of the element in that output
+//      UICore::cache_hash              = hash of everything the vertices of the element depend on
+//
+// An element is re-generated if its hash changed (element data, parent position/size, clipping, text, ...),
+// it was marked as changed (UICore::change_type, e.g. custom elements @see ui_element_mark_changed)
+// or it wasn't visible in the last ui_cache() (no cached vertices).
+// Copied elements get their indices rebased and their zindex shifted (if the zindex steps of previous elements changed).
+//
+// The output is the same as re-generating everything (@see UILayout::cache_incremental to switch it off)
+// The gpu upload still uploads the whole vertex buffer.
+
+// Elements that are always re-generated since they depend on other elements (e.g. the option list on its select)
+// They only exist in popups, so this is rare
+static inline
+bool ui_element_cache_volatile(const UICore* const element) NO_EXCEPT
+{
+    switch (element->type) {
+        case UI_ELEMENT_TYPE_OPTION_LIST:
+        case UI_ELEMENT_TYPE_COLOR_PANEL:
+            return true;
+        case UI_ELEMENT_TYPE_CURSOR:
+            // Doesn't use the zindex (always on top) + moves all the time anyway
+            return true;
+        case UI_ELEMENT_TYPE_VIEW_PANEL:
+            // Popups are placed relative to their owner (@see ui_popup_layout)
+            return ((const UIPanel *) element)->panel_flags & UI_PANEL_FLAG_POPUP;
+        default:
+            return false;
+    }
+}
+
+FORCE_INLINE
+uint64 ui_cache_hash_bytes(uint64 hash, const void* const data, size_t size) NO_EXCEPT
+{
+    return size ? hash_murmur3_64(data, size, hash) : hash;
+}
+
+FORCE_INLINE
+uint64 ui_cache_hash_str(uint64 hash, const char* const str) NO_EXCEPT
+{
+    // + 1 = including the \0, otherwise "ab" + "c" == "a" + "bc"
+    return str ? hash_murmur3_64(str, strlen(str) + 1, hash) : hash_murmur3_64("", 1, hash ^ 0x9E3779B97F4A7C15ULL);
+}
+
+static inline
+uint64 ui_cache_hash_text(uint64 hash, const UILayout* const layout, int32 offset, int32 length, CharType char_type) NO_EXCEPT
+{
+    if (!offset) {
+        return hash;
+    }
+
+    const char* const text = (const char *) (layout->ui_element_buffer.memory + offset);
+    if (char_type == CHAR_TYPE_CHAR) {
+        return ui_cache_hash_str(hash, text);
+    }
+
+    return ui_cache_hash_bytes(hash, text, (size_t) length * ui_char_type_size(char_type));
+}
+
+/**
+ * Hash of everything the vertices of an element depend on
+ *
+ * Called before caching the element (did something change?) and after (stored for the next ui_cache())
+ * since caching also calculates values that are stored in the element (e.g. the dimension)
+ *
+ * WARNING: If you add an element that reads other elements or layout data while caching, add it here
+ */
+static
+uint64 ui_element_cache_hash(
+    const UILayout* const layout,
+    const UICore* const element,
+    int32 offset,
+    const UICacheClip* const clip
+) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_UI_CACHE_ELEMENT_HASH);
+
+    // Element data incl. state, styles, scroll offsets, ...
+    // without the change flags and the cache members at the end of UICore
+    const byte* const data = (const byte *) element;
+    uint64 hash = ui_cache_hash_bytes(0, data, offsetof(UICore, change_type));
+    hash = ui_cache_hash_bytes(
+        hash,
+        data + offsetof(UICore, change_type) + sizeof(element->change_type),
+        offsetof(UICore, cache_frame) - offsetof(UICore, change_type) - sizeof(element->change_type)
+    );
+
+    const int32 type_size = ui_element_type_size(element->type);
+    if (type_size > (int32) sizeof(UICore)) {
+        hash = ui_cache_hash_bytes(hash, data + sizeof(UICore), type_size - sizeof(UICore));
+    }
+
+    // The position/size is calculated from the parent
+    const UICore* const parent = ui_element_get(layout, element->parent_offset);
+    hash = ui_cache_hash_bytes(hash, &parent->dimension.pos, sizeof(parent->dimension.pos));
+    hash = ui_cache_hash_bytes(hash, &parent->dimension.dim, sizeof(parent->dimension.dim));
+
+    if (parent->type == UI_ELEMENT_TYPE_VIEW_PANEL) {
+        // The content of a scroll panel depends on the scroll offset + scrollbars (@see ui_panel_cache)
+        const UIPanel* const parent_panel = (const UIPanel *) parent;
+        hash = ui_cache_hash_bytes(hash, &parent_panel->scroll, sizeof(parent_panel->scroll));
+        hash = ui_cache_hash_bytes(hash, &parent_panel->content_size, sizeof(parent_panel->content_size));
+    }
+
+    // Clipping (e.g. scroll panel viewport)
+    if (clip) {
+        hash = ui_cache_hash_bytes(hash, &clip->clip, sizeof(clip->clip));
+    }
+
+    // Interaction state that is not stored in the element
+    const UIInteraction* const interaction = &layout->interaction;
+    const uint32 interaction_state = (interaction->keyboard_focus == offset ? 1 : 0)
+        | (interaction->scroll_dragged == offset ? (2 | (interaction->scroll_drag_axis << 2)) : 0);
+    hash = ui_cache_hash_bytes(hash, &interaction_state, sizeof(interaction_state));
+
+    // Content that is stored outside of the element (e.g. text) or in other elements
+    switch (element->type) {
+        case UI_ELEMENT_TYPE_LABEL: {
+            const UILabel* const label = (const UILabel *) element;
+            hash = ui_cache_hash_text(hash, layout, label->content, label->content_length, label->char_type);
+            hash = ui_cache_hash_text(hash, layout, label->pattern, label->pattern_length, label->char_type);
+        } break;
+        case UI_ELEMENT_TYPE_INPUT:
+        case UI_ELEMENT_TYPE_TEXTAREA: {
+            const UIInput* const input = (const UIInput *) element;
+            hash = ui_cache_hash_text(hash, layout, input->content, input->content_length, CHAR_TYPE_CHAR);
+            hash = ui_cache_hash_text(hash, layout, input->placeholder, 0, CHAR_TYPE_CHAR);
+        } break;
+        case UI_ELEMENT_TYPE_SELECT: {
+            const UISelect* const select = (const UISelect *) element;
+
+            char buffer[128];
+            hash = ui_cache_hash_str(hash, ui_select_display_text(layout, select, buffer, (int32) sizeof(buffer)));
+
+            const bool is_open = select->popup && interaction->popup == select->popup;
+            hash = ui_cache_hash_bytes(hash, &is_open, sizeof(is_open));
+        } break;
+        case UI_ELEMENT_TYPE_VIEW_TAB: {
+            const UITab* const tab = (const UITab *) element;
+            for (int32 i = 0; i < tab->tab_count; ++i) {
+                hash = ui_cache_hash_str(hash, ui_tab_title(layout, tab, i));
+            }
+        } break;
+        case UI_ELEMENT_TYPE_TABLE: {
+            const UITable* const table = (const UITable *) element;
+            for (int32 c = 0; c < table->column_count; ++c) {
+                hash = ui_cache_hash_str(hash, ui_table_string(layout, table->columns, c));
+                hash = ui_cache_hash_str(hash, ui_table_row_string(layout, table, table->footer, c));
+            }
+
+            if (table->column_widths) {
+                hash = ui_cache_hash_bytes(
+                    hash,
+                    layout->ui_element_buffer.memory + table->column_widths,
+                    sizeof(f32) * table->column_count
+                );
+            }
+
+            for (int32 r = 0; r < table->row_count; ++r) {
+                for (int32 c = 0; c < table->column_count; ++c) {
+                    hash = ui_cache_hash_str(hash, ui_table_cell(layout, table, r, c));
+                }
+            }
+        } break;
+        case UI_ELEMENT_TYPE_COLOR_PICKER: {
+            const UIColorPicker* const picker = (const UIColorPicker *) element;
+            const bool is_open = picker->popup && interaction->popup == picker->popup;
+            hash = ui_cache_hash_bytes(hash, &is_open, sizeof(is_open));
+        } break;
+        case UI_ELEMENT_TYPE_CHECKBOX:
+        case UI_ELEMENT_TYPE_RADIO: {
+            // The size includes the label (@see ui_checkbox_cache)
+            const UICheckbox* const checkbox = (const UICheckbox *) element;
+            if (checkbox->label) {
+                const UICore* const label = ui_element_get(layout, checkbox->label);
+                hash = ui_cache_hash_bytes(hash, &label->dimension.dim, sizeof(label->dimension.dim));
+            }
+        } break;
+        default: {}
+    }
+
+    return hash;
+}
+
+/**
+ * Copies the vertices of an unchanged element from the last ui_cache() output
+ *
+ * @param zindex_delta Difference between the new and the old zindex
+ */
+static inline
+void ui_element_cache_copy(UILayout* const layout, UICore* const element, f32 zindex_delta) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_UI_CACHE_ELEMENT_COPY);
+
+    ArrayVector<Vertex3DSamplerTextureColor>* const vertices = &layout->ui_vertex_cache;
+    ArrayVector<int32>* const indices = &layout->ui_index_cache;
+
+    const int32 vertex_start = vertices->count;
+    const int32 index_start = indices->count;
+
+    ASSERT_TRUE(vertex_start + element->cache_vertex_count <= vertices->capacity);
+    ASSERT_TRUE(index_start + element->cache_index_count <= indices->capacity);
+
+    Vertex3DSamplerTextureColor* const vertex_dst = vertices->elements + vertex_start;
+    memcpy(
+        vertex_dst,
+        layout->ui_vertex_total.elements + element->cache_vertex_start,
+        element->cache_vertex_count * sizeof(Vertex3DSamplerTextureColor)
+    );
+
+    if (zindex_delta != 0.0f) {
+        for (int32 i = 0; i < element->cache_vertex_count; ++i) {
+            vertex_dst[i].position.z += zindex_delta;
+        }
+    }
+
+    int32* const index_dst = indices->elements + index_start;
+    const int32* const index_src = layout->ui_index_total.elements + element->cache_index_start;
+    const int32 index_shift = vertex_start - element->cache_vertex_start;
+    for (int32 i = 0; i < element->cache_index_count; ++i) {
+        index_dst[i] = index_src[i] + index_shift;
+    }
+
+    vertices->count += element->cache_vertex_count;
+    indices->count += element->cache_index_count;
+
+    element->cache_vertex_start = vertex_start;
+    element->cache_index_start = index_start;
+    element->cache_zindex_start += zindex_delta;
+    element->cache_zindex_end += zindex_delta;
+}
+
+/**
+ * Generates the vertices of one element (incl. the keyboard focus frame)
+ * The vertices are not clipped yet
+ */
+static
+void ui_element_cache_generate(
+    void* app,
+    GpuApiType gpu_api_type,
+    UILayout* const layout,
+    UICore* const element,
+    int32 offset,
+    f32* const zindex,
+    BufferMemory* const __restrict mem
+) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_UI_CACHE_ELEMENT_GENERATE);
+
+    ArrayVector<Vertex3DSamplerTextureColor>* const vertices = &layout->ui_vertex_cache;
+    ArrayVector<int32>* const indices = &layout->ui_index_cache;
+
+    const int32 vertex_start = vertices->count;
+
+    switch (element->type) {
+        case UI_ELEMENT_TYPE_BUTTON: {
+            ui_button_cache((UIButton *) element, gpu_api_type, layout, zindex);
+        } break;
+        case UI_ELEMENT_TYPE_LABEL: {
+            ui_label_cache((UILabel *) element, layout, *zindex, mem);
+        } break;
+        case UI_ELEMENT_TYPE_IMAGE: {
+            ui_image_cache((UIImage *) element, layout, *zindex);
+        } break;
+        case UI_ELEMENT_TYPE_VIEW_WINDOW: {
+            ui_window_cache((UIWindow *) element, gpu_api_type, layout, zindex);
+        } break;
+        case UI_ELEMENT_TYPE_VIEW_PANEL: {
+            UIPanel* const panel = (UIPanel *) element;
+            if (panel->panel_flags & UI_PANEL_FLAG_POPUP) {
+                ui_popup_layout(layout, panel);
+            }
+
+            ui_panel_cache(panel, gpu_api_type, layout, zindex);
+        } break;
+        case UI_ELEMENT_TYPE_CURSOR: {
+            ui_cursor_cache((UICursor *) element, layout);
+        } break;
+        case UI_ELEMENT_TYPE_CUSTOM: {
+            ui_dimension_calculate(layout, element);
+
+            if (element->render_func) {
+                // Own name, otherwise it looks like ui_element_cache_generate in the profiler
+                PROFILE_SCOPE_DEBUG(PROFILE_UI_CACHE_CUSTOM, "ui_custom_render_func");
+
+                layout->render[element->render_func - 1](
+                    app,
+                    element,
+                    gpu_api_type,
+                    layout,
+                    *zindex,
+                    mem
+                );
+
+                // Custom render functions manage their own zindex
+                // -> continue after the last vertex they created
+                if (vertices->count > vertex_start) {
+                    *zindex = min_branched(*zindex, vertices->elements[vertices->count - 1].position.z);
+                }
+            }
+        } break;
+        case UI_ELEMENT_TYPE_CHECKBOX:
+        case UI_ELEMENT_TYPE_RADIO: {
+            ui_checkbox_cache((UICheckbox *) element, gpu_api_type, layout, zindex);
+        } break;
+        case UI_ELEMENT_TYPE_SLIDER: {
+            ui_slider_cache((UISlider *) element, gpu_api_type, layout, zindex);
+        } break;
+        case UI_ELEMENT_TYPE_INPUT:
+        case UI_ELEMENT_TYPE_TEXTAREA: {
+            ui_input_cache((UIInput *) element, gpu_api_type, layout, zindex, mem);
+        } break;
+        case UI_ELEMENT_TYPE_SELECT: {
+            ui_select_cache((UISelect *) element, gpu_api_type, layout, zindex, mem);
+        } break;
+        case UI_ELEMENT_TYPE_OPTION_LIST: {
+            ui_option_list_cache((UIOptionList *) element, gpu_api_type, layout, zindex, mem);
+        } break;
+        case UI_ELEMENT_TYPE_VIEW_TAB: {
+            ui_tab_cache((UITab *) element, gpu_api_type, layout, zindex, mem);
+        } break;
+        case UI_ELEMENT_TYPE_TABLE: {
+            ui_table_cache((UITable *) element, gpu_api_type, layout, zindex, mem);
+        } break;
+        case UI_ELEMENT_TYPE_COLOR_PICKER: {
+            ui_color_picker_cache((UIColorPicker *) element, gpu_api_type, layout, zindex);
+        } break;
+        case UI_ELEMENT_TYPE_COLOR_PANEL: {
+            ui_color_panel_cache((UIColorPanel *) element, gpu_api_type, layout, zindex);
+        } break;
+        case UI_ELEMENT_TYPE_TEXT:
+        case UI_ELEMENT_TYPE_LINK:
+        case UI_ELEMENT_TYPE_MANUAL: {
+            // @todo Not implemented yet, we still need the dimension for the children and hit testing
+            ui_dimension_calculate(layout, element);
+        } break;
+        default:
+            UNREACHABLE();
+    }
+
+    // Keyboard focus (e.g. tab navigation) is shown as a frame around the element
+    if (offset == layout->interaction.keyboard_focus) {
+        *zindex = camera_step_closer(gpu_api_type, *zindex);
+
+        const UIAttributeDimension* const dim = &element->dimension;
+        ui_border_solid_vertices(
+            {dim->pos.x - 2.0f, dim->pos.y + 2.0f, dim->dim.x + 4.0f, dim->dim.y + 4.0f},
+            UI_DEFAULT_CONTROL_BORDER_FOCUS, 2,
+            vertices, indices, *zindex
+        );
+    }
+}
+
 /**
  * Creates the vertices for all visible elements
  *
@@ -233,6 +609,8 @@ struct UICacheClip {
  *
  * Children of clipping panels (e.g. scroll panels) are clipped on the cpu (@see UIClip.h).
  * The clip rects are a stack, a subtree ends when the traversal reaches the skip_offset of the panel.
+ *
+ * Unchanged elements are copied from the last output if layout->cache_incremental (@see Incremental caching above)
  *
  * ui_cache() only renders the current state, it never changes it (@see ui_update, ui_input_pointer)
  * Exception: calculated values like dimensions or the content size of scroll panels.
@@ -253,6 +631,9 @@ void ui_cache(
     vertices->count = 0;
     indices->count = 0;
 
+    layout->cache_elements_generated = 0;
+    layout->cache_elements_reused = 0;
+
     // Degenerate starting point (@see vertex_degenerate_create)
     array_vector_insert(vertices, {{0.0f, 0.0f, UI_ZINDEX_START}, 0, {0}});
 
@@ -263,10 +644,28 @@ void ui_cache(
         return;
     }
 
+    // Values that affect every element, if one of them changed nothing can be re-used
+    const uint64 cache_global = ui_cache_hash_bytes(
+        ui_cache_hash_bytes(0, &layout->font, sizeof(layout->font)),
+        &gpu_api_type, sizeof(gpu_api_type)
+    );
+
+    // The element cache data is only valid for the last ui_cache() call
+    const uint32 previous_frame = layout->cache_frame;
+    const uint32 frame = ++layout->cache_frame;
+
+    const bool incremental = layout->ui_vertex_total.elements
+        && layout->ui_index_total.elements
+        && layout->cache_global == cache_global
+        // 0 = never cached, overflow of the frame counter -> old cache data might look valid
+        && previous_frame
+        && frame > previous_frame;
+
+    layout->cache_global = cache_global;
+
     const UIInteraction* const interaction = &layout->interaction;
 
     f32 zindex = UI_ZINDEX_START;
-    bool has_custom_render = false;
     bool needs_recache = false;
 
     UICacheClip clips[UI_CLIP_STACK_SIZE];
@@ -284,6 +683,7 @@ void ui_cache(
 
             if (panel->panel_flags & UI_PANEL_FLAG_SCROLL) {
                 // The children are calculated now -> content size + scrollbars on top of the content
+                // The scrollbars are always re-generated (they are not part of the cached element vertices)
                 zindex = camera_step_closer(gpu_api_type, zindex);
 
                 const int32 vertex_start = vertices->count;
@@ -298,6 +698,14 @@ void ui_cache(
 
                 if (clip_count) {
                     ui_vertices_clip_or_remove(vertices, indices, vertex_start, index_start, clips[clip_count - 1].clip);
+                }
+
+                // The panel data changed (content size) -> update the hash, otherwise it would be re-generated every time
+                if (panel->core.cache_frame == frame) {
+                    panel->core.cache_hash = ui_element_cache_hash(
+                        layout, &panel->core, panel_offset,
+                        clip_count ? &clips[clip_count - 1] : NULL
+                    );
                 }
             }
         }
@@ -316,111 +724,46 @@ void ui_cache(
 
         zindex = camera_step_closer(gpu_api_type, zindex);
 
-        const int32 vertex_start = vertices->count;
-        const int32 index_start = indices->count;
+        const UICacheClip* const clip = clip_count ? &clips[clip_count - 1] : NULL;
 
-        switch (element->type) {
-            case UI_ELEMENT_TYPE_BUTTON: {
-                ui_button_cache((UIButton *) element, gpu_api_type, layout, &zindex);
-            } break;
-            case UI_ELEMENT_TYPE_LABEL: {
-                ui_label_cache((UILabel *) element, layout, zindex, mem);
-            } break;
-            case UI_ELEMENT_TYPE_IMAGE: {
-                ui_image_cache((UIImage *) element, layout, zindex);
-            } break;
-            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
-                ui_window_cache((UIWindow *) element, gpu_api_type, layout, &zindex);
-            } break;
-            case UI_ELEMENT_TYPE_VIEW_PANEL: {
-                UIPanel* const panel = (UIPanel *) element;
-                if (panel->panel_flags & UI_PANEL_FLAG_POPUP) {
-                    ui_popup_layout(layout, panel);
-                }
-
-                ui_panel_cache(panel, gpu_api_type, layout, &zindex);
-            } break;
-            case UI_ELEMENT_TYPE_CURSOR: {
-                ui_cursor_cache((UICursor *) element, layout);
-            } break;
-            case UI_ELEMENT_TYPE_CUSTOM: {
-                ui_dimension_calculate(layout, element);
-
-                if (element->render_func) {
-                    PROFILE_DEBUG(PROFILE_UI_CACHE_CUSTOM);
-                    has_custom_render = true;
-
-                    layout->render[element->render_func - 1](
-                        app,
-                        element,
-                        gpu_api_type,
-                        layout,
-                        zindex,
-                        mem
-                    );
-
-                    // Custom render functions manage their own zindex
-                    // -> continue after the last vertex they created
-                    if (vertices->count > vertex_start) {
-                        zindex = min_branched(zindex, vertices->elements[vertices->count - 1].position.z);
-                    }
-                }
-            } break;
-            case UI_ELEMENT_TYPE_CHECKBOX:
-            case UI_ELEMENT_TYPE_RADIO: {
-                ui_checkbox_cache((UICheckbox *) element, gpu_api_type, layout, &zindex);
-            } break;
-            case UI_ELEMENT_TYPE_SLIDER: {
-                ui_slider_cache((UISlider *) element, gpu_api_type, layout, &zindex);
-            } break;
-            case UI_ELEMENT_TYPE_INPUT:
-            case UI_ELEMENT_TYPE_TEXTAREA: {
-                ui_input_cache((UIInput *) element, gpu_api_type, layout, &zindex, mem);
-            } break;
-            case UI_ELEMENT_TYPE_SELECT: {
-                ui_select_cache((UISelect *) element, gpu_api_type, layout, &zindex, mem);
-            } break;
-            case UI_ELEMENT_TYPE_OPTION_LIST: {
-                ui_option_list_cache((UIOptionList *) element, gpu_api_type, layout, &zindex, mem);
-            } break;
-            case UI_ELEMENT_TYPE_VIEW_TAB: {
-                ui_tab_cache((UITab *) element, gpu_api_type, layout, &zindex, mem);
-            } break;
-            case UI_ELEMENT_TYPE_TABLE: {
-                ui_table_cache((UITable *) element, gpu_api_type, layout, &zindex, mem);
-            } break;
-            case UI_ELEMENT_TYPE_COLOR_PICKER: {
-                ui_color_picker_cache((UIColorPicker *) element, gpu_api_type, layout, &zindex);
-            } break;
-            case UI_ELEMENT_TYPE_COLOR_PANEL: {
-                ui_color_panel_cache((UIColorPanel *) element, gpu_api_type, layout, &zindex);
-            } break;
-            case UI_ELEMENT_TYPE_TEXT:
-            case UI_ELEMENT_TYPE_LINK:
-            case UI_ELEMENT_TYPE_MANUAL: {
-                // @todo Not implemented yet, we still need the dimension for the children and hit testing
-                ui_dimension_calculate(layout, element);
-            } break;
-            default:
-                UNREACHABLE();
+        bool reuse = false;
+        if (incremental) {
+            reuse = !element->change_type
+                && element->cache_frame == previous_frame
+                && !ui_element_cache_volatile(element)
+                && element->cache_hash == ui_element_cache_hash(layout, element, offset, clip);
         }
 
-        // Keyboard focus (e.g. tab navigation) is shown as a frame around the element
-        if (offset == interaction->keyboard_focus) {
-            zindex = camera_step_closer(gpu_api_type, zindex);
+        if (reuse) {
+            ui_element_cache_copy(layout, element, zindex - element->cache_zindex_start);
+            zindex = element->cache_zindex_end;
 
-            const UIAttributeDimension* const dim = &element->dimension;
-            ui_border_solid_vertices(
-                {dim->pos.x - 2.0f, dim->pos.y + 2.0f, dim->dim.x + 4.0f, dim->dim.y + 4.0f},
-                UI_DEFAULT_CONTROL_BORDER_FOCUS, 2,
-                vertices, indices, zindex
-            );
+            ++layout->cache_elements_reused;
+        } else {
+            const int32 vertex_start = vertices->count;
+            const int32 index_start = indices->count;
+            const f32 zindex_start = zindex;
+
+            ui_element_cache_generate(app, gpu_api_type, layout, element, offset, &zindex, mem);
+
+            // Clip everything this element created to the clipping panels it is in
+            if (clip) {
+                ui_vertices_clip_or_remove(vertices, indices, vertex_start, index_start, clip->clip);
+            }
+
+            element->cache_vertex_start = vertex_start;
+            element->cache_vertex_count = vertices->count - vertex_start;
+            element->cache_index_start = index_start;
+            element->cache_index_count = indices->count - index_start;
+            element->cache_zindex_start = zindex_start;
+            element->cache_zindex_end = zindex;
+
+            element->cache_hash = ui_element_cache_hash(layout, element, offset, clip);
+
+            ++layout->cache_elements_generated;
         }
 
-        // Clip everything this element created to the clipping panels it is in
-        if (clip_count) {
-            ui_vertices_clip_or_remove(vertices, indices, vertex_start, index_start, clips[clip_count - 1].clip);
-        }
+        element->cache_frame = frame;
 
         // Entering the subtree of a clipping panel
         if (ui_panel_is_clipping(element)
@@ -428,24 +771,38 @@ void ui_cache(
             && clip_count < UI_CLIP_STACK_SIZE
         ) {
             const UIPanel* const panel = (const UIPanel *) element;
-            UIClipRect clip = ui_clip_from_rect(
+            UIClipRect panel_clip = ui_clip_from_rect(
                 (panel->panel_flags & UI_PANEL_FLAG_SCROLL)
                     ? ui_panel_viewport(panel)
                     : ui_dimension_rect(&element->dimension)
             );
 
             if (clip_count) {
-                clip = ui_clip_intersect(clip, clips[clip_count - 1].clip);
+                panel_clip = ui_clip_intersect(panel_clip, clips[clip_count - 1].clip);
             }
 
-            clips[clip_count++] = {element->skip_offset, offset, clip};
+            clips[clip_count++] = {element->skip_offset, offset, panel_clip};
         }
 
         element->change_type = 0;
         offset = element->next_offset;
     }
 
-    layout->has_custom_render = has_custom_render;
+    // Keep the output for the next ui_cache() (unchanged elements are copied from here)
+    if (layout->ui_vertex_total.capacity >= vertices->count
+        && layout->ui_index_total.capacity >= indices->count
+    ) {
+        PROFILE_SCOPE_DEBUG(PROFILE_UI_CACHE_TOTAL_COPY, "ui_cache_total_copy");
+
+        memcpy(layout->ui_vertex_total.elements, vertices->elements, vertices->count * sizeof(Vertex3DSamplerTextureColor));
+        memcpy(layout->ui_index_total.elements, indices->elements, indices->count * sizeof(int32));
+        layout->ui_vertex_total.count = vertices->count;
+        layout->ui_index_total.count = indices->count;
+    } else {
+        // Nothing to copy from -> the next ui_cache() re-generates everything
+        layout->cache_frame += 1;
+    }
+
     layout->dirty = needs_recache;
     layout->ui_element_changed.count = 0;
 }
@@ -1141,6 +1498,8 @@ bool ui_element_hover_item(UILayout* const layout, UICore* const element, f32 x,
  */
 byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* const input) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_INPUT_POINTER);
+
     UIInteraction* const interaction = &layout->interaction;
     interaction->clicked = 0;
     interaction->context_target = 0;
@@ -1160,6 +1519,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
     const bool pressed = (input->down && !was_down) || quick_click;
     const bool released = (!input->down && was_down) || quick_click;
     interaction->pointer_down = input->down;
+    interaction->pointer = {input->x, input->y};
 
     // 1. Ongoing drags
     // They only depend on the pointer movement since the drag started
@@ -1856,6 +2216,8 @@ void ui_input_owner_changed(void* app, UILayout* const layout, UIInput* const in
 inline
 byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_INPUT_CODE);
+
     UIInteraction* const interaction = &layout->interaction;
     if (!ui_input_has_keyboard_focus(layout)) {
         return UI_INPUT_RESULT_NONE;
@@ -1992,6 +2354,8 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
  */
 byte ui_input_text(void* app, UILayout* const layout, const uint32* const codes, int32 count) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_INPUT_TEXT);
+
     byte result = UI_INPUT_RESULT_NONE;
     for (int32 i = 0; i < count; ++i) {
         result |= ui_input_code(app, layout, codes[i]);
@@ -2035,6 +2399,8 @@ enum UINavigation : byte {
 inline
 byte ui_input_navigate(void* app, UILayout* const layout, UINavigation navigation) NO_EXCEPT
 {
+    PROFILE_DEBUG(PROFILE_UI_INPUT_NAVIGATE);
+
     switch (navigation) {
         case UI_NAVIGATION_NEXT:
         case UI_NAVIGATION_PREV: {

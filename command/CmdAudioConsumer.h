@@ -59,9 +59,9 @@ Asset* cmd_audio_play(
 
     //@performance The function call below also loads the asset again. That is unnecessary in this specific case
     //          Maybe we can pass the asset?
-    cmd_internal_audio_play_enqueue(cb->ams, cb->mixer, cmd);
-
-    return asset;
+    // WARNING: We must return the enqueued asset. Returning the (possibly NULL) asset from above
+    //          would mark the command as not completed and the sound would be enqueued a second time
+    return cmd_internal_audio_play_enqueue(cb->ams, cb->mixer, cmd);
 }
 
 inline

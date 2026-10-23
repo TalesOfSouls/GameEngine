@@ -14,7 +14,8 @@
 // Version 2: flat pre-order element tree (@see UICore)
 // Version 3: UIPanel scroll/popup data, new element types (tabs, table, option list, color picker)
 // Version 4: UIColorPicker palette order, UITable dynamic cells
-#define UI_LAYOUT_VERSION 4
+// Version 5: UICore incremental caching members
+#define UI_LAYOUT_VERSION 5
 
 ///////////////////////////////
 // ui_element_buffer memory layout
@@ -112,6 +113,10 @@ struct UIInteraction {
     int32 last_click_element;
     byte click_count;
 
+    // Pointer position of the last ui_input_pointer() call in ui coordinates
+    // e.g. for tooltips of custom elements (@see ui_tooltip_show)
+    v2_f32 pointer;
+
     // Primary button state of the last ui_input_pointer() call
     bool pointer_down;
 
@@ -169,36 +174,40 @@ struct UILayout {
 
     // Something changed since the last ui_cache() (@see ui_layout_mark_dirty)
     // The flag stays set until ui_cache() runs, e.g. if caching is throttled by a fps limit
+    // Custom elements (UI_ELEMENT_TYPE_CUSTOM) render through a callback, their update callback
+    // has to mark them as changed if their output changes (@see ui_element_mark_changed)
     bool dirty;
-
-    // At least one visible custom element renders through a callback (e.g. net graph)
-    // We don't know if their output changed -> they have to be re-cached regularly
-    // Calculated by ui_cache()
-    bool has_custom_render;
 
     // This is where we actually store the elements (@see UICore for the tree structure)
     // It has to use an arbitrary buffer size per element since the element size is not uniform
     BufferMemory ui_element_buffer;
 
-    // Stores all of the vertex data (even for different states e.g. hover, ...)
+    // Output of the last ui_cache() (vertices + indices of all visible elements)
+    // Unchanged elements are copied from here instead of re-generating them (@see ui_cache)
+    // Not allocated (capacity 0) = no incremental caching
     ArrayVector<Vertex3DSamplerTextureColor> ui_vertex_total;
+    ArrayVector<int32> ui_index_total;
 
     // Stores the current version
     ArrayVector<Vertex3DSamplerTextureColor> ui_vertex_cache;
     // This is a index cache that references ui_vertex_cache to reduce the stored vertices
     ArrayVector<int32> ui_index_cache;
 
+    // Counts the ui_cache() calls, the cache data of an element is only valid for the last call (@see UICore::cache_frame)
+    uint32 cache_frame;
+
+    // Values that affect all elements (e.g. font), if they change everything is re-generated
+    uint64 cache_global;
+
+    // Statistics of the last ui_cache() call
+    int32 cache_elements_generated;
+    int32 cache_elements_reused;
+
     const UIUpdateFunc* update;
     const UIRenderFunc* render;
 
     // Action callbacks, e.g. UIButton::on_click (1-indexed)
     const UIUpdateFunc* on_actions;
-
-    // Platform clipboard (e.g. clipboard_get/clipboard_set from platform/win32/Clipboard.h)
-    // The ui itself doesn't include any platform headers, NULL = copy/paste is disabled
-    // @see UIInput copy/cut/paste
-    int32 (*clipboard_get)(char* text, int32 max_length);
-    bool (*clipboard_set)(const char* text, int32 length);
 };
 
 #endif

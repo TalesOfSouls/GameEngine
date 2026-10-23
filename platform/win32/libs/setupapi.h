@@ -19,7 +19,8 @@
 
     typedef HDEVINFO (WINAPI *SetupDiGetClassDevsW_t)(const GUID*, PCWSTR, HWND, DWORD);
     typedef BOOL (WINAPI *SetupDiEnumDeviceInterfaces_t)(HDEVINFO, PSP_DEVINFO_DATA, const GUID*, DWORD, PSP_DEVICE_INTERFACE_DATA);
-    typedef BOOL (WINAPI *SetupDiGetDeviceInterfaceDetailW_t)(HDEVINFO, PSP_DEVICE_INTERFACE_DATA, PSP_DEVICE_INTERFACE_DETAIL_DATA, DWORD, PDWORD, PSP_DEVINFO_DATA);
+    // WARNING: Explicit W type, PSP_DEVICE_INTERFACE_DETAIL_DATA depends on UNICODE
+    typedef BOOL (WINAPI *SetupDiGetDeviceInterfaceDetailW_t)(HDEVINFO, PSP_DEVICE_INTERFACE_DATA, PSP_DEVICE_INTERFACE_DETAIL_DATA_W, DWORD, PDWORD, PSP_DEVINFO_DATA);
     typedef BOOL (WINAPI *SetupDiDestroyDeviceInfoList_t)(HDEVINFO);
 
     static SetupDiGetClassDevsW_t pSetupDiGetClassDevsW = NULL;

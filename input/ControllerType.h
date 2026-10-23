@@ -20,9 +20,20 @@ enum ControllerType {
     CONTROLLER_TYPE_OTHER,
 };
 
+// Api used to read the controllers
 enum ControllerInputType : byte {
+    // Async HID reads, polled once per tick (default)
+    // Supports controllers with a mapping (e.g. DualShock4, DualSense)
     CONTROLLER_INPUT_TYPE_HID,
+
+    // Supports all XInput compatible controllers (e.g. Xbox controllers), max 4 controllers
     CONTROLLER_INPUT_TYPE_XINPUT,
+
+    // Raw input (WM_INPUT), only the latest report per controller and tick is mapped
+    // WARNING: Many controllers constantly send reports (gyro, timestamps) -> floods the raw input buffer
+    CONTROLLER_INPUT_TYPE_RAWINPUT,
+
+    CONTROLLER_INPUT_TYPE_SIZE,
 };
 
 #endif

@@ -91,8 +91,16 @@ Asset* cmd_font_load_sync(
 
     PROFILE_DEBUG(PROFILE_CMD_FONT_LOAD_SYNC, id_str, PROFILE_FLAG_SHOULD_LOG);
 
+    // Already loaded -> already set up (the setup below must only happen once, e.g. the coordinates are flipped)
+    Asset* asset = ams_asset_get_wait(ams, id_str);
+    if (asset) {
+        asset->state &= ~ASSET_MEMORY_STATE_RAM_GC;
+
+        return asset;
+    }
+
     // Load asset if not loaded
-    Asset* asset = asset_archive_asset_load(
+    asset = asset_archive_asset_load(
         &asset_archives[ARCHIVE_ID_FROM_ASSET_ID(asset_id)],
         asset_id,
         ams,

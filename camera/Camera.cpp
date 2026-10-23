@@ -164,8 +164,8 @@ void camera_rotate(Camera* const camera, int32 dx, int32 dy) NO_EXCEPT
 {
     camera->state_changes |= CAMERA_STATE_CHANGE_ORIENTATION;
 
-    const f32 yaw   = -dx * camera->sensitivity;
-    const f32 pitch = -dy * camera->sensitivity;
+    const f32 yaw   = -dx * camera->sensitivity * CAMERA_RADIANS_PER_COUNT;
+    const f32 pitch = -dy * camera->sensitivity * CAMERA_RADIANS_PER_COUNT;
 
     // yaw in world space
     const quaternion qyaw = quat_axis_angle(camera->world_up, yaw);
@@ -246,7 +246,7 @@ void camera_movement(
         camera->state_changes |= CAMERA_STATE_CHANGE_ORIENTATION;
 
         const v3_f32 forward = camera->front;
-        const v3_f32 right = vec3_cross_normalized(camera->world_up, forward);
+        const v3_f32 right = vec3_cross_normalized(forward, camera->world_up);
         const v3_f32 up = vec3_cross_normalized(right, forward);
 
         switch(movement) {
@@ -380,7 +380,7 @@ void camera_movement(
         }
     } else {
         const v3_f32 forward = camera->front;
-        const v3_f32 right = vec3_cross_normalized(camera->world_up, forward);
+        const v3_f32 right = vec3_cross_normalized(forward, camera->world_up);
         const v3_f32 up = vec3_cross_normalized(right, forward);
 
         for (int32 i = 0; i < CAMERA_MAX_INPUTS; i++) {
