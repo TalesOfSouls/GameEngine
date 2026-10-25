@@ -65,7 +65,7 @@
  *                  (other devices of the same Input keep working, e.g. keyboard stays if the controller is removed)
  *      All functions return a bit field of the changed Inputs -> input_devices_changed():
  *          - new device kind for an Input -> hotkeys are set up again (rebind)
- *          - active_input_states is updated (= highest connected Input + 1, indices stay stable)
+ *          - input_states_active is updated (= highest connected Input + 1, indices stay stable)
  *
  * 4. Hotkey mapping (input_hotkey_setup)
  *      Device types of an Input = settings->input_device_types[i] | Input::device_types (devices that were connected)
@@ -98,7 +98,7 @@
  *      Unregisters the device notifications, closes the controller handles, unloads XInput
  *
  * WARNING: The game loop is a hot reloadable dll -> static function pointers are per module
- *          Device setup/connects happen in the exe, the dll only polls (XInput is bound via xinput_bind_loaded)
+ *          This means you have to re-assign the library on a hot-reload
  */
 #pragma once
 #ifndef COMS_INPUT_WRAPPER_H
@@ -142,7 +142,7 @@ static const GUID INPUT_GUID_DEVINTERFACE_HID = {
     { 0x88, 0xCB, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30 }
 };
 
-FORCE_INLINE
+static FORCE_INLINE
 bool input_controller_api_uses_xinput(byte controller_api) NO_EXCEPT
 {
     return (controller_api == CONTROLLER_INPUT_TYPE_HID || controller_api == CONTROLLER_INPUT_TYPE_XINPUT)
@@ -169,6 +169,8 @@ void input_controller_disconnect(Input* const input) NO_EXCEPT
         }
     }
 
+    // @question Do I even need to use this complicated function?
+    //          couldn't Just memset it to 0 using input_clean_state
     input_release_keys(input, INPUT_DEVICE_KIND_CONTROLLER);
     input_state_connection_update(input);
 
@@ -179,7 +181,7 @@ void input_controller_disconnect(Input* const input) NO_EXCEPT
  * Initializes the controller api and adds all connected controllers
  *
  * @param controller_api    ControllerInputType (in/out), changed if the api is not available (fallback = HID)
- * @param preferred_types   InputType flags per input (@see input_state_assign), may be NULL
+ * @param preferred_types   Which InputType is preferred for which state
  *
  * @return Amount of controllers found
  */
@@ -408,7 +410,7 @@ uint32 input_controllers_poll(
                 is_connected = xinput_controller_poll(input, time);
             } break;
             case CONTROLLER_INPUT_TYPE_RAWINPUT: {
-                // The latest report was stored by the raw input handling (@see input_raw_handle)
+                // The latest report was stored by the raw input handling in input_raw_handle()
                 if (input->controller.has_report) {
                     input_controller_report_handle(input, input->controller.report, time);
                 }

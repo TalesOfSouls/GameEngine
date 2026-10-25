@@ -8,7 +8,7 @@
 #include "../http/HttpResponse.h"
 #include "../network/SocketConnection.h"
 
-struct ApplicationData;
+struct AppData;
 
 typedef void dll_app_load(DebugContainer*);
 

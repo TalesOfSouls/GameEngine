@@ -7,7 +7,7 @@
 #include "../memory/RingMemory.cpp"
 #include "../../models/ApplicationSettings.h"
 
-struct ApplicationData;
+struct AppData;
 
 typedef void dll_load_module(DebugContainer*);
 typedef void dll_load_functions(void*);

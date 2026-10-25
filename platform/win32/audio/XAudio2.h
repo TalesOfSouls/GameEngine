@@ -22,7 +22,7 @@ struct XAudio2Setting {
     // Size of every internal buffer in bytes (= latency)
     uint32 chunk_size;
 
-    // Frames submitted to the source voice since it was created (@see xaudio2_buffer_delay)
+    // Frames submitted to the source voice since it was created
     uint64 frames_submitted;
 
     // Did we successfully initialize COM on this thread (needs to be released again)

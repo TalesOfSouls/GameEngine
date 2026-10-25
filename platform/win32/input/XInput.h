@@ -6,7 +6,7 @@
  * XInput controllers (max 4, XUSER_MAX_COUNT)
  *
  * XInput has no connect/disconnect events:
- *      connect:    xinput_controllers_scan() checks the free slots (e.g. after WM_DEVICECHANGE @see InputWrapper.h)
+ *      connect:    xinput_controllers_scan() checks the free slots (e.g. after WM_DEVICECHANGE)
  *                  WARNING: XInputGetState() on an empty slot is slow -> don't scan every tick
  *      disconnect: xinput_controller_poll() fails
  */
@@ -28,8 +28,6 @@
 typedef DWORD (WINAPI *XInputGetState_t)(DWORD, XINPUT_STATE*);
 typedef DWORD (WINAPI *XInputSetState_t)(DWORD, XINPUT_VIBRATION*);
 
-// WARNING: These are per module (e.g. the exe and a hot reloadable dll have their own pointers)
-//          -> modules that only poll bind them lazily (@see xinput_bind_loaded)
 static XInputGetState_t pXInputGetState = NULL;
 static XInputSetState_t pXInputSetState = NULL;
 
@@ -77,38 +75,6 @@ bool xinput_load() NO_EXCEPT
     return true;
 }
 
-/**
- * Binds the function pointers of an already loaded XInput dll (e.g. loaded by the exe via xinput_load)
- *
- * Used by modules that only poll (e.g. hot reloadable game dll)
- * Doesn't change the dll reference count -> no xinput_free() needed
- */
-inline
-bool xinput_bind_loaded() NO_EXCEPT
-{
-    if (pXInputGetState) {
-        return true;
-    }
-
-    const wchar_t* const dlls[] = { L"xinput1_4.dll", L"xinput1_3.dll", L"xinput9_1_0.dll" };
-    for (int32 i = 0; i < ARRAY_COUNT(dlls); ++i) {
-        HMODULE module = GetModuleHandleW(dlls[i]);
-        if (!module) {
-            continue;
-        }
-
-        XInputGetState_t get_state = (XInputGetState_t) GetProcAddress(module, "XInputGetState");
-        if (get_state) {
-            pXInputGetState = get_state;
-            pXInputSetState = (XInputSetState_t) GetProcAddress(module, "XInputSetState");
-
-            return true;
-        }
-    }
-
-    return false;
-}
-
 inline
 void xinput_free() NO_EXCEPT
 {
@@ -129,7 +95,7 @@ void xinput_free() NO_EXCEPT
 /**
  * Checks all xinput slots that are not assigned yet and assigns connected controllers to an input
  *
- * @param preferred_types InputType flags per input (@see input_state_assign), may be NULL
+ * @param preferred_types Which InputType is preferred for which state
  *
  * @return Bit field of the inputs that got a new controller
  */
@@ -186,7 +152,7 @@ uint32 xinput_controllers_scan(
         input->controller.id = (int32) user_index;
         input->controller.handle = NULL;
         input->controller.has_report = false;
-        input->controller_type = CONTROLLER_TYPE_XBOX_GENERIC;
+        input->controller.controller_type = CONTROLLER_TYPE_XBOX_GENERIC;
         input->device_types |= INPUT_TYPE_CONTROLLER;
         input_state_connection_update(input);
 
@@ -267,8 +233,8 @@ inline
 bool xinput_controller_poll(Input* const input, uint64 time) NO_EXCEPT
 {
     // The function pointers are per module (e.g. hot reloadable game dll)
-    // The dll itself was loaded during the setup (@see input_controller_init)
-    if (!pXInputGetState && !xinput_bind_loaded()) {
+    // The dll itself was loaded during the setup
+    if (!pXInputGetState) {
         return false;
     }
 

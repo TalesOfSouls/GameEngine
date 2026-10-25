@@ -26,7 +26,7 @@ inline
 bool input_controller_report_handle(Input* const input, const byte* const report, uint64 time) NO_EXCEPT
 {
     ControllerInput controller = {};
-    switch (input->controller_type) {
+    switch (input->controller.controller_type) {
         case CONTROLLER_TYPE_DUALSHOCK4: {
             input_map_dualshock4(&controller, input->controller.connection_type, report);
         } break;

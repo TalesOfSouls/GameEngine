@@ -39,21 +39,21 @@ void input_map_xboxs(
 
     ++data; // skip report id
 
-    // --- Left Stick ---
+    // Left Stick
     controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = (int8) (*data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = true;
 
     controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = (int8) (*data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = true;
 
-    // --- Right Stick ---
+    // Right Stick
     controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = (int8) (*data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = true;
 
     controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = (int8) (*data++ - 128);
     controller->is_analog[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = true;
 
-    // --- Face & Shoulder Buttons ---
+    // Face & Shoulder Buttons
     controller->button[CONTROLLER_BUTTON_X] = BITS_GET_8_L2R(*data, 0, 1); // A
     controller->button[CONTROLLER_BUTTON_S] = BITS_GET_8_L2R(*data, 1, 1); // B
     controller->button[CONTROLLER_BUTTON_T] = BITS_GET_8_L2R(*data, 2, 1); // X
@@ -67,7 +67,7 @@ void input_map_xboxs(
 
     ++data;
 
-    // --- D-Pad (bitmask, not hat-switch) ---
+    // D-Pad (bitmask, not hat-switch)
     controller->button[CONTROLLER_BUTTON_DPAD_UP]    = BITS_GET_8_L2R(*data, 0, 1) ? 127 : 0;
     controller->button[CONTROLLER_BUTTON_DPAD_DOWN]  = BITS_GET_8_L2R(*data, 1, 1) ? 127 : 0;
     controller->button[CONTROLLER_BUTTON_DPAD_LEFT]  = BITS_GET_8_L2R(*data, 2, 1) ? 127 : 0;
@@ -80,14 +80,14 @@ void input_map_xboxs(
 
     ++data;
 
-    // --- Triggers ---
+    // Triggers
     controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = (int8) (*data++ >> 1); // 0 - 255 -> 0 - 127
     controller->is_analog[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = true;
 
     controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = (int8) (*data++ >> 1); // 0 - 255 -> 0 - 127
     controller->is_analog[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = true;
 
-    // --- No gyro on Xbox controllers ---
+    // No gyro on Xbox controllers
     controller->gyro_x = 0;
     controller->gyro_y = 0;
     controller->gyro_z = 0;

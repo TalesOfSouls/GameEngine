@@ -143,7 +143,7 @@ bool input_device_slot_is_free(const Input* const input, InputDeviceKind kind) N
  *
  * Reconnects of known devices are handled by the caller (device name/id matching)
  *
- * @param preferred_types InputType flags per input (e.g. user settings), may be NULL
+ * @param preferred_types Which InputType is preferred for which state
  *
  * @return Input index (-1 = no input available)
  */
@@ -211,6 +211,10 @@ int32 input_controller_find_by_device_id(const Input* const states, int32 count,
  * The keys are set to released instead of being removed -> everyone sees the release once
  * They are removed by input_frame_begin() at the beginning of the next tick
  * Other devices of the same input keep their keys (e.g. controller disconnects, keyboard is still connected)
+ *
+ * @performance I don't think I absolutely need this function.
+ *              It is only used on device disconnects
+ *              and I don't think I have to handle the full key state cycle in such cases
  */
 inline
 void input_release_keys(Input* const input, InputDeviceKind kind) NO_EXCEPT
@@ -371,13 +375,13 @@ void input_frame_begin(Input* const input) NO_EXCEPT
 {
     InputState* const state = &input->state;
 
-    // Keys released last tick are gone
-    input_clean_state(state->active_keys, KEY_PRESS_TYPE_RELEASED);
-
-    // Keys pressed last tick are now held
     for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
-        if (state->active_keys[i].key_state & KEY_PRESS_TYPE_PRESSED) {
-            state->active_keys[i].key_state = KEY_PRESS_TYPE_HELD;
+        InputKey* const key = &state->active_keys[i];
+
+        if (key->key_state & KEY_PRESS_TYPE_RELEASED) {
+            memset(key, 0, sizeof(*key));
+        } else if (key->key_state & KEY_PRESS_TYPE_PRESSED) {
+            key->key_state = KEY_PRESS_TYPE_HELD;
         }
     }
 

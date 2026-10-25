@@ -43,7 +43,7 @@
  * Closes the hid controller handles
  *
  * The device id is kept -> a reconnect returns to the same input
- * The keys are NOT released here (@see input_controller_disconnect)
+ * The keys are NOT released here
  */
 inline
 void hid_controller_close(ControllerDevice* const controller) NO_EXCEPT
@@ -76,7 +76,7 @@ void hid_controller_close(ControllerDevice* const controller) NO_EXCEPT
  * Safe to call for any hid device and for already connected controllers (e.g. duplicate notifications)
  *
  * @param path                Device interface path
- * @param preferred_types     InputType flags per input (@see input_state_assign), may be NULL
+ * @param preferred_types Which InputType is preferred for which state
  * @param skip_xinput_devices Ignore XInput compatible devices (they are handled by XInput)
  *
  * @return Input index the controller was assigned to (-1 = not a controller, already connected or no free input)
@@ -219,13 +219,13 @@ int32 hid_controller_add(
     controller->overlapped.hEvent = read_event;
     controller->connection_type = input_device_path_connection(path);
 
-    input->controller_type = input_controller_type_get(attributes.VendorID, attributes.ProductID);
+    input->controller.controller_type = input_controller_type_get(attributes.VendorID, attributes.ProductID);
     input->device_types |= INPUT_TYPE_CONTROLLER;
     input_state_connection_update(input);
 
     LOG_1(
         "[INFO] HID controller connected to input %d (type %d)",
-        {DATA_TYPE_INT32, &index}, {DATA_TYPE_INT32, &input->controller_type}
+        {DATA_TYPE_INT32, &index}, {DATA_TYPE_INT32, &input->controller.controller_type}
     );
 
     return index;
@@ -338,7 +338,7 @@ int32 hid_init_controllers(
  * Never blocks
  *
  * The latest report is also mapped if no new report arrived
- * -> stick values stay active every tick (deltas are reset every tick @see input_frame_begin)
+ * Stick values stay active every tick (deltas are reset every tick in input_frame_begin)
  *
  * @return false = device disconnected (the caller must disconnect the controller)
  */

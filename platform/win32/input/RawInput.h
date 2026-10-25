@@ -7,9 +7,10 @@
  *
  * Connects/disconnects:
  *      All devices are registered with RIDEV_DEVNOTIFY -> the window receives WM_INPUT_DEVICE_CHANGE
- *      GIDC_ARRIVAL = rawinput_device_add(), GIDC_REMOVAL = rawinput_device_remove() (@see InputWrapper.h)
+ *      GIDC_ARRIVAL = rawinput_device_add(), GIDC_REMOVAL = rawinput_device_remove()
+ *
  *      WARNING: Windows also sends GIDC_ARRIVAL for all present devices right after the registration
- *               -> adding a device is idempotent
+ *               Adding a device is idempotent
  */
 #pragma once
 #ifndef COMS_PLATFORM_WIN32_INPUT_RAW_H
@@ -73,7 +74,11 @@ bool rawinput_extract_vid_pid(
  * @param out_id 32 characters, zero filled
  */
 static inline
-bool rawinput_device_id(HANDLE device, wchar_t* const out_id, wchar_t* const out_name = NULL, uint32 out_name_length = 0) NO_EXCEPT
+bool rawinput_device_id(
+    HANDLE device,
+    wchar_t* const out_id,
+    wchar_t* const out_name = NULL, uint32 out_name_length = 0
+) NO_EXCEPT
 {
     wchar_t device_name[512];
 
@@ -224,13 +229,13 @@ int32 rawinput_controller_add(
     controller->report_size = 0;
     controller->connection_type = input_device_path_connection(device_name);
 
-    input->controller_type = input_controller_type_get(rdi->hid.dwVendorId, rdi->hid.dwProductId);
+    input->controller.controller_type = input_controller_type_get(rdi->hid.dwVendorId, rdi->hid.dwProductId);
     input->device_types |= INPUT_TYPE_CONTROLLER;
     input_state_connection_update(input);
 
     LOG_1(
         "[INFO] Raw input controller connected to input %d (type %d)",
-        {DATA_TYPE_INT32, &index}, {DATA_TYPE_INT32, &input->controller_type}
+        {DATA_TYPE_INT32, &index}, {DATA_TYPE_INT32, &input->controller.controller_type}
     );
 
     return index;
@@ -240,7 +245,7 @@ int32 rawinput_controller_add(
  * Adds a raw input device (e.g. GIDC_ARRIVAL)
  *
  * @param controllers       Also add controllers (= raw input is the controller api)
- * @param preferred_types   InputType flags per input (@see input_state_assign), may be NULL
+ * @param preferred_types   Which InputType is preferred for which state
  *
  * @return Input index the device was added to (-1 = not added, e.g. already known)
  */
@@ -299,6 +304,8 @@ int32 rawinput_device_remove(
 
         if (input_kbm_handle_remove(&input->keyboard, device)) {
             if (!input->keyboard.handle[0]) {
+                // @question Do I even need to use this complicated function?
+                //          couldn't Just memset it to 0 using input_clean_state
                 input_release_keys(input, INPUT_DEVICE_KIND_KEYBOARD);
             }
 
@@ -309,10 +316,10 @@ int32 rawinput_device_remove(
             }
 
             return i;
-        }
-
-        if (input_kbm_handle_remove(&input->mouse, device)) {
+        } else if (input_kbm_handle_remove(&input->mouse, device)) {
             if (!input->mouse.handle[0]) {
+                // @question Do I even need to use this complicated function?
+                //          couldn't Just memset it to 0 using input_clean_state
                 input_release_keys(input, INPUT_DEVICE_KIND_MOUSE);
             }
 
@@ -323,9 +330,7 @@ int32 rawinput_device_remove(
             }
 
             return i;
-        }
-
-        if (input->controller.connection_type
+        } else if (input->controller.connection_type
             && input->controller.api == CONTROLLER_INPUT_TYPE_RAWINPUT
             && input->controller.handle == device
         ) {
@@ -496,7 +501,7 @@ void rawinput_controllers_unregister() NO_EXCEPT
     #error "NOVIRTUALKEYCODES Must not be defined"
 #endif
 
-// Key code without the device prefix (@see INPUT_KEYBOARD_PREFIX), = scan code / virtual key code of the OS
+// Key code without the device prefix = scan code / virtual key code of the OS
 #define RAWINPUT_KEY_CODE_MASK 0x00FF
 
 // Bits of a key in the keyboard state array of ToUnicode/GetKeyState
