@@ -1197,6 +1197,32 @@ int32 str_append(
     return dest_length + src_length;
 }
 
+// Appends a line to a string
+// @question Do we even need this or could we just use str_append
+inline
+void str_line_append(
+    char* const text,
+    int32* const length,
+    int32 capacity,
+    const char* const line
+) NO_EXCEPT
+{
+    if (*length > 0 && *length < capacity - 1) {
+        text[(*length)++] = '\n';
+    }
+
+    const int32 line_length = min_branched((int32) strlen(line), capacity - 1 - *length);
+    if (line_length <= 0) {
+        text[*length] = '\0';
+
+        return;
+    }
+
+    memcpy(text + *length, line, line_length);
+    *length += line_length;
+    text[*length] = '\0';
+}
+
 inline
 int32 str_copy_until(char* __restrict dest, const char* __restrict src, char delim) NO_EXCEPT
 {
