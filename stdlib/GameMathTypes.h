@@ -63,7 +63,7 @@ AABB_int32 aabb_loosen(const AABB_int32& b, f32 s) NO_EXCEPT
 
     return {
         {c.x - e.x, c.y - e.y, c.z - e.z},
-        {c.x + e.x, c.y + e.x, c.z + e.z}
+        {c.x + e.x, c.y + e.y, c.z + e.z}
     };
 }
 
@@ -84,7 +84,7 @@ AABB_f32 aabb_loosen(const AABB_f32& b, f32 s) NO_EXCEPT
 
     return {
         {c.x - e.x, c.y - e.y, c.z - e.z},
-        {c.x + e.x, c.y + e.x, c.z + e.z}
+        {c.x + e.x, c.y + e.y, c.z + e.z}
     };
 }
 

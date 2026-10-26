@@ -36,7 +36,7 @@ void buffer_init(
     buf->size = size;
     buf->alignment = alignment;
 
-    memset(buf->memory, 0, buf->size);
+    ASSERT_MEM_ZERO(buf->memory, buf->size);
 }
 
 inline
@@ -304,7 +304,7 @@ void buffer_init(
     buf->size = size;
     buf->alignment = alignment;
 
-    memset(buf->memory, 0, buf->size);
+    ASSERT_MEM_ZERO(buf->memory, buf->size);
 }
 
 inline

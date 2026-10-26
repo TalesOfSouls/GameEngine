@@ -54,8 +54,8 @@ void chunk_init(
         (size_t) alignof(size_t)
     );
 
-    memset((void *) buf->free, 0, sizeof(size_t) * array_count);
-    memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
+    //memset((void *) buf->free, 0, sizeof(size_t) * array_count);
+    //memset((void *) buf->completeness, 0, sizeof(size_t) * array_count);
     PSEUDO_USE(size);
 }
 
@@ -670,6 +670,8 @@ struct ThrdChunkStackMemory {
 
         if (this->element >= 0) {
             byte* data = chunk_element_get(buf, this->element);
+            memset(data, 0, size);
+
             buffer_init(mem, data, size, sizeof(size_t));
         }
     }

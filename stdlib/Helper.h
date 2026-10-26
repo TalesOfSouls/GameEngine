@@ -96,11 +96,12 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 #define OMS_BIT_IS_SET(flag, pos) ((flag) & (1 << (pos)))
 
 // Works on arrays of where the element size is sizeof(size_t) = usually 8 bytes
-#define OMS_BITARRAY_SET(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] | ((size_t)1 << OMS_BIT_INDEX(pos)))
-#define OMS_BITARRAY_CLEAR(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] & ~((size_t)1 << OMS_BIT_INDEX(pos)))
+// These mutate the array word, they do not return the new value
+#define OMS_BITARRAY_SET(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] |= ((size_t)1 << OMS_BIT_INDEX(pos)))
+#define OMS_BITARRAY_CLEAR(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] &= ~((size_t)1 << OMS_BIT_INDEX(pos)))
 #define OMS_BITARRAY_REMOVE(flags, pos) OMS_BITARRAY_CLEAR(flags, pos)
 #define OMS_BITARRAY_DELETE(flags, pos) OMS_BITARRAY_CLEAR(flags, pos)
-#define OMS_BITARRAY_TOGGLE(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] ^ ((size_t)1 << OMS_BIT_INDEX(pos)))
+#define OMS_BITARRAY_TOGGLE(flags, pos) ((flags)[OMS_BIT_WORD_INDEX(pos)] ^= ((size_t)1 << OMS_BIT_INDEX(pos)))
 #define OMS_BITARRAY_FLIP(flags, pos) OMS_BITARRAY_TOGGLE(flags, pos)
 #define OMS_BITARRAY_CHECK(flags, pos) (((flags)[OMS_BIT_WORD_INDEX(pos)] >> OMS_BIT_INDEX(pos)) & (size_t)1)
 #define OMS_BITARRAY_SET_TO(flags, pos, value) {                                                              \

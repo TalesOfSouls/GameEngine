@@ -18,6 +18,9 @@
  *      Platforms:
  *          _WIN32, __linux__, PLAYSTATION_6, NINTENDO_SWITCH_2, XBOX_ONE_S
  *
+ *      OS Version:
+ *          _WINXP
+ *
  *      Bitsize:
  *          _WIN64 (= default, only when _WIN32 defined),
  *          __x86_64__ (= default),

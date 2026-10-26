@@ -35,7 +35,7 @@ void eytzinger_create(byte* arr, size_t num, size_t size, RingMemory* const ring
     eytzinger_rearrange(arr, temp, 0, &index, num, size);
 
     // Copy the rearranged array back to the original array
-    for (size_t i = 0; i < size; ++i) {
+    for (size_t i = 0; i < num; ++i) {
         memcpy(arr + i * size, temp + i * size, size);
     }
 }

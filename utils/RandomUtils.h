@@ -10,8 +10,10 @@
 #include "../stdlib/Stdlib.h"
 #include "../utils/TimeUtils.h"
 
-thread_local uint32 _rng_state_32;
-thread_local uint64 _rng_state_64;
+// inline: RandomUtils.h is included from several translation units,
+// a non-inline definition here is a duplicate symbol in every multi-TU build
+inline thread_local uint32 _rng_state_32;
+inline thread_local uint64 _rng_state_64;
 
 FORCE_INLINE
 void rand_setup() NO_EXCEPT
@@ -185,6 +187,18 @@ void random_string(const char* allowed_chars, uint32 allowed_length, char* out, 
     }
 
     out[out_length] = '\0';
+}
+
+template <typename C>
+inline
+void str_random(
+    C* __restrict dest, int32 dest_length,
+    const C* __restrict src, int32 src_length
+) NO_EXCEPT
+{
+    for (int32 i = 0; i < dest_length; ++i) {
+        *dest++ = *(src + rand_fast(src_length));
+    }
 }
 
 #endif

@@ -328,8 +328,21 @@ void gpuapi_prepare_texture(Texture* const texture) NO_EXCEPT
     glCreateTextures(texture_data_type, 1, (GLuint *) &texture->opengl_texture.texture_id);
 }
 
+/**
+ * Uploads an image to the GPU
+ *
+ * @param const Texture*    texture         Texture to upload
+ * @param int32             mipmap_level    Mipmap level to upload, -1 = no mipmaps
+ * @param bool              srgb            true = color texture (sRGB), false = data texture (linear)
+ *
+ * Color textures should be uploaded as sRGB. The GPU then decodes the stored values to linear
+ * light when the texture is sampled, which means the shader works in linear space and the sRGB
+ * framebuffer encodes the result again. Data textures (normal maps, masks, ...) must stay linear.
+ */
 inline
-void gpuapi_texture_to_gpu(const Texture* const texture, int32 mipmap_level = 0) NO_EXCEPT
+void gpuapi_texture_to_gpu(
+    const Texture* const texture, int32 mipmap_level = 0, bool srgb = false
+) NO_EXCEPT
 {
     PROFILE_START_DEBUG(PROFILE_GPU);
 
@@ -343,7 +356,7 @@ void gpuapi_texture_to_gpu(const Texture* const texture, int32 mipmap_level = 0)
     glTextureStorage2D(
         tex_id,
         use_mipmaps ? 4 : 1,
-        GL_RGBA8,
+        srgb ? GL_SRGB8_ALPHA8 : GL_RGBA8,
         texture->image.width,
         texture->image.height
     );

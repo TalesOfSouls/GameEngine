@@ -91,7 +91,7 @@ int64 hashmap_size(const HashMapT<T>* const hm) NO_EXCEPT
 template <typename T, typename V>
 T* hashmap_insert(HashMapT<T>* const __restrict hm, const char* __restrict key, V value) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
 
     // This is either the place where we insert or the start of the chain we have to follow
     const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
@@ -125,7 +125,7 @@ T* hashmap_insert(HashMapT<T>* const __restrict hm, const char* __restrict key, 
 template <typename T, typename V>
 T* hashmap_insert(HashMapT<T>* const __restrict hm, const char* __restrict key, V* value) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
 
     // This is either the place where we insert or the start of the chain we have to follow
     const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
@@ -162,7 +162,7 @@ T* hashmap_insert(HashMapT<T>* const __restrict hm, const char* __restrict key, 
 template <typename T>
 T* hashmap_reserve(HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
 
     // This is either the place where we insert or the start of the chain we have to follow
     const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
@@ -229,7 +229,7 @@ T* hashmap_reserve(HashMapT<T>* const __restrict hm, K key) NO_EXCEPT
 template <typename T>
 T* hashmap_get_reserve(HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
 
     // Ensure key length
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
@@ -281,7 +281,7 @@ template <typename T>
 inline
 T* hashmap_entry_get(const HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
     if (chunk_is_free(&hm->buf, index)) {
         return NULL;
     }
@@ -306,7 +306,7 @@ T* hashmap_entry_get(const HashMapT<T>* const __restrict hm, const char* __restr
 template <typename T>
 void hashmap_remove(HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
 
     T* entry = (T *) chunk_element_get(&hm->buf, index);
     T* prev = NULL;

@@ -9,6 +9,10 @@
 
 #include "../stdlib/Stdlib.h"
 
+// Only used as a pointer parameter below - a forward declaration keeps the
+// log/debug headers (and their include order) out of this file
+struct DebugContainer;
+
 #if _WIN32
     #include "../platform/win32/Library.h"
 #elif __linux__

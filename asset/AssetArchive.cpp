@@ -452,7 +452,7 @@ Asset* const asset_archive_asset_load(
         memcpy(
             asset->references,
             &archive->header.asset_dependencies[element->dependency_start],
-            sizeof(uint32)
+            sizeof(uint32) * element->dependency_count
         );
 
         // @performance maybe do in worker threads or AppCmdbuffer? This just feels very slow

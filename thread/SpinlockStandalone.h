@@ -10,7 +10,6 @@
 #include "../stdlib/Stdlib.h"
 #include "Atomic.h"
 
-
 /**
  * WARNING: This implementation is ONLY used by core framework code such as the debugging/logging code.
  * We need this standalone implementation besides the regular spinlock implementation
@@ -42,18 +41,29 @@
     static inline HOT_CODE
     uint64 standalone_sys_time() NO_EXCEPT
     {
-        SYSTEMTIME sys_time;
-        FILETIME file_time;
-        ULARGE_INTEGER large_int;
+        #if defined(_WINXP)
+            SYSTEMTIME sys_time;
+            FILETIME file_time;
+            ULARGE_INTEGER large_int;
 
-        GetLocalTime(&sys_time);
-        SystemTimeToFileTime(&sys_time, &file_time);
+            GetLocalTime(&sys_time);
+            SystemTimeToFileTime(&sys_time, &file_time);
 
-        // Convert FILETIME to a 64-bit integer
-        large_int.LowPart = file_time.dwLowDateTime;
-        large_int.HighPart = file_time.dwHighDateTime;
+            // Convert FILETIME to a 64-bit integer
+            large_int.LowPart = file_time.dwLowDateTime;
+            large_int.HighPart = file_time.dwHighDateTime;
 
-        return ((uint64) (large_int.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+            return ((uint64) (large_int.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+        #else
+            FILETIME file_time;
+            GetSystemTimePreciseAsFileTime(&file_time);
+
+            ULARGE_INTEGER li;
+            li.LowPart  = file_time.dwLowDateTime;
+            li.HighPart = file_time.dwHighDateTime;
+
+            return (li.QuadPart - 116444736000000000ULL) / 10000ULL;
+        #endif
     }
 
     typedef atomic<int> standalone_spinlock32;

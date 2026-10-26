@@ -53,7 +53,9 @@ void chunk_init(
         (size_t) ((uintptr_t) (buf->memory + capacity)),
         (size_t) alignof(size_t)
     );
-    memset(buf->free, 0, sizeof(size_t) * array_count);
+    //memset(buf->free, 0, sizeof(size_t) * array_count);
+
+    //ASSERT_MEM_ZERO(buf->memory, buf->size);
     PSEUDO_USE(size);
 }
 

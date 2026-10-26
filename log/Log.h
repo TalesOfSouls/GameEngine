@@ -64,18 +64,29 @@
     static inline HOT_CODE
     uint64 log_sys_time() NO_EXCEPT
     {
-        FILETIME file_time;
-        FILETIME local_time;
-        ULARGE_INTEGER large_int;
+        #if defined(_WINXP)
+            FILETIME file_time;
+            FILETIME local_time;
+            ULARGE_INTEGER large_int;
 
-        GetSystemTimeAsFileTime(&file_time);
-        FileTimeToLocalFileTime(&file_time, &local_time);
+            GetSystemTimeAsFileTime(&file_time);
+            FileTimeToLocalFileTime(&file_time, &local_time);
 
-        // Convert FILETIME to a 64-bit integer
-        large_int.LowPart = local_time.dwLowDateTime;
-        large_int.HighPart = local_time.dwHighDateTime;
+            // Convert FILETIME to a 64-bit integer
+            large_int.LowPart = local_time.dwLowDateTime;
+            large_int.HighPart = local_time.dwHighDateTime;
 
-        return ((uint64) (large_int.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+            return ((uint64) (large_int.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+        #else
+            FILETIME file_time;
+            GetSystemTimePreciseAsFileTime(&file_time);
+
+            ULARGE_INTEGER li;
+            li.LowPart  = file_time.dwLowDateTime;
+            li.HighPart = file_time.dwHighDateTime;
+
+            return (li.QuadPart - 116444736000000000ULL) / 10000ULL;
+        #endif
     }
 #elif __linux__
     #include <time.h>
@@ -150,8 +161,6 @@ byte* log_memory_get() NO_EXCEPT
     }
 
     byte* const offset = (byte *) (_log_memory->memory + _log_memory->pos);
-    memset((void *) offset, 0, MAX_LOG_LENGTH);
-
     _log_memory->pos += MAX_LOG_LENGTH;
 
     return offset;
@@ -211,6 +220,7 @@ void log_flush() NO_EXCEPT
     StandaloneSpinlockGuard _guard(&_log_memory->lock, 0);
     log_to_file(_log_memory->memory, _log_memory->pos);
     _log_memory->pos = 0;
+    memset((void *) _log_memory->memory, 0, _log_memory->size);
 }
 
 /**
@@ -262,6 +272,7 @@ void log(
     if (_log_memory->size - (_log_memory->pos + total_len) < MAX_LOG_LENGTH) {
         log_to_file(_log_memory->memory, _log_memory->pos);
         _log_memory->pos = 0;
+        memset((void *) _log_memory->memory, 0, _log_memory->size);
     }
 
     const char* str = format.str;
@@ -442,6 +453,7 @@ void log(
     if (_log_memory->size - _log_memory->pos < MAX_LOG_LENGTH) {
         log_to_file(_log_memory->memory, _log_memory->pos);
         _log_memory->pos = 0;
+        memset((void *) _log_memory->memory, 0, _log_memory->size);
     }
 }
 

@@ -211,7 +211,7 @@ size_t settings_save(
         bool found = false;
 
         for (int32 i = 0; i < match_count; ++i) {
-            if (strcmp(line, match[i].name) == 0) {
+            if (strcmp(setting, match[i].name) == 0) {
                 out = settings_save_name(&match[i], out);
                 out = settings_save_value(settings, match, i, out);
 

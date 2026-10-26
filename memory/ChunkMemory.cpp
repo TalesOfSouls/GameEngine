@@ -58,7 +58,8 @@ void chunk_alloc(
         (size_t) ((uintptr_t) (buf->memory + capacity * element_size)),
         (size_t) alignof(size_t)
     );
-    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
+    //memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
+    ASSERT_MEM_ZERO(buf->memory, buf->size);
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -97,7 +98,8 @@ void chunk_alloc(
         (size_t) ((uintptr_t) (buf->memory + capacity * element_size)),
         (size_t) alignof(size_t)
     );
-    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
+    //memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
+    ASSERT_MEM_ZERO(buf->memory, buf->size);
 
     LOG_1("[INFO] Allocated ChunkMemory: %n B", {DATA_TYPE_UINT64, &buf->size});
 }
@@ -119,7 +121,6 @@ void chunk_init(
     const size_t size = chunk_size_total(capacity, element_size);
 
     buf->memory = memory_get(data, size, start_alignment);
-    memset(buf->memory, 0, size);
 
     buf->capacity = capacity;
     buf->size = size;
@@ -127,7 +128,9 @@ void chunk_init(
     buf->last_pos = -1;
     buf->alignment = alignment;
     buf->free = (size_t *) ALIGN_UP((uintptr_t) (buf->memory + capacity * element_size), alignof(size_t));
-    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
+    //memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
+
+    ASSERT_MEM_ZERO(buf->memory, buf->size);
 }
 
 inline
@@ -157,7 +160,9 @@ void chunk_init(
         (uintptr_t) (buf->memory + capacity * element_size),
         (size_t) alignof(size_t)
     );
-    memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
+    //memset((void *) buf->free, 0, sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity));
+
+    ASSERT_MEM_ZERO(buf->memory, buf->size);
 }
 
 inline

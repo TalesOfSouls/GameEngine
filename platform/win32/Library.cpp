@@ -11,6 +11,7 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../../utils/StringUtils.h"
+#include "../../utils/RandomUtils.h"
 #include "../../utils/TimeUtils.h"
 #include "../../system/Library.h"
 #include "../../system/FileUtils.cpp"
@@ -67,12 +68,19 @@ bool library_load(Library* const lib) NO_EXCEPT
 
     // In debug mode, we create a copy at runtime, so we can recompile & reload it
     #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
+        wchar_t rand_name[7];
+        str_random(
+            rand_name, ARRAY_COUNT(rand_name) - 1,
+            L"abcdefghijklmnopqrstuvwxyz0123456789",
+            ARRAY_COUNT(L"abcdefghijklmnopqrstuvwxyz0123456789") - 1
+        );
+
         SimpleStringBuffer<wchar_t, PATH_MAX_LENGTH> src;
         str_copy(src.str, dst.str, dst.length);
         str_insert(
             dst.str, dst.length,
             dst.length - (sizeof(".dll") - 1),
-            L"_temp", (sizeof("_temp") - 1)
+            rand_name, ARRAY_COUNT(rand_name) - 1
         );
 
         lib->last_load = file_last_modified(src.str);

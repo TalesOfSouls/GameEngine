@@ -22,18 +22,29 @@ thread_local static LARGE_INTEGER _performance_frequency = []{
 inline
 uint64 system_time() NO_EXCEPT
 {
-    SYSTEMTIME sys_time;
-    FILETIME file_time;
-    ULARGE_INTEGER li;
+    #if defined(_WINXP)
+        SYSTEMTIME sys_time;
+        FILETIME file_time;
+        ULARGE_INTEGER li;
 
-    GetLocalTime(&sys_time);
-    SystemTimeToFileTime(&sys_time, &file_time);
+        GetLocalTime(&sys_time);
+        SystemTimeToFileTime(&sys_time, &file_time);
 
-    // Convert FILETIME to a 64-bit integer
-    li.LowPart = file_time.dwLowDateTime;
-    li.HighPart = file_time.dwHighDateTime;
+        // Convert FILETIME to a 64-bit integer
+        li.LowPart = file_time.dwLowDateTime;
+        li.HighPart = file_time.dwHighDateTime;
 
-    return ((uint64) (li.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+        return ((uint64) (li.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
+    #else
+        FILETIME file_time;
+        GetSystemTimePreciseAsFileTime(&file_time);
+
+        ULARGE_INTEGER li;
+        li.LowPart  = file_time.dwLowDateTime;
+        li.HighPart = file_time.dwHighDateTime;
+
+        return (li.QuadPart - 116444736000000000ULL) / 10000ULL;
+    #endif
 }
 
 inline

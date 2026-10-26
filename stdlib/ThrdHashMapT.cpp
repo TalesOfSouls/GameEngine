@@ -91,7 +91,7 @@ int64 hashmap_size(const ThrdHashMapT<T>* const hm) NO_EXCEPT
 template <typename T, typename V>
 T* hashmap_insert(ThrdHashMapT<T>* const __restrict hm, const char* __restrict key, V value) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
 
     // This is either the place where we insert or the start of the chain we have to follow
     const int32 new_index = chunk_reserve_one(&hm->buf, index);
@@ -135,7 +135,7 @@ T* hashmap_insert(ThrdHashMapT<T>* const __restrict hm, const char* __restrict k
 template <typename T, typename V>
 void hashmap_mark_completed(ThrdHashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
     if (chunk_is_free(&hm->buf, index)) {
         return NULL;
     }
@@ -160,7 +160,7 @@ void hashmap_mark_completed(ThrdHashMapT<T>* const __restrict hm, const char* __
 template <typename T, typename V>
 T* hashmap_insert(ThrdHashMapT<T>* const __restrict hm, const char* __restrict key, V* value) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
 
     // This is either the place where we insert or the start of the chain we have to follow
     const int32 new_index = chunk_reserve_one(&hm->buf, index);
@@ -206,7 +206,7 @@ T* hashmap_insert(ThrdHashMapT<T>* const __restrict hm, const char* __restrict k
 template <typename T>
 T* hashmap_reserve(ThrdHashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
 
     // This is either the place where we insert or the start of the chain we have to follow
     const int32 new_index = chunk_reserve_one(&hm->buf, index);
@@ -247,7 +247,7 @@ T* hashmap_reserve(ThrdHashMapT<T>* const __restrict hm, const char* __restrict 
 template <typename T>
 T* hashmap_get_reserve(ThrdHashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
 
     // Ensure key length
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
@@ -277,7 +277,7 @@ template <typename T>
 inline
 T* hashmap_entry_get(const ThrdHashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
     if (chunk_is_free(&hm->buf, index)) {
         return NULL;
     }
@@ -307,7 +307,7 @@ T* hashmap_entry_get(const ThrdHashMapT<T>* const __restrict hm, const char* __r
 template <typename T>
 void hashmap_remove(ThrdHashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) key) % hm->buf.capacity;
+    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
 
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
 
