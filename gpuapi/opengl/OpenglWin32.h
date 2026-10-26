@@ -638,7 +638,7 @@ void set_pixel_format(HDC const hdc, int32 multisampling = 0) NO_EXCEPT
 static inline
 bool gl_has_extension(const char* name) NO_EXCEPT
 {
-    int32 n;
+    int32 n = 0;
     glGetIntegerv(GL_NUM_EXTENSIONS, &n);
 
     for (int i = 0; i < n; ++i) {

@@ -46,10 +46,12 @@ enum GPUFeature : uint64 {
 };
 
 struct GpuInfo {
-    char vendor[16];
-    char name[32];
-    char api_version[16];
-    char shader_version[16];
+    // Driver strings may be longer than the obvious minimum. Intel for example
+    // reports "4.6.0 - Build 27.20.100.8681" as GL_VERSION 
+    char vendor[32];
+    char name[64];
+    char api_version[64];
+    char shader_version[64];
 
     // In Mb: VRAM
     uint32 vram;

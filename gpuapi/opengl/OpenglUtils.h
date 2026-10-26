@@ -100,6 +100,56 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
     #define LABEL_PTR_GPU_API() ((void) 0)
 #endif
 
+/**
+ * Parses the major and minor version from the leading GL_VERSION string
+ *
+ * The version string starts with "<major>.<minor>" on every desktop driver.
+ *
+ * @param const char*   version GL_VERSION string (may be NULL)
+ * @param int32*        major   Parsed major version
+ * @param int32*        minor   Parsed minor version
+ *
+ * @return void
+ */
+static inline
+void opengl_version_parse(
+    int32* const major,
+    int32* const minor
+) NO_EXCEPT
+{
+    const char* version = (const char *) glGetString(GL_VERSION);
+
+    *major = 0;
+    *minor = 0;
+
+    if (!version) {
+        return;
+    }
+
+    const char* pos = version;
+
+    // Skip a non-numeric prefix (some drivers prepend e.g. "OpenGL ")
+    while (*pos && (*pos < '0' || *pos > '9')) {
+        ++pos;
+    }
+
+    while (*pos >= '0' && *pos <= '9') {
+        *major = *major * 10 + (*pos - '0');
+        ++pos;
+    }
+
+    if (*pos != '.') {
+        return;
+    }
+
+    ++pos;
+
+    while (*pos >= '0' && *pos <= '9') {
+        *minor = *minor * 10 + (*pos - '0');
+        ++pos;
+    }
+}
+
 FORCE_INLINE
 GpuFence gpuapi_fence_create() NO_EXCEPT
 {
