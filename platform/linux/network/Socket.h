@@ -8,6 +8,7 @@
 #define COMS_PLATFORM_LINUX_NETWORK_SOCKET_H
 
 #include "../../../stdlib/Stdlib.h"
+#include "../../../log/Log.h"
 
 #include <netdb.h>
 #include <sys/types.h>

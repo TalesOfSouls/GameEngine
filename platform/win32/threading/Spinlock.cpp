@@ -40,7 +40,7 @@ void spinlock_start(spinlock32* const lock, int32 delay) NO_EXCEPT
     // Otherwise InterlockedExchange may invalidate the cache
     // for all other threads that also try to access this
     while (lock->load() || lock->exchange(1)) {
-        usleep(delay);
+        thread_usleep((uint64) delay);
     }
     PROFILE_END_DEBUG(PROFILE_MUTEX_ACQUIRE);
 }

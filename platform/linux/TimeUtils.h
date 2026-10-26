@@ -76,4 +76,35 @@ uint64 time_mu() NO_EXCEPT
     return (uint64) ts.tv_sec * 1000000ULL + (uint64) (ts.tv_nsec / 1000);
 }
 
+/**
+ * Seconds since the unix epoch (UTC)
+ *
+ * Used for protocol timestamps and token expiry. The name matches the win32
+ * implementation so the same code can be used on both platforms.
+ *
+ * @return uint64 Seconds since 1970-01-01 00:00:00 UTC
+ */
+inline
+uint64 unix_epoch_s() NO_EXCEPT
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    return (uint64) ts.tv_sec;
+}
+
+/**
+ * Microseconds since the unix epoch (UTC)
+ *
+ * @return uint64 Microseconds since 1970-01-01 00:00:00 UTC
+ */
+inline
+uint64 unix_epoch_us() NO_EXCEPT
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    return (uint64) ts.tv_sec * 1000000ULL + (uint64) (ts.tv_nsec / 1000);
+}
+
 #endif

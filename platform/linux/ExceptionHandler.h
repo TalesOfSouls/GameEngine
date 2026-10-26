@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @copyright Jingga
  * @license   OMS License 2.0
  * @link      https://jingga.app
@@ -16,7 +16,7 @@
 void signal_handler(int sig) {
     void* stack_frames[MAX_STACK_FRAMES];
     const int num_frames = backtrace(stack_frames, ARRAY_COUNT(stack_frames));
-    const char** stack_symbols = backtrace_symbols(stack_frames, num_frames);
+    char** stack_symbols = backtrace_symbols(stack_frames, num_frames);
 
     LOG_1("Error: signal %d:", {DATA_TYPE_INT32, &sig});
     for (int i = 0; i < num_frames; ++i) {
@@ -42,7 +42,7 @@ void setup_signal_handler() {
 void print_stack_trace() {
     void* buffer[100];
     const int num_ptrs = backtrace(buffer, ARRAY_COUNT(buffer));
-    const char** symbols = backtrace_symbols(buffer, num_ptrs);
+    char** symbols = backtrace_symbols(buffer, num_ptrs);
     if (symbols == NULL) {
         return;
     }
@@ -52,7 +52,7 @@ void print_stack_trace() {
         LOG_1("%s", {DATA_TYPE_CHAR_STR, symbols[i]});
     }
 
-    LOG_TO_FILE()
+    LOG_TO_FILE();
     free(symbols);
 }
 

@@ -2171,7 +2171,12 @@ const char* str_move_to_pos(const char* str, int32 pos) NO_EXCEPT
 inline
 void str_move_past(const char* __restrict* __restrict str, char delim) NO_EXCEPT
 {
-    str_move_to(str, delim);
+    // The restrict qualified pointer-to-pointer cannot be passed to
+    // str_move_to directly (gcc rejects the conversion), use a local pointer
+    const char* position = *str;
+    str_move_to(&position, delim);
+    *str = position;
+
     if (**str != '\0') {
         ++(*str);
     }
