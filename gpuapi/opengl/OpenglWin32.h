@@ -10,6 +10,7 @@
 #include <windows.h>
 #include "../../system/Window.h"
 #include "../../stdlib/Stdlib.h"
+#include "../../log/Log.h"
 #include "OpenglDefines.h"
 
 #pragma comment(lib, "OpenGL32.Lib")
@@ -571,7 +572,17 @@ void set_pixel_format(HDC const hdc, int32 multisampling = 0) NO_EXCEPT
             0, // This signals the end of the attr_list
         };
 
-        wglChoosePixelFormatARB(hdc, attr_list, 0, 1, &suggested_pixel_format_idx, &extended_pick);
+        const BOOL chosen = wglChoosePixelFormatARB(
+            hdc, attr_list, 0, 1, &suggested_pixel_format_idx, &extended_pick
+        );
+
+        if (!chosen || !extended_pick) {
+            uint32 error = (uint32) GetLastError();
+            LOG_1(
+                "[WARNING] wglChoosePixelFormatARB failed (error %d), using ChoosePixelFormat",
+                {DATA_TYPE_UINT32, &error}
+            );
+        }
     }
 
     if(!extended_pick) {
@@ -586,11 +597,42 @@ void set_pixel_format(HDC const hdc, int32 multisampling = 0) NO_EXCEPT
         desired_pixel_format.iLayerType = PFD_MAIN_PLANE;
 
         suggested_pixel_format_idx = ChoosePixelFormat(hdc, &desired_pixel_format);
+
+        if (!suggested_pixel_format_idx) {
+            uint32 error = (uint32) GetLastError();
+            LOG_1(
+                "[ERROR] ChoosePixelFormat failed (error %d)",
+                {DATA_TYPE_UINT32, &error}
+            );
+
+            return;
+        }
     }
 
     PIXELFORMATDESCRIPTOR suggested_pixel_format;
-    DescribePixelFormat(hdc, suggested_pixel_format_idx, sizeof(suggested_pixel_format), &suggested_pixel_format);
-    SetPixelFormat(hdc, suggested_pixel_format_idx, &suggested_pixel_format);
+    if (!DescribePixelFormat(
+            hdc, suggested_pixel_format_idx,
+            sizeof(suggested_pixel_format), &suggested_pixel_format
+        )
+    ) {
+        uint32 error = (uint32) GetLastError();
+        LOG_1(
+            "[ERROR] DescribePixelFormat failed for format %d (error %d)",
+            {DATA_TYPE_INT32, &suggested_pixel_format_idx},
+            {DATA_TYPE_UINT32, &error}
+        );
+
+        return;
+    }
+
+    if (!SetPixelFormat(hdc, suggested_pixel_format_idx, &suggested_pixel_format)) {
+        uint32 error = (uint32) GetLastError();
+        LOG_1(
+            "[ERROR] SetPixelFormat failed for format %d (error %d)",
+            {DATA_TYPE_INT32, &suggested_pixel_format_idx},
+            {DATA_TYPE_UINT32, &error}
+        );
+    }
 }
 
 static inline
@@ -626,6 +668,12 @@ bool gl_extensions_load() NO_EXCEPT
     };
 
     if (!RegisterClassW(&wc)) {
+        uint32 error = (uint32) GetLastError();
+        LOG_1(
+            "[ERROR] Failed to register the WGL loader class (error %d)",
+            {DATA_TYPE_UINT32, &error}
+        );
+
         return false;
     }
 
@@ -635,12 +683,52 @@ bool gl_extensions_load() NO_EXCEPT
         0, 0, wc.hInstance, 0
     );
 
+    if (!window) {
+        uint32 error = (uint32) GetLastError();
+        LOG_1(
+            "[ERROR] Failed to create the WGL loader window (error %d)",
+            {DATA_TYPE_UINT32, &error}
+        );
+
+        return false;
+    }
+
     HDC const hdc = GetDC(window);
+    if (!hdc) {
+        uint32 error = (uint32) GetLastError();
+        LOG_1(
+            "[ERROR] Failed to get the WGL loader DC (error %d)",
+            {DATA_TYPE_UINT32, &error}
+        );
+
+        DestroyWindow(window);
+
+        return false;
+    }
+
     set_pixel_format(hdc); // legacy path only, that's fine for a throwaway dummy context
 
     HGLRC const openGLRC = wglCreateContext(hdc);
+    if (!openGLRC) {
+        uint32 error = (uint32) GetLastError();
+        LOG_1(
+            "[ERROR] wglCreateContext failed for the WGL loader (error %d)",
+            {DATA_TYPE_UINT32, &error}
+        );
+
+        ReleaseDC(window, hdc);
+        DestroyWindow(window);
+
+        return false;
+    }
 
     if (!wglMakeCurrent(hdc, openGLRC)) {
+        uint32 error = (uint32) GetLastError();
+        LOG_1(
+            "[ERROR] wglMakeCurrent failed for the WGL loader (error %d)",
+            {DATA_TYPE_UINT32, &error}
+        );
+
         wglDeleteContext(openGLRC);
         ReleaseDC(window, hdc);
         DestroyWindow(window);
@@ -651,28 +739,39 @@ bool gl_extensions_load() NO_EXCEPT
     // Fetch WGL/GL function pointers HERE, while this context is current.
     opengl_init_wgl();
 
+    if (!wglCreateContextAttribsARB) {
+        LOG_1("[WARNING] wglCreateContextAttribsARB is not available");
+    }
+
+    if (!wglChoosePixelFormatARB) {
+        LOG_1("[WARNING] wglChoosePixelFormatARB is not available");
+    }
+
     bool ok = false;
     if (wglGetExtensionsStringEXT) {
-        char* extension = (char *) wglGetExtensionsStringEXT();
-        char* pos = extension;
+        const char* const extension = wglGetExtensionsStringEXT();
+        if (extension) {
+            const char* pos = extension;
 
-        while (*pos) {
-            while (*pos == ' ' || *pos == '\t' || *pos == '\r' || *pos == '\n') {
-                ++pos;
+            while (*pos) {
+                while (*pos == ' ' || *pos == '\t' || *pos == '\r' || *pos == '\n') {
+                    ++pos;
+                }
+
+                const char* end = pos;
+                while (*end && !(*end == ' ' || *end == '\t' || *end == '\r' || *end == '\n')) {
+                    ++end;
+                }
+
+                pos = end;
             }
 
-            char *end = pos;
-            while (*end && !(*end == ' ' || *end == '\t' || *end == '\r' || *end == '\n')) {
-                ++end;
-            }
-
-            // umm count = end - pos;
-            // OpenGL->SupportsSRGBFramebuffer = strcmp(count, pos, "WGL_EXT_framebuffer_sRGB") == 0 || strcmp(count, pos, "WGL_ARB_framebuffer_sRGB") == 0;
-
-            pos = end;
+            ok = true;
+        } else {
+            LOG_1("[WARNING] wglGetExtensionsStringEXT returned NULL");
         }
-
-        ok = true;
+    } else {
+        LOG_1("[WARNING] WGL_EXT_extensions_string is not available");
     }
 
     wglMakeCurrent(NULL, NULL);
@@ -868,20 +967,73 @@ void opengl_instance_create(Window* const __restrict window, int32 multisample =
     OpenglRenderer* const context = (OpenglRenderer *) window->gpu_api_context;
 
     platform_window->hdc = GetDC(platform_window->hwnd);
+    if (!platform_window->hdc) {
+        uint32 error = (uint32) GetLastError();
+        LOG_1(
+            "[ERROR] Failed to get the window DC (error %d)",
+            {DATA_TYPE_UINT32, &error}
+        );
+
+        return;
+    }
+
     set_pixel_format(platform_window->hdc, multisample);
 
     context->openGLRC = 0;
     if (wglCreateContextAttribsARB) {
         context->openGLRC = wglCreateContextAttribsARB(platform_window->hdc, 0, _win32_opengl_attribs);
+
+        if (!context->openGLRC) {
+            uint32 error = (uint32) GetLastError();
+            LOG_1(
+                "[WARNING] 4.6 core context creation failed (error %d), using a legacy context",
+                {DATA_TYPE_UINT32, &error}
+            );
+        }
+    } else {
+        LOG_1("[WARNING] wglCreateContextAttribsARB unavailable, using a legacy context");
     }
 
     if (!context->openGLRC) {
         context->openGLRC = wglCreateContext(platform_window->hdc);
+
+        if (!context->openGLRC) {
+            uint32 error = (uint32) GetLastError();
+            LOG_1(
+                "[ERROR] wglCreateContext failed (error %d)",
+                {DATA_TYPE_UINT32, &error}
+            );
+
+            return;
+        }
     }
 
     if(!wglMakeCurrent(platform_window->hdc, context->openGLRC)) {
-        LOG_1("[ERROR] Couldn't load opengl");
+        uint32 error = (uint32) GetLastError();
+        LOG_1(
+            "[ERROR] wglMakeCurrent failed (error %d)",
+            {DATA_TYPE_UINT32, &error}
+        );
+
+        wglDeleteContext(context->openGLRC);
+        context->openGLRC = 0;
+
         return;
+    }
+
+    // Log the context we actually got. A 4.5 driver ends up here after the
+    // 4.6 request above failed, which explains later shader compile failures.
+    const char* const gl_version = (const char *) glGetString(GL_VERSION);
+    const char* const gl_renderer = (const char *) glGetString(GL_RENDERER);
+
+    if (gl_version && gl_renderer) {
+        LOG_1(
+            "[INFO] Opengl context: %s (%s)",
+            {DATA_TYPE_CHAR_STR, gl_version},
+            {DATA_TYPE_CHAR_STR, gl_renderer}
+        );
+    } else if (gl_version) {
+        LOG_1("[INFO] Opengl context: %s", {DATA_TYPE_CHAR_STR, gl_version});
     }
 
     opengl_init_gl();
