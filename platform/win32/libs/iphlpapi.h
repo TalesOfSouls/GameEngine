@@ -17,6 +17,8 @@
     #define IPHLPAPI_GetAdaptersAddresses GetAdaptersAddresses
     #define IPHLPAPI_GetIpForwardTable2 GetIpForwardTable2
     #define IPHLPAPI_FreeMibTable FreeMibTable
+    #define IPHLPAPI_IcmpCreateFile IcmpCreateFile
+    #define IPHLPAPI_IcmpSendEcho IcmpSendEcho
     #define IPHLPAPI_Icmp6CreateFile Icmp6CreateFile
     #define IPHLPAPI_Icmp6SendEcho2 Icmp6SendEcho2
     #define IPHLPAPI_IcmpCloseHandle IcmpCloseHandle
@@ -28,6 +30,11 @@
     typedef ULONG (WINAPI *GetAdaptersAddresses_t)(ULONG, ULONG, PVOID, PIP_ADAPTER_ADDRESSES, PULONG);
     typedef NETIO_STATUS (WINAPI *GetIpForwardTable2_t)(ADDRESS_FAMILY, PMIB_IPFORWARD_TABLE2*);
     typedef VOID (WINAPI *FreeMibTable_t)(PVOID);
+    typedef HANDLE (WINAPI *IcmpCreateFile_t)(VOID);
+    typedef DWORD (WINAPI *IcmpSendEcho_t)(
+        HANDLE, IPAddr, LPVOID, WORD, PIP_OPTION_INFORMATION,
+        LPVOID, DWORD, DWORD
+    );
     typedef HANDLE (WINAPI *Icmp6CreateFile_t)(VOID);
     typedef DWORD (WINAPI *Icmp6SendEcho2_t)(
         HANDLE, HANDLE, PIO_APC_ROUTINE, PVOID,
@@ -40,6 +47,8 @@
     static GetAdaptersAddresses_t pGetAdaptersAddresses = NULL;
     static GetIpForwardTable2_t pGetIpForwardTable2 = NULL;
     static FreeMibTable_t pFreeMibTable = NULL;
+    static IcmpCreateFile_t pIcmpCreateFile = NULL;
+    static IcmpSendEcho_t pIcmpSendEcho = NULL;
     static Icmp6CreateFile_t pIcmp6CreateFile = NULL;
     static Icmp6SendEcho2_t pIcmp6SendEcho2 = NULL;
     static IcmpCloseHandle_t pIcmpCloseHandle = NULL;
@@ -47,6 +56,8 @@
     #define IPHLPAPI_GetAdaptersAddresses pGetAdaptersAddresses
     #define IPHLPAPI_GetIpForwardTable2 pGetIpForwardTable2
     #define IPHLPAPI_FreeMibTable pFreeMibTable
+    #define IPHLPAPI_IcmpCreateFile pIcmpCreateFile
+    #define IPHLPAPI_IcmpSendEcho pIcmpSendEcho
     #define IPHLPAPI_Icmp6CreateFile pIcmp6CreateFile
     #define IPHLPAPI_Icmp6SendEcho2 pIcmp6SendEcho2
     #define IPHLPAPI_IcmpCloseHandle pIcmpCloseHandle
@@ -72,6 +83,8 @@
         pGetIpForwardTable2 = (GetIpForwardTable2_t) library_dyn_proc(_iphlpapi_lib, "GetIpForwardTable2");
         pFreeMibTable = (FreeMibTable_t) library_dyn_proc(_iphlpapi_lib, "FreeMibTable");
 
+        pIcmpCreateFile = (IcmpCreateFile_t) library_dyn_proc(_iphlpapi_lib, "IcmpCreateFile");
+        pIcmpSendEcho = (IcmpSendEcho_t) library_dyn_proc(_iphlpapi_lib, "IcmpSendEcho");
         pIcmp6CreateFile = (Icmp6CreateFile_t) library_dyn_proc(_iphlpapi_lib, "Icmp6CreateFile");
         pIcmp6SendEcho2  = (Icmp6SendEcho2_t) library_dyn_proc(_iphlpapi_lib, "Icmp6SendEcho2");
         pIcmpCloseHandle = (IcmpCloseHandle_t) library_dyn_proc(_iphlpapi_lib, "IcmpCloseHandle");
@@ -79,6 +92,7 @@
         ++_iphlpapi_lib_ref_count;
 
         return pGetAdaptersAddresses && pGetIpForwardTable2 && pFreeMibTable
+            && pIcmpCreateFile && pIcmpSendEcho
             && pIcmp6CreateFile && pIcmp6SendEcho2 && pIcmpCloseHandle;
     }
 
