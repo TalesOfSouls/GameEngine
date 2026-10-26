@@ -3,7 +3,6 @@
  *
  * GENERATED FILE - do not edit by hand.
  * The values are the hexadecimal digits of pi as defined by the Blowfish cipher.
- * Regenerate with: tools/blowfish_constants_gen.py
  *
  * @copyright Jingga
  * @license   OMS License 2.0

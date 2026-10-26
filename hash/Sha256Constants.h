@@ -4,7 +4,6 @@
  * GENERATED FILE - do not edit by hand.
  * H0 are the fractional parts of the square roots and K the fractional parts
  * of the cube roots of the first primes (FIPS 180-4).
- * Regenerate with: tools/sha256_constants_gen.py
  *
  * @copyright Jingga
  * @license   OMS License 2.0
