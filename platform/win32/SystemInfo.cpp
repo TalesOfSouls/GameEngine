@@ -677,7 +677,11 @@ int32 gpu_info_get(GpuInfo*const  info, int32 limit = 3) {
             break;
         }
 
-        wchar_to_char(info[i].name, adapter_description.Description, 63);
+        wchar_to_char(
+            info[i].name,
+            adapter_description.Description,
+            (int32) ARRAY_COUNT(info[i].name) - 1
+        );
         info[i].vram = (uint32) (adapter_description.DedicatedVideoMemory / (1024 * 1024));
 
         adapter->Release();

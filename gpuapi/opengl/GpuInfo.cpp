@@ -12,6 +12,37 @@
 #include "OpenglUtils.h"
 #include "../GPUInfo.h"
 
+/**
+ * Copies a GPU/driver string into a fixed-size buffer and always null terminates
+ *
+ * @param char*         dest    Destination buffer
+ * @param int32         size    Destination buffer size in bytes
+ * @param const char*   src     Source string (may be NULL)
+ *
+ * @return void
+ */
+static inline
+void gpu_info_string_set(char* const dest, int32 size, const char* const src) NO_EXCEPT
+{
+    if (!dest || size <= 0) {
+        return;
+    }
+
+    int32 length = 0;
+
+    if (src) {
+        while (src[length] && length < size - 1) {
+            ++length;
+        }
+    }
+
+    if (length > 0) {
+        memcpy(dest, src, length);
+    }
+
+    dest[length] = '\0';
+}
+
 uint64 gpu_info_features() {
     uint64 features = 0;
 
@@ -106,21 +137,10 @@ void gpuapi_info_get(GpuInfo* info) {
     const char* version = (const char*) glGetString(GL_VERSION);
     const char* shader_version = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
 
-    if (vendor) {
-        strcpy(info->vendor, vendor);
-    }
-
-    if (renderer) {
-        strcpy(info->name, renderer);
-    }
-
-    if (version) {
-        strcpy(info->api_version, version);
-    }
-
-    if (shader_version) {
-        strcpy(info->shader_version, shader_version);
-    }
+    gpu_info_string_set(info->vendor, (int32) sizeof(info->vendor), vendor);
+    gpu_info_string_set(info->name, (int32) sizeof(info->name), renderer);
+    gpu_info_string_set(info->api_version, (int32) sizeof(info->api_version), version);
+    gpu_info_string_set(info->shader_version, (int32) sizeof(info->shader_version), shader_version);
 
     GLint vramKB = 0;
     if (gl_has_extension("GL_NVX_gpu_memory_info")) {
