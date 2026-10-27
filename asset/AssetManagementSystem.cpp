@@ -465,7 +465,7 @@ Asset* ams_asset_insert(AssetManagementSystem* const ams, Asset* const asset_tem
     }
 
     byte* const asset_data = chunk_element_get(&ac->asset_memory, free_data);
-    memcpy(asset_data, asset_temp->self, sizeof(Asset));
+    memcpy(asset_data, asset_temp->self, asset_temp->data_size);
     chunk_mark_complete(&ac->asset_memory, free_data);
 
     asset_temp->self = asset_data;
