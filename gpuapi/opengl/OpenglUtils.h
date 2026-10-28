@@ -31,14 +31,23 @@
  * are called `*_legacy()`
  */
 
-void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, const GLchar* message, const void*)
+void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei, const GLchar* message, const void*)
 {
-    if (severity < GL_DEBUG_SEVERITY_LOW) {
+    // IMPORTANT: The severity enums are NOT ordered by importance
+    //      GL_DEBUG_SEVERITY_HIGH = 0x9146, MEDIUM = 0x9147, LOW = 0x9148, NOTIFICATION = 0x826B
+    // A check like severity < GL_DEBUG_SEVERITY_LOW ignores HIGH + MEDIUM and only reports LOW.
+    // Some drivers (e.g. Intel) emit LOW performance hints which then crashed the program.
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
         return;
     }
 
     LOG_1(simple_string_init((char *) message, (int32) strlen(message)));
-    ASSERT_THROW();
+
+    // Only real API errors are fatal, performance/portability hints are just logged
+    if (type == GL_DEBUG_TYPE_ERROR && severity == GL_DEBUG_SEVERITY_HIGH) {
+        LOG_FLUSH();
+        ASSERT_THROW();
+    }
 }
 
 #if (defined(DEBUG) && DEBUG) || (defined(DEBUG_STRICT) && DEBUG_STRICT)
@@ -94,10 +103,12 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
     #define MARKER_GPU_API(name) glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, (name))
     #define MARKER_GPU_API_END() glPopDebugGroup()
 #else
-    #define ASSERT_GPU_API(ref, type, name) ((void) 0)
-    #define ENABLE_DEBUG_GPU_API(ref, name) ((void) 0)
-    #define LABEL_GPU_API(name) ((void) 0)
-    #define LABEL_PTR_GPU_API() ((void) 0)
+    #define ASSERT_GPU_API(...) ((void) 0)
+    #define ENABLE_DEBUG_GPU_API(...) ((void) 0)
+    #define LABEL_GPU_API(...) ((void) 0)
+    #define LABEL_PTR_GPU_API(...) ((void) 0)
+    #define MARKER_GPU_API(...) ((void) 0)
+    #define MARKER_GPU_API_END() ((void) 0)
 #endif
 
 /**
@@ -207,11 +218,26 @@ void gpuapi_fence_lock_wait(GpuFence* fence, int32 timeout = 1000000) NO_EXCEPT
         return;
     }
 
-    while (true) {
-        GLenum res = glClientWaitSync(*fence, GL_SYNC_FLUSH_COMMANDS_BIT, timeout);
+    // Never block the render thread forever if the driver never signals the
+    // fence (e.g. after a GPU reset or on a slow integrated GPU).
+    // 1000 * 1ms timeout = roughly one second.
+    bool signaled = false;
+
+    for (int32 attempt = 0; attempt < 1000; ++attempt) {
+        const GLenum res = glClientWaitSync(*fence, GL_SYNC_FLUSH_COMMANDS_BIT, timeout);
+
         if (res == GL_ALREADY_SIGNALED || res == GL_CONDITION_SATISFIED) {
+            signaled = true;
             break;
         }
+
+        if (res == GL_WAIT_FAILED) {
+            break;
+        }
+    }
+
+    if (!signaled) {
+        LOG_1("[WARNING] GPU fence wait timed out");
     }
 
     glDeleteSync(*fence);

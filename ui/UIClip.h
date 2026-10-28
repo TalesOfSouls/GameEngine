@@ -112,17 +112,17 @@ bool ui_vertices_clip(
             visible |= cx1 > cx0 && cy1 > cy0;
 
             // Texture coordinates are linear along the quad
-            // Solid colors use tex.x = -1 and tex.y = color -> must not be interpolated
-            const bool textured = q[0].texture_color.x != -1.0f;
-            if (textured) {
+            // The color is a separate field, so the texture coordinates can always be interpolated
+            // (for solid colors they are just unused)
+            {
                 const f32 w = x1 - x0;
                 const f32 h = y1 - y0;
 
                 // u along x (left -> right), v along y (top -> bottom)
-                const f32 u_left = q[0].texture_color.x;
-                const f32 u_right = q[1].texture_color.x;
-                const f32 v_top = q[0].texture_color.y;
-                const f32 v_bottom = q[3].texture_color.y;
+                const f32 u_left = q[0].tex_coord.x;
+                const f32 u_right = q[1].tex_coord.x;
+                const f32 v_top = q[0].tex_coord.y;
+                const f32 v_bottom = q[3].tex_coord.y;
 
                 const f32 tx0 = w > 0.0f ? (cx0 - x0) / w : 0.0f;
                 const f32 tx1 = w > 0.0f ? (cx1 - x0) / w : 1.0f;
@@ -134,10 +134,10 @@ bool ui_vertices_clip(
                 const f32 nv0 = v_top + (v_bottom - v_top) * ty0;
                 const f32 nv1 = v_top + (v_bottom - v_top) * ty1;
 
-                q[0].texture_color = {nu0, nv0};
-                q[1].texture_color = {nu1, nv0};
-                q[2].texture_color = {nu1, nv1};
-                q[3].texture_color = {nu0, nv1};
+                q[0].tex_coord = {nu0, nv0};
+                q[1].tex_coord = {nu1, nv0};
+                q[2].tex_coord = {nu1, nv1};
+                q[3].tex_coord = {nu0, nv1};
             }
 
             q[0].position.x = cx0; q[0].position.y = cy1;

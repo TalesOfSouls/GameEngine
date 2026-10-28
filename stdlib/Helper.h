@@ -32,10 +32,10 @@
     #define DEBUG_VAR_DEF_ASSIGN(type, name) type name =
     #define DEBUG_VAR_INIT(type, name, value) type name = (value)
 #else
-    #define DEBUG_VAR_DEF(type, name) ((void) 0)
-    #define DEBUG_VAR_ASSIGN(name) ((void) 0)
-    #define DEBUG_VAR_DEF_ASSIGN(type, name) ((void) 0)
-    #define DEBUG_VAR_INIT(type, name, value) ((void) 0)
+    #define DEBUG_VAR_DEF(type, name)
+    #define DEBUG_VAR_ASSIGN(name)
+    #define DEBUG_VAR_DEF_ASSIGN(type, name)
+    #define DEBUG_VAR_INIT(type, name, value)
 #endif
 
 #define MEMORY_OFFSET(high, low) (size_t) ((uintptr_t) (high) - (uintptr_t) (low))

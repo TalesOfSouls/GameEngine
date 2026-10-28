@@ -11,10 +11,19 @@
 
 struct Vertex4DSamplerTextureColor {
     v4_f32 position;
+    // <= 0 = solid color, 1 = font atlas, 2 = ui atlas
     int32 sampler;
 
-    // If negative = color, positive = texture
-    v2_f32 texture_color;
+    // Texture coordinates, only used if sampler > 0
+    v2_f32 tex_coord;
+
+    // Color (0xRRGGBBAA)
+    //      sampler <= 0: solid color
+    //      sampler == 1: text color (font atlas)
+    //      sampler >= 2: unused (texture color)
+    // IMPORTANT: Never store the color in the bits of a float (e.g. tex_coord.y).
+    //      Many rgba values are NaN or denormal float bit patterns that GPUs/drivers may canonicalize or flush.
+    uint32 color;
 };
 
 struct VertexUI {
@@ -43,17 +52,29 @@ struct Vertex3DNormal {
 
 struct Vertex3DSamplerTextureColor {
     v3_f32 position;
+    // <= 0 = solid color, 1 = font atlas, 2 = ui atlas
     int32 sampler;
 
-    // If negative = color, positive = texture
-    v2_f32 texture_color;
+    // Texture coordinates, only used if sampler > 0
+    v2_f32 tex_coord;
+
+    // Color (0xRRGGBBAA)
+    //      sampler <= 0: solid color
+    //      sampler == 1: text color (font atlas)
+    //      sampler >= 2: unused (texture color)
+    // IMPORTANT: Never store the color in the bits of a float (e.g. tex_coord.y).
+    //      Many rgba values are NaN or denormal float bit patterns that GPUs/drivers may canonicalize or flush.
+    uint32 color;
 };
 
 struct Vertex3DTextureColor {
     v3_f32 position;
 
-    // If negative = color, positive = texture
-    v2_f32 texture_color;
+    // Texture coordinates, only used if color == 0
+    v2_f32 tex_coord;
+
+    // Solid color (0xRRGGBBAA), 0 = use the texture instead
+    uint32 color;
 };
 
 struct Vertex3DColorIndex {
@@ -79,10 +100,19 @@ struct Vertex2DTexture {
 
 struct Vertex2DSamplerTextureColor {
     v2_f32 position;
+    // <= 0 = solid color, 1 = font atlas, 2 = ui atlas
     int32 sampler;
 
-    // If negative = color, positive = texture
-    v2_f32 texture_color;
+    // Texture coordinates, only used if sampler > 0
+    v2_f32 tex_coord;
+
+    // Color (0xRRGGBBAA)
+    //      sampler <= 0: solid color
+    //      sampler == 1: text color (font atlas)
+    //      sampler >= 2: unused (texture color)
+    // IMPORTANT: Never store the color in the bits of a float (e.g. tex_coord.y).
+    //      Many rgba values are NaN or denormal float bit patterns that GPUs/drivers may canonicalize or flush.
+    uint32 color;
 };
 
 struct Vertex2DColor {

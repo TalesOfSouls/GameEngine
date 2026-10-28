@@ -338,7 +338,7 @@ void soft_rasterize(
     f32* zbuf = renderer->zbuffer;
 
     // Check if the triangle uses texture or solid color
-    const bool textured = (v0.texture_color.x >= 0.0f || v1.texture_color.x >= 0.0f || v2.texture_color.x >= 0.0f);
+    const bool textured = (v0.sampler > 0 || v1.sampler > 0 || v2.sampler > 0);
 
     v4_byte color1 = {0};
     v4_byte color2 = {0};
@@ -353,9 +353,9 @@ void soft_rasterize(
     #endif
 
     if(!textured) {
-        color1.val = BITCAST(v0.texture_color.y, uint32);
-        color2.val = BITCAST(v1.texture_color.y, uint32);
-        color3.val = BITCAST(v2.texture_color.y, uint32);
+        color1.val = v0.color;
+        color2.val = v1.color;
+        color3.val = v2.color;
 
         #ifdef __SSE4_2__
             c1r_v = _mm_set1_ps((f32) color1.r);
@@ -377,13 +377,13 @@ void soft_rasterize(
     #ifdef __SSE4_2__
     else {
         // Pre-broadcast texture u/v per-vertex (for textured path)
-        u0_v = _mm_set1_ps(v0.texture_color.x);
-        u1_v = _mm_set1_ps(v1.texture_color.x);
-        u2_v = _mm_set1_ps(v2.texture_color.x);
+        u0_v = _mm_set1_ps(v0.tex_coord.x);
+        u1_v = _mm_set1_ps(v1.tex_coord.x);
+        u2_v = _mm_set1_ps(v2.tex_coord.x);
 
-        v0_v = _mm_set1_ps(v0.texture_color.y);
-        v1_v = _mm_set1_ps(v1.texture_color.y);
-        v2_v = _mm_set1_ps(v2.texture_color.y);
+        v0_v = _mm_set1_ps(v0.tex_coord.y);
+        v1_v = _mm_set1_ps(v1.tex_coord.y);
+        v2_v = _mm_set1_ps(v2.tex_coord.y);
      }
     #endif
 
@@ -447,7 +447,7 @@ void soft_rasterize(
 
                     if (textured) {
                         // textured: compute u,v per lane then scalar-sample and write
-                        // compute u = w0 * u0 + w1 * u1 + w2 * u2  (texture_color.x)
+                        // compute u = w0 * u0 + w1 * u1 + w2 * u2  (tex_coord.x)
                         const __m128 uu = _mm_add_ps(_mm_add_ps(_mm_mul_ps(w0, u0_v), _mm_mul_ps(w1, u1_v)), _mm_mul_ps(w2, u2_v));
                         const __m128 vv = _mm_add_ps(_mm_add_ps(_mm_mul_ps(w0, v0_v), _mm_mul_ps(w1, v1_v)), _mm_mul_ps(w2, v2_v));
 
@@ -559,13 +559,13 @@ void soft_rasterize(
 
             if (textured) {
                 // Interpolate UVs
-                const f32 u = w0 * v0.texture_color.x
-                    + w1 * v1.texture_color.x
-                    + w2 * v2.texture_color.x;
+                const f32 u = w0 * v0.tex_coord.x
+                    + w1 * v1.tex_coord.x
+                    + w2 * v2.tex_coord.x;
 
-                const f32 v = w0 * v0.texture_color.y
-                    + w1 * v1.texture_color.y
-                    + w2 * v2.texture_color.y;
+                const f32 v = w0 * v0.tex_coord.y
+                    + w1 * v1.tex_coord.y
+                    + w2 * v2.tex_coord.y;
 
                 // @bug how to handle different textures for v0, v1, v2
                 const v4_byte color = soft_sample_texture_nearest(renderer->textures[v0.sampler], u, v);
@@ -656,15 +656,15 @@ void soft_rasterize_msaa(
     const f32* zbuf = renderer->zbuffer;
 
     // Check if the triangle uses texture or solid color
-    bool textured = (v0.texture_color.x >= 0.0f || v1.texture_color.x >= 0.0f || v2.texture_color.x >= 0.0f);
+    bool textured = (v0.sampler > 0 || v1.sampler > 0 || v2.sampler > 0);
 
     v4_byte color1 = {0};
     v4_byte color2 = {0};
     v4_byte color3 = {0};
     if(!textured){
-        color1.val = BITCAST(v0.texture_color.y, uint32);
-        color2.val = BITCAST(v1.texture_color.y, uint32);
-        color3.val = BITCAST(v2.texture_color.y, uint32);
+        color1.val = v0.color;
+        color2.val = v1.color;
+        color3.val = v2.color;
     }
 
     const v2_f32* offsets = get_msaa_offsets(renderer->aa_details);
@@ -701,8 +701,8 @@ void soft_rasterize_msaa(
                     if (depth < zbuf[idx]) {
                         accum_coverage += 1.0f;
                         if (textured) {
-                            const f32 u = w0 * v0.texture_color.x + w1 * v1.texture_color.x + w2 * v2.texture_color.x;
-                            const f32 v = w0 * v0.texture_color.y + w1 * v1.texture_color.y + w2 * v2.texture_color.y;
+                            const f32 u = w0 * v0.tex_coord.x + w1 * v1.tex_coord.x + w2 * v2.tex_coord.x;
+                            const f32 v = w0 * v0.tex_coord.y + w1 * v1.tex_coord.y + w2 * v2.tex_coord.y;
                             const v4_byte tex_color = soft_sample_texture_nearest(renderer->textures[v0.sampler], u, v);
                             accum_color.x += tex_color.x;
                             accum_color.y += tex_color.y;
@@ -846,18 +846,21 @@ void soft_shader_ui(
 
         alignas(16) const Vertex4DSamplerTextureColor v0 = {
             {vertices[i].position.x, vertices[i].position.y, vertices[i].position.z, 0.0f},
-            2,
-            vertices[i].texture_color
+            vertices[i].sampler,
+            vertices[i].tex_coord,
+            vertices[i].color
         };
         alignas(16) const Vertex4DSamplerTextureColor v1 = {
             {vertices[i + 1].position.x, vertices[i + 1].position.y, vertices[i + 1].position.z, 0.0f},
-            2,
-            vertices[i + 1].texture_color
+            vertices[i + 1].sampler,
+            vertices[i + 1].tex_coord,
+            vertices[i + 1].color
         };
         alignas(16) const Vertex4DSamplerTextureColor v2 = {
             {vertices[i + 2].position.x, vertices[i + 2].position.y, vertices[i + 2].position.z, 0.0f},
-            2,
-            vertices[i + 2].texture_color
+            vertices[i + 2].sampler,
+            vertices[i + 2].tex_coord,
+            vertices[i + 2].color
         };
 
         // mat4vec4_mult(&orth, t0.vec, v0.position.vec, steps);

@@ -26,8 +26,8 @@ void vertex_degenerate_create(
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
     //          The easiest way is to just define a "degenerate" starting point
-    array_vector_reserve_one(vertices) = {{vertices->elements[vertices->count - 1].position.x, vertices->elements[vertices->count - 1].position.y, zindex}, -1, {}};
-    array_vector_reserve_one(vertices) = {{x, y, zindex}, -1, {}};
+    array_vector_reserve_one(vertices) = {{vertices->elements[vertices->count - 1].position.x, vertices->elements[vertices->count - 1].position.y, zindex}, -1, {}, 0};
+    array_vector_reserve_one(vertices) = {{x, y, zindex}, -1, {}, 0};
 }
 
 static inline
@@ -107,12 +107,12 @@ void vertex_line_create(
     i[4] = vertex_count + 2;
     i[5] = vertex_count + 3;
 
-    const v2_f32 color = {-1.0f, BITCAST(rgba, f32)};
+    // Solid color (sampler <= 0)
     Vertex3DSamplerTextureColor* const __restrict v = array_vector_reserve(vertices, 4);
-    v[0] = {{v1.x, v1.y, zindex}, -1, color}; // tl
-    v[1] = {{v3.x, v3.y, zindex}, -1, color}; // tr
-    v[2] = {{v2.x, v2.y, zindex}, -1, color}; // br
-    v[3] = {{v0.x, v0.y, zindex}, -1, color}; // bl
+    v[0] = {{v1.x, v1.y, zindex}, -1, {}, rgba}; // tl
+    v[1] = {{v3.x, v3.y, zindex}, -1, {}, rgba}; // tr
+    v[2] = {{v2.x, v2.y, zindex}, -1, {}, rgba}; // br
+    v[3] = {{v0.x, v0.y, zindex}, -1, {}, rgba}; // bl
 }
 
 inline HOT_CODE
@@ -128,9 +128,11 @@ void vertex_rect_create(
         adjust_aligned_position(&dimension, align_anchor);
     }
 
+    // A color always means a solid color rect (sampler <= 0), otherwise the texture of the sampler is used
     if (rgba) {
-        tex1 = {-1.0f, BITCAST(rgba, f32)};
-        tex2 = tex1;
+        sampler = 0;
+        tex1 = {};
+        tex2 = {};
     }
 
     const f32 y_height = dimension.y + dimension.height;
@@ -147,10 +149,10 @@ void vertex_rect_create(
     i[5] = vertex_count + 3;
 
     Vertex3DSamplerTextureColor* const __restrict v = array_vector_reserve(vertices, 4);
-    v[0] = {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}}; // tl
-    v[1] = {{x_width, y_height, zindex}, sampler, tex2}; // tr
-    v[2] = {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}}; // br
-    v[3] = {{dimension.x, dimension.y, zindex}, sampler, tex1}; // bl
+    v[0] = {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}, rgba}; // tl
+    v[1] = {{x_width, y_height, zindex}, sampler, tex2, rgba}; // tr
+    v[2] = {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}, rgba}; // br
+    v[3] = {{dimension.x, dimension.y, zindex}, sampler, tex1, rgba}; // bl
 }
 
 inline
@@ -167,9 +169,11 @@ void vertex_circle_create(
         adjust_aligned_position(&dimension, align_anchor);
     }
 
+    // A color always means a solid color (sampler <= 0), otherwise the texture of the sampler is used
     if (rgba) {
-        tex_center = {-1.0f, BITCAST(rgba, f32)};
-        tex_edge = tex_center;
+        sampler = 0;
+        tex_center = {};
+        tex_edge = {};
     }
 
     // Circle center + radii
@@ -181,7 +185,7 @@ void vertex_circle_create(
     // Generate a triangle fan: center + pairs of edge vertices
 
     const int32 center_index = vertices->count;
-    array_vector_reserve_one(vertices) = {{cx, cy, zindex}, sampler, tex_center};
+    array_vector_reserve_one(vertices) = {{cx, cy, zindex}, sampler, tex_center, rgba};
 
     // @performance For sure this is vectorizable (SIMD)
     for (int i = 0; i < segments; ++i) {
@@ -206,8 +210,8 @@ void vertex_circle_create(
 
         // @performance Isn't one of the points on the circle arcs a duplicate same as the center
         //              We fixed it for the center but not for the previous circle arc point
-        array_vector_reserve_one(vertices) = {{x0, y0, zindex}, sampler, tex_edge};
-        array_vector_reserve_one(vertices) = {{x1, y1, zindex}, sampler, tex_edge};
+        array_vector_reserve_one(vertices) = {{x0, y0, zindex}, sampler, tex_edge, rgba};
+        array_vector_reserve_one(vertices) = {{x1, y1, zindex}, sampler, tex_edge, rgba};
     }
 }
 
@@ -227,9 +231,11 @@ void vertex_arc_create(
         adjust_aligned_position(&dimension, align_anchor);
     }
 
+    // A color always means a solid color (sampler <= 0), otherwise the texture of the sampler is used
     if (rgba) {
-        tex_center = {-1.0f, BITCAST(rgba, f32)};
-        tex_edge = tex_center;
+        sampler = 0;
+        tex_center = {};
+        tex_edge = {};
     }
 
     // Circle center + radii
@@ -239,7 +245,7 @@ void vertex_arc_create(
     const f32 ry = dimension.height * 0.5f;
 
     const int32 center_index = vertices->count;
-    array_vector_reserve_one(vertices) = {{cx, cy, zindex}, sampler, tex_center};
+    array_vector_reserve_one(vertices) = {{cx, cy, zindex}, sampler, tex_center, rgba};
 
     // Generate a triangle fan over the arc
     for (int32 i = 0; i < segments; ++i) {
@@ -264,8 +270,8 @@ void vertex_arc_create(
 
         // @performance Isn't one of the points on the circle arcs a duplicate same as the center
         //              We fixed it for the center but not for the previous circle arc point
-        array_vector_reserve_one(vertices) = {{x0, y0, zindex}, sampler, tex_edge};
-        array_vector_reserve_one(vertices) = {{x1, y1, zindex}, sampler, tex_edge};
+        array_vector_reserve_one(vertices) = {{x0, y0, zindex}, sampler, tex_edge, rgba};
+        array_vector_reserve_one(vertices) = {{x1, y1, zindex}, sampler, tex_edge, rgba};
     }
 }
 
@@ -351,11 +357,13 @@ v2_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
     v4_f32 dimension, byte align_anchor,
     FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length,
-    f32 size, MAYBE_UNUSED uint32 rgba
+    f32 size, uint32 rgba
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
-    PSEUDO_USE(rgba);
+
+    // Text color, 0 = default (white)
+    const uint32 text_color = rgba ? rgba : 0xFFFFFFFF;
 
     const Font* const __restrict font_base = &font->base;
     const f32 scale = size / font_base->size;
@@ -408,9 +416,6 @@ v2_int32 vertex_text_create(
         rendered_width += metrics->offset_x * scale;
 
         if (glyph->codepoint != ' ' && glyph->codepoint != '\t') {
-            // @bug we cannot pass the rgba here since the rgba overwrites the texture coordinates
-            //      we would have to add at least an additional 4 bytes to allow texture coordinates + recoloring
-
             const f32 x_end_scaled = offset_x + metrics->width * scale;
             const f32 y_end_scaled = offset_y + metrics->height * scale;
 
@@ -425,10 +430,10 @@ v2_int32 vertex_text_create(
             idx[5] = vertex_count + 3;
 
             Vertex3DSamplerTextureColor* const __restrict v = array_vector_reserve(vertices, 4);
-            v[0] = {{offset_x, y_end_scaled, zindex}, 1, glyph->uv_start}; // tl
-            v[1] = {{x_end_scaled, y_end_scaled, zindex}, 1, {glyph->uv_end.x, glyph->uv_start.y}}; // tr
-            v[2] = {{x_end_scaled, offset_y, zindex}, 1, glyph->uv_end}; // br
-            v[3] = {{offset_x, offset_y, zindex}, 1, {glyph->uv_start.x, glyph->uv_end.y}}; // bl
+            v[0] = {{offset_x, y_end_scaled, zindex}, 1, glyph->uv_start, text_color}; // tl
+            v[1] = {{x_end_scaled, y_end_scaled, zindex}, 1, {glyph->uv_end.x, glyph->uv_start.y}, text_color}; // tr
+            v[2] = {{x_end_scaled, offset_y, zindex}, 1, glyph->uv_end, text_color}; // br
+            v[3] = {{offset_x, offset_y, zindex}, 1, {glyph->uv_start.x, glyph->uv_end.y}, text_color}; // bl
         }
 
         const f32 add_offset = (metrics->width + metrics->advance_x) * scale;
@@ -516,11 +521,10 @@ v2_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
     const v4_f32& dimension, byte align_anchor,
     FontSystem* const __restrict font, const char* const __restrict text,
-    f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
+    f32 size, uint32 rgba, T* const __restrict mem
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
-    PSEUDO_USE(rgba);
 
     int32 glyph_count;
     const int16* const glyphs = text_to_glyphs(font, text, mem, &glyph_count);
@@ -539,11 +543,10 @@ v2_int32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
     const v4_f32& dimension, byte align_anchor,
     FontSystem* const __restrict font, const Utf8String& text,
-    f32 size, MAYBE_UNUSED uint32 rgba, T* const __restrict mem
+    f32 size, uint32 rgba, T* const __restrict mem
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
-    PSEUDO_USE(rgba);
 
     // Try to find all the necessary glyphs
     // We use offsets instead of pointer chasing

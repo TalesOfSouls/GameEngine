@@ -23,9 +23,21 @@
 struct OpenglVertexInputAttributeDescription {
     uint32 location;
     uint32 count;
+
+    // Data type in the buffer (e.g. GL_FLOAT, GL_INT, GL_UNSIGNED_BYTE)
     int32 format;
     int32 stride;
     int32 offset;
+
+    // false = the shader receives floats (integer formats are converted, e.g. 1 -> 1.0)
+    // true = the shader receives the integer bits unchanged (glVertexAttribIFormat, `in int`/`in uint`)
+    // WARNING: Integer attributes are broken on some drivers (e.g. Intel UHD 620, 27.20.100.8681).
+    //          They were converted to floats there, which turned sampler 1 into 0x3F800000.
+    //          Prefer float conversion/normalized bytes which work everywhere.
+    bool integer;
+
+    // Only for integer formats with integer = false: map to [0, 1] (unsigned) or [-1, 1] (signed)
+    bool normalized;
 };
 
 inline
@@ -448,7 +460,7 @@ void gpuapi_attribute_setup_legacy(
     for (int32 i = 0; i < length; ++i) {
         glEnableVertexAttribArray(attr[i].location);
 
-        if (attr[i].format == GL_INT) {
+        if (attr[i].integer) {
             glVertexAttribIFormat(
                 attr[i].location,
                 attr[i].count,
@@ -460,7 +472,7 @@ void gpuapi_attribute_setup_legacy(
                 attr[i].location,
                 attr[i].count,
                 attr[i].format,
-                false,
+                attr[i].normalized,
                 attr[i].offset
             );
         }
@@ -481,7 +493,7 @@ void gpuapi_attribute_setup(
     for (int32 i = 0; i < length; ++i) {
         const uint32 relative_offset = (uint32)attr[i].offset;
 
-        if (attr[i].format == GL_INT) {
+        if (attr[i].integer) {
             glVertexArrayAttribIFormat(
                 vao,
                 attr[i].location,
@@ -495,7 +507,7 @@ void gpuapi_attribute_setup(
                 attr[i].location,
                 attr[i].count,
                 attr[i].format,
-                GL_FALSE,
+                attr[i].normalized,
                 relative_offset
             );
         }
@@ -523,7 +535,7 @@ void gpuapi_attribute_setup_static_legacy(
     const int32 length = _GPUAPI_ATTRIBUTE_COUNT[type];
     for (int32 i = 0; i < length; ++i) {
         uintptr_t offset = attr[i].offset;
-        if (attr[i].format == GL_INT) {
+        if (attr[i].integer) {
             glVertexAttribIPointer(
                 attr[i].location,
                 attr[i].count,
@@ -536,7 +548,7 @@ void gpuapi_attribute_setup_static_legacy(
                 attr[i].location,
                 attr[i].count,
                 attr[i].format,
-                false,
+                attr[i].normalized,
                 attr[i].stride,
                 (void *) offset
             );
@@ -555,7 +567,7 @@ void gpuapi_attribute_setup_static(
     for (int32 i = 0; i < length; ++i) {
         const uint32 relative_offset = (uint32) attr[i].offset;
 
-        if (attr[i].format == GL_INT) {
+        if (attr[i].integer) {
             glVertexArrayAttribIFormat(
                 vao,
                 attr[i].location,
@@ -569,7 +581,7 @@ void gpuapi_attribute_setup_static(
                 attr[i].location,
                 attr[i].count,
                 attr[i].format,
-                false,
+                attr[i].normalized,
                 relative_offset
             );
         }
@@ -775,7 +787,17 @@ auto gpuapi_attribute_info_create() NO_EXCEPT
                 SMN(count) 2,
                 SMN(format) GL_FLOAT,
                 SMN(stride) sizeof(Vertex3DTextureColor),
-                SMN(offset) (int32) offsetof(Vertex3DTextureColor, texture_color)
+                SMN(offset) (int32) offsetof(Vertex3DTextureColor, tex_coord)
+            };
+
+            attr.data[2] = {
+                SMN(location) 2,
+                SMN(count) 4,
+                SMN(format) GL_UNSIGNED_BYTE, // 0xRRGGBBAA -> vec4(a, b, g, r) on little endian, the shader swizzles
+                SMN(stride) sizeof(Vertex3DTextureColor),
+                SMN(offset) (int32) offsetof(Vertex3DTextureColor, color),
+                SMN(integer) false,
+                SMN(normalized) true
             };
         } break;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR: {
@@ -790,7 +812,7 @@ auto gpuapi_attribute_info_create() NO_EXCEPT
             attr.data[1] = {
                 SMN(location) 1,
                 SMN(count) 1,
-                SMN(format) GL_INT,
+                SMN(format) GL_INT, // converted to float, the shader rounds it back to int
                 SMN(stride) sizeof(Vertex3DSamplerTextureColor),
                 SMN(offset) (int32) offsetof(Vertex3DSamplerTextureColor, sampler)
             };
@@ -800,7 +822,17 @@ auto gpuapi_attribute_info_create() NO_EXCEPT
                 SMN(count) 2,
                 SMN(format) GL_FLOAT,
                 SMN(stride) sizeof(Vertex3DSamplerTextureColor),
-                SMN(offset) (int32) offsetof(Vertex3DSamplerTextureColor, texture_color)
+                SMN(offset) (int32) offsetof(Vertex3DSamplerTextureColor, tex_coord)
+            };
+
+            attr.data[3] = {
+                SMN(location) 3,
+                SMN(count) 4,
+                SMN(format) GL_UNSIGNED_BYTE, // 0xRRGGBBAA -> vec4(a, b, g, r) on little endian, the shader swizzles
+                SMN(stride) sizeof(Vertex3DSamplerTextureColor),
+                SMN(offset) (int32) offsetof(Vertex3DSamplerTextureColor, color),
+                SMN(integer) false,
+                SMN(normalized) true
             };
         } break;
         case GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE: {
@@ -832,7 +864,7 @@ auto gpuapi_attribute_info_create() NO_EXCEPT
             attr.data[1] = {
                 SMN(location) 1,
                 SMN(count) 1,
-                SMN(format) GL_INT,
+                SMN(format) GL_INT, // converted to float, the shader rounds it back to int
                 SMN(stride) sizeof(Vertex2DSamplerTextureColor),
                 SMN(offset) (int32) offsetof(Vertex2DSamplerTextureColor, sampler)
             };
@@ -842,7 +874,17 @@ auto gpuapi_attribute_info_create() NO_EXCEPT
                 SMN(count) 2,
                 SMN(format) GL_FLOAT,
                 SMN(stride) sizeof(Vertex2DSamplerTextureColor),
-                SMN(offset) (int32) offsetof(Vertex2DSamplerTextureColor, texture_color)
+                SMN(offset) (int32) offsetof(Vertex2DSamplerTextureColor, tex_coord)
+            };
+
+            attr.data[3] = {
+                SMN(location) 3,
+                SMN(count) 4,
+                SMN(format) GL_UNSIGNED_BYTE, // 0xRRGGBBAA -> vec4(a, b, g, r) on little endian, the shader swizzles
+                SMN(stride) sizeof(Vertex2DSamplerTextureColor),
+                SMN(offset) (int32) offsetof(Vertex2DSamplerTextureColor, color),
+                SMN(integer) false,
+                SMN(normalized) true
             };
         } break;
         default:

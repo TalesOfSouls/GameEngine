@@ -165,7 +165,14 @@ void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeD
                 1, // .location =
                 0, // .binding =
                 VK_FORMAT_R32G32_SFLOAT, // .format =
-                offsetof(Vertex3DTextureColor, texture_color) // .offset =
+                offsetof(Vertex3DTextureColor, tex_coord) // .offset =
+            };
+
+            attr[2] = {
+                2, // .location =
+                0, // .binding =
+                VK_FORMAT_R8G8B8A8_UNORM, // .format = 0xRRGGBBAA -> vec4(a, b, g, r) on little endian, the shader swizzles
+                offsetof(Vertex3DTextureColor, color) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR: {
@@ -187,7 +194,14 @@ void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeD
                 2, // .location =
                 0, // .binding =
                 VK_FORMAT_R32G32_SFLOAT, // .format =
-                offsetof(Vertex3DSamplerTextureColor, texture_color) // .offset =
+                offsetof(Vertex3DSamplerTextureColor, tex_coord) // .offset =
+            };
+
+            attr[3] = {
+                3, // .location =
+                0, // .binding =
+                VK_FORMAT_R8G8B8A8_UNORM, // .format = 0xRRGGBBAA -> vec4(a, b, g, r) on little endian, the shader swizzles
+                offsetof(Vertex3DSamplerTextureColor, color) // .offset =
             };
         } return;
         case GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE: {
@@ -224,7 +238,14 @@ void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeD
                 2, // .location =
                 0, // .binding =
                 VK_FORMAT_R32G32_SFLOAT, // .format =
-                offsetof(Vertex2DSamplerTextureColor, texture_color) // .offset =
+                offsetof(Vertex2DSamplerTextureColor, tex_coord) // .offset =
+            };
+
+            attr[3] = {
+                3, // .location =
+                0, // .binding =
+                VK_FORMAT_R8G8B8A8_UNORM, // .format = 0xRRGGBBAA -> vec4(a, b, g, r) on little endian, the shader swizzles
+                offsetof(Vertex2DSamplerTextureColor, color) // .offset =
             };
         } return;
         default:

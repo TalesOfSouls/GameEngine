@@ -246,7 +246,17 @@ void gpuapi_attribute_info_create(GpuAttributeType type, D3D12_INPUT_ELEMENT_DES
                 1, // .SemanticIndex =
                 DXGI_FORMAT_R32G32_FLOAT, // .Format =
                 0, // .InputSlot
-                offsetof(Vertex3DTextureColor, texture_color), // .AlignedByteOffset =
+                offsetof(Vertex3DTextureColor, tex_coord), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
+            };
+
+            attr[2] = {
+                NULL, // .SemanticName =
+                2, // .SemanticIndex =
+                DXGI_FORMAT_R8G8B8A8_UNORM, // .Format = 0xRRGGBBAA -> float4(a, b, g, r) on little endian, the shader swizzles
+                0, // .InputSlot
+                offsetof(Vertex3DTextureColor, color), // .AlignedByteOffset =
                 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
                 0, // .InstanceDataStepRate =
             };
@@ -277,7 +287,17 @@ void gpuapi_attribute_info_create(GpuAttributeType type, D3D12_INPUT_ELEMENT_DES
                 2, // .SemanticIndex =
                 DXGI_FORMAT_R32G32_FLOAT, // .Format =
                 0, // .InputSlot
-                offsetof(Vertex3DSamplerTextureColor, texture_color), // .AlignedByteOffset =
+                offsetof(Vertex3DSamplerTextureColor, tex_coord), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
+            };
+
+            attr[3] = {
+                NULL, // .SemanticName =
+                3, // .SemanticIndex =
+                DXGI_FORMAT_R8G8B8A8_UNORM, // .Format = 0xRRGGBBAA -> float4(a, b, g, r) on little endian, the shader swizzles
+                0, // .InputSlot
+                offsetof(Vertex3DSamplerTextureColor, color), // .AlignedByteOffset =
                 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
                 0, // .InstanceDataStepRate =
             };
@@ -329,7 +349,17 @@ void gpuapi_attribute_info_create(GpuAttributeType type, D3D12_INPUT_ELEMENT_DES
                 2, // .SemanticIndex =
                 DXGI_FORMAT_R32G32_FLOAT, // .Format =
                 0, // .InputSlot
-                offsetof(Vertex2DSamplerTextureColor, texture_color), // .AlignedByteOffset =
+                offsetof(Vertex2DSamplerTextureColor, tex_coord), // .AlignedByteOffset =
+                D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
+                0, // .InstanceDataStepRate =
+            };
+
+            attr[3] = {
+                NULL, // .SemanticName =
+                3, // .SemanticIndex =
+                DXGI_FORMAT_R8G8B8A8_UNORM, // .Format = 0xRRGGBBAA -> float4(a, b, g, r) on little endian, the shader swizzles
+                0, // .InputSlot
+                offsetof(Vertex2DSamplerTextureColor, color), // .AlignedByteOffset =
                 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // .InputSlotClass =
                 0, // .InstanceDataStepRate =
             };

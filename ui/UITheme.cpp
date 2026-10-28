@@ -205,8 +205,7 @@ bool ui_theme_from_txt(UITheme* const __restrict theme, const char* __restrict t
     const size_t total = node_offset + ui_document_memory_size(line_count);
 
     if ((int64) total > ui_theme_capacity(theme)) {
-        int64 needed = (int64) total;
-        LOG_1("[ERROR] Theme data too small: %n B needed", {DATA_TYPE_INT64, &needed});
+        LOG_1("[ERROR] Theme data too small: %n B needed", {DATA_TYPE_INT64, &total});
         ASSERT_TRUE(false);
 
         return false;
