@@ -490,6 +490,7 @@ GL_FUNC_DEFINE(void, glUniformMatrix4fv, (GLint location, GLsizei count, GLboole
 GL_FUNC_DEFINE(void, glGetShaderiv, (GLuint shader, GLenum pname, GLint* param));
 GL_FUNC_DEFINE(void, glDrawArraysInstanced, (GLenum mode, GLint first, GLsizei count, GLsizei instancecount));
 GL_FUNC_DEFINE(void, glMultiDrawArraysIndirect, (GLenum mode, const void* indirect, GLsizei drawcount, GLsizei stride));
+GL_FUNC_DEFINE(void, glMultiDrawElementsIndirect, (GLenum mode, GLenum type, const void* indirect, GLsizei drawcount, GLsizei stride));
 GL_FUNC_DEFINE(void, glDrawElementsInstanced, (GLenum mode, GLint count, GLenum type, const void* indices, GLsizei instancecount));
 GL_FUNC_DEFINE(void, glProgramParameteri, (GLuint program, GLenum pname, GLint value));
 GL_FUNC_DEFINE(void, glTextureParameteri, (GLuint texture, GLenum pname, GLint param));
@@ -916,6 +917,7 @@ void opengl_init_gl() NO_EXCEPT
     glGetShaderiv = (type_glGetShaderiv *) wglGetProcAddress("glGetShaderiv");
     glDrawArraysInstanced = (type_glDrawArraysInstanced *) wglGetProcAddress("glDrawArraysInstanced");
     glMultiDrawArraysIndirect = (type_glMultiDrawArraysIndirect *) wglGetProcAddress("glMultiDrawArraysIndirect");
+    glMultiDrawElementsIndirect = (type_glMultiDrawElementsIndirect *) wglGetProcAddress("glMultiDrawElementsIndirect");
     glDrawElementsInstanced = (type_glDrawElementsInstanced *) wglGetProcAddress("glDrawElementsInstanced");
     glProgramParameteri = (type_glProgramParameteri *) wglGetProcAddress("glProgramParameteri");
     glTextureParameteri = (type_glTextureParameteri *) wglGetProcAddress("glTextureParameteri");
