@@ -1067,6 +1067,80 @@ FileHandle file_append_handle(const C* path) NO_EXCEPT
     return fp;
 }
 
+/**
+ * Starts an overlapped read, file->content must be at least length + 1 bytes (null termination)
+ *
+ * WARNING: file->size and the null termination are only valid after file_async_wait() returned true
+ *          (the read may still be in flight when this function returns and may also read less than requested)
+ */
+static inline
+bool file_read_async_start(FileHandle fp, FileBodyAsync* __restrict file, uint64 offset, uint64 read_length) NO_EXCEPT
+{
+    // ReadFile can only read up to 4 GB at once
+    if (read_length > (uint64) MAXDWORD) {
+        ASSERT_THROW();
+        return false;
+    }
+
+    // All unused members must be 0 (the structure may be reused)
+    memset(&file->ov, 0, sizeof(file->ov));
+    file->ov.Offset = (DWORD) (offset & 0xFFFFFFFF);
+    file->ov.OffsetHigh = (DWORD) (offset >> 32);
+
+    // Manual reset event, closed in file_async_wait()
+    // Every read needs its own event since the file handle may be used by multiple reads at the same time
+    file->ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (!file->ov.hEvent) {
+        ASSERT_THROW();
+        return false;
+    }
+
+    // Not valid until the read completed
+    file->size = 0;
+
+    DWORD bytes_read = 0;
+    if (!ReadFile(fp, file->content, (DWORD) read_length, &bytes_read, &file->ov)) {
+        const DWORD error = GetLastError();
+        if (error != ERROR_IO_PENDING) {
+            // The memory belongs to the caller/memory pool -> no free() here
+            CloseHandle(file->ov.hEvent);
+            file->ov.hEvent = NULL;
+            ASSERT_THROW();
+
+            return false;
+        }
+    }
+
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, read_length);
+    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, read_length);
+
+    return true;
+}
+
+// @return Bytes to read or 0 on failure (offset outside of the file)
+static inline
+uint64 file_read_async_length(FileHandle fp, uint64 offset, uint64 length) NO_EXCEPT
+{
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(fp, &size)) {
+        ASSERT_THROW();
+        return 0;
+    }
+
+    // Ensure the offset and length do not exceed the file size
+    const uint64 fsize = size.QuadPart;
+    if (offset >= fsize) {
+        ASSERT_THROW();
+        return 0;
+    }
+
+    return OMS_MIN(length, fsize - offset);
+}
+
+/**
+ * Starts an overlapped read into memory from mem (read_length + 1 bytes)
+ * @see file_read_async_start() for the WARNING
+ */
 template <typename T>
 inline
 bool file_read_async(
@@ -1077,26 +1151,13 @@ bool file_read_async(
     T* const __restrict mem = NULL
 ) NO_EXCEPT
 {
-    LARGE_INTEGER size;
-    if (!GetFileSizeEx(fp, &size)) {
-        file->content = NULL;
-        ASSERT_THROW();
+    file->size = 0;
 
+    const uint64 read_length = file_read_async_length(fp, offset, length);
+    if (!read_length) {
+        file->content = NULL;
         return false;
     }
-
-    // Ensure the offset and length do not exceed the file size
-    const uint64 fsize = size.QuadPart;
-    if (offset >= fsize) {
-        file->size = 0;
-        file->content = NULL;
-        ASSERT_THROW();
-
-        return false;
-    }
-
-    // Adjust the length to read so that it does not exceed the file size
-    const uint64 read_length = OMS_MIN(length, fsize - offset);
 
     // Allocate memory for the content
     if (mem != NULL) {
@@ -1105,37 +1166,16 @@ bool file_read_async(
 
     if (!file->content) {
         ASSERT_THROW();
-
         return false;
     }
 
-    file->ov.Offset = (DWORD)(offset & 0xFFFFFFFF);
-    file->ov.OffsetHigh = (DWORD)(offset >> 32);
-
-    // Auto-reset event
-    file->ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-    DWORD bytes_read = 0;
-    if (!ReadFile(fp, file->content, (DWORD) read_length, &bytes_read, &file->ov)) {
-        DWORD error = GetLastError();
-        if (error != ERROR_IO_PENDING) {
-            free(file->content);
-            file->content = NULL;
-            ASSERT_THROW();
-
-            return false;
-        }
-    }
-
-    file->content[read_length] = '\0';
-    file->size = read_length;
-
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, read_length);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, read_length);
-
-    return true;
+    return file_read_async_start(fp, file, offset, read_length);
 }
 
+/**
+ * Starts an overlapped read into file->content (must be at least length + 1 bytes)
+ * @see file_read_async_start() for the WARNING
+ */
 inline
 bool file_read_async(
     FileHandle fp,
@@ -1144,65 +1184,75 @@ bool file_read_async(
     uint64 length = MAX_UINT64
 ) NO_EXCEPT
 {
-    LARGE_INTEGER size;
-    if (!GetFileSizeEx(fp, &size)) {
-        file->content = NULL;
-        ASSERT_THROW();
-
-        return false;
-    }
-
-    // Ensure the offset and length do not exceed the file size
-    const uint64 fsize = size.QuadPart;
-    if (offset >= fsize) {
-        file->size = 0;
-        file->content = NULL;
-        ASSERT_THROW();
-
-        return false;
-    }
-
-    // Adjust the length to read so that it does not exceed the file size
-    const uint64 read_length = OMS_MIN(length, fsize - offset);
+    file->size = 0;
 
     if (!file->content) {
         ASSERT_THROW();
-
         return false;
     }
 
-    file->ov.Offset = (DWORD)(offset & 0xFFFFFFFF);
-    file->ov.OffsetHigh = (DWORD)(offset >> 32);
-
-    // Auto-reset event
-    file->ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-    DWORD bytes_read = 0;
-    if (!ReadFile(fp, file->content, (DWORD) read_length, &bytes_read, &file->ov)) {
-        DWORD error = GetLastError();
-        if (error != ERROR_IO_PENDING) {
-            free(file->content);
-            file->content = NULL;
-            ASSERT_THROW();
-
-            return false;
-        }
+    const uint64 read_length = file_read_async_length(fp, offset, length);
+    if (!read_length) {
+        return false;
     }
 
-    file->content[read_length] = '\0';
-    file->size = read_length;
-
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, read_length);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, read_length);
-
-    return true;
+    return file_read_async_start(fp, file, offset, read_length);
 }
 
+/**
+ * Waits for/checks an overlapped read started by file_read_async()
+ * Sets file->size to the bytes actually read and null terminates the content
+ *
+ * @param wait false = only check if the read is completed
+ *
+ * @return true if the read completed successfully (false if it is still pending or failed, file->size = 0)
+ */
+inline
+bool file_async_wait(FileHandle fp, FileBodyAsync* const file, bool wait = true) NO_EXCEPT
+{
+    if (!file->ov.hEvent) {
+        // Never started or already completed
+        return file->size > 0;
+    }
+
+    DWORD bytes_transferred = 0;
+    if (!GetOverlappedResult(fp, &file->ov, &bytes_transferred, wait)) {
+        const DWORD error = GetLastError();
+        if (error == ERROR_IO_INCOMPLETE) {
+            // Still pending (only possible with wait = false)
+            return false;
+        }
+
+        bytes_transferred = 0;
+        ASSERT_THROW();
+    }
+
+    CloseHandle(file->ov.hEvent);
+    file->ov.hEvent = NULL;
+
+    // Only now the size is known and the content isn't written anymore by the system
+    file->size = bytes_transferred;
+    if (file->content) {
+        file->content[bytes_transferred] = '\0';
+    }
+
+    return bytes_transferred > 0;
+}
+
+// @deprecated Use file_async_wait(FileHandle, FileBodyAsync*, bool), this version can't update the size
 inline
 void file_async_wait(FileHandle fp, file_overlapped* overlapped, bool wait) NO_EXCEPT
 {
-    DWORD bytesTransferred;
-    GetOverlappedResult(fp, overlapped, &bytesTransferred, wait);
+    DWORD bytes_transferred;
+    if (!GetOverlappedResult(fp, overlapped, &bytes_transferred, wait) && GetLastError() == ERROR_IO_INCOMPLETE) {
+        return;
+    }
+
+    // The event is created by file_read_async() and must be closed (otherwise every read leaks a handle)
+    if (overlapped->hEvent) {
+        CloseHandle(overlapped->hEvent);
+        overlapped->hEvent = NULL;
+    }
 }
 
 template <typename C>

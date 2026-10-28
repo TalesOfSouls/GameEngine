@@ -278,58 +278,92 @@ void asset_archive_load(
     );
 }
 
-// @bug I'm afraid that loading the same asset twice could result in circumstances where it gets added twice
-Asset* const asset_archive_asset_load(
+// Max. dependencies whose reads are started before the asset itself is decoded (same as Asset::references)
+#define ASSET_ARCHIVE_PREFETCH_MAX MEMBER_ARRAY_COUNT(Asset, references)
+
+// State of an asset load between asset_archive_load_begin() and asset_archive_load_finish()
+struct AssetArchiveLoad {
+    const AssetArchiveElement* element;
+    int32 id;
+    char id_str[9];
+
+    // Existing asset (already_loaded = true) or the reserved asset
+    Asset* asset;
+    bool already_loaded;
+
+    // Overlapped read into temporary memory
+    FileBodyAsync file;
+    byte* file_memory;
+    int32 temp_element;
+    uint32 temp_count;
+};
+
+/**
+ * Starts loading an asset: starts the overlapped read and reserves the asset memory while the read is in flight
+ *
+ * @return false on failure
+ */
+static
+bool asset_archive_load_begin(
     const AssetArchive* const archive,
     int32 id,
     AssetManagementSystem* const ams,
     ThrdChunkMemory* const mem,
-    bool load_dependencies = true
+    AssetArchiveLoad* const load
 ) NO_EXCEPT
 {
+    memset(load, 0, sizeof(AssetArchiveLoad));
+    load->id = id;
+    load->temp_element = -1;
+
     // Create a string representation from the asset id
     // We can't just use the asset id, since an int can have a \0 between high byte and low byte
     // @question We maybe can switch the AMS to work with ints as keys.
     //          We would then have to also create an application specific enum for general assets,
     //          that are not stored in the asset archive (e.g. color palette, which is generated at runtime).
-    char id_str[9];
-    int_to_hex(id, id_str);
+    int_to_hex(id, load->id_str);
 
-    PROFILE_DEBUG(PROFILE_ASSET_ARCHIVE_ASSET_LOAD, id_str, PROFILE_FLAG_SHOULD_LOG);
-
-    Asset* asset;
     if (ams) {
         // Check if asset already exists
-        asset = ams_asset_get_wait(ams, id_str);
+        Asset* const asset = ams_asset_get_wait(ams, load->id_str);
         if (asset) {
             // Prevent garbage collection
             asset->state &= ~ASSET_MEMORY_STATE_RAM_GC;
             asset->state &= ~ASSET_MEMORY_STATE_VRAM_GC;
 
-            return asset;
+            load->asset = asset;
+            load->already_loaded = true;
+
+            return true;
         }
     }
 
     const AssetArchiveElement* const element = &archive->header.asset_element[ASSET_RAW_ID_FROM_ID(id)];
+    load->element = element;
 
     ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
     ASSERT_TRUE(element->uncompressed > 0);
 
     LOG_2(
         "[INFO] Load asset %d from archive %d with %n B compressed and %n B uncompressed",
-        {DATA_TYPE_UINT64, &id},
-        {DATA_TYPE_UINT32, &element->type},
-        {DATA_TYPE_UINT32, &element->length},
-        {DATA_TYPE_UINT32, &element->uncompressed}
+        {DATA_TYPE_INT32, &load->id},
+        {DATA_TYPE_UINT32, (void *) &element->type},
+        {DATA_TYPE_UINT32, (void *) &element->length},
+        {DATA_TYPE_UINT32, (void *) &element->uncompressed}
     );
 
-    /**
-     * This determins how the data is loaded, decompressed and possibly stored into objects
-     */
     // We are reading into temp memory since we have to perform transformations/decompression on the data
-    FileBodyAsync file = {0};
-    THRD_CHUNK_STACK_MEMORY(mem, &file.content, element->length + 1);
-    file_read_async(archive->fd_async, &file, element->start, element->length);
+    // (released in asset_archive_load_finish(), multiple loads can be in flight at the same time)
+    load->temp_count = (uint32) chunk_element_count(mem, element->length + 1);
+    load->temp_element = chunk_reserve(mem, load->temp_count);
+    if (load->temp_element < 0) {
+        ASSERT_TRUE(false);
+        return false;
+    }
+
+    load->file_memory = chunk_element_get(mem, load->temp_element);
+    load->file.content = load->file_memory;
+    file_read_async(archive->fd_async, &load->file, element->start, element->length);
 
     const size_t asset_memory_requirement = element->uncompressed // This is the data that gets stored in our specialized asset struct (e.g. .pixels in Image)
         + asset_type_size(element->type) // This is the specialized asset struct (e.g. Image, TextureAtlas, ...)
@@ -339,10 +373,11 @@ Asset* const asset_archive_asset_load(
     // This happens while the file system loads the data
     // The important part is to reserve the uncompressed file size, not the compressed one
     // @bug Don't I have to mark_completed the underlying thread_chunk element? see code of function
+    Asset* asset;
     if (ams) {
         asset = ams_asset_reserve(
             ams,
-            id_str,
+            load->id_str,
             (uint32) asset_memory_requirement
         );
         asset->official_id = id;
@@ -363,109 +398,203 @@ Asset* const asset_archive_asset_load(
     asset->data_size = element->uncompressed;
     asset->state |= ASSET_MEMORY_STATE_IN_RAM;
 
-    file_async_wait(archive->fd_async, &file.ov, true);
+    load->asset = asset;
+
+    return true;
+}
+
+/**
+ * Waits for the read of asset_archive_load_begin(), decodes the asset and releases the temporary memory
+ */
+static
+void asset_archive_load_finish(
+    const AssetArchive* const archive,
+    AssetManagementSystem* const ams,
+    ThrdChunkMemory* const mem,
+    AssetArchiveLoad* const load
+) NO_EXCEPT
+{
+    if (load->already_loaded || !load->asset) {
+        return;
+    }
+
+    // Sets file.size to the bytes actually read
+    if (!file_async_wait(archive->fd_async, &load->file, true) || load->file.size != load->element->length) {
+        LOG_1(
+            "[ERROR] Couldn't read asset %d from archive (%n of %n B)",
+            {DATA_TYPE_INT32, &load->id},
+            {DATA_TYPE_UINT64, &load->file.size},
+            {DATA_TYPE_UINT32, (void *) &load->element->length}
+        );
+        ASSERT_TRUE(false);
+    }
 
     // @bug Couldn't the asset become available from ams_asset_get_wait to here?
     // This would mean we are overwriting it
     // A solution could be a function called ams_get_reserve_wait() that reserves, if not available
     // However, that function would have to lock the ams during that entire time
-    switch (element->type) {
+    switch (load->element->type) {
         case ASSET_TYPE_GENERAL: {
-            byte* const raw_data = asset->self;
+            byte* const raw_data = load->asset->self;
 
-            lz4_decode(file.content, file.size, raw_data);
+            lz4_decode(load->file.content, load->file.size, raw_data);
         } break;
         case ASSET_TYPE_TEXTURE_ATLAS: {
-            TextureAtlas* const atlas = (TextureAtlas *) asset->self;
+            TextureAtlas* const atlas = (TextureAtlas *) load->asset->self;
             atlas->elements = (TextureAtlasElement *) (atlas + 1);
 
-            atlas_from_data(file.content, atlas);
+            atlas_from_data(load->file.content, atlas);
         } break;
         case ASSET_TYPE_IMAGE: {
-            Texture* texture = (Texture *) asset->self;
+            Texture* texture = (Texture *) load->asset->self;
             texture->image.pixels = (byte *) ALIGN_UP((uintptr_t) (texture + 1), 64);
 
-            file.content += image_header_from_data(file.content, &texture->image);
-            qoi_decode(file.content, &texture->image);
+            load->file.content += image_header_from_data(load->file.content, &texture->image);
+            qoi_decode(load->file.content, &texture->image);
 
-            asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
+            load->asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
         } break;
         case ASSET_TYPE_AUDIO: {
-            Audio* const audio = (Audio *) asset->self;
+            Audio* const audio = (Audio *) load->asset->self;
             audio->data = (byte *) (audio + 1);
 
-            const uint32 header_size = audio_header_from_data(file.content, audio);
-            file.content += header_size;
+            const uint32 header_size = audio_header_from_data(load->file.content, audio);
+            load->file.content += header_size;
 
-            const uint32 decoded = qoa_decode(file.content, audio, (uint32) (element->length - header_size));
+            const uint32 decoded = qoa_decode(load->file.content, audio, (uint32) (load->element->length - header_size));
             // Never play uninitialized memory if the asset is shorter than its header claims
             if (decoded < audio->size) {
-                LOG_1("[WARNING] Audio asset %d only decoded %n of %n B", {DATA_TYPE_INT32, &id}, {DATA_TYPE_UINT32, (void *) &decoded}, {DATA_TYPE_UINT32, &audio->size});
+                LOG_1("[WARNING] Audio asset %d only decoded %n of %n B", {DATA_TYPE_INT32, &load->id}, {DATA_TYPE_UINT32, (void *) &decoded}, {DATA_TYPE_UINT32, &audio->size});
                 audio->size = decoded;
             }
         } break;
         case ASSET_TYPE_OBJ: {
-            Mesh* const mesh = (Mesh *) asset->self;
+            Mesh* const mesh = (Mesh *) load->asset->self;
             mesh->data = (byte *) (mesh + 1);
 
-            mesh_from_data(file.content, mesh);
+            mesh_from_data(load->file.content, mesh);
         } break;
         case ASSET_TYPE_LANGUAGE: {
-            Language* const language = (Language *) asset->self;
+            Language* const language = (Language *) load->asset->self;
             language->data = (byte *) (language + 1);
 
-            language_from_data(file.content, language);
+            language_from_data(load->file.content, language);
         } break;
         case ASSET_TYPE_FONT: {
-            Font* const font = (Font *) asset->self;
+            Font* const font = (Font *) load->asset->self;
             font->glyphs = (Glyph *) (font + 1);
 
-            font_from_data(file.content, font);
+            font_from_data(load->file.content, font);
         } break;
         case ASSET_TYPE_THEME: {
-            UITheme* const theme = (UITheme *) asset->self;
+            UITheme* const theme = (UITheme *) load->asset->self;
             theme->data = (byte *) (theme + 1);
 
-            theme_from_data(file.content, theme);
+            theme_from_data(load->file.content, theme);
         } break;
         default: {
             UNREACHABLE();
         }
     }
 
+    // The temporary read memory is no longer needed
+    if (load->temp_element >= 0) {
+        chunk_free_elements(mem, load->temp_element, load->temp_count);
+        load->temp_element = -1;
+    }
+
     // Even though dependencies are still being loaded
     // the main program should still be able to do some work if possible
     if (ams) {
-        ams_set_loaded(ams, asset);
+        ams_set_loaded(ams, load->asset);
     }
 
     LOG_2(
         "[INFO] Loaded asset %d from archive %d with %n B compressed and %n B uncompressed",
-        {DATA_TYPE_UINT64, &id},
-        {DATA_TYPE_UINT32, &element->type},
-        {DATA_TYPE_UINT32, &element->length},
-        {DATA_TYPE_UINT32, &element->uncompressed}
+        {DATA_TYPE_INT32, &load->id},
+        {DATA_TYPE_UINT32, (void *) &load->element->type},
+        {DATA_TYPE_UINT32, (void *) &load->element->length},
+        {DATA_TYPE_UINT32, (void *) &load->element->uncompressed}
     );
 
-    if (element->dependency_count) {
-        asset->reference_count = (uint16) element->dependency_count;
-        memcpy(
-            asset->references,
-            &archive->header.asset_dependencies[element->dependency_start],
-            sizeof(uint32) * element->dependency_count
-        );
+    if (load->element->dependency_count) {
+        // Asset::references only has room for ASSET_ARCHIVE_PREFETCH_MAX dependencies
+        const uint32 count = OMS_MIN(load->element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
+        ASSERT_TRUE(load->element->dependency_count <= ASSET_ARCHIVE_PREFETCH_MAX);
 
-        // @performance maybe do in worker threads or AppCmdbuffer? This just feels very slow
-        //          Careful if we do this threaded we cannot use memory_get_temp() above!
-        // @question how to handle references if we use this in a temp way = without AMS
-        if (load_dependencies && ams) {
-            for (uint32 i = 0; i < element->dependency_count; ++i) {
-                asset_archive_asset_load(archive, asset->references[i], ams, mem);
+        load->asset->reference_count = (uint16) count;
+        memcpy(
+            load->asset->references,
+            &archive->header.asset_dependencies[load->element->dependency_start],
+            sizeof(uint32) * count
+        );
+    }
+}
+
+/**
+ * Loads an asset (and its dependencies)
+ *
+ * The reads of the direct dependencies are started BEFORE the asset itself is decoded,
+ * this way the file system works on the dependencies while we wait for/decode the asset.
+ * Deeper dependencies are handled recursively (with the same prefetching).
+ */
+// @bug I'm afraid that loading the same asset twice could result in circumstances where it gets added twice
+Asset* const asset_archive_asset_load(
+    const AssetArchive* const archive,
+    int32 id,
+    AssetManagementSystem* const ams,
+    ThrdChunkMemory* const mem,
+    bool load_dependencies = true
+) NO_EXCEPT
+{
+    char id_str[9];
+    int_to_hex(id, id_str);
+    PROFILE_DEBUG(PROFILE_ASSET_ARCHIVE_ASSET_LOAD, id_str, PROFILE_FLAG_SHOULD_LOG);
+
+    AssetArchiveLoad load;
+    if (!asset_archive_load_begin(archive, id, ams, mem, &load)) {
+        return NULL;
+    }
+
+    if (load.already_loaded) {
+        return load.asset;
+    }
+
+    // @question how to handle references if we use this in a temp way = without AMS
+    const bool with_dependencies = load_dependencies && ams && load.element->dependency_count;
+
+    // 1. Start the reads of the direct dependencies (the reads run while we decode this asset)
+    AssetArchiveLoad deps[ASSET_ARCHIVE_PREFETCH_MAX];
+    uint32 dep_count = 0;
+
+    if (with_dependencies) {
+        const uint32 count = OMS_MIN(load.element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
+        const uint32* const dep_ids = &archive->header.asset_dependencies[load.element->dependency_start];
+
+        for (uint32 i = 0; i < count; ++i) {
+            if (asset_archive_load_begin(archive, (int32) dep_ids[i], ams, mem, &deps[dep_count])) {
+                ++dep_count;
             }
         }
     }
 
-    return asset;
+    // 2. Decode this asset
+    asset_archive_load_finish(archive, ams, mem, &load);
+
+    // 3. Decode the dependencies (their reads are most likely already done) and load their dependencies
+    for (uint32 i = 0; i < dep_count; ++i) {
+        const bool was_loaded = deps[i].already_loaded;
+        asset_archive_load_finish(archive, ams, mem, &deps[i]);
+
+        if (!was_loaded && deps[i].element && deps[i].element->dependency_count) {
+            const uint32 count = OMS_MIN(deps[i].element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
+            for (uint32 j = 0; j < count; ++j) {
+                asset_archive_asset_load(archive, (int32) deps[i].asset->references[j], ams, mem);
+            }
+        }
+    }
+
+    return load.asset;
 }
 
 #endif
