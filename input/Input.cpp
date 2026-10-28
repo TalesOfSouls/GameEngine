@@ -318,7 +318,6 @@ inline
 void input_init(Input* const input, uint8 count, BufferMemory* const buf) NO_EXCEPT
 {
     input->hotkey_count = count;
-    input->managed_contexts = HOTKEY_CONTEXT_UI;
 
     const size_t hotkey_size = input_memory_size(input->hotkey_count);
 
@@ -936,9 +935,9 @@ int32 input_hotkey_state_update(Input* const input, uint64 /* time */ = 0) NO_EX
                 const Hotkey* const mapping = input->input_mappings[m];
                 const Hotkey* const key = &mapping[hotkey_idx - 1];
 
-                // Only hotkeys that exclusively use managed contexts are context hotkeys
-                // Unused/unmanaged context values
-                const byte context = (key->context & ~input->managed_contexts) ? 0 : key->context;
+                // context = 0 -> general hotkey (always active, second pass)
+                // context != 0 -> context hotkey, only active if the input is in one of its contexts (first pass)
+                const byte context = key->context;
                 if ((context != 0) != context_pass
                     || (context && !(context & input->context))
                     || hotkey_key_count(key) != key_count

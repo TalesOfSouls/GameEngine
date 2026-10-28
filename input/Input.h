@@ -130,7 +130,9 @@ struct Hotkey {
     byte key_state;
 
     // Some hotkeys are only available in certain context
-    //      0 = always available (but a hotkey of the current context with the same keys has priority)
+    //      0      = always available (but a hotkey of the current context with the same keys has priority)
+    //      != 0   = only available if Input::context contains one of these bits
+    //               WARNING: A context bit the application never sets = the hotkey never fires
     // @type InputContext
     byte context;
 };
@@ -314,15 +316,11 @@ struct Input {
     // @type GeneralInputState
     byte general_states;
 
+    // Current context of the input, set by the application (e.g. HOTKEY_CONTEXT_UI while the ui has the focus)
+    //      Hotkeys with Hotkey::context = 0 are always active
+    //      Hotkeys with Hotkey::context != 0 are only active if one of their context bits is set here
     // @type InputContext
     byte context;
-
-    // Contexts the application actually sets/removes in Input::context
-    // Hotkeys with context bits outside of this mask are general hotkeys
-    // Default = HOTKEY_CONTEXT_UI
-    // @todo Remove
-    // @type InputContext
-    byte managed_contexts;
 
     uint8 hotkey_count;
 

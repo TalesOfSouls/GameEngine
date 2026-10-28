@@ -22,6 +22,7 @@
  *          title (UIPanel, movable)
  *              title label
  *              close button
+ *                  close label (empty, a theme can set "text: X" instead of an image)
  *
  * @param parent NULL = root
  */
@@ -47,7 +48,8 @@ UIWindow* ui_window_create(UILayout* const layout, UICore* parent = NULL) NO_EXC
     window->title_label = ui_element_offset(layout, title_label);
 
     // close button (size is defined by its image unless set otherwise)
-    UIButton* const button_close = ui_button_create(layout, NULL, &title->core);
+    // Always has a (empty) label -> the theme can use a text (e.g. "X") instead of an image
+    UIButton* const button_close = ui_button_create(layout, "", &title->core);
     button_close->core.dimension.align_anchor = UI_ANCHOR_ALIGN_RIGHT_CENTER;
     button_close->core.dimension.pos_raw = {4.0f, 0.0f};
     window->button_close = ui_element_offset(layout, button_close);
