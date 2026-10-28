@@ -17,7 +17,27 @@ typedef sem_t sem;
 #define coms_sem_destroy(semaphore) sem_destroy((semaphore))
 #define coms_sem_wait(semaphore) sem_wait((semaphore))
 #define coms_sem_post(semaphore) sem_post((semaphore))
+#define coms_sem_trywait(semaphore) (sem_trywait((semaphore)) == 0)
 
+// Waits max. ms milliseconds, @return true if the semaphore was decremented
+inline
+bool coms_sem_timedwait(sem* semaphore, uint64 ms) NO_EXCEPT
+{
+    timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    ts.tv_sec += (time_t) (ms / 1000);
+    ts.tv_nsec += (long) ((ms % 1000) * 1000000);
+    if (ts.tv_nsec >= 1000000000) {
+        ts.tv_nsec -= 1000000000;
+        ++ts.tv_sec;
+    }
+
+    return sem_timedwait(semaphore, &ts) == 0;
+}
+
+// @deprecated use coms_sem_timedwait (wait is in seconds)
+inline
 int32 semimedwait(sem* semaphore, int32 wait) {
     timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);

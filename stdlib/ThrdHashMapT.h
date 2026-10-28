@@ -11,14 +11,22 @@
 #include "HashMapT.h"
 #include "../memory/ThrdChunkMemoryT.h"
 
-// If a hash key is longer than the max key length, we use the last N characters of that key
-// The key length is currently chosen to result in 32 byte size for the common case: HashEntryInt32
+// If a hash key is longer than the max key length, we use the last N - 1 characters of that key
+// (the last byte is reserved for the null terminator)
 #define HASH_MAP_MAX_KEY_LENGTH 22
 
 template <typename V>
 struct ThrdHashEntryStrT {
     char key[HASH_MAP_MAX_KEY_LENGTH];
+
+    // Id + 1 of the next element in the same bucket (0 = end of chain)
     atomic<uint16> next;
+
+    // Full hash of the (stored) key.
+    // Allows us to skip the string comparison for almost all non-matching chain entries
+    // and to find the bucket of an entry without re-hashing the key (e.g. remove by entry)
+    uint32 hash;
+
     V value;
 };
 
@@ -29,20 +37,32 @@ struct ThrdHashEntryT {
     V value;
 };
 
+/**
+ * Thread safe hash map (lock free insert/lookup)
+ *
+ * The data is stored in a ThrdChunkMemoryT which acts as a slot pool.
+ * Entries never move after insertion, which means pointers to entries/values stay valid until the entry is removed.
+ * (e.g. the AMS hands out Asset* pointers that live inside the hash map entries)
+ *
+ * The bucket array is a separate power of 2 array containing the head (id + 1) of every chain.
+ * Chains only contain entries with the same bucket index (classic separate chaining)
+ *
+ * WARNING: Max capacity is 65535 elements since the chain uses uint16 links
+ */
 template <typename T>
 struct ThrdHashMapT {
-    // Contains the actual data of the hash map (sometimes)
-    // Careful, some hash map implementations don't store the value in here but an offset for use in another array
-    // In such a case this doesn't store the actual data but the hash entry which in return can simply contain
-    // a pointer or index in some arbitrary other array/memory.
-    // For such cases we have some additional pointer/offset chasing to do BUT we can handle hash collisions much faster
-    // because iterating through the hash map entries is faster since they might be already in L3 or L2 cache.
+    // Contains the actual entries (key, next, value)
     ThrdChunkMemoryT<T> buf;
 
-    // In our hash map implementation we have longer chains since we don't have separate buckets as when using a table array
-    // What I mean is that a chain in this implementation could even contain hashs that result in different indices
-    // It's probably a mix of a open and a chain implementation
-    // This is why a well distributed hash function is key for this implementation
+    // Head (element id + 1) of every chain, 0 = empty bucket
+    atomic<uint16>* buckets;
+
+    // Always a power of 2 (>= buf.capacity)
+    int32 bucket_count;
+
+    // @deprecated Kept for compatibility, no longer used
+    // String keys use an inlined one-pass djb2 + length (hashmap_str_hash)
+    // Other keys use hashmap_int_hash (the old code hashed the key bytes as a null terminated string)
     HashMapHashFunction hash_function;
 };
 

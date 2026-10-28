@@ -14,6 +14,44 @@
 #include "BufferMemory.cpp"
 #include "Queue.h"
 
+/**
+ * Ring buffer queue with elements of a fixed size
+ *      head = write position (enqueue)
+ *      tail = read position (dequeue)
+ *      head == tail -> empty
+ * One slot always stays empty to distinguish full from empty
+ *
+ * The memory is managed by the RingMemory functions (alloc/init/free), the element positions are managed here:
+ * queue->end is the end of the last complete slot (the ring size may not be a multiple of the element size)
+ * and head/tail always point to a valid slot (they wrap immediately when they reach queue->end)
+ */
+
+FORCE_INLINE
+uint64 queue_capacity(const Queue* const queue) NO_EXCEPT
+{
+    return (uint64) (queue->end - queue->memory) / queue->element_size;
+}
+
+// Called after the ring memory was initialized
+FORCE_INLINE
+void queue_slots_init(Queue* const queue, uint32 element_size, uint32 alignment) NO_EXCEPT
+{
+    queue->element_size = element_size;
+    queue->alignment = alignment;
+    queue->end = queue->memory + (queue->size / element_size) * element_size;
+    ASSERT_TRUE(queue->end > queue->memory);
+}
+
+// Moves a slot pointer to the next slot
+FORCE_INLINE
+void queue_advance(const Queue* const queue, byte** const pos) NO_EXCEPT
+{
+    *pos += queue->element_size;
+    if (*pos >= queue->end) UNLIKELY {
+        *pos = queue->memory;
+    }
+}
+
 FORCE_INLINE
 void queue_alloc(
     Queue* const queue,
@@ -26,8 +64,9 @@ void queue_alloc(
     ASSERT_TRUE(max_count >= element_count);
     element_size = ALIGN_UP(element_size, alignment);
 
-    ring_alloc((RingMemory *) queue, element_count * element_size, max_count * element_size, start_alignment);
-    queue->element_size = element_size;
+    // +1 since one slot always stays empty (@see queue_has_space)
+    ring_alloc((RingMemory *) queue, (element_count + 1) * element_size, (max_count + 1) * element_size, start_alignment);
+    queue_slots_init(queue, element_size, alignment);
 }
 
 FORCE_INLINE
@@ -43,8 +82,9 @@ void queue_alloc(
     ASSERT_TRUE(max_count >= element_count);
     element_size = ALIGN_UP(element_size, alignment);
 
-    ring_alloc((RingMemory *) queue, mem, element_count * element_size, max_count * element_size, start_alignment);
-    queue->element_size = element_size;
+    // +1 since one slot always stays empty (@see queue_has_space)
+    ring_alloc((RingMemory *) queue, mem, (element_count + 1) * element_size, (max_count + 1) * element_size, start_alignment);
+    queue_slots_init(queue, element_size, alignment);
 }
 
 FORCE_INLINE
@@ -59,8 +99,9 @@ void queue_init(
 {
     element_size = ALIGN_UP(element_size, alignment);
 
-    ring_init((RingMemory *) queue, buf, element_count * element_size, start_alignment);
-    queue->element_size = element_size;
+    // +1 since one slot always stays empty (@see queue_has_space)
+    ring_init((RingMemory *) queue, buf, (element_count + 1) * element_size, start_alignment);
+    queue_slots_init(queue, element_size, alignment);
 }
 
 FORCE_INLINE
@@ -75,8 +116,9 @@ void queue_init(
 {
     element_size = ALIGN_UP(element_size, alignment);
 
+    // WARNING: buf is sized by the caller, one slot always stays empty -> holds element_count - 1 elements
     ring_init((RingMemory *) queue, buf, element_count * element_size, start_alignment);
-    queue->element_size = element_size;
+    queue_slots_init(queue, element_size, alignment);
 }
 
 static inline
@@ -85,7 +127,8 @@ void thrd_queue_locks_init(Queue* queue, uint32 element_count) NO_EXCEPT
     mutex_init(&queue->mtx, NULL);
     coms_pthread_cond_init(&queue->cond, NULL);
 
-    coms_sem_init(&queue->empty, element_count);
+    // One slot always stays empty
+    coms_sem_init(&queue->empty, (int32) OMS_MIN((uint64) element_count, queue_capacity(queue) - 1));
     coms_sem_init(&queue->full, 0);
 }
 
@@ -181,57 +224,67 @@ void thrd_queue_free(Queue* const queue, MemoryArena* const mem)
     thrd_queue_locks_free(queue);
 }
 
+/**
+ * Changes the capacity (in elements) of a queue created with queue_alloc() (reserved memory)
+ * The unhandled elements are kept (moved to the front of the buffer if necessary)
+ *
+ * WARNING: The semaphores of the thrd_ functions are not adjusted
+ *
+ * @return false if the new capacity can't hold the unhandled elements or the memory couldn't be resized
+ */
 inline
 bool memory_resize(Queue* const queue, size_t new_capacity) NO_EXCEPT
 {
-    byte* old_memory = queue->memory;
-    uint32 element_size = queue->element_size;
-    size_t old_capacity = queue->size;
+    const uint32 element_size = queue->element_size;
+    const size_t capacity = (size_t) queue_capacity(queue);
+    size_t head_index = (size_t) (queue->head - queue->memory) / element_size;
+    size_t tail_index = (size_t) (queue->tail - queue->memory) / element_size;
 
-    size_t head_index = (queue->head - old_memory) / element_size;
-    size_t tail_index = (queue->tail - old_memory) / element_size;
+    // Unhandled elements: tail (read) -> head (write)
+    const size_t count = head_index >= tail_index
+        ? head_index - tail_index
+        : capacity - tail_index + head_index;
 
-    // Number of live/unhandled elements currently in the queue
-    size_t count = (tail_index >= head_index)
-        ? (tail_index - head_index)
-        : (old_capacity - head_index + tail_index);
-
-    // Refuse a resize that would drop unhandled data
-    if (new_capacity < count) {
+    // One slot always stays empty
+    if (new_capacity <= count) {
         return false;
     }
 
-    // If the live data currently wraps around the end of the buffer,
-    // linearize it first so realloc doesn't split/corrupt it.
-    if (tail_index < head_index && count > 0) {
-        byte* temp = (byte*) platform_alloc_aligned(element_size * count, queue->alignment);
+    if (!count) {
+        head_index = 0;
+        tail_index = 0;
+    } else if (head_index < tail_index || head_index >= new_capacity) {
+        // The data wraps around or wouldn't fit into the new size -> move it to the front
+        byte* temp = (byte *) platform_alloc_aligned(element_size * count);
         if (!temp) {
             return false;
         }
 
-        size_t first_chunk = old_capacity - head_index;
-        memcpy(temp, old_memory + head_index * element_size, element_size * first_chunk);
-        memcpy(temp + first_chunk * element_size, old_memory, element_size * tail_index);
+        if (head_index > tail_index) {
+            memcpy(temp, queue->memory + tail_index * element_size, element_size * count);
+        } else {
+            const size_t first = capacity - tail_index;
+            memcpy(temp, queue->memory + tail_index * element_size, element_size * first);
+            memcpy(temp + first * element_size, queue->memory, element_size * head_index);
+        }
 
-        memcpy(old_memory, temp, element_size * count);
-        platform_free_aligned(temp);
+        memcpy(queue->memory, temp, element_size * count);
+        platform_aligned_free((void **) &temp);
 
-        head_index = 0;
-        tail_index = count;
+        tail_index = 0;
+        head_index = count;
     }
+
+    // Valid for the old and the new capacity
+    queue->head = queue->memory + head_index * element_size;
+    queue->tail = queue->memory + tail_index * element_size;
 
     if (!platform_alloc_aligned_resize(queue->memory, new_capacity * element_size)) {
         return false;
     }
 
-    queue->size = new_capacity;
-    queue->end = queue->memory + element_size * new_capacity;
-
-    // memory may have moved (realloc) and/or been linearized above —
-    // re-point head/tail into the new buffer rather than assuming the
-    // old raw pointer offsets are still valid
-    queue->head = queue->memory + head_index * element_size;
-    queue->tail = queue->memory + (tail_index % new_capacity) * element_size;
+    queue->size = new_capacity * element_size;
+    queue->end = queue->memory + queue->size;
 
     return true;
 }
@@ -262,14 +315,18 @@ void queue_set_empty(Queue* const queue) NO_EXCEPT
     queue->head = queue->tail;
 }
 
+// Checks if one more element can be enqueued (the slot after head must not be the tail)
 static inline
-bool queue_has_space(Queue* const queue) NO_EXCEPT
+bool queue_has_space(const Queue* const queue) NO_EXCEPT
 {
-    return ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment);
+    byte* next = queue->head;
+    queue_advance(queue, &next);
+
+    return next != queue->tail;
 }
 
 FORCE_INLINE
-bool queue_is_full(Queue* const queue) NO_EXCEPT
+bool queue_is_full(const Queue* const queue) NO_EXCEPT
 {
     return !queue_has_space(queue);
 }
@@ -281,11 +338,15 @@ bool thrd_queue_is_full(Queue* queue) NO_EXCEPT
     return !queue_has_space(queue);
 }
 
+// WARNING: Doesn't check if there is space (@see queue_enqueue_safe)
 inline
 byte* queue_enqueue(Queue* const __restrict queue, const byte* __restrict data) NO_EXCEPT
 {
-    byte* mem = memory_get((RingMemory *) queue, queue->element_size, queue->alignment);
+    byte* const mem = queue->head;
+    DEBUG_MEMORY_WRITE((uintptr_t) mem, queue->element_size);
+
     memcpy(mem, data, queue->element_size);
+    queue_advance(queue, &queue->head);
 
     return mem;
 }
@@ -303,7 +364,7 @@ void thrd_queue_enqueue(Queue* __restrict queue, const byte* __restrict data) NO
 inline
 byte* queue_enqueue_safe(Queue* const __restrict queue, const byte* __restrict data) NO_EXCEPT
 {
-    if(queue_is_full(queue)) {
+    if (!queue_has_space(queue)) {
         return NULL;
     }
 
@@ -314,13 +375,14 @@ inline
 byte* thrd_queue_enqueue_safe(Queue* const queue, const byte* __restrict data) NO_EXCEPT
 {
     MutexGuard _guard(&queue->mtx);
-    if(!queue_has_space(queue)) {
+    if (!queue_has_space(queue)) {
         return NULL;
     }
 
     return queue_enqueue(queue, data);
 }
 
+// Only enqueues the data if it isn't already part of the unhandled elements
 inline
 void queue_enqueue_unique(Queue* const queue, const byte* data) NO_EXCEPT
 {
@@ -330,7 +392,7 @@ void queue_enqueue_unique(Queue* const queue, const byte* data) NO_EXCEPT
             return;
         }
 
-        ring_move_pointer((RingMemory *) queue, &tail, queue->element_size, queue->alignment);
+        queue_advance(queue, &tail);
     }
 
     if (!queue_has_space(queue)) {
@@ -351,24 +413,22 @@ void thrd_queue_enqueue_unique(Queue* __restrict queue, const byte* __restrict d
     coms_pthread_cond_signal(&queue->cond);
 }
 
-// @todo Create enqueue_unique and enqueue_unique_sem
+// @todo Create enqueue_unique_sem
 inline
 void thrd_queue_enqueue_unique_wait(Queue* __restrict queue, const byte* __restrict data) NO_EXCEPT
 {
     ASSERT_TRUE((uint64_t) data % 4 == 0);
     MutexGuard _guard(&queue->mtx);
 
+    // Check all unhandled elements (tail -> head)
     byte* tail = queue->tail;
-    while (tail != queue->tail) {
-        ASSERT_TRUE((uint64_t) tail % 4 == 0);
-
+    while (tail != queue->head) {
         if (memcmp(tail, data, queue->element_size) == 0) {
-            mutex_unlock(&queue->mtx);
-
+            // The MutexGuard unlocks the mutex
             return;
         }
 
-        ring_move_pointer((RingMemory *) queue, &tail, queue->element_size, queue->alignment);
+        queue_advance(queue, &tail);
     }
 
     while (!queue_has_space(queue)) {
@@ -380,20 +440,22 @@ void thrd_queue_enqueue_unique_wait(Queue* __restrict queue, const byte* __restr
     coms_pthread_cond_signal(&queue->cond);
 }
 
+// WARNING: Doesn't check if there is space (@see queue_enqueue_start_safe)
 FORCE_INLINE
 byte* queue_enqueue_start(Queue* const queue) NO_EXCEPT
 {
-    return ring_memory_get_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
+    DEBUG_MEMORY_WRITE((uintptr_t) queue->head, queue->element_size);
+    return queue->head;
 }
 
 FORCE_INLINE
 byte* queue_enqueue_start_safe(Queue* const queue) NO_EXCEPT
 {
-    if(!queue_has_space(queue)) {
+    if (!queue_has_space(queue)) {
         return NULL;
     }
 
-    return ring_memory_get_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
+    return queue_enqueue_start(queue);
 }
 
 inline
@@ -401,7 +463,7 @@ void thrd_queue_enqueue_wait(Queue* __restrict queue, const byte* __restrict dat
 {
     MutexGuard _guard(&queue->mtx);
 
-    while (!ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment)) {
+    while (!queue_has_space(queue)) {
         coms_pthread_cond_wait(&queue->cond, &queue->mtx);
     }
 
@@ -423,10 +485,11 @@ void thrd_queue_enqueue_sem_wait(Queue* __restrict queue, const byte* __restrict
     coms_sem_post(&queue->full);
 }
 
+// wait in ms, @return false if the timeout was reached
 inline
 bool thrd_queue_enqueue_semimedwait(Queue* __restrict queue, const byte* __restrict data, uint64 wait) NO_EXCEPT
 {
-    if (semimedwait(&queue->empty, wait)) {
+    if (!coms_sem_timedwait(&queue->empty, wait)) {
         return false;
     }
 
@@ -440,18 +503,20 @@ bool thrd_queue_enqueue_semimedwait(Queue* __restrict queue, const byte* __restr
     return true;
 }
 
+// Locks the mutex, unlocked by thrd_queue_enqueue_end_wait()
 inline
 byte* thrd_queue_enqueue_start_wait(Queue* queue) NO_EXCEPT
 {
     mutex_lock(&queue->mtx);
 
-    while (!ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment)) {
+    while (!queue_has_space(queue)) {
         coms_pthread_cond_wait(&queue->cond, &queue->mtx);
     }
 
     return queue_enqueue_start(queue);
 }
 
+// Locks the mutex, unlocked by thrd_queue_enqueue_end_sem_wait()
 FORCE_INLINE
 byte* thrd_queue_enqueue_start_sem_wait(Queue* queue) NO_EXCEPT
 {
@@ -464,7 +529,7 @@ byte* thrd_queue_enqueue_start_sem_wait(Queue* queue) NO_EXCEPT
 FORCE_INLINE
 void queue_enqueue_end(Queue* const queue) NO_EXCEPT
 {
-    ring_move_pointer((RingMemory *) queue, &queue->head, queue->element_size, queue->alignment);
+    queue_advance(queue, &queue->head);
 }
 
 FORCE_INLINE
@@ -492,8 +557,10 @@ bool queue_dequeue(Queue* const queue, byte* data) NO_EXCEPT
         return false;
     }
 
+    DEBUG_MEMORY_READ((uintptr_t) queue->tail, queue->element_size);
+
     memcpy(data, queue->tail, queue->element_size);
-    ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
+    queue_advance(queue, &queue->tail);
 
     return true;
 }
@@ -524,6 +591,7 @@ byte* queue_dequeue_keep(const Queue* const queue) NO_EXCEPT
     return queue->tail;
 }
 
+// WARNING: Doesn't check if the queue is empty (@see queue_dequeue_keep)
 FORCE_INLINE
 byte* queue_dequeue_start(const Queue* const queue) NO_EXCEPT
 {
@@ -556,12 +624,15 @@ byte* thrd_queue_dequeue_sem_wait(Queue* __restrict queue, byte* __restrict data
     }
 
     coms_sem_post(&queue->empty);
+
+    return data;
 }
 
+// wait in ms, @return false if the timeout was reached
 inline
 bool thrd_queue_dequeue_semimedwait(Queue* __restrict queue, byte* __restrict data, uint64 wait) NO_EXCEPT
 {
-    if (semimedwait(&queue->full, wait)) {
+    if (!coms_sem_timedwait(&queue->full, wait)) {
         return false;
     }
 
@@ -575,6 +646,7 @@ bool thrd_queue_dequeue_semimedwait(Queue* __restrict queue, byte* __restrict da
     return true;
 }
 
+// Locks the mutex, unlocked by thrd_queue_dequeue_end_wait()
 FORCE_INLINE
 byte* thrd_queue_dequeue_start_wait(Queue* queue) NO_EXCEPT
 {
@@ -587,6 +659,7 @@ byte* thrd_queue_dequeue_start_wait(Queue* queue) NO_EXCEPT
     return queue_dequeue_start(queue);
 }
 
+// Locks the mutex, unlocked by thrd_queue_dequeue_end_sem_wait()
 FORCE_INLINE
 byte* thrd_queue_dequeue_start_sem_wait(Queue* queue) NO_EXCEPT
 {
@@ -599,7 +672,7 @@ byte* thrd_queue_dequeue_start_sem_wait(Queue* queue) NO_EXCEPT
 FORCE_INLINE
 void queue_dequeue_end(Queue* const queue) NO_EXCEPT
 {
-    ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
+    queue_advance(queue, &queue->tail);
 }
 
 FORCE_INLINE

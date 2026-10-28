@@ -166,7 +166,7 @@
         while (lock->load() || lock->exchange(1)) {
             struct timespec start, now;
             clock_gettime(CLOCK_MONOTONIC, &start);
-            const uint64 target_ns = usec * 1000ULL;
+            const uint64 target_ns = (uint64) delay * 1000ULL;
 
             do {
                 clock_gettime(CLOCK_MONOTONIC, &now);

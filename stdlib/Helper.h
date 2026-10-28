@@ -73,8 +73,10 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 #define OMS_SIGN_32(x) (1 | ((x) >> 31 << 1))
 #define OMS_SIGN_64(x) (1LL | ((x) >> 63 << 1))
 
-#define ALIGN_UP(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
-#define ALIGN_DOWN(x, align) ((x) & ~((align) - 1))
+// The mask is calculated in the common type of x and align ((x) - (x) + ...).
+// Otherwise ALIGN_UP((uintptr_t) ptr, (uint32) alignment) creates a 32 bit mask that clears the upper 32 bits of the pointer
+#define ALIGN_UP(x, align) (((x) + ((align) - 1)) & ~(((x) - (x)) + ((align) - 1)))
+#define ALIGN_DOWN(x, align) ((x) & ~(((x) - (x)) + ((align) - 1)))
 
 #define OMS_IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
 

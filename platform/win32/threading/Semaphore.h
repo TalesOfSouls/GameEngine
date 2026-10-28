@@ -37,9 +37,17 @@ int32 coms_sem_wait(sem* semaphore, uint64 ms) NO_EXCEPT
     return (int32) WaitForSingleObject(*semaphore, (DWORD) ms);
 }
 
+FORCE_INLINE
 bool coms_sem_trywait(sem* semaphore) NO_EXCEPT
 {
     return WaitForSingleObject(*semaphore, 0) == WAIT_OBJECT_0;
+}
+
+// Waits max. ms milliseconds, @return true if the semaphore was decremented
+FORCE_INLINE
+bool coms_sem_timedwait(sem* semaphore, uint64 ms) NO_EXCEPT
+{
+    return WaitForSingleObject(*semaphore, (DWORD) ms) == WAIT_OBJECT_0;
 }
 
 // increment

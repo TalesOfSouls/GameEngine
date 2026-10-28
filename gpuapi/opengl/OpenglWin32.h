@@ -489,6 +489,7 @@ GL_FUNC_DEFINE(void, glUniformMatrix3fv, (GLint location, GLsizei count, GLboole
 GL_FUNC_DEFINE(void, glUniformMatrix4fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat* value));
 GL_FUNC_DEFINE(void, glGetShaderiv, (GLuint shader, GLenum pname, GLint* param));
 GL_FUNC_DEFINE(void, glDrawArraysInstanced, (GLenum mode, GLint first, GLsizei count, GLsizei instancecount));
+GL_FUNC_DEFINE(void, glMultiDrawArraysIndirect, (GLenum mode, const void* indirect, GLsizei drawcount, GLsizei stride));
 GL_FUNC_DEFINE(void, glDrawElementsInstanced, (GLenum mode, GLint count, GLenum type, const void* indices, GLsizei instancecount));
 GL_FUNC_DEFINE(void, glProgramParameteri, (GLuint program, GLenum pname, GLint value));
 GL_FUNC_DEFINE(void, glTextureParameteri, (GLuint texture, GLenum pname, GLint param));
@@ -545,6 +546,7 @@ GL_FUNC_DEFINE(const char*, wglGetExtensionsStringEXT, (void));
 #define WGL_BLUE_BITS_ARB 0x2019
 #define WGL_ALPHA_BITS_ARB 0x201B
 #define WGL_DEPTH_BITS_ARB 0x2022
+#define WGL_STENCIL_BITS_ARB 0x2023
 
 #define WGL_SAMPLE_BUFFERS_ARB 0x2041
 #define WGL_SAMPLES_ARB 0x2042
@@ -567,6 +569,9 @@ void set_pixel_format(HDC const hdc, int32 multisampling = 0) NO_EXCEPT
             WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
             WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
             WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, GL_TRUE,
+            // The window framebuffer is used directly as render target if there is no post effect
+            WGL_DEPTH_BITS_ARB, 24,
+            WGL_STENCIL_BITS_ARB, 8,
             multisampling > 0 ? WGL_SAMPLE_BUFFERS_ARB : 0, (int32) (multisampling > 0),
             WGL_SAMPLES_ARB, multisampling, // MSAA
             0, // This signals the end of the attr_list
@@ -910,6 +915,7 @@ void opengl_init_gl() NO_EXCEPT
     glUniformMatrix4fv = (type_glUniformMatrix4fv *) wglGetProcAddress("glUniformMatrix4fv");
     glGetShaderiv = (type_glGetShaderiv *) wglGetProcAddress("glGetShaderiv");
     glDrawArraysInstanced = (type_glDrawArraysInstanced *) wglGetProcAddress("glDrawArraysInstanced");
+    glMultiDrawArraysIndirect = (type_glMultiDrawArraysIndirect *) wglGetProcAddress("glMultiDrawArraysIndirect");
     glDrawElementsInstanced = (type_glDrawElementsInstanced *) wglGetProcAddress("glDrawElementsInstanced");
     glProgramParameteri = (type_glProgramParameteri *) wglGetProcAddress("glProgramParameteri");
     glTextureParameteri = (type_glTextureParameteri *) wglGetProcAddress("glTextureParameteri");

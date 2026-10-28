@@ -7,7 +7,8 @@ static void test_queue_alloc() {
     queue_alloc(&mem, 10, 10, 20);
 
     // Every element is aligned according to the default alignment -> size >= constructor size
-    TEST_EQUALS(mem.size, 256);
+    // (10 + 1 empty slot) * ALIGN_UP(20, 8) = 264 -> aligned to the cache line size
+    TEST_EQUALS(mem.size, 320);
 
     queue_free(&mem);
     TEST_EQUALS(mem.size, 0);

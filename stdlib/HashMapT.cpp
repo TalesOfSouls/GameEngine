@@ -10,6 +10,40 @@
 #include "HashMapT.h"
 #include "../memory/ChunkMemoryT.cpp"
 #include "../hash/GeneralHash.h"
+#include "HashMapHash.h"
+
+/**
+ * Implementation notes (@see HashMapT)
+ *
+ *  - Bucket index = hashmap_hash_range(hash, capacity), the head of bucket i is stored in slot i (entry->head)
+ *  - Insert pushes the new entry to the front of its chain (no chain walk)
+ *  - New entries are preferably placed in the slot of their own bucket -> head + entry often in one cache line
+ *  - String entries store a 16 bit hash tag -> chain walks compare 2 bytes before comparing the key
+ *  - The string key is hashed and measured in one pass (no strlen, no hash function pointer call)
+ *  - Remove only unlinks + frees the removed entry, other entries are never moved/copied
+ */
+
+// Tag stored in string entries (uses the low bits, the bucket index uses the high bits of the hash)
+FORCE_INLINE
+uint16 hashmap_hash_tag(uint32 hash) NO_EXCEPT
+{
+    return (uint16) hash;
+}
+
+template <typename T>
+FORCE_INLINE
+uint16* hashmap_head(const HashMapT<T>* const hm, uint32 hash) NO_EXCEPT
+{
+    return &hm->buf.memory[hashmap_hash_range(hash, (uint32) hm->buf.capacity)].head;
+}
+
+// The bucket heads are part of the entries -> the entry memory must be zeroed
+template <typename T>
+FORCE_INLINE
+void hashmap_clear_entries(HashMapT<T>* const hm) NO_EXCEPT
+{
+    memset((void *) hm->buf.memory, 0, hm->buf.capacity * sizeof(T));
+}
 
 template <typename T>
 inline
@@ -18,10 +52,12 @@ void hashmap_alloc(HashMapT<T>* const hm, int32 capacity, int32 max_capacity, in
     // This ensures 4 byte alignment
     capacity = ALIGN_UP(capacity, 2);
     max_capacity = ALIGN_UP(max_capacity, 2);
+    ASSERT_TRUE(capacity <= 0xFFFF);
 
     LOG_1("[INFO] Allocate HashMapT for %n elements", {DATA_TYPE_INT32, &capacity});
     hm->hash_function = hash_djb2;
     chunk_alloc(&hm->buf, capacity, max_capacity, alignment);
+    hashmap_clear_entries(hm);
 }
 
 template <typename T>
@@ -38,16 +74,19 @@ void hashmap_alloc(HashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int3
     // This ensures 4 byte alignment
     capacity = ALIGN_UP(capacity, 2);
     max_capacity = ALIGN_UP(max_capacity, 2);
+    ASSERT_TRUE(capacity <= 0xFFFF);
 
     LOG_1("[INFO] Allocate HashMapT for %n elements", {DATA_TYPE_INT32, &capacity});
     hm->hash_function = hash_djb2;
     chunk_alloc(&hm->buf, mem, capacity, max_capacity, alignment);
+    hashmap_clear_entries(hm);
 }
 
 template <typename T>
 inline
 void hashmap_init(HashMapT<T>* const hm, int32 count, byte* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
+    ASSERT_TRUE(count <= 0xFFFF);
     LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
     hm->hash_function = hash_djb2;
     chunk_init(&hm->buf, buf, count, alignment);
@@ -57,12 +96,15 @@ void hashmap_init(HashMapT<T>* const hm, int32 count, byte* const buf, int32 ali
         count * sizeof(T)
             + ceil_div_pow2<(int32) sizeof(size_t) * 8>(count) * sizeof(hm->buf.free)
     );
+
+    hashmap_clear_entries(hm);
 }
 
 template <typename T>
 inline
 void hashmap_init(HashMapT<T>* const hm, int32 count, BufferMemory* const buf, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
+    ASSERT_TRUE(count <= 0xFFFF);
     LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
     hm->hash_function = hash_djb2;
     chunk_init(&hm->buf, buf, count, alignment);
@@ -72,6 +114,8 @@ void hashmap_init(HashMapT<T>* const hm, int32 count, BufferMemory* const buf, i
         count * sizeof(T)
             + ceil_div_pow2<(int32) sizeof(size_t) * 8>(count) * sizeof(hm->buf.free)
     );
+
+    hashmap_clear_entries(hm);
 }
 
 template <typename T>
@@ -88,264 +132,213 @@ int64 hashmap_size(const HashMapT<T>* const hm) NO_EXCEPT
     return hm->buf.capacity * sizeof(T);
 }
 
-template <typename T, typename V>
-T* hashmap_insert(HashMapT<T>* const __restrict hm, const char* __restrict key, V value) NO_EXCEPT
-{
-    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
-
-    // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
-    if (new_index < 0) {
-        return NULL;
-    }
-
-    T* entry = (T *) chunk_element_get(&hm->buf, index);
-    if (index != new_index) {
-        // Find the previous chain element
-        T* prev = entry;
-        while (prev->next) {
-            prev = (T *) chunk_element_get(&hm->buf, prev->next - 1);
-        }
-
-        prev->next = (uint16) (new_index + 1);
-        entry = (T *) chunk_element_get(&hm->buf, new_index);
-    }
-
-    // Ensure key length
-    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
-    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
-
-    entry->value = value;
-    entry->next = 0;
-
-    return entry;
-}
-
-template <typename T, typename V>
-T* hashmap_insert(HashMapT<T>* const __restrict hm, const char* __restrict key, V* value) NO_EXCEPT
-{
-    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
-
-    // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
-    if (new_index < 0) {
-        return NULL;
-    }
-
-    T* entry = (T *) chunk_element_get(&hm->buf, index);
-    if (index != new_index) {
-        // Find the previous chain element
-        T* prev = entry;
-        while (prev->next) {
-            prev = (T *) chunk_element_get(&hm->buf, prev->next - 1);
-        }
-
-        prev->next = (uint16) (new_index + 1);
-        entry = (T *) chunk_element_get(&hm->buf, new_index);
-    }
-
-    // Ensure key length
-    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
-    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
-
-    if (value) {
-        memcpy(&entry->value, value, sizeof(V));
-    }
-
-    entry->next = 0;
-
-    return entry;
-}
-
+/**
+ * Reserves a slot for a new entry of the bucket (preferably the slot of the bucket itself)
+ * and pushes it to the front of the bucket chain
+ *
+ * Only next is set, the caller has to fill the key/value
+ */
 template <typename T>
-T* hashmap_reserve(HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
+FORCE_INLINE
+T* hashmap_slot_create(HashMapT<T>* const hm, uint32 hash) NO_EXCEPT
 {
-    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
+    const int32 bucket = (int32) hashmap_hash_range(hash, (uint32) hm->buf.capacity);
 
-    // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
-    if (new_index < 0) {
+    const int32 id = chunk_reserve_one(hm->buf.free, hm->buf.capacity, bucket);
+    if (id < 0) {
         return NULL;
     }
 
-    // This is either the place where we insert or the start of the chain we have to follow
-    T* entry = (T *) chunk_element_get(&hm->buf, index);
-    if (index != new_index) {
-        // Find the previous chain element
-        T* prev = entry;
-        while (prev->next) {
-            prev = (T*) chunk_element_get(&hm->buf, prev->next - 1);
-        }
+    uint16* const head = &hm->buf.memory[bucket].head;
+    T* const entry = &hm->buf.memory[id];
 
-        prev->next = (uint16) (new_index + 1);
-        entry = (T *) chunk_element_get(&hm->buf, new_index);
-    }
+    // WARNING: Don't touch entry->head, it belongs to bucket[id]
+    entry->next = *head;
+    *head = (uint16) (id + 1);
 
-    // Ensure key length
-    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
-    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
-
-    entry->next = 0;
+    DEBUG_MEMORY_WRITE((uintptr_t) entry, sizeof(T));
 
     return entry;
 }
 
-template <typename T, typename K>
-T* hashmap_reserve(HashMapT<T>* const __restrict hm, K key) NO_EXCEPT
-{
-    // @performance Consider to force a direct conversion (void *) key
-    //              This is obviously insane but it should work as long as the hash_function
-    //              knows what it is doing
-    const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
-
-    // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
-    if (new_index < 0) {
-        return NULL;
-    }
-
-    // This is either the place where we insert or the start of the chain we have to follow
-    T* entry = (T *) chunk_element_get(&hm->buf, index);
-    if (index != new_index) {
-        // Find the previous chain element
-        T* prev = entry;
-        while (prev->next) {
-            prev = (T*) chunk_element_get(&hm->buf, prev->next - 1);
-        }
-
-        prev->next = (uint16) (new_index + 1);
-        entry = (T *) chunk_element_get(&hm->buf, new_index);
-    }
-
-    entry->key = (K) key;
-    entry->next = 0;
-
-    return entry;
-}
-
+/**
+ * Finds a string entry
+ *
+ * @param key    Stored key part (@see hashmap_str_hash)
+ * @param length Length of the stored key part
+ */
 template <typename T>
-T* hashmap_get_reserve(HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
+FORCE_INLINE
+T* hashmap_str_find(const HashMapT<T>* const hm, const char* key, int32 length, uint32 hash) NO_EXCEPT
 {
-    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
+    const uint16 tag = hashmap_hash_tag(hash);
+    uint16 next = *hashmap_head(hm, hash);
 
-    // Ensure key length
-    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    while (next) {
+        T* const entry = &hm->buf.memory[next - 1];
 
-    T* prev = NULL;
-
-    // Only walk the bucket if the head slot is actually occupied - otherwise
-    // we'd be dereferencing an uninitialized entry (garbage key/next).
-    if (!chunk_is_free(&hm->buf, index)) {
-        T* entry = (T *) chunk_element_get(&hm->buf, index);
-        prev = entry;
-
-        while (true) {
-            if (strcmp(prev->key, key) == 0) {
-                DEBUG_MEMORY_READ((uintptr_t) prev, sizeof(T));
-                return prev;
-            }
-
-            if (!prev->next) {
-                break;
-            }
-
-            prev = (T *) chunk_element_get(&hm->buf, prev->next - 1);
-        };
-    }
-
-    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
-    if (new_index < 0) {
-        return NULL;
-    }
-
-    T* entry = (T *) chunk_element_get(&hm->buf, new_index);
-
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
-    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
-    entry->next = 0;
-
-    if (prev) {
-        // Bucket head was occupied - append the new node to the tail of the chain
-        prev->next = (uint16) (new_index + 1);
-    }
-    // else: index == new_index and chunk_reserve_one placed the entry
-    // directly at the bucket head, nothing further to link.
-
-    return entry;
-}
-
-template <typename T>
-inline
-T* hashmap_entry_get(const HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
-{
-    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
-    if (chunk_is_free(&hm->buf, index)) {
-        return NULL;
-    }
-
-    T* entry = (T *) chunk_element_get(&hm->buf, index);
-
-    // Ensure key length
-    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
-
-    while (entry) {
-        if (strcmp(entry->key, key) == 0) {
+        // The tag check filters out almost all non-matching entries
+        // The memcmp includes the \0 -> no partial matches
+        if (entry->tag == tag && memcmp(entry->key, key, length + 1) == 0) {
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(T));
             return entry;
         }
 
-        entry = entry->next ? (T *) chunk_element_get(&hm->buf, entry->next - 1) : NULL;
+        next = entry->next;
     }
 
     return NULL;
 }
 
 template <typename T>
-void hashmap_remove(HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
+FORCE_INLINE
+T* hashmap_str_slot_create(HashMapT<T>* const hm, const char* key, int32 length, uint32 hash) NO_EXCEPT
 {
-    const int32 index = MODULO_2(hm->hash_function((void *) key), hm->buf.capacity);
+    T* const entry = hashmap_slot_create(hm, hash);
+    if (!entry) {
+        return NULL;
+    }
 
-    T* entry = (T *) chunk_element_get(&hm->buf, index);
-    T* prev = NULL;
-    int32 entry_index = index;
+    // Includes the \0
+    memcpy(entry->key, key, length + 1);
+    entry->tag = hashmap_hash_tag(hash);
 
-    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    return entry;
+}
 
-    while (entry) {
-        if (strcmp(entry->key, key) == 0) {
-            if (prev == NULL && entry->next) {
-                // Removing the bucket head, but the chain continues: splice the
-                // successor's data into the head slot and free the successor's
-                // slot instead, so the rest of the chain stays reachable.
-                const int32 succ_index = entry->next - 1;
-                T* succ = (T *) chunk_element_get(&hm->buf, succ_index);
+// Removes the entry from its bucket chain and frees the slot, nothing else is moved
+template <typename T>
+FORCE_INLINE
+void hashmap_unlink_free(HashMapT<T>* const hm, uint32 hash, T* const entry) NO_EXCEPT
+{
+    const uint16 link = (uint16) (entry - hm->buf.memory + 1);
 
-                strncpy(entry->key, succ->key, HASH_MAP_MAX_KEY_LENGTH);
-                memcpy(&entry->value, &succ->value, sizeof(T));
-                entry->next = succ->next;
-                chunk_free_element(&hm->buf, succ_index);
-            } else {
-                if (prev) {
-                    prev->next = entry->next;
-                }
+    uint16* next = hashmap_head(hm, hash);
+    while (*next) {
+        if (*next == link) {
+            *next = entry->next;
+            entry->next = 0;
 
-                entry->key[0] = '\0';
-                chunk_free_element(&hm->buf, entry_index);
-            }
+            chunk_free_element(&hm->buf, (uint32) (link - 1));
 
             return;
         }
 
-        prev = entry;
-        if (!entry->next) {
-            break;
-        }
+        next = &hm->buf.memory[*next - 1].next;
+    }
+}
 
-        entry_index = entry->next - 1;
-        entry = (T *) chunk_element_get(&hm->buf, entry_index);
+template <typename T, typename V>
+T* hashmap_insert(HashMapT<T>* const hm, const char* key, V value) NO_EXCEPT
+{
+    int32 length;
+    const uint32 hash = hashmap_str_hash(&key, &length);
+
+    T* const entry = hashmap_str_slot_create(hm, key, length, hash);
+    if (!entry) {
+        return NULL;
+    }
+
+    entry->value = value;
+
+    return entry;
+}
+
+template <typename T, typename V>
+T* hashmap_insert(HashMapT<T>* const hm, const char* key, V* value) NO_EXCEPT
+{
+    int32 length;
+    const uint32 hash = hashmap_str_hash(&key, &length);
+
+    T* const entry = hashmap_str_slot_create(hm, key, length, hash);
+    if (!entry) {
+        return NULL;
+    }
+
+    if (value) {
+        memcpy(&entry->value, value, sizeof(V));
+    } else {
+        memset(&entry->value, 0, sizeof(entry->value));
+    }
+
+    return entry;
+}
+
+// The value is zero initialized (the slot may contain data of a previously removed element)
+template <typename T>
+T* hashmap_reserve(HashMapT<T>* const hm, const char* key) NO_EXCEPT
+{
+    int32 length;
+    const uint32 hash = hashmap_str_hash(&key, &length);
+
+    T* const entry = hashmap_str_slot_create(hm, key, length, hash);
+    if (!entry) {
+        return NULL;
+    }
+
+    memset(&entry->value, 0, sizeof(entry->value));
+
+    return entry;
+}
+
+// The value is zero initialized (the slot may contain data of a previously removed element)
+template <
+    typename T, typename K,
+    enable_if_t<!is_convertible_v<K, const char*>, int> = 0
+>
+T* hashmap_reserve(HashMapT<T>* const hm, K key) NO_EXCEPT
+{
+    T* const entry = hashmap_slot_create(hm, hashmap_int_hash(key));
+    if (!entry) {
+        return NULL;
+    }
+
+    entry->key = (K) key;
+    memset(&entry->value, 0, sizeof(entry->value));
+
+    return entry;
+}
+
+template <typename T>
+T* hashmap_get_reserve(HashMapT<T>* const hm, const char* key) NO_EXCEPT
+{
+    int32 length;
+    const uint32 hash = hashmap_str_hash(&key, &length);
+
+    T* const entry = hashmap_str_find(hm, key, length, hash);
+    if (entry) {
+        return entry;
+    }
+
+    T* const new_entry = hashmap_str_slot_create(hm, key, length, hash);
+    if (!new_entry) {
+        return NULL;
+    }
+
+    memset(&new_entry->value, 0, sizeof(new_entry->value));
+
+    return new_entry;
+}
+
+template <typename T>
+inline
+T* hashmap_entry_get(const HashMapT<T>* const hm, const char* key) NO_EXCEPT
+{
+    int32 length;
+    const uint32 hash = hashmap_str_hash(&key, &length);
+
+    return hashmap_str_find(hm, key, length, hash);
+}
+
+template <typename T>
+void hashmap_remove(HashMapT<T>* const hm, const char* key) NO_EXCEPT
+{
+    int32 length;
+    const uint32 hash = hashmap_str_hash(&key, &length);
+
+    T* const entry = hashmap_str_find(hm, key, length, hash);
+    if (entry) {
+        hashmap_unlink_free(hm, hash, entry);
     }
 }
 
@@ -355,32 +348,34 @@ template <
 >
 T* hashmap_insert(HashMapT<T>* const hm, K key, V value) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
-
-    // This is either the place where we insert or the start of the chain we have to follow
-    const int32 new_index = chunk_reserve_one(hm->buf.free, hm->buf.capacity, index);
-    if (new_index < 0) {
+    T* const entry = hashmap_slot_create(hm, hashmap_int_hash(key));
+    if (!entry) {
         return NULL;
-    }
-
-    // This is either the place where we insert or the start of the chain we have to follow
-    T* entry = (T *) chunk_element_get(&hm->buf, index);
-    if (index != new_index) {
-        // Find the previous chain element
-        T* prev = entry;
-        while (prev->next) {
-            prev = (T *) chunk_element_get(&hm->buf, prev->next - 1);
-        }
-
-        prev->next = (uint16) (new_index + 1);
-        entry = (T *) chunk_element_get(&hm->buf, new_index);
     }
 
     entry->key = key;
     entry->value = value;
-    entry->next = 0;
 
     return entry;
+}
+
+template <typename T, typename K>
+FORCE_INLINE
+T* hashmap_int_find(const HashMapT<T>* const hm, const K& key, uint32 hash) NO_EXCEPT
+{
+    uint16 next = *hashmap_head(hm, hash);
+
+    while (next) {
+        T* const entry = &hm->buf.memory[next - 1];
+        if (entry->key == key) {
+            DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(T));
+            return entry;
+        }
+
+        next = entry->next;
+    }
+
+    return NULL;
 }
 
 template <
@@ -389,63 +384,20 @@ template <
 >
 T* hashmap_entry_get(HashMapT<T>* const hm, K key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
-    if (chunk_is_free(&hm->buf, index)) {
-        return NULL;
-    }
-
-    T* entry = (T *) chunk_element_get(&hm->buf, index);
-
-    while (entry) {
-        if (entry->key == key) {
-            DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(T));
-            return entry;
-        }
-
-        entry = entry->next ? (T *) chunk_element_get(&hm->buf, entry->next - 1) : NULL;
-    }
-
-    return NULL;
+    return hashmap_int_find(hm, key, hashmap_int_hash(key));
 }
 
-template <typename T, typename K>
+template <
+    typename T, typename K,
+    enable_if_t<!is_convertible_v<K, const char*>, int> = 0
+>
 void hashmap_remove(HashMapT<T>* const hm, K key) NO_EXCEPT
 {
-    const int32 index = hm->hash_function((void *) &key) % hm->buf.capacity;
+    const uint32 hash = hashmap_int_hash(key);
 
-    T* entry = (T *) chunk_element_get(&hm->buf, index);
-    T* prev = NULL;
-    int32 entry_index = index;
-
-    while (entry) {
-        if (entry->key == key) {
-            if (prev == NULL && entry->next) {
-                const int32 succ_index = entry->next - 1;
-                T* succ = (T *) chunk_element_get(&hm->buf, succ_index);
-
-                entry->key = succ->key;
-                entry->value = succ->value;
-                entry->next = succ->next;
-
-                chunk_free_element(&hm->buf, succ_index);
-            } else {
-                if (prev) {
-                    prev->next = entry->next;
-                }
-
-                chunk_free_element(&hm->buf, entry_index);
-            }
-
-            return;
-        }
-
-        prev = entry;
-        if (!entry->next) {
-            break;
-        }
-
-        entry_index = entry->next - 1;
-        entry = (T *) chunk_element_get(&hm->buf, entry_index);
+    T* const entry = hashmap_int_find(hm, key, hash);
+    if (entry) {
+        hashmap_unlink_free(hm, hash, entry);
     }
 }
 
@@ -455,7 +407,7 @@ void hashmap_remove(HashMapT<T>* const hm, K key) NO_EXCEPT
  * 00 01 02 03 = capacity
  * 04 05 06 07 = last_pos
  * 08 09 0A 0B = free_offset
- * 0C .. .. .. = hash map data
+ * 0C .. .. .. = hash map data (incl. the bucket heads)
  */
 template <typename T>
 int64 hashmap_dump(const HashMapT<T>* const hm, byte* data, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
@@ -466,7 +418,7 @@ int64 hashmap_dump(const HashMapT<T>* const hm, byte* data, MAYBE_UNUSED int32 s
     // Dump Chunk memory
     data += chunk_dump(&hm->buf, data);
 
-    // @bug change endian of hashmap next "pointer" and values?
+    // @bug change endian of hashmap next/head/tag and values?
     // Since we just dump the chunk memory we may have different endian between the saving and the loading system
     // An additional problem is that the elements can have different types and therefore memory layout
 
@@ -482,10 +434,10 @@ int64 hashmap_load(HashMapT<T>* const hm, const byte* data, MAYBE_UNUSED int32 s
     LOG_1("[INFO] Load HashMapT");
     const byte* const start = data;
 
-    // Load chunk memory
+    // Load chunk memory (incl. the bucket heads)
     data += chunk_load(&hm->buf, data);
 
-    // @bug change endian of hashmap next "pointer" and values?
+    // @bug change endian of hashmap next/head/tag and values?
     // Since we just dump the chunk memory we may have different endian between the saving and the loading system
     // An additional problem is that the elements can have different types and therefore memory layout
 

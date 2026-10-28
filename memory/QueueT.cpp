@@ -9,6 +9,14 @@
 
 #include "QueueT.h"
 
+/**
+ * Ring buffer queue
+ *      head = write position (enqueue)
+ *      tail = read position (dequeue)
+ *      head == tail -> empty
+ * One slot always stays empty to distinguish full from empty -> a queue can hold capacity - 1 elements
+ */
+
 template <typename T>
 FORCE_INLINE
 void queue_init(QueueT<T>* const queue, byte* buf, int capacity, uint32 alignment = sizeof(size_t)) NO_EXCEPT
@@ -75,7 +83,8 @@ void thrd_queue_locks_init(QueueT<T>* const queue) NO_EXCEPT
     mutex_init(&queue->mtx, NULL);
     coms_pthread_cond_init(&queue->cond, NULL);
 
-    coms_sem_init(&queue->empty, queue->capacity);
+    // One slot always stays empty (@see queue_has_space)
+    coms_sem_init(&queue->empty, queue->capacity - 1);
     coms_sem_init(&queue->full, 0);
 }
 
@@ -151,56 +160,66 @@ void thrd_queue_free(QueueT<T>* const queue, MemoryArena* const mem) NO_EXCEPT
     thrd_queue_locks_free(queue);
 }
 
+/**
+ * Changes the capacity (in elements) of a queue created with queue_alloc() (reserved memory)
+ * The unhandled elements are kept (moved to the front of the buffer if necessary)
+ *
+ * WARNING: The semaphores of the thrd_ functions are not adjusted
+ *
+ * @return false if the new capacity can't hold the unhandled elements or the memory couldn't be resized
+ */
 template <typename T>
 inline
 bool memory_resize(QueueT<T>* const queue, size_t new_capacity) NO_EXCEPT
 {
-    T* old_memory = queue->memory;
-    int old_capacity = queue->capacity;
+    const size_t capacity = (size_t) queue->capacity;
+    size_t head_index = (size_t) (queue->head - queue->memory);
+    size_t tail_index = (size_t) (queue->tail - queue->memory);
 
-    size_t head_index = queue->head - old_memory;
-    size_t tail_index = queue->tail - old_memory;
+    // Unhandled elements: tail (read) -> head (write)
+    const size_t count = head_index >= tail_index
+        ? head_index - tail_index
+        : capacity - tail_index + head_index;
 
-    // Number of live/unhandled elements currently in the queue
-    const size_t count = (tail_index >= head_index)
-        ? (tail_index - head_index)
-        : (old_capacity - head_index + tail_index);
-
-    // Refuse a resize that would drop unhandled data
-    if (new_capacity < count) {
+    // One slot always stays empty
+    if (new_capacity <= count) {
         return false;
     }
 
-    // If the live data currently wraps around the end of the buffer,
-    // linearize it first so realloc doesn't split/corrupt it.
-    if (tail_index < head_index && count > 0) {
-        T* temp = (T*) platform_alloc_aligned(sizeof(T) * count);
+    if (!count) {
+        head_index = 0;
+        tail_index = 0;
+    } else if (head_index < tail_index || head_index >= new_capacity) {
+        // The data wraps around or wouldn't fit into the new size -> move it to the front
+        T* temp = (T *) platform_alloc_aligned(sizeof(T) * count);
         if (!temp) {
             return false;
         }
 
-        size_t first_chunk = old_capacity - head_index;
-        memcpy(temp, old_memory + head_index, sizeof(T) * first_chunk);
-        memcpy(temp + first_chunk, old_memory, sizeof(T) * tail_index);
+        if (head_index > tail_index) {
+            memcpy(temp, queue->memory + tail_index, sizeof(T) * count);
+        } else {
+            const size_t first = capacity - tail_index;
+            memcpy(temp, queue->memory + tail_index, sizeof(T) * first);
+            memcpy(temp + first, queue->memory, sizeof(T) * head_index);
+        }
 
-        memcpy(old_memory, temp, sizeof(T) * count);
-        platform_free_aligned(temp);
+        memcpy(queue->memory, temp, sizeof(T) * count);
+        platform_aligned_free((void **) &temp);
 
-        head_index = 0;
-        tail_index = count;
+        tail_index = 0;
+        head_index = count;
     }
+
+    // Valid for the old and the new capacity
+    queue->head = queue->memory + head_index;
+    queue->tail = queue->memory + tail_index;
 
     if (!platform_alloc_aligned_resize(queue->memory, sizeof(T) * new_capacity)) {
         return false;
     }
 
-    queue->capacity = new_capacity;
-
-    // memory may have moved (realloc) and/or been linearized above —
-    // re-point head/tail into the new buffer rather than assuming the
-    // old raw pointer offsets are still valid
-    queue->head = queue->memory + head_index;
-    queue->tail = queue->memory + (tail_index % new_capacity);
+    queue->capacity = (int) new_capacity;
 
     return true;
 }
@@ -235,11 +254,17 @@ void queue_set_empty(QueueT<T>* const queue) NO_EXCEPT
     queue->head = queue->tail;
 }
 
+// Checks if one more element can be enqueued (the slot after head must not be the tail)
 template <typename T>
 static inline
 bool queue_has_space(const QueueT<T>* const queue) NO_EXCEPT
 {
-    return queue->tail - 1 != queue->head;
+    const T* next = queue->head + 1;
+    if (next >= queue->memory + queue->capacity) {
+        next = queue->memory;
+    }
+
+    return next != queue->tail;
 }
 
 template <typename T>
@@ -377,7 +402,6 @@ void queue_enqueue_unique(QueueT<T>* const __restrict queue, const T* __restrict
         );
     }
 
-    // @performance This feels like it is performing some of the cost of the while loop above
     if (!queue_has_space(queue)) {
         return;
     }
@@ -405,14 +429,14 @@ void thrd_queue_enqueue_unique_wait(QueueT<T>* __restrict queue, const T* __rest
     ASSERT_TRUE((uint64_t) data % 4 == 0);
     MutexGuard _guard(&queue->mtx);
 
+    // Check all unhandled elements (tail -> head)
     T* tail = queue->tail;
-    while (tail != queue->tail) {
+    while (tail != queue->head) {
         ASSERT_TRUE((uint64_t) tail % 4 == 0);
 
         // @performance we could probably make this faster since we don't need to compare the entire range
         if (memcmp(tail, data, sizeof(T)) == 0) {
-            mutex_unlock(&queue->mtx);
-
+            // The MutexGuard unlocks the mutex
             return;
         }
 
@@ -495,7 +519,8 @@ template <typename T>
 inline
 bool thrd_queue_enqueue_semimedwait(QueueT<T>* __restrict queue, const T* __restrict data, uint64 wait) NO_EXCEPT
 {
-    if (semimedwait(&queue->empty, wait)) {
+    // wait in ms
+    if (!coms_sem_timedwait(&queue->empty, wait)) {
         return false;
     }
 
@@ -559,6 +584,8 @@ template <typename T>
 FORCE_INLINE
 void thrd_queue_enqueue_end_sem_wait(QueueT<T>* const queue) NO_EXCEPT
 {
+    queue_enqueue_end(queue);
+
     mutex_unlock(&queue->mtx);
     coms_sem_post(&queue->full);
 }
@@ -628,13 +655,16 @@ T* thrd_queue_dequeue_sem_wait(QueueT<T>* __restrict queue, T* __restrict data) 
     }
 
     coms_sem_post(&queue->empty);
+
+    return data;
 }
 
 template <typename T>
 inline
 bool thrd_queue_dequeue_semimedwait(QueueT<T>* __restrict queue, T* __restrict data, uint64 wait) NO_EXCEPT
 {
-    if (semimedwait(&queue->full, wait)) {
+    // wait in ms
+    if (!coms_sem_timedwait(&queue->full, wait)) {
         return false;
     }
 

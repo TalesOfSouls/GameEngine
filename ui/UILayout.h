@@ -15,7 +15,7 @@
 // Version 3: UIPanel scroll/popup data, new element types (tabs, table, option list, color picker)
 // Version 4: UIColorPicker palette order, UITable dynamic cells
 // Version 5: UICore incremental caching members
-#define UI_LAYOUT_VERSION 5
+#define UI_LAYOUT_VERSION 6
 
 ///////////////////////////////
 // ui_element_buffer memory layout

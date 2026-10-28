@@ -16,7 +16,7 @@
 // Version of the binary format (@see theme_to_data)
 // 3: + language
 // 4: + font/atlas asset ids
-#define UI_THEME_BINARY_VERSION 4
+#define UI_THEME_BINARY_VERSION 5
 
 // Asset id of a theme asset that is not defined (0 is a valid asset id)
 #define UI_THEME_ASSET_NONE (-1)

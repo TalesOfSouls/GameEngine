@@ -31,8 +31,29 @@
  * are called `*_legacy()`
  */
 
-void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei, const GLchar* message, const void*)
+void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei length, const GLchar* message, const void*)
 {
+    // Tracks the debug groups (MARKER_GPU_API) to report where an error happened
+    // The driver reports every push/pop as message (function static, only used by the callback)
+    static thread_local char markers[16][48];
+    static thread_local int32 marker_depth = 0;
+
+    if (type == GL_DEBUG_TYPE_PUSH_GROUP) {
+        if (marker_depth < (int32) ARRAY_COUNT(markers)) {
+            const int32 len = OMS_MIN((int32) (length < 0 ? strlen(message) : length), (int32) sizeof(markers[0]) - 1);
+            memcpy(markers[marker_depth], message, len);
+            markers[marker_depth][len] = '\0';
+        }
+
+        ++marker_depth;
+
+        return;
+    } else if (type == GL_DEBUG_TYPE_POP_GROUP) {
+        marker_depth = OMS_MAX(marker_depth - 1, 0);
+
+        return;
+    }
+
     // IMPORTANT: The severity enums are NOT ordered by importance
     //      GL_DEBUG_SEVERITY_HIGH = 0x9146, MEDIUM = 0x9147, LOW = 0x9148, NOTIFICATION = 0x826B
     // A check like severity < GL_DEBUG_SEVERITY_LOW ignores HIGH + MEDIUM and only reports LOW.
@@ -42,6 +63,11 @@ void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei
     }
 
     LOG_1(simple_string_init((char *) message, (int32) strlen(message)));
+
+    if (marker_depth > 0) {
+        const char* const marker = markers[OMS_MIN(marker_depth, (int32) ARRAY_COUNT(markers)) - 1];
+        LOG_1("[ERROR] GPU debug group: %s", {DATA_TYPE_CHAR_STR, (void *) marker});
+    }
 
     // Only real API errors are fatal, performance/portability hints are just logged
     if (type == GL_DEBUG_TYPE_ERROR && severity == GL_DEBUG_SEVERITY_HIGH) {

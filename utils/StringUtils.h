@@ -2080,35 +2080,69 @@ int32 str_to_eol(const char* str) NO_EXCEPT
     }
 }
 
+// Word scan helpers for str_move_to()
+// The lowest set bit of the returned mask marks the first char that is either \0 or delim
+// The classic "has zero" test can only produce false positives ABOVE a real match, therefore the lowest bit is exact
+#if _WIN32 || __LITTLE_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    #define STR_WORD_SCAN_LITTLE_ENDIAN 1
+#else
+    #define STR_WORD_SCAN_LITTLE_ENDIAN 0
+#endif
+
+/**
+ * Moves str to the first occurrence of delim or to the \0 if delim doesn't exist
+ *
+ * Every char is only checked once:
+ *      1. char by char until the pointer is aligned (stops early if found)
+ *      2. one size_t word at a time
+ *      3. the position inside of the matching word is calculated from the match mask (no re-scan)
+ *
+ * Reading the whole aligned word after the \0 is safe since an aligned word can't cross a page boundary
+ */
 inline
 void str_move_to(const char** str, char delim) NO_EXCEPT
 {
     const char* s = *str;
 
-    // Handle unaligned prefix
-    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != '\0' && *s != delim) {
+    // Unaligned prefix
+    while ((uintptr_t) s % sizeof(size_t) != 0) {
+        if (*s == '\0' || *s == delim) {
+            *str = s;
+            return;
+        }
+
         ++s;
     }
 
-    const size_t delim_mask = ((size_t) - 1 / 0xFF) * (byte)delim;
+    CONSTEXPR size_t ones = (size_t) -1 / 0xFF;
+    CONSTEXPR size_t highs = ones * 0x80;
+    const size_t delim_mask = ones * (byte) delim;
+
     const size_t* wptr = (const size_t *) s;
+    size_t match;
 
     while (true) {
         const size_t v = *wptr;
-        if (OMS_HAS_ZERO(v) || OMS_HAS_ZERO(v ^ delim_mask)) {
+        const size_t x = v ^ delim_mask;
+
+        match = ((v - ones) & ~v & highs) | ((x - ones) & ~x & highs);
+        if (match) {
             break;
         }
 
         ++wptr;
     }
 
-    // Fallback to byte scan
-    s = (const char *) wptr;
-    while (*s != '\0' && *s != delim) {
-        ++s;
-    }
+    #if STR_WORD_SCAN_LITTLE_ENDIAN
+        *str = (const char *) wptr + (compiler_find_first_bit_r2l((uint64) match) >> 3);
+    #else
+        s = (const char *) wptr;
+        while (*s != '\0' && *s != delim) {
+            ++s;
+        }
 
-    *str = s;
+        *str = s;
+    #endif
 }
 
 inline
@@ -2116,36 +2150,58 @@ void str_move_to(const wchar_t** str, wchar_t delim) NO_EXCEPT
 {
     const wchar_t* s = *str;
 
-    // Handle unaligned prefix
-    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != L'\0' && *s != delim) {
+    // A misaligned wchar_t pointer can never become size_t aligned -> simple scan
+    if ((uintptr_t) s % sizeof(wchar_t) != 0) {
+        while (*s != L'\0' && *s != delim) {
+            ++s;
+        }
+
+        *str = s;
+        return;
+    }
+
+    // Unaligned prefix
+    while ((uintptr_t) s % sizeof(size_t) != 0) {
+        if (*s == L'\0' || *s == delim) {
+            *str = s;
+            return;
+        }
+
         ++s;
     }
 
-    const size_t wchar_t_bits = sizeof(wchar_t) * 8;
-    size_t delim_mask = 0;
-
-    for (size_t i = 0; i < (sizeof(size_t) >> div_pow2(sizeof(wchar_t))); ++i) {
-        delim_mask |= (size_t)delim << (i * wchar_t_bits);
-    }
+    // 0x0001000100010001 (2 byte wchar_t) or 0x0000000100000001 (4 byte wchar_t)
+    CONSTEXPR size_t ones = sizeof(wchar_t) == 2
+        ? (size_t) -1 / 0xFFFF
+        : (size_t) -1 / 0xFFFFFFFF;
+    CONSTEXPR size_t highs = ones << (sizeof(wchar_t) * 8 - 1);
+    const size_t delim_mask = ones * (sizeof(wchar_t) == 2 ? (size_t) (uint16) delim : (size_t) (uint32) delim);
 
     const size_t* wptr = (const size_t *) s;
+    size_t match;
 
     while (true) {
         const size_t v = *wptr;
-        if (OMS_HAS_ZERO_WCHAR(v) || OMS_HAS_ZERO_WCHAR(v ^ delim_mask)) {
+        const size_t x = v ^ delim_mask;
+
+        match = ((v - ones) & ~v & highs) | ((x - ones) & ~x & highs);
+        if (match) {
             break;
         }
 
         ++wptr;
     }
 
-    // Fallback to byte scan
-    s = (const wchar_t *) wptr;
-    while (*s != L'\0' && *s != delim) {
-        ++s;
-    }
+    #if STR_WORD_SCAN_LITTLE_ENDIAN
+        *str = (const wchar_t *) wptr + (compiler_find_first_bit_r2l((uint64) match) / (sizeof(wchar_t) * 8));
+    #else
+        s = (const wchar_t *) wptr;
+        while (*s != L'\0' && *s != delim) {
+            ++s;
+        }
 
-    *str = s;
+        *str = s;
+    #endif
 }
 
 // Negative pos counts backwards
@@ -2334,21 +2390,28 @@ void str_skip_list(const char** __restrict str, const char* __restrict delim, in
     }
 }
 
+// Moves str to the first char that is part of delim (or to the \0)
 inline
 void str_move_to(const char** __restrict str, const char* __restrict delim) NO_EXCEPT
 {
-    while (**str != '\0') {
-        const char* delim_temp = delim;
-        while (*delim_temp) {
-            if (**str == *delim_temp) {
-                return;
-            }
-
-            ++delim_temp;
-        }
-
-        ++(*str);
+    // Single delimiter -> word scan
+    if (delim[0] && !delim[1]) {
+        str_move_to(str, delim[0]);
+        return;
     }
+
+    // 256 bit set of the stop chars, built once instead of looping over delim for every char
+    uint64 stop[4] = { 1, 0, 0, 0 }; // \0 always stops
+    for (const char* d = delim; *d; ++d) {
+        stop[(byte) *d >> 6] |= 1ULL << ((byte) *d & 63);
+    }
+
+    const char* s = *str;
+    while (!(stop[(byte) *s >> 6] & (1ULL << ((byte) *s & 63)))) {
+        ++s;
+    }
+
+    *str = s;
 }
 
 inline
