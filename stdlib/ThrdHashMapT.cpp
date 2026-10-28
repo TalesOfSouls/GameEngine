@@ -83,7 +83,6 @@ void hashmap_alloc(ThrdHashMapT<T>* const hm, int32 capacity, int32 max_capacity
     ASSERT_TRUE(capacity <= 0xFFFF);
 
     LOG_1("[INFO] Allocate HashMapT for %n elements", {DATA_TYPE_INT32, &capacity});
-    hm->hash_function = hash_djb2;
     chunk_alloc(&hm->buf, capacity, max_capacity, alignment);
 
     hm->bucket_count = hashmap_bucket_count(capacity);
@@ -112,7 +111,6 @@ void hashmap_alloc(ThrdHashMapT<T>* const hm, MemoryArena* mem, int32 capacity, 
     ASSERT_TRUE(capacity <= 0xFFFF);
 
     LOG_1("[INFO] Allocate HashMapT for %n elements", {DATA_TYPE_INT32, &capacity});
-    hm->hash_function = hash_djb2;
     chunk_alloc(&hm->buf, mem, capacity, max_capacity, alignment);
 
     hm->bucket_count = hashmap_bucket_count(capacity);
@@ -129,7 +127,6 @@ void hashmap_init(ThrdHashMapT<T>* const hm, int32 count, byte* const buf, int32
 {
     ASSERT_TRUE(count <= 0xFFFF);
     LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
-    hm->hash_function = hash_djb2;
     chunk_init(&hm->buf, buf, count, alignment);
 
     ASSERT_MEM_ZERO(
@@ -154,7 +151,6 @@ void hashmap_init(ThrdHashMapT<T>* const hm, int32 count, BufferMemory* const bu
 {
     ASSERT_TRUE(count <= 0xFFFF);
     LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
-    hm->hash_function = hash_djb2;
     chunk_init(&hm->buf, buf, count, alignment);
 
     ASSERT_MEM_ZERO(

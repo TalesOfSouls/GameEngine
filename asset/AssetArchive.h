@@ -22,7 +22,7 @@ struct AssetArchiveElement {
     //      Sure we could change it to a byte type but due to padding sizeof(...) would remain at the same size
     //      This would result in sizeof(...) != written data size to the file
 
-    // AssetType type;
+    // @type AssetType
     uint32 type;
 
     uint32 start;

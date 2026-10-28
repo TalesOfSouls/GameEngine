@@ -63,11 +63,6 @@ struct HashEntryT {
 template <typename T>
 struct HashMapT {
     ChunkMemoryT<T> buf;
-
-    // @deprecated Kept for compatibility, no longer used
-    // String keys use an inlined one-pass djb2 + length (hashmap_str_hash)
-    // Other keys use hashmap_int_hash (the old code hashed the key bytes as a null terminated string)
-    HashMapHashFunction hash_function;
 };
 
 #endif

@@ -107,7 +107,6 @@ typedef struct {
     HashEntryStd* entries;
     uint32 capacity;
     uint32 count;
-    HashMapHashFunction hash_function;
 } HashMapStd;
 
 // ------------------ Core HashMap Functions ------------------
@@ -117,7 +116,6 @@ HashMapStd* hashmap_test_create(uint32 capacity) {
     map->capacity = capacity;
     map->count = 0;
     map->entries = (HashEntryStd*) platform_alloc_aligned(capacity * sizeof(HashEntryStd));
-    map->hash_function = NULL;
     return map;
 }
 

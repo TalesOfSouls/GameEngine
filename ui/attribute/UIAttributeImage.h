@@ -16,7 +16,6 @@
 // uv values are stored as unorm16 (0 - 65535 = 0.0 - 1.0)
 // For a 4096px texture the error is < 0.04px which is plenty
 //
-// 16 bytes (the previous version was 72 bytes)
 struct UIAttributeImage {
     // UI_SAMPLER_NONE = no image
     int16 sampler;

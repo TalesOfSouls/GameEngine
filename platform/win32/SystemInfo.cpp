@@ -62,7 +62,8 @@ f64 system_cpu_benchmark(int iterations)
 
     QueryPerformanceCounter(&end);
 
-    return freq.QuadPart > 0 && !is_empty(buffer, sizeof(result))
+    // Checking the hash output keeps the whole chain observable, otherwise the loop is dead code
+    return freq.QuadPart > 0 && !is_empty(result, sizeof(result))
         ? (f64) (end.QuadPart - start.QuadPart) / freq.QuadPart
         : 0.0;
 }
@@ -71,14 +72,32 @@ FORCE_INLINE
 uint64 system_private_memory_usage() NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_SYS_CALL);
-    PROCESS_MEMORY_COUNTERS_EX pmc;
-    const HANDLE process = GetCurrentProcess();
 
-    GetProcessMemoryInfo(process, (PROCESS_MEMORY_COUNTERS *) &pmc, sizeof(pmc));
+    // The debug overlay asks for this every frame but the value only changes slowly,
+    // so one query per 250 ms is plenty and saves the syscall on all other frames
+    static thread_local uint64 cached_usage = 0;
+    static thread_local LONGLONG next_query = 0;
+    static thread_local LONGLONG query_interval = 0;
 
-    CloseHandle(process);
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
 
-    return pmc.PrivateUsage;
+    if (now.QuadPart >= next_query) {
+        if (!query_interval) {
+            LARGE_INTEGER frequency;
+            QueryPerformanceFrequency(&frequency);
+            query_interval = frequency.QuadPart / 4;
+        }
+
+        PROCESS_MEMORY_COUNTERS_EX pmc = {};
+        if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS *) &pmc, sizeof(pmc))) {
+            cached_usage = pmc.PrivateUsage;
+        }
+
+        next_query = now.QuadPart + query_interval;
+    }
+
+    return cached_usage;
 }
 
 FORCE_INLINE
@@ -115,23 +134,7 @@ bool system_drive_space(
 }
 
 #include <winternl.h>
-typedef NTSTATUS (NTAPI* NtQuerySystemInformation_t)(
-    SYSTEM_INFORMATION_CLASS,
-    PVOID,
-    ULONG,
-    PULONG
-);
-
 void system_cpu_usage(f32* const __restrict usage, int32 core_count, RingMemory* const __restrict ring) {
-    NtQuerySystemInformation_t NtQuerySystemInformation = (NtQuerySystemInformation_t) GetProcAddress(
-        GetModuleHandleW(L"ntdll.dll"),
-        "NtQuerySystemInformation"
-    );
-
-    if (!NtQuerySystemInformation) {
-        return;
-    };
-
     SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION* p1 = (SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *) memory_get(
         ring,
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * core_count,
@@ -204,7 +207,8 @@ uint64 system_app_memory_usage()
 
     // MEM_IMAGE = DLL memory
     // MEM_MAPPED = Mapped files
-    while (VirtualQueryEx(GetCurrentProcess(), (LPCVOID) address, &mbi, sizeof(mbi)) == sizeof(mbi)) {
+    // VirtualQuery skips the handle resolution that VirtualQueryEx does, we always query our own process
+    while (VirtualQuery((LPCVOID) address, &mbi, sizeof(mbi)) == sizeof(mbi)) {
         if (mbi.State == MEM_COMMIT && (mbi.Type == MEM_IMAGE || mbi.Type == MEM_MAPPED)) {
             total_size += mbi.RegionSize;
         }
@@ -215,54 +219,76 @@ uint64 system_app_memory_usage()
     return total_size;
 }
 
+/**
+ * One 2 character part of the current UI locale name ("en-US" -> "en" / "US")
+ *
+ * The locale is parsed once per thread because it can't change while the process runs
+ *
+ * @return Locale name character pair, 0 = unknown
+ */
+static inline
+uint16 system_locale_code(int32 offset) NO_EXCEPT
+{
+    static thread_local wchar_t local_name[LOCALE_NAME_MAX_LENGTH];
+    static thread_local bool resolved = false;
+
+    if (!resolved) {
+        const LANGID lang_id = GetUserDefaultUILanguage();
+        if (!LCIDToLocaleName(lang_id, local_name, LOCALE_NAME_MAX_LENGTH, 0)) {
+            return 0;
+        }
+
+        resolved = true;
+    }
+
+    return (uint16) ((local_name[offset] << 8) | local_name[offset + 1]);
+}
+
 FORCE_INLINE
 uint16 system_language_code()
 {
-    const LANGID lang_id = GetUserDefaultUILanguage();
-    wchar_t local_name[LOCALE_NAME_MAX_LENGTH];
-
-    if (!LCIDToLocaleName(lang_id, local_name, LOCALE_NAME_MAX_LENGTH, 0)) {
-        return 0;
-    }
-
-    return (local_name[0] << 8) | local_name[1];
+    return system_locale_code(0);
 }
 
 FORCE_INLINE
 uint16 system_country_code()
 {
-    const LANGID lang_id = GetUserDefaultUILanguage();
-    wchar_t local_name[LOCALE_NAME_MAX_LENGTH];
-
-    if (!LCIDToLocaleName(lang_id, local_name, LOCALE_NAME_MAX_LENGTH, 0)) {
-        return 0;
-    }
-
-    return (local_name[3] << 8) | local_name[4];
+    return system_locale_code(3);
 }
 
-void mainboard_info_get(MainboardInfo* const info) {
-    info->name[sizeof(info->name) - 1] = '\0';
-    info->serial_number[sizeof(info->serial_number) - 1] = '\0';
+/**
+ * Connection to the WMI namespace ROOT\CIMV2
+ *
+ * WARNING: Requires ole32_init() + wmi_guid_init()
+ */
+struct WmiConnection {
+    IWbemLocator* locator;
+    IWbemServices* services;
+};
 
-    // Obtain initial locator to WMI
-    IWbemLocator* pLoc = NULL;
-    HRESULT hres = OLE32_CoCreateInstance(
+/**
+ * Opens a WMI connection to ROOT\CIMV2, the caller has to call wmi_disconnect() when done
+ *
+ * @return false if COM or WMI isn't available, connection is unusable then
+ */
+static inline
+bool wmi_connect(WmiConnection* const connection) NO_EXCEPT
+{
+    connection->locator = NULL;
+    connection->services = NULL;
+
+    if (FAILED(OLE32_CoCreateInstance(
         WBEMUUID_CLSID_WbemLocator,
         0,
         CLSCTX_INPROC_SERVER,
         WBEMUUID_IID_IWbemLocator,
-        (LPVOID *)&pLoc
-    );
-
-    if (FAILED(hres)) {
-        return;
+        (LPVOID *) &connection->locator
+    ))) {
+        return false;
     }
 
-    // Connect to WMI through IWbemLocator::ConnectServer
     BSTR ns = SysAllocString(L"ROOT\\CIMV2");
-    IWbemServices* pSvc = NULL;
-    hres = pLoc->ConnectServer(
+    const HRESULT hres = connection->locator->ConnectServer(
         ns,
         NULL,
         NULL,
@@ -270,18 +296,21 @@ void mainboard_info_get(MainboardInfo* const info) {
         NULL,
         0,
         0,
-        &pSvc
+        &connection->services
     );
 
-    if (FAILED(hres)) {
-        pLoc->Release();
-        SysFreeString(ns);
-        return;
+    SysFreeString(ns);
+
+    if (FAILED(hres) || !connection->services) {
+        connection->locator->Release();
+        connection->locator = NULL;
+
+        return false;
     }
 
     // Set security levels on the proxy
-    hres = OLE32_CoSetProxyBlanket(
-        pSvc,
+    if (FAILED(OLE32_CoSetProxyBlanket(
+        connection->services,
         RPC_C_AUTHN_WINNT,
         RPC_C_AUTHZ_NONE,
         NULL,
@@ -289,21 +318,48 @@ void mainboard_info_get(MainboardInfo* const info) {
         RPC_C_IMP_LEVEL_IMPERSONATE,
         NULL,
         EOAC_NONE
-    );
+    ))) {
+        connection->services->Release();
+        connection->services = NULL;
 
-    if (FAILED(hres)) {
-        pSvc->Release();
-        pLoc->Release();
-        SysFreeString(ns);
+        connection->locator->Release();
+        connection->locator = NULL;
+
+        return false;
+    }
+
+    return true;
+}
+
+static inline
+void wmi_disconnect(WmiConnection* const connection) NO_EXCEPT
+{
+    if (connection->services) {
+        connection->services->Release();
+        connection->services = NULL;
+    }
+
+    if (connection->locator) {
+        connection->locator->Release();
+        connection->locator = NULL;
+    }
+}
+
+void mainboard_info_get(MainboardInfo* const info) {
+    info->name[sizeof(info->name) - 1] = '\0';
+    info->serial_number[sizeof(info->serial_number) - 1] = '\0';
+
+    WmiConnection connection;
+    if (!wmi_connect(&connection)) {
         return;
     }
 
-    // Use the IWbemServices pointer to make a WMI query
+    // Only select what is used, SELECT * marshals every Win32_BaseBoard property
     BSTR queryLanguage = SysAllocString(L"WQL");
-    BSTR query = SysAllocString(L"SELECT * FROM Win32_BaseBoard");
+    BSTR query = SysAllocString(L"SELECT Product, SerialNumber FROM Win32_BaseBoard");
 
     IEnumWbemClassObject* enumerator = NULL;
-    hres = pSvc->ExecQuery(
+    const HRESULT hres = connection.services->ExecQuery(
         queryLanguage,
         query,
         WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
@@ -312,12 +368,11 @@ void mainboard_info_get(MainboardInfo* const info) {
     );
 
     if (FAILED(hres)) {
-        pSvc->Release();
-        pLoc->Release();
+        wmi_disconnect(&connection);
 
         SysFreeString(queryLanguage);
         SysFreeString(query);
-        SysFreeString(ns);
+
         return;
     }
 
@@ -346,17 +401,17 @@ void mainboard_info_get(MainboardInfo* const info) {
         pclsObj->Release();
     }
 
-    // Clean up
-    pSvc->Release();
-    pLoc->Release();
-    enumerator->Release();
+    if (enumerator) {
+        enumerator->Release();
+    }
+
+    wmi_disconnect(&connection);
 
     info->name[sizeof(info->name) - 1] = '\0';
     info->serial_number[sizeof(info->serial_number) - 1] = '\0';
 
     SysFreeString(queryLanguage);
     SysFreeString(query);
-    SysFreeString(ns);
 }
 
 int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* ring = NULL) {
@@ -364,8 +419,10 @@ int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* rin
         | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
 
     DWORD dwSize = 15 * 1024;
+
+    // memory_get_temp doesn't move the ring head, so retrying on overflow doesn't waste ring space
     PIP_ADAPTER_ADDRESSES adapter_address = ring
-        ? (PIP_ADAPTER_ADDRESSES) memory_get(ring, dwSize, sizeof(size_t))
+        ? (PIP_ADAPTER_ADDRESSES) memory_get_temp(ring, dwSize, sizeof(size_t))
         : (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
 
     if (!adapter_address) {
@@ -373,14 +430,21 @@ int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* rin
     }
 
     DWORD result = IPHLPAPI_GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapter_address, &dwSize);
-    if (result == ERROR_BUFFER_OVERFLOW) {
-        if (!ring) {
-            free(adapter_address);
-        }
 
-        adapter_address = ring
-            ? (PIP_ADAPTER_ADDRESSES) memory_get(ring, dwSize, sizeof(size_t))
-            : (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
+    // 15 kb is only a guess, the API reports the required size on overflow
+    while (result == ERROR_BUFFER_OVERFLOW) {
+        if (ring) {
+            adapter_address = (PIP_ADAPTER_ADDRESSES) memory_get_temp(ring, dwSize, sizeof(size_t));
+        } else {
+            PIP_ADAPTER_ADDRESSES grown = (PIP_ADAPTER_ADDRESSES) realloc(adapter_address, dwSize);
+            if (!grown) {
+                free(adapter_address);
+
+                return 0;
+            }
+
+            adapter_address = grown;
+        }
 
         if (!adapter_address) {
             return 0;
@@ -399,15 +463,30 @@ int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* rin
 
     int32 i = 0;
     for (PIP_ADAPTER_ADDRESSES adapter = adapter_address; adapter && i < limit; adapter = adapter->Next) {
-        if (adapter->PhysicalAddressLength != 0) {
-            info[i].slot[63] = '\0';
-            info[i].mac[23] = '\0';
-
-            size_t mac_len = adapter->PhysicalAddressLength < 8 ? adapter->PhysicalAddressLength : 8;
-            memcpy(info[i].mac, adapter->PhysicalAddress, mac_len);
-            wcstombs(info[i].slot, adapter->FriendlyName, 63);
-            ++i;
+        if (adapter->PhysicalAddressLength == 0) {
+            continue;
         }
+
+        // The mac is shorter than the buffer and the name conversion doesn't clear the remainder
+        memset(info[i].slot, 0, sizeof(info[i].slot));
+        memset(info[i].mac, 0, sizeof(info[i].mac));
+
+        const size_t mac_len = adapter->PhysicalAddressLength < 8 ? adapter->PhysicalAddressLength : 8;
+        memcpy(info[i].mac, adapter->PhysicalAddress, mac_len);
+
+        // wcstombs is locale dependent and can leave the string unterminated
+        WideCharToMultiByte(
+            CP_UTF8,
+            0,
+            adapter->FriendlyName,
+            -1,
+            info[i].slot,
+            (int32) sizeof(info[i].slot) - 1,
+            NULL,
+            NULL
+        );
+
+        ++i;
     }
 
     if (!ring) {
@@ -452,7 +531,9 @@ void cpu_info_get(CpuInfo* const info) {
     info->family = (cpuInfo[0] >> 8) & 0xF;
 
     DWORD bufSize = sizeof(DWORD);
-    HKEY hKey;
+    HKEY hKey = NULL;
+    info->mhz = 0;
+
     const long lError = ADVAPI32_RegOpenKeyExW(
         HKEY_LOCAL_MACHINE,
         L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
@@ -461,10 +542,14 @@ void cpu_info_get(CpuInfo* const info) {
 
     if (lError == ERROR_SUCCESS) {
         ADVAPI32_RegQueryValueExW(hKey, L"~MHz", NULL, NULL, (LPBYTE) &(info->mhz), &bufSize);
-    }
 
-    ADVAPI32_RegCloseKey(hKey);
+        ADVAPI32_RegCloseKey(hKey);
+    }
 }
+
+// RtlGetVersion is exported by ntdll and bound through the ntdll.lib import lib,
+// but the SDK only declares it in the kernel-mode headers (ntddk.h)
+extern "C" NTSTATUS NTAPI RtlGetVersion(OSVERSIONINFOEXW* version_info);
 
 inline
 void os_info_get(OSInfo* const info) {
@@ -475,11 +560,8 @@ void os_info_get(OSInfo* const info) {
     memset(&version_info, 0, sizeof(OSVERSIONINFOEXW));
 
     version_info.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEXW);
-    NTSTATUS(WINAPI *RtlGetVersion)(OSVERSIONINFOEXW*) = (NTSTATUS(WINAPI *)(OSVERSIONINFOEXW*))GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion");
 
-    if (RtlGetVersion != nullptr) {
-        RtlGetVersion(&version_info);
-    }
+    RtlGetVersion(&version_info);
 
     memcpy(info->vendor, "Microsoft", sizeof("Microsoft"));
     memcpy(info->name, "Windows", sizeof("Windows"));
@@ -571,85 +653,79 @@ RamChannelType ram_channel_info() NO_EXCEPT
 
     RamChannelType result = RAM_CHANNEL_TYPE_FAILED;
 
-    IWbemLocator* locator = NULL;
-    IWbemServices* services = NULL;
-    IEnumWbemClassObject* enumerator = NULL;
+    WmiConnection connection;
+    if (wmi_connect(&connection)) {
+        BSTR query_language = SysAllocString(L"WQL");
+        BSTR query = SysAllocString(L"SELECT BankLabel, DeviceLocator FROM Win32_PhysicalMemory");
 
-    BSTR ns = SysAllocString(L"ROOT\\CIMV2");
-    BSTR query_language = SysAllocString(L"WQL");
-    BSTR query = SysAllocString(L"SELECT BankLabel, DeviceLocator FROM Win32_PhysicalMemory");
+        IEnumWbemClassObject* enumerator = NULL;
+        if (SUCCEEDED(connection.services->ExecQuery(
+            query_language,
+            query,
+            WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
+            NULL,
+            &enumerator
+        ))) {
+            int32 module_count = 0;
 
-    if (SUCCEEDED(OLE32_CoCreateInstance(WBEMUUID_CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, WBEMUUID_IID_IWbemLocator, (LPVOID *) &locator))
-        && SUCCEEDED(locator->ConnectServer(ns, NULL, NULL, 0, 0, 0, 0, &services))
-        && SUCCEEDED(OLE32_CoSetProxyBlanket(services, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE))
-        && SUCCEEDED(services->ExecQuery(query_language, query, WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &enumerator))
-    ) {
-        int32 module_count = 0;
+            // Channel of the first module, all_same_channel = every module has a known channel and it is the same one
+            wchar_t first_channel = 0;
+            bool all_same_channel = true;
 
-        // Channel of the first module, all_same_channel = every module has a known channel and it is the same one
-        wchar_t first_channel = 0;
-        bool all_same_channel = true;
-
-        while (true) {
-            IWbemClassObject* object = NULL;
-            ULONG returned = 0;
-            if (FAILED(enumerator->Next(WBEM_INFINITE, 1, &object, &returned)) || returned == 0) {
-                break;
-            }
-
-            ++module_count;
-
-            wchar_t channel = 0;
-            VARIANT value;
-
-            if (SUCCEEDED(object->Get(L"BankLabel", 0, &value, 0, 0))) {
-                if (value.vt == VT_BSTR) {
-                    channel = ram_module_channel(value.bstrVal);
+            while (true) {
+                IWbemClassObject* object = NULL;
+                ULONG returned = 0;
+                if (FAILED(enumerator->Next(WBEM_INFINITE, 1, &object, &returned)) || returned == 0) {
+                    break;
                 }
 
-                VariantClear(&value);
-            }
+                ++module_count;
 
-            if (!channel && SUCCEEDED(object->Get(L"DeviceLocator", 0, &value, 0, 0))) {
-                if (value.vt == VT_BSTR) {
-                    channel = ram_module_channel(value.bstrVal);
+                wchar_t channel = 0;
+                VARIANT value;
+
+                if (SUCCEEDED(object->Get(L"BankLabel", 0, &value, 0, 0))) {
+                    if (value.vt == VT_BSTR) {
+                        channel = ram_module_channel(value.bstrVal);
+                    }
+
+                    VariantClear(&value);
                 }
 
-                VariantClear(&value);
+                if (!channel && SUCCEEDED(object->Get(L"DeviceLocator", 0, &value, 0, 0))) {
+                    if (value.vt == VT_BSTR) {
+                        channel = ram_module_channel(value.bstrVal);
+                    }
+
+                    VariantClear(&value);
+                }
+
+                if (module_count == 1) {
+                    first_channel = channel;
+                }
+
+                all_same_channel = all_same_channel && channel && channel == first_channel;
+
+                object->Release();
             }
 
             if (module_count == 1) {
-                first_channel = channel;
+                result = RAM_CHANNEL_TYPE_SINGLE_CHANNEL;
+            } else if (module_count > 1) {
+                // Multiple modules in the same channel -> moving one of them to another slot enables dual channel
+                result = all_same_channel ? RAM_CHANNEL_TYPE_CAN_UPGRADE : RAM_CHANNEL_TYPE_DUAL_CHANNEL;
             }
-
-            all_same_channel = all_same_channel && channel && channel == first_channel;
-
-            object->Release();
         }
 
-        if (module_count == 1) {
-            result = RAM_CHANNEL_TYPE_SINGLE_CHANNEL;
-        } else if (module_count > 1) {
-            // Multiple modules in the same channel -> moving one of them to another slot enables dual channel
-            result = all_same_channel ? RAM_CHANNEL_TYPE_CAN_UPGRADE : RAM_CHANNEL_TYPE_DUAL_CHANNEL;
+        if (enumerator) {
+            enumerator->Release();
         }
-    }
 
-    if (enumerator) {
-        enumerator->Release();
-    }
+        SysFreeString(query);
+        SysFreeString(query_language);
 
-    if (services) {
-        services->Release();
+        wmi_disconnect(&connection);
     }
-
-    if (locator) {
-        locator->Release();
-    }
-
-    SysFreeString(query);
-    SysFreeString(query_language);
-    SysFreeString(ns);
 
     if (com_initialized) {
         OLE32_CoUninitialize();
@@ -660,21 +736,34 @@ RamChannelType ram_channel_info() NO_EXCEPT
 
 inline
 int32 gpu_info_get(GpuInfo*const  info, int32 limit = 3) {
-    IDXGIFactory* factory = NULL;
-    IDXGIAdapter* adapter = NULL;
-    DXGI_ADAPTER_DESC adapter_description;
+    // The 1.1 factory is needed for DXGI_ADAPTER_DESC1.Flags (only place that marks WARP adapters)
+    IDXGIFactory1* factory = NULL;
+    IDXGIAdapter1* adapter = NULL;
+    DXGI_ADAPTER_DESC1 adapter_description;
 
-    HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void **) &factory);
+    HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void **) &factory);
     if (FAILED(hr)) {
         return 0;
     }
 
     int32 i = 0;
-    while (factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND && i < limit) {
-        hr = adapter->GetDesc(&adapter_description);
+
+    // limit counts the gpus we keep, not the adapters we visit (software adapters are skipped)
+    for (int32 adapter_index = 0; i < limit; ++adapter_index) {
+        if (factory->EnumAdapters1(adapter_index, &adapter) == DXGI_ERROR_NOT_FOUND) {
+            break;
+        }
+
+        hr = adapter->GetDesc1(&adapter_description);
         if (FAILED(hr)) {
             adapter->Release();
             break;
+        }
+
+        // WARP / Basic Render Driver is not a gpu the player can use
+        if (adapter_description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
+            adapter->Release();
+            continue;
         }
 
         wchar_to_char(
@@ -705,10 +794,17 @@ int32 display_info_get(DisplayInfo* const info, int32 limit = 4) {
 
     // We limit the display detection to a maximum of 100
     while (EnumDisplayDevicesW(NULL, j, &device, 0) && i < limit && ++j < 100) {
+        // Mirroring/disconnected pseudo adapters have no usable mode and EnumDisplaySettingsW is the expensive part
+        if (!(device.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP)
+            || (device.StateFlags & DISPLAY_DEVICE_MIRRORING_DRIVER)
+        ) {
+            continue;
+        }
+
         mode.dmSize = sizeof(mode);
 
         if (EnumDisplaySettingsW(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
-            wchar_to_char(info[i].name, device.DeviceName);
+            wchar_to_char(info[i].name, device.DeviceName, (int32) ARRAY_COUNT(info[i].name) - 1);
 
             info[i].width = mode.dmPelsWidth;
             info[i].height = mode.dmPelsHeight;

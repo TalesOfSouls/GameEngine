@@ -163,7 +163,7 @@ size_t poisson_disk_bridson(
                 // We don't allow more points than defined by the user
                 return points_count;
 
-                // No conflict — accept point
+                // No conflict - accept point
                 /*
                 // @todo: Ideally we don't want this to happen
                 ASSERT_TRUE(points_count < cap);

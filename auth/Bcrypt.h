@@ -320,8 +320,8 @@ bool bcrypt_hash_raw(
         }
     }
 
-    // bcrypt hashes are 23 bytes (COMS_BCRYPT_HASH_BYTES). The final word
-    // only contributes three bytes; writing all four was a one byte overflow.
+    // bcrypt hashes are 23 bytes (COMS_BCRYPT_HASH_BYTES).
+    // The final word only contributes three bytes
     for (int32 i = 0; i < 6; ++i) {
         out[i * 4] = (byte) (data[i] >> 24);
 

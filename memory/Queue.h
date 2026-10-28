@@ -37,9 +37,6 @@ struct Queue {
 
     sem empty;
     sem full;
-
-    // No explicit padding required: the alignas above makes sizeof(Queue) a multiple of the cache line size
-    // (the old computed padding became negative on platforms with larger mutex types, e.g. Linux)
 };
 
 typedef void* (*QueueFunction)(void* data);

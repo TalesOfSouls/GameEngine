@@ -17,9 +17,9 @@
     #define PATH_MAX_LENGTH 255
 #endif
 
-#if _WIN32 || __LITTLE_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#if !defined(OMS_LITTLE_ENDIAN) && (_WIN32 || __LITTLE_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__))
     #define OMS_LITTLE_ENDIAN 1
-#else
+#elif !defined(OMS_LITTLE_ENDIAN)
     #define OMS_LITTLE_ENDIAN 0
 #endif
 

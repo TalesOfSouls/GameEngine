@@ -154,10 +154,8 @@ void log_to_file(const void* const data, size_t size) NO_EXCEPT;
  * Find memory buffer to write log to
  *
  * If the log memory is full it is written to the log file and cleared.
- * Previously the position was only reset -> the old messages were never written to the file
- * and their stale text was still in the memory (@see the \0 termination in log())
  *
- * WARNING: The caller must hold _log_memory->lock
+ * WARNING: The caller must lock _log_memory->lock
  *
  * @return byte*
  */
@@ -392,11 +390,7 @@ void log(
     msg->time = log_sys_time();
     msg->newline = '\n';
 
-    // Space of the message in the log slot (incl. \0)
-    // WARNING: Everything is bounded by this size.
-    //      Previously the format wasn't \0 terminated (-> stale text of older log messages became part of the format)
-    //      and the formatting was unbounded (e.g. long file paths of the [PERF] logs)
-    //      -> temp_format (stack) overflowed and corrupted the data parameter -> access violation in the switch below
+    // Space of the message in the log incl. \0
     const int32 message_size = (int32) (MAX_LOG_LENGTH - sizeof(LogMessage));
 
     char temp_format[MAX_LOG_LENGTH];

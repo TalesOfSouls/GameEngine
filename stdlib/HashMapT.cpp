@@ -55,7 +55,6 @@ void hashmap_alloc(HashMapT<T>* const hm, int32 capacity, int32 max_capacity, in
     ASSERT_TRUE(capacity <= 0xFFFF);
 
     LOG_1("[INFO] Allocate HashMapT for %n elements", {DATA_TYPE_INT32, &capacity});
-    hm->hash_function = hash_djb2;
     chunk_alloc(&hm->buf, capacity, max_capacity, alignment);
     hashmap_clear_entries(hm);
 }
@@ -77,7 +76,6 @@ void hashmap_alloc(HashMapT<T>* const hm, MemoryArena* mem, int32 capacity, int3
     ASSERT_TRUE(capacity <= 0xFFFF);
 
     LOG_1("[INFO] Allocate HashMapT for %n elements", {DATA_TYPE_INT32, &capacity});
-    hm->hash_function = hash_djb2;
     chunk_alloc(&hm->buf, mem, capacity, max_capacity, alignment);
     hashmap_clear_entries(hm);
 }
@@ -88,7 +86,6 @@ void hashmap_init(HashMapT<T>* const hm, int32 count, byte* const buf, int32 ali
 {
     ASSERT_TRUE(count <= 0xFFFF);
     LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
-    hm->hash_function = hash_djb2;
     chunk_init(&hm->buf, buf, count, alignment);
 
     ASSERT_MEM_ZERO(
@@ -106,7 +103,6 @@ void hashmap_init(HashMapT<T>* const hm, int32 count, BufferMemory* const buf, i
 {
     ASSERT_TRUE(count <= 0xFFFF);
     LOG_1("[INFO] Create HashMapT for %n elements", {DATA_TYPE_INT32, &count});
-    hm->hash_function = hash_djb2;
     chunk_init(&hm->buf, buf, count, alignment);
 
     ASSERT_MEM_ZERO(

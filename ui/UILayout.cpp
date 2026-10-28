@@ -196,7 +196,7 @@ int32 layout_from_data(
         return -1;
     }
 
-    // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
+    // Prepare hashmap (incl. reserve memory)
     // Of course we still need to populate the data using hashmap_load()
     ui_layout_hashmap_init(layout, (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)));
 

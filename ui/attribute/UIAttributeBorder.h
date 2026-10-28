@@ -24,7 +24,6 @@ enum UIBorderType : byte {
 // The atlas data is resolved once and stored inline (unorm16 uv)
 // This way rendering never has to look up the atlas
 //
-// 88 bytes (the previous version was 8 * 76 = 608 bytes)
 struct UIAttributeBorder {
     // UI_SAMPLER_NONE = solid color border
     int16 sampler;

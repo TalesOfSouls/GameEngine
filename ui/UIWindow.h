@@ -15,7 +15,6 @@
 //          UIPanel  resize grip (optional, @see ui_window_set_resizable)
 //
 // The children are real elements in the tree, the offsets below are just shortcuts
-// 176 bytes (the previous version with embedded children was 4368 bytes)
 struct UIWindow {
     UICore core;
 

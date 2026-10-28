@@ -517,12 +517,6 @@ bool chunk_is_complete(const ThrdChunkMemory* const buf, void* data) NO_EXCEPT
  * 08 09 0A 0B = free_offset
  * 0C .. .. .. = hash map data
  */
-// @important dump/load bulk-memcpy this region as raw bytes. That's only a
-// valid snapshot at a quiescent point - i.e. no concurrent chunk_reserve /
-// chunk_free_elements / chunk_mark_complete in flight on this buffer while
-// dumping or loading. This was already implicitly true under the old
-// spinlock design (the lock was never held across the whole dump), it's just
-// worth stating explicitly now that there's no lock to (mis-)rely on.
 inline
 int64 chunk_dump(const ThrdChunkMemory* const buf, byte* data) NO_EXCEPT
 {

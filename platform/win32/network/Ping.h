@@ -134,7 +134,6 @@ int32 ping_ipv6(const SOCKADDR_IN6* const address, int32 payload_size, int32 tim
     }
 
     // in6addr_any lets the stack select the local source address.
-    // Passing the destination as the source (the old code did that) is invalid.
     SOCKADDR_IN6 source = {};
     source.sin6_family = AF_INET6;
 

@@ -168,14 +168,12 @@ int32 random_weighted_index(const int32* arr, int32 array_count) NO_EXCEPT
 }
 
 // WARNING: The allowed_chars string length needs to be of power 2 for performance reasons
-//      Supporting any allowed_chars length is trivial but usually we prefer the performance improvement
+//          Supporting any allowed_chars length is trivial but usually we prefer the performance improvement
 void random_string(const char* allowed_chars, uint32 allowed_length, char* out, int32 out_length) NO_EXCEPT
 {
     ASSERT_TRUE((allowed_length & 2) == 0);
 
     const uint32 mask = allowed_length - 1;
-
-    //uint64 x = time_index();
 
     size_t i = 0;
     while (i < out_length) {

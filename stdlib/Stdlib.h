@@ -51,7 +51,7 @@
  *          DIRECTX_12=1, DIRECTX_11=1, OPENGL=1, VULKAN=1, SOFTWARE=1
  *
  *      Endianess:
- *          _WIN32 (= little endian), __LITTLE_ENDIAN__ (= little endian), none (= big endian)
+ *          _WIN32 (= little endian), __LITTLE_ENDIAN__ or OMS_LITTLE_ENDIAN (= little endian), none (= big endian)
  *
  *      C++ version:
  *          CPP_VERSION (default = 25)

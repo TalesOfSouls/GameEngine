@@ -492,8 +492,8 @@ bool inputs_are_down(
 }
 
 // We are binding hotkeys bi-directional:
-//      Which keys are required for a certain hotkey
-//      What are the hotkeys a key can trigger
+//      * Which keys are required for a certain hotkey
+//      * What are the hotkeys a key can trigger
 inline void
 input_add_hotkey(
     Hotkey* const mapping, uint8 hotkey,

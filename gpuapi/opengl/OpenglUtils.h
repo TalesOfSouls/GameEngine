@@ -54,10 +54,9 @@ void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei
         return;
     }
 
-    // IMPORTANT: The severity enums are NOT ordered by importance
-    //      GL_DEBUG_SEVERITY_HIGH = 0x9146, MEDIUM = 0x9147, LOW = 0x9148, NOTIFICATION = 0x826B
+    // WARNING: The severity enums are NOT ordered by importance
+    // GL_DEBUG_SEVERITY_HIGH = 0x9146, MEDIUM = 0x9147, LOW = 0x9148, NOTIFICATION = 0x826B
     // A check like severity < GL_DEBUG_SEVERITY_LOW ignores HIGH + MEDIUM and only reports LOW.
-    // Some drivers (e.g. Intel) emit LOW performance hints which then crashed the program.
     if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
         return;
     }
@@ -697,7 +696,7 @@ uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data) NO_EXCEPT
     return bo;
 }
 
-// type is GL_UNIFORM_BUFFER or GL_ARRAY_BUFFER — only needed at bind time now,
+// type is GL_UNIFORM_BUFFER or GL_ARRAY_BUFFER - only needed at bind time,
 // kept as a param in case callers store it on `buffer` for later binding.
 inline
 void gpuapi_buffer_persistent_generate(PersistentGpuBuffer* const buffer) NO_EXCEPT

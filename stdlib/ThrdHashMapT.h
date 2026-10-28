@@ -59,11 +59,6 @@ struct ThrdHashMapT {
 
     // Always a power of 2 (>= buf.capacity)
     int32 bucket_count;
-
-    // @deprecated Kept for compatibility, no longer used
-    // String keys use an inlined one-pass djb2 + length (hashmap_str_hash)
-    // Other keys use hashmap_int_hash (the old code hashed the key bytes as a null terminated string)
-    HashMapHashFunction hash_function;
 };
 
 #endif

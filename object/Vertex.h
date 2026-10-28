@@ -16,13 +16,6 @@ struct Vertex4DSamplerTextureColor {
 
     // Texture coordinates, only used if sampler > 0
     v2_f32 tex_coord;
-
-    // Color (0xRRGGBBAA)
-    //      sampler <= 0: solid color
-    //      sampler == 1: text color (font atlas)
-    //      sampler >= 2: unused (texture color)
-    // IMPORTANT: Never store the color in the bits of a float (e.g. tex_coord.y).
-    //      Many rgba values are NaN or denormal float bit patterns that GPUs/drivers may canonicalize or flush.
     uint32 color;
 };
 
@@ -58,12 +51,6 @@ struct Vertex3DSamplerTextureColor {
     // Texture coordinates, only used if sampler > 0
     v2_f32 tex_coord;
 
-    // Color (0xRRGGBBAA)
-    //      sampler <= 0: solid color
-    //      sampler == 1: text color (font atlas)
-    //      sampler >= 2: unused (texture color)
-    // IMPORTANT: Never store the color in the bits of a float (e.g. tex_coord.y).
-    //      Many rgba values are NaN or denormal float bit patterns that GPUs/drivers may canonicalize or flush.
     uint32 color;
 };
 
@@ -73,7 +60,7 @@ struct Vertex3DTextureColor {
     // Texture coordinates, only used if color == 0
     v2_f32 tex_coord;
 
-    // Solid color (0xRRGGBBAA), 0 = use the texture instead
+    // 0 = use the texture instead
     uint32 color;
 };
 
@@ -105,13 +92,6 @@ struct Vertex2DSamplerTextureColor {
 
     // Texture coordinates, only used if sampler > 0
     v2_f32 tex_coord;
-
-    // Color (0xRRGGBBAA)
-    //      sampler <= 0: solid color
-    //      sampler == 1: text color (font atlas)
-    //      sampler >= 2: unused (texture color)
-    // IMPORTANT: Never store the color in the bits of a float (e.g. tex_coord.y).
-    //      Many rgba values are NaN or denormal float bit patterns that GPUs/drivers may canonicalize or flush.
     uint32 color;
 };
 

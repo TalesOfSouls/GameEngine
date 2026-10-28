@@ -496,7 +496,6 @@ void voxel_world_alloc(VoxelWorld* const vw, const v3_int32& pos, int chunk_coun
 
     // We want a hashmap with 2* the amount of chunks for reduced hash collisions
     hashmap_init(&vw->map, node_count, sizeof(HashEntryVoidP), &vw->mem, 32);
-    vw->map.hash_function = hash_int64;
 
     // We expect at most chunk_count elements in our draw_array.
     // @performance Maybe chunk_count is too large, this is the max number which probably never is reached?
