@@ -406,11 +406,8 @@ uint64 ui_element_cache_hash(
                 );
             }
 
-            for (int32 r = 0; r < table->row_count; ++r) {
-                for (int32 c = 0; c < table->column_count; ++c) {
-                    hash = ui_cache_hash_str(hash, ui_table_cell(layout, table, r, c));
-                }
-            }
+            // The cells are not hashed (can be thousands), every cell/row change goes through
+            // the ui_table_*() functions which set UI_ELEMENT_CHANGE_CONTENT
         } break;
         case UI_ELEMENT_TYPE_COLOR_PICKER: {
             const UIColorPicker* const picker = (const UIColorPicker *) element;

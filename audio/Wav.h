@@ -59,7 +59,7 @@ void generate_default_wav_references(const byte* data, uint32 size, Wav* const _
         memcpy(&wav->header, data, WAV_HEADER_SIZE);
 
         // swap endian if we are on big endian system
-        #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
+        #if !OMS_LITTLE_ENDIAN
             wav->header.size = SWAP_ENDIAN_LITTLE(wav->header.size);
             wav->header.bloc_size = SWAP_ENDIAN_LITTLE(wav->header.bloc_size);
             wav->header.audio_format = SWAP_ENDIAN_LITTLE(wav->header.audio_format);

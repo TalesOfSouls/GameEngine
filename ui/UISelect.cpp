@@ -541,8 +541,9 @@ void ui_option_list_cache(
     ArrayVector<Vertex3DSamplerTextureColor>* const vertices = &layout->ui_vertex_cache;
     ArrayVector<int32>* const indices = &layout->ui_index_cache;
 
-    UIScrollInfo scroll_info;
-    const bool has_scrollbar = ui_option_list_scroll_info(layout, list, &scroll_info);
+    // Same as ui_option_list_scroll_info() without counting the filtered options again
+    const f32 content = row_height * (f32) count;
+    const bool has_scrollbar = content > dim->dim.y;
     const f32 row_width = dim->dim.x - (has_scrollbar ? UI_SCROLLBAR_SIZE : 0.0f);
     const UIClipRect clip = ui_clip_from_rect({dim->pos.x, dim->pos.y, row_width, dim->dim.y});
 
@@ -550,7 +551,7 @@ void ui_option_list_cache(
     const int32 index_start = indices->count;
 
     // Only the visible rows are rendered
-    const f32 scroll = ui_scroll_clamp(list->scroll, row_height * (f32) count, dim->dim.y);
+    const f32 scroll = ui_scroll_clamp(list->scroll, content, dim->dim.y);
     const int32 first_row = (int32) (scroll / row_height);
     const int32 last_row = min_branched(count - 1, (int32) ((scroll + dim->dim.y) / row_height));
 
@@ -559,59 +560,65 @@ void ui_option_list_cache(
 
     // WARNING: Overlapping geometry needs its own zindex (the depth test rejects equal depth values)
     //          -> 3 layers: row background, checkbox background, checkbox border/check + text
-    for (int32 layer = 0; layer < 3; ++layer) {
-        if (layer > 0) {
-            *zindex = camera_step_closer(gpu_api_type, *zindex);
+    //          The rows don't overlap each other -> all layers of a row are created together
+    //          (only one pass over the options instead of searching every row again)
+    const f32 z_background = *zindex;
+    const f32 z_box = camera_step_closer(gpu_api_type, z_background);
+    const f32 z_content = camera_step_closer(gpu_api_type, z_box);
+    *zindex = z_content;
+
+    const char* const search = ui_select_search_text(layout, select);
+    const char* option_text = select->options
+        ? (const char *) (layout->ui_element_buffer.memory + select->options)
+        : NULL;
+
+    int32 row = 0;
+    for (int32 option = 0; option_text && option < select->option_count && row <= last_row; ++option) {
+        const char* const text = option_text;
+        option_text += strlen(option_text) + 1;
+
+        if (!ui_text_contains_case_insensitive(text, search) || row++ < first_row) {
+            continue;
         }
 
-        for (int32 row = first_row; row <= last_row; ++row) {
-            const int32 option = ui_select_filtered_option(layout, select, row);
-            if (option < 0) {
-                break;
-            }
+        const int32 current_row = row - 1;
+        const f32 row_y = dim->pos.y + scroll - row_height * (f32) current_row;
+        const bool checked = ui_select_is_checked(layout, select, option);
 
-            const f32 row_y = dim->pos.y + scroll - row_height * (f32) row;
-            const bool checked = ui_select_is_checked(layout, select, option);
+        // Row background
+        if (current_row == list->hovered) {
+            ui_rect_vertices({dim->pos.x, row_y, row_width, row_height}, select->option_hover_color, vertices, indices, z_background);
+        } else if (checked && !is_multi) {
+            ui_rect_vertices({dim->pos.x, row_y, row_width, row_height}, UI_DEFAULT_ROW_SELECTED, vertices, indices, z_background);
+        }
 
+        f32 text_x = dim->pos.x + UI_DEFAULT_TEXT_PADDING;
+        if (is_multi) {
             const v4_f32 box = {
                 dim->pos.x + UI_DEFAULT_TEXT_PADDING,
                 row_y - (row_height - UI_SELECT_CHECK_SIZE) * 0.5f,
                 UI_SELECT_CHECK_SIZE, UI_SELECT_CHECK_SIZE
             };
 
-            if (layer == 0) {
-                if (row == list->hovered) {
-                    ui_rect_vertices({dim->pos.x, row_y, row_width, row_height}, select->option_hover_color, vertices, indices, *zindex);
-                } else if (checked && !is_multi) {
-                    ui_rect_vertices({dim->pos.x, row_y, row_width, row_height}, UI_DEFAULT_ROW_SELECTED, vertices, indices, *zindex);
-                }
-            } else if (layer == 1) {
-                if (is_multi) {
-                    ui_rect_vertices(box, select->background_color, vertices, indices, *zindex);
-                }
-            } else {
-                f32 text_x = dim->pos.x + UI_DEFAULT_TEXT_PADDING;
-                if (is_multi) {
-                    ui_border_solid_vertices(box, checked ? select->check_color : select->border_color, 1, vertices, indices, *zindex);
+            ui_rect_vertices(box, select->background_color, vertices, indices, z_box);
+            ui_border_solid_vertices(box, checked ? select->check_color : select->border_color, 1, vertices, indices, z_content);
 
-                    if (checked) {
-                        ui_rect_vertices(
-                            {box.x + 3.0f, box.y - 3.0f, box.width - 6.0f, box.height - 6.0f},
-                            select->check_color, vertices, indices, *zindex
-                        );
-                    }
-
-                    text_x += UI_SELECT_CHECK_SIZE + UI_DEFAULT_TEXT_PADDING;
-                }
-
-                if (layout->font) {
-                    ui_text_vertices(
-                        layout, ui_select_option(layout, select, option), select->font.size, select->font.color,
-                        text_x, row_y - (row_height - line_height) * 0.5f,
-                        *zindex, mem
-                    );
-                }
+            if (checked) {
+                ui_rect_vertices(
+                    {box.x + 3.0f, box.y - 3.0f, box.width - 6.0f, box.height - 6.0f},
+                    select->check_color, vertices, indices, z_content
+                );
             }
+
+            text_x += UI_SELECT_CHECK_SIZE + UI_DEFAULT_TEXT_PADDING;
+        }
+
+        if (layout->font) {
+            ui_text_vertices(
+                layout, text, select->font.size, select->font.color,
+                text_x, row_y - (row_height - line_height) * 0.5f,
+                z_content, mem
+            );
         }
     }
 
@@ -629,6 +636,10 @@ void ui_option_list_cache(
     *zindex = camera_step_closer(gpu_api_type, *zindex);
 
     if (has_scrollbar) {
+        UIScrollInfo scroll_info;
+        scroll_info.track = {dim->pos.x + dim->dim.x - UI_SCROLLBAR_SIZE, dim->pos.y, UI_SCROLLBAR_SIZE, dim->dim.y};
+        scroll_info.view = dim->dim.y;
+        scroll_info.content = content;
         scroll_info.scroll = scroll;
         ui_scrollbar_vertices(
             &scroll_info, UI_SCROLL_AXIS_Y,

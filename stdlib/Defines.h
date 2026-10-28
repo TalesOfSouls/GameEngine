@@ -17,6 +17,12 @@
     #define PATH_MAX_LENGTH 255
 #endif
 
+#if _WIN32 || __LITTLE_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    #define OMS_LITTLE_ENDIAN 1
+#else
+    #define OMS_LITTLE_ENDIAN 0
+#endif
+
 #ifndef ASSUMED_CACHE_LINE_SIZE
     // In some places it is not really feasible to use runtime cache line size
     // By using this macro we can at least define a semi sensible value,

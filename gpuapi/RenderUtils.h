@@ -462,11 +462,12 @@ int16* text_to_glyphs(
     T* const __restrict mem, int32* const __restrict glyph_count
 ) NO_EXCEPT
 {
-    const int32 codepoint_count = (int32) utf8_strlen(text) - 1;
+    // The byte length is an upper bound of the codepoint count (cheaper than utf8_strlen())
+    const int32 byte_count = (int32) strlen(text);
 
     // Try to find all the necessary glyphs
     // We use offsets instead of pointer chasing
-    int16* const __restrict glyphs = (int16*) memory_get_temp(mem, (codepoint_count + 2) * sizeof(int16), alignof(uintptr_t));
+    int16* const __restrict glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
     int32 count = 0;
 
     int32 i = 0;

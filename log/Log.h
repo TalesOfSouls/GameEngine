@@ -148,8 +148,16 @@ struct LogDataArray{
     LogData data[LOG_DATA_ARRAY];
 };
 
+void log_to_file(const void* const data, size_t size) NO_EXCEPT;
+
 /**
  * Find memory buffer to write log to
+ *
+ * If the log memory is full it is written to the log file and cleared.
+ * Previously the position was only reset -> the old messages were never written to the file
+ * and their stale text was still in the memory (@see the \0 termination in log())
+ *
+ * WARNING: The caller must hold _log_memory->lock
  *
  * @return byte*
  */
@@ -157,7 +165,9 @@ static inline HOT_CODE
 byte* log_memory_get() NO_EXCEPT
 {
     if (_log_memory->pos + MAX_LOG_LENGTH > _log_memory->size) {
+        log_to_file(_log_memory->memory, _log_memory->pos);
         _log_memory->pos = 0;
+        memset((void *) _log_memory->memory, 0, _log_memory->size);
     }
 
     byte* const offset = (byte *) (_log_memory->memory + _log_memory->pos);
@@ -267,14 +277,8 @@ void log(
     int32 len = format.length;
     StandaloneSpinlockGuard _guard(&_log_memory->lock, 0);
 
-    // Ensure that we have enough space in our log memory, otherwise log to file
-    const int32 total_len = (len + (MAX_LOG_LENGTH - 1) / MAX_LOG_LENGTH) * sizeof(LogMessage) + len;
-    if (_log_memory->size - (_log_memory->pos + total_len) < MAX_LOG_LENGTH) {
-        log_to_file(_log_memory->memory, _log_memory->pos);
-        _log_memory->pos = 0;
-        memset((void *) _log_memory->memory, 0, _log_memory->size);
-    }
-
+    // Long messages are split into multiple log slots
+    // log_memory_get() writes the log memory to the file if it is full
     const char* str = format.str;
 
     while (len > 0) {
@@ -296,7 +300,7 @@ void log(
         memcpy(msg->message, str, message_length);
         msg->message[message_length] = '\0';
         str += message_length;
-        len -= MAX_LOG_LENGTH - sizeof(LogMessage);
+        len -= message_length;
 
         #if defined(DEBUG) && DEBUG || VERBOSE
             // In debug mode we always output the log message to the debug console
@@ -388,54 +392,64 @@ void log(
     msg->time = log_sys_time();
     msg->newline = '\n';
 
+    // Space of the message in the log slot (incl. \0)
+    // WARNING: Everything is bounded by this size.
+    //      Previously the format wasn't \0 terminated (-> stale text of older log messages became part of the format)
+    //      and the formatting was unbounded (e.g. long file paths of the [PERF] logs)
+    //      -> temp_format (stack) overflowed and corrupted the data parameter -> access violation in the switch below
+    const int32 message_size = (int32) (MAX_LOG_LENGTH - sizeof(LogMessage));
+
     char temp_format[MAX_LOG_LENGTH];
-    memcpy(msg->message, format.str, format.length);
+    const int32 format_length = OMS_MIN(format.length, message_size - 1);
+    memcpy(msg->message, format.str, format_length);
+    msg->message[format_length] = '\0';
 
     for (int32 i = 0; i < LOG_DATA_ARRAY; ++i) {
         if (data.data[i].type == DATA_TYPE_VOID) {
             break;
         }
 
+        // msg->message is always < message_size <= sizeof(temp_format)
         strcpy(temp_format, msg->message);
 
         switch (data.data[i].type) {
             case DATA_TYPE_VOID: {
             }   break;
             case DATA_TYPE_UINT8: {
-                sprintf_fast_iter(msg->message, temp_format, (int32) *((byte *) data.data[i].value));
+                sprintf_fast_iter(msg->message, message_size, temp_format, (int32) *((byte *) data.data[i].value));
             } break;
             case DATA_TYPE_INT16: {
-                sprintf_fast_iter(msg->message, temp_format, (int32) *((int16 *) data.data[i].value));
+                sprintf_fast_iter(msg->message, message_size, temp_format, (int32) *((int16 *) data.data[i].value));
             } break;
             case DATA_TYPE_UINT16: {
-                sprintf_fast_iter(msg->message, temp_format, (uint32) *((uint16 *) data.data[i].value));
+                sprintf_fast_iter(msg->message, message_size, temp_format, (uint32) *((uint16 *) data.data[i].value));
             } break;
             case DATA_TYPE_INT32: {
-                sprintf_fast_iter(msg->message, temp_format, *((int32 *) data.data[i].value));
+                sprintf_fast_iter(msg->message, message_size, temp_format, *((int32 *) data.data[i].value));
             } break;
             case DATA_TYPE_UINT32: {
-                sprintf_fast_iter(msg->message, temp_format, *((uint32 *) data.data[i].value));
+                sprintf_fast_iter(msg->message, message_size, temp_format, *((uint32 *) data.data[i].value));
             } break;
             case DATA_TYPE_INT64: {
-                sprintf_fast_iter(msg->message, temp_format, *((int64 *) data.data[i].value));
+                sprintf_fast_iter(msg->message, message_size, temp_format, *((int64 *) data.data[i].value));
             } break;
             case DATA_TYPE_UINT64: {
-                sprintf_fast_iter(msg->message, temp_format, *((uint64 *) data.data[i].value));
+                sprintf_fast_iter(msg->message, message_size, temp_format, *((uint64 *) data.data[i].value));
             } break;
             case DATA_TYPE_CHAR: {
-                sprintf_fast_iter(msg->message, temp_format, *((char *) data.data[i].value));
+                sprintf_fast_iter(msg->message, message_size, temp_format, *((char *) data.data[i].value));
             } break;
             case DATA_TYPE_CHAR_STR: {
-                sprintf_fast_iter(msg->message, temp_format, (const char *) data.data[i].value);
+                sprintf_fast_iter(msg->message, message_size, temp_format, (const char *) data.data[i].value);
             } break;
             case DATA_TYPE_WCHAR_STR: {
-                sprintf_fast_iter(msg->message, temp_format, (const wchar_t *) data.data[i].value);
+                sprintf_fast_iter(msg->message, message_size, temp_format, (const wchar_t *) data.data[i].value);
             } break;
             case DATA_TYPE_F32: {
-                sprintf_fast_iter(msg->message, temp_format, *((f32 *) data.data[i].value));
+                sprintf_fast_iter(msg->message, message_size, temp_format, *((f32 *) data.data[i].value));
             } break;
             case DATA_TYPE_F64: {
-                sprintf_fast_iter(msg->message, temp_format, *((f64 *) data.data[i].value));
+                sprintf_fast_iter(msg->message, message_size, temp_format, *((f64 *) data.data[i].value));
             } break;
             default: {
                 UNREACHABLE();
@@ -448,7 +462,7 @@ void log(
         log_to_terminal(msg->time, msg->message);
     #endif
 
-    DEBUG_MEMORY_WRITE((uintptr_t) msg, sizeof(*msg) + MAX_LOG_LENGTH);
+    DEBUG_MEMORY_WRITE((uintptr_t) msg, MAX_LOG_LENGTH);
 
     if (_log_memory->size - _log_memory->pos < MAX_LOG_LENGTH) {
         log_to_file(_log_memory->memory, _log_memory->pos);

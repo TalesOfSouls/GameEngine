@@ -33,7 +33,7 @@ static void test_swap_endian_64() {
 
 static void test_is_little_endian() {
     bool is_little = is_little_endian();
-    #if _WIN32 || __LITTLE_ENDIAN__
+    #if OMS_LITTLE_ENDIAN
         TEST_TRUE(is_little);
     #else
         TEST_FALSE(is_little);

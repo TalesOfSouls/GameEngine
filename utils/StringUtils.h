@@ -2080,15 +2080,6 @@ int32 str_to_eol(const char* str) NO_EXCEPT
     }
 }
 
-// Word scan helpers for str_move_to()
-// The lowest set bit of the returned mask marks the first char that is either \0 or delim
-// The classic "has zero" test can only produce false positives ABOVE a real match, therefore the lowest bit is exact
-#if _WIN32 || __LITTLE_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-    #define STR_WORD_SCAN_LITTLE_ENDIAN 1
-#else
-    #define STR_WORD_SCAN_LITTLE_ENDIAN 0
-#endif
-
 /**
  * Moves str to the first occurrence of delim or to the \0 if delim doesn't exist
  *
@@ -2133,7 +2124,7 @@ void str_move_to(const char** str, char delim) NO_EXCEPT
         ++wptr;
     }
 
-    #if STR_WORD_SCAN_LITTLE_ENDIAN
+    #if OMS_LITTLE_ENDIAN
         *str = (const char *) wptr + (compiler_find_first_bit_r2l((uint64) match) >> 3);
     #else
         s = (const char *) wptr;
@@ -2192,7 +2183,7 @@ void str_move_to(const wchar_t** str, wchar_t delim) NO_EXCEPT
         ++wptr;
     }
 
-    #if STR_WORD_SCAN_LITTLE_ENDIAN
+    #if OMS_LITTLE_ENDIAN
         *str = (const wchar_t *) wptr + (compiler_find_first_bit_r2l((uint64) match) / (sizeof(wchar_t) * 8));
     #else
         s = (const wchar_t *) wptr;
@@ -3022,6 +3013,130 @@ void sprintf_fast_iter(char* __restrict buffer, const char* __restrict format, .
 
     *buffer = '\0';
     va_end(args);
+}
+
+/**
+ * Bounded version of sprintf_fast_iter(), only the first % is replaced
+ * The output is truncated to buffer_size - 1 characters and always \0 terminated
+ *
+ * @return Length of the output
+ */
+int32 sprintf_fast_iter(char* __restrict buffer, int32 buffer_size, const char* __restrict format, ...) NO_EXCEPT
+{
+    if (buffer_size <= 0) {
+        return 0;
+    }
+
+    va_list args;
+    va_start(args, format);
+
+    const char* const start = buffer;
+    const char* const end = buffer + buffer_size - 1;
+
+    int32 count_index = 0;
+
+    // Numbers etc. are first written to temp and then copied if they fit
+    char temp[64];
+
+    while (*format && buffer < end) {
+        if (*format == '\\' && format[1] == '%') {
+            ++format;
+            *buffer++ = *format;
+        } else if (*format != '%' || count_index >= 1) {
+            *buffer++ = *format;
+        } else {
+            ++count_index;
+            ++format;
+
+            if (!*format) {
+                break;
+            }
+
+            int32 temp_length = 0;
+
+            switch (*format) {
+                case 's': {
+                    const char* str = va_arg(args, const char *);
+                    while (*str && buffer < end) {
+                        *buffer++ = *str++;
+                    }
+                } break;
+                case 'w': {
+                    const wchar_t* str = va_arg(args, const wchar_t *);
+                    while (*str) {
+                        const int32 length = (int32) wchar_to_char(temp, *str++);
+                        if (buffer + length > end) {
+                            break;
+                        }
+
+                        memcpy(buffer, temp, length);
+                        buffer += length;
+                    }
+                } break;
+                case 'c': {
+                    *buffer++ = (char) va_arg(args, int32);
+                } break;
+                case 'n': {
+                    const int64 val = va_arg(args, int64);
+                    temp_length = int_to_str(val, temp, ',');
+                } break;
+                case 'd': {
+                    const int32 val = va_arg(args, int32);
+                    temp_length = int_to_str(val, temp);
+                } break;
+                case 'u': {
+                    const uint32 val = va_arg(args, uint32);
+                    temp_length = int_to_str(val, temp);
+                } break;
+                case 'l': {
+                    const int64 val = va_arg(args, int64);
+                    temp_length = int_to_str(val, temp);
+                } break;
+                case 'f': {
+                    const f64 val = va_arg(args, f64);
+
+                    // Default precision
+                    int32 precision = 5;
+
+                    // Check for optional precision specifier
+                    const char* prec_ptr = format + 1;
+                    if (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                        precision = 0;
+                        while (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                            precision = precision * 10 + (*prec_ptr - '0');
+                            ++prec_ptr;
+                        }
+
+                        format = prec_ptr - 1;
+                    }
+
+                    temp_length = float_to_str(val, temp, precision);
+                } break;
+                case 'T': {
+                    const int64 time = va_arg(args, int64);
+                    format_time_hh_mm_ss(temp, time);
+                    temp_length = 8;
+                } break;
+                default: {
+                    // Handle unknown format specifiers
+                    *buffer++ = '%';
+                } break;
+            }
+
+            // Numbers are not truncated, they are either written completely or not at all
+            if (temp_length > 0 && buffer + temp_length <= end) {
+                memcpy(buffer, temp, temp_length);
+                buffer += temp_length;
+            }
+        }
+
+        ++format;
+    }
+
+    *buffer = '\0';
+    va_end(args);
+
+    return (int32) (buffer - start);
 }
 
 bool sscanf_fast(const char *input, const char *format, ...) NO_EXCEPT

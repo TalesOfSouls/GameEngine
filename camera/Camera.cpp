@@ -721,6 +721,34 @@ camera_view_matrix_rh_vulkan(
     matrices->view[15] = 1.0f;
 }
 
+/**
+ * Same as nextafterf(value, target) for finite values (bit manipulation instead of a library call)
+ * Called multiple times per UI element and frame
+ */
+FORCE_INLINE
+f32 camera_float_step(f32 value, f32 target) NO_EXCEPT
+{
+    if (value == target) {
+        return value;
+    }
+
+    if (value == 0.0f) {
+        // Smallest denormal in the direction of the target
+        return BITCAST(target > 0.0f ? 0x00000001U : 0x80000001U, f32);
+    }
+
+    uint32 bits = BITCAST(value, uint32);
+
+    // Moving away from 0 = increasing the magnitude
+    if ((value < target) == (value > 0.0f)) {
+        ++bits;
+    } else {
+        --bits;
+    }
+
+    return BITCAST(bits, f32);
+}
+
 inline
 f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT
 {
@@ -732,12 +760,10 @@ f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT
     switch (type) {
         case GPU_API_TYPE_SOFTWARE:
         case GPU_API_TYPE_OPENGL:
-            return value + (nextafterf(value, -999.9f) - value) * 1000.0f;
         case GPU_API_TYPE_VULKAN:
-            return value + (nextafterf(value, -999.9f) - value) * 1000.0f;
         case GPU_API_TYPE_DIRECTX_11:
         case GPU_API_TYPE_DIRECTX_12:
-            return value + (nextafterf(value, -999.9f) - value) * 1000.0f;
+            return value + (camera_float_step(value, -999.9f) - value) * 1000.0f;
         default:
             UNREACHABLE();
     }
@@ -746,20 +772,14 @@ f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT
 inline
 f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT
 {
-    // WARNING: The value depends on the near and far plane.
-    // The reason for this is they will get smaller and smaller with increasing zfar values
-    // until the difference effectively becomes 0 -> vertices occupy the same zindex -> zfighting
-    // For safety reasons we calculate a rather generous offset.
-    // @performance Maybe it makes sense in the future to just pick a small CONST epsilon value
+    // @see camera_step_closer()
     switch (type) {
         case GPU_API_TYPE_SOFTWARE:
         case GPU_API_TYPE_OPENGL:
-            return value + (nextafterf(value, 999.9f) - value) * 1000.0f;
         case GPU_API_TYPE_VULKAN:
-            return value + (nextafterf(value, 999.9f) - value) * 1000.0f;
         case GPU_API_TYPE_DIRECTX_11:
         case GPU_API_TYPE_DIRECTX_12:
-            return value + (nextafterf(value, 999.9f) - value) * 1000.0f;
+            return value + (camera_float_step(value, 999.9f) - value) * 1000.0f;
         default:
             UNREACHABLE();
     }

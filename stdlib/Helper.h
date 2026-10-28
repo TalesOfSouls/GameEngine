@@ -144,7 +144,7 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 
 // Merges an array of bytes as an int value (16bit, 32bit, 64bit)
 // The implementation is endian aware
-#if _WIN32 || __LITTLE_ENDIAN__
+#if OMS_LITTLE_ENDIAN
     #define BYTES_MERGE_2_L2R(arr) (((arr)[0] << 8) | (arr)[1])
     #define BYTES_MERGE_4_L2R(arr) (((arr)[0] << 24) | ((arr)[1] << 16) | ((arr)[2] << 8) | (arr)[3])
     #define BYTES_MERGE_8_L2R(arr) (((uint64_t)(arr)[0] << 56) | ((uint64_t)(arr)[1] << 48) | ((uint64_t)(arr)[2] << 40) | ((uint64_t)(arr)[3] << 32) | ((uint64_t)(arr)[4] << 24) | ((uint64_t)(arr)[5] << 16) | ((uint64_t)(arr)[6] << 8)  | ((uint64_t)(arr)[7]))
@@ -178,7 +178,7 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 
 // Merges an array of bytes as an int value (16bit, 32bit, 64bit)
 // The implementation is endian aware
-#if _WIN32 || __LITTLE_ENDIAN__
+#if OMS_LITTLE_ENDIAN
     #define BYTES_MERGE_2_R2L(arr) (*(const uint16_t *)(arr))
     #define BYTES_MERGE_4_R2L(arr) (*(const uint32_t *)(arr))
     #define BYTES_MERGE_8_R2L(arr) (*(const uint64_t *)(arr))
@@ -310,7 +310,7 @@ static inline To bitcast(From src)
 
 // Automatically perform endian swap if necessary
 // If we are on little endian (e.g. Win32) we swap big endian data but not little endian
-#if _WIN32 || __LITTLE_ENDIAN__
+#if OMS_LITTLE_ENDIAN
     #define SWAP_ENDIAN_LITTLE(val) (val)
     #define SWAP_ENDIAN_BIG(val) endian_swap(val)
 

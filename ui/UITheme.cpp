@@ -35,7 +35,7 @@
  *
  * Style names are limited to HASH_MAP_MAX_KEY_LENGTH - 1 characters
  *
- * Language: themes/<theme>/lang/<language>/<name>.theme.langtxt (@see ui_theme_language_load, Language.cpp)
+ * Language: themes/<theme>/lang/<language>/<name>.langtxt (@see ui_theme_language_load, Language.cpp)
  *
  * Assets: the "@theme" block defines the assets of the theme as hex asset ids (@see the generated asset id headers)
  *      @theme
@@ -303,9 +303,10 @@ bool ui_theme_language_from_txt(UITheme* const __restrict theme, const char* __r
 
 /**
  * Loads the language file of a theme file (falls back to LANGUAGE_DEFAULT_CODE)
- *      ./themes/default/general.themetxt -> ./themes/default/lang/<language_code>/general.theme.langtxt
+ *      ./themes/default/general.themetxt -> ./themes/default/lang/<language_code>/general.langtxt
  *
- * @param mem Temporary memory for the file content
+ * @param language_code NULL/empty = LANGUAGE_DEFAULT_CODE
+ * @param mem           Temporary memory for the file content
  *
  * @return false if the theme has no language file
  */
@@ -317,10 +318,19 @@ bool ui_theme_language_load(
     M* const __restrict mem
 ) NO_EXCEPT
 {
+    if (!language_code || !language_code[0]) {
+        language_code = LANGUAGE_DEFAULT_CODE;
+    }
+
     wchar_t path[PATH_MAX_LENGTH];
-    // build path and check if file exists
+    // build path and check if file exists, falls back to LANGUAGE_DEFAULT_CODE if the language doesn't exist
     // @performance this can be optimized heavily
-    {
+    for (;;) {
+        // + "lang/" + "/" + ".langtxt" + \0
+        if (wcslen(theme_path) + wcslen(language_code) + 15 > PATH_MAX_LENGTH) {
+            return false;
+        }
+
         wcscpy(path, theme_path);
         wchar_t* pos = str_right(path, L'.');
         if (pos) {
@@ -333,9 +343,15 @@ bool ui_theme_language_load(
         str_insert(path, dir_end, language_code);
         str_insert(path, dir_end, L"lang/");
 
-        if (!file_exists(path)) {
+        if (file_exists(path)) {
+            break;
+        }
+
+        if (wcscmp(language_code, LANGUAGE_DEFAULT_CODE) == 0) {
             return false;
         }
+
+        language_code = LANGUAGE_DEFAULT_CODE;
     }
 
     FileBody file = {0};

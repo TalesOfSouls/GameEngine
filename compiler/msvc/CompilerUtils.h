@@ -304,7 +304,7 @@ void compiler_memset_aligned_4(void* const dst, int value, size_t size) NO_EXCEP
 #define SWAP_ENDIAN_32(val) _byteswap_ulong((val))
 #define SWAP_ENDIAN_64(val) _byteswap_uint64((val))
 
-#if _WIN32 || __LITTLE_ENDIAN__
+#if OMS_LITTLE_ENDIAN
     #define SWAP_ENDIAN_LITTLE_16(val) (val)
     #define SWAP_ENDIAN_LITTLE_32(val) (val)
     #define SWAP_ENDIAN_LITTLE_64(val) (val)

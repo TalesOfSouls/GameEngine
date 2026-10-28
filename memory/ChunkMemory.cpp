@@ -581,7 +581,7 @@ int64 chunk_dump(const ChunkMemory* const buf, byte* data) NO_EXCEPT
     // This also includes the free array
     memcpy(data, buf->memory, buf->size);
 
-    #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
+    #if !OMS_LITTLE_ENDIAN
         size_t* free_data = (size_t *) (data + free_offset);
         for (uint32 i = 0; i < ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity); ++i) {
             *free_data = SWAP_ENDIAN_LITTLE(*free_data);
@@ -690,7 +690,7 @@ int64 chunk_load(ChunkMemory* const buf, const byte* data, size_t data_size = 0)
 
     buf->free = (size_t *) (buf->memory + free_offset);
 
-    #if !defined(_WIN32) && !defined(__LITTLE_ENDIAN__)
+    #if !OMS_LITTLE_ENDIAN
         size_t* free_data = buf->free;
         for (uint32 i = 0; i < ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity); ++i) {
             *free_data = SWAP_ENDIAN_LITTLE(*free_data);

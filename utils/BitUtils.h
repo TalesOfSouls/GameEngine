@@ -411,7 +411,7 @@ byte bits_count(uint8 data) NO_EXCEPT
     return BIT_COUNT_LOOKUP_TABLE[data];
 }
 
-#if _WIN32 || __LITTLE_ENDIAN__
+#if OMS_LITTLE_ENDIAN
     #define SWAP_ENDIAN_LITTLE_SIMD(val, result, size, steps) ((void)0)
     #define SWAP_ENDIAN_BIG_SIMD(val, result, size, steps) endian_swap((val), (result), (size), (steps))
 #else
