@@ -434,6 +434,7 @@ GL_FUNC_DEFINE(void, glEnableVertexArrayAttrib, (GLuint vaobj, GLuint index));
 GL_FUNC_DEFINE(void, glVertexArrayAttribIFormat, (GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset));
 GL_FUNC_DEFINE(void, glVertexAttribBinding, (GLuint attribindex, GLuint bindingindex));
 GL_FUNC_DEFINE(void, glVertexArrayAttribBinding, (GLuint vaobj, GLuint attribindex, GLuint bindingindex));
+GL_FUNC_DEFINE(void, glVertexArrayBindingDivisor, (GLuint vaobj, GLuint bindingindex, GLuint divisor));
 GL_FUNC_DEFINE(void, glDisableVertexAttribArray, (GLuint index));
 GL_FUNC_DEFINE(GLint, glGetAttribLocation, (GLuint program, const GLchar *name));
 GL_FUNC_DEFINE(void, glVertexAttribPointer, (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer));
@@ -491,6 +492,7 @@ GL_FUNC_DEFINE(void, glGetShaderiv, (GLuint shader, GLenum pname, GLint* param))
 GL_FUNC_DEFINE(void, glDrawArraysInstanced, (GLenum mode, GLint first, GLsizei count, GLsizei instancecount));
 GL_FUNC_DEFINE(void, glMultiDrawArraysIndirect, (GLenum mode, const void* indirect, GLsizei drawcount, GLsizei stride));
 GL_FUNC_DEFINE(void, glMultiDrawElementsIndirect, (GLenum mode, GLenum type, const void* indirect, GLsizei drawcount, GLsizei stride));
+GL_FUNC_DEFINE(void, glDrawElementsInstancedBaseInstance, (GLenum mode, GLsizei count, GLenum type, const void* indices, GLsizei instancecount, GLuint baseinstance));
 GL_FUNC_DEFINE(void, glDrawElementsInstanced, (GLenum mode, GLint count, GLenum type, const void* indices, GLsizei instancecount));
 GL_FUNC_DEFINE(void, glProgramParameteri, (GLuint program, GLenum pname, GLint value));
 GL_FUNC_DEFINE(void, glTextureParameteri, (GLuint texture, GLenum pname, GLint param));
@@ -860,6 +862,7 @@ void opengl_init_gl() NO_EXCEPT
     glEnableVertexArrayAttrib = (type_glEnableVertexArrayAttrib *) wglGetProcAddress("glEnableVertexArrayAttrib");
     glVertexAttribBinding = (type_glVertexAttribBinding *) wglGetProcAddress("glVertexAttribBinding");
     glVertexArrayAttribBinding = (type_glVertexArrayAttribBinding *) wglGetProcAddress("glVertexArrayAttribBinding");
+    glVertexArrayBindingDivisor = (type_glVertexArrayBindingDivisor *) wglGetProcAddress("glVertexArrayBindingDivisor");
     glVertexArrayAttribIFormat = (type_glVertexArrayAttribIFormat *) wglGetProcAddress("glVertexArrayAttribIFormat");
     glDisableVertexAttribArray = (type_glDisableVertexAttribArray *) wglGetProcAddress("glDisableVertexAttribArray");
     glGetAttribLocation = (type_glGetAttribLocation *) wglGetProcAddress("glGetAttribLocation");
@@ -918,6 +921,7 @@ void opengl_init_gl() NO_EXCEPT
     glDrawArraysInstanced = (type_glDrawArraysInstanced *) wglGetProcAddress("glDrawArraysInstanced");
     glMultiDrawArraysIndirect = (type_glMultiDrawArraysIndirect *) wglGetProcAddress("glMultiDrawArraysIndirect");
     glMultiDrawElementsIndirect = (type_glMultiDrawElementsIndirect *) wglGetProcAddress("glMultiDrawElementsIndirect");
+    glDrawElementsInstancedBaseInstance = (type_glDrawElementsInstancedBaseInstance *) wglGetProcAddress("glDrawElementsInstancedBaseInstance");
     glDrawElementsInstanced = (type_glDrawElementsInstanced *) wglGetProcAddress("glDrawElementsInstanced");
     glProgramParameteri = (type_glProgramParameteri *) wglGetProcAddress("glProgramParameteri");
     glTextureParameteri = (type_glTextureParameteri *) wglGetProcAddress("glTextureParameteri");
