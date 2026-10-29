@@ -822,6 +822,99 @@ void input_controller_axes_default(Input* const input) NO_EXCEPT
     input->controller_axes[3] = CONTROLLER_BUTTON_STICK_LEFT_VERTICAL;
 }
 
+/**
+ * Current value of a controller axis (-128 - 127), 0 if it is inside the deadzone or not mapped
+ * The axes are active keys with absolute values (@see input_set_controller_state)
+ *
+ * @param button ControllerButton (e.g. Input::controller_axes[0])
+ */
+inline
+int32 input_controller_axis_value(const Input* const input, uint32 button) NO_EXCEPT
+{
+    if (button >= CONTROLLER_BUTTON_SIZE) {
+        return 0;
+    }
+
+    const uint16 scan_code = (uint16) (INPUT_CONTROLLER_PREFIX | button);
+    for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
+        const InputKey* const key = &input->state.active_keys[i];
+        if (key->scan_code == scan_code && !(key->key_state & KEY_PRESS_TYPE_RELEASED)) {
+            return key->value;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Stick deflection -> speed factor (-1.0 - 1.0)
+ * The deadzone is removed (the movement starts at 0 at the edge of the deadzone) + response curve
+ * Use it for time based movement (e.g. speed * dt), independent of the tick rate
+ */
+inline
+f32 input_controller_axis_speed(int32 value, int32 deadzone) NO_EXCEPT
+{
+    const int32 magnitude = abs(value);
+    if (magnitude <= deadzone) {
+        return 0.0f;
+    }
+
+    // WARNING: OMS_MIN/OMS_MAX are branchless and only work for int types
+    const f32 range = (f32) max_branched(127 - deadzone, 1);
+    const f32 normalized = min_branched((f32) (magnitude - deadzone) / range, 1.0f);
+
+    // Response curve (~x^2.5): small deflections move slowly (precise), full deflection moves fast
+    const f32 speed = normalized * normalized * (0.4f + 0.6f * normalized);
+
+    return value < 0 ? -speed : speed;
+}
+
+/**
+ * Splits a stick axis into its two directions (0 - 127 each)
+ *
+ * @param negative Direction of negative values (up for vertical axes, left for horizontal axes)
+ */
+static inline
+void input_controller_axis_split(
+    ControllerInput* const controller,
+    ControllerButton axis,
+    ControllerButton negative, ControllerButton positive
+) NO_EXCEPT
+{
+    const int32 value = controller->button[axis];
+
+    // -(-128) doesn't fit into int8
+    controller->button[negative] = (int8) (value < 0 ? OMS_MIN(-value, 127) : 0);
+    controller->button[positive] = (int8) (value > 0 ? value : 0);
+    controller->is_analog[negative] = true;
+    controller->is_analog[positive] = true;
+}
+
+/**
+ * Creates the stick direction keys from the stick axes (e.g. CONTROLLER_BUTTON_STICK_LEFT_UP)
+ * Up is negative for all controllers (same as the window coordinates, @see input_map_xinput)
+ */
+inline
+void input_controller_stick_directions(ControllerInput* const controller) NO_EXCEPT
+{
+    input_controller_axis_split(
+        controller, CONTROLLER_BUTTON_STICK_LEFT_VERTICAL,
+        CONTROLLER_BUTTON_STICK_LEFT_UP, CONTROLLER_BUTTON_STICK_LEFT_DOWN
+    );
+    input_controller_axis_split(
+        controller, CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL,
+        CONTROLLER_BUTTON_STICK_LEFT_LEFT, CONTROLLER_BUTTON_STICK_LEFT_RIGHT
+    );
+    input_controller_axis_split(
+        controller, CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL,
+        CONTROLLER_BUTTON_STICK_RIGHT_UP, CONTROLLER_BUTTON_STICK_RIGHT_DOWN
+    );
+    input_controller_axis_split(
+        controller, CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL,
+        CONTROLLER_BUTTON_STICK_RIGHT_LEFT, CONTROLLER_BUTTON_STICK_RIGHT_RIGHT
+    );
+}
+
 // Controllers are a little bit special
 // We need to manually check the specific buttons and set their key
 // Since some controllers are constantly sending data like mad it's not possible to handle them event based
@@ -830,6 +923,9 @@ void input_controller_axes_default(Input* const input) NO_EXCEPT
 inline
 void input_set_controller_state(Input* input, ControllerInput* controller, uint64 time) NO_EXCEPT
 {
+    // The controller mappings only fill the axes, the direction keys are created here for all controller types
+    input_controller_stick_directions(controller);
+
     // Check active keys that might need to be set to inactive
     for (int i = 0; i < MAX_KEY_PRESSES; ++i) {
         InputKey* key = &input->state.active_keys[i];

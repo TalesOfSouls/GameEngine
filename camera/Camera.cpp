@@ -159,13 +159,16 @@ void camera_vectors_update(Camera* const camera) NO_EXCEPT
     camera->up = quat_rotate_vec3(q, { 0.0f, 1.0f,  0.0f });
 }
 
+/**
+ * Rotates the camera by angles (e.g. time based controller stick rotation)
+ *
+ * @param yaw   Rotation around the world up axis [rad], > 0 = left
+ * @param pitch Rotation around the camera right axis [rad], > 0 = up
+ */
 inline HOT_CODE
-void camera_rotate(Camera* const camera, int32 dx, int32 dy) NO_EXCEPT
+void camera_rotate_radians(Camera* const camera, f32 yaw, f32 pitch) NO_EXCEPT
 {
     camera->state_changes |= CAMERA_STATE_CHANGE_ORIENTATION;
-
-    const f32 yaw   = -dx * camera->sensitivity * CAMERA_RADIANS_PER_COUNT;
-    const f32 pitch = -dy * camera->sensitivity * CAMERA_RADIANS_PER_COUNT;
 
     // yaw in world space
     const quaternion qyaw = quat_axis_angle(camera->world_up, yaw);
@@ -179,6 +182,17 @@ void camera_rotate(Camera* const camera, int32 dx, int32 dy) NO_EXCEPT
     camera->orientation = quat_normalize(camera->orientation);
 
     camera_vectors_update(camera);
+}
+
+// Rotates the camera by mouse counts (e.g. raw mouse movement)
+inline HOT_CODE
+void camera_rotate(Camera* const camera, int32 dx, int32 dy) NO_EXCEPT
+{
+    camera_rotate_radians(
+        camera,
+        -dx * camera->sensitivity * CAMERA_RADIANS_PER_COUNT,
+        -dy * camera->sensitivity * CAMERA_RADIANS_PER_COUNT
+    );
 }
 
 inline
