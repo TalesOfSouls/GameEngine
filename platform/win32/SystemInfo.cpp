@@ -880,4 +880,539 @@ bool monitor_supports_higher_hz() NO_EXCEPT
     return false;
 }
 
+/**
+ * Raw SMBIOS table returned by GetSystemFirmwareTable('RSMB')
+ */
+struct RawSmbiosData {
+    BYTE used20_calling_method;
+    BYTE major_version;
+    BYTE minor_version;
+    BYTE dmi_revision;
+    DWORD length;
+    BYTE table[1];
+};
+
+static inline char hardware_id_lower(char value) NO_EXCEPT
+{
+    return (value >= 'A' && value <= 'Z') ? (char) (value + ('a' - 'A')) : value;
+}
+
+static inline bool hardware_id_equal_ci(const char* lhs, const char* rhs) NO_EXCEPT
+{
+    if (!lhs || !rhs) {
+        return false;
+    }
+
+    while (*lhs && *rhs) {
+        if (hardware_id_lower(*lhs) != hardware_id_lower(*rhs)) {
+            return false;
+        }
+
+        ++lhs;
+        ++rhs;
+    }
+
+    return *lhs == *rhs;
+}
+
+static inline bool hardware_id_ignored(const char* value) NO_EXCEPT
+{
+    static const char* const ignored[] = {
+        "none",
+        "n/a",
+        "na",
+        "unknown",
+        "default string",
+        "to be filled by o.e.m.",
+        "to be filled by oem",
+        "system serial number",
+        "system manufacturer",
+        "system product name",
+        "not specified",
+        "not available",
+        "0",
+        "00000000",
+        "ffffffff",
+        "ffffffffffffffff",
+        "00000000-0000-0000-0000-000000000000",
+        "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "03000200-0400-0500-0006-000700080009",
+    };
+
+    for (size_t i = 0; i < ARRAY_COUNT(ignored); ++i) {
+        if (hardware_id_equal_ci(value, ignored[i])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Copies a firmware string, trims whitespace and drops OEM placeholders
+ */
+static inline void hardware_id_copy(
+    char* const __restrict dst,
+    size_t dst_size,
+    const char* src
+) NO_EXCEPT
+{
+    if (!dst || !dst_size) {
+        return;
+    }
+
+    dst[0] = '\0';
+    if (!src) {
+        return;
+    }
+
+    while (*src == ' ' || *src == '\t' || *src == '\r' || *src == '\n') {
+        ++src;
+    }
+
+    size_t length = strlen(src);
+    while (length && (src[length - 1] == ' ' || src[length - 1] == '\t'
+        || src[length - 1] == '\r' || src[length - 1] == '\n')
+    ) {
+        --length;
+    }
+
+    if (!length) {
+        return;
+    }
+
+    if (length >= dst_size) {
+        length = dst_size - 1;
+    }
+
+    for (size_t i = 0; i < length; ++i) {
+        dst[i] = src[i];
+    }
+
+    dst[length] = '\0';
+
+    if (hardware_id_ignored(dst)) {
+        dst[0] = '\0';
+    }
+}
+
+static inline uint16 hardware_id_u16(const byte* const data) NO_EXCEPT
+{
+    return (uint16) (data[0] | ((uint16) data[1] << 8));
+}
+
+static inline uint32 hardware_id_u32(const byte* const data) NO_EXCEPT
+{
+    return (uint32) data[0]
+        | ((uint32) data[1] << 8)
+        | ((uint32) data[2] << 16)
+        | ((uint32) data[3] << 24);
+}
+
+static inline char* hardware_id_hex(char* out, uint64 value, int32 digits) NO_EXCEPT
+{
+    static const char HEX[] = "0123456789ABCDEF";
+
+    for (int32 i = digits - 1; i >= 0; --i) {
+        out[i] = HEX[value & 0xF];
+        value >>= 4;
+    }
+
+    return out + digits;
+}
+
+/**
+ * Formats the SMBIOS UUID bytes in the canonical UUID order
+ *
+ * SMBIOS 2.6+ stores the first three UUID fields little-endian and the remaining
+ * bytes as-is. Older tables used the raw byte order.
+ */
+static inline void hardware_id_smbios_uuid(
+    const byte* const data,
+    char* const out,
+    bool little_endian
+) NO_EXCEPT
+{
+    char* cursor = out;
+
+    if (little_endian) {
+        cursor = hardware_id_hex(cursor, hardware_id_u32(data), 8);
+        *cursor++ = '-';
+
+        cursor = hardware_id_hex(cursor, hardware_id_u16(data + 4), 4);
+        *cursor++ = '-';
+
+        cursor = hardware_id_hex(cursor, hardware_id_u16(data + 6), 4);
+        *cursor++ = '-';
+    } else {
+        cursor = hardware_id_hex(cursor, data[0], 2);
+        cursor = hardware_id_hex(cursor, data[1], 2);
+        cursor = hardware_id_hex(cursor, data[2], 2);
+        cursor = hardware_id_hex(cursor, data[3], 2);
+        *cursor++ = '-';
+
+        cursor = hardware_id_hex(cursor, data[4], 2);
+        cursor = hardware_id_hex(cursor, data[5], 2);
+        *cursor++ = '-';
+
+        cursor = hardware_id_hex(cursor, data[6], 2);
+        cursor = hardware_id_hex(cursor, data[7], 2);
+        *cursor++ = '-';
+    }
+
+    cursor = hardware_id_hex(cursor, data[8], 2);
+    cursor = hardware_id_hex(cursor, data[9], 2);
+    *cursor++ = '-';
+
+    cursor = hardware_id_hex(cursor, data[10], 2);
+    cursor = hardware_id_hex(cursor, data[11], 2);
+    cursor = hardware_id_hex(cursor, data[12], 2);
+    cursor = hardware_id_hex(cursor, data[13], 2);
+    cursor = hardware_id_hex(cursor, data[14], 2);
+    cursor = hardware_id_hex(cursor, data[15], 2);
+
+    *cursor = '\0';
+}
+
+static inline const char* hardware_id_smbios_string(
+    const byte* const strings,
+    size_t strings_length,
+    byte index
+) NO_EXCEPT
+{
+    if (!strings || !strings_length || !index) {
+        return NULL;
+    }
+
+    const char* cursor = (const char *) strings;
+    const char* const end = cursor + strings_length;
+
+    for (byte i = 1; i < index; ++i) {
+        while (cursor < end && *cursor) {
+            ++cursor;
+        }
+
+        if (cursor >= end) {
+            return NULL;
+        }
+
+        ++cursor;
+    }
+
+    return cursor < end && *cursor ? cursor : NULL;
+}
+
+/**
+ * Parses the SMBIOS structures relevant for a hardware ban
+ */
+static inline void hardware_id_smbios_parse(
+    const byte* const table,
+    size_t table_size,
+    HardwareId* const id,
+    bool little_endian_uuid
+) NO_EXCEPT
+{
+    size_t offset = 0;
+
+    while (offset + 4 <= table_size) {
+        const byte type = table[offset];
+        const byte length = table[offset + 1];
+
+        if (length < 4 || offset + length > table_size) {
+            break;
+        }
+
+        const byte* const data = table + offset;
+        const byte* const strings = data + length;
+
+        size_t strings_length = 0;
+        while (offset + length + strings_length + 1 < table_size
+            && !(table[offset + length + strings_length] == 0
+                && table[offset + length + strings_length + 1] == 0)
+        ) {
+            ++strings_length;
+        }
+
+        if (offset + length + strings_length + 1 >= table_size) {
+            break;
+        }
+
+        switch (type) {
+            case 0: {
+                // BIOS serial number
+                if (length > 0x07) {
+                    hardware_id_copy(
+                        id->bios_serial,
+                        sizeof(id->bios_serial),
+                        hardware_id_smbios_string(strings, strings_length, data[0x07])
+                    );
+                }
+                break;
+            }
+
+            case 1: {
+                // System UUID, system serial number, manufacturer and product name
+                if (length >= 0x18) {
+                    char uuid[37];
+                    hardware_id_smbios_uuid(data + 0x08, uuid, little_endian_uuid);
+                    hardware_id_copy(id->system_uuid, sizeof(id->system_uuid), uuid);
+                }
+
+                if (length > 0x07) {
+                    hardware_id_copy(
+                        id->system_serial,
+                        sizeof(id->system_serial),
+                        hardware_id_smbios_string(strings, strings_length, data[0x07])
+                    );
+                }
+
+                if (length > 0x04) {
+                    hardware_id_copy(
+                        id->system_vendor,
+                        sizeof(id->system_vendor),
+                        hardware_id_smbios_string(strings, strings_length, data[0x04])
+                    );
+                }
+
+                if (length > 0x05) {
+                    hardware_id_copy(
+                        id->system_product,
+                        sizeof(id->system_product),
+                        hardware_id_smbios_string(strings, strings_length, data[0x05])
+                    );
+                }
+                break;
+            }
+
+            case 2: {
+                // Baseboard serial number
+                if (length > 0x07) {
+                    hardware_id_copy(
+                        id->board_serial,
+                        sizeof(id->board_serial),
+                        hardware_id_smbios_string(strings, strings_length, data[0x07])
+                    );
+                }
+                break;
+            }
+
+            case 4:
+                // CPU identity comes from CPUID on both platforms, not SMBIOS.
+                break;
+
+            case 127:
+                break;
+
+            default:
+                break;
+        }
+
+        offset += length + strings_length + 2;
+
+        if (type == 127) {
+            break;
+        }
+    }
+}
+
+static inline void hardware_id_smbios_read(
+    HardwareId* const id
+) NO_EXCEPT
+{
+    const DWORD required = GetSystemFirmwareTable('RSMB', 0, NULL, 0);
+    if (required < 8) {
+        return;
+    }
+
+    byte* const buffer = (byte *) malloc(required);
+    if (!buffer) {
+        return;
+    }
+
+    const DWORD written = GetSystemFirmwareTable('RSMB', 0, buffer, required);
+    if (written >= 8 && written <= required) {
+        const RawSmbiosData* const header = (const RawSmbiosData *) buffer;
+        if (header->length <= written - 8) {
+            const bool little_endian_uuid = header->major_version > 2
+                || (header->major_version == 2 && header->minor_version >= 6);
+
+            hardware_id_smbios_parse(buffer + 8, header->length, id, little_endian_uuid);
+        }
+    }
+
+    free(buffer);
+}
+
+/**
+ * Converts a Windows PNP id into the canonical PCI form shared with Linux
+ *
+ *      PCI\VEN_10DE&DEV_1B80&SUBSYS_85AA1043&REV_A1
+ *      -> VEN_10DE&DEV_1B80&SUBSYS_85AA1043
+ */
+static inline bool hardware_id_gpu_canonicalize(
+    const char* const pnp_id,
+    char* const out,
+    size_t out_size
+) NO_EXCEPT
+{
+    if (!pnp_id || !out || !out_size) {
+        return false;
+    }
+
+    out[0] = '\0';
+
+    const char* start = pnp_id;
+    if (strncmp(start, "PCI\\", 4) == 0) {
+        start += 4;
+    }
+
+    if (strncmp(start, "VEN_", 4) != 0) {
+        return false;
+    }
+
+    const char* const rev = strstr(start, "&REV_");
+    const size_t length = rev ? (size_t) (rev - start) : strlen(start);
+
+    if (!length || length >= out_size) {
+        return false;
+    }
+
+    memcpy(out, start, length);
+    out[length] = '\0';
+
+    return true;
+}
+
+static inline void hardware_id_gpu_collect(HardwareId* const id) NO_EXCEPT
+{
+    DISPLAY_DEVICEW device = {};
+    device.cb = sizeof(device);
+
+    for (DWORD i = 0; i < 100 && id->gpu_id_count < ARRAY_COUNT(id->gpu_id); ++i) {
+        if (!EnumDisplayDevicesW(NULL, i, &device, 0)) {
+            break;
+        }
+
+        if (device.StateFlags & DISPLAY_DEVICE_MIRRORING_DRIVER) {
+            continue;
+        }
+
+        char pnp_id[128];
+        wchar_to_char(pnp_id, device.DeviceID, (int32) sizeof(pnp_id) - 1);
+        pnp_id[sizeof(pnp_id) - 1] = '\0';
+
+        char gpu_id[128];
+        if (hardware_id_gpu_canonicalize(pnp_id, gpu_id, sizeof(gpu_id))) {
+            hardware_id_gpu_add(id, gpu_id);
+        }
+    }
+
+    hardware_id_gpu_sort(id);
+}
+
+void hardware_id_get(HardwareId* const id, const SystemInfo* const info) NO_EXCEPT
+{
+    (void) info;
+
+    if (!id) {
+        return;
+    }
+
+    memset(id, 0, sizeof(*id));
+
+    hardware_id_cpu_fill(id);
+    hardware_id_smbios_read(id);
+    hardware_id_gpu_collect(id);
+}
+
+static inline bool hardware_id_contains_ci(const char* const value, const char* const needle) NO_EXCEPT
+{
+    if (!value || !needle || !*needle) {
+        return false;
+    }
+
+    const size_t needle_length = strlen(needle);
+
+    for (const char* cursor = value; *cursor; ++cursor) {
+        size_t i = 0;
+        while (i < needle_length && cursor[i]
+            && hardware_id_lower(cursor[i]) == hardware_id_lower(needle[i])
+        ) {
+            ++i;
+        }
+
+        if (i == needle_length) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static inline bool hardware_id_known_vm_string(const char* const value) NO_EXCEPT
+{
+    static const char* const markers[] = {
+        "vmware",
+        "virtualbox",
+        "vbox",
+        "qemu",
+        "xen",
+        "parallels",
+        "bhyve",
+        "bochs",
+        "innotek",
+        "microsoft hv",
+        "hyper-v",
+        "virtual machine",
+        "kvm",
+        "openstack",
+        "amazon ec2",
+        "google compute",
+        "digitalocean",
+        "alibaba",
+    };
+
+    for (size_t i = 0; i < ARRAY_COUNT(markers); ++i) {
+        if (hardware_id_contains_ci(value, markers[i])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool system_is_virtual_machine(const SystemInfo* const info) NO_EXCEPT
+{
+#if !defined(_M_ARM64)
+    uint32 regs[4];
+
+    compiler_cpuid(regs, 1);
+    if (regs[2] & (1U << 31)) {
+        return true;
+    }
+
+    compiler_cpuid(regs, 0x40000000);
+
+    char vendor[13];
+    memcpy(vendor, &regs[1], 4);
+    memcpy(vendor + 4, &regs[3], 4);
+    memcpy(vendor + 8, &regs[2], 4);
+    vendor[12] = '\0';
+
+    if (hardware_id_known_vm_string(vendor)) {
+        return true;
+    }
+#endif
+
+    if (info) {
+        if (hardware_id_known_vm_string(info->hardware.system_vendor)
+            || hardware_id_known_vm_string(info->hardware.system_product)
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 #endif

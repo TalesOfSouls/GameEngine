@@ -20,13 +20,13 @@
  *
  * Similar to the ChunkMemory but:
  * Benefits
- *      * Much faster at finding free memory chunks
+ *      - Much faster at finding free memory chunks
  *
  * Disadvantages
- *      * Requires you to release memory once no longer used
- *      * Memory gets fragmented over time/usage
- *      * Impossible to request multiple contiguous chunks
- *      * Horrible performance for iterating active elements
+ *      - Requires you to release memory once no longer used
+ *      - Memory gets fragmented over time/usage
+ *      - Impossible to request multiple contiguous chunks
+ *      - Horrible performance for iterating active elements
  */
 template <typename T>
 struct FragmentMemoryT {

@@ -363,9 +363,9 @@ void input_clean_state(InputKey* const active_keys, KeyPressType press_status = 
 
 /**
  * MUST be called once per tick for every input BEFORE the new input events are applied
- *      * keys released in the last tick are removed
- *      * keys pressed in the last tick become held
- *      * per tick values (mouse/stick delta, typed text, change flag) are reset
+ *      - keys released in the last tick are removed
+ *      - keys pressed in the last tick become held
+ *      - per tick values (mouse/stick delta, typed text, change flag) are reset
  *
  * This way everybody in the same tick (hotkeys, ui, game logic) sees the same key states incl. releases
  */
