@@ -226,7 +226,10 @@ bool drm_memory_scan(
             BYTE* chunk = region_base;
             while (chunk < region_end) {
                 const size_t remaining = (size_t)(region_end - chunk);
-                const size_t want = (remaining < helper_memory_size) ? remaining : helper_memory_size;
+                const size_t want = (remaining < helper_memory_size)
+                    ? remaining
+                    : helper_memory_size;
+
                 size_t bytes_read = 0;
 
                 if (ReadProcessMemory(hProcess, chunk, helper_memory, want, &bytes_read)

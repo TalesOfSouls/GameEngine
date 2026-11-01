@@ -155,10 +155,15 @@ uint32 lzp3_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
             ++i;
         }
 
-        int32 shift_length = match_length > 0 ? match_length : 1;
+        int32 shift_length = match_length > 0
+            ? match_length
+            : 1;
+
         memmove(window, window + shift_length, 4096 - shift_length);
         memcpy(window + (4096 - shift_length), &in[i - shift_length], shift_length);
-        window_start = (window_start + shift_length) >= 4096 ? 0 : window_start + shift_length;
+        window_start = (window_start + shift_length) >= 4096
+            ? 0
+            : window_start + shift_length;
     }
 
     return out_size;
@@ -183,7 +188,9 @@ uint32 lzp3_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
 
             memmove(window, window + match_length, 4096 - match_length);
             memcpy(window + (4096 - match_length), &out[out_size - match_length], match_length);
-            window_start = (window_start + match_length) >= 4096 ? 0 : window_start + match_length;
+            window_start = (window_start + match_length) >= 4096
+                ? 0
+                : window_start + match_length;
 
             i += 3;
         } else {
@@ -191,7 +198,9 @@ uint32 lzp3_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
 
             memmove(window, window + 1, 4096 - 1);
             window[4096 - 1] = in[i];
-            window_start = (window_start + 1) >= 4096 ? 0 : window_start + 1;
+            window_start = (window_start + 1) >= 4096
+                ? 0
+                : window_start + 1;
 
             ++i;
         }

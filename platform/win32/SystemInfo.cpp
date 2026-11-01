@@ -471,7 +471,10 @@ int32 network_info_get(NetworkInfo* const info, int32 limit = 4, RingMemory* rin
         memset(info[i].slot, 0, sizeof(info[i].slot));
         memset(info[i].mac, 0, sizeof(info[i].mac));
 
-        const size_t mac_len = adapter->PhysicalAddressLength < 8 ? adapter->PhysicalAddressLength : 8;
+        const size_t mac_len = adapter->PhysicalAddressLength < 8
+            ? adapter->PhysicalAddressLength
+            : 8;
+
         memcpy(info[i].mac, adapter->PhysicalAddress, mac_len);
 
         // wcstombs is locale dependent and can leave the string unterminated
@@ -713,7 +716,9 @@ RamChannelType ram_channel_info() NO_EXCEPT
                 result = RAM_CHANNEL_TYPE_SINGLE_CHANNEL;
             } else if (module_count > 1) {
                 // Multiple modules in the same channel -> moving one of them to another slot enables dual channel
-                result = all_same_channel ? RAM_CHANNEL_TYPE_CAN_UPGRADE : RAM_CHANNEL_TYPE_DUAL_CHANNEL;
+                result = all_same_channel
+                    ? RAM_CHANNEL_TYPE_CAN_UPGRADE
+                    : RAM_CHANNEL_TYPE_DUAL_CHANNEL;
             }
         }
 
@@ -1271,7 +1276,9 @@ static inline bool hardware_id_gpu_canonicalize(
     }
 
     const char* const rev = strstr(start, "&REV_");
-    const size_t length = rev ? (size_t) (rev - start) : strlen(start);
+    const size_t length = rev
+        ? (size_t) (rev - start)
+        : strlen(start);
 
     if (!length || length >= out_size) {
         return false;

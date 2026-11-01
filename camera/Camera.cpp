@@ -748,7 +748,12 @@ f32 camera_float_step(f32 value, f32 target) NO_EXCEPT
 
     if (value == 0.0f) {
         // Smallest denormal in the direction of the target
-        return BITCAST(target > 0.0f ? 0x00000001U : 0x80000001U, f32);
+        return BITCAST(
+            target > 0.0f
+                ? 0x00000001U
+                : 0x80000001U,
+            f32
+        );
     }
 
     uint32 bits = BITCAST(value, uint32);

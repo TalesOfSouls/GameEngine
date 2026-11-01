@@ -2166,7 +2166,10 @@ void str_move_to(const wchar_t** str, wchar_t delim) NO_EXCEPT
         ? (size_t) -1 / 0xFFFF
         : (size_t) -1 / 0xFFFFFFFF;
     CONSTEXPR size_t highs = ones << (sizeof(wchar_t) * 8 - 1);
-    const size_t delim_mask = ones * (sizeof(wchar_t) == 2 ? (size_t) (uint16) delim : (size_t) (uint32) delim);
+    const size_t delim_mask = ones * (sizeof(wchar_t) == 2
+        ? (size_t) (uint16) delim
+        : (size_t) (uint32) delim
+    );
 
     const size_t* wptr = (const size_t *) s;
     size_t match;

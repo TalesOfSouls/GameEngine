@@ -310,7 +310,9 @@ uint32 display_info_get(DisplayInfo* info) {
 
 static inline char hardware_id_lower(char value) NO_EXCEPT
 {
-    return (value >= 'A' && value <= 'Z') ? (char) (value + ('a' - 'A')) : value;
+    return (value >= 'A' && value <= 'Z')
+        ? (char) (value + ('a' - 'A'))
+        : value;
 }
 
 static inline bool hardware_id_equal_ci(const char* lhs, const char* rhs) NO_EXCEPT

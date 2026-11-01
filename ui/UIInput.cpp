@@ -432,7 +432,9 @@ int32 ui_input_paste(UIInput* const input, char* const text, int32* const length
 FORCE_INLINE
 f32 ui_input_line_height(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
 {
-    return layout->font ? ui_text_line_height(layout->font, input->font.size) : input->font.size * 1.25f;
+    return layout->font
+        ? ui_text_line_height(layout->font, input->font.size)
+        : input->font.size * 1.25f;
 }
 
 // Height of the whole text of a textarea incl. padding
@@ -478,7 +480,9 @@ bool ui_input_scroll_info(const UILayout* const layout, const UIInput* const inp
 inline
 bool ui_input_scroll_set(UILayout* const layout, UIInput* const input, UIScrollAxis axis, f32 scroll) NO_EXCEPT
 {
-    f32* const value = axis == UI_SCROLL_AXIS_Y ? &input->scroll.y : &input->scroll.x;
+    f32* const value = axis == UI_SCROLL_AXIS_Y
+        ? &input->scroll.y
+        : &input->scroll.x;
 
     if (axis == UI_SCROLL_AXIS_Y) {
         scroll = ui_scroll_clamp(scroll, ui_input_content_height(layout, input), input->core.dimension.dim.y);
@@ -708,7 +712,10 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
             if (ui_input_delete_selection(input, text, &length)) {
                 text_changed = true;
             } else if (input->caret > 0) {
-                const int32 prev = ctrl ? ui_text_word_prev(text, input->caret) : ui_utf8_prev(text, input->caret);
+                const int32 prev = ctrl
+                    ? ui_text_word_prev(text, input->caret)
+                    : ui_utf8_prev(text, input->caret);
+
                 memmove(text + prev, text + input->caret, length - input->caret + 1);
                 input->caret = prev;
                 input->selection_anchor = prev;
@@ -719,7 +726,10 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
             if (ui_input_delete_selection(input, text, &length)) {
                 text_changed = true;
             } else if (input->caret < length) {
-                const int32 next = ctrl ? ui_text_word_next(text, input->caret, length) : ui_utf8_next(text, input->caret, length);
+                const int32 next = ctrl
+                    ? ui_text_word_next(text, input->caret, length)
+                    : ui_utf8_next(text, input->caret, length);
+
                 memmove(text + input->caret, text + next, length - next + 1);
                 text_changed = true;
             }
@@ -729,7 +739,9 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
             if (has_selection && !shift) {
                 input->caret = sel_start;
             } else {
-                input->caret = ctrl ? ui_text_word_prev(text, input->caret) : ui_utf8_prev(text, input->caret);
+                input->caret = ctrl
+                    ? ui_text_word_prev(text, input->caret)
+                    : ui_utf8_prev(text, input->caret);
             }
         } break;
         case INPUT_TEXT_RIGHT: {
@@ -737,16 +749,22 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
             if (has_selection && !shift) {
                 input->caret = sel_end;
             } else {
-                input->caret = ctrl ? ui_text_word_next(text, input->caret, length) : ui_utf8_next(text, input->caret, length);
+                input->caret = ctrl
+                    ? ui_text_word_next(text, input->caret, length)
+                    : ui_utf8_next(text, input->caret, length);
             }
         } break;
         case INPUT_TEXT_HOME: {
             is_navigation = true;
-            input->caret = multiline && !ctrl ? ui_text_line_start(text, input->caret) : 0;
+            input->caret = multiline && !ctrl
+                ? ui_text_line_start(text, input->caret)
+                : 0;
         } break;
         case INPUT_TEXT_END: {
             is_navigation = true;
-            input->caret = multiline && !ctrl ? ui_text_line_end(text, input->caret, length) : length;
+            input->caret = multiline && !ctrl
+                ? ui_text_line_end(text, input->caret, length)
+                : length;
         } break;
         case INPUT_TEXT_UP:
         case INPUT_TEXT_DOWN: {

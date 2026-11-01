@@ -884,7 +884,10 @@ void input_controller_axis_split(
     const int32 value = controller->button[axis];
 
     // -(-128) doesn't fit into int8
-    controller->button[negative] = (int8) (value < 0 ? OMS_MIN(-value, 127) : 0);
+    controller->button[negative] = (int8) (value < 0
+        ? OMS_MIN(-value, 127)
+        : 0
+    );
     controller->button[positive] = (int8) (value > 0 ? value : 0);
     controller->is_analog[negative] = true;
     controller->is_analog[positive] = true;
@@ -892,7 +895,7 @@ void input_controller_axis_split(
 
 /**
  * Creates the stick direction keys from the stick axes (e.g. CONTROLLER_BUTTON_STICK_LEFT_UP)
- * Up is negative for all controllers (same as the window coordinates, @see input_map_xinput)
+ * Up is negative for all controllers (same as the window coordinates)
  */
 inline
 void input_controller_stick_directions(ControllerInput* const controller) NO_EXCEPT
@@ -955,7 +958,9 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
         }
 
         if (abs(controller->button[button]) > input->deadzone) {
-            int16* const delta = (axis & 1) ? &input->state.dy[axis >> 1] : &input->state.dx[axis >> 1];
+            int16* const delta = (axis & 1)
+                ? &input->state.dy[axis >> 1]
+                : &input->state.dx[axis >> 1];
             *delta = (int16) (*delta + controller->button[button] / 8);
             input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
         }
@@ -997,7 +1002,9 @@ int32 input_hotkey_state_update(Input* const input, uint64 /* time */ = 0) NO_EX
 
     // While typing, keys that produce text don't trigger hotkeys (e.g. "w" = move forward)
     // Other keys (e.g. F1, ctrl+c) still work
-    const byte exclude_flags = (input->context & HOTKEY_CONTEXT_TYPING) ? INPUT_KEY_FLAG_TEXT : 0;
+    const byte exclude_flags = (input->context & HOTKEY_CONTEXT_TYPING)
+        ? INPUT_KEY_FLAG_TEXT
+        : 0;
 
     if ((input->context & HOTKEY_CONTEXT_TYPING) && input->text) {
         // Legacy text buffer (e.g. console), contains the printable text typed this tick
