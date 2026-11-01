@@ -42,9 +42,9 @@ static void test_language_from_txt() {
     TEST_EQUALS(language_get(NULL, "menu_quit"), NULL);
 
     // Too small
-    Language small = {};
-    small.data = (byte *) platform_alloc_aligned(64, 64, 64);
-    TEST_EQUALS(language_from_txt(&small, LANGUAGE_TEST_TXT, length, 64), -1);
+    Language too_small = {};
+    too_small.data = (byte *) platform_alloc_aligned(64, 64, 64);
+    TEST_EQUALS(language_from_txt(&too_small, LANGUAGE_TEST_TXT, length, 64), -1);
 
     // Binary = memory image
     byte* const out = (byte *) platform_alloc_aligned(capacity, capacity, 64);
@@ -62,7 +62,7 @@ static void test_language_from_txt() {
 
     platform_aligned_free((void **) &out);
     platform_aligned_free((void **) &loaded.data);
-    platform_aligned_free((void **) &small.data);
+    platform_aligned_free((void **) &too_small.data);
     platform_aligned_free((void **) &lang.data);
 }
 

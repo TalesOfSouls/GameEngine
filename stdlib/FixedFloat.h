@@ -71,6 +71,37 @@ BinaryAngle binary_angle_from_radians(f32 rad) {
 FORCE_INLINE
 FixedFloat fixed_abs(FixedFloat a) { return a < 0 ? -a : a; }
 
+// Q16.16 addition, saturates instead of overflowing
+FORCE_INLINE
+FixedFloat fixed_add(FixedFloat a, FixedFloat b) {
+    const int64 sum = (int64) a + (int64) b;
+    if (sum > (int64) INT32_MAX) {
+        return (FixedFloat) INT32_MAX;
+    }
+
+    if (sum < (int64) INT32_MIN) {
+        return (FixedFloat) INT32_MIN;
+    }
+
+    return (FixedFloat) sum;
+}
+
+// Q16.16 multiplication: (a * b) / 2^16
+FORCE_INLINE
+FixedFloat fixed_mul(FixedFloat a, FixedFloat b) {
+    return (FixedFloat) (((int64) a * (int64) b) >> FIXED_FLOAT_SHIFT);
+}
+
+// Q16.16 division: (a << 16) / b
+FORCE_INLINE
+FixedFloat fixed_div(FixedFloat a, FixedFloat b) {
+    if (b == 0) {
+        return 0;
+    }
+
+    return (FixedFloat) (((int64) a << FIXED_FLOAT_SHIFT) / (int64) b);
+}
+
 FORCE_INLINE
 FixedFloat fixed_min(FixedFloat a, FixedFloat b) { return a < b ? a : b; }
 
@@ -476,8 +507,8 @@ static FixedFloat raw_sin(uint32 pos) {
     uint32 idx  = pos >> FIXED_FLOAT_TABLE_SHIFT;
     uint32 frac = pos & FIXED_FLOAT_TABLE_FRAC_MASK;
 
-    FixedFloat t0 = sin_quarter_table[idx];
-    FixedFloat t1 = sin_quarter_table[idx + (frac != 0 ? 1 : 0)];
+    FixedFloat t0 = fixed_sin_quarter_table[idx];
+    FixedFloat t1 = fixed_sin_quarter_table[idx + (frac != 0 ? 1 : 0)];
 
     if (frac == 0) {
         return t0;
@@ -543,7 +574,7 @@ BinaryAngle fixed_atan2(FixedFloat y, FixedFloat x) {
     int64 vy = cy;
     uint32 z = 0;
 
-    for (int i = 0; i < CORDIC_ITERS; i++) {
+    for (int i = 0; i < FIXED_FLOAT_CORDIC_ITERS; i++) {
         int64 dx = vx >> i;
         int64 dy = vy >> i;
         if (vy > 0) {

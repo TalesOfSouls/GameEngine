@@ -35,12 +35,16 @@ void str_output(const char* __restrict str, ...) NO_EXCEPT
 {
     char buffer[1024];
     if (strchr(str, '%')) {
-        va_list args;
-        va_start(args, str);
-        sprintf_fast(buffer, 1024, str, args);
-        va_end(args);
+        #if defined(NO_STDLIB) && NO_STDLIB
+            // Without the standard library we cannot format a va_list
+        #else
+            va_list args;
+            va_start(args, str);
+            vsnprintf(buffer, sizeof(buffer), str, args);
+            va_end(args);
 
-        str = buffer;
+            str = buffer;
+        #endif
     }
 
     #ifdef _WIN32

@@ -14,6 +14,52 @@
  *          Ideally we have one pre-selected texture 1024x1024 and one that is empty to be filled like a cache
  */
 
+/**
+ * TEXT FORMAT: .fonttxt (e.g. written by FontBuilder from an msdf-atlas-gen .csv)
+ *
+ *      texture: ./img/ui_font_atlas.png    <- atlas image (asset path; a number = existing asset id)
+ *      font_size: 32                       <- size the font was rasterized at
+ *      line_height: 32
+ *      image_width: 512                    <- atlas size, used to normalize the uv
+ *      image_height: 512
+ *      glyph_count: 127
+ *      32 1 1 6 0 6 1 1                    <- one line per glyph, ascending codepoint
+ *      33 6 23 2 0 2 45 4
+ *      ...
+ *
+ *      glyph line: codepoint width height offset_x offset_y advance_x uv_x uv_y
+ *          width/height    glyph quad size in pixels (not the vertex)
+ *          offset_x/y      offset from the baseline in pixels
+ *          advance_x       horizontal advance in pixels
+ *          uv_x/uv_y       top left corner in atlas pixels, the loader normalizes them
+ *                          uv_start = (x / image_width, y / image_height)
+ *                          uv_end   = uv_start + (width / image_width, height / image_height)
+ *
+ * BINARY FORMAT: ASSET_TYPE_FONT payload, written by font_to_data()
+ *
+ *      offset      size        type            field
+ *      0           2           uint16          glyph_count
+ *      2           32          char[32]        texture_name (NUL padded)
+ *      34          4           f32             size
+ *      38          4           f32             line_height
+ *      42          40 * count  Glyph[count]    glyphs, ascending codepoint
+ *      total       42 + 40 * count
+ *
+ * Glyph (40 bytes)
+ *
+ *      0   4   uint32          codepoint
+ *      4   20  GlyphMetrics    width, height, offset_x, offset_y, advance_x (5 * f32)
+ *      24  8   v2_f32          uv_start
+ *      32  8   v2_f32          uv_end
+ *
+ * There is no version field and no order_type: the file always stores the glyphs
+ * sorted by codepoint (FONT_GLYPH_ORDER_TYPE_NORMAL). The Eytzinger order is only
+ * built at load time (font_optimize_order) and never written.
+ *
+ * The glyph_count is limited to 8191 by the loader, the texture is a separate
+ * ASSET_TYPE_IMAGE asset that the archive builder adds as a dependency
+ * (@see AssetArchive.h).
+ */
 struct GlyphMetrics {
     f32 width;     // Width of the glyph (not the vertex)
     f32 height;    // Height of the glyph (not the vertex)

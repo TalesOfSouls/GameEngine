@@ -396,6 +396,11 @@ __internal_wcscat(wchar_t* __restrict dst, const wchar_t* __restrict src)
 inline
 char* __internal_strstr(const char* __restrict haystack, const char* __restrict needle)
 {
+    // An empty needle matches at the start (same as the C standard)
+    if (needle[0] == '\0') {
+        return (char *) haystack;
+    }
+
     const char first = needle[0];
     const size_t needle_len = __internal_strlen(needle);
     const char* ptr = haystack;
@@ -825,7 +830,7 @@ static CONSTEXPR const bool STR_IS_NUM_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 40-47
     true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
     true,  true,  false, false, false, false, false, false, // 56-63 ('8'-'9', others)
-    false, true,  false, false, false, false, false, false, // 64-71 ('A'-'G')
+    false, false, false, false, false, false, false, false, // 64-71 ('A'-'G')
     false, false, false, false, false, false, false, false, // 72-79 ('H'-'O')
     false, false, false, false, false, false, false, false, // 80-87 ('P'-'W')
     false, false, false, false, false, false, false, false, // 88-95 ('X'-'Z', others)

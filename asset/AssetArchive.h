@@ -15,6 +15,70 @@
 
 #define ASSET_ARCHIVE_VERSION 1
 
+/**
+ * Asset archive (.asset), version ASSET_ARCHIVE_VERSION - binary only
+ *
+ * An archive is a flat blob of pre-processed assets: a small index (header), the
+ * dependency table and the asset payloads, which are stored back to back.
+ * There is no name table, assets are addressed by their numeric id
+ *
+ *      asset id = archive_asset_index | (archive_id << 24)
+ *
+ * @see ASSET_ID_FROM_ARCHIVE_AND_ASSET, the archive_id is the first line of the
+ * .cfg file the archive was built from (ArchiveBuilder), it is also part of the
+ * generated asset id header (<archive>.h, enum AssetArchiveIds<Name>).
+ *
+ * File layout (little endian, no padding, no magic, no checksum; the byte layout of
+ * the payloads is described in the header of the respective asset type)
+ *
+ *      offset              size        type                        field
+ *      0                   4           int32                       version (ASSET_ARCHIVE_VERSION)
+ *      4                   4           uint32                      asset_count = N
+ *      8                   4           uint32                      asset_dependency_count = D
+ *      12                  24 * N      AssetArchiveElement[N]      index (element i = asset id i)
+ *      12 + 24*N           4 * D       uint32[D]                   dependencies (asset ids)
+ *      12 + 24*N + 4*D     ...         byte[]                      payloads
+ *
+ * AssetArchiveElement (24 bytes, six uint32 -> no padding)
+ *
+ *      offset  size    type    field
+ *      0       4       uint32  type                AssetType (@see AssetType.h)
+ *      4       4       uint32  start               file offset of the payload
+ *      8       4       uint32  length              payload size in the file (encoded/compressed)
+ *      12      4       uint32  uncompressed        size of the decoded data
+ *      16      4       uint32  dependency_start    first index into the dependency array
+ *      20      4       uint32  dependency_count    amount of dependencies of this asset
+ *
+ * The dependency array stores asset ids, not indices, so a dependency can live in
+ * another archive (the high byte of the id is the archive id).
+ *
+ * The header is variable sized: read the first 12 bytes, then
+ * 12 + 24*N + 4*D bytes (@see asset_archive_header_size) to navigate the file.
+ * The payloads start directly behind the dependency array, 'start' is an absolute
+ * offset. Payloads are written in asset order, the dependencies of an asset (e.g.
+ * the texture of a font/atlas) are appended as regular assets right after it.
+ *
+ * Payload encoding per AssetType
+ *      GENERAL         LZ4 block (shaders are pre-optimized before compression)
+ *      OBJ             Mesh data (mesh_to_data)
+ *      AUDIO           Audio header + QOA
+ *      LANGUAGE        Language memory image (@see Language.h)
+ *      FONT            Font binary (@see Font.h)
+ *      TEXTURE_ATLAS   TextureAtlas binary (@see TextureAtlas.h)
+ *      THEME           UITheme binary (@see UITheme.h)
+ *      IMAGE           Image header + QOI
+ *
+ * Text side: the archive itself has no text representation. The builder input is a
+ * .cfg table of contents (first line = archive id, one asset path per line,
+ * relative to the .cfg), e.g.
+ *
+ *      4
+ *      ./ui_font.fonttxt
+ *      ./img/ui_atlas.atlastxt
+ *      ./img/ui_bg_atlas.png
+ *
+ * which produces <name>.asset (this format) and <name>.h (the asset id enum).
+ */
 struct AssetArchiveElement {
     // NOTE: Why are we not using AssetType as data type?
     //      The problem is we rely on this for the archive_builder.cpp
@@ -56,12 +120,11 @@ struct AssetArchiveHeader {
 };
 
 /**
- * Asset file structure:
- *      AssetArchiveHeader
- *          Scalar values
- *      AssetArchiveElement array
- *      Asset_dependency array
- *      Asset data
+ * In-memory archive
+ *
+ * The file only stores the three scalars + the two arrays of AssetArchiveHeader
+ * (that is why this struct must not be written to a file as a whole), the
+ * pointers point into data, which is the owner of the file content.
  */
 struct AssetArchive {
     AssetArchiveHeader header;

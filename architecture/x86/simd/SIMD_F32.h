@@ -28,7 +28,7 @@
 //      the code is self contained and we could use te intrinsic functions directly
 
 inline
-f32 simd_sum(const f32* data, int32 count, int32 steps)
+f32 simd_sum(const f32* data, int32 count, MAYBE_UNUSED int32 steps)
 {
     int32 i = 0;
     f32 sum = 0.0f;
@@ -96,7 +96,7 @@ f32 simd_sum(const f32* data, int32 count, int32 steps)
 }
 
 inline
-int32 simd_sum(const int32* data, int32 count, int32 steps)
+int32 simd_sum(const int32* data, int32 count, MAYBE_UNUSED int32 steps)
 {
     int32 i = 0;
     int32 sum = 0;
@@ -164,7 +164,7 @@ int32 simd_sum(const int32* data, int32 count, int32 steps)
 }
 
 inline
-f32 simd_sum_unaligned(const f32* data, int32 count, int32 steps)
+f32 simd_sum_unaligned(const f32* data, int32 count, MAYBE_UNUSED int32 steps)
 {
     int32 i = 0;
     f32 sum = 0.0f;
@@ -232,7 +232,7 @@ f32 simd_sum_unaligned(const f32* data, int32 count, int32 steps)
 }
 
 inline
-int32 simd_sum_unaligned(const int32* data, int32 count, int32 steps)
+int32 simd_sum_unaligned(const int32* data, int32 count, MAYBE_UNUSED int32 steps)
 {
     int32 i = 0;
     int32 sum = 0;

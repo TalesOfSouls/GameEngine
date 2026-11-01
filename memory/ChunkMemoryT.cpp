@@ -50,7 +50,7 @@ void chunk_init(
     buf->capacity = capacity;
     buf->last_pos = -1;
     buf->free = (size_t *) ALIGN_UP(
-        (size_t) ((uintptr_t) (buf->memory + capacity)),
+        (size_t) ((uintptr_t) ((byte *) buf->memory + capacity * sizeof(T))),
         (size_t) alignof(size_t)
     );
     //memset(buf->free, 0, sizeof(size_t) * array_count);
@@ -77,7 +77,7 @@ void chunk_alloc(ChunkMemoryT<T>* const buf, int32 capacity, int32 max_capacity,
     const size_t max_array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(max_capacity);
     const size_t max_memory_size = max_capacity * sizeof(T) + sizeof(size_t) * max_array_count + alignof(size_t);
 
-    byte* buffer =  platform_alloc_aligned(
+    byte* buffer = (byte *) platform_alloc_aligned(
         memory_size,
         max_memory_size,
         alignment
@@ -171,7 +171,7 @@ FORCE_INLINE
 size_t* chunk_find_free_array(const ChunkMemoryT<T>* const buf) NO_EXCEPT
 {
     return (size_t *) ALIGN_UP(
-        (uintptr_t) (buf->memory + buf->capacity),
+        (uintptr_t) ((byte *) buf->memory + buf->capacity * sizeof(T)),
         (size_t) alignof(size_t)
     );
 }
@@ -308,7 +308,7 @@ int64 chunk_dump(const ChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
     SWAP_ENDIAN_LITTLE_SIMD(
         (size_t *) (data + free_offset),
         (size_t *) (data + free_offset),
-        buf->capacity >> div_pow2(sizeof(size_t)),
+        ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity),
         8
     );
 
@@ -332,7 +332,7 @@ template <typename T>
 inline HOT_CODE
 T* memory_get(ChunkMemoryT<T>* const buf, size_t size) NO_EXCEPT
 {
-    return chunk_memory_get(buf, (size + sizeof(T) - 1) / sizeof(T));
+    return chunk_memory_get(buf, (uint32) ((size + sizeof(T) - 1) / sizeof(T)));
 }
 
 template <typename T>
@@ -381,7 +381,7 @@ int64 chunk_load(ChunkMemoryT<T>* const buf, const byte* data) NO_EXCEPT
     SWAP_ENDIAN_LITTLE_SIMD(
         buf->free,
         buf->free,
-        buf->capacity >> div_pow2(sizeof(size_t)),
+        ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity),
         8
     );
 

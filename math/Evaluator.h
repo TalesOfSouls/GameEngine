@@ -123,10 +123,12 @@ f32 evaluator_evaluate_expression(const char* expr) {
                 ++ptr;
             }
 
+            const char* const name_end = ptr;
+
             ASSERT_TRUE(*ptr == '(');
 
             ++ptr;
-            const char* args_start = ptr;
+            const char* const args_start = ptr;
             int32 depth = 1;
             while (*ptr && depth > 0) {
                 if (*ptr == '(') {
@@ -140,13 +142,16 @@ f32 evaluator_evaluate_expression(const char* expr) {
 
             ASSERT_TRUE(depth == 0);
 
+            // ptr is behind the closing ')' now -> the arguments end one character earlier
             char name[32];
-            memcpy(name, start, ptr - start);
-            name[ptr - start] = '\0';
+            const int32 name_length = (int32) (name_end - start);
+            memcpy(name, start, name_length);
+            name[name_length] = '\0';
 
             char args[128];
-            memcpy(args, args_start, ptr - args_start);
-            args[ptr - args_start] = '\0';
+            const int32 args_length = (int32) ((ptr - 1) - args_start);
+            memcpy(args, args_start, args_length);
+            args[args_length] = '\0';
 
             f32 result = evaluator_evaluate_function(name, args);
             evaluator_push_value(&values, result);

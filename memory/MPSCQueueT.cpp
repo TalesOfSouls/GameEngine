@@ -19,7 +19,7 @@ void queue_init(MPSCQueueT<T>* const queue, byte* buf, int capacity, uint32 alig
     queue->memory = (T *) ALIGN_UP((uintptr_t) buf, alignment);
 
     queue->slot_ready = (atomic<byte> *) ALIGN_UP(
-        queue->memory + queue->capacity,
+        (uintptr_t) (queue->memory + queue->capacity),
         ASSUMED_CACHE_LINE_SIZE
     );
 
@@ -95,7 +95,7 @@ void queue_init(MPSCQueueT<T>* const queue, BufferMemory* const buf, int capacit
         alignment
     );
     queue->slot_ready = (atomic<byte> *) ALIGN_UP(
-        queue->memory + queue->capacity,
+        (uintptr_t) (queue->memory + queue->capacity),
         ASSUMED_CACHE_LINE_SIZE
     );
 
@@ -304,7 +304,7 @@ T* queue_dequeue_keep(MPSCQueueT<T>* const queue) NO_EXCEPT
 // WARNING: Consumer only! Caller must have already confirmed availability via queue_dequeue_keep()
 template <typename T>
 FORCE_INLINE
-T* queue_dequeue_start(const MPSCQueueT<T>* const queue) NO_EXCEPT
+T* queue_dequeue_start(MPSCQueueT<T>* const queue) NO_EXCEPT
 {
     return queue_dequeue_keep(queue);
 }

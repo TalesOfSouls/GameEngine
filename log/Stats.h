@@ -4,6 +4,9 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../thread/Atomic.h"
+#include "../thread/SpinlockStandalone.h"
+#include "../utils/SimpleStringUtils.h"
+#include "Log.h"
 
 #if _WIN32
     #include "../platform/win32/threading/Atomic.h"

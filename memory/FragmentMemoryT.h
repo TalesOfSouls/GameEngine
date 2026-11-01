@@ -66,7 +66,7 @@ void fragment_alloc(
     fragment->capacity = capacity;
     fragment->last_pos = capacity - 1;
     fragment->free = (int32 *) ALIGN_UP(
-        (size_t) ((uintptr_t) (fragment->memory + capacity)),
+        (size_t) ((uintptr_t) ((byte *) fragment->memory + capacity * sizeof(T))),
         (size_t) alignof(int32)
     );
 
@@ -105,7 +105,7 @@ void fragment_alloc(
     fragment->capacity = capacity;
     fragment->last_pos = capacity - 1;
     fragment->free = (int32 *) ALIGN_UP(
-        (size_t) ((uintptr_t) (fragment->memory + capacity)),
+        (size_t) ((uintptr_t) ((byte *) fragment->memory + capacity * sizeof(T))),
         (size_t) alignof(int32)
     );
 
@@ -122,7 +122,7 @@ T* fragment_memory_get(FragmentMemoryT<T>* const fragment) NO_EXCEPT
         return NULL;
     }
 
-    DEBUG_MEMORY_READ(&fragment->memory[fragment->free[fragment->last_pos]], sizeof(T));
+    DEBUG_MEMORY_READ((uintptr_t) &fragment->memory[fragment->free[fragment->last_pos]], sizeof(T));
 
     return &fragment->memory[fragment->free[fragment->last_pos--]];
 }

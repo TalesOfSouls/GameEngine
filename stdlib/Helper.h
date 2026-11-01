@@ -9,6 +9,7 @@
 
 #include "Defines.h"
 #include "Types.h"
+#include "math_internal.h"
 #include "../compiler/CompilerUtils.h"
 
 // Counts the elements in an array IFF its size is defined at compile time
@@ -64,10 +65,10 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 #define OMS_IS_POW2(n) ((n & (n - 1)) == 0)
 
 // Zero and comparison
-#define OMS_IS_ZERO_F32(x) (abs(x) < OMS_EPSILON_F32)
-#define OMS_IS_ZERO_F64(x) (abs(x) < OMS_EPSILON_F64)
-#define OMS_FEQUAL_F32(a, b) (abs((a) - (b)) < OMS_EPSILON_F32)
-#define OMS_FEQUAL_F64(a, b) (abs((a) - (b)) < OMS_EPSILON_F64)
+#define OMS_IS_ZERO_F32(x) (__internal_abs((f32) (x)) < OMS_EPSILON_F32)
+#define OMS_IS_ZERO_F64(x) (__internal_abs((f64) (x)) < OMS_EPSILON_F64)
+#define OMS_FEQUAL_F32(a, b) (__internal_abs((f32) ((a) - (b))) < OMS_EPSILON_F32)
+#define OMS_FEQUAL_F64(a, b) (__internal_abs((f64) ((a) - (b))) < OMS_EPSILON_F64)
 
 // Bitwise utilities
 #define OMS_SIGN_32(x) (1 | ((x) >> 31 << 1))
@@ -512,7 +513,7 @@ template <> struct CharTypeOf<char32_t> { static constexpr uint8 value = CHAR_TY
 template <> struct CharTypeOf<wchar_t> { static constexpr uint8 value = CHAR_TYPE_WCHAR; };
 
 template <typename C>
-inline constexpr CharType CharTypeOf_v = CharTypeOf<C>::value;
+inline constexpr CharType CharTypeOf_v = (CharType) CharTypeOf<C>::value;
 
 /**
  * This is a micro optimization for debug builds.

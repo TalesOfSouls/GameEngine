@@ -48,7 +48,7 @@ for /R %%f in (*Test.cpp) do (
     REM Compile each .cpp file into an executable
     cl ^
         %BUILD_FLAGS% /MT /nologo /Gm- /GR- /EHsc /W4 /wd4201 /wd4706 /wd4324 ^
-        /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++23 ^
+        /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++20 ^
         /D WIN32 /D _WINDOWS /D _UNICODE /D UNICODE ^
         /D _CRT_SECURE_NO_WARNINGS ^
         /Fo"%DESTINATION_DIR%/" /Fe"%DESTINATION_DIR%\%BASENAME%.exe" %DEBUG_DATA% ^

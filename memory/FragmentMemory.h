@@ -95,7 +95,7 @@ void fragment_alloc(
         (size_t) alignof(int32)
     );
 
-    for (int i = 0; i < count; ++i) {
+    for (uint32 i = 0; i < count; ++i) {
         fragment->free[i] = i * fragment->chunk_size;
     }
 }
@@ -136,7 +136,7 @@ void fragment_alloc(
         (size_t) alignof(int32)
     );
 
-    for (int i = 0; i < count; ++i) {
+    for (uint32 i = 0; i < count; ++i) {
         fragment->free[i] = i * fragment->chunk_size;
     }
 }
@@ -148,7 +148,7 @@ byte* fragment_memory_get(FragmentMemory* const fragment) NO_EXCEPT
         return NULL;
     }
 
-    DEBUG_MEMORY_READ(&fragment->memory[fragment->free[fragment->last_pos]], buf->chunk_size);
+    DEBUG_MEMORY_READ((uintptr_t) &fragment->memory[fragment->free[fragment->last_pos]], fragment->chunk_size);
 
     return &fragment->memory[fragment->free[fragment->last_pos--]];
 }

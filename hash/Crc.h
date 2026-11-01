@@ -85,17 +85,20 @@ uint32 crc32_software_u8(const byte* data, size_t length) NO_EXCEPT
     for (size_t i = 0; i < length; ++i) {
         crc ^= data[i];
         for (byte bit = 0; bit < 8; ++bit) {
-            crc = (crc >> 1);
-
-            if (crc & 1) {
-                crc ^= polynomial;
-            }
+            // Only the lowest bit of the current value decides the polynomial
+            crc = (crc & 1)
+                ? ((crc >> 1) ^ polynomial)
+                : (crc >> 1);
         }
     }
 
-    return crc;
+    // Same as the table version: the CRC is stored as the complement (standard CRC-32)
+    return crc ^ 0xFFFFFFFF;
 }
 
+// WARNING: The intrin versions use the hardware CRC32 instruction which implements
+// CRC-32C (Castagnoli, polynomial 0x1EDC6F41) and NOT the CRC-32 (0xEDB88320) of the
+// software versions. They are not interchangeable.
 inline
 uint32 crc32_intrin_u8(const byte* data, size_t length) NO_EXCEPT
 {
@@ -104,7 +107,7 @@ uint32 crc32_intrin_u8(const byte* data, size_t length) NO_EXCEPT
         crc = intrin_crc32_u8(crc, data[i]);
     }
 
-    return crc;
+    return crc ^ 0xFFFFFFFF;
 }
 
 inline
@@ -115,7 +118,7 @@ uint32 crc32_intrin_u16(const uint16* data, size_t length) NO_EXCEPT
         crc = intrin_crc32_u16(crc, data[i]);
     }
 
-    return crc;
+    return crc ^ 0xFFFFFFFF;
 }
 
 inline
@@ -126,7 +129,7 @@ uint32 crc32_intrin_u32(const uint32* data, size_t length) NO_EXCEPT
         crc = intrin_crc32_u32(crc, data[i]);
     }
 
-    return crc;
+    return crc ^ 0xFFFFFFFF;
 }
 
 inline
@@ -137,7 +140,7 @@ uint32 crc32_intrin_u64(const uint64* data, size_t length) NO_EXCEPT
         crc = intrin_crc32_u64(crc, data[i]);
     }
 
-    return crc;
+    return (uint32) (crc ^ 0xFFFFFFFF);
 }
 
 #endif

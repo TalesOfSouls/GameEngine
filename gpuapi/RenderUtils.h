@@ -632,7 +632,7 @@ v2_int32 vertex_text_cached_append(
     ArrayVector<int32>* const __restrict indices,
     const FontTextCache* const __restrict cache,
     float zindex,
-    int32 steps = 8
+    MAYBE_UNUSED int32 steps = 8
 ) NO_EXCEPT
 {
     const int32 vertex_count = cache->cached_vertices.view.count;

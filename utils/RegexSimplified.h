@@ -39,7 +39,7 @@ MatchResult regex_match_char(SimplifiedRegexParser *parser, const char *text) {
         // Handle escape sequences
         parser->pos++;
         if (parser->pattern[parser->pos] == 'd') {
-            if (str_is_num(*text)) {
+            if (__internal_isdigit(*text)) {
                 result.matched = true;
                 result.length = 1;
                 parser->pos++;
@@ -81,7 +81,7 @@ MatchResult regex_match_char(SimplifiedRegexParser *parser, const char *text) {
                parser->pattern[parser->pos+1] == '-' &&
                parser->pattern[parser->pos+2] == '9') {
         // Match 0-9 range
-        if (str_is_num(*text)) {
+        if (__internal_isdigit(*text)) {
             result.matched = true;
             result.length = 1;
             parser->pos += 3;
@@ -93,7 +93,7 @@ MatchResult regex_match_char(SimplifiedRegexParser *parser, const char *text) {
 
 int regex_parse_number(SimplifiedRegexParser *parser) {
     int32 num = 0;
-    while (str_is_num(parser->pattern[parser->pos])) {
+    while (__internal_isdigit(parser->pattern[parser->pos])) {
         num = num * 10 + (parser->pattern[parser->pos] - '0');
         parser->pos++;
     }
@@ -125,7 +125,7 @@ MatchResult regex_match_atom(SimplifiedRegexParser *parser, const char *text) {
     return result;
 }
 
-MatchResult regex_match_repetition(SimplifiedRegexParser *parser, const char *text, MatchResult atom_result) {
+MatchResult regex_match_repetition(SimplifiedRegexParser *parser, const char *text, MAYBE_UNUSED MatchResult atom_result) {
     MatchResult result = {false, 0};
 
     parser->pos++; // Skip '{'

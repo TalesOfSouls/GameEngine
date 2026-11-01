@@ -619,33 +619,33 @@ static CONSTEXPR const char DIGIT_PAIRS[201] =
     "80818283848586878889"
     "90919293949596979899";
 
+// WARNING: The buffer needs 21 characters for int64 (-9223372036854775808 + '\0')
 template <typename T>
 inline CONSTEXPR
-int32 int_to_str(int64 number, T str[12]) NO_EXCEPT
+int32 int_to_str(int64 number, T str[21]) NO_EXCEPT
 {
     int32 i = -1;
-    const int64 sign = number;
+    const bool negative = number < 0;
 
-    if (number < 0) {
-        number = -number;
-    }
+    // INT64_MIN cannot be negated, so the magnitude is built as an unsigned value
+    uint64 magnitude = negative ? (uint64) (-(number + 1)) + 1 : (uint64) number;
 
-    while (number >= 100) {
-        const int32 pos = (int32) ((number % 100) * 2);
-        number /= 100;
+    while (magnitude >= 100) {
+        const int32 pos = (int32) ((magnitude % 100) * 2);
+        magnitude /= 100;
         str[++i] = T(DIGIT_PAIRS[pos + 1]);
         str[++i] = T(DIGIT_PAIRS[pos]);
     }
 
-    if (number < 10) {
-        str[++i] = T(number + '0');
+    if (magnitude < 10) {
+        str[++i] = T(magnitude + '0');
     } else {
-        const int32 pos = (int32) (number * 2);
+        const int32 pos = (int32) (magnitude * 2);
         str[++i] = T(DIGIT_PAIRS[pos + 1]);
         str[++i] = T(DIGIT_PAIRS[pos]);
     }
 
-    if (sign < 0) {
+    if (negative) {
         str[++i] = T('-');
     }
 
@@ -660,9 +660,10 @@ int32 int_to_str(int64 number, T str[12]) NO_EXCEPT
     return i;
 }
 
+// WARNING: The buffer needs 21 characters for uint64
 template <typename T>
 inline CONSTEXPR
-int32 int_to_str(uint64 number, T str[12]) NO_EXCEPT
+int32 int_to_str(uint64 number, T str[21]) NO_EXCEPT
 {
     int32 i = -1;
 
@@ -693,7 +694,7 @@ int32 int_to_str(uint64 number, T str[12]) NO_EXCEPT
 }
 
 template <typename T>
-inline int32 int_to_str(int64 number, T str[15], T thousands) NO_EXCEPT
+inline int32 int_to_str(int64 number, T str[26], T thousands) NO_EXCEPT
 {
     if (number == 0) {
         *str++ = T('0');
@@ -1097,7 +1098,8 @@ int32 str_copy(char* __restrict dest, const char* __restrict src) NO_EXCEPT
         const char c = *src++;
         *dest++ = c;
         if (c == '\0') {
-            return -1;
+            // Same return value as the general case below (length incl. the terminator)
+            return (int32) (dest - start);
         }
     }
 
@@ -1765,7 +1767,8 @@ bool str_contains(const char* __restrict haystack, const char* __restrict needle
         const size_t* wptr = (const size_t *) ptr;
         while (true) {
             const size_t v = *wptr;
-            if (OMS_HAS_CHAR(v, first)) {
+            // Stop at the first word that contains the first needle character or the end of the string
+            if (OMS_HAS_CHAR(v, first) || OMS_HAS_ZERO(v)) {
                 break;
             }
 
@@ -1867,7 +1870,7 @@ bool byte_contains(
     }
 
     size_t i = 0;
-    while (i <= haystack_len - needle_len) {
+    while (needle_len <= haystack_len && i <= haystack_len - needle_len) {
         size_t j = needle_len;
         while (j > 0 && needle[j - 1] == haystack[i + j - 1]) {
             --j;
@@ -1945,6 +1948,36 @@ int32 str_compare_caseless(const char* str1, const char* str2, size_t n) NO_EXCE
     }
 
     return c1 - c2;
+}
+
+inline CONSTEXPR
+bool str_starts_with(const char* const __restrict str, const char* const __restrict prefix) NO_EXCEPT
+{
+    if (!str || !prefix) {
+        return false;
+    }
+
+    const size_t prefix_len = strlen(prefix);
+    if (prefix_len == 0) {
+        return true;
+    }
+
+    return strncmp(str, prefix, prefix_len) == 0;
+}
+
+inline CONSTEXPR
+bool str_starts_with(const wchar_t* const __restrict str, const wchar_t* const __restrict prefix) NO_EXCEPT
+{
+    if (!str || !prefix) {
+        return false;
+    }
+
+    const size_t prefix_len = wcslen(prefix);
+    if (prefix_len == 0) {
+        return true;
+    }
+
+    return wcsncmp(str, prefix, prefix_len) == 0;
 }
 
 inline CONSTEXPR
@@ -2439,15 +2472,18 @@ inline
 void str_pad_left(const char* __restrict input, char* __restrict output, char pad, size_t len) NO_EXCEPT
 {
     const size_t input_len = strlen(input);
-
-    size_t i = 0;
-    for (; i < len - input_len; ++i) {
-        *output++ = pad;
+    if (input_len >= len) {
+        // No space for padding, the input is truncated
+        memcpy(output, input, len);
+        return;
     }
 
-    for (; i < len && input[i] != '\0'; ++i) {
-        output[i] = input[i];
+    const size_t pad_count = len - input_len;
+    for (size_t i = 0; i < pad_count; ++i) {
+        output[i] = pad;
     }
+
+    memcpy(output + pad_count, input, input_len);
 }
 
 inline
@@ -2490,7 +2526,10 @@ f32 str_to_float(const char* str, const char** pos = NULL) NO_EXCEPT
             1.0f, 10.0f, 100.0f, 1000.0f, 10000.0f, 100000.0f, 1000000.0f
         };
 
-        result /= powers_of_ten[decimals];
+        // A larger amount of decimals cannot be represented by a f32 anyway,
+        // but the remaining digits still have to be consumed
+        const int32 max_decimals = (int32) (sizeof(powers_of_ten) / sizeof(powers_of_ten[0])) - 1;
+        result /= powers_of_ten[decimals < max_decimals ? decimals : max_decimals];
     }
 
     // Set end pointer

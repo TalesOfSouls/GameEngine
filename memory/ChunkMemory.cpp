@@ -17,9 +17,19 @@
 #include "../system/Allocator.h"
 #include "../thread/ThreadHelper.cpp"
 
+// The chunk size is aligned up, otherwise a chunk could start at an unaligned address
+// (e.g. element_size = 10, alignment = 8 => chunk_size = 16)
 FORCE_INLINE
-size_t chunk_size_total(int32 capacity, int32 element_size) NO_EXCEPT
+size_t chunk_size_element(int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
+    return ALIGN_UP((size_t) element_size, (size_t) alignment);
+}
+
+FORCE_INLINE
+size_t chunk_size_total(int32 capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    element_size = (int32) chunk_size_element(element_size, alignment);
+
     return capacity * element_size
         + sizeof(size_t) * ceil_div_pow2<(sizeof(size_t) * 8)>(capacity) // free
         + alignof(size_t) * 2; // overhead for alignment
@@ -44,8 +54,9 @@ void chunk_alloc(
 
     LOG_1("[INFO] Allocating ChunkMemory");
 
-    const size_t size = chunk_size_total(capacity, element_size);
-    const size_t max_size = chunk_size_total(max_capacity, element_size);
+    element_size = (int32) chunk_size_element(element_size, alignment);
+    const size_t size = chunk_size_total(capacity, element_size, alignment);
+    const size_t max_size = chunk_size_total(max_capacity, element_size, alignment);
 
     buf->memory = (byte *) platform_alloc_aligned(size, max_size, start_alignment);
 
@@ -83,8 +94,9 @@ void chunk_alloc(
 
     LOG_1("[INFO] Allocating ChunkMemory");
 
-    const size_t size = chunk_size_total(capacity, element_size);
-    const size_t max_size = chunk_size_total(max_capacity, element_size);
+    element_size = (int32) chunk_size_element(element_size, alignment);
+    const size_t size = chunk_size_total(capacity, element_size, alignment);
+    const size_t max_size = chunk_size_total(max_capacity, element_size, alignment);
 
     MemoryArena* arena = mem_arena_add(mem, size, max_size, start_alignment);
     buf->memory = (byte *) arena->memory;
@@ -118,7 +130,9 @@ void chunk_init(
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    const size_t size = chunk_size_total(capacity, element_size);
+    element_size = (int32) chunk_size_element(element_size, alignment);
+
+    const size_t size = chunk_size_total(capacity, element_size, alignment);
 
     buf->memory = memory_get(data, size, start_alignment);
 
@@ -147,7 +161,9 @@ void chunk_init(
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
-    const size_t size = chunk_size_total(capacity, element_size);
+    element_size = (int32) chunk_size_element(element_size, alignment);
+
+    const size_t size = chunk_size_total(capacity, element_size, alignment);
 
     buf->memory = (byte *) ALIGN_UP((uintptr_t) data, start_alignment);
 

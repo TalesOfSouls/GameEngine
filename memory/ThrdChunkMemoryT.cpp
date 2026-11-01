@@ -166,7 +166,7 @@ template <typename T>
 FORCE_INLINE FORCE_FLATTEN
 T* chunk_element_get(const ThrdChunkMemoryT<T>* const buf, int32 element) NO_EXCEPT
 {
-    if (element >= buf->capacity) {
+    if (element < 0 || element >= buf->capacity) {
         return NULL;
     }
 
@@ -475,7 +475,7 @@ int64 chunk_dump(const ThrdChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
     SWAP_ENDIAN_LITTLE_SIMD(
         (size_t *) (data + free_offset),
         (size_t *) (data + free_offset),
-        buf->capacity >> div_pow2(sizeof(size_t)),
+        ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity),
         8
     );
 
@@ -484,6 +484,112 @@ int64 chunk_dump(const ThrdChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
     LOG_1("[INFO] Dumped ChunkMemoryT: %n B", {DATA_TYPE_UINT64, (void *) &size});
 
     return data - start;
+}
+
+/**
+ * Reserves a contiguous range of elements
+ *
+ * The range is claimed word by word with a compare exchange. If another thread takes
+ * one of the elements in the meantime the partial claim is rolled back and the search
+ * restarts. Single element reservations are lock free (@see chunk_reserve_one).
+ */
+template <typename T>
+inline
+int32 chunk_reserve(ThrdChunkMemoryT<T>* const buf, uint32 elements = 1) NO_EXCEPT
+{
+    if (elements == 0) {
+        return -1;
+    }
+
+    if (elements == 1) {
+        return chunk_reserve_one(buf);
+    }
+
+    const int32 bits_per_word = (int32) (sizeof(size_t) * 8);
+    const int32 capacity = buf->capacity;
+    if ((int32) elements > capacity) {
+        return -1;
+    }
+
+    for (int32 attempt = 0; attempt < 16; ++attempt) {
+        // Find a free range
+        int32 candidate = -1;
+        for (int32 element = 0; element + (int32) elements <= capacity; ++element) {
+            const size_t word = buf->free[element / bits_per_word].load(memory_order_relaxed);
+            if (word & (OMS_UINT_ONE << (element % bits_per_word))) {
+                continue;
+            }
+
+            bool fits = true;
+            for (uint32 i = 1; i < elements && fits; ++i) {
+                const int32 next = element + (int32) i;
+                const size_t next_word = buf->free[next / bits_per_word].load(memory_order_relaxed);
+                fits = (next_word & (OMS_UINT_ONE << (next % bits_per_word))) == 0;
+            }
+
+            if (fits) {
+                candidate = element;
+                break;
+            }
+        }
+
+        if (candidate < 0) {
+            return -1;
+        }
+
+        // Claim all words of the range
+        const int32 first_word = candidate / bits_per_word;
+        const int32 last_word = (candidate + (int32) elements - 1) / bits_per_word;
+        int32 claimed_last_word = first_word - 1;
+        bool claimed = true;
+
+        for (int32 w = first_word; w <= last_word && claimed; ++w) {
+            size_t mask = 0;
+            for (int32 b = 0; b < bits_per_word; ++b) {
+                const int32 element = w * bits_per_word + b;
+                if (element >= candidate && element < candidate + (int32) elements) {
+                    mask |= (OMS_UINT_ONE << b);
+                }
+            }
+
+            size_t word = buf->free[w].load(memory_order_relaxed);
+            while (true) {
+                if (word & mask) {
+                    claimed = false;
+                    break;
+                }
+
+                if (buf->free[w].compare_exchange_weak(
+                    word, word | mask, memory_order_acq_rel, memory_order_relaxed
+                )) {
+                    claimed_last_word = w;
+                    break;
+                }
+            }
+        }
+
+        if (claimed) {
+            buf->last_pos.store(candidate + (int32) elements - 1, memory_order_relaxed);
+            DEBUG_MEMORY_WRITE((uintptr_t) &buf->memory[candidate], sizeof(T) * elements);
+
+            return candidate;
+        }
+
+        // Roll back the words that were already claimed
+        for (int32 w = first_word; w <= claimed_last_word; ++w) {
+            size_t mask = 0;
+            for (int32 b = 0; b < bits_per_word; ++b) {
+                const int32 element = w * bits_per_word + b;
+                if (element >= candidate && element < candidate + (int32) elements) {
+                    mask |= (OMS_UINT_ONE << b);
+                }
+            }
+
+            buf->free[w].fetch_and(~mask, memory_order_acq_rel);
+        }
+    }
+
+    return -1;
 }
 
 template <typename T>
@@ -499,7 +605,7 @@ template <typename T>
 inline HOT_CODE
 T* memory_get(ThrdChunkMemoryT<T>* const buf, size_t size) NO_EXCEPT
 {
-    return chunk_memory_get(buf, (size + sizeof(T) - 1) / sizeof(T));
+    return chunk_memory_get(buf, (uint32) ((size + sizeof(T) - 1) / sizeof(T)));
 }
 
 template <typename T>
@@ -552,7 +658,7 @@ int64 chunk_load(ThrdChunkMemoryT<T>* const buf, const byte* data) NO_EXCEPT
     SWAP_ENDIAN_LITTLE_SIMD(
         buf->free,
         buf->free,
-        buf->capacity >> div_pow2(sizeof(size_t)),
+        ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity),
         8
     );
 

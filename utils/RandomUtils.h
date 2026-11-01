@@ -144,34 +144,41 @@ void random_unique(int32* array, int32 size) NO_EXCEPT
 
 /**
  * Gets random index based value probability
+ *
+ * Every index i is returned with the probability arr[i] / sum(arr).
  */
 int32 random_weighted_index(const int32* arr, int32 array_count) NO_EXCEPT
 {
+    ASSERT_TRUE(arr && array_count > 0);
+
     uint32 prob_sum = 0;
     for (int32 i = 0; i < array_count; ++i) {
         prob_sum += arr[i];
     }
 
-    const uint32 random_prob = rand() % (prob_sum + 1);
+    if (!prob_sum) {
+        return 0;
+    }
+
+    const uint32 random_prob = (uint32) (rand() % prob_sum);
     uint32 current_rarity = 0;
-    int32 item_rarity = array_count - 1;
-    for (int32 i = 0; i < array_count - 1; ++i) {
+    for (int32 i = 0; i < array_count; ++i) {
         current_rarity += arr[i];
 
-        if (current_rarity < random_prob) {
-            item_rarity = i;
-            break;
+        if (random_prob < current_rarity) {
+            return i;
         }
     }
 
-    return item_rarity;
+    return array_count - 1;
 }
 
 // WARNING: The allowed_chars string length needs to be of power 2 for performance reasons
 //          Supporting any allowed_chars length is trivial but usually we prefer the performance improvement
 void random_string(const char* allowed_chars, uint32 allowed_length, char* out, int32 out_length) NO_EXCEPT
 {
-    ASSERT_TRUE((allowed_length & 2) == 0);
+    ASSERT_TRUE(allowed_length);
+    ASSERT_TRUE((allowed_length & (allowed_length - 1)) == 0);
 
     const uint32 mask = allowed_length - 1;
 
