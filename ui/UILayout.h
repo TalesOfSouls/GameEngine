@@ -115,7 +115,7 @@ struct UIInteraction {
     // Element that is moved by dragging (e.g. the window while dragging its title)
     int32 dragged;
 
-    // Element that was clicked in the last ui_input_pointer() call (only valid for that tick)
+    // Element that was clicked in this tick (pointer click or enter/space on the focused element, reset by ui_input_pointer())
     int32 clicked;
 
     // Text element that receives the keyboard input (UIInput/UITextarea, @see ui_input_text)

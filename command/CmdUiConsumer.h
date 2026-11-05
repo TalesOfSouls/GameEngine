@@ -142,7 +142,7 @@ bool cmd_theme_assets_load_sync(
 
 /**
  * Loads a theme incl. everything the theme references:
- *      language: a text theme loads its language file (@see FILE_FORMAT_THEME_TXT)
+ *      language: a theme loads its language file
  *      assets:   font + atlas of the "@theme" block, only if assets != NULL
  *
  * WARNING: theme->data and theme->data_size need to be set
@@ -171,7 +171,7 @@ UITheme* cmd_theme_load_sync(
         return NULL;
     }
 
-    // The format is a compile time switch (@see FILE_FORMAT_THEME_TXT)
+    // The format is a compile time switch
     #if FILE_FORMAT_THEME_TXT
         if (!ui_theme_from_txt(theme, (const char *) theme_file.content, (int32) theme_file.size)) {
             return NULL;

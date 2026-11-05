@@ -27,8 +27,8 @@
 #include "UITable.cpp"
 #include "UIColorPicker.cpp"
 
-// Used if the hash map wasn't initialized by loading a layout file
-#define UI_LAYOUT_DEFAULT_ELEMENT_COUNT 256
+// Max. amount of named elements (if the hash map wasn't initialized by loading a binary layout)
+#define UI_LAYOUT_DEFAULT_ELEMENT_COUNT 512
 
 FORCE_INLINE
 UICore* ui_get_element(UILayout* const layout, int32 offset) NO_EXCEPT

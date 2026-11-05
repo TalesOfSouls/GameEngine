@@ -575,8 +575,10 @@ void camera_projection_matrix_lh(
     const Camera* const __restrict camera
 ) NO_EXCEPT
 {
-    //mat4_identity(camera->projection);
-    matrices->projection[15] = 1.0f;
+    // Perspective: w = -z (rh) / z (lh), the sparse functions don't write the 0 entries
+    // WARNING: projection[15] must be 0, with 1 the gpu divides by (depth + 1)
+    //          = the eye is 1 unit behind the camera location (wider view than the culling expects)
+    matrices->projection[15] = 0.0f;
     mat4_perspective_sparse_lh(
         matrices->projection,
         camera->fov,
@@ -592,8 +594,10 @@ void camera_projection_matrix_rh_opengl(
     const Camera* const __restrict camera
 ) NO_EXCEPT
 {
-    //mat4_identity(matrices->projection);
-    matrices->projection[15] = 1.0f;
+    // Perspective: w = -z (rh) / z (lh), the sparse functions don't write the 0 entries
+    // WARNING: projection[15] must be 0, with 1 the gpu divides by (depth + 1)
+    //          = the eye is 1 unit behind the camera location (wider view than the culling expects)
+    matrices->projection[15] = 0.0f;
     mat4_perspective_sparse_rh(
         matrices->projection,
         camera->fov,
@@ -609,8 +613,10 @@ void camera_projection_matrix_rh_vulkan(
     const Camera* const __restrict camera
 ) NO_EXCEPT
 {
-    //mat4_identity(matrices->projection);
-    matrices->projection[15] = 1.0f;
+    // Perspective: w = -z (rh) / z (lh), the sparse functions don't write the 0 entries
+    // WARNING: projection[15] must be 0, with 1 the gpu divides by (depth + 1)
+    //          = the eye is 1 unit behind the camera location (wider view than the culling expects)
+    matrices->projection[15] = 0.0f;
     // @bug Fix
     mat4_perspective_sparse_rh(
         matrices->projection,
@@ -791,7 +797,6 @@ f32 camera_step_closer(GpuApiType type, f32 value) NO_EXCEPT
 inline
 f32 camera_step_away(GpuApiType type, f32 value) NO_EXCEPT
 {
-    // @see camera_step_closer()
     switch (type) {
         case GPU_API_TYPE_SOFTWARE:
         case GPU_API_TYPE_OPENGL:

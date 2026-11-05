@@ -344,7 +344,16 @@ int32 opengl_program_optimize(const char* __restrict input, char* __restrict out
     return (int32) (write_ptr - output);
 }
 
-GLuint gpuapi_shader_make(GLenum type, const char* source) NO_EXCEPT
+/**
+ * Compiles a shader stage
+ *
+ * @param GLenum      type   Shader stage
+ * @param const char* source Shader source
+ * @param bool        fatal  false = a compile error is not an assert (e.g. hot reload), 0 is returned instead
+ *
+ * @return GLuint Shader, 0 on failure if !fatal
+ */
+GLuint gpuapi_shader_make(GLenum type, const char* source, bool fatal = true) NO_EXCEPT
 {
     LOG_1("[INFO] Create shader");
     const GLuint shader = glCreateShader(type);
@@ -365,9 +374,17 @@ GLuint gpuapi_shader_make(GLenum type, const char* source) NO_EXCEPT
             glGetShaderInfoLog(shader, length, NULL, info);
             LOG_1(simple_string_init((char *) info, length));
 
-            ASSERT_THROW();
+            if (fatal) {
+                ASSERT_THROW();
+            }
         }
     #endif
+
+    if (!fatal && status == GL_FALSE) {
+        glDeleteShader(shader);
+
+        return 0;
+    }
 
     LOG_1("[INFO] Created shader");
 
@@ -385,15 +402,37 @@ int32 opengl_program_get_size(uint32 program) NO_EXCEPT
 
 // @todo Instead of passing the shaders one by one, pass one array called ShaderStage* shader_stages
 // This way we can handle this more dynamic
+//
+// fatal = false: a link error is not an assert (e.g. hot reload), 0 is returned instead
+//      vertex_shader/fragment_shader = 0 (failed compile) also returns 0
+//      the shaders are deleted in every case
 GLuint gpuapi_pipeline_make(
     GLuint vertex_shader,
     GLuint fragment_shader,
-    GLint geometry_shader
+    GLint geometry_shader,
+    bool fatal = true
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_PIPELINE_MAKE, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
+
+    if (!fatal && (!vertex_shader || !fragment_shader || geometry_shader == 0)) {
+        if (geometry_shader > 0) {
+            glDeleteShader(geometry_shader);
+        }
+
+        if (vertex_shader) {
+            glDeleteShader(vertex_shader);
+        }
+
+        if (fragment_shader) {
+            glDeleteShader(fragment_shader);
+        }
+
+        return 0;
+    }
+
     LOG_1("[INFO] Create pipeline");
-    const GLuint program = glCreateProgram();
+    GLuint program = glCreateProgram();
 
     if (geometry_shader > -1) {
         glAttachShader(program, geometry_shader);
@@ -418,7 +457,9 @@ GLuint gpuapi_pipeline_make(
             glGetProgramInfoLog(program, length, NULL, info);
             LOG_1(simple_string_init((char *) info, length));
 
-            ASSERT_THROW();
+            if (fatal) {
+                ASSERT_THROW();
+            }
         }
     #endif
 
@@ -435,6 +476,12 @@ GLuint gpuapi_pipeline_make(
 
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
+
+    if (!fatal && status == GL_FALSE) {
+        glDeleteProgram(program);
+
+        return 0;
+    }
 
     LOG_1("[INFO] Created pipeline");
 
@@ -671,13 +718,18 @@ static int32 gpuapi_uniform_location(const char* __restrict src, const char* __r
  * WARNING: If you use this your uniforms MUST have an explicit location e.g.
  *          layout (location = N) ...;
  */
+//
+// fatal = false: a missing uniform is not an assert (e.g. hot reload), false is returned instead
 FORCE_INLINE
-void gpuapi_descriptor_set_layout_create(
+bool gpuapi_descriptor_set_layout_create(
     Pipeline* const __restrict pipeline,
     const OpenglDescriptorSetLayoutBinding* const __restrict bindings, int32 binding_length,
-    const char* const* __restrict shader_sources, int32 shader_count
+    const char* const* __restrict shader_sources, int32 shader_count,
+    bool fatal = true
 ) NO_EXCEPT
 {
+    bool success = true;
+
     for (int32 i = 0; i < binding_length; ++i) {
         pipeline->descriptor_set_layout[i].name = bindings[i].name;
         pipeline->descriptor_set_layout[i].binding = -1;
@@ -689,8 +741,17 @@ void gpuapi_descriptor_set_layout_create(
             );
         }
 
-        ASSERT_TRUE(pipeline->descriptor_set_layout[i].binding >= 0);
+        if (pipeline->descriptor_set_layout[i].binding < 0) {
+            LOG_1("[ERROR] Uniform %s has no explicit location", {DATA_TYPE_CHAR_STR, (void *) bindings[i].name});
+            success = false;
+        }
+
+        if (fatal) {
+            ASSERT_TRUE(pipeline->descriptor_set_layout[i].binding >= 0);
+        }
     }
+
+    return success;
 }
 
 template <unsigned N>

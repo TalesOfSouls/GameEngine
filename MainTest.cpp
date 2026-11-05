@@ -20,7 +20,7 @@
  * The test order is: utilities, memory, stdlib (highest priority) followed by the
  * higher level systems
  *
- * Rules for new test files (@see tests/README.md):
+ * Rules for new test files
  *      - the main macro is <Directory><FileName>Test, e.g. UtilsSimpleStringTest
  *      - every test function is prefixed with the module, e.g. test_simple_string_*
  *      - a test file must also compile and pass standalone (tests_iter.bat/.sh)

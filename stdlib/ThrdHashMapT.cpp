@@ -247,7 +247,7 @@ bool hashmap_unlink(ThrdHashMapT<T>* const hm, uint32 hash, int32 element) NO_EX
 /**
  * Finds a string entry (ignores the completeness state)
  *
- * @param key    Stored key part (@see hashmap_str_hash)
+ * @param key    Stored key
  * @param length Length of the stored key part
  */
 template <typename T>

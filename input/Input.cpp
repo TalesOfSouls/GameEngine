@@ -1000,6 +1000,10 @@ int32 input_hotkey_state_update(Input* const input, uint64 /* time */ = 0) NO_EX
     InputState* const state = &input->state;
     memset(state->active_hotkeys, 0, sizeof(uint16) * ARRAY_COUNT(state->active_hotkeys));
 
+    if (input->hotkeys_disabled) {
+        return 0;
+    }
+
     // While typing, keys that produce text don't trigger hotkeys (e.g. "w" = move forward)
     // Other keys (e.g. F1, ctrl+c) still work
     const byte exclude_flags = (input->context & HOTKEY_CONTEXT_TYPING)

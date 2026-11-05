@@ -83,7 +83,7 @@ void thrd_queue_locks_init(QueueT<T>* const queue) NO_EXCEPT
     mutex_init(&queue->mtx, NULL);
     coms_pthread_cond_init(&queue->cond, NULL);
 
-    // One slot always stays empty (@see queue_has_space)
+    // One slot always stays empty
     coms_sem_init(&queue->empty, queue->capacity - 1);
     coms_sem_init(&queue->full, 0);
 }

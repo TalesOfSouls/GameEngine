@@ -70,7 +70,7 @@ int32 language_slot_count(int32 count) NO_EXCEPT
 }
 
 /**
- * Upper bound of the memory image size for a language text
+ * Upper bound of the memory size for a language text
  */
 inline
 int32 language_txt_memory_size(const char* const text, int32 length) NO_EXCEPT
@@ -90,7 +90,7 @@ int32 language_txt_memory_size(const char* const text, int32 length) NO_EXCEPT
  *
  * @param capacity Size of lang->data (language_txt_memory_size() is always enough)
  *
- * @return Size of the memory image or -1 if lang->data is too small
+ * @return Size of the memory or -1 if lang->data is too small
  */
 inline
 int32 language_from_txt(
@@ -271,7 +271,7 @@ int32 language_from_txt(
  *
  * @param capacity Size of lang->data
  *
- * @return Size of the memory image or -1 if the file doesn't exist or lang->data is too small
+ * @return Size of the memory or -1 if the file doesn't exist or lang->data is too small
  *
  * @todo remove this shouldn't be here it all it does is load the text file which should not be in here
  */

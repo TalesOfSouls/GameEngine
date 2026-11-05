@@ -13,14 +13,12 @@
 #include "HashMapHash.h"
 
 /**
- * Implementation notes (@see HashMapT)
- *
- *  - Bucket index = hashmap_hash_range(hash, capacity), the head of bucket i is stored in slot i (entry->head)
- *  - Insert pushes the new entry to the front of its chain (no chain walk)
- *  - New entries are preferably placed in the slot of their own bucket -> head + entry often in one cache line
- *  - String entries store a 16 bit hash tag -> chain walks compare 2 bytes before comparing the key
- *  - The string key is hashed and measured in one pass (no strlen, no hash function pointer call)
- *  - Remove only unlinks + frees the removed entry, other entries are never moved/copied
+ * Bucket index = hashmap_hash_range(hash, capacity), the head of bucket i is stored in slot i (entry->head)
+ * Insert pushes the new entry to the front of its chain (no chain walk)
+ * New entries are preferably placed in the slot of their own bucket -> head + entry often in one cache line
+ * String entries store a 16 bit hash tag -> chain walks compare 2 bytes before comparing the key
+ * The string key is hashed and measured in one pass (no strlen, no hash function pointer call)
+ * Remove only unlinks + frees the removed entry, other entries are never moved/copied
  */
 
 // Tag stored in string entries (uses the low bits, the bucket index uses the high bits of the hash)
@@ -160,7 +158,7 @@ T* hashmap_slot_create(HashMapT<T>* const hm, uint32 hash) NO_EXCEPT
 /**
  * Finds a string entry
  *
- * @param key    Stored key part (@see hashmap_str_hash)
+ * @param key    Stored key
  * @param length Length of the stored key part
  */
 template <typename T>

@@ -17,7 +17,7 @@ static void test_buffer_alloc() {
 
 static void test_buffer_init() {
     // The buffer is aligned inside of the provided memory -> needs slack for the alignment
-    // The caller has to provide zeroed memory (@see ASSERT_MEM_ZERO)
+    // The caller has to provide zeroed memory
     byte buffer[256] = {0};
     BufferMemory mem = {0};
     buffer_init(&mem, buffer, 100);

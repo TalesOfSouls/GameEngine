@@ -54,6 +54,9 @@
 // Max nesting of clipping panels (e.g. scroll panel in a scroll panel)
 #define UI_CLIP_STACK_SIZE 16
 
+// Cursor position
+static int32 _ui_pointer_input = 0;
+
 /**
  * Does the ui need to be re-cached?
  *
@@ -1295,6 +1298,52 @@ void ui_select_open(UILayout* const layout, UISelect* const select, bool open) N
     }
 }
 
+/**
+ * Replaces the options (e.g. options that are only known at runtime like the connected monitors)
+ * The old option texts stay in the element buffer (unused) -> don't call this every frame
+ *
+ * @param selected Selected option (single selection, -1 = none), multi selection: nothing is checked
+ */
+inline
+void ui_select_set_options(
+    UILayout* const layout, UISelect* const select,
+    const char* const* options, int32 option_count,
+    int32 selected = 0
+) NO_EXCEPT
+{
+    ui_select_open(layout, select, false);
+
+    int32 size = 0;
+    for (int32 i = 0; i < option_count; ++i) {
+        size += (int32) strlen(options[i]) + 1;
+    }
+
+    select->options = 0;
+    if (size) {
+        select->options = ui_text_reserve(layout, CHAR_TYPE_CHAR, size);
+        char* pos = (char *) (layout->ui_element_buffer.memory + select->options);
+        for (int32 i = 0; i < option_count; ++i) {
+            const int32 length = (int32) strlen(options[i]) + 1;
+            memcpy(pos, options[i], length);
+            pos += length;
+        }
+    }
+
+    select->option_count = (int16) option_count;
+
+    if (select->select_flags & UI_SELECT_FLAG_MULTI) {
+        select->multi_selected = option_count > 0
+            ? ui_text_reserve(layout, CHAR_TYPE_CHAR, (option_count + 7) / 8)
+            : 0;
+        select->selected = -1;
+    } else {
+        select->selected = (int16) ((selected >= 0 && selected < option_count) ? selected : (option_count > 0 ? 0 : -1));
+    }
+
+    select->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
+    ui_layout_mark_dirty(layout);
+}
+
 // Opens/closes the popup of a popup owner (select, color picker)
 inline
 void ui_popup_toggle(UILayout* const layout, int32 popup) NO_EXCEPT
@@ -1974,6 +2023,34 @@ void ui_focus_move(UILayout* const layout, int32 direction) NO_EXCEPT
 }
 
 /**
+ * Enter/space on the focused element = the same as a mouse click on its center
+ * (interaction.clicked is set like for a pointer click, e.g. actions that only react to clicks)
+ */
+inline
+void ui_element_click_keyboard(void* app, UILayout* const layout, UICore* const element) NO_EXCEPT
+{
+    UIInteraction* const interaction = &layout->interaction;
+    interaction->clicked = ui_element_offset(layout, element);
+
+    // pos = top left corner (y-up)
+    ui_element_click(
+        app, layout, element,
+        element->dimension.pos.x + element->dimension.dim.x * 0.5f,
+        element->dimension.pos.y - element->dimension.dim.y * 0.5f
+    );
+
+    // e.g. context menu: clicking an entry closes the menu
+    const UIPanel* const popup = ui_popup_get(layout);
+    if (popup
+        && (popup->panel_flags & UI_PANEL_FLAG_CLOSE_ON_CLICK)
+        && element != &popup->core
+        && ui_element_is_self_or_child_of(layout, element, &popup->core)
+    ) {
+        ui_popup_close(layout);
+    }
+}
+
+/**
  * Keyboard input for the focused (non text) element
  *      button:       enter/space = click
  *      checkbox:     enter/space = toggle
@@ -1982,7 +2059,9 @@ void ui_focus_move(UILayout* const layout, int32 direction) NO_EXCEPT
  *      select:       enter/space = open/pick, up/down = previous/next option (or row while open)
  *      color picker: enter/space = open/close
  *      tab:          arrows = previous/next tab
- *      table:        up/down/home/end = select row
+ *      table:        up/down/home/end = select row, enter/space = click on the selected row (the first row if none is selected)
+ *
+ * Enter/space = mouse click (@see ui_element_click_keyboard)
  *
  * @return true if something changed
  */
@@ -2004,7 +2083,7 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, ui
                 return false;
             }
 
-            ui_element_click(app, layout, element, element->dimension.pos.x, element->dimension.pos.y);
+            ui_element_click_keyboard(app, layout, element);
 
             return true;
         }
@@ -2141,6 +2220,18 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, ui
             UITable* const table = (UITable *) element;
             if (!table->row_count) {
                 return false;
+            }
+
+            // Click on the selected row (also if it is already selected, like a mouse click on it)
+            if (activate) {
+                const int32 row = table->selected < 0 ? 0 : table->selected;
+                ui_table_select(layout, table, row);
+                ui_table_scroll_to_row(layout, table, row);
+
+                layout->interaction.clicked = ui_element_offset(layout, element);
+                ui_element_action(app, layout, element, table->on_change);
+
+                return true;
             }
 
             int32 row;
@@ -2503,11 +2594,6 @@ f32 ui_hotkey_axis(const Input* const input, uint16 hotkey_positive, uint16 hotk
 
     return positive - (negative < 0.0f ? -negative : negative);
 }
-
-// @todo I don't like this global variable, maybe it should be part of
-//      * either the input state
-//      * or a new UI strict
-static int32 _ui_pointer_input = 0;
 
 /**
  * Passes the input of all input devices to the ui

@@ -46,7 +46,7 @@ static void test_language_from_txt() {
     too_small.data = (byte *) platform_alloc_aligned(64, 64, 64);
     TEST_EQUALS(language_from_txt(&too_small, LANGUAGE_TEST_TXT, length, 64), -1);
 
-    // Binary = memory image
+    // Binary
     byte* const out = (byte *) platform_alloc_aligned(capacity, capacity, 64);
     TEST_EQUALS(language_to_data(&lang, out), lang.size);
 

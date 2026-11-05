@@ -21,6 +21,7 @@ struct platform_alloc_header {
     size_t committed_size;
 };
 
+// Returns zeroed memory
 inline
 void* platform_alloc_aligned(
     size_t initial_size,

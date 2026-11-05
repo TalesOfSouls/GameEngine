@@ -47,9 +47,9 @@
  *
  * v2_f32 (8 bytes): f32 x, f32 y - normalized (0-1) atlas coordinates.
  *
- * There is no version field. The texture is NOT part of this payload: it is a
- * separate ASSET_TYPE_IMAGE asset that the archive builder adds as a dependency
- * (@see AssetArchive.h). atlas_from_data() aligns the runtime uv array to 64 bytes
+ * The texture is NOT part of this payload: it is a
+ * separate ASSET_TYPE_IMAGE asset that the archive builder adds as a dependency.
+ * atlas_from_data() aligns the runtime uv array to 64 bytes
  * for AVX-512, the file itself contains no padding.
  */
 struct TextureAtlasElement {

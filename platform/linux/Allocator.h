@@ -22,6 +22,7 @@ struct platform_alloc_header {
     size_t committed_size;
 };
 
+// @question Is this zeroed by default?
 inline
 void* platform_alloc_aligned(
     size_t initial_size,

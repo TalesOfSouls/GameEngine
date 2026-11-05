@@ -135,7 +135,7 @@
  * Hash map, document and language form one position independent block, so
  * theme_from_data() only has to copy it and restore the pointers.
  *
- * WARNING: the document block is a memory image (only the version and the
+ * WARNING: the document block is memory (only the version and the
  * document_size are converted to little endian). Themes are only portable
  * between builds with the same endianness and struct layout (incl. sizeof(size_t)).
  *
@@ -193,11 +193,10 @@ struct UIThemeData {
     int32 first_node;
     int32 version;
 
-    // Language memory image (@see Language.h), 0 = no language
+    // Language data, 0 = no language
     int32 language_offset;
     int32 language_size;
 
-    // @see UITheme::font_asset_id
     int32 font_asset_id;
     int32 atlas_asset_id;
 };

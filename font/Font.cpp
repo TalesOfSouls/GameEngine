@@ -71,6 +71,7 @@ const Glyph* font_glyph_find(const Font* const font, uint32 codepoint) NO_EXCEPT
         : font_glyph_find_eytzinger(font, codepoint);
 }
 
+// @question Consider to change to uint16, we use int16 to check valid values as > 0 but we could change that.
 static inline
 int16 font_glyph_index_find_binary(const Font* const font, uint32 codepoint) NO_EXCEPT
 {

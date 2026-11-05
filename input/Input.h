@@ -322,6 +322,10 @@ struct Input {
     // @type InputContext
     byte context;
 
+    // No hotkeys are evaluated while this is set (e.g. while the user records a new hotkey)
+    // The keys are still collected (InputState::active_keys)
+    bool hotkeys_disabled;
+
     uint8 hotkey_count;
 
     KBMDevice keyboard;

@@ -19,7 +19,8 @@ struct RenderSettings {
     byte color_deficiency;
     byte atlas_caching;
 
-    // 3D scene resolution in percent of the window resolution (0/100 = native) @see render_scale_viewport()
+    // 3D scene resolution in percent of the window resolution (0/100 = native)
+    // render_scale_viewport()
     byte render_scale;
 
     // Swap interval (0 = off, 1 = on, -1 = adaptive if supported)
@@ -72,20 +73,10 @@ struct RenderFrame {
     byte data[3904];
 };
 
-/**
- * Resolution of the 3D scene (@see RenderSettings::render_scale)
- * 0 or >= 100 = native resolution, the scale is clamped to >= 25%
- */
-FORCE_INLINE
-bool render_scale_active(byte render_scale) NO_EXCEPT
-{
-    return render_scale && render_scale < 100;
-}
-
 FORCE_INLINE
 v2_f32 render_scale_viewport(v2_f32 viewport, byte render_scale) NO_EXCEPT
 {
-    if (!render_scale_active(render_scale)) {
+    if (!render_scale) {
         return viewport;
     }
 

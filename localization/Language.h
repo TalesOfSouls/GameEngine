@@ -26,8 +26,7 @@
  *
  * BINARY FORMAT: .langbin / ASSET_TYPE_LANGUAGE payload, version LANGUAGE_VERSION
  *
- * The file is exactly the memory image (@see Language), so it can be used in
- * place without copying or parsing:
+ * The file is exactly the memory footprint, so it can be used in place without copying or parsing:
  *
  *      offset          size        type                field
  *      0               16          LanguageHeader      scalar header
@@ -55,11 +54,9 @@
  * empty slots the probe always terminates. The strings are NUL terminated and
  * contiguous, keys and values can be interleaved.
  *
- * A theme embeds a language image after its document (@see UITheme.h), the layout
- * keeps the language of the file and a global language separately
- * (@see UILayoutTxtContext).
+ * The layout keeps the language of the file and a global language separately.
  *
- * WARNING: the image is written with memcpy (no endian conversion), it is only
+ * WARNING: the memory is written with memcpy (no endian conversion), it is only
  * portable between hosts with the same endianness and sizeof(size_t).
  */
 struct LanguageHeader {
@@ -71,7 +68,7 @@ struct LanguageHeader {
     // Size of the slot array, power of 2 (at least twice the amount of strings)
     int32 slot_count;
 
-    // Size of the memory image incl. this header
+    // Size of the memory incl. this header
     int32 size;
 };
 

@@ -27,6 +27,23 @@ struct SettingsMatch {
  * {"key_forward.context", DATA_TYPE_UINT8, offsetof(InputSettings, key_forward) + offsetof(Hotkey, context), 1},
  */
 
+// Characters that end the name of a setting in a settings file ("name[] 1 2", "name{} 1 2 3", "name: 1")
+#define SETTINGS_NAME_END "\r\n\t :[{"
+
+/**
+ * Length of the setting name at the beginning of a line (without "[]", "{}")
+ */
+static inline
+int32 settings_name_length(const char* const line) NO_EXCEPT
+{
+    int32 length = 0;
+    while (line[length] && !strchr(SETTINGS_NAME_END, line[length])) {
+        ++length;
+    }
+
+    return length;
+}
+
 static inline
 char* settings_save_name(
     const SettingsMatch* const __restrict match,
@@ -37,7 +54,17 @@ char* settings_save_name(
     --out;
 
     switch (match->type) {
+        case DATA_TYPE_BOOL_ARRAY: FALLTHROUGH;
+        case DATA_TYPE_INT8_ARRAY: FALLTHROUGH;
+        case DATA_TYPE_INT16_ARRAY: FALLTHROUGH;
+        case DATA_TYPE_INT32_ARRAY: FALLTHROUGH;
+        case DATA_TYPE_INT64_ARRAY: FALLTHROUGH;
+        case DATA_TYPE_UINT8_ARRAY: FALLTHROUGH;
         case DATA_TYPE_UINT16_ARRAY: FALLTHROUGH;
+        case DATA_TYPE_UINT32_ARRAY: FALLTHROUGH;
+        case DATA_TYPE_UINT64_ARRAY: FALLTHROUGH;
+        case DATA_TYPE_F32_ARRAY: FALLTHROUGH;
+        case DATA_TYPE_F64_ARRAY: FALLTHROUGH;
         case DATA_TYPE_V4_F32_ARRAY: {
             *out++ = '[';
             *out++ = ']';
@@ -55,6 +82,94 @@ char* settings_save_name(
     return out;
 }
 
+// Decimals of floats in the settings file (str_to_float reads at most 6 decimals)
+#define SETTINGS_FLOAT_PRECISION 6
+
+/**
+ * Writes a float without unnecessary trailing zeros (e.g. "0.5", "1.0", "0.785398")
+ * A value written this way is read back as the same value (@see str_to_float)
+ */
+static inline
+char* settings_save_float(f64 value, char* __restrict out) NO_EXCEPT
+{
+    if (value < 0.0) {
+        *out++ = '-';
+        value = -value;
+    }
+
+    // Rounded fixed point value (float_to_str truncates the decimals -> 0.785398 would become 0.785397)
+    const uint64 scale = 1000000;
+    const uint64 fixed = (uint64) (value * (f64) scale + 0.5);
+
+    out += int_to_str((uint64) (fixed / scale), out);
+    *out++ = '.';
+
+    // Decimals with leading zeros, without unnecessary trailing zeros (at least one decimal)
+    char decimals[SETTINGS_FLOAT_PRECISION];
+    uint64 fraction = fixed % scale;
+    for (int32 i = SETTINGS_FLOAT_PRECISION - 1; i >= 0; --i) {
+        decimals[i] = (char) ('0' + fraction % 10);
+        fraction /= 10;
+    }
+
+    int32 length = SETTINGS_FLOAT_PRECISION;
+    while (length > 1 && decimals[length - 1] == '0') {
+        --length;
+    }
+
+    memcpy(out, decimals, length);
+    out += length;
+    *out = '\0';
+
+    return out;
+}
+
+/**
+ * Writes the value of one integer/float element
+ *
+ * @param type Element type (e.g. DATA_TYPE_UINT16 for DATA_TYPE_UINT16_ARRAY)
+ */
+static inline
+char* settings_save_number(const byte* const __restrict member, DataType type, char* __restrict out) NO_EXCEPT
+{
+    switch (type) {
+        case DATA_TYPE_BOOL: out += int_to_str((int64) *((const bool *) member), out); break;
+        case DATA_TYPE_INT8: out += int_to_str((int64) *((const int8 *) member), out); break;
+        case DATA_TYPE_INT16: out += int_to_str((int64) *((const int16 *) member), out); break;
+        case DATA_TYPE_INT32: out += int_to_str((int64) *((const int32 *) member), out); break;
+        case DATA_TYPE_INT64: out += int_to_str((int64) *((const int64 *) member), out); break;
+        case DATA_TYPE_UINT8: out += int_to_str((int64) *((const uint8 *) member), out); break;
+        case DATA_TYPE_UINT16: out += int_to_str((int64) *((const uint16 *) member), out); break;
+        case DATA_TYPE_UINT32: out += int_to_str((int64) *((const uint32 *) member), out); break;
+        case DATA_TYPE_UINT64: out += int_to_str((uint64) *((const uint64 *) member), out); break;
+        case DATA_TYPE_F32: out = settings_save_float((f64) *((const f32 *) member), out); break;
+        case DATA_TYPE_F64: out = settings_save_float(*((const f64 *) member), out); break;
+        default: UNREACHABLE();
+    }
+
+    return out;
+}
+
+/**
+ * Writes "v0 v1 v2 ..." of an array
+ */
+static inline
+char* settings_save_array(
+    const byte* const __restrict member, DataType element_type, int32 element_size, int32 count,
+    char* __restrict out
+) NO_EXCEPT
+{
+    for (int32 j = 0; j < count; ++j) {
+        if (j) {
+            *out++ = ' ';
+        }
+
+        out = settings_save_number(member + element_size * j, element_type, out);
+    }
+
+    return out;
+}
+
 static inline
 char* settings_save_value(
     const byte* const __restrict settings_data,
@@ -63,104 +178,69 @@ char* settings_save_value(
 ) NO_EXCEPT
 {
     const byte* const member = settings_data + match[match_index].offset;
-
-    // Check if there is a value
-    str_skip_whitespace((const char **) &member);
-    if (str_is_eol((char) *member)) {
-        return out;
-    }
+    const int32 count = match[match_index].count;
 
     switch (match[match_index].type) {
-        case DATA_TYPE_BOOL: {
-            out += int_to_str((int64) *member, out);
-        } break;
-        case DATA_TYPE_INT8: {
-            out += int_to_str((int64) *((int8 *) member), out);
-        } break;
-        case DATA_TYPE_INT16: {
-            out += int_to_str((int64) *((int16 *) member), out);
-        } break;
-        case DATA_TYPE_INT32: {
-            out += int_to_str((int64) *((int32 *) member), out);
-        } break;
-        case DATA_TYPE_INT64: {
-            out += int_to_str((int64) *((int64 *) member), out);
-        } break;
-        case DATA_TYPE_UINT8: {
-            out += int_to_str((int64) *((uint8 *) member), out);
-        } break;
-        case DATA_TYPE_UINT16: {
-            out += int_to_str((int64) *((uint16 *) member), out);
-        } break;
-        case DATA_TYPE_UINT32: {
-            out += int_to_str((int64) *((uint32 *) member), out);
-        } break;
-        case DATA_TYPE_UINT64: {
-            out += int_to_str((int64) *((uint64 *) member), out);
-        } break;
-        case DATA_TYPE_F32: {
-            out += float_to_str((f64) *((f32 *) member), out);
-        } break;
+        case DATA_TYPE_BOOL: FALLTHROUGH;
+        case DATA_TYPE_INT8: FALLTHROUGH;
+        case DATA_TYPE_INT16: FALLTHROUGH;
+        case DATA_TYPE_INT32: FALLTHROUGH;
+        case DATA_TYPE_INT64: FALLTHROUGH;
+        case DATA_TYPE_UINT8: FALLTHROUGH;
+        case DATA_TYPE_UINT16: FALLTHROUGH;
+        case DATA_TYPE_UINT32: FALLTHROUGH;
+        case DATA_TYPE_UINT64: FALLTHROUGH;
+        case DATA_TYPE_F32: FALLTHROUGH;
         case DATA_TYPE_F64: {
-            out += float_to_str((f64) *((f64 *) member), out);
+            out = settings_save_number(member, match[match_index].type, out);
         } break;
 
-        // Array data
-        case DATA_TYPE_UINT16_ARRAY: {
-            for (int32 j = 0; j < match[match_index].count - 1; ++j) {
-                out += int_to_str((int64) *((uint16 *) (member + sizeof(uint16) * j)), out);
-                *out++ = ' ';
-            }
-
-            out += int_to_str((int64) *((uint16 *) (member + sizeof(uint16) * (match[match_index].count - 1))), out);
-        } break;
+        // Array data (same format as settings_load_value: "name[] 1 2 3")
+        case DATA_TYPE_BOOL_ARRAY: out = settings_save_array(member, DATA_TYPE_BOOL, (int32) sizeof(bool), count, out); break;
+        case DATA_TYPE_INT8_ARRAY: out = settings_save_array(member, DATA_TYPE_INT8, (int32) sizeof(int8), count, out); break;
+        case DATA_TYPE_INT16_ARRAY: out = settings_save_array(member, DATA_TYPE_INT16, (int32) sizeof(int16), count, out); break;
+        case DATA_TYPE_INT32_ARRAY: out = settings_save_array(member, DATA_TYPE_INT32, (int32) sizeof(int32), count, out); break;
+        case DATA_TYPE_INT64_ARRAY: out = settings_save_array(member, DATA_TYPE_INT64, (int32) sizeof(int64), count, out); break;
+        case DATA_TYPE_UINT8_ARRAY: out = settings_save_array(member, DATA_TYPE_UINT8, (int32) sizeof(uint8), count, out); break;
+        case DATA_TYPE_UINT16_ARRAY: out = settings_save_array(member, DATA_TYPE_UINT16, (int32) sizeof(uint16), count, out); break;
+        case DATA_TYPE_UINT32_ARRAY: out = settings_save_array(member, DATA_TYPE_UINT32, (int32) sizeof(uint32), count, out); break;
+        case DATA_TYPE_UINT64_ARRAY: out = settings_save_array(member, DATA_TYPE_UINT64, (int32) sizeof(uint64), count, out); break;
+        case DATA_TYPE_F32_ARRAY: out = settings_save_array(member, DATA_TYPE_F32, (int32) sizeof(f32), count, out); break;
+        case DATA_TYPE_F64_ARRAY: out = settings_save_array(member, DATA_TYPE_F64, (int32) sizeof(f64), count, out); break;
 
         // Vectors
         case DATA_TYPE_V4_F32: {
-            out += float_to_str((f32) *((f32 *) member), out);
-            *out++ = ' ';
-            out += float_to_str((f32) *((f32 *) (member + sizeof(f32) * 1)), out);
-            *out++ = ' ';
-            out += float_to_str((f32) *((f32 *) (member + sizeof(f32) * 2)), out);
-            *out++ = ' ';
-            out += float_to_str((f32) *((f32 *) (member + sizeof(f32) * 3)), out);
+            out = settings_save_array(member, DATA_TYPE_F32, (int32) sizeof(f32), 4, out);
         } break;
         case DATA_TYPE_V4_F32_ARRAY: {
-            for (int32 j = 0; j < match[match_index].count; ++j) {
-                out += sprintf_fast(
-                    out, "%f %f %f %f",
-                    (f32) *((f32 *) member),
-                    (f32) *((f32 *) (member + sizeof(f32) * 1)),
-                    (f32) *((f32 *) (member + sizeof(f32) * 2)),
-                    (f32) *((f32 *) (member + sizeof(f32) * 3))
-                );
-            }
+            out = settings_save_array(member, DATA_TYPE_F32, (int32) sizeof(f32), 4 * count, out);
         } break;
 
         // String data
         case DATA_TYPE_CHAR: {
-            out += str_copy(out, (const char *) member);
+            if (*member) {
+                *out++ = (char) *member;
+            }
         } break;
         case DATA_TYPE_CHAR_STR: {
-            if (match[match_index].count > 1) {
-                str_copy_to_eol((const char *) member, out, match[match_index].count);
-            } else {
-                str_copy_to_eol((const char *) member, out);
-            }
+            out += (count > 1)
+                ? str_copy_to_eol((const char *) member, out, count)
+                : str_copy_to_eol((const char *) member, out);
         } break;
         case DATA_TYPE_WCHAR_STR: {
             char temp[256];
-            wchar_to_char(out, (const wchar_t *) member);
+            wchar_to_char(temp, (const wchar_t *) member);
 
-            str_copy_to_eol((const char *) temp, out);
+            out += str_copy_to_eol((const char *) temp, out);
         } break;
         case DATA_TYPE_STRUCT: {
-            --out;
-
             // WARNING: This does not support recursive/nested structs
-            for (int struct_count = 1; struct_count <= match[match_index].count; ++struct_count) {
-                ++out;
-                *out = ' ';
+            // The .count represents how many members the struct has, the N following matches are the members
+            for (int32 struct_count = 1; struct_count <= count; ++struct_count) {
+                if (struct_count > 1) {
+                    *out++ = ' ';
+                }
+
                 out = settings_save_value(settings_data, match, match_index + struct_count, out);
             }
         } break;
@@ -171,6 +251,183 @@ char* settings_save_value(
     return out;
 }
 
+/**
+ * Writes one complete setting line without the line break ("name{} 1 2 3", "name 5")
+ *
+ * @param match_index Index of the match (for structs the index of the struct match)
+ */
+inline
+char* settings_save_line(
+    const void* const __restrict settings_data,
+    const SettingsMatch* const __restrict match, int32 match_index,
+    char* __restrict out
+) NO_EXCEPT
+{
+    out = settings_save_name(&match[match_index], out);
+
+    return settings_save_value((const byte *) settings_data, match, match_index, out);
+}
+
+/**
+ * Element type + size of an array type (e.g. DATA_TYPE_UINT8 for DATA_TYPE_UINT8_ARRAY)
+ *
+ * @return false if the type is no number array
+ */
+static inline
+bool settings_array_element(DataType type, DataType* const __restrict element_type, int32* const __restrict element_size) NO_EXCEPT
+{
+    switch (type) {
+        case DATA_TYPE_BOOL_ARRAY: *element_type = DATA_TYPE_BOOL; *element_size = (int32) sizeof(bool); return true;
+        case DATA_TYPE_INT8_ARRAY: *element_type = DATA_TYPE_INT8; *element_size = (int32) sizeof(int8); return true;
+        case DATA_TYPE_INT16_ARRAY: *element_type = DATA_TYPE_INT16; *element_size = (int32) sizeof(int16); return true;
+        case DATA_TYPE_INT32_ARRAY: *element_type = DATA_TYPE_INT32; *element_size = (int32) sizeof(int32); return true;
+        case DATA_TYPE_INT64_ARRAY: *element_type = DATA_TYPE_INT64; *element_size = (int32) sizeof(int64); return true;
+        case DATA_TYPE_UINT8_ARRAY: *element_type = DATA_TYPE_UINT8; *element_size = (int32) sizeof(uint8); return true;
+        case DATA_TYPE_UINT16_ARRAY: *element_type = DATA_TYPE_UINT16; *element_size = (int32) sizeof(uint16); return true;
+        case DATA_TYPE_UINT32_ARRAY: *element_type = DATA_TYPE_UINT32; *element_size = (int32) sizeof(uint32); return true;
+        case DATA_TYPE_UINT64_ARRAY: *element_type = DATA_TYPE_UINT64; *element_size = (int32) sizeof(uint64); return true;
+        case DATA_TYPE_F32_ARRAY: *element_type = DATA_TYPE_F32; *element_size = (int32) sizeof(f32); return true;
+        case DATA_TYPE_F64_ARRAY: *element_type = DATA_TYPE_F64; *element_size = (int32) sizeof(f64); return true;
+        default: return false;
+    }
+}
+
+/**
+ * Writes the new version of an existing line of a settings file
+ *      "name[2] 5"         -> only this array element is written
+ *      "name 5 // comment" -> the comment is kept
+ *      "name"              -> stays without value as long as the value is empty/0 (e.g. "not set" settings)
+ *
+ * @param line          Existing line (without line break)
+ * @param name_length   Length of the name at the beginning of the line (@see settings_name_length)
+ */
+static inline
+char* settings_save_existing_line(
+    const void* const __restrict settings_data,
+    const SettingsMatch* const __restrict match, int32 match_index,
+    const char* const __restrict line, int32 name_length,
+    char* __restrict out
+) NO_EXCEPT
+{
+    const SettingsMatch* const setting = &match[match_index];
+    const char* pos = line + name_length;
+
+    // "name[N] value" = one array element
+    int32 index = -1;
+    if (pos[0] == '[' && pos[1] >= '0' && pos[1] <= '9') {
+        index = (int32) str_to_int(pos + 1);
+    }
+
+    // Skip the name suffix ("[]", "[N]", "{}", ":") + whitespace
+    while (*pos && *pos != ' ' && *pos != '\t') {
+        ++pos;
+    }
+
+    while (*pos == ' ' || *pos == '\t') {
+        ++pos;
+    }
+
+    // Trailing comment ("//" after a whitespace), not for strings (e.g. urls)
+    const char* comment = NULL;
+    if (setting->type != DATA_TYPE_CHAR && setting->type != DATA_TYPE_CHAR_STR && setting->type != DATA_TYPE_WCHAR_STR) {
+        comment = (pos[0] == '/' && pos[1] == '/') ? pos : strstr(pos, " //");
+    }
+
+    const bool has_value = *pos && pos != comment;
+
+    char* const start = out;
+
+    DataType element_type;
+    int32 element_size;
+    if (index >= 0 && index < setting->count && settings_array_element(setting->type, &element_type, &element_size)) {
+        memcpy(out, setting->name, name_length);
+        out += name_length;
+        *out++ = '[';
+        out += int_to_str((int64) index, out);
+        *out++ = ']';
+        *out++ = ' ';
+
+        const char* const member = (const char *) settings_data + setting->offset;
+        out = settings_save_number((const byte *) member + element_size * index, element_type, out);
+    } else {
+        out = settings_save_line(settings_data, match, match_index, out);
+    }
+
+    if (!has_value) {
+        // Only zeros (or nothing) -> keep the line without value
+        const char* value = start + name_length;
+        while (*value && *value != ' ') {
+            ++value;
+        }
+
+        bool is_zero = true;
+        for (const char* c = value; c < out; ++c) {
+            if (*c != ' ' && *c != '0' && *c != '.' && *c != '-') {
+                is_zero = false;
+                break;
+            }
+        }
+
+        if (is_zero) {
+            out = start;
+            out += str_copy_to_eol(line, out);
+
+            return out;
+        }
+    }
+
+    if (comment) {
+        if (comment[0] != ' ') {
+            *out++ = ' ';
+        }
+
+        out += str_copy_to_eol(comment, out);
+    }
+
+    *out = '\0';
+
+    return out;
+}
+
+/**
+ * Does a settings file content contain a setting (exact name, with or without "[]"/"{}")
+ */
+inline
+bool settings_file_contains(const char* __restrict in, const char* __restrict name) NO_EXCEPT
+{
+    const int32 name_length = (int32) strlen(name);
+
+    while (*in) {
+        while (*in == ' ' || *in == '\t') {
+            ++in;
+        }
+
+        if (settings_name_length(in) == name_length && strncmp(in, name, name_length) == 0) {
+            return true;
+        }
+
+        // Next line
+        while (*in && *in != '\n') {
+            ++in;
+        }
+
+        if (*in) {
+            ++in;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Creates a new settings file content based on an existing file
+ * Comments, empty lines and unknown settings are kept, the values of known settings are replaced
+ * Settings that are not in the old file are NOT added (@see settings_save_line)
+ *
+ * @param in Content of the existing file (NULL or "" = empty file)
+ *
+ * @return Length of the output
+ */
 size_t settings_save(
     const void* const __restrict settings_data,
     const char* __restrict in,
@@ -180,16 +437,25 @@ size_t settings_save(
 )  NO_EXCEPT
 {
     char line[2048];
-    char setting[64];
 
-    const byte* const settings = (const byte *) settings_data;
     const char* const start = out;
 
+    if (!in) {
+        in = "";
+    }
+
     int32 offset;
-    while (*in && out_length - (out - start) > 128) {
+    while (*in && out_length - (out - start) > sizeof(line) + 128) {
+        // The line breaks are kept (\n or \r\n)
         while (str_is_eol(*in)) {
-            in += is_eol(in);
-            *out++= '\n';
+            const int32 eol = is_eol(in) ? is_eol(in) : 1;
+            memcpy(out, in, eol);
+            out += eol;
+            in += eol;
+        }
+
+        if (!*in) {
+            break;
         }
 
         if (in[0] == '/' && in[1] == '/') {
@@ -197,23 +463,21 @@ size_t settings_save(
             in += offset;
             out += offset;
 
-            while (str_is_eol(*in)) {
-                in += is_eol(in);
-                *out++= '\n';
-            }
-
             continue;
         }
 
         in += str_copy_to_eol(in, line, sizeof(line) - 1);
-        sscanf_fast(line, "%s ", setting, 63);
+
+        // The name in the file may have a suffix ("name[]", "name{}")
+        const int32 name_length = settings_name_length(line);
 
         bool found = false;
-
         for (int32 i = 0; i < match_count; ++i) {
-            if (strcmp(setting, match[i].name) == 0) {
-                out = settings_save_name(&match[i], out);
-                out = settings_save_value(settings, match, i, out);
+            if (name_length > 0
+                && strncmp(line, match[i].name, name_length) == 0
+                && match[i].name[name_length] == '\0'
+            ) {
+                out = settings_save_existing_line(settings_data, match, i, line, name_length, out);
 
                 found = true;
                 break;
@@ -654,7 +918,8 @@ void settings_load(
 
         // Get name
         name = data;
-        str_move_to(&data, "\r\n\t :[{");
+        str_move_to(&data, SETTINGS_NAME_END);
+        const size_t name_length = (size_t) (data - name);
 
         // Move to value
         str_skip_whitespace(&data);
@@ -665,8 +930,8 @@ void settings_load(
         }
 
         for (int32 i = 0; i < match_count; ++i) {
-            // @performance calculating strlen every time is stupid
-            if (strncmp(name, match[i].name, strlen(match[i].name)) == 0) {
+            // Exact match (a name may be the prefix of another name)
+            if (strncmp(name, match[i].name, name_length) == 0 && match[i].name[name_length] == '\0') {
                 data = settings_load_value(settings, data, match, i);
 
                 break;

@@ -7,9 +7,9 @@
 #include "../../hash/Hmac.h"
 
 /**
- * Hash tests (@see hash/)
+ * Hash tests
  *
- * The cryptographic hashes are verified against the official/reference test vectors
+ * The cryptographic hashes are verified against the official/reference tests
  * (FIPS 180-1, FIPS 180-4, RFC 4231) and the general purpose hashes are verified
  * with property based checks (determinism, sensitivity, distribution).
  */

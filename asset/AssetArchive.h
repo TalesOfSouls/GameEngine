@@ -24,7 +24,7 @@
  *
  *      asset id = archive_asset_index | (archive_id << 24)
  *
- * @see ASSET_ID_FROM_ARCHIVE_AND_ASSET, the archive_id is the first line of the
+ * ASSET_ID_FROM_ARCHIVE_AND_ASSET(), the archive_id is the first line of the
  * .cfg file the archive was built from (ArchiveBuilder), it is also part of the
  * generated asset id header (<archive>.h, enum AssetArchiveIds<Name>).
  *
@@ -42,7 +42,7 @@
  * AssetArchiveElement (24 bytes, six uint32 -> no padding)
  *
  *      offset  size    type    field
- *      0       4       uint32  type                AssetType (@see AssetType.h)
+ *      0       4       uint32  type                AssetType
  *      4       4       uint32  start               file offset of the payload
  *      8       4       uint32  length              payload size in the file (encoded/compressed)
  *      12      4       uint32  uncompressed        size of the decoded data
@@ -53,7 +53,7 @@
  * another archive (the high byte of the id is the archive id).
  *
  * The header is variable sized: read the first 12 bytes, then
- * 12 + 24*N + 4*D bytes (@see asset_archive_header_size) to navigate the file.
+ * 12 + 24*N + 4*D bytes to navigate the file (N = asset_count, D = asset_dependency_count).
  * The payloads start directly behind the dependency array, 'start' is an absolute
  * offset. Payloads are written in asset order, the dependencies of an asset (e.g.
  * the texture of a font/atlas) are appended as regular assets right after it.
@@ -62,10 +62,10 @@
  *      GENERAL         LZ4 block (shaders are pre-optimized before compression)
  *      OBJ             Mesh data (mesh_to_data)
  *      AUDIO           Audio header + QOA
- *      LANGUAGE        Language memory image (@see Language.h)
- *      FONT            Font binary (@see Font.h)
- *      TEXTURE_ATLAS   TextureAtlas binary (@see TextureAtlas.h)
- *      THEME           UITheme binary (@see UITheme.h)
+ *      LANGUAGE        Language
+ *      FONT            Font binary
+ *      TEXTURE_ATLAS   TextureAtlas binary
+ *      THEME           UITheme binary
  *      IMAGE           Image header + QOI
  *
  * Text side: the archive itself has no text representation. The builder input is a
@@ -137,7 +137,13 @@ struct AssetArchive {
 
     // @performance We still need to implement the loading with this and then profile it to see if it is faster.
     // If not remove
+    // Not created in debug/internal builds, the mapping would prevent rebuilding the file (hot reload)
     MMFHandle mmf;
+
+    // Hot reload (@see asset_archive_reload)
+    // Absolute path + modification time of the file when it was loaded
+    wchar_t path[PATH_MAX_LENGTH];
+    uint64 last_modified;
 };
 
 #endif

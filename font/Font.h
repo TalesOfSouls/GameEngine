@@ -56,9 +56,8 @@
  * sorted by codepoint (FONT_GLYPH_ORDER_TYPE_NORMAL). The Eytzinger order is only
  * built at load time (font_optimize_order) and never written.
  *
- * The glyph_count is limited to 8191 by the loader, the texture is a separate
- * ASSET_TYPE_IMAGE asset that the archive builder adds as a dependency
- * (@see AssetArchive.h).
+ * The glyph_count is limited to 8191 (int16 - 1 bit) by the loader, the texture is a separate
+ * ASSET_TYPE_IMAGE asset that the archive builder adds as a dependency.
  */
 struct GlyphMetrics {
     f32 width;     // Width of the glyph (not the vertex)

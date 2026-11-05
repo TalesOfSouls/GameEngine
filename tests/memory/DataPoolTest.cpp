@@ -7,10 +7,6 @@
  * DataPool is a ChunkMemory plus a second bitmap (`used`) which tracks whether
  * somebody currently points at the data. Elements marked as used may not be moved
  * by pool_defragment().
- *
- * WARNING: pool_defragment() is only covered on a statically reserved pool, and the
- * arena based pool_alloc()/pool_free() variants are not covered because mem_arena_remove()
- * currently crashes (@see bug report, MemoryArena.h:123).
  */
 struct DataPoolElement {
     int32 id;
@@ -218,8 +214,9 @@ static void test_data_pool_memory_get() {
     byte* two = pool_memory_get(&pool, 2);
     TEST_EQUALS(two, pool.memory);
 
-    // The returned element is marked as used (@see bug report: only the first chunk of a
-    // multi element request is marked, the remaining chunks can be moved by pool_defragment())
+    // The returned element is marked as used
+    // @bug only the first chunk of a multi element request is marked,
+    //      the remaining chunks can be moved by pool_defragment()
     TEST_FALSE(chunk_is_free_internal(pool.used, 0));
     TEST_TRUE(chunk_is_free_internal(pool.used, 2));
 

@@ -129,6 +129,43 @@ void audio_mixer_remove(AudioMixer* mixer, int32 id) NO_EXCEPT
     }
 }
 
+/**
+ * Updates the instances that play an audio after the audio data changed in place (hot reload)
+ * The instances are found by their data pointer, the play position is kept if it is still valid
+ *
+ * WARNING: The mixer must not mix during the update
+ *
+ * @param AudioMixer*  mixer Mixer
+ * @param const Audio* audio Changed audio (same data pointer as before)
+ *
+ * @return int32 Amount of updated instances
+ */
+int32 audio_mixer_audio_update(AudioMixer* const mixer, const Audio* const audio) NO_EXCEPT
+{
+    int32 count = 0;
+    for (int32 i = 0; i < mixer->audio_instances.capacity; ++i) {
+        AudioInstance* const instance = (AudioInstance *) chunk_element_get(&mixer->audio_instances, i);
+        if (instance->id == 0 || instance->audio_data != audio->data) {
+            continue;
+        }
+
+        instance->audio_size = audio->size;
+        instance->channels = audio->channels;
+
+        const uint32 sample_count = mixer->settings.sample_size
+            ? audio->size / mixer->settings.sample_size
+            : 0;
+
+        if (instance->sample_index >= sample_count) {
+            instance->sample_index = 0;
+        }
+
+        ++count;
+    }
+
+    return count;
+}
+
 int32 apply_speed(int16* buffer, int32 buffer_size, f32 speed) NO_EXCEPT
 {
     if (speed == 1.0f) {

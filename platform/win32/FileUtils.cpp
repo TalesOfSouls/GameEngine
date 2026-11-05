@@ -1139,7 +1139,6 @@ uint64 file_read_async_length(FileHandle fp, uint64 offset, uint64 length) NO_EX
 
 /**
  * Starts an overlapped read into memory from mem (read_length + 1 bytes)
- * @see file_read_async_start() for the WARNING
  */
 template <typename T>
 inline
@@ -1174,7 +1173,6 @@ bool file_read_async(
 
 /**
  * Starts an overlapped read into file->content (must be at least length + 1 bytes)
- * @see file_read_async_start() for the WARNING
  */
 inline
 bool file_read_async(
@@ -1301,6 +1299,71 @@ FileHandle file_read_async_handle(const C* path) NO_EXCEPT
     return fp;
 }
 
+/**
+ * Same as file_read_handle() but other processes may still write, replace or delete the file
+ * while the handle is open (e.g. a tool rebuilds the file while the program runs -> hot reload)
+ *
+ * The handle keeps reading the file it opened. If the file is replaced (delete + create or rename)
+ * the handle must be opened again to read the new file.
+ *
+ * WARNING: The other process must allow reading as well (FILE_SHARE_READ), otherwise its open fails
+ *
+ * @param const C* path File path
+ *
+ * @return FileHandle NULL on failure
+ */
+template <typename C>
+inline
+FileHandle file_read_handle_shared(const C* path) NO_EXCEPT
+{
+    FileHandle fp = CreateFileWrapper(path,
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
+
+    if (fp == INVALID_HANDLE_VALUE) {
+        return NULL;
+    }
+
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+
+    return fp;
+}
+
+/**
+ * Same as file_read_async_handle() but other processes may still write, replace or delete the file
+ * while the handle is open (@see file_read_handle_shared)
+ *
+ * @param const C* path File path
+ *
+ * @return FileHandle NULL on failure
+ */
+template <typename C>
+inline
+FileHandle file_read_async_handle_shared(const C* path) NO_EXCEPT
+{
+    FileHandle fp = CreateFileWrapper(path,
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_OVERLAPPED,
+        NULL
+    );
+
+    if (fp == INVALID_HANDLE_VALUE) {
+        return NULL;
+    }
+
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+
+    return fp;
+}
+
 inline bool
 file_append(FileHandle fp, const char* file) NO_EXCEPT
 {
@@ -1419,6 +1482,68 @@ uint64 file_last_modified(const wchar_t* path) NO_EXCEPT
     ull.HighPart = modified.dwHighDateTime;
 
     return ull.QuadPart;
+}
+
+/**
+ * Newest modification time of all files in a directory incl. its sub directories
+ * Same time format as file_last_modified()
+ *
+ * @param const wchar_t* path      Directory path (without trailing slash)
+ * @param int32          max_depth Max. depth of the sub directories (0 = only the directory itself)
+ *
+ * @return uint64 0 if the directory doesn't exist or is empty
+ */
+static
+uint64 directory_last_modified(const wchar_t* path, int32 max_depth = 8) NO_EXCEPT
+{
+    const int32 path_length = (int32) str_length(path);
+
+    // path + "\" + file name + \0
+    if (path_length + 2 >= PATH_MAX_LENGTH) {
+        return 0;
+    }
+
+    wchar_t pattern[PATH_MAX_LENGTH];
+    str_concat_new(pattern, path, path_length, L"\\*", 2);
+
+    WIN32_FIND_DATAW find_data;
+    HANDLE find = FindFirstFileW(pattern, &find_data);
+    if (find == INVALID_HANDLE_VALUE) {
+        return 0;
+    }
+
+    uint64 newest = 0;
+    do {
+        const wchar_t* const name = find_data.cFileName;
+        if (name[0] == L'.' && (name[1] == L'\0' || (name[1] == L'.' && name[2] == L'\0'))) {
+            continue;
+        }
+
+        if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            const int32 name_length = (int32) str_length(name);
+            if (max_depth <= 0 || path_length + 1 + name_length >= PATH_MAX_LENGTH) {
+                continue;
+            }
+
+            // Re-use pattern for the sub directory path ("<path>\\" is already in there)
+            str_copy(pattern + path_length + 1, name, name_length);
+
+            const uint64 sub = directory_last_modified(pattern, max_depth - 1);
+            newest = OMS_MAX(newest, sub);
+
+            continue;
+        }
+
+        ULARGE_INTEGER ull;
+        ull.LowPart = find_data.ftLastWriteTime.dwLowDateTime;
+        ull.HighPart = find_data.ftLastWriteTime.dwHighDateTime;
+
+        newest = OMS_MAX(newest, (uint64) ull.QuadPart);
+    } while (FindNextFileW(find, &find_data));
+
+    FindClose(find);
+
+    return newest;
 }
 
 void iterate_directory(

@@ -28,6 +28,7 @@
 #include "AssetArchive.h"
 #include "AssetManagementSystem.cpp"
 #include "../system/FileUtils.cpp"
+#include "../gpuapi/GpuApiType.h"
 
 /**
  * We store the archive id in the asset id (1 byte)
@@ -216,9 +217,21 @@ uint32 asset_data_align_size(int32 type) NO_EXCEPT
  */
 inline
 void asset_archive_close(AssetArchive* const archive) {
-    file_close_handle(archive->fd);
-    file_close_handle(archive->fd_async);
-    file_mmf_close(archive->mmf);
+    if (archive->fd) {
+        file_close_handle(archive->fd);
+        archive->fd = NULL;
+    }
+
+    if (archive->fd_async) {
+        file_close_handle(archive->fd_async);
+        archive->fd_async = NULL;
+    }
+
+    // Not created in debug/internal builds (@see asset_archive_load)
+    if (archive->mmf) {
+        file_mmf_close(archive->mmf);
+        archive->mmf = NULL;
+    }
 }
 
 void asset_archive_load(
@@ -232,18 +245,39 @@ void asset_archive_load(
 
     LOG_1("[INFO] Load AssetArchive");
 
-    archive->fd = file_read_handle(path);
+    // Hot reload (@see asset_archive_reload)
+    str_copy(archive->path, path, (int32) OMS_MIN(str_length(path), (size_t) (PATH_MAX_LENGTH - 1)));
+    archive->last_modified = file_last_modified(path);
+
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
+        // The archive can be rebuilt while the program runs (hot reload)
+        // -> shared handles and no file mapping, a mapping prevents writing the file
+        archive->fd = file_read_handle_shared(path);
+    #else
+        archive->fd = file_read_handle(path);
+    #endif
+
     if (!archive->fd) {
         ASSERT_THROW();
         return;
     }
 
-    archive->fd_async = file_read_async_handle(path);
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
+        archive->fd_async = file_read_async_handle_shared(path);
+    #else
+        archive->fd_async = file_read_async_handle(path);
+    #endif
+
     if (!archive->fd_async) {
         ASSERT_THROW();
         return;
     }
-    archive->mmf = file_mmf_handle(archive->fd_async);
+
+    #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
+        archive->mmf = NULL;
+    #else
+        archive->mmf = file_mmf_handle(archive->fd_async);
+    #endif
 
     FileBody file = {0};
 
@@ -595,6 +629,422 @@ Asset* const asset_archive_asset_load(
     }
 
     return load.asset;
+}
+
+/**
+ * Hot reload of asset archives
+ *
+ * A rebuilt archive replaces the header of the loaded archive and the assets that are
+ * already loaded are decoded again into their existing memory. Everything that references
+ * the asset memory stays valid (e.g. font->glyphs, the texture of an atlas).
+ *
+ * WARNING: Nothing may read the archive or the assets during the reload
+ *          (e.g. the application stops all threads before, @see assets_reload.h in the editor)
+ *
+ * Restrictions (-> restart required)
+ *      - the amount of assets/dependencies and the type of every asset must stay the same
+ *      - a reloaded asset must fit into the memory of the loaded version
+ *
+ * The gpu data is not updated, assets with gpu data are marked with ASSET_MEMORY_STATE_VRAM_OUTDATED
+ */
+enum AssetArchiveReloadResult : int32 {
+    ASSET_ARCHIVE_RELOAD_OK,
+
+    // The file couldn't be opened or read (e.g. the build is still running)
+    ASSET_ARCHIVE_RELOAD_FAILED,
+
+    // The structure of the archive changed or the asset doesn't fit into its memory -> restart required
+    ASSET_ARCHIVE_RELOAD_CHANGED,
+};
+
+/**
+ * Checks if the archive file changed since it was loaded
+ *
+ * @param const AssetArchive* archive Archive
+ *
+ * @return bool
+ */
+inline
+bool asset_archive_has_changed(const AssetArchive* const archive) NO_EXCEPT
+{
+    return archive->path[0] && file_last_modified(archive->path) != archive->last_modified;
+}
+
+/**
+ * Loads the header of the rebuilt archive file and opens the file again
+ *
+ * All or nothing: if anything fails the archive stays as it is.
+ * The assets themselves are not reloaded (@see asset_archive_asset_reload)
+ *
+ * @param AssetArchive* archive Archive
+ * @param BufferMemory* mem     Temporary memory
+ * @param int32         steps   Simd steps
+ *
+ * @return AssetArchiveReloadResult
+ */
+AssetArchiveReloadResult asset_archive_reload(
+    AssetArchive* const archive,
+    BufferMemory* const mem,
+    int32 steps = 8
+) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_ASSET_ARCHIVE_LOAD, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
+
+    // version + asset_count + asset_dependency_count
+    CONSTEXPR uint32 HEADER_BASE_SIZE = sizeof(int32) + sizeof(uint32) + sizeof(uint32);
+
+    const uint64 last_modified = file_last_modified(archive->path);
+    const size_t archive_size = file_size(archive->path);
+    if (archive_size < HEADER_BASE_SIZE) {
+        LOG_1("[WARNING] Asset reload: couldn't read %s", {DATA_TYPE_WCHAR_STR, (void *) archive->path});
+
+        return ASSET_ARCHIVE_RELOAD_FAILED;
+    }
+
+    #if _WIN32
+        FileHandle fd = file_read_handle_shared(archive->path);
+        FileHandle fd_async = file_read_async_handle_shared(archive->path);
+    #else
+        FileHandle fd = file_read_handle(archive->path);
+        FileHandle fd_async = file_read_async_handle(archive->path);
+    #endif
+
+    AssetArchiveReloadResult result = ASSET_ARCHIVE_RELOAD_FAILED;
+
+    BUFFER_STACK_MEMORY_START(mem);
+
+    // The archive keeps reading from the old handles until everything was checked
+    do {
+        if (!fd || !fd_async) {
+            break;
+        }
+
+        FileBody file = {0};
+        file.content = memory_get(mem, HEADER_BASE_SIZE + 1, alignof(size_t));
+        file_read(fd, &file, 0, HEADER_BASE_SIZE);
+        if (!file.content || file.size != HEADER_BASE_SIZE) {
+            break;
+        }
+
+        int32 version;
+        uint32 asset_count;
+        uint32 asset_dependency_count;
+        const byte* pos = file.content;
+        pos = read_le(pos, &version);
+        pos = read_le(pos, &asset_count);
+        read_le(pos, &asset_dependency_count);
+
+        if (version != ASSET_ARCHIVE_VERSION
+            || asset_count != archive->header.asset_count
+            || asset_dependency_count != archive->header.asset_dependency_count
+        ) {
+            LOG_1(
+                "[WARNING] Asset reload: the structure of %s changed from %d to %d assets (restart required)",
+                {DATA_TYPE_WCHAR_STR, (void *) archive->path},
+                {DATA_TYPE_UINT32, (void *) &archive->header.asset_count},
+                {DATA_TYPE_UINT32, (void *) &asset_count}
+            );
+
+            result = ASSET_ARCHIVE_RELOAD_CHANGED;
+            break;
+        }
+
+        const size_t table_size = asset_count * sizeof(AssetArchiveElement)
+            + asset_dependency_count * sizeof(uint32);
+        const size_t header_size = HEADER_BASE_SIZE + table_size;
+
+        if (header_size > archive_size || table_size > archive->data_size) {
+            break;
+        }
+
+        file.content = memory_get(mem, header_size + 1, alignof(size_t));
+        file_read(fd, &file, 0, header_size);
+        if (!file.content || file.size != header_size) {
+            break;
+        }
+
+        // Parse into temporary memory first, the loaded header stays untouched until everything was checked
+        AssetArchiveHeader next = {};
+        next.asset_element = (AssetArchiveElement *) memory_get(mem, archive->data_size, ASSUMED_CACHE_LINE_SIZE);
+        asset_archive_header_load(&next, archive->data_size, file.content, steps);
+
+        bool is_valid = true;
+        for (uint32 i = 0; i < asset_count; ++i) {
+            const AssetArchiveElement* const element = &next.asset_element[i];
+
+            if (element->type != archive->header.asset_element[i].type) {
+                LOG_1(
+                    "[WARNING] Asset reload: the type of asset %d in %s changed (restart required)",
+                    {DATA_TYPE_UINT32, (void *) &i},
+                    {DATA_TYPE_WCHAR_STR, (void *) archive->path}
+                );
+
+                result = ASSET_ARCHIVE_RELOAD_CHANGED;
+                is_valid = false;
+                break;
+            }
+
+            // e.g. the file is still being written
+            if ((uint64) element->start + element->length > archive_size
+                || element->dependency_start + element->dependency_count > asset_dependency_count
+            ) {
+                is_valid = false;
+                break;
+            }
+        }
+
+        if (!is_valid) {
+            break;
+        }
+
+        // Replace the header
+        memcpy(archive->data, next.asset_element, table_size);
+        archive->header.version = next.version;
+        archive->header.asset_element = (AssetArchiveElement *) archive->data;
+        archive->header.asset_dependencies = asset_dependency_count
+            ? (uint32 *) (archive->data + asset_count * sizeof(AssetArchiveElement))
+            : NULL;
+
+        // Replace the file handles (the file may have been replaced by a new file)
+        asset_archive_close(archive);
+        archive->fd = fd;
+        archive->fd_async = fd_async;
+        fd = NULL;
+        fd_async = NULL;
+
+        archive->last_modified = last_modified;
+        result = ASSET_ARCHIVE_RELOAD_OK;
+    } while (false);
+
+    if (fd) {
+        file_close_handle(fd);
+    }
+
+    if (fd_async) {
+        file_close_handle(fd_async);
+    }
+
+    LOG_TRUE_1(
+        result == ASSET_ARCHIVE_RELOAD_OK,
+        "[INFO] Asset reload: reloaded the header of %s",
+        {DATA_TYPE_WCHAR_STR, (void *) archive->path}
+    );
+    LOG_TRUE_1(
+        result == ASSET_ARCHIVE_RELOAD_FAILED,
+        "[WARNING] Asset reload: couldn't read %s",
+        {DATA_TYPE_WCHAR_STR, (void *) archive->path}
+    );
+
+    return result;
+}
+
+/**
+ * Reloads an asset that is already loaded (asset management system) from its archive
+ *
+ * The asset is decoded again into its existing memory. The runtime data of the asset is kept:
+ *      Texture:        gpu data (texture id, sampler, ...), the vertical orientation is the same as before
+ *      Mesh:           gpu data (vao, vbo, ...)
+ *      Font:           texture, the coordinates are inverted like cmd_font_load_sync() does
+ *      TextureAtlas:   texture, the coordinates are inverted like cmd_texture_atlas_load() does
+ * Assets with gpu data in vram are marked with ASSET_MEMORY_STATE_VRAM_OUTDATED.
+ *
+ * WARNING: The header of the archive must be reloaded before (@see asset_archive_reload)
+ *
+ * @param const AssetArchive* archive      Archive of the asset
+ * @param Asset*              asset        Loaded asset (official_id is the asset id)
+ * @param ThrdChunkMemory*    mem          Temporary memory for the file data
+ * @param GpuApiType          gpu_api_type Gpu api (orientation of the textures)
+ *
+ * @return AssetArchiveReloadResult
+ */
+AssetArchiveReloadResult asset_archive_asset_reload(
+    const AssetArchive* const archive,
+    Asset* const asset,
+    ThrdChunkMemory* const mem,
+    GpuApiType gpu_api_type
+) NO_EXCEPT
+{
+    const uint32 raw_id = ASSET_RAW_ID_FROM_ID(asset->official_id);
+    if (raw_id >= archive->header.asset_count || !asset->self) {
+        return ASSET_ARCHIVE_RELOAD_FAILED;
+    }
+
+    const AssetArchiveElement* const element = &archive->header.asset_element[raw_id];
+    ASSERT_TRUE(element->type < ASSET_TYPE_SIZE);
+
+    // Same requirement as asset_archive_load_begin() (images are checked exactly below)
+    const size_t asset_memory_requirement = element->uncompressed
+        + asset_type_size(element->type)
+        + asset_align_size(element->type)
+        + asset_data_align_size(element->type);
+
+    if (element->uncompressed == 0 || asset_memory_requirement > (size_t) asset->ram_size) {
+        LOG_1(
+            "[WARNING] Asset reload: asset %d grew to %n B, only %n B are reserved (restart required)",
+            {DATA_TYPE_UINT32, (void *) &asset->official_id},
+            {DATA_TYPE_UINT64, (void *) &asset_memory_requirement},
+            {DATA_TYPE_INT32, (void *) &asset->ram_size}
+        );
+
+        return ASSET_ARCHIVE_RELOAD_CHANGED;
+    }
+
+    // Read into temporary memory
+    const uint32 temp_count = (uint32) chunk_element_count(mem, element->length + 1);
+    const int32 temp_element = chunk_reserve(mem, temp_count);
+    if (temp_element < 0) {
+        return ASSET_ARCHIVE_RELOAD_FAILED;
+    }
+
+    FileBodyAsync file = {};
+    file.content = chunk_element_get(mem, temp_element);
+    file_read_async(archive->fd_async, &file, element->start, element->length);
+
+    if (!file_async_wait(archive->fd_async, &file, true) || file.size != element->length) {
+        chunk_free_elements(mem, temp_element, temp_count);
+
+        return ASSET_ARCHIVE_RELOAD_FAILED;
+    }
+
+    // Same gpu apis as cmd_texture_load_sync(), cmd_font_load_sync(), cmd_texture_atlas_load()
+    const bool invert_coordinates = gpu_api_type == GPU_API_TYPE_OPENGL
+        || gpu_api_type == GPU_API_TYPE_VULKAN
+        || gpu_api_type == GPU_API_TYPE_SOFTWARE;
+
+    switch (element->type) {
+        case ASSET_TYPE_GENERAL: {
+            lz4_decode(file.content, file.size, asset->self);
+        } break;
+        case ASSET_TYPE_TEXTURE_ATLAS: {
+            TextureAtlas* const atlas = (TextureAtlas *) asset->self;
+            Texture* const texture = atlas->texture;
+
+            atlas->elements = (TextureAtlasElement *) (atlas + 1);
+            atlas_from_data(file.content, atlas);
+            atlas->texture = texture;
+
+            if (invert_coordinates) {
+                atlas_invert_coordinates(atlas);
+            }
+        } break;
+        case ASSET_TYPE_IMAGE: {
+            Texture* const texture = (Texture *) asset->self;
+
+            // Gpu data (everything in front of the image)
+            byte gpu_data[offsetof(Texture, image)];
+            memcpy(gpu_data, texture, sizeof(gpu_data));
+
+            // The texture keeps its orientation (@see cmd_texture_load_sync)
+            const byte orientation = texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP;
+
+            // Images are decoded into a Texture (> Image) -> exact check of the pixel memory
+            Image header = {};
+            const byte* data = file.content;
+            data += image_header_from_data(data, &header);
+
+            byte* const pixels = (byte *) ALIGN_UP((uintptr_t) (texture + 1), 64);
+            const uint64 pixel_size = (uint64) header.pixel_count * image_pixel_size_from_type(header.image_settings);
+            if ((uintptr_t) pixels + pixel_size > (uintptr_t) asset->self + (uint32) asset->ram_size) {
+                chunk_free_elements(mem, temp_element, temp_count);
+                LOG_1(
+                    "[WARNING] Asset reload: image %d grew to %n B (restart required)",
+                    {DATA_TYPE_UINT32, (void *) &asset->official_id},
+                    {DATA_TYPE_UINT64, (void *) &pixel_size}
+                );
+
+                return ASSET_ARCHIVE_RELOAD_CHANGED;
+            }
+
+            header.pixels = pixels;
+            texture->image = header;
+            qoi_decode(data, &texture->image);
+
+            if ((texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP) != orientation) {
+                image_flip_vertical(&texture->image);
+            }
+
+            memcpy(texture, gpu_data, sizeof(gpu_data));
+
+            asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
+        } break;
+        case ASSET_TYPE_AUDIO: {
+            Audio* const audio = (Audio *) asset->self;
+            audio->data = (byte *) (audio + 1);
+
+            const uint32 header_size = audio_header_from_data(file.content, audio);
+            const uint32 decoded = qoa_decode(file.content + header_size, audio, (uint32) (element->length - header_size));
+
+            // Never play uninitialized memory if the asset is shorter than its header claims
+            if (decoded < audio->size) {
+                audio->size = decoded;
+            }
+        } break;
+        case ASSET_TYPE_OBJ: {
+            Mesh* const mesh = (Mesh *) asset->self;
+
+            // Gpu data (union of the gpu apis)
+            CONSTEXPR size_t GPU_DATA_OFFSET = offsetof(Mesh, opengl_mesh);
+            CONSTEXPR size_t GPU_DATA_SIZE = offsetof(Mesh, material_count) - GPU_DATA_OFFSET;
+            byte gpu_data[GPU_DATA_SIZE];
+            memcpy(gpu_data, (byte *) mesh + GPU_DATA_OFFSET, GPU_DATA_SIZE);
+
+            mesh->data = (byte *) (mesh + 1);
+            mesh_from_data(file.content, mesh);
+
+            memcpy((byte *) mesh + GPU_DATA_OFFSET, gpu_data, GPU_DATA_SIZE);
+        } break;
+        case ASSET_TYPE_LANGUAGE: {
+            Language* const language = (Language *) asset->self;
+            language->data = (byte *) (language + 1);
+
+            language_from_data(file.content, language);
+        } break;
+        case ASSET_TYPE_FONT: {
+            Font* const font = (Font *) asset->self;
+            Texture* const texture = font->texture;
+
+            font->glyphs = (Glyph *) (font + 1);
+            font_from_data(file.content, font);
+            font->texture = texture;
+
+            if (invert_coordinates) {
+                font_invert_coordinates(font);
+            }
+        } break;
+        case ASSET_TYPE_THEME: {
+            UITheme* const theme = (UITheme *) asset->self;
+            theme->data = (byte *) (theme + 1);
+
+            theme_from_data(file.content, theme);
+        } break;
+        default: {
+            UNREACHABLE();
+        }
+    }
+
+    chunk_free_elements(mem, temp_element, temp_count);
+
+    asset->data_size = element->uncompressed;
+
+    if (element->dependency_count) {
+        const uint32 count = OMS_MIN(element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
+        asset->reference_count = (uint16) count;
+        memcpy(
+            asset->references,
+            &archive->header.asset_dependencies[element->dependency_start],
+            sizeof(uint32) * count
+        );
+    }
+
+    if ((element->type == ASSET_TYPE_IMAGE || element->type == ASSET_TYPE_OBJ)
+        && (asset->state & ASSET_MEMORY_STATE_IN_VRAM)
+    ) {
+        asset->state |= ASSET_MEMORY_STATE_VRAM_OUTDATED;
+    }
+
+    LOG_2("[INFO] Asset reload: reloaded asset %d", {DATA_TYPE_UINT32, (void *) &asset->official_id});
+
+    return ASSET_ARCHIVE_RELOAD_OK;
 }
 
 #endif

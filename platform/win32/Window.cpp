@@ -385,6 +385,17 @@ void window_hide(Window* const window) NO_EXCEPT
     ShowWindow(platform_window->hwnd, SW_HIDE);
 }
 
+/**
+ * Asks the window to close (same as the close button of the window, WM_CLOSE)
+ * Can be called from any thread, the application handles the close in its window procedure
+ */
+inline
+void window_close_request(const Window* const window) NO_EXCEPT
+{
+    const WindowPlatform* const platform_window = (const WindowPlatform *) window->platform_window;
+    PostMessageW(platform_window->hwnd, WM_CLOSE, 0, 0);
+}
+
 inline
 void window_close(Window* const window) NO_EXCEPT
 {

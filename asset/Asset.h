@@ -18,6 +18,10 @@ enum AssetMemoryState : byte {
     // This should happen with the current state
     ASSET_MEMORY_STATE_RAM_GC = 1 << 2,
     ASSET_MEMORY_STATE_VRAM_GC = 1 << 3,
+
+    // The ram data was reloaded (hot reload), the vram data is still the old version
+    // The owner of the gpu data has to upload it again (@see asset_archive_asset_reload)
+    ASSET_MEMORY_STATE_VRAM_OUTDATED = 1 << 4,
 };
 
 struct Asset {
