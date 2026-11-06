@@ -1,0 +1,42 @@
+omx 1
+# Shared material library
+# Textures are referenced by asset id. A second number references an element of a texture atlas.
+
+asset 7001 tex textures/props_atlas.png
+asset 7002 tex textures/props_atlas_n.png
+asset 7003 tex textures/props_atlas_orm.png
+
+mat 200 steel
+    base 0.56 0.57 0.58
+    metal 1
+    rough 0.35
+    aniso 0.6 0.25
+    tex base 7001 12
+    tex nrm  7002 12 0 0.8
+    tex orm  7003 12
+end
+
+mat 201 gold
+    base 1.0 0.766 0.336
+    metal 1
+    rough 0.2
+    coat 0.3 0.05
+end
+
+mat 202 glass
+    base 0.95 0.98 1.0 0.1
+    rough 0.02
+    ior 1.52
+    trans 1.0
+    volume 0.01 0.8 0.95 0.9 0.5
+    alpha blend
+    flags double nocast
+end
+
+mat 203 fire_sprite
+    base 1 1 1 1
+    emit 1.0 0.6 0.2 4.0
+    alpha add
+    flags unlit double nocast norecv vcolor
+    tex base 7001 40
+end

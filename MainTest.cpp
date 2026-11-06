@@ -22,6 +22,7 @@
 #include "tests/entity/voxel/VoxelWorldMapTest.cpp"
 #include "tests/system/DRMTest.cpp"
 #include "tests/image/QoiTest.cpp"
+#include "tests/object/OmxTest.cpp"
 
 #ifdef UBER_TEST
     #ifdef main
@@ -53,6 +54,7 @@ int main() {
     VoxelWorldMapTest();
     DRMTest();
     QoiTest();
+    ObjectOmxTest();
 
     TEST_FOOTER();
 

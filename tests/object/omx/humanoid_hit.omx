@@ -1,0 +1,14 @@
+omx 1
+# Shared hitbox library. Shapes are in bone space and follow the bones.
+# sphere  <layer> <bone> <cx cy cz> <radius> [multiplier]
+# capsule <layer> <bone> <ax ay az> <bx by bz> <radius> [multiplier]
+# box     <layer> <bone> <cx cy cz> <hx hy hz> [<qx qy qz qw>] [multiplier]
+
+hit 300 humanoid
+    box     world  root    0 0.9 0  0.3 0.9 0.2
+    sphere  head   head    0 0.1 0  0.12 2.0
+    capsule body   spine   0 -0.2 0  0 0.35 0  0.2
+    capsule body   thigh.l 0 0 0  0 -0.45 0  0.08
+    capsule body   thigh.r 0 0 0  0 -0.45 0  0.08
+    box     weapon hand.r  0 0 0.4  0.03 0.03 0.4  0 0 0 1  1.5
+end

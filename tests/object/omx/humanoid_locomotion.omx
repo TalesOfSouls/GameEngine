@@ -1,0 +1,44 @@
+omx 1
+# Shared animation library. Channels target bones by NAME so the animations work on every
+# skeleton that uses the same bone names (other proportions, extra bones, different bone order).
+
+asset 501 audio sounds/step_grass.wav
+
+# anim <id> <name>
+#   ch <bone> <pos|rot|scl> [default ease]
+#   k  <time> <values> [ease to next key]
+#   ev <time> <sound|pfx|tag> <ref> [bone]
+
+anim 2001 walk
+    rig 10
+    loop
+    root
+    dur 1.0
+    ch hips pos
+    k 0.0  0 1.0 0
+    k 0.5  0 0.95 0.7
+    k 1.0  0 1.0 1.4
+    ch thigh.l rot in_out_sine
+    k 0.0  0.2588 0 0 0.9659
+    k 0.5 -0.2588 0 0 0.9659
+    k 1.0  0.2588 0 0 0.9659
+    ch thigh.r rot in_out_sine
+    k 0.0 -0.2588 0 0 0.9659
+    k 0.5  0.2588 0 0 0.9659
+    k 1.0 -0.2588 0 0 0.9659
+    ch tail rot
+    k 0.0  0 0 0 1
+    ev 0.25 sound 501 shin.l
+    ev 0.25 tag footstep_l
+    ev 0.75 sound 501 shin.r
+    ev 0.75 pfx dust shin.r
+end
+
+anim 2002 wave
+    additive
+    ch forearm.r rot out_back
+    k 0.0  0 0 0 1
+    k 0.4  0 0 0.7071 0.7071
+    k 0.8  0 0 0 1 step
+    ev 0.4 tag wave_peak
+end
