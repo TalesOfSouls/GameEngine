@@ -9,12 +9,249 @@
 
 #include "../stdlib/Stdlib.h"
 #include "SystemInfo.h"
+#include "../hash/Sha256.h"
+#include "../utils/StringUtils.h"
 
 #if _WIN32
     #include "../platform/win32/SystemInfo.cpp"
 #elif __linux__
     #include "../platform/linux/SystemInfo.cpp"
 #endif
+
+static inline void hardware_id_hex32(char* const out, uint32 value) NO_EXCEPT
+{
+    static const char HEX[] = "0123456789ABCDEF";
+
+    for (int32 i = 7; i >= 0; --i) {
+        out[i] = HEX[value & 0xF];
+        value >>= 4;
+    }
+
+    out[8] = '\0';
+}
+
+/**
+ * Trims and uppercases a hardware identifier
+ *
+ * The same DMI string can be reported with different case by Windows and Linux,
+ * so the hash input must be normalized.
+ */
+static inline void hardware_id_normalize(char* const value) NO_EXCEPT
+{
+    if (!value) {
+        return;
+    }
+
+    char* start = value;
+    while (*start == ' ' || *start == '\t' || *start == '\r' || *start == '\n') {
+        ++start;
+    }
+
+    if (start != value) {
+        char* dst = value;
+        while (*start) {
+            *dst++ = *start++;
+        }
+
+        *dst = '\0';
+    }
+
+    size_t length = strlen(value);
+    while (length && (value[length - 1] == ' ' || value[length - 1] == '\t'
+        || value[length - 1] == '\r' || value[length - 1] == '\n')
+    ) {
+        value[--length] = '\0';
+    }
+
+    for (size_t i = 0; i < length; ++i) {
+        if (value[i] >= 'a' && value[i] <= 'z') {
+            value[i] = (char) (value[i] - ('a' - 'A'));
+        }
+    }
+}
+
+void hardware_id_cpu_fill(HardwareId* const id) NO_EXCEPT
+{
+    if (!id) {
+        return;
+    }
+
+#if defined(__aarch64__) || defined(_M_ARM64)
+    // CPUID isn't available on ARM; the system UUID remains the primary id.
+    id->cpu_id[0] = '\0';
+#else
+    uint32 regs[4];
+
+    compiler_cpuid(regs, 0);
+
+    char vendor[13];
+    memcpy(vendor, &regs[1], 4);
+    memcpy(vendor + 4, &regs[3], 4);
+    memcpy(vendor + 8, &regs[2], 4);
+    vendor[12] = '\0';
+
+    compiler_cpuid(regs, 1);
+
+    const uint32 eax = regs[0];
+    const uint32 edx = regs[3];
+
+    const uint32 stepping = eax & 0xF;
+    uint32 model = (eax >> 4) & 0xF;
+    uint32 family = (eax >> 8) & 0xF;
+
+    if (family == 0xF) {
+        family += (eax >> 20) & 0xFF;
+    }
+
+    if (family == 0x6 || family == 0xF) {
+        model += ((eax >> 16) & 0xF) << 4;
+    }
+
+    char eax_hex[9];
+    char edx_hex[9];
+
+    hardware_id_hex32(eax_hex, eax);
+    hardware_id_hex32(edx_hex, edx);
+
+    sprintf_fast(
+        id->cpu_id,
+        (int32) sizeof(id->cpu_id),
+        "%s|%d|%d|%d|%s|%s",
+        vendor,
+        (int32) family,
+        (int32) model,
+        (int32) stepping,
+        eax_hex,
+        edx_hex
+    );
+#endif
+}
+
+void hardware_id_gpu_add(HardwareId* const id, const char* const value) NO_EXCEPT
+{
+    if (!id || !value) {
+        return;
+    }
+
+    char normalized[128];
+    const size_t length = strlen(value) < sizeof(normalized) - 1
+        ? strlen(value)
+        : sizeof(normalized) - 1;
+
+    for (size_t i = 0; i < length; ++i) {
+        normalized[i] = value[i];
+    }
+
+    normalized[length] = '\0';
+    hardware_id_normalize(normalized);
+
+    if (!normalized[0] || id->gpu_id_count >= ARRAY_COUNT(id->gpu_id)) {
+        return;
+    }
+
+    for (uint8 i = 0; i < id->gpu_id_count; ++i) {
+        if (strcmp(id->gpu_id[i], normalized) == 0) {
+            return;
+        }
+    }
+
+    memcpy(id->gpu_id[id->gpu_id_count], normalized, strlen(normalized) + 1);
+    ++id->gpu_id_count;
+}
+
+void hardware_id_gpu_sort(HardwareId* const id) NO_EXCEPT
+{
+    if (!id) {
+        return;
+    }
+
+    for (uint8 i = 0; i < id->gpu_id_count; ++i) {
+        for (uint8 j = (uint8) (i + 1); j < id->gpu_id_count; ++j) {
+            if (strcmp(id->gpu_id[i], id->gpu_id[j]) > 0) {
+                char temp[128];
+                memcpy(temp, id->gpu_id[i], sizeof(temp));
+                memcpy(id->gpu_id[i], id->gpu_id[j], sizeof(temp));
+                memcpy(id->gpu_id[j], temp, sizeof(temp));
+            }
+        }
+    }
+}
+
+static inline int32 hardware_id_append(
+    char* const buffer,
+    int32 capacity,
+    int32 offset,
+    const char* const label,
+    const char* const value
+) NO_EXCEPT
+{
+    if (!value || !value[0] || offset >= capacity - 1) {
+        return offset;
+    }
+
+    const int32 written = sprintf_fast(buffer + offset, capacity - offset, "%s=%s;", label, value);
+    if (written <= 0) {
+        return offset;
+    }
+
+    offset += written;
+    return offset < capacity ? offset : capacity - 1;
+}
+
+bool system_hardware_uuid(const SystemInfo* const info, char* const out, size_t out_size) NO_EXCEPT
+{
+    if (!info || !out || out_size < 37) {
+        return false;
+    }
+
+    out[0] = '\0';
+
+    const HardwareId* const id = &info->hardware;
+
+    // The system UUID is the only value that is both machine-unique and exposed
+    // identically by Windows and Linux. Without it the result would not match
+    // across operating systems.
+    if (!id->system_uuid[0]) {
+        return false;
+    }
+
+    char payload[1024];
+    int32 length = sprintf_fast(payload, (int32) sizeof(payload), "TOS-HWID-2|");
+
+    length = hardware_id_append(payload, (int32) sizeof(payload), length, "sys_uuid", id->system_uuid);
+    length = hardware_id_append(payload, (int32) sizeof(payload), length, "cpu", id->cpu_id);
+    length = hardware_id_append(payload, (int32) sizeof(payload), length, "gpu0", id->gpu_id[0]);
+    length = hardware_id_append(payload, (int32) sizeof(payload), length, "gpu1", id->gpu_id[1]);
+    length = hardware_id_append(payload, (int32) sizeof(payload), length, "gpu2", id->gpu_id[2]);
+
+    if (length <= 0) {
+        return false;
+    }
+
+    byte digest[SHA256_DIGEST_SIZE];
+    sha256_hash((const byte *) payload, (size_t) length, digest);
+
+    // RFC 9562 version 8 (custom, SHA-256 based) + RFC 4122 variant bits
+    digest[6] = (byte) ((digest[6] & 0x0F) | 0x80);
+    digest[8] = (byte) ((digest[8] & 0x3F) | 0x80);
+
+    char hex[33];
+    bytes_to_hex(digest, 16, hex);
+    hex[32] = '\0';
+
+    memcpy(out, hex, 8);
+    out[8] = '-';
+    memcpy(out + 9, hex + 8, 4);
+    out[13] = '-';
+    memcpy(out + 14, hex + 12, 4);
+    out[18] = '-';
+    memcpy(out + 19, hex + 16, 4);
+    out[23] = '-';
+    memcpy(out + 24, hex + 20, 12);
+    out[36] = '\0';
+
+    return true;
+}
 
 void system_info_render(char* buf, const SystemInfo* const info) NO_EXCEPT
 {
@@ -108,6 +345,8 @@ void system_info_get(SystemInfo* const info) NO_EXCEPT
     ram_info_get(&info->ram);
     info->gpu_count = (uint8) gpu_info_get(info->gpu, ARRAY_COUNT(info->gpu));
     info->display_count = (uint8) display_info_get(info->display, ARRAY_COUNT(info->display));
+    hardware_id_get(&info->hardware, info);
+    system_hardware_uuid(info, info->hardware.uuid, sizeof(info->hardware.uuid));
     info->language = system_language_code();
     info->country = system_country_code();
 

@@ -143,7 +143,7 @@ static void test_layout_from_txt() {
     platform_aligned_free((void **) &layout.data);
     platform_aligned_free((void **) &theme.data);
 
-    PSEUDO_USE(ui_layout_test_function);
+    PSEUDO_USE(&ui_layout_test_function);
 }
 
 // Strings: "@key" = language of the file (layout or theme), "@@key" = global language

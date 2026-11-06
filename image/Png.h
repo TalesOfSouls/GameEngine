@@ -13,7 +13,6 @@
 #ifndef COMS_IMAGE_PNG_H
 #define COMS_IMAGE_PNG_H
 
-#include <string.h>
 #include "../stdlib/Stdlib.h"
 #include "../utils/BitUtils.h"
 #include "Image.h"

@@ -59,7 +59,7 @@ FORCE_INLINE
 int8 __internal_abs(int8 a) NO_EXCEPT
 {
     const uint8 ua = (uint8)a;
-    const uint8 mask = ua >> 7;
+    const uint8 mask = (uint8) (0 - (ua >> 7));
     return (int8)((ua ^ mask) - mask);
 }
 
@@ -67,7 +67,7 @@ FORCE_INLINE
 int16 __internal_abs(int16 a) NO_EXCEPT
 {
     const uint16 ua = (uint16)a;
-    const uint16 mask = ua >> 15;
+    const uint16 mask = (uint16) (0 - (ua >> 15));
     return (int16)((ua ^ mask) - mask);
 }
 
@@ -75,7 +75,7 @@ FORCE_INLINE
 int32 __internal_abs(int32 a) NO_EXCEPT
 {
     const uint32 ua = (uint32)a;
-    const uint32 mask = ua >> 31;
+    const uint32 mask = (uint32) (0 - (ua >> 31));
     return (int32)((ua ^ mask) - mask);
 }
 
@@ -83,7 +83,7 @@ FORCE_INLINE
 int64 __internal_abs(int64 a) NO_EXCEPT
 {
     const uint64 ua = (uint64)a;
-    const uint64 mask = ua >> 63;
+    const uint64 mask = (uint64) (0 - (ua >> 63));
     return (int64)((ua ^ mask) - mask);
 }
 
@@ -162,12 +162,12 @@ template <typename F>
 FORCE_INLINE CONSTEXPR
 F __internal_ceil(F x) NO_EXCEPT
 {
-    const uint64 xi = (uint64)x;
-    if (x == (F)xi) {
-        return xi;
+    const int64 xi = (int64) x;
+    if (x == (F) xi) {
+        return (F) xi;
     }
 
-    return (x > (F) 0) ? (F) (xi + 1) : xi;
+    return (F) (xi + (x > (F) xi ? 1 : 0));
 }
 
 template <typename F>

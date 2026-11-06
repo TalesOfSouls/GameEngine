@@ -21,6 +21,7 @@ struct Heap {
     int32 (*compare) (const void*, const void*);
 };
 
+inline
 void heap_alloc(
     Heap* heap,
     uint32 element_size,
@@ -29,6 +30,7 @@ void heap_alloc(
 ) {
     ASSERT_TRUE(element_size * capacity);
 
+    // +1 element for the swap helper memory
     heap->elements = (byte *) platform_alloc_aligned(
         element_size * capacity + element_size,
         element_size * max_capacity + element_size,
@@ -43,15 +45,24 @@ void heap_alloc(
     heap->capacity = capacity;
     heap->size = 0;
     heap->compare = compare;
-    heap->helper_mem = heap->elements + element_size;
+
+    // WARNING: The helper memory is the element behind the last heap element,
+    //          using a real element corrupts the heap
+    heap->helper_mem = heap->elements + element_size * capacity;
 }
 
+inline
 void heap_free(Heap* heap)
 {
     DEBUG_MEMORY_DELETE((uintptr_t) heap->elements, heap->element_size * heap->capacity);
-    platform_free((void **) &heap->elements);
+    platform_aligned_free((void **) &heap->elements);
+
+    heap->helper_mem = NULL;
+    heap->size = 0;
+    heap->capacity = 0;
 }
 
+inline
 void heap_init(
     Heap* heap,
     BufferMemory* const buf,
@@ -61,7 +72,8 @@ void heap_init(
 ) {
     ASSERT_TRUE(element_size * capacity);
 
-    heap->elements = memory_get(buf, element_size * capacity, 8, true);
+    // +1 element for the swap helper memory
+    heap->elements = memory_get(buf, element_size * capacity + element_size, sizeof(size_t));
     if (!heap->elements) {
         return;
     }
@@ -70,8 +82,17 @@ void heap_init(
     heap->capacity = capacity;
     heap->size = 0;
     heap->compare = compare;
+    heap->helper_mem = heap->elements + element_size * capacity;
 }
 
+inline
+void heap_swap(void* a, void* b, uint32 size, void* helper_mem) {
+    memcpy(helper_mem, a, size);
+    memcpy(a, b, size);
+    memcpy(b, helper_mem, size);
+}
+
+inline
 void heapify_down(Heap* heap, uint64 index) {
     uint64 left_child = 2 * index + 1;
     uint64 right_child = left_child + 1;
@@ -104,6 +125,7 @@ void heapify_down(Heap* heap, uint64 index) {
     }
 }
 
+inline
 void heapify_up(Heap* heap, uint64 index) {
     if (index == 0) {
         return; // Root node
@@ -119,6 +141,7 @@ void heapify_up(Heap* heap, uint64 index) {
     }
 }
 
+inline
 void heap_push(Heap* heap, const void* element) {
     if (heap->size >= heap->capacity) {
         return;
@@ -130,6 +153,7 @@ void heap_push(Heap* heap, const void* element) {
     ++heap->size;
 }
 
+inline
 void heap_pop(Heap* heap, void* out) {
     if (heap->size == 0) {
         return;
@@ -149,13 +173,6 @@ void* heap_peek(Heap* heap) {
     DEBUG_MEMORY_READ((uintptr_t) heap->elements, heap->element_size);
 
     return heap->elements;
-}
-
-inline
-void heap_swap(void* a, void* b, uint32 size, void* helper_mem) {
-    memcpy(helper_mem, a, size);
-    memcpy(a, b, size);
-    memcpy(b, helper_mem, size);
 }
 
 #endif

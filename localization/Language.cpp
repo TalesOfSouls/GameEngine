@@ -35,6 +35,10 @@ uint32 language_hash(const char* key) NO_EXCEPT
 FORCE_INLINE
 const char* language_get(const Language* const lang, const char* const key) NO_EXCEPT
 {
+    if (!lang || !lang->data || !key) {
+        return NULL;
+    }
+
     const uint32 hash = language_hash(key);
 
     const LanguageHeader* const header = (const LanguageHeader *) lang->data;

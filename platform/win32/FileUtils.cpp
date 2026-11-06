@@ -1366,7 +1366,8 @@ bool file_append(const C* __restrict path, const C* __restrict file) NO_EXCEPT
     }
 
     DWORD written;
-    DWORD length = (DWORD) str_length(file);
+    // Bytes, not characters: the string can be char or wchar_t
+    DWORD length = (DWORD) (str_length(file) * sizeof(C));
     if (!WriteFile(fp, file, length, &written, NULL)) {
         CloseHandle(fp);
         return false;

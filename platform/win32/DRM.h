@@ -130,7 +130,7 @@ bool drm_check_process_name(const utf16** process_names, int32 count) NO_EXCEPT
             }
 
             for (int32 j = 0; j < count; ++j) {
-                if (str_contains(base, process_names[j]) == 0) {
+                if (str_contains(base, process_names[j])) {
                     CloseHandle(process_handle);
                     return true;
                 }
@@ -158,13 +158,13 @@ BOOL CALLBACK drm_enum_windows_callback(HWND hWnd, LPARAM lParam) {
     window_title[255] = L'\0';
 
     for (int32 i = 0; i < ctx->count; ++i) {
-        if (str_contains(window_title, ctx->titles[i]) == 0) {
+        if (str_contains(window_title, ctx->titles[i])) {
             ctx->found |= true;
-            return true;
+            return TRUE;
         }
     }
 
-    return false;
+    return FALSE;
 }
 
 inline
@@ -226,7 +226,10 @@ bool drm_memory_scan(
             BYTE* chunk = region_base;
             while (chunk < region_end) {
                 const size_t remaining = (size_t)(region_end - chunk);
-                const size_t want = (remaining < helper_memory_size) ? remaining : helper_memory_size;
+                const size_t want = (remaining < helper_memory_size)
+                    ? remaining
+                    : helper_memory_size;
+
                 size_t bytes_read = 0;
 
                 if (ReadProcessMemory(hProcess, chunk, helper_memory, want, &bytes_read)

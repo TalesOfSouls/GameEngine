@@ -203,7 +203,9 @@ void base64_encode_simd(const byte* data, char* encoded_data, size_t data_length
         size_t j = i/3*4;
         encoded_data[j++] = BASE64_CHARS[(triple >> 18) & 0x3F];
         encoded_data[j++] = BASE64_CHARS[(triple >> 12) & 0x3F];
-        encoded_data[j++] = (i + 1 < data_length) ? BASE64_CHARS[(triple >> 6) & 0x3F] : '=';
+        encoded_data[j++] = (i + 1 < data_length)
+            ? BASE64_CHARS[(triple >> 6) & 0x3F]
+            : '=';
         encoded_data[j] = '=';
     }
 

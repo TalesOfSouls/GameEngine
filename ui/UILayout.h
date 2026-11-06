@@ -17,6 +17,44 @@
 // Version 5: UICore incremental caching members
 #define UI_LAYOUT_VERSION 6
 
+/**
+ * BINARY FORMAT: .layoutbin, version UI_LAYOUT_VERSION
+ * Written by layout_to_data(), read by layout_from_data() (@see UILayout.cpp).
+ *
+ *      offset      size    type        field
+ *      0           4       int32       version (UI_LAYOUT_VERSION)
+ *      4           12      -           hash map header
+ *      16          S       byte[S]     hash map slots (+ free bitmap)
+ *      16 + S      4       int32       buffer_size = B
+ *      20 + S      B       byte[B]     element buffer
+ *
+ *      S = capacity * 32 + ceil(capacity / 64) * 8 + 8      (capacity = element name slots)
+ *
+ * Hash map header (chunk memory dump, @see hashmap_dump / chunk_dump)
+ *
+ *      offset  size    type    field
+ *      0       4       int32   capacity        amount of name slots
+ *      4       4       int32   last_pos        last reserved slot (-1 = none)
+ *      8       4       uint32  free_offset     capacity * 32
+ *      12      S       byte[]  slot memory (slots first, then the free bitmap)
+ *
+ * Slots are HashEntryStrT<int32> (32 bytes: char[22] key, uint16 next, uint16 head,
+ * uint16 tag, int32 value = byte offset of the element), the free bitmap follows the
+ * slots (8 bytes per 64 slots, bit set = slot in use). @see UITheme.h for the details.
+ *
+ * Element buffer: the raw content of UILayout::ui_element_buffer, i.e. the element
+ * tree in pre-order (parent, child 1, grandchild 1.1, child 2, ...). Every element
+ * starts with UICore (96 bytes) followed by the type specific fields and the inline
+ * strings (class name, text). All links are byte offsets into the buffer, offset 0 is
+ * always the root, so the block is position independent.
+ *
+ * WARNING: the element buffer is a memory dump without any endian or layout
+ * conversion. It can only be loaded by a build with the same struct layout and
+ * the same endianness.
+ *
+ * Text format: .layouttxt, @see UILayoutTxt.h.
+ */
+
 ///////////////////////////////
 // ui_element_buffer memory layout
 // ============================

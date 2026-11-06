@@ -31,8 +31,12 @@ template<typename T>
 FORCE_INLINE
 void array_vector_alloc(ArrayVector<T>* vec, int capacity, int max_capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
+    ASSERT_TRUE(capacity);
+    ASSERT_TRUE(max_capacity >= capacity);
+
     vec->capacity = capacity;
     vec->max_capacity = max_capacity;
+    vec->count = 0;
     vec->elements = (T *) platform_alloc_aligned(capacity * sizeof(T), max_capacity * sizeof(T), alignment);
 }
 
@@ -40,17 +44,21 @@ template<typename T>
 FORCE_INLINE
 void array_vector_free(ArrayVector<T>* vec) NO_EXCEPT
 {
-    platform_aligned_free(&vec->elements);
+    platform_aligned_free((void **) &vec->elements);
     vec->capacity = 0;
     vec->max_capacity = 0;
+    vec->count = 0;
 }
 
 template<typename T>
 FORCE_INLINE
 void array_vector_init(ArrayVector<T>* vec, BufferMemory* buf, int capacity, int alignment = sizeof(size_t)) NO_EXCEPT
 {
+    ASSERT_TRUE(capacity);
+
     vec->capacity = capacity;
     vec->max_capacity = capacity;
+    vec->count = 0;
     vec->elements = (T *) memory_get(buf, capacity * sizeof(T), alignment);
 }
 
@@ -125,7 +133,7 @@ template<typename T>
 FORCE_INLINE
 bool array_vector_insert_safe(ArrayVector<T>* __restrict vec, const T* __restrict element, int count) NO_EXCEPT
 {
-    if (vec->count >= vec->capacity) {
+    if (vec->count + count > vec->capacity) {
         return false;
     }
 
@@ -166,15 +174,20 @@ template<typename T>
 FORCE_INLINE
 void array_vector_remove_value(ArrayVector<T>* vec, T value) NO_EXCEPT
 {
-    for (int i = 0; i < vec->count; ++i) {
-        if (vec->elements[i] == value) {
-            // Move elements after the found element forward
-            if (i < vec->count - 1) {
-                memcpy(vec->elements + i, vec->elements + i + 1, sizeof(T) * (vec->count - i - 1));
-            }
+    int32 i = 0;
+    while (i < vec->count) {
+        if (vec->elements[i] != value) {
+            ++i;
 
-            --vec->count;
+            continue;
         }
+
+        // Move elements after the found element forward
+        if (i < vec->count - 1) {
+            memcpy(vec->elements + i, vec->elements + i + 1, sizeof(T) * (vec->count - i - 1));
+        }
+
+        --vec->count;
     }
 }
 

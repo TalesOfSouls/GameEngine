@@ -439,7 +439,9 @@ inline
 VoxelChunk* voxel_world_chunk_get(HashMap* map, int32 cx, int32 cy, int32 cz) NO_EXCEPT
 {
     HashEntryVoidPKeyInt64* entry = voxel_hashmap_entry_get(map, cx, cy, cz);
-    return entry ? (VoxelChunk *) entry->value : NULL;
+    return entry
+        ? (VoxelChunk *) entry->value
+        : NULL;
 }
 
 // @question do we need separate get and create functions?

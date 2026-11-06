@@ -20,7 +20,7 @@
 //      -> the content can be changed at any time without using more memory (ui_table_set_cell, ui_table_set_row_count)
 //      e.g. profiler, log output, stats that change every frame
 //
-// 152 bytes
+// 156 bytes
 struct UITable {
     UICore core;
 
@@ -39,6 +39,9 @@ struct UITable {
     int32 column_widths;
     int32 rows;
     int32 footer;
+
+    // Optional text color per row (uint32[row_capacity], 0 = font.color), @see ui_table_set_row_color
+    int32 row_text_colors;
 
     // 1-indexed action that is called when the selected row changes (layout->on_actions, 0 = none)
     int32 on_change;

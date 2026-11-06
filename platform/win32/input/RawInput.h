@@ -877,7 +877,7 @@ void input_raw_handle(
     BUFFER_STACK_MEMORY(mem, (byte **) &lpb, db_size * sizeof(BYTE), alignof(size_t));
 
     uint32 size = GetRawInputData((HRAWINPUT) lParam, RID_INPUT, lpb, &db_size, sizeof(RAWINPUTHEADER));
-    LOG_TRUE_3(size > 100 * KILOBYTE, "Very large input data %d bytes", {DATA_TYPE_UINT32, &size});
+    LOG_TRUE_3(size > 100 * KILOBYTE, "[WARNING] Very large input data %d bytes", {DATA_TYPE_UINT32, &size});
 
     if (db_size != size) {
         return;
@@ -904,7 +904,7 @@ int16 input_raw_handle_buffered(
     // Max input messages (e.g. 16)
     cb_size *= max_inputs;
 
-    LOG_TRUE_3(cb_size > 100 * KILOBYTE, "Very large input data %d bytes", {DATA_TYPE_UINT32, &cb_size});
+    LOG_TRUE_3(cb_size > 100 * KILOBYTE, "[WARNING] Very large input data %d bytes", {DATA_TYPE_UINT32, &cb_size});
 
     PRAWINPUT raw_input;
     BUFFER_STACK_MEMORY(mem, (byte **) &raw_input, cb_size, alignof(size_t));

@@ -20,13 +20,13 @@
  *
  * Similar to the ChunkMemory but:
  * Benefits
- *      * Much faster at finding free memory chunks
+ *      - Much faster at finding free memory chunks
  *
  * Disadvantages
- *      * Requires you to release memory once no longer used
- *      * Memory gets fragmented over time/usage
- *      * Impossible to request multiple contiguous chunks
- *      * Horrible performance for iterating active elements
+ *      - Requires you to release memory once no longer used
+ *      - Memory gets fragmented over time/usage
+ *      - Impossible to request multiple contiguous chunks
+ *      - Horrible performance for iterating active elements
  */
 struct FragmentMemory {
     byte* memory;
@@ -95,7 +95,7 @@ void fragment_alloc(
         (size_t) alignof(int32)
     );
 
-    for (int i = 0; i < count; ++i) {
+    for (uint32 i = 0; i < count; ++i) {
         fragment->free[i] = i * fragment->chunk_size;
     }
 }
@@ -136,7 +136,7 @@ void fragment_alloc(
         (size_t) alignof(int32)
     );
 
-    for (int i = 0; i < count; ++i) {
+    for (uint32 i = 0; i < count; ++i) {
         fragment->free[i] = i * fragment->chunk_size;
     }
 }
@@ -148,7 +148,7 @@ byte* fragment_memory_get(FragmentMemory* const fragment) NO_EXCEPT
         return NULL;
     }
 
-    DEBUG_MEMORY_READ(&fragment->memory[fragment->free[fragment->last_pos]], buf->chunk_size);
+    DEBUG_MEMORY_READ((uintptr_t) &fragment->memory[fragment->free[fragment->last_pos]], fragment->chunk_size);
 
     return &fragment->memory[fragment->free[fragment->last_pos--]];
 }

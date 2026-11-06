@@ -1,241 +1,141 @@
 #include "../TestFramework.h"
 #include "../../asset/AssetArchive.cpp"
 
+/**
+ * Asset archive (.asset) format test
+ *
+ * The archive is built by hand (like ArchiveBuilder does it) from in-memory payloads,
+ * written to a file, loaded and then verified. In-memory payloads keep the test
+ * independent of the working directory.
+ */
 static void test_asset_archive() {
-    /**
-     * 1. Create asset archive file
-     * 2. Load asset archive file
-     * 3. Test the loaded asset data
-     */
+    const char payload_a[] = "Asset one";         // 9 characters
+    const char payload_b[] = "Asset two content"; // 17 characters
 
-    /////////////////////////////////////////////////
-    // 1. Create asset archive file
-    /////////////////////////////////////////////////
+    const uint32 payload_a_size = (uint32) (sizeof(payload_a) - 1);
+    const uint32 payload_b_size = (uint32) (sizeof(payload_b) - 1);
 
-    // Current executable file path
-    char rel_path[PATH_MAX_LENGTH];
-    relative_to_absolute("./", rel_path);
+    const uint32 asset_count = 2;
+    const uint32 dependency_count = 0;
+
+    // Fixed size header: 3 * 4 bytes + asset elements (+ dependencies)
+    const uint32 header_size = (uint32) (
+        sizeof(int32) * 3
+        + asset_count * sizeof(AssetArchiveElement)
+        + dependency_count * sizeof(uint32)
+    );
 
     alignas(8) byte archive_buffer[4096];
+    memset(archive_buffer, 0, sizeof(archive_buffer));
 
-    const char toc_str[] = "0\n"
-        "./files/test1.txt\n"
-        "./files/test2.txt";
-    alignas(8) byte toc_buffer[sizeof(toc_str)];
+    byte* header = archive_buffer;
 
-    FileBody toc = {0};
-    toc.content = toc_buffer;
-    memcpy(toc.content, toc_str, sizeof(toc_str));
+    header = write_le(header, (int32) ASSET_ARCHIVE_VERSION);
+    header = write_le(header, asset_count);
+    header = write_le(header, dependency_count);
 
-    FileBody output_header = {0};
-    output_header.content = archive_buffer;
+    // Asset a
+    header = write_le(header, (uint32) ASSET_TYPE_GENERAL);
+    header = write_le(header, (uint32) header_size);
+    header = write_le(header, payload_a_size);
+    header = write_le(header, payload_a_size);
+    header = write_le(header, (uint32) 0); // dependency start
+    header = write_le(header, (uint32) 0); // dependency count
 
-    FileBody output_body = {0};
-    // We offset the body from the header
-    // At this point we don't know how large the header actually needs to be, so we pick a generous offset
-    // Don't worry, we don't store the unused space in the asset later, we just need it now.
-    // In reality the offset we choose here is maybe too small for a general implementation but since i want to keep this test
-    // on the stack I am a little bit more stingy
-    // We also need to use the same buffer for header and body because we later need to calculate the offset based on memory position
-    // The offset is then stored in the asset archive itself so we can directly jump to the respective asset
-    byte* archive_body = archive_buffer + 2 * KILOBYTE;
-    output_body.content = archive_body;
+    // Asset b
+    header = write_le(header, (uint32) ASSET_TYPE_GENERAL);
+    header = write_le(header, (uint32) (header_size + payload_a_size));
+    header = write_le(header, payload_b_size);
+    header = write_le(header, payload_b_size);
+    header = write_le(header, (uint32) 0);
+    header = write_le(header, (uint32) 0);
 
-    // Find the file id
-    MAYBE_UNUSED int32 toc_id = atoi((char *) toc.content);
-    PSEUDO_USE(toc_id);
-    while (*toc.content != '\n') {
-        ++toc.content;
-        --toc.size;
-    }
+    // Payloads
+    memcpy(archive_buffer + header_size, payload_a, payload_a_size);
+    memcpy(archive_buffer + header_size + payload_a_size, payload_b, payload_b_size);
 
-    ++toc.content;
-    --toc.size;
-
-    // Start writing some basic information to the header (in binary = ready to output to file)
-    byte* archive_header = archive_buffer;
-
-    // WARNING: Normally this type of directly writing to a buffer is discouraged because it may fail
-    //          We are only allowed to do it this way because we aligned the buffer to 8 bytes
-    //          The "correct" implementation would be to use memcpy()
-
-    // Write archive version to header
-    *((int32 *) archive_header) = SWAP_ENDIAN_LITTLE(ASSET_ARCHIVE_VERSION);
-    archive_header += sizeof(int32);
-
-    // "Write" asset count to header
-    // We actually only create the placeholder since we don't know the asset count just yet
-    // For that reason we create a pointer to that location so we can easily write the actual count later on
-    uint32* asset_count = (uint32 *) archive_header;
-    *((uint32 *) archive_header) = 0;
-    int32 temp_asset_count = 0;
-    archive_header += sizeof(uint32);
-
-    // Write the asset dependency in a similar way to the asset count
-    // The asset dependency describes how many other assets this dependency relies on
-    *((uint32 *) archive_header) = 0;
-    uint32* asset_dependency_count = (uint32 *) archive_header;
-    archive_header += sizeof(uint32);
-
-    // Create archive file data by loading the assets from the table of contents (toc)
-    // and then loading this asset data into our archive file
-    // While "copying" the asset data over to the asset archive we do some transformation & compression
-    // as needed and used in our game engine
-    byte* pos = toc.content;
-    while (*pos != '\0') {
-        // Get the file path for the asset (stored in the toc)
-        const char* file_path = (char *) pos;
-        str_move_to((const char **) &pos, '\n');
-        if (*pos == '\n') {
-            if (*(pos - 1) == '\r') {
-                *(pos - 1) = '\0';
-            }
-
-            *pos++ = '\0';
-        }
-
-        // Make the path of the asset absolute
-        char input_path[PATH_MAX_LENGTH];
-        if (*file_path == '.') {
-            memcpy(input_path, rel_path, sizeof(rel_path));
-            strcpy(input_path + strlen(input_path), file_path + 1);
-        } else {
-            strcpy(input_path, file_path);
-        }
-
-        // Get the file extension of the asset (we handle file types differently)
-        char* extension = (char *) (pos - 1);
-        while (*extension != '.') {
-            --extension;
-        }
-
-        ++temp_asset_count;
-
-        // We need this to later on calculate the written size to the asset archive
-        const byte* element_start = archive_body;
-
-        // The raw data size (usefull, when loading the asset so we can reserve the correct size immediately)
-        uint32 uncompressed_length = 0;
-
-        // In our test we only use one element type for now
-        // The element type is derived from the file extension
-        // @todo maybe test with more element types?
-        uint32 element_type = ASSET_TYPE_GENERAL;
-        if (strncmp(extension, ".wav", sizeof("wav") - 1) == 0) {
-        } else if (strncmp(extension, ".objtxt", sizeof("objtxt") - 1) == 0) {
-        } else if (strncmp(extension, ".langtxt", sizeof("langtxt") - 1) == 0) {
-        } else if (strncmp(extension, ".fonttxt", sizeof("fonttxt") - 1) == 0) {
-        } else if (strncmp(extension, ".themetxt", sizeof("themetxt") - 1) == 0) {
-        } else if (strncmp(extension, ".png", sizeof("png") - 1) == 0
-            || strncmp(extension, ".bmp", sizeof("bmp") - 1) == 0
-            || strncmp(extension, ".tga", sizeof("tga") - 1) == 0
-        ) {
-        } else {
-            element_type = ASSET_TYPE_GENERAL;
-
-            // The real implementation uses heap memory based on the file size
-            // Again we would like to avoid this in this test and we are only testing with small files for now
-            byte temp_file_buffer[1024];
-            FileBody asset_file = {
-                sizeof(temp_file_buffer),
-                temp_file_buffer
-            };
-
-            file_read(input_path, &asset_file);
-
-            if (strncmp(extension, ".fs", sizeof("fs") - 1) == 0
-                || strncmp(extension, ".vs", sizeof("vs") - 1) == 0
-                || strncmp(extension, ".hlsl", sizeof("hlsl") - 1) == 0
-            ) {
-            } else {
-                // @todo we should compress this file here
-                memcpy(archive_body, asset_file.content, asset_file.size);
-                uncompressed_length = (uint32) asset_file.size;
-                archive_body += uncompressed_length;
-            }
-        }
-
-        // Write element information to the header
-        // The offset which we write to the header are not yet correct, but wee will adjust them later on
-
-        // Type
-        *((uint32 *) archive_header) = SWAP_ENDIAN_LITTLE(element_type);
-        archive_header += sizeof(uint32);
-
-        // Start
-        *((uint32 *) archive_header) = (uint32) (element_start - output_body.content);
-        archive_header += sizeof(uint32);
-
-        // Length
-        *((uint32 *) archive_header) = SWAP_ENDIAN_LITTLE((uint32) (archive_body - element_start));
-        archive_header += sizeof(uint32);
-
-        // Uncompressed
-        *((uint32 *) archive_header) = SWAP_ENDIAN_LITTLE(uncompressed_length);
-        archive_header += sizeof(uncompressed_length);
-
-        // Dependency Start
-        *((uint32 *) archive_header) = 0;
-        archive_header += sizeof(uint32);
-
-        // Dependency Count
-        *((uint32 *) archive_header) = 0;
-        archive_header += sizeof(uint32);
-    }
-
-    // Now we update some header information as mentioned in the beginning
-    *asset_count = SWAP_ENDIAN_LITTLE(temp_asset_count);
-    SWAP_ENDIAN_LITTLE_SELF(*asset_dependency_count);
-
-    // Calculate header size
-    output_header.size = archive_header - output_header.content;
-
-    // Go to first asset_element (after version, asset_count, asset_dependency_count)
-    archive_header = output_header.content + sizeof(int32) * 3;
-
-    // Adjust the offsets to file offsets by including the header size as described earlier
-    for (int32 i = 0; i < temp_asset_count; ++i) {
-        AssetArchiveElement* element = (AssetArchiveElement *) archive_header;
-        element->start = SWAP_ENDIAN_LITTLE((uint32) (element->start + output_header.size));
-        element->dependency_start = SWAP_ENDIAN_LITTLE((uint32) (element->dependency_start + output_header.size));
-
-        archive_header += sizeof(AssetArchiveElement);
-    }
-
-    // We now write the data to the file
-    file_write(L"temp.asset", &output_header);
-
-    // At this place we also remove the unused space in the header
-    output_body.size = archive_body - output_body.content;
-    file_append(L"temp.asset", &output_body);
+    const size_t archive_size = header_size + payload_a_size + payload_b_size;
 
     /////////////////////////////////////////////////
-    // 2. Load asset archive file
+    // 1. Write the archive file
     /////////////////////////////////////////////////
+    // Own file name (never touches a real archive) and it is written next to the executable
+    // so the test doesn't litter the repository
+    wchar_t archive_path[PATH_MAX_LENGTH];
+    relative_to_absolute(L"./test_asset_archive.asset", archive_path);
 
-    RingMemory ring;
-    ring_alloc(&ring, 16 * MEGABYTE, 16 * MEGABYTE);
+    FileBody archive_file = {
+        archive_size,
+        archive_buffer
+    };
 
-    AssetArchive archive;
-    archive.data = memory_get(&ring, 8 * MEGABYTE);
-    asset_archive_load(&archive, L"temp.asset", &ring);
+    TEST_TRUE(file_write(archive_path, &archive_file));
 
     /////////////////////////////////////////////////
-    // 3. Test asset archive file
+    // 2. Load the archive file
     /////////////////////////////////////////////////
+    BufferMemory mem = {0};
+    buffer_alloc(&mem, 64 * KILOBYTE, 64 * KILOBYTE);
 
-    TEST_EQUALS(archive.header.asset_count, 2);
-    TEST_EQUALS(archive.header.asset_dependency_count, 0);
+    AssetArchive archive = {0};
+    archive.data = (byte *) memory_get(&mem, 16 * KILOBYTE, alignof(size_t));
+    archive.data_size = 16 * KILOBYTE;
 
-    const AssetArchiveElement* element = &archive.header.asset_element[0 & 0x00FFFFFF];
+    asset_archive_load(&archive, archive_path, &mem);
+
+    /////////////////////////////////////////////////
+    // 3. Verify the archive
+    /////////////////////////////////////////////////
+    TEST_EQUALS(archive.header.version, ASSET_ARCHIVE_VERSION);
+    TEST_EQUALS(archive.header.asset_count, asset_count);
+    TEST_EQUALS(archive.header.asset_dependency_count, dependency_count);
+
+    const AssetArchiveElement* element = asset_archive_element_find(&archive, 0);
     TEST_EQUALS(element->type, ASSET_TYPE_GENERAL);
-    TEST_EQUALS(element->length, 0); // @bug wrong since we don't copy the test files to the build destination
-    TEST_EQUALS(element->uncompressed, 0); // @bug wrong since we don't copy the test files to the build destination
+    TEST_EQUALS(element->start, header_size);
+    TEST_EQUALS(element->length, payload_a_size);
+    TEST_EQUALS(element->uncompressed, payload_a_size);
+    TEST_EQUALS(element->dependency_start, 0);
     TEST_EQUALS(element->dependency_count, 0);
 
+    element = asset_archive_element_find(&archive, 1);
+    TEST_EQUALS(element->type, ASSET_TYPE_GENERAL);
+    TEST_EQUALS(element->start, header_size + payload_a_size);
+    TEST_EQUALS(element->length, payload_b_size);
+    TEST_EQUALS(element->uncompressed, payload_b_size);
+    TEST_EQUALS(element->dependency_count, 0);
+
+    // The payloads are stored unmodified
+    FileBody loaded_file = {0};
+    loaded_file.content = (byte *) memory_get(&mem, archive_size + 1, alignof(size_t));
+    file_read(archive_path, &loaded_file, 0, &mem);
+
+    TEST_EQUALS(loaded_file.size, archive_size);
+    TEST_MEMORY_EQUALS(
+        loaded_file.content + asset_archive_element_find(&archive, 0)->start,
+        payload_a,
+        payload_a_size
+    );
+    TEST_MEMORY_EQUALS(
+        loaded_file.content + asset_archive_element_find(&archive, 1)->start,
+        payload_b,
+        payload_b_size
+    );
+
+    // Asset id = archive id (0) | asset index
+    TEST_EQUALS(
+        ASSET_RAW_ID_FROM_ID(ASSET_ID_FROM_ARCHIVE_AND_ASSET(1, 0)),
+        1
+    );
+    TEST_EQUALS(
+        ARCHIVE_ID_FROM_ASSET_ID(ASSET_ID_FROM_ARCHIVE_AND_ASSET(0, 4)),
+        4
+    );
+
     // Cleanup
-    ring_free(&ring);
-    file_delete(L"temp.asset");
+    asset_archive_close(&archive);
+    buffer_free(&mem);
+    file_delete(archive_path);
 }
 
 #ifdef UBER_TEST

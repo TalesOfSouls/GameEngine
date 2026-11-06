@@ -116,6 +116,11 @@ UITable* ui_table_create(
     table->row_capacity = (int16) row_capacity;
     table->rows = ui_text_reserve(layout, CHAR_TYPE_CHAR, (int32) sizeof(int32) * max_branched(row_capacity, 1));
 
+    // Optional per row text color, 0 = font.color (@see ui_table_set_row_color)
+    const int32 row_colors_size = (int32) sizeof(uint32) * max_branched(row_capacity, 1);
+    table->row_text_colors = ui_text_reserve(layout, CHAR_TYPE_CHAR, row_colors_size);
+    memset(layout->ui_element_buffer.memory + table->row_text_colors, 0, (size_t) row_colors_size);
+
     if (cell_capacity > 0) {
         table->cell_capacity = (int16) cell_capacity;
 
@@ -203,6 +208,30 @@ bool ui_table_set_cell(UILayout* const layout, UITable* const table, int32 row, 
     }
 
     return true;
+}
+
+/**
+ * Dynamic tables only: text color of one row (0 = the table font color)
+ * The color stays until it is changed again
+ */
+inline
+void ui_table_set_row_color(UILayout* const layout, UITable* const table, int32 row, uint32 color) NO_EXCEPT
+{
+    if (!table->cell_capacity || !table->row_text_colors || row < 0 || row >= table->row_capacity) {
+        return;
+    }
+
+    uint32* const colors = (uint32 *) (layout->ui_element_buffer.memory + table->row_text_colors);
+    if (colors[row] == color) {
+        return;
+    }
+
+    colors[row] = color;
+
+    if (row < table->row_count) {
+        table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
+        ui_layout_mark_dirty(layout);
+    }
 }
 
 /**
@@ -436,6 +465,7 @@ inline
 void ui_table_row_vertices(
     UILayout* const layout, const UITable* const table,
     int32 strings, bool fixed_cells, f32 row_y, f32 width,
+    uint32 color,
     const UIClipRect& clip,
     f32 zindex,
     BufferMemory* const __restrict mem
@@ -463,7 +493,7 @@ void ui_table_row_vertices(
             fixed_cells
                 ? (const char *) (layout->ui_element_buffer.memory + strings + column * table->cell_capacity)
                 : ui_table_string(layout, strings, column),
-            table->font.size, table->font.color,
+            table->font.size, color,
             x + UI_DEFAULT_TEXT_PADDING, row_y - (table->row_height - line_height) * 0.5f,
             zindex, mem
         );
@@ -549,17 +579,24 @@ void ui_table_cache(
         const int32 vertex_start = vertices->count;
         const int32 index_start = indices->count;
 
+        const uint32* const text_colors = table->row_text_colors
+            ? (const uint32 *) (layout->ui_element_buffer.memory + table->row_text_colors)
+            : NULL;
+
         for (int32 row = first_row; row <= last_row; ++row) {
             const f32 row_y = body.y + scroll - table->row_height * (f32) row;
-            ui_table_row_vertices(layout, table, rows[row], table->cell_capacity != 0, row_y, width, body_clip, *zindex, mem);
+
+            // Per row text color, e.g. log severity (@see ui_table_set_row_color)
+            const uint32 color = (text_colors && text_colors[row]) ? text_colors[row] : table->font.color;
+            ui_table_row_vertices(layout, table, rows[row], table->cell_capacity != 0, row_y, width, color, body_clip, *zindex, mem);
         }
 
         ui_vertices_clip_or_remove(vertices, indices, vertex_start, index_start, body_clip);
     }
 
-    ui_table_row_vertices(layout, table, table->columns, false, header.y, width, ui_clip_from_rect(header), *zindex, mem);
+    ui_table_row_vertices(layout, table, table->columns, false, header.y, width, table->font.color, ui_clip_from_rect(header), *zindex, mem);
     if (table->footer) {
-        ui_table_row_vertices(layout, table, table->footer, table->cell_capacity != 0, footer.y, width, ui_clip_from_rect(footer), *zindex, mem);
+        ui_table_row_vertices(layout, table, table->footer, table->cell_capacity != 0, footer.y, width, table->font.color, ui_clip_from_rect(footer), *zindex, mem);
     }
 
     // Column separators

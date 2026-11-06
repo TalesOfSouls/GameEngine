@@ -49,6 +49,9 @@ void pool_alloc(DataPool* buf, uint32 capacity, int32 chunk_size, int32 alignmen
     PROFILE_DEBUG(PROFILE_CHUNK_ALLOC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Allocating DataPool");
 
+    // Same alignment behaviour as pool_init(), otherwise the chunks/pointers are not aligned
+    chunk_size = (int32) ALIGN_UP((size_t) chunk_size, (size_t) alignment);
+
     const size_t size = capacity * chunk_size
         + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity) // free
         + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity) // used
@@ -173,8 +176,12 @@ byte* pool_memory_get(DataPool* const buf, uint32 elements) NO_EXCEPT
         return NULL;
     }
 
+    // All chunks of the request are in use, otherwise a defragment could move
+    // a part of the block that the caller still points to
     const uint32 id = chunk_id_from_memory(buf->memory, element, buf->chunk_size);
-    OMS_BITARRAY_SET(buf->used, id);
+    for (uint32 i = 0; i < elements; ++i) {
+        OMS_BITARRAY_SET(buf->used, id + i);
+    }
 
     return element;
 }

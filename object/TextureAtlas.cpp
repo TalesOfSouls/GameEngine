@@ -225,7 +225,7 @@ int32 atlas_to_data(
 // Required depending on the 3D api.
 // Some use top-down, some bottom-up coordinates
 FORCE_INLINE
-void atlas_invert_coordinates(TextureAtlas* const atlas, int32 steps = 8) NO_EXCEPT
+void atlas_invert_coordinates(TextureAtlas* const atlas, MAYBE_UNUSED int32 steps = 8) NO_EXCEPT
 {
     f32* const data = (f32*) atlas->uv;
     const int32 float_count = atlas->uv_count * 2;

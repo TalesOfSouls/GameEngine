@@ -53,7 +53,7 @@ template <typename C>
 FORCE_INLINE CONSTEXPR
 SimpleString<C> simple_string_init(C* str) NO_EXCEPT
 {
-    int32 length = str_length(str);
+    const int32 length = (int32) str_length(str);
     return SimpleString<C>{ length, length, str };
 }
 

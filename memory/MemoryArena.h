@@ -111,22 +111,30 @@ void mem_arena_remove(
 ) NO_EXCEPT
 {
     MemoryArena* prev = NULL;
-    while (mem != remove) {
+    while (mem && mem != remove) {
         prev = mem;
         mem = mem->next;
     }
 
-    if (prev) {
-        prev->next = mem->next;
+    if (!mem) {
+        return;
     }
 
-    platform_aligned_free((void **) &remove->base);
+    if (prev) {
+        prev->next = remove->next;
+    }
+
+    // WARNING: remove->base lives inside of the allocation that is released here,
+    //          so it has to be copied before the memory is gone
+    void* base = remove->base;
+    platform_aligned_free(&base);
 }
 
+// The user memory pointer can be of any type (e.g. T* of a chunk memory), hence void*
 inline
 void mem_arena_remove(
     MemoryArena* mem,
-    byte* remove
+    void* remove
 ) NO_EXCEPT
 {
     MemoryArena* arena = (MemoryArena *) ALIGN_DOWN((uintptr_t) remove - sizeof(MemoryArena), sizeof(uintptr_t));

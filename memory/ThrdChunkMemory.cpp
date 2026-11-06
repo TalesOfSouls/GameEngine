@@ -8,6 +8,15 @@
 #define COMS_MEMORY_THRD_CHUNK_MEMORY_C
 
 #include "ThrdChunkMemory.h"
+#include "ChunkMemory.cpp"
+#include "BufferMemory.cpp"
+#include "MemoryArena.h"
+#include "../utils/BitUtils.h"
+#include "../log/Log.h"
+#include "../log/Stats.h"
+#include "../log/PerformanceProfiler.h"
+#include "../log/DebugMemory.h"
+#include "../system/Allocator.h"
 
 CONSTEXPR FORCE_INLINE
 size_t thrd_chunk_size(size_t type_size, int max_capacity) NO_EXCEPT
@@ -17,6 +26,13 @@ size_t thrd_chunk_size(size_t type_size, int max_capacity) NO_EXCEPT
         + sizeof(size_t) * array_count
         + sizeof(size_t) * array_count
         + sizeof(size_t) * 2;
+}
+
+// The chunk size is aligned up, otherwise a chunk could start at an unaligned address
+FORCE_INLINE
+size_t thrd_chunk_size_element(int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
+{
+    return ALIGN_UP((size_t) element_size, (size_t) alignment);
 }
 
 inline
@@ -32,6 +48,8 @@ void chunk_init(
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
+    element_size = (int32) thrd_chunk_size_element(element_size, alignment);
+
     const size_t array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity);
     MAYBE_UNUSED const size_t size = capacity * element_size
         + sizeof(size_t) * array_count
@@ -43,6 +61,7 @@ void chunk_init(
     buf->capacity = capacity;
     buf->chunk_size = element_size;
     buf->size = size;
+    buf->alignment = alignment;
     buf->last_pos.store(-1, memory_order_relaxed);
 
     buf->free = (atomic<size_t> *) ALIGN_UP(
@@ -69,6 +88,8 @@ void chunk_alloc(ThrdChunkMemory* const buf, int32 capacity, int32 max_capacity,
     ASSERT_TRUE(alignment % sizeof(int) == 0);
 
     LOG_1("[INFO] Allocating ChunkMemoryT");
+
+    element_size = (int32) thrd_chunk_size_element(element_size, alignment);
 
     const size_t array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity);
     const size_t memory_size = capacity * element_size
@@ -102,6 +123,8 @@ void chunk_alloc(ThrdChunkMemory* const buf, MemoryArena* const mem, int32 capac
 
     LOG_1("[INFO] Allocating ChunkMemoryT");
 
+    element_size = (int32) thrd_chunk_size_element(element_size, alignment);
+
     const size_t array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity);
     const size_t memory_size = capacity * element_size
         + sizeof(size_t) * array_count
@@ -134,6 +157,8 @@ void chunk_init(
 {
     ASSERT_TRUE(capacity);
     ASSERT_TRUE(alignment % sizeof(int) == 0);
+
+    element_size = (int32) thrd_chunk_size_element(element_size, alignment);
 
     const size_t array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(capacity);
     const size_t size = capacity * element_size

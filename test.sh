@@ -43,7 +43,7 @@ g++ $BUILD_FLAGS -std=c++23 -m64 \
     -fsanitize=undefined \
     ${CPU_FEATURES} \
     -o MainTest \
-    ../../cOMS/tests/MainTest.cpp \
+    ../../cOMS/MainTest.cpp \
     $DEBUG_DATA
 
 # Check if the compilation was successful

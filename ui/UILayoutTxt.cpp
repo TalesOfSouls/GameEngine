@@ -361,7 +361,7 @@ char* ui_txt_value_resolve(
     const UILayoutTxtContext* const ctx,
     const UIDocument* const doc,
     UIDocumentString raw,
-    int32 line,
+    MAYBE_UNUSED int32 line,
     char* const buffer, int32 buffer_size
 ) NO_EXCEPT
 {

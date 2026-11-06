@@ -22,6 +22,13 @@
 #include "CmdFontConsumer.h"
 #include "CmdTextureConsumer.h"
 
+// Format of the theme files (compile time): 1 = text (.themetxt + language file), 0 = binary (incl. the language)
+// The application can define it before including cOMS (e.g. in its config file)
+// A different value after this default is a macro redefinition -> compile error (warnings as errors)
+#ifndef FILE_FORMAT_THEME_TXT
+    #define FILE_FORMAT_THEME_TXT 1
+#endif
+
 /**
  * Loads a binary layout
  */
@@ -135,7 +142,7 @@ bool cmd_theme_assets_load_sync(
 
 /**
  * Loads a theme incl. everything the theme references:
- *      language: a text theme loads its language file
+ *      language: a text theme loads its language file (@see FILE_FORMAT_THEME_TXT)
  *      assets:   font + atlas of the "@theme" block, only if assets != NULL
  *
  * WARNING: theme->data and theme->data_size need to be set
@@ -164,17 +171,22 @@ UITheme* cmd_theme_load_sync(
         return NULL;
     }
 
-    // @todo remove once we switch to themebin
-    if (str_ends_with(theme_path, L".themetxt")) {
+    // The format is a compile time switch (@see FILE_FORMAT_THEME_TXT)
+    #if FILE_FORMAT_THEME_TXT
         if (!ui_theme_from_txt(theme, (const char *) theme_file.content, (int32) theme_file.size)) {
             return NULL;
         }
 
         // Optional, the theme works without strings
         ui_theme_language_load(theme, theme_path, language_code, mem);
-    } else if (theme_from_data(theme_file.content, theme) < 0) {
-        return NULL;
-    }
+    #else
+        // The binary theme contains its language
+        PSEUDO_USE(language_code);
+
+        if (theme_from_data(theme_file.content, theme) < 0) {
+            return NULL;
+        }
+    #endif
 
     if (assets && !cmd_theme_assets_load_sync(assets, theme)) {
         LOG_1("[ERROR] Couldn't load all assets of the theme");

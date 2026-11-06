@@ -16,8 +16,8 @@
 // Realistic worst cases are higher than it seems:
 //      keyboard + mouse: 2 movement keys (diagonal) + modifier + skill key + 2 mouse buttons
 //                        + mouse move + wheel (both are "fake" keys for one tick) = 8
-//      controller:       every analog axis outside of the deadzone is an active key
-//                        -> 2 sticks (4 axes) + 2 triggers + 2 buttons = 8
+//      controller:       every analog axis outside of the deadzone is an active key + its direction key
+//                        -> 2 sticks (4 axes + 4 directions) + 2 triggers + 2 buttons = 12
 // Released keys also stay in their slot until the next tick and overwritten by input_frame_begin()
 #define MAX_KEY_PRESSES 16
 

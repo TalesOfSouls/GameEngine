@@ -14,6 +14,7 @@
 
 #include <locale.h>
 #include <sys/resource.h>
+#include <dirent.h>
 
 // -lX11 -lXrandr
 
@@ -305,6 +306,357 @@ uint32 display_info_get(DisplayInfo* info) {
     pclose(fp);
 
     return count;
+}
+
+static inline char hardware_id_lower(char value) NO_EXCEPT
+{
+    return (value >= 'A' && value <= 'Z')
+        ? (char) (value + ('a' - 'A'))
+        : value;
+}
+
+static inline bool hardware_id_equal_ci(const char* lhs, const char* rhs) NO_EXCEPT
+{
+    if (!lhs || !rhs) {
+        return false;
+    }
+
+    while (*lhs && *rhs) {
+        if (hardware_id_lower(*lhs) != hardware_id_lower(*rhs)) {
+            return false;
+        }
+
+        ++lhs;
+        ++rhs;
+    }
+
+    return *lhs == *rhs;
+}
+
+static inline bool hardware_id_contains_ci(const char* value, const char* needle) NO_EXCEPT
+{
+    if (!value || !needle || !*needle) {
+        return false;
+    }
+
+    const size_t needle_length = strlen(needle);
+    for (const char* cursor = value; *cursor; ++cursor) {
+        size_t i = 0;
+        while (i < needle_length && cursor[i]
+            && hardware_id_lower(cursor[i]) == hardware_id_lower(needle[i])
+        ) {
+            ++i;
+        }
+
+        if (i == needle_length) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static inline void hardware_id_trim(char* const value) NO_EXCEPT
+{
+    if (!value) {
+        return;
+    }
+
+    char* start = value;
+    while (*start == ' ' || *start == '\t' || *start == '\r' || *start == '\n') {
+        ++start;
+    }
+
+    if (start != value) {
+        char* dst = value;
+        while (*start) {
+            *dst++ = *start++;
+        }
+
+        *dst = '\0';
+    }
+
+    size_t length = strlen(value);
+    while (length && (value[length - 1] == ' ' || value[length - 1] == '\t'
+        || value[length - 1] == '\r' || value[length - 1] == '\n')
+    ) {
+        value[--length] = '\0';
+    }
+}
+
+static inline void hardware_id_upper(char* const value) NO_EXCEPT
+{
+    if (!value) {
+        return;
+    }
+
+    for (; *value; ++value) {
+        if (*value >= 'a' && *value <= 'z') {
+            *value = (char) (*value - ('a' - 'A'));
+        }
+    }
+}
+
+static inline bool hardware_id_ignored(const char* const value) NO_EXCEPT
+{
+    static const char* const ignored[] = {
+        "none",
+        "n/a",
+        "na",
+        "unknown",
+        "default string",
+        "to be filled by o.e.m.",
+        "to be filled by oem",
+        "system serial number",
+        "system manufacturer",
+        "system product name",
+        "not specified",
+        "not available",
+        "0",
+        "00000000",
+        "ffffffff",
+        "ffffffffffffffff",
+        "00000000-0000-0000-0000-000000000000",
+        "ffffffff-ffff-ffff-ffff-ffffffffffff",
+        "03000200-0400-0500-0006-000700080009",
+    };
+
+    for (size_t i = 0; i < ARRAY_COUNT(ignored); ++i) {
+        if (hardware_id_equal_ci(value, ignored[i])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static inline bool hardware_id_read_file(
+    const char* const path,
+    char* const out,
+    size_t out_size
+) NO_EXCEPT
+{
+    if (!path || !out || !out_size) {
+        return false;
+    }
+
+    memset(out, 0, out_size);
+
+    FileBody file = {};
+    file.content = (byte *) out;
+    file.size = out_size - 1;
+
+    file_read(path, &file);
+    out[out_size - 1] = '\0';
+    hardware_id_trim(out);
+
+    return out[0] != '\0';
+}
+
+static inline void hardware_id_read_dmi(
+    const char* const name,
+    char* const out,
+    size_t out_size,
+    bool uppercase
+) NO_EXCEPT
+{
+    char path[PATH_MAX_LENGTH];
+    sprintf_fast(path, (int32) sizeof(path), "/sys/class/dmi/id/%s", name);
+
+    if (!hardware_id_read_file(path, out, out_size)) {
+        return;
+    }
+
+    if (uppercase) {
+        hardware_id_upper(out);
+    }
+
+    if (hardware_id_ignored(out)) {
+        out[0] = '\0';
+    }
+}
+
+static inline void hardware_id_hex4(char* const out, uint32 value) NO_EXCEPT
+{
+    static const char HEX[] = "0123456789ABCDEF";
+
+    for (int32 i = 3; i >= 0; --i) {
+        out[i] = HEX[value & 0xF];
+        value >>= 4;
+    }
+
+    out[4] = '\0';
+}
+
+static inline void hardware_id_gpu_collect(HardwareId* const id) NO_EXCEPT
+{
+    DIR* const directory = opendir("/sys/bus/pci/devices");
+    if (!directory) {
+        return;
+    }
+
+    struct dirent* entry;
+    while ((entry = readdir(directory))) {
+        if (entry->d_name[0] == '.') {
+            continue;
+        }
+
+        char path[PATH_MAX_LENGTH];
+        sprintf_fast(
+            path,
+            (int32) sizeof(path),
+            "/sys/bus/pci/devices/%s/class",
+            entry->d_name
+        );
+
+        char pci_class[32];
+        if (!hardware_id_read_file(path, pci_class, sizeof(pci_class))) {
+            continue;
+        }
+
+        // 0x03xxxx = display controller (VGA, XGA, 3D, other)
+        if (strncmp(pci_class, "0x03", 4) != 0) {
+            continue;
+        }
+
+        sprintf_fast(
+            path,
+            (int32) sizeof(path),
+            "/sys/bus/pci/devices/%s/uevent",
+            entry->d_name
+        );
+
+        char uevent[2048];
+        if (!hardware_id_read_file(path, uevent, sizeof(uevent))) {
+            continue;
+        }
+
+        const char* const pci_id = strstr(uevent, "PCI_ID=");
+        const char* const subsystem_id = strstr(uevent, "PCI_SUBSYS_ID=");
+        if (!pci_id || !subsystem_id) {
+            continue;
+        }
+
+        uint32 vendor = 0;
+        uint32 device = 0;
+        uint32 subsystem_vendor = 0;
+        uint32 subsystem_device = 0;
+
+        if (sscanf(pci_id, "PCI_ID=%4x:%4x", &vendor, &device) != 2
+            || sscanf(subsystem_id, "PCI_SUBSYS_ID=%4x:%4x", &subsystem_vendor, &subsystem_device) != 2
+        ) {
+            continue;
+        }
+
+        char vendor_hex[5];
+        char device_hex[5];
+        char subsystem_vendor_hex[5];
+        char subsystem_device_hex[5];
+
+        hardware_id_hex4(vendor_hex, vendor);
+        hardware_id_hex4(device_hex, device);
+        hardware_id_hex4(subsystem_vendor_hex, subsystem_vendor);
+        hardware_id_hex4(subsystem_device_hex, subsystem_device);
+
+        char gpu_id[128];
+        sprintf_fast(
+            gpu_id,
+            (int32) sizeof(gpu_id),
+            "VEN_%s&DEV_%s&SUBSYS_%s%s",
+            vendor_hex,
+            device_hex,
+            subsystem_device_hex,
+            subsystem_vendor_hex
+        );
+
+        hardware_id_gpu_add(id, gpu_id);
+    }
+
+    closedir(directory);
+
+    hardware_id_gpu_sort(id);
+}
+
+void hardware_id_get(HardwareId* const id, const SystemInfo* const info) NO_EXCEPT
+{
+    (void) info;
+
+    if (!id) {
+        return;
+    }
+
+    memset(id, 0, sizeof(*id));
+
+    hardware_id_read_dmi("product_uuid", id->system_uuid, sizeof(id->system_uuid), true);
+    hardware_id_read_dmi("product_serial", id->system_serial, sizeof(id->system_serial), true);
+    hardware_id_read_dmi("sys_vendor", id->system_vendor, sizeof(id->system_vendor), false);
+    hardware_id_read_dmi("product_name", id->system_product, sizeof(id->system_product), false);
+    hardware_id_read_dmi("board_serial", id->board_serial, sizeof(id->board_serial), true);
+
+    hardware_id_cpu_fill(id);
+    hardware_id_gpu_collect(id);
+}
+
+static inline bool hardware_id_known_vm_string(const char* const value) NO_EXCEPT
+{
+    static const char* const markers[] = {
+        "vmware",
+        "virtualbox",
+        "vbox",
+        "qemu",
+        "xen",
+        "parallels",
+        "bhyve",
+        "bochs",
+        "innotek",
+        "microsoft hv",
+        "hyper-v",
+        "virtual machine",
+        "kvm",
+        "openstack",
+        "amazon ec2",
+        "google compute",
+        "digitalocean",
+        "alibaba",
+    };
+
+    for (size_t i = 0; i < ARRAY_COUNT(markers); ++i) {
+        if (hardware_id_contains_ci(value, markers[i])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool system_is_virtual_machine(const SystemInfo* const info) NO_EXCEPT
+{
+    // Xen, Hyper-V and some KVM setups expose the hypervisor type here
+    if (file_exists("/sys/hypervisor/type")) {
+        return true;
+    }
+
+    char cpuinfo[16384] = {};
+    FileBody file = {};
+    file.content = (byte *) cpuinfo;
+    file.size = sizeof(cpuinfo) - 1;
+
+    file_read("/proc/cpuinfo", &file);
+    cpuinfo[sizeof(cpuinfo) - 1] = '\0';
+
+    if (hardware_id_contains_ci(cpuinfo, "hypervisor")) {
+        return true;
+    }
+
+    if (info) {
+        if (hardware_id_known_vm_string(info->hardware.system_vendor)
+            || hardware_id_known_vm_string(info->hardware.system_product)
+        ) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 #endif

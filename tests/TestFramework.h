@@ -10,6 +10,12 @@
 #include <stdio.h>
 #include <math.h>
 #include <inttypes.h>
+#include "../stdlib/Types.h"
+
+#if defined(_MSC_VER)
+    // TEST_EQUALS with constant expressions (e.g. sizeof) triggers a constant condition warning
+    #pragma warning(disable: 4127)
+#endif
 
 static char **_test_log;
 static int _test_assert_count;
@@ -311,17 +317,20 @@ inline void test_finalize_impl(const char* file)
     ++_test_global_count; \
     func()
 
+// WARNING: The values are evaluated exactly once, so expressions with side effects are safe
 #define TEST_EQUALS(a, b)                                                          \
     do                                                                             \
     {                                                                              \
         ++_test_assert_count;                                                      \
         ++_test_global_assert_count;                                               \
-        if ((a) != (b))                                                            \
+        const int64 _test_a = (int64) (a);                                         \
+        const int64 _test_b = (int64) (b);                                         \
+        if (_test_a != _test_b)                                                    \
         {                                                                          \
             ++_test_global_assert_error_count;                                     \
             snprintf(                                                              \
                 _test_log[_test_assert_error_count++], 1024,                       \
-                "%4i: %" PRId64 " != %" PRId64 " (%s)", __LINE__, (int64)(a), (int64)(b), __func__); \
+                "%4i: %" PRId64 " != %" PRId64 " (%s)", __LINE__, _test_a, _test_b, __func__); \
         }                                                                          \
     } while (0)
 
@@ -330,12 +339,14 @@ inline void test_finalize_impl(const char* file)
     {                                                                              \
         ++_test_assert_count;                                                      \
         ++_test_global_assert_count;                                               \
-        if ((a) == (b))                                                            \
+        const int64 _test_a = (int64) (a);                                         \
+        const int64 _test_b = (int64) (b);                                         \
+        if (_test_a == _test_b)                                                    \
         {                                                                          \
             ++_test_global_assert_error_count;                                     \
             snprintf(                                                              \
                 _test_log[_test_assert_error_count++], 1024,                       \
-                "%4i: %" PRId64 " == %" PRId64 " (%s)", __LINE__, (int64)(a), (int64)(b), __func__); \
+                "%4i: %" PRId64 " == %" PRId64 " (%s)", __LINE__, _test_a, _test_b, __func__); \
         }                                                                          \
     } while (0)
 

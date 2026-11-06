@@ -32,7 +32,7 @@ void thread_pool_execute(ThreadPool* const pool, PoolWorker* const job) NO_EXCEP
         job->state_external->store(POOL_WORKER_STATE_RUNNING, memory_order_relaxed);
     }
 
-    LOG_3("[INFO] ThreadPool worker started");
+    LOG_4("[INFO] ThreadPool worker started");
     {
         PROFILE_DEBUG(PROFILE_THREADPOOL_WORK, (char *) NULL, PROFILE_FLAG_ADD_HISTORY);
         STATS_INCREMENT_DEBUG(DEBUG_COUNTER_THREAD_ACTIVE);
@@ -52,7 +52,7 @@ void thread_pool_execute(ThreadPool* const pool, PoolWorker* const job) NO_EXCEP
         }
         STATS_DECREMENT_DEBUG(DEBUG_COUNTER_THREAD_ACTIVE);
     }
-    LOG_3("[INFO] ThreadPool worker ended");
+    LOG_4("[INFO] ThreadPool worker ended");
 
     if (job->state_external) {
         job->state_external->store(POOL_WORKER_STATE_COMPLETED, memory_order_release);

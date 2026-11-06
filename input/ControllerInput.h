@@ -51,6 +51,20 @@ enum ControllerButton : byte {
     CONTROLLER_BUTTON_OTHER_6,
     CONTROLLER_BUTTON_OTHER_7,
 
+    // Stick directions (0 - 127), created from the stick axes (@see input_controller_stick_directions)
+    // An axis key is active for both directions (the sign of its value is the direction)
+    // -> hotkeys that need one direction (e.g. left stick up = move forward) use these keys
+    // WARNING: Appended at the end to keep the codes of the other buttons in the configs stable
+    CONTROLLER_BUTTON_STICK_LEFT_UP,
+    CONTROLLER_BUTTON_STICK_LEFT_DOWN,
+    CONTROLLER_BUTTON_STICK_LEFT_LEFT,
+    CONTROLLER_BUTTON_STICK_LEFT_RIGHT,
+
+    CONTROLLER_BUTTON_STICK_RIGHT_UP,
+    CONTROLLER_BUTTON_STICK_RIGHT_DOWN,
+    CONTROLLER_BUTTON_STICK_RIGHT_LEFT,
+    CONTROLLER_BUTTON_STICK_RIGHT_RIGHT,
+
     CONTROLLER_BUTTON_SIZE,
 };
 

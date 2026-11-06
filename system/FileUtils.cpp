@@ -126,7 +126,7 @@ template <typename C>
 inline
 void filename(const C* path, C* out) NO_EXCEPT
 {
-    C* start = str_right(path, (C) '/');
+    const C* start = str_right(path, (C) '/');
     if (!start) {
         start = str_right(path, (C) '\\');
     }
