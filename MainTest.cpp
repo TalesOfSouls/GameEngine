@@ -72,6 +72,9 @@
 #include "tests/stdlib/OctreeTest.cpp"
 #include "tests/stdlib/SimdTest.cpp"
 
+// Object
+#include "tests/object/OmxTest.cpp"
+
 #if TEST_SYSTEMS
     #include "tests/localization/LanguageTest.cpp"
     #include "tests/ui/UILayoutTest.cpp"
@@ -146,6 +149,9 @@ int main() {
     StdlibFixedFloatTest();
     StdlibOctreeTest();
     StdlibSimdTest();
+
+    // Object
+    ObjectOmxTest();
 
     #if TEST_SYSTEMS
         // Systems

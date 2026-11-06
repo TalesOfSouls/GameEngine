@@ -1,0 +1,21 @@
+omx 1
+# Shared humanoid skeleton. All humanoid models and animations use these bone names.
+# bone <name> <parent|-> <tx ty tz> [<qx qy qz qw> [<sx sy sz>]]   (local bind pose)
+
+skel 10 humanoid
+    height 1.0
+    bone root      -          0 0 0
+    bone hips      root       0 1.0 0
+    bone spine     hips       0 0.25 0
+    bone head      spine      0 0.45 0
+    bone arm.l     spine      0.2 0.35 0
+    bone forearm.l arm.l      0.3 0 0
+    bone hand.l    forearm.l  0.28 0 0
+    bone arm.r     spine     -0.2 0.35 0
+    bone forearm.r arm.r     -0.3 0 0
+    bone hand.r    forearm.r -0.28 0 0
+    bone thigh.l   hips       0.1 -0.05 0
+    bone shin.l    thigh.l    0 -0.45 0
+    bone thigh.r   hips      -0.1 -0.05 0
+    bone shin.r    thigh.r    0 -0.45 0
+end

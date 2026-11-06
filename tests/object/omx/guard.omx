@@ -1,0 +1,58 @@
+omx 1
+# Model: references the shared rig, materials, animations, hitboxes and particles by id.
+# Everything could also be defined inline in this file (mat/skel/anim/hit/pfx blocks).
+
+model guard
+
+asset 11 omx humanoid_rig.omx
+asset 12 omx metals.omx
+asset 13 omx humanoid_locomotion.omx
+asset 14 omx humanoid_hit.omx
+asset 15 omx fx.omx
+asset 7010 tex textures/guard_skin.png
+
+useskel 10
+usehit  300
+layers  2
+
+# Gameplay slot -> animation id. Another model can map "run" to a different animation.
+slot walk 2001
+slot wave 2002
+
+socket weapon  hand.r  0 0 0.05  0 0 0 1
+socket helmet  head    0 0.2 0
+
+emitter dust  400 shin.r 0 0 0
+emitter torch 401 hand.l 0 0.1 0 auto
+
+# Per instance memory the game logic needs: state <name> <type> [count]
+state health   f32
+state cooldown f32 4
+state flags    u32
+state target   v3
+
+# Inline material, only used by this model
+mat 100 guard_skin
+    base 0.8 0.65 0.55
+    rough 0.6
+    sss 0.4 0.9 0.3 0.2 0.01
+    sheen 0.1 0.1 0.1 0.8
+    tex base 7010
+end
+
+# layout must use the order: pos nrm tan uv0 uv1 col skin
+layout pos nrm uv0 col skin
+
+# v <pos> <nrm> <uv0> <rgba> <bone weight ...>
+v  0.20 1.35 0   0 1 0   0.00 0.00   1 1 1 1   4 1.0
+v  0.50 1.35 0   0 1 0   0.50 0.00   1 1 1 1   4 0.3 5 0.7
+v  0.50 1.25 0   0 1 0   0.50 0.50   1 1 1 1   5 0.7 4 0.3
+v  0.20 1.25 0   0 1 0   0.00 0.50   1 1 1 1   4 1.0
+v  0.78 1.35 0   0 1 0   1.00 0.00   0.9 0.8 0.7 1   5 1 6 1
+v  0.78 1.25 0   0 1 0   1.00 0.50   0.9 0.8 0.7 1   6 1.0
+
+mesh arm_upper 100
+f 0 1 2 3
+
+mesh arm_lower 200
+f 1 4 5 -4
