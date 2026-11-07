@@ -19,6 +19,7 @@
 #include "ControllerInput.h"
 
 // Index = scan code (without INPUT_KEYBOARD_PREFIX), NULL = unknown key
+// @bug This should not be hard coded, there are different languages!!!!
 static const char* const _input_keyboard_names[0x59] = {
     NULL, "Esc", "1", "2", "3", "4", "5", "6",                                      // 0x00
     "7", "8", "9", "0", "-", "=", "Backspace", "Tab",                               // 0x08

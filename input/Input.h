@@ -326,6 +326,10 @@ struct Input {
     // The keys are still collected (InputState::active_keys)
     bool hotkeys_disabled;
 
+    // The pointer position (InputState::x/y) doesn't follow the mouse while this is set (e.g. while the camera is rotated)
+    // The movement (InputState::dx/dy) is still collected
+    bool pointer_locked;
+
     uint8 hotkey_count;
 
     KBMDevice keyboard;

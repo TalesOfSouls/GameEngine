@@ -26,7 +26,7 @@
     // 2 = internal logging
     // 3 = debug logging
     // 4 = most verbose (probably has significant performance impacts)
-    #if defined(DEBUG) && DEBUG
+    #if defined(DEBUG)
         #if defined(DEBUG_STRICT) && DEBUG_STRICT
             #define LOG_LEVEL 4
         #else

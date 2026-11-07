@@ -67,6 +67,7 @@
  *      TEXTURE_ATLAS   TextureAtlas binary
  *      THEME           UITheme binary
  *      IMAGE           Image header + QOI
+ *      MODEL           Model binary (model_to_data, *.modeltxt)
  *
  * Text side: the archive itself has no text representation. The builder input is a
  * .cfg table of contents (first line = archive id, one asset path per line,

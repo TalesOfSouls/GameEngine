@@ -736,20 +736,23 @@ int16 input_raw_handle(
             states[input_handle.vec[0]].state.dx[0] += dx;
             states[input_handle.vec[0]].state.dy[0] += dy;
 
-            states[input_handle.vec[0]].state.x[0] += dx;
-            states[input_handle.vec[0]].state.y[0] += dy;
+            // A locked pointer stays where it is (only dx/dy change, @see Input::pointer_locked)
+            if (!states[input_handle.vec[0]].pointer_locked) {
+                states[input_handle.vec[0]].state.x[0] += dx;
+                states[input_handle.vec[0]].state.y[0] += dy;
 
-            // Since we are only using relative movement we need to clip to the window dimensions
-            states[input_handle.vec[0]].state.x[0] = OMS_CLAMP(
-                states[input_handle.vec[0]].state.x[0],
-                (int16) 0,
-                window_dim.width
-            );
-            states[input_handle.vec[0]].state.y[0] = OMS_CLAMP(
-                states[input_handle.vec[0]].state.y[0],
-                (int16) 0,
-                window_dim.height
-            );
+                // Since we are only using relative movement we need to clip to the window dimensions
+                states[input_handle.vec[0]].state.x[0] = OMS_CLAMP(
+                    states[input_handle.vec[0]].state.x[0],
+                    (int16) 0,
+                    window_dim.width
+                );
+                states[input_handle.vec[0]].state.y[0] = OMS_CLAMP(
+                    states[input_handle.vec[0]].state.y[0],
+                    (int16) 0,
+                    window_dim.height
+                );
+            }
 
             // We need to signal that the mouse was moved
             // We basically fake that a mouse movement is the same as a button

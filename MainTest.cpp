@@ -73,7 +73,7 @@
 #include "tests/stdlib/SimdTest.cpp"
 
 // Object
-#include "tests/object/OmxTest.cpp"
+#include "tests/object/ModelTest.cpp"
 
 #if TEST_SYSTEMS
     #include "tests/localization/LanguageTest.cpp"
@@ -151,7 +151,7 @@ int main() {
     StdlibSimdTest();
 
     // Object
-    ObjectOmxTest();
+    ObjectModelTest();
 
     #if TEST_SYSTEMS
         // Systems

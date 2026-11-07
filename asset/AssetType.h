@@ -18,6 +18,10 @@ enum AssetType : byte {
     ASSET_TYPE_TEXTURE_ATLAS,
     ASSET_TYPE_THEME,
     ASSET_TYPE_IMAGE,
+
+    // Model file: model + materials/animations/particles (@see object/Model.h)
+    ASSET_TYPE_MODEL,
+
     ASSET_TYPE_SIZE
 };
 

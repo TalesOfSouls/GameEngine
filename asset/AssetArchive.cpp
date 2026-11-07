@@ -16,6 +16,7 @@
 #include "../image/Image.cpp"
 #include "../image/Qoi.h"
 #include "../object/Mesh.cpp"
+#include "../object/Model.h"
 #include "../object/Texture.h"
 #include "../object/TextureAtlas.cpp"
 #include "../audio/Audio.cpp"
@@ -150,6 +151,8 @@ uint32 asset_type_size(int32 type) NO_EXCEPT
             return sizeof(Language);
         case ASSET_TYPE_THEME:
             return sizeof(UITheme);
+        case ASSET_TYPE_MODEL:
+            return sizeof(ModelFile);
         default:
             UNREACHABLE();
     }
@@ -175,6 +178,8 @@ uint32 asset_align_size(int32 type) NO_EXCEPT
             return alignof(Language);
         case ASSET_TYPE_THEME:
             return alignof(UITheme);
+        case ASSET_TYPE_MODEL:
+            return alignof(ModelFile);
         default:
             UNREACHABLE();
     }
@@ -202,6 +207,8 @@ uint32 asset_data_align_size(int32 type) NO_EXCEPT
             return alignof(size_t);
         case ASSET_TYPE_THEME:
             return alignof(size_t);
+        case ASSET_TYPE_MODEL:
+            return 64; // ModelFile::data must be MODEL_MEMORY_ALIGNMENT aligned, 64 for SIMD on the vertices
         default:
             UNREACHABLE();
     }
@@ -525,6 +532,15 @@ void asset_archive_load_finish(
             theme->data = (byte *) (theme + 1);
 
             theme_from_data(load->file.content, theme);
+        } break;
+        case ASSET_TYPE_MODEL: {
+            ModelFile* const model = (ModelFile *) load->asset->self;
+            model->data = (byte *) ALIGN_UP((uintptr_t) (model + 1), 64);
+
+            if (!model_from_data(load->file.content, load->file.size, model)) {
+                LOG_1("[ERROR] Model asset %d is invalid", {DATA_TYPE_INT32, &load->id});
+                ASSERT_TRUE(false);
+            }
         } break;
         default: {
             UNREACHABLE();
@@ -1017,6 +1033,21 @@ AssetArchiveReloadResult asset_archive_asset_reload(
 
             theme_from_data(file.content, theme);
         } break;
+        case ASSET_TYPE_MODEL: {
+            ModelFile* const model = (ModelFile *) asset->self;
+            byte* const memory = (byte *) ALIGN_UP((uintptr_t) (model + 1), 64);
+
+            // Exact check of the data block (the binary header is not part of the memory)
+            const uint64 block_size = model_data_block_size(file.content, file.size);
+            if (!block_size || (uintptr_t) memory + block_size > (uintptr_t) asset->self + (uint32) asset->ram_size) {
+                chunk_free_elements(mem, temp_element, temp_count);
+
+                return block_size ? ASSET_ARCHIVE_RELOAD_CHANGED : ASSET_ARCHIVE_RELOAD_FAILED;
+            }
+
+            model->data = memory;
+            model_from_data(file.content, file.size, model);
+        } break;
         default: {
             UNREACHABLE();
         }
@@ -1036,7 +1067,7 @@ AssetArchiveReloadResult asset_archive_asset_reload(
         );
     }
 
-    if ((element->type == ASSET_TYPE_IMAGE || element->type == ASSET_TYPE_OBJ)
+    if ((element->type == ASSET_TYPE_IMAGE || element->type == ASSET_TYPE_OBJ || element->type == ASSET_TYPE_MODEL)
         && (asset->state & ASSET_MEMORY_STATE_IN_VRAM)
     ) {
         asset->state |= ASSET_MEMORY_STATE_VRAM_OUTDATED;
