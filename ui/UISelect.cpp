@@ -27,7 +27,7 @@
 inline
 UISelect* ui_select_create(
     UILayout* const layout,
-    const char* const* options, int32 option_count,
+    const SimpleString<const char>* options, int32 option_count,
     UICore* parent = NULL,
     byte flags = 0
 ) NO_EXCEPT
@@ -47,22 +47,8 @@ UISelect* ui_select_create(
     select->select_flags = flags;
     select->selected = (option_count > 0 && !(flags & UI_SELECT_FLAG_MULTI)) ? 0 : -1;
 
-    // Options are stored directly after the select: "option 1\0option 2\0..."
-    int32 size = 0;
-    for (int32 i = 0; i < option_count; ++i) {
-        size += (int32) strlen(options[i]) + 1;
-    }
-
-    if (size) {
-        select->options = ui_text_reserve(layout, CHAR_TYPE_CHAR, size);
-        char* pos = (char *) (layout->ui_element_buffer.memory + select->options);
-        for (int32 i = 0; i < option_count; ++i) {
-            const int32 length = (int32) strlen(options[i]) + 1;
-            memcpy(pos, options[i], length);
-            pos += length;
-        }
-    }
-
+    // Options are stored directly after the select as string list (@see ui_string_list_store)
+    select->options = ui_string_list_store(layout, options, option_count);
     select->option_count = (int16) option_count;
 
     if ((flags & UI_SELECT_FLAG_MULTI) && option_count > 0) {
@@ -99,19 +85,23 @@ UISelect* ui_select_create(
     return select;
 }
 
-inline
-const char* ui_select_option(const UILayout* const layout, const UISelect* const select, int32 index) NO_EXCEPT
+// Option text incl. length, {0, 0, NULL} if the index is invalid
+FORCE_INLINE
+SimpleString<const char> ui_select_option_string(const UILayout* const layout, const UISelect* const select, int32 index) NO_EXCEPT
 {
     if (index < 0 || index >= select->option_count || !select->options) {
-        return NULL;
+        SimpleString<const char> none = { 0, 0, NULL };
+        return none;
     }
 
-    const char* option = (const char *) (layout->ui_element_buffer.memory + select->options);
-    while (index-- > 0) {
-        option += strlen(option) + 1;
-    }
+    return ui_string_list_get(layout, select->options, select->option_count, index);
+}
 
-    return option;
+// Option text, NULL if the index is invalid
+FORCE_INLINE
+const char* ui_select_option(const UILayout* const layout, const UISelect* const select, int32 index) NO_EXCEPT
+{
+    return ui_select_option_string(layout, select, index).str;
 }
 
 FORCE_INLINE
@@ -173,14 +163,10 @@ int32 ui_select_filtered_option(const UILayout* const layout, const UISelect* co
     }
 
     const char* const search = ui_select_search_text(layout, select);
-    const char* option = (const char *) (layout->ui_element_buffer.memory + select->options);
-
     for (int32 i = 0; i < select->option_count; ++i) {
-        if (ui_text_contains_case_insensitive(option, search) && row-- == 0) {
+        if (ui_text_contains_case_insensitive(ui_select_option(layout, select, i), search) && row-- == 0) {
             return i;
         }
-
-        option += strlen(option) + 1;
     }
 
     return -1;
@@ -198,12 +184,9 @@ int32 ui_select_filtered_count(const UILayout* const layout, const UISelect* con
         return select->option_count;
     }
 
-    const char* option = (const char *) (layout->ui_element_buffer.memory + select->options);
     int32 count = 0;
-
     for (int32 i = 0; i < select->option_count; ++i) {
-        count += ui_text_contains_case_insensitive(option, search);
-        option += strlen(option) + 1;
+        count += ui_text_contains_case_insensitive(ui_select_option(layout, select, i), search);
     }
 
     return count;
@@ -223,21 +206,6 @@ bool ui_select_is_checked(const UILayout* const layout, const UISelect* const se
     }
 
     return select->selected == index;
-}
-
-inline
-int32 ui_select_checked_count(const UILayout* const layout, const UISelect* const select) NO_EXCEPT
-{
-    if (!(select->select_flags & UI_SELECT_FLAG_MULTI)) {
-        return select->selected >= 0 ? 1 : 0;
-    }
-
-    int32 count = 0;
-    for (int32 i = 0; i < select->option_count; ++i) {
-        count += ui_select_is_checked(layout, select, i);
-    }
-
-    return count;
 }
 
 /**
@@ -273,7 +241,7 @@ bool ui_select_set(UILayout* const layout, UISelect* const select, int32 index, 
     }
 
     select->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -284,10 +252,13 @@ bool ui_select_set(UILayout* const layout, UISelect* const select, int32 index, 
  *      multi:  "None", the checked option or "first checked option +n"
  */
 inline
-const char* ui_select_display_text(const UILayout* const layout, const UISelect* const select, char* const buffer, int32 buffer_size) NO_EXCEPT
+SimpleString<const char> ui_select_display_text(
+    const UILayout* const layout, const UISelect* const select,
+    char* const buffer, int32 buffer_size
+) NO_EXCEPT
 {
     if (!(select->select_flags & UI_SELECT_FLAG_MULTI)) {
-        return ui_select_option(layout, select, select->selected);
+        return ui_select_option_string(layout, select, select->selected);
     }
 
     int32 first = -1;
@@ -300,10 +271,11 @@ const char* ui_select_display_text(const UILayout* const layout, const UISelect*
     }
 
     if (!count) {
-        return "None";
+        SimpleString<const char> none = { 4, 4, "None" };
+        return none;
     }
 
-    const char* const option = ui_select_option(layout, select, first);
+    const SimpleString<const char> option = ui_select_option_string(layout, select, first);
     if (count == 1) {
         return option;
     }
@@ -312,14 +284,17 @@ const char* ui_select_display_text(const UILayout* const layout, const UISelect*
     char number[12];
     const int32 number_length = int_to_str((int64) (count - 1), number);
 
-    const int32 option_length = min_branched((int32) strlen(option), buffer_size - number_length - 3);
-    memcpy(buffer, option, option_length);
+    const int32 option_length = min_branched(option.length, buffer_size - number_length - 3);
+    memcpy(buffer, option.str, option_length);
     buffer[option_length] = ' ';
     buffer[option_length + 1] = '+';
     memcpy(buffer + option_length + 2, number, number_length);
-    buffer[option_length + 2 + number_length] = '\0';
 
-    return buffer;
+    const int32 length = option_length + 2 + number_length;
+    buffer[length] = '\0';
+
+    SimpleString<const char> text = { length, length, buffer };
+    return text;
 }
 
 /**
@@ -382,7 +357,7 @@ bool ui_option_list_scroll_set(UILayout* const layout, UIOptionList* const list,
 
     list->scroll = scroll;
     list->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -412,7 +387,7 @@ bool ui_option_list_hover(UILayout* const layout, UIOptionList* const list, int3
 
     list->hovered = (int16) row;
     list->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -494,7 +469,7 @@ void ui_select_cache(
 
     if (layout->font) {
         char buffer[128];
-        const char* const text = ui_select_display_text(layout, select, buffer, (int32) sizeof(buffer));
+        const char* const text = ui_select_display_text(layout, select, buffer, (int32) sizeof(buffer)).str;
         const f32 line_height = ui_text_line_height(layout->font, select->font.size);
 
         const int32 vertex_start = vertices->count;
@@ -568,15 +543,10 @@ void ui_option_list_cache(
     *zindex = z_content;
 
     const char* const search = ui_select_search_text(layout, select);
-    const char* option_text = select->options
-        ? (const char *) (layout->ui_element_buffer.memory + select->options)
-        : NULL;
 
     int32 row = 0;
-    for (int32 option = 0; option_text && option < select->option_count && row <= last_row; ++option) {
-        const char* const text = option_text;
-        option_text += strlen(option_text) + 1;
-
+    for (int32 option = 0; select->options && option < select->option_count && row <= last_row; ++option) {
+        const char* const text = ui_select_option(layout, select, option);
         if (!ui_text_contains_case_insensitive(text, search) || row++ < first_row) {
             continue;
         }

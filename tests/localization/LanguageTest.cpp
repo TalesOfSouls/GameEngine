@@ -41,6 +41,36 @@ static void test_language_from_txt() {
     TEST_EQUALS(language_get(&lang, "menu"), NULL);
     TEST_EQUALS(language_get(NULL, "menu_quit"), NULL);
 
+    // Strings incl. their length (stored in the slot -> no strlen)
+    const char* const length_keys[] = {"menu_quit", "status_prefix", "indented", "multi_line", "empty", "format"};
+    for (int32 i = 0; i < (int32) ARRAY_COUNT(length_keys); ++i) {
+        const SimpleString<const char> str = language_get_string(&lang, length_keys[i]);
+        TEST_TRUE(str.str == language_get(&lang, length_keys[i]));
+        TEST_EQUALS(str.length, (int32) strlen(str.str));
+        TEST_EQUALS(str.max_length, str.length);
+    }
+
+    // The overwritten duplicate has the length of the new value
+    TEST_EQUALS(language_get_string(&lang, "menu_quit").length, 9);
+    TEST_EQUALS(language_get_string(&lang, "empty").length, 0);
+    TEST_NOT_EQUALS(language_get_string(&lang, "empty").str, NULL);
+
+    TEST_EQUALS(language_get_string(&lang, "missing").str, NULL);
+    TEST_EQUALS(language_get_string(&lang, "missing").length, 0);
+    TEST_EQUALS(language_get_string(NULL, "menu_quit").str, NULL);
+
+    // Cached lookup
+    SimpleString<const char> cache = {};
+    TEST_TRUE(language_get_string_cached(&lang, &cache, "status_prefix").str == language_get(&lang, "status_prefix"));
+    TEST_EQUALS(cache.length, 8);
+
+    // The cache is used -> the key doesn't matter anymore
+    TEST_TRUE(language_get_string_cached(&lang, &cache, "menu_quit").str == language_get(&lang, "status_prefix"));
+
+    // Binary layout (@see Language.h)
+    TEST_EQUALS(sizeof(LanguageSlot), 16);
+    TEST_EQUALS(((const LanguageHeader *) lang.data)->version, LANGUAGE_BINARY_VERSION);
+
     // Too small
     Language too_small = {};
     too_small.data = (byte *) platform_alloc_aligned(64, 64, 64);
@@ -55,9 +85,14 @@ static void test_language_from_txt() {
     TEST_EQUALS(language_from_data(out, &loaded), lang.size);
     TEST_EQUALS(loaded.count, lang.count);
     TEST_EQUALS(strcmp(language_get(&loaded, "status_prefix"), "Status: "), 0);
+    TEST_EQUALS(language_get_string(&loaded, "status_prefix").length, 8);
 
     // Incompatible data
     ((LanguageHeader *) out)->version = 1;
+    TEST_EQUALS(language_from_data(out, &loaded), -1);
+
+    // The previous binary version had no value lengths
+    ((LanguageHeader *) out)->version = 2;
     TEST_EQUALS(language_from_data(out, &loaded), -1);
 
     platform_aligned_free((void **) &out);
@@ -90,6 +125,9 @@ static void test_language_many() {
 
         const char* const str = language_get(&lang, key);
         all = all && str && strcmp(str, value) == 0;
+
+        const SimpleString<const char> string = language_get_string(&lang, key);
+        all = all && string.str == str && string.length == (int32) strlen(value);
     }
 
     TEST_TRUE(all);

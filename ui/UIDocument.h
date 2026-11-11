@@ -353,25 +353,4 @@ int32 ui_document_property_find(const UIDocument* const doc, const UIDocumentNod
     return -1;
 }
 
-/**
- * Value of the first property with this key as null terminated string
- *
- * @return NULL if the property doesn't exist
- */
-inline
-const char* ui_document_property_get(
-    const UIDocument* const doc,
-    const UIDocumentNode* const node,
-    const char* const key,
-    char* const buffer, int32 buffer_size
-) NO_EXCEPT
-{
-    const int32 index = ui_document_property_find(doc, node, key);
-    if (index < 0) {
-        return NULL;
-    }
-
-    return ui_document_copy(doc, doc->properties[index].value, buffer, buffer_size);
-}
-
 #endif

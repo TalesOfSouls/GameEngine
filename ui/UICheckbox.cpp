@@ -96,7 +96,7 @@ bool ui_checkbox_set(UILayout* const layout, UICheckbox* const checkbox, bool ch
 
     checkbox->checked = checked;
     checkbox->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }

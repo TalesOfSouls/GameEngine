@@ -15,47 +15,14 @@
 #include "UILabel.cpp"
 #include "UITable.h"
 
-// Copies strings into the ui_element_buffer ("a\0b\0c\0")
-inline
-int32 ui_table_strings_store(UILayout* const layout, const char* const* strings, int32 count) NO_EXCEPT
+// n-th string of a static string list (@see ui_string_list_store), "" if the list doesn't exist
+FORCE_INLINE
+const char* ui_table_string(const UILayout* const layout, const UITable* const table, int32 offset, int32 column) NO_EXCEPT
 {
-    int32 size = 0;
-    for (int32 i = 0; i < count; ++i) {
-        size += (strings[i] ? (int32) strlen(strings[i]) : 0) + 1;
-    }
-
-    const int32 offset = ui_text_reserve(layout, CHAR_TYPE_CHAR, max_branched(size, 1));
-    char* pos = (char *) (layout->ui_element_buffer.memory + offset);
-    for (int32 i = 0; i < count; ++i) {
-        const int32 length = strings[i] ? (int32) strlen(strings[i]) : 0;
-        if (length) {
-            memcpy(pos, strings[i], length);
-        }
-
-        pos[length] = '\0';
-        pos += length + 1;
-    }
-
-    return offset;
+    return ui_string_list_get(layout, offset, table->column_count, column).str;
 }
 
-// n-th string of a string block (@see ui_table_strings_store)
-inline
-const char* ui_table_string(const UILayout* const layout, int32 offset, int32 index) NO_EXCEPT
-{
-    if (!offset) {
-        return "";
-    }
-
-    const char* str = (const char *) (layout->ui_element_buffer.memory + offset);
-    while (index-- > 0) {
-        str += strlen(str) + 1;
-    }
-
-    return str;
-}
-
-// Cell string of a row block (static: "a\0b\0c\0", dynamic: fixed size cells)
+// Cell string of a row block (static: string list, dynamic: fixed size cells)
 inline
 const char* ui_table_row_string(const UILayout* const layout, const UITable* const table, int32 offset, int32 column) NO_EXCEPT
 {
@@ -67,7 +34,7 @@ const char* ui_table_row_string(const UILayout* const layout, const UITable* con
         return (const char *) (layout->ui_element_buffer.memory + offset + column * table->cell_capacity);
     }
 
-    return ui_table_string(layout, offset, column);
+    return ui_table_string(layout, table, offset, column);
 }
 
 /**
@@ -80,7 +47,7 @@ const char* ui_table_row_string(const UILayout* const layout, const UITable* con
 inline
 UITable* ui_table_create(
     UILayout* const layout,
-    const char* const* titles, int32 column_count,
+    const SimpleString<const char>* titles, int32 column_count,
     int32 row_capacity,
     UICore* parent = NULL,
     int32 cell_capacity = 0
@@ -104,7 +71,7 @@ UITable* ui_table_create(
     table->hovered = -1;
 
     table->column_count = (int16) column_count;
-    table->columns = ui_table_strings_store(layout, titles, column_count);
+    table->columns = ui_string_list_store(layout, titles, column_count);
 
     // Equal column widths by default
     table->column_widths = ui_text_reserve(layout, CHAR_TYPE_CHAR, (int32) sizeof(f32) * max_branched(column_count, 1));
@@ -152,7 +119,7 @@ void ui_table_set_column_width(UILayout* const layout, UITable* const table, int
     }
 
     ((f32 *) (layout->ui_element_buffer.memory + table->column_widths))[column] = fraction;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 }
 
 // Offset of a fixed size cell of a dynamic table (row = row_capacity -> footer)
@@ -165,23 +132,20 @@ int32 ui_table_cell_offset(const UILayout* const layout, const UITable* const ta
 }
 
 // Copies the text into a fixed size cell (truncated), returns true if the content changed
-inline
+FORCE_INLINE
 bool ui_table_cell_copy(UILayout* const layout, const UITable* const table, int32 offset, const char* const text) NO_EXCEPT
 {
-    char* const cell = (char *) (layout->ui_element_buffer.memory + offset);
+    return ui_text_copy((char *) (layout->ui_element_buffer.memory + offset), table->cell_capacity, text ? text : "");
+}
 
-    const int32 length = text ? min_branched((int32) strlen(text), table->cell_capacity - 1) : 0;
-    if (strncmp(cell, text ? text : "", length) == 0 && cell[length] == '\0') {
-        return false;
-    }
-
-    if (length) {
-        memcpy(cell, text, length);
-    }
-
-    cell[length] = '\0';
-
-    return true;
+// Same as above but with a known length
+FORCE_INLINE
+bool ui_table_cell_copy(
+    UILayout* const layout, const UITable* const table, int32 offset,
+    const char* const text, int32 length
+) NO_EXCEPT
+{
+    return ui_text_copy((char *) (layout->ui_element_buffer.memory + offset), table->cell_capacity, text, length);
 }
 
 /**
@@ -204,7 +168,35 @@ bool ui_table_set_cell(UILayout* const layout, UITable* const table, int32 row, 
 
     if (row < table->row_count) {
         table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-        ui_layout_mark_dirty(layout);
+        layout->is_dirty = true;
+    }
+
+    return true;
+}
+
+/**
+ * Same as above but with a known length (e.g. the return value of sprintf_fast)
+ *
+ * @param length Length in characters excl. \0
+ */
+inline
+bool ui_table_set_cell(
+    UILayout* const layout, UITable* const table,
+    int32 row, int32 column,
+    const char* const text, int32 length
+) NO_EXCEPT
+{
+    if (!table->cell_capacity || row < 0 || row >= table->row_capacity || column < 0 || column >= table->column_count) {
+        return false;
+    }
+
+    if (!ui_table_cell_copy(layout, table, ui_table_cell_offset(layout, table, row, column), text, length)) {
+        return false;
+    }
+
+    if (row < table->row_count) {
+        table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
+        layout->is_dirty = true;
     }
 
     return true;
@@ -230,7 +222,7 @@ void ui_table_set_row_color(UILayout* const layout, UITable* const table, int32 
 
     if (row < table->row_count) {
         table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-        ui_layout_mark_dirty(layout);
+        layout->is_dirty = true;
     }
 }
 
@@ -255,7 +247,7 @@ void ui_table_set_row_count(UILayout* const layout, UITable* const table, int32 
     }
 
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 }
 
 /**
@@ -264,7 +256,7 @@ void ui_table_set_row_count(UILayout* const layout, UITable* const table, int32 
  * @return Row index or -1 if the table is full
  */
 inline
-int32 ui_table_add_row(UILayout* const layout, UITable* const table, const char* const* cells) NO_EXCEPT
+int32 ui_table_add_row(UILayout* const layout, UITable* const table, const SimpleString<const char>* cells) NO_EXCEPT
 {
     if (table->row_count >= table->row_capacity) {
         return -1;
@@ -272,16 +264,19 @@ int32 ui_table_add_row(UILayout* const layout, UITable* const table, const char*
 
     if (table->cell_capacity) {
         for (int32 i = 0; i < table->column_count; ++i) {
-            ui_table_cell_copy(layout, table, ui_table_cell_offset(layout, table, table->row_count, i), cells[i]);
+            ui_table_cell_copy(
+                layout, table, ui_table_cell_offset(layout, table, table->row_count, i),
+                cells[i].str, cells[i].length
+            );
         }
     } else {
         // Every row has its own string block, the row array only stores the offsets
-        const int32 cell_offset = ui_table_strings_store(layout, cells, table->column_count);
+        const int32 cell_offset = ui_string_list_store(layout, cells, table->column_count);
         ((int32 *) (layout->ui_element_buffer.memory + table->rows))[table->row_count] = cell_offset;
     }
 
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return table->row_count++;
 }
@@ -291,24 +286,27 @@ int32 ui_table_add_row(UILayout* const layout, UITable* const table, const char*
  * Dynamic tables reuse their footer memory -> can be called every frame
  */
 inline
-void ui_table_set_footer(UILayout* const layout, UITable* const table, const char* const* cells) NO_EXCEPT
+void ui_table_set_footer(UILayout* const layout, UITable* const table, const SimpleString<const char>* cells) NO_EXCEPT
 {
     if (table->cell_capacity && cells) {
         bool changed = !table->footer;
         table->footer = ui_table_cell_offset(layout, table, table->row_capacity, 0);
         for (int32 i = 0; i < table->column_count; ++i) {
-            changed |= ui_table_cell_copy(layout, table, table->footer + i * table->cell_capacity, cells[i]);
+            changed |= ui_table_cell_copy(
+                layout, table, table->footer + i * table->cell_capacity,
+                cells[i].str, cells[i].length
+            );
         }
 
         if (!changed) {
             return;
         }
     } else {
-        table->footer = cells ? ui_table_strings_store(layout, cells, table->column_count) : 0;
+        table->footer = cells ? ui_string_list_store(layout, cells, table->column_count) : 0;
     }
 
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 }
 
 inline
@@ -365,7 +363,7 @@ bool ui_table_scroll_set(UILayout* const layout, UITable* const table, f32 scrol
 
     table->scroll = scroll;
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -424,7 +422,7 @@ bool ui_table_hover(UILayout* const layout, UITable* const table, int32 row) NO_
 
     table->hovered = (int16) row;
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -441,7 +439,7 @@ bool ui_table_select(UILayout* const layout, UITable* const table, int32 row) NO
 
     table->selected = (int16) row;
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -492,7 +490,7 @@ void ui_table_row_vertices(
             layout,
             fixed_cells
                 ? (const char *) (layout->ui_element_buffer.memory + strings + column * table->cell_capacity)
-                : ui_table_string(layout, strings, column),
+                : ui_table_string(layout, table, strings, column),
             table->font.size, color,
             x + UI_DEFAULT_TEXT_PADDING, row_y - (table->row_height - line_height) * 0.5f,
             zindex, mem

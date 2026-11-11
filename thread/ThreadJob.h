@@ -13,7 +13,7 @@
 
 typedef void (*ThreadPoolJobFunc)(void*);
 
-enum PoolWorkerState : int8 {
+enum ThreadPoolJobState : int8 {
     POOL_WORKER_STATE_CANCEL = -1,
     POOL_WORKER_STATE_COMPLETED = 0,
     POOL_WORKER_STATE_WAITING = 1,
@@ -23,7 +23,7 @@ enum PoolWorkerState : int8 {
 /**
  * Worker for the thread pool
  */
-struct PoolWorker {
+struct ThreadPoolJob {
     uint64 id;
 
     // This is up here instead of down where void* mem is defined to reduce the alignment overhead
@@ -46,7 +46,7 @@ struct PoolWorker {
 
     // External state to be updated
     // @optional
-    atomic<PoolWorkerState>* state_external;
+    atomic<ThreadPoolJobState>* state_external;
 
     // Pointer to memory to be used by the thread worker
     void* mem;

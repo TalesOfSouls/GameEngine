@@ -324,7 +324,7 @@ bool ui_color_picker_set(UILayout* const layout, UIColorPicker* const picker, ui
     ui_color_picker_update_inputs(layout, picker);
 
     picker->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -349,7 +349,7 @@ bool ui_color_picker_set_hsv(UILayout* const layout, UIColorPicker* const picker
     if (changed) {
         ui_color_picker_update_inputs(layout, picker);
         picker->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-        ui_layout_mark_dirty(layout);
+        layout->is_dirty = true;
     }
 
     return changed;
@@ -390,7 +390,7 @@ bool ui_color_picker_inputs_changed(UILayout* const layout, UIColorPicker* const
     picker->color = color;
     ui_color_to_hsv(color, &picker->hue, &picker->saturation, &picker->value);
     picker->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -558,7 +558,7 @@ bool ui_color_panel_hover(UILayout* const layout, UIColorPanel* const panel, int
 
     panel->hovered = (int16) index;
     panel->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }

@@ -42,21 +42,4 @@ enum UIElementType : byte {
     UI_ELEMENT_TYPE_SIZE,
 };
 
-enum UIElementState : byte {
-    UI_ELEMENT_STATE_ACTIVE = 1 << 0,
-    UI_ELEMENT_STATE_VISIBLE = 1 << 1,
-    UI_ELEMENT_STATE_FOCUSED = 1 << 2,
-    UI_ELEMENT_STATE_CLICKABLE = 1 << 3,
-
-    // Are we currently in an animation?
-    // @question Do we even need this? Can't we just use the animation state (start == 0)
-    UI_ELEMENT_STATE_ANIMATION = 1 << 4,
-
-    // Flag to indicate that the element changed
-    // Just checking style_old and style_new is not enough, since we may have an ongoing animation
-    // We also need to be able to check the parent element in case the parent element changed position
-    //      -> we also need to change position of all child elements (parent sets this flag for all child elements)
-    UI_ELEMENT_STATE_CHANGED = 1 << 5,
-};
-
 #endif

@@ -54,7 +54,7 @@ bool ui_slider_set(UILayout* const layout, UISlider* const slider, f32 value) NO
 
     slider->value = value;
     slider->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }

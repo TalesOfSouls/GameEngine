@@ -50,7 +50,7 @@ UIInput* ui_input_create(
 
     // The text memory is placed directly after the element
     input->content_length = max_length + 1;
-    input->content = ui_text_reserve(layout, CHAR_TYPE_CHAR, input->content_length);
+    input->content = ui_string_reserve(layout, CHAR_TYPE_CHAR, input->content_length);
 
     return input;
 }
@@ -61,25 +61,41 @@ UIInput* ui_textarea_create(UILayout* const layout, int32 max_length, UICore* pa
     return ui_input_create(layout, max_length, parent, UI_ELEMENT_TYPE_TEXTAREA);
 }
 
+// WARNING: If you change the text through this pointer you must update its length (@see ui_string_length_set)
 FORCE_INLINE
 char* ui_input_get_text(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
 {
     return (char *) (layout->ui_element_buffer.memory + input->content);
 }
 
+// Length of the text in bytes (the length is stored with the text -> no strlen)
+FORCE_INLINE
+int32 ui_input_text_length(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
+{
+    return ui_string_length(layout, input->content);
+}
+
+// Text incl. its length
+FORCE_INLINE
+SimpleString<const char> ui_input_string(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
+{
+    return ui_string_get(layout, input->content);
+}
+
 /**
  * Sets the text, the text is cut if it is longer than the reserved memory
  * The caret is placed at the end
+ *
+ * @param text_length Length in bytes excl. \0
  */
 inline
-void ui_input_set_text(UILayout* const layout, UIInput* const input, const char* const text) NO_EXCEPT
+void ui_input_set_text(UILayout* const layout, UIInput* const input, const char* const text, int32 text_length) NO_EXCEPT
 {
     char* const content = ui_input_get_text(layout, input);
-    int32 length = text ? (int32) strlen(text) : 0;
-    length = min_branched(length, input->content_length - 1);
+    int32 length = min_branched(text_length, input->content_length - 1);
 
     // Don't cut an utf8 character in half
-    while (length > 0 && length < (text ? (int32) strlen(text) : 0) && (text[length] & 0xC0) == 0x80) {
+    while (length > 0 && length < text_length && (text[length] & 0xC0) == 0x80) {
         --length;
     }
 
@@ -88,21 +104,29 @@ void ui_input_set_text(UILayout* const layout, UIInput* const input, const char*
     }
 
     content[length] = '\0';
+    ui_string_length_set(layout, input->content, length);
     input->caret = length;
     input->selection_anchor = length;
 
     input->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
+}
+
+FORCE_INLINE
+void ui_input_set_text(UILayout* const layout, UIInput* const input, const char* const text) NO_EXCEPT
+{
+    ui_input_set_text(layout, input, text, text ? (int32) strlen(text) : 0);
 }
 
 inline
 void ui_input_set_placeholder(UILayout* const layout, UIInput* const input, const char* const text) NO_EXCEPT
 {
     const int32 length = (int32) strlen(text) + 1;
-    input->placeholder = ui_text_reserve(layout, CHAR_TYPE_CHAR, length);
+    input->placeholder = ui_string_reserve(layout, CHAR_TYPE_CHAR, length);
     memcpy(layout->ui_element_buffer.memory + input->placeholder, text, length);
+    ui_string_length_set(layout, input->placeholder, length - 1);
 
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 }
 
 // Byte offset of the previous/next utf8 character
@@ -496,7 +520,7 @@ bool ui_input_scroll_set(UILayout* const layout, UIInput* const input, UIScrollA
 
     *value = scroll;
     input->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -536,7 +560,7 @@ void ui_input_scroll_to_caret(UILayout* const layout, UIInput* const input) NO_E
         ui_input_scroll_set(layout, input, UI_SCROLL_AXIS_Y, scroll);
     } else {
         const f32 caret_x = ui_text_width(layout->font, text, input->caret, input->font.size);
-        const f32 text_width = ui_text_width(layout->font, text, (int32) strlen(text), input->font.size);
+        const f32 text_width = ui_text_width(layout->font, text, ui_input_text_length(layout, input), input->font.size);
         const f32 view = dim->dim.x - 2.0f * UI_DEFAULT_TEXT_PADDING - UI_INPUT_CARET_WIDTH;
 
         f32 scroll = input->scroll.x;
@@ -565,7 +589,7 @@ inline
 int32 ui_input_caret_at(const UILayout* const layout, const UIInput* const input, f32 x, f32 y) NO_EXCEPT
 {
     const char* const text = ui_input_get_text(layout, input);
-    const int32 length = (int32) strlen(text);
+    const int32 length = ui_input_text_length(layout, input);
     const UIAttributeDimension* const dim = &input->core.dimension;
 
     // Line under the pointer (textarea only)
@@ -611,7 +635,7 @@ inline
 void ui_input_select_word(const UILayout* const layout, UIInput* const input, int32 pos) NO_EXCEPT
 {
     const char* const text = ui_input_get_text(layout, input);
-    const int32 length = (int32) strlen(text);
+    const int32 length = ui_input_text_length(layout, input);
 
     int32 start = pos;
     int32 end = pos;
@@ -632,7 +656,7 @@ inline
 void ui_input_select_all(const UILayout* const layout, UIInput* const input) NO_EXCEPT
 {
     input->selection_anchor = 0;
-    input->caret = (int32) strlen(ui_input_get_text(layout, input));
+    input->caret = ui_input_text_length(layout, input);
 }
 
 /**
@@ -670,7 +694,7 @@ bool ui_input_select_at(UILayout* const layout, UIInput* const input, f32 x, f32
     }
 
     input->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
     ui_input_scroll_to_caret(layout, input);
 
     return true;
@@ -689,7 +713,9 @@ inline
 bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const input, uint32 code) NO_EXCEPT
 {
     char* const text = ui_input_get_text(layout, input);
-    int32 length = (int32) strlen(text);
+
+    // Every change below must keep the length up to date, it is stored at the end (@see ui_string_length_set)
+    int32 length = ui_input_text_length(layout, input);
     const bool multiline = input->core.type == UI_ELEMENT_TYPE_TEXTAREA;
 
     const bool shift = (code & INPUT_TEXT_MOD_SHIFT) != 0;
@@ -717,6 +743,7 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
                     : ui_utf8_prev(text, input->caret);
 
                 memmove(text + prev, text + input->caret, length - input->caret + 1);
+                length -= input->caret - prev;
                 input->caret = prev;
                 input->selection_anchor = prev;
                 text_changed = true;
@@ -731,6 +758,7 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
                     : ui_utf8_next(text, input->caret, length);
 
                 memmove(text + input->caret, text + next, length - next + 1);
+                length -= next - input->caret;
                 text_changed = true;
             }
         } break;
@@ -826,6 +854,9 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
         }
     }
 
+    // Must happen before the early return and before the actions, both may read the text
+    ui_string_length_set(layout, input->content, length);
+
     if (is_navigation && !shift) {
         input->selection_anchor = input->caret;
     }
@@ -835,7 +866,7 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
     }
 
     input->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
     ui_input_scroll_to_caret(layout, input);
 
     if (text_changed && input->on_change && layout->on_actions) {
@@ -906,7 +937,7 @@ void ui_input_cache(
     if (is_editing && ui_input_has_selection(input)) {
         int32 start, end;
         ui_input_selection(input, &start, &end);
-        const int32 length = (int32) strlen(text);
+        const int32 length = ui_input_text_length(layout, input);
 
         int32 line = 0;
         for (int32 i = 0; i < start; ++i) {
@@ -940,7 +971,7 @@ void ui_input_cache(
         ui_text_vertices(layout, text, input->font.size, input->font.color, text_x, text_y, *zindex, mem);
     } else if (input->placeholder && !is_editing) {
         ui_text_vertices(
-            layout, (const char *) (layout->ui_element_buffer.memory + input->placeholder),
+            layout, ui_string_get(layout, input->placeholder).str,
             input->font.size, UI_DEFAULT_PLACEHOLDER_COLOR, text_x, text_y, *zindex, mem
         );
     }

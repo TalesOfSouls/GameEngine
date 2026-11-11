@@ -35,6 +35,8 @@ struct UIInput {
     UIAttributeFont font;
 
     // Offset of the utf8 text (\0 terminated)
+    // The text has a SimpleStringInline header in front of it (@see ui_string_reserve)
+    // -> the current length is known (@see ui_input_text_length), direct writers must call ui_string_length_set
     int32 content;
 
     // Reserved bytes incl. \0 -> max text length = content_length - 1 bytes
@@ -47,7 +49,7 @@ struct UIInput {
     // selection_anchor == caret -> no selection
     int32 selection_anchor;
 
-    // Offset of a text that is shown while the content is empty (0 = none)
+    // Offset of a text that is shown while the content is empty (0 = none, same storage as content)
     int32 placeholder;
 
     // 1-indexed actions (layout->on_actions, 0 = none)

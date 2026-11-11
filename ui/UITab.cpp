@@ -19,19 +19,23 @@
 #define UI_TAB_MIN_WIDTH 60.0f
 #define UI_TAB_TEXT_PADDING 12.0f
 
-inline
-const char* ui_tab_title(const UILayout* const layout, const UITab* const tab, int32 index) NO_EXCEPT
+// Title incl. length, {0, 0, NULL} if the index is invalid
+FORCE_INLINE
+SimpleString<const char> ui_tab_title_string(const UILayout* const layout, const UITab* const tab, int32 index) NO_EXCEPT
 {
     if (index < 0 || index >= tab->tab_count || !tab->titles) {
-        return NULL;
+        SimpleString<const char> none = { 0, 0, NULL };
+        return none;
     }
 
-    const char* title = (const char *) (layout->ui_element_buffer.memory + tab->titles);
-    while (index-- > 0) {
-        title += strlen(title) + 1;
-    }
+    return ui_string_list_get(layout, tab->titles, tab->tab_count, index);
+}
 
-    return title;
+// Title, NULL if the index is invalid
+FORCE_INLINE
+const char* ui_tab_title(const UILayout* const layout, const UITab* const tab, int32 index) NO_EXCEPT
+{
+    return ui_tab_title_string(layout, tab, index).str;
 }
 
 // Page of a tab (the n-th child), add your elements to the page
@@ -76,7 +80,7 @@ bool ui_tab_set_active(UILayout* const layout, UITab* const tab, int32 index) NO
     } ui_element_children_iterate_end;
 
     tab->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return changed;
 }
@@ -90,7 +94,7 @@ bool ui_tab_set_active(UILayout* const layout, UITab* const tab, int32 index) NO
 inline
 UITab* ui_tab_create(
     UILayout* const layout,
-    const char* const* titles, int32 tab_count,
+    const SimpleString<const char>* titles, int32 tab_count,
     UITabOrientation orientation = UI_TAB_ORIENTATION_HORIZONTAL,
     UICore* parent = NULL,
     f32 header_size = 0.0f
@@ -117,21 +121,8 @@ UITab* ui_tab_create(
 
     tab->tab_size = orientation == UI_TAB_ORIENTATION_HORIZONTAL ? UI_TAB_MIN_WIDTH : UI_DEFAULT_ROW_HEIGHT + 2.0f;
 
-    // Titles are stored directly after the tab view: "title 1\0title 2\0..."
-    int32 size = 0;
-    for (int32 i = 0; i < tab_count; ++i) {
-        size += (int32) strlen(titles[i]) + 1;
-    }
-
-    if (size) {
-        tab->titles = ui_text_reserve(layout, CHAR_TYPE_CHAR, size);
-        char* pos = (char *) (layout->ui_element_buffer.memory + tab->titles);
-        for (int32 i = 0; i < tab_count; ++i) {
-            const int32 length = (int32) strlen(titles[i]) + 1;
-            memcpy(pos, titles[i], length);
-            pos += length;
-        }
-    }
+    // Titles are stored directly after the tab view as string list (@see ui_string_list_store)
+    tab->titles = ui_string_list_store(layout, titles, tab_count);
 
     tab->tab_count = (int16) tab_count;
 
@@ -160,9 +151,15 @@ v4_f32 ui_tab_header_rect(const UITab* const tab, int32 index) NO_EXCEPT
 {
     const UIAttributeDimension* const dim = &tab->core.dimension;
 
-    return tab->orientation == UI_TAB_ORIENTATION_HORIZONTAL
-        ? v4_f32{dim->pos.x + tab->tab_size * (f32) index, dim->pos.y, tab->tab_size, tab->header_size}
-        : v4_f32{dim->pos.x, dim->pos.y - tab->tab_size * (f32) index, tab->header_size, tab->tab_size};
+    if (tab->orientation == UI_TAB_ORIENTATION_HORIZONTAL) {
+        const v4_f32 rect = { dim->pos.x + tab->tab_size * (f32) index, dim->pos.y, tab->tab_size, tab->header_size };
+
+        return rect;
+    }
+
+    const v4_f32 rect = { dim->pos.x, dim->pos.y - tab->tab_size * (f32) index, tab->header_size, tab->tab_size };
+
+    return rect;
 }
 
 /**
@@ -190,7 +187,7 @@ bool ui_tab_hover(UILayout* const layout, UITab* const tab, int32 index) NO_EXCE
 
     tab->hovered = (int16) index;
     tab->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -221,21 +218,26 @@ void ui_tab_cache(
     if (horizontal && layout->font) {
         f32 max_width = 0.0f;
         for (int32 i = 0; i < tab->tab_count; ++i) {
-            const char* const title = ui_tab_title(layout, tab, i);
-            max_width = max_branched(max_width, ui_text_width(layout->font, title, (int32) strlen(title), tab->font.size));
+            const SimpleString<const char> title = ui_tab_title_string(layout, tab, i);
+            max_width = max_branched(max_width, ui_text_width(layout->font, title.str, title.length, tab->font.size));
         }
 
         tab->tab_size = max_branched(max_width + 2.0f * UI_TAB_TEXT_PADDING, UI_TAB_MIN_WIDTH);
     }
 
     // Header + page background
-    const v4_f32 header = horizontal
-        ? v4_f32{dim->pos.x, dim->pos.y, dim->dim.x, tab->header_size}
-        : v4_f32{dim->pos.x, dim->pos.y, tab->header_size, dim->dim.y};
+    // Horizontal: header on top, vertical: header on the left
+    v4_f32 header = { dim->pos.x, dim->pos.y, dim->dim.x, tab->header_size };
+    v4_f32 page = { dim->pos.x, dim->pos.y - tab->header_size, dim->dim.x, dim->dim.y - tab->header_size };
+    if (!horizontal) {
+        header.width = tab->header_size;
+        header.height = dim->dim.y;
 
-    const v4_f32 page = horizontal
-        ? v4_f32{dim->pos.x, dim->pos.y - tab->header_size, dim->dim.x, dim->dim.y - tab->header_size}
-        : v4_f32{dim->pos.x + tab->header_size, dim->pos.y, dim->dim.x - tab->header_size, dim->dim.y};
+        page.x = dim->pos.x + tab->header_size;
+        page.y = dim->pos.y;
+        page.width = dim->dim.x - tab->header_size;
+        page.height = dim->dim.y;
+    }
 
     ui_rect_vertices(header, tab->header_color, vertices, indices, *zindex);
     ui_rect_vertices(page, tab->page_color, vertices, indices, *zindex);
@@ -255,12 +257,14 @@ void ui_tab_cache(
             : (i == tab->hovered ? tab->tab_color_hover : tab->tab_color);
 
         // 1px gap between the tabs
-        ui_rect_vertices(
-            horizontal
-                ? v4_f32{rect.x, rect.y, rect.width - 1.0f, rect.height}
-                : v4_f32{rect.x, rect.y, rect.width, rect.height - 1.0f},
-            color, vertices, indices, *zindex
-        );
+        v4_f32 background = rect;
+        if (horizontal) {
+            background.width -= 1.0f;
+        } else {
+            background.height -= 1.0f;
+        }
+
+        ui_rect_vertices(background, color, vertices, indices, *zindex);
     }
 
     // WARNING: The titles are on top of the tab backgrounds -> own zindex (the depth test rejects equal depth values)

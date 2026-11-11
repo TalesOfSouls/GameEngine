@@ -9,11 +9,12 @@
 // Table with a header row, a scrollable body and an optional footer row
 //
 // The table renders all cells itself (no element per cell/row) and only creates vertices for the visible rows.
-// Data in the ui_element_buffer (all strings are \0 separated, one string per column):
-//      columns:        header titles
+// Data in the ui_element_buffer (one string per column):
+//      columns:        header titles (string list, @see ui_string_list_store)
 //      column_widths:  f32 per column, fraction of the table width (sum = 1.0)
 //      rows:           int32 per row = offset of the cell strings of that row
 //      footer:         footer cell strings (0 = no footer)
+// Static tables store the cell strings of a row as string list, dynamic tables as fixed size cells
 //
 // Static tables (cell_capacity = 0): every added row stores its strings once (ui_table_add_row)
 // Dynamic tables (cell_capacity > 0): every cell has a fixed size buffer that is reserved at creation

@@ -95,8 +95,8 @@ static void test_layout_from_txt() {
     TEST_EQUALS(window->background_color, 0x262626FFU);
     TEST_EQUALS(window->core.dimension.align_anchor, (byte) UI_ANCHOR_ALIGN_TOP_LEFT);
     TEST_EQUALS_WITH_DELTA(window->core.dimension.pos_raw.y, 20.0f, 0.001f);
-    TEST_EQUALS_WITH_DELTA(ui_window_title(&layout, window)->core.dimension.dim_raw.y, 30.0f, 0.001f);
-    TEST_TRUE(ui_window_button_close(&layout, window)->core.state & UI_STATE_HIDDEN);
+    TEST_EQUALS_WITH_DELTA(ui_element_get(&layout, window->title)->dimension.dim_raw.y, 30.0f, 0.001f);
+    TEST_TRUE(ui_element_get(&layout, window->button_close)->state & UI_STATE_HIDDEN);
     TEST_EQUALS(strcmp((const char *) (layout.ui_element_buffer.memory + ui_window_title_label(&layout, window)->content), "Test"), 0);
 
     // Children of a scroll panel are in its content panel

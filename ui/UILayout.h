@@ -15,7 +15,8 @@
 // Version 3: UIPanel scroll/popup data, new element types (tabs, table, option list, color picker)
 // Version 4: UIColorPicker palette order, UITable dynamic cells
 // Version 5: UICore incremental caching members
-#define UI_LAYOUT_VERSION 6
+// Version 8: Label/input texts are stored with their length (@see ui_string_reserve)
+#define UI_LAYOUT_VERSION 8
 
 /**
  * BINARY FORMAT: .layoutbin, version UI_LAYOUT_VERSION
@@ -47,6 +48,10 @@
  * starts with UICore (96 bytes) followed by the type specific fields and the inline
  * strings (class name, text). All links are byte offsets into the buffer, offset 0 is
  * always the root, so the block is position independent.
+ *
+ * Label and input texts are C strings with an 8 byte SimpleStringInline header in
+ * front of them (int32 length, int32 max_length), the elements store the offset of
+ * the characters (@see ui_string_reserve).
  *
  * WARNING: the element buffer is a memory dump without any endian or layout
  * conversion. It can only be loaded by a build with the same struct layout and
@@ -102,6 +107,11 @@ typedef void *(*UIRenderFunc)(
 
 // Current pointer (mouse) interaction state (@see ui_input_pointer)
 // All elements are offsets into ui_element_buffer (0 = none)
+// @performance The struct below is very verbose but I think a lot of variables could be merged
+//              in combination with a helper variable
+//              e.g. it's impossible to have different elements as focused and clicked at the same time
+//              same goes for editing and active and so on. you could probably group some offsets/ids and create a
+//              bitfield that defines if active, focused etc.
 struct UIInteraction {
     // Element with UI_STATE_HOVER
     int32 hovered;
@@ -163,13 +173,6 @@ struct UIInteraction {
     bool pointer_captured;
 };
 
-struct UIElementChange {
-    int32 element;
-
-    // UIElementChangeType
-    byte change_type;
-};
-
 // Modified for every scene
 struct UILayout {
     // @question It feels weird that this is here, especially considering we could have multiple fonts
@@ -196,10 +199,6 @@ struct UILayout {
     // Used for the string representation
     Asset* ui_asset;
 
-    // Every element in this array is an offset to a changed element
-    // This allows us to identify and re-draw changed elements quickly
-    ArrayVector<UIElementChange> ui_element_changed;
-
     // Always the first element in ui_element_buffer (offset 0)
     // The root has the size of the screen
     UICore* ui_root;
@@ -207,14 +206,14 @@ struct UILayout {
     // This is just a helper because a cursor is a special UI element that is needed frequently
     UICursor* cursor;
 
-    // Hover, press, focus, drag state (@see ui_input_pointer)
+    // Hover, press, focus, drag state
     UIInteraction interaction;
 
-    // Something changed since the last ui_cache() (@see ui_layout_mark_dirty)
+    // Something changed since the last ui_cache()
     // The flag stays set until ui_cache() runs, e.g. if caching is throttled by a fps limit
     // Custom elements (UI_ELEMENT_TYPE_CUSTOM) render through a callback, their update callback
-    // has to mark them as changed if their output changes (@see ui_element_mark_changed)
-    bool dirty;
+    // has to mark them as changed if their output changes
+    bool is_dirty;
 
     // This is where we actually store the elements (@see UICore for the tree structure)
     // It has to use an arbitrary buffer size per element since the element size is not uniform
@@ -231,7 +230,7 @@ struct UILayout {
     // This is a index cache that references ui_vertex_cache to reduce the stored vertices
     ArrayVector<int32> ui_index_cache;
 
-    // Counts the ui_cache() calls, the cache data of an element is only valid for the last call (@see UICore::cache_frame)
+    // Counts the ui_cache() calls, the cache data of an element is only valid for the last call
     uint32 cache_frame;
 
     // Values that affect all elements (e.g. font), if they change everything is re-generated

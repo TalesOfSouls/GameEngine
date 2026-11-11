@@ -5,17 +5,17 @@
  * 2. Style elements by loading theme from file
  *
  * 3. Update state of UI components
- * 4. (Re-)Create vertices cache of changed UI components (1. stage)
+ * 4. (Re-)Create vertices cache of changed UI components
  *
- * 5. (Re-)Create and add (2. stage) cache for *some* components to CPU cache (GpuAtlasCache)
+ * 5. (Re-)Create and add cache for *some* components to CPU cache (GpuAtlasCache)
  * 6. Render *some* UI components and elements to a on gpu texture cache
- * 7. Copy vertices to compact/continuous vertex array on CPU (3. stage)
+ * 7. Copy vertices to compact/continuous vertex array on CPU
  *
- * 8. Draw vertices/send cache (3. stage) to GPU
+ * 8. Draw vertices/send cache to GPU
  *
  * Data layout
  * ============================
- * All elements are stored in pre-order (depth-first) in UILayout::ui_element_buffer (@see UICore)
+ * All elements are stored in pre-order (depth-first) in UILayout::ui_element_buffer
  * Elements only contain resolved (inline) data, e.g. border/image uv coordinates are copied from the atlas once
  * -> Caching is a single linear walk through the element buffer without any lookups
  */
@@ -48,28 +48,14 @@
 // Starting z index of the UI, every element moves a step closer to the camera
 #define UI_ZINDEX_START 10.0f
 
-// Max size of an element/text snapshot used to detect changes made by update functions
-#define UI_UPDATE_SNAPSHOT_SIZE 512
-
 // Max nesting of clipping panels (e.g. scroll panel in a scroll panel)
-#define UI_CLIP_STACK_SIZE 16
+#define UI_CLIP_STACK_SIZE 4
 
 // Cursor position
 static int32 _ui_pointer_input = 0;
 
-/**
- * Does the ui need to be re-cached?
- *
- * The caller decides WHEN to cache (e.g. fps limit). The dirty flag stays set until ui_cache() runs.
- */
-FORCE_INLINE
-bool ui_layout_needs_cache(const UILayout* const layout) NO_EXCEPT
-{
-    return layout->dirty;
-}
-
 // Is the element and all of its parents visible?
-inline
+static inline
 bool ui_element_is_visible(const UILayout* const layout, const UICore* element) NO_EXCEPT
 {
     while (element) {
@@ -85,22 +71,24 @@ bool ui_element_is_visible(const UILayout* const layout, const UICore* element) 
 
 /**
  * Runs the update functions (UICore::update_func) of all visible elements
- * Only marks the layout as dirty if an update function actually changed something
- * (e.g. the fps label only changes if the fps changed)
+ *
+ * The update functions are responsible for flagging their changes (UICore::change_type + UILayout::is_dirty)
+ * and only if something actually changed (e.g. the fps label only if the fps changed).
+ * The ui functions that change elements (e.g. ui_label_set_text, ui_table_set_cell) flag the element themselves,
+ * so an update function just has to avoid calling them if nothing changed.
  *
  * MUST be called before ui_cache(), ui_cache() itself never changes the element state
  *
- * @return true if something changed
+ * @return true if the layout needs to be re-cached
  */
 bool ui_update(void* app, UILayout* const layout) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_UI_UPDATE);
+    ASSERT_TRUE(layout->ui_root);
 
-    if (!layout->ui_root || !layout->update) {
-        return false;
+    if (!layout->update) {
+        return layout->is_dirty;
     }
-
-    bool changed = false;
 
     int32 offset = layout->ui_root->next_offset;
     while (offset) {
@@ -112,46 +100,13 @@ bool ui_update(void* app, UILayout* const layout) NO_EXCEPT
         }
 
         if (element->update_func) {
-            // Snapshot of the element (and its text) to detect changes
-            byte snapshot[UI_UPDATE_SNAPSHOT_SIZE];
-            char text_snapshot[UI_UPDATE_SNAPSHOT_SIZE];
-
-            const int32 element_size = min_branched(
-                ui_element_type_size(element->type),
-                (int32) sizeof(snapshot)
-            );
-            memcpy(snapshot, element, element_size);
-
-            const char* text = NULL;
-            int32 text_size = 0;
-            if (element->type == UI_ELEMENT_TYPE_LABEL && ((UILabel *) element)->content) {
-                const UILabel* const label = (UILabel *) element;
-                text = (const char *) (layout->ui_element_buffer.memory + label->content);
-                text_size = min_branched(
-                    label->content_length * ui_char_type_size(label->char_type),
-                    (int32) sizeof(text_snapshot)
-                );
-                memcpy(text_snapshot, text, text_size);
-            }
-
             layout->update[element->update_func - 1](app, layout, element);
-
-            if (memcmp(snapshot, element, element_size) != 0
-                || (text && memcmp(text_snapshot, text, text_size) != 0)
-            ) {
-                element->change_type |= UI_ELEMENT_CHANGE_CONTENT;
-                changed = true;
-            }
         }
 
         offset = element->next_offset;
     }
 
-    if (changed) {
-        ui_layout_mark_dirty(layout);
-    }
-
-    return changed;
+    return layout->is_dirty;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -159,7 +114,7 @@ bool ui_update(void* app, UILayout* const layout) NO_EXCEPT
 ////////////////////////////////////////////////////////////////
 
 /**
- * Scroll info of an element for one axis (@see UIScrollbar.h)
+ * Scroll info of an element for one axis
  * Uses the dimensions of the last ui_cache()
  *
  * @return false if the element can't scroll in this axis (or the content fits)
@@ -176,11 +131,14 @@ bool ui_element_scroll_info(
         case UI_ELEMENT_TYPE_VIEW_PANEL:
             return ui_panel_scroll_info((const UIPanel *) element, axis, info);
         case UI_ELEMENT_TYPE_TEXTAREA:
-            return axis == UI_SCROLL_AXIS_Y && ui_input_scroll_info(layout, (const UIInput *) element, info);
+            return axis == UI_SCROLL_AXIS_Y
+                && ui_input_scroll_info(layout, (const UIInput *) element, info);
         case UI_ELEMENT_TYPE_OPTION_LIST:
-            return axis == UI_SCROLL_AXIS_Y && ui_option_list_scroll_info(layout, (const UIOptionList *) element, info);
+            return axis == UI_SCROLL_AXIS_Y
+                && ui_option_list_scroll_info(layout, (const UIOptionList *) element, info);
         case UI_ELEMENT_TYPE_TABLE:
-            return axis == UI_SCROLL_AXIS_Y && ui_table_scroll_info((const UITable *) element, info);
+            return axis == UI_SCROLL_AXIS_Y
+                && ui_table_scroll_info((const UITable *) element, info);
         default:
             return false;
     }
@@ -198,9 +156,11 @@ bool ui_element_scroll_set(UILayout* const layout, UICore* const element, UIScro
         case UI_ELEMENT_TYPE_TEXTAREA:
             return ui_input_scroll_set(layout, (UIInput *) element, axis, scroll);
         case UI_ELEMENT_TYPE_OPTION_LIST:
-            return axis == UI_SCROLL_AXIS_Y && ui_option_list_scroll_set(layout, (UIOptionList *) element, scroll);
+            return axis == UI_SCROLL_AXIS_Y
+                && ui_option_list_scroll_set(layout, (UIOptionList *) element, scroll);
         case UI_ELEMENT_TYPE_TABLE:
-            return axis == UI_SCROLL_AXIS_Y && ui_table_scroll_set(layout, (UITable *) element, scroll);
+            return axis == UI_SCROLL_AXIS_Y
+                && ui_table_scroll_set(layout, (UITable *) element, scroll);
         default:
             return false;
     }
@@ -232,7 +192,8 @@ void ui_popup_layout(UILayout* const layout, UIPanel* const popup) NO_EXCEPT
     ui_popup_place(layout, popup, size);
 }
 
-// Clipping panel whose subtree is currently cached (@see ui_cache)
+// Clipping panel whose subtree is currently cached
+// A clipping panel is a panel that is potentially only partially shown inside a scrollable panel
 struct UICacheClip {
     // Offset of the element after the subtree (= end of the clipped area)
     int32 end;
@@ -255,7 +216,7 @@ struct UICacheClip {
 //      UICore::cache_hash              = hash of everything the vertices of the element depend on
 //
 // An element is re-generated if its hash changed (element data, parent position/size, clipping, text, ...),
-// it was marked as changed (UICore::change_type, e.g. custom elements @see ui_element_mark_changed)
+// it was marked as changed (UICore::change_type, e.g. custom elements)
 // or it wasn't visible in the last ui_cache() (no cached vertices).
 // Copied elements get their indices rebased and their zindex shifted (if the zindex steps of previous elements changed).
 //
@@ -292,20 +253,40 @@ FORCE_INLINE
 uint64 ui_cache_hash_str(uint64 hash, const char* const str) NO_EXCEPT
 {
     // + 1 = including the \0, otherwise "ab" + "c" == "a" + "bc"
-    return str ? hash_murmur3_64(str, strlen(str) + 1, hash) : hash_murmur3_64("", 1, hash ^ 0x9E3779B97F4A7C15ULL);
+    // NULL = only a distinct value is mixed in (no need to actually hash anything)
+    return str
+        ? hash_murmur3_64(str, strlen(str) + 1, hash)
+        : hash ^ 0x9E3779B97F4A7C15ULL;
+}
+
+// Same as ui_cache_hash_str but with a known length (the string must be \0 terminated)
+FORCE_INLINE
+uint64 ui_cache_hash_str(uint64 hash, SimpleString<const char> str) NO_EXCEPT
+{
+    return str.str
+        ? hash_murmur3_64(str.str, (size_t) str.length + 1, hash)
+        : hash ^ 0x9E3779B97F4A7C15ULL;
 }
 
 static inline
-uint64 ui_cache_hash_text(uint64 hash, const UILayout* const layout, int32 offset, int32 length, CharType char_type) NO_EXCEPT
+uint64 ui_cache_hash_text(
+    uint64 hash,
+    const UILayout* const layout,
+    int32 offset,
+    int32 length,
+    CharType char_type
+) NO_EXCEPT
 {
     if (!offset) {
         return hash;
     }
 
-    const char* const text = (const char *) (layout->ui_element_buffer.memory + offset);
+    // The length of the text is stored with the text (@see ui_string_reserve) -> no strlen
     if (char_type == CHAR_TYPE_CHAR) {
-        return ui_cache_hash_str(hash, text);
+        return ui_cache_hash_str(hash, ui_string_get(layout, offset));
     }
+
+    const char* const text = (const char *) (layout->ui_element_buffer.memory + offset);
 
     return ui_cache_hash_bytes(hash, text, (size_t) length * ui_char_type_size(char_type));
 }
@@ -388,19 +369,10 @@ uint64 ui_element_cache_hash(
             const bool is_open = select->popup && interaction->popup == select->popup;
             hash = ui_cache_hash_bytes(hash, &is_open, sizeof(is_open));
         } break;
-        case UI_ELEMENT_TYPE_VIEW_TAB: {
-            const UITab* const tab = (const UITab *) element;
-            for (int32 i = 0; i < tab->tab_count; ++i) {
-                hash = ui_cache_hash_str(hash, ui_tab_title(layout, tab, i));
-            }
-        } break;
+        // Tab titles and table columns are string lists that are never changed in place
+        // (new texts = new list = new offset in the element data, which is already hashed above)
         case UI_ELEMENT_TYPE_TABLE: {
             const UITable* const table = (const UITable *) element;
-            for (int32 c = 0; c < table->column_count; ++c) {
-                hash = ui_cache_hash_str(hash, ui_table_string(layout, table->columns, c));
-                hash = ui_cache_hash_str(hash, ui_table_row_string(layout, table, table->footer, c));
-            }
-
             if (table->column_widths) {
                 hash = ui_cache_hash_bytes(
                     hash,
@@ -409,7 +381,7 @@ uint64 ui_element_cache_hash(
                 );
             }
 
-            // The cells are not hashed (can be thousands), every cell/row change goes through
+            // The cells and the footer are not hashed (can be thousands), every cell/row/footer change goes through
             // the ui_table_*() functions which set UI_ELEMENT_CHANGE_CONTENT
         } break;
         case UI_ELEMENT_TYPE_COLOR_PICKER: {
@@ -467,6 +439,9 @@ void ui_element_cache_copy(UILayout* const layout, UICore* const element, f32 zi
     int32* const index_dst = indices->elements + index_start;
     const int32* const index_src = layout->ui_index_total.elements + element->cache_index_start;
     const int32 index_shift = vertex_start - element->cache_vertex_start;
+
+    // The indices may need shifting in the new cache array
+    // since there could be other vertices in between the total cache
     for (int32 i = 0; i < element->cache_index_count; ++i) {
         index_dst[i] = index_src[i] + index_shift;
     }
@@ -485,7 +460,7 @@ void ui_element_cache_copy(UILayout* const layout, UICore* const element, f32 zi
  * The vertices are not clipped yet
  */
 static
-void ui_element_cache_generate(
+void ui_element_cache_element(
     void* app,
     GpuApiType gpu_api_type,
     UILayout* const layout,
@@ -530,7 +505,7 @@ void ui_element_cache_generate(
             ui_dimension_calculate(layout, element);
 
             if (element->render_func) {
-                // Own name, otherwise it looks like ui_element_cache_generate in the profiler
+                // Own name, otherwise it looks like ui_element_cache_element in the profiler
                 PROFILE_SCOPE_DEBUG(PROFILE_UI_CACHE_CUSTOM, "ui_custom_render_func");
 
                 layout->render[element->render_func - 1](
@@ -639,17 +614,14 @@ void ui_cache(
     array_vector_insert(vertices, {{0.0f, 0.0f, UI_ZINDEX_START}, 0, {0}});
 
     if (!layout->ui_root) {
-        layout->ui_element_changed.count = 0;
-        layout->dirty = false;
+        layout->is_dirty = false;
 
         return;
     }
 
     // Values that affect every element, if one of them changed nothing can be re-used
-    const uint64 cache_global = ui_cache_hash_bytes(
-        ui_cache_hash_bytes(0, &layout->font, sizeof(layout->font)),
-        &gpu_api_type, sizeof(gpu_api_type)
-    );
+    // (no need to hash them, the font pointer + gpu api fit into one value)
+    const uint64 cache_global = (uint64) (uintptr_t) layout->font ^ ((uint64) gpu_api_type << 56);
 
     // The element cache data is only valid for the last ui_cache() call
     const uint32 previous_frame = layout->cache_frame;
@@ -667,6 +639,11 @@ void ui_cache(
     const UIInteraction* const interaction = &layout->interaction;
 
     f32 zindex = UI_ZINDEX_START;
+    // Is another ui_cache() needed right after this one?
+    // A scroll panel only knows its content size after all of its children were laid out (@see ui_panel_scroll_finish).
+    // If the content size changed in a way that makes a scrollbar appear/disappear, the viewport of the panel changes
+    // -> its children were laid out for the old viewport and must be laid out again.
+    // In that case the layout stays dirty and the next ui_cache() converges (the scrollbars don't change again).
     bool needs_recache = false;
 
     UICacheClip clips[UI_CLIP_STACK_SIZE];
@@ -698,7 +675,11 @@ void ui_cache(
                 );
 
                 if (clip_count) {
-                    ui_vertices_clip_or_remove(vertices, indices, vertex_start, index_start, clips[clip_count - 1].clip);
+                    ui_vertices_clip_or_remove(
+                        vertices, indices,
+                        vertex_start, index_start,
+                        clips[clip_count - 1].clip
+                    );
                 }
 
                 // The panel data changed (content size) -> update the hash, otherwise it would be re-generated every time
@@ -745,11 +726,15 @@ void ui_cache(
             const int32 index_start = indices->count;
             const f32 zindex_start = zindex;
 
-            ui_element_cache_generate(app, gpu_api_type, layout, element, offset, &zindex, mem);
+            ui_element_cache_element(app, gpu_api_type, layout, element, offset, &zindex, mem);
 
             // Clip everything this element created to the clipping panels it is in
             if (clip) {
-                ui_vertices_clip_or_remove(vertices, indices, vertex_start, index_start, clip->clip);
+                ui_vertices_clip_or_remove(
+                    vertices, indices,
+                    vertex_start, index_start,
+                    clip->clip
+                );
             }
 
             element->cache_vertex_start = vertex_start;
@@ -795,8 +780,16 @@ void ui_cache(
     ) {
         PROFILE_SCOPE_DEBUG(PROFILE_UI_CACHE_TOTAL_COPY, "ui_cache_total_copy");
 
-        memcpy(layout->ui_vertex_total.elements, vertices->elements, vertices->count * sizeof(Vertex3DSamplerTextureColor));
-        memcpy(layout->ui_index_total.elements, indices->elements, indices->count * sizeof(int32));
+        memcpy(
+            layout->ui_vertex_total.elements,
+            vertices->elements,
+            vertices->count * sizeof(Vertex3DSamplerTextureColor)
+        );
+        memcpy(
+            layout->ui_index_total.elements,
+            indices->elements,
+            indices->count * sizeof(int32)
+        );
         layout->ui_vertex_total.count = vertices->count;
         layout->ui_index_total.count = indices->count;
     } else {
@@ -804,8 +797,7 @@ void ui_cache(
         layout->cache_frame += 1;
     }
 
-    layout->dirty = needs_recache;
-    layout->ui_element_changed.count = 0;
+    layout->is_dirty = needs_recache;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -919,12 +911,16 @@ UICore* ui_scrollbar_at(
 ) NO_EXCEPT
 {
     while (element && element != layout->ui_root) {
-        if (ui_element_scroll_info(layout, element, UI_SCROLL_AXIS_Y, info) && ui_scrollbar_contains(info, x, y)) {
+        if (ui_element_scroll_info(layout, element, UI_SCROLL_AXIS_Y, info)
+            && ui_scrollbar_contains(info, x, y)
+        ) {
             *axis = UI_SCROLL_AXIS_Y;
             return element;
         }
 
-        if (ui_element_scroll_info(layout, element, UI_SCROLL_AXIS_X, info) && ui_scrollbar_contains(info, x, y)) {
+        if (ui_element_scroll_info(layout, element, UI_SCROLL_AXIS_X, info)
+            && ui_scrollbar_contains(info, x, y)
+        ) {
             *axis = UI_SCROLL_AXIS_X;
             return element;
         }
@@ -956,7 +952,12 @@ UICore* ui_scrollbar_at(
 FORCE_INLINE
 v2_f32 ui_window_to_ui_position(const UILayout* const layout, f32 x, f32 y) NO_EXCEPT
 {
-    return {x, layout->ui_root ? layout->ui_root->dimension.dim.y - y : y};
+    return {
+        x,
+        layout->ui_root
+            ? layout->ui_root->dimension.dim.y - y
+            : y
+    };
 }
 
 // Pointer (mouse) state for one tick
@@ -995,7 +996,7 @@ enum UIInputResult : byte {
     // The pointer is used by the UI -> the game should ignore the pointer input
     UI_INPUT_RESULT_CAPTURED = 1 << 1,
 
-    // An element got clicked (@see UIInteraction::clicked)
+    // An element got clicked
     UI_INPUT_RESULT_CLICKED = 1 << 2,
 
     // An element got right clicked (@see UIInteraction::context_target), e.g. open a context menu
@@ -1025,7 +1026,6 @@ bool ui_element_state_set(UILayout* const layout, int32 offset, byte state, bool
 
     element->state = new_state;
     element->change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    array_vector_insert_safe(&layout->ui_element_changed, UIElementChange{offset, UI_ELEMENT_CHANGE_CONTENT});
 
     return true;
 }
@@ -1042,12 +1042,6 @@ UICore* ui_element_closest_with_flag(const UILayout* const layout, UICore* eleme
     }
 
     return element == layout->ui_root ? NULL : element;
-}
-
-FORCE_INLINE
-int32 ui_element_offset_or_none(const UILayout* const layout, const UICore* const element) NO_EXCEPT
-{
-    return element ? ui_element_offset(layout, element) : 0;
 }
 
 /**
@@ -1106,7 +1100,6 @@ bool ui_drag_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
     // @todo Consider to clamp the position so the element can't be moved off screen
     dim->pos_raw = new_pos;
     element->change_type |= UI_ELEMENT_CHANGE_POS;
-    array_vector_insert_safe(&layout->ui_element_changed, UIElementChange{interaction->dragged, UI_ELEMENT_CHANGE_POS});
 
     return true;
 }
@@ -1145,9 +1138,15 @@ bool ui_resize_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
         dim->dim_raw.x = width;
 
         // pos.x = base_x - width * align -> move the base to keep the left side in place
-        const f32 align = (dim->align_anchor & UI_ALIGN_H_RIGHT) ? 1.0f : ((dim->align_anchor & UI_ALIGN_H_CENTER) ? 0.5f : 0.0f);
+        const f32 align = (dim->align_anchor & UI_ALIGN_H_RIGHT)
+            ? 1.0f
+            : ((dim->align_anchor & UI_ALIGN_H_CENTER)
+                ? 0.5f
+                : 0.0f
+            );
         if (align > 0.0f && !(dim->flag & UI_DIMENSION_POS_X_RELATIVE)) {
-            dim->pos_raw.x = interaction->drag_start_pos.x + ((dim->align_anchor & UI_ANCHOR_H_RIGHT) ? -1.0f : 1.0f) * align * delta;
+            dim->pos_raw.x = interaction->drag_start_pos.x
+                + ((dim->align_anchor & UI_ANCHOR_H_RIGHT) ? -1.0f : 1.0f) * align * delta;
         }
     }
 
@@ -1157,9 +1156,15 @@ bool ui_resize_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
         dim->dim_raw.y = height;
 
         // pos.y (top) = base_y + height * align -> move the base to keep the top in place
-        const f32 align = (dim->align_anchor & UI_ALIGN_V_TOP) ? 0.0f : ((dim->align_anchor & UI_ALIGN_V_CENTER) ? 0.5f : 1.0f);
+        const f32 align = (dim->align_anchor & UI_ALIGN_V_TOP)
+            ? 0.0f
+            : ((dim->align_anchor & UI_ALIGN_V_CENTER)
+                ? 0.5f
+                : 1.0f
+            );
         if (align > 0.0f && !(dim->flag & UI_DIMENSION_POS_Y_RELATIVE)) {
-            dim->pos_raw.y = interaction->drag_start_pos.y + ((dim->align_anchor & UI_ANCHOR_V_TOP) ? 1.0f : -1.0f) * align * delta;
+            dim->pos_raw.y = interaction->drag_start_pos.y
+                + ((dim->align_anchor & UI_ANCHOR_V_TOP) ? 1.0f : -1.0f) * align * delta;
         }
     }
 
@@ -1170,7 +1175,6 @@ bool ui_resize_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
     }
 
     element->change_type |= UI_ELEMENT_CHANGE_DIM_OTHER;
-    array_vector_insert_safe(&layout->ui_element_changed, UIElementChange{interaction->resized, UI_ELEMENT_CHANGE_DIM_OTHER});
 
     return true;
 }
@@ -1204,7 +1208,7 @@ bool ui_scroll_drag_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
 }
 
 // Calls a 1-indexed action (layout->on_actions, 0 = none)
-FORCE_INLINE
+static FORCE_INLINE
 void ui_element_action(void* app, UILayout* const layout, UICore* const element, int32 action) NO_EXCEPT
 {
     if (action && layout->on_actions) {
@@ -1212,7 +1216,7 @@ void ui_element_action(void* app, UILayout* const layout, UICore* const element,
     }
 }
 
-FORCE_INLINE
+static FORCE_INLINE
 bool ui_element_is_text_input(const UICore* const element) NO_EXCEPT
 {
     return element->type == UI_ELEMENT_TYPE_INPUT || element->type == UI_ELEMENT_TYPE_TEXTAREA;
@@ -1238,24 +1242,17 @@ bool ui_input_set_editing(UILayout* const layout, int32 offset) NO_EXCEPT
 
     if (offset) {
         UIInput* const input = (UIInput *) ui_element_get(layout, offset);
-        input->caret = (int32) strlen(ui_input_get_text(layout, input));
+        input->caret = ui_input_text_length(layout, input);
         input->selection_anchor = input->caret;
         ui_input_scroll_to_caret(layout, input);
     }
 
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
 
-// Is a text element receiving the keyboard input? (e.g. to disable hotkeys while typing)
-FORCE_INLINE
-bool ui_input_is_editing(const UILayout* const layout) NO_EXCEPT
-{
-    return layout->interaction.editing != 0;
-}
-
-FORCE_INLINE
+static FORCE_INLINE
 bool ui_select_is_open(const UILayout* const layout, const UISelect* const select) NO_EXCEPT
 {
     return select->popup && layout->interaction.popup == select->popup;
@@ -1307,28 +1304,13 @@ void ui_select_open(UILayout* const layout, UISelect* const select, bool open) N
 inline
 void ui_select_set_options(
     UILayout* const layout, UISelect* const select,
-    const char* const* options, int32 option_count,
+    const SimpleString<const char>* options, int32 option_count,
     int32 selected = 0
 ) NO_EXCEPT
 {
     ui_select_open(layout, select, false);
 
-    int32 size = 0;
-    for (int32 i = 0; i < option_count; ++i) {
-        size += (int32) strlen(options[i]) + 1;
-    }
-
-    select->options = 0;
-    if (size) {
-        select->options = ui_text_reserve(layout, CHAR_TYPE_CHAR, size);
-        char* pos = (char *) (layout->ui_element_buffer.memory + select->options);
-        for (int32 i = 0; i < option_count; ++i) {
-            const int32 length = (int32) strlen(options[i]) + 1;
-            memcpy(pos, options[i], length);
-            pos += length;
-        }
-    }
-
+    select->options = ui_string_list_store(layout, options, option_count);
     select->option_count = (int16) option_count;
 
     if (select->select_flags & UI_SELECT_FLAG_MULTI) {
@@ -1341,7 +1323,7 @@ void ui_select_set_options(
     }
 
     select->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 }
 
 // Opens/closes the popup of a popup owner (select, color picker)
@@ -1619,7 +1601,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
     ////////////////////////////////////////////////////////
     if (!interaction->dragged && !interaction->resized && !interaction->scroll_dragged) {
         UICore* const hovered = ui_element_closest_with_flag(layout, hit, UI_ELEMENT_FLAG_HOVERABLE);
-        const int32 hovered_offset = ui_element_offset_or_none(layout, hovered);
+        const int32 hovered_offset = hovered ? ui_element_offset(layout, hovered) : 0;
 
         if (hovered_offset != interaction->hovered) {
             if (interaction->hovered) {
@@ -1643,7 +1625,10 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
     // Scrolls the closest element under the pointer that can still scroll in that direction
     ////////////////////////////////////////////////////////
     if (input->wheel_x != 0.0f || input->wheel_y != 0.0f) {
-        for (UICore* element = hit; element && element != layout->ui_root; element = ui_element_parent(layout, element)) {
+        for (UICore* element = hit;
+            element && element != layout->ui_root;
+            element = ui_element_parent(layout, element)
+        ) {
             UIScrollInfo info;
 
             if (input->wheel_y != 0.0f
@@ -1681,7 +1666,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
         }
 
         // Double/triple click = pressed again on the same element shortly after at (almost) the same position
-        const int32 action_offset = ui_element_offset_or_none(layout, action);
+        const int32 action_offset = action ? ui_element_offset(layout, action) : 0;
         const bool repeated = input->time
             && action_offset
             && action_offset == interaction->last_click_element
@@ -1696,7 +1681,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
 
         // Focus (e.g. the window), clicking outside of the UI removes the focus
         UICore* const focused = ui_element_closest_with_flag(layout, hit, UI_ELEMENT_FLAG_HITBOX);
-        const int32 focused_offset = ui_element_offset_or_none(layout, focused);
+        const int32 focused_offset = focused ? ui_element_offset(layout, focused) : 0;
 
         if (focused_offset != interaction->focused) {
             ui_element_state_set(layout, interaction->focused, UI_STATE_FOCUS, false);
@@ -1832,7 +1817,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
     }
 
     if (result & UI_INPUT_RESULT_CHANGED) {
-        ui_layout_mark_dirty(layout);
+        layout->is_dirty = true;
     }
 
     return result;
@@ -1859,7 +1844,9 @@ FORCE_INLINE
 bool ui_element_is_focusable(const UICore* const element) NO_EXCEPT
 {
     // Pointer transparent elements are display only (e.g. debug overlay tables)
-    if ((element->state & UI_STATE_DISABLED) || (element->flags & UI_ELEMENT_FLAG_IGNORE_HIT)) {
+    if ((element->state & UI_STATE_DISABLED)
+        || (element->flags & UI_ELEMENT_FLAG_IGNORE_HIT)
+    ) {
         return false;
     }
 
@@ -1894,24 +1881,47 @@ void ui_element_scroll_into_view(UILayout* const layout, const UICore* const ele
         parent && parent != layout->ui_root;
         parent = ui_element_parent(layout, parent)
     ) {
-        if (parent->type != UI_ELEMENT_TYPE_VIEW_PANEL || !(((UIPanel *) parent)->panel_flags & UI_PANEL_FLAG_SCROLL)) {
+        UIPanel* const panel = (UIPanel *) parent;
+
+        if (parent->type != UI_ELEMENT_TYPE_VIEW_PANEL
+            || !(panel->panel_flags & UI_PANEL_FLAG_SCROLL)
+        ) {
             continue;
         }
 
-        UIPanel* const panel = (UIPanel *) parent;
         const v4_f32 viewport = ui_panel_viewport(panel);
 
         // Content moves up when scroll.y increases, left when scroll.x increases
         if (dim->pos.y > viewport.y) {
-            ui_panel_scroll_set(layout, panel, UI_SCROLL_AXIS_Y, panel->scroll.y - (dim->pos.y - viewport.y));
+            ui_panel_scroll_set(
+                layout,
+                panel,
+                UI_SCROLL_AXIS_Y,
+                panel->scroll.y - (dim->pos.y - viewport.y)
+            );
         } else if (dim->pos.y - dim->dim.y < viewport.y - viewport.height) {
-            ui_panel_scroll_set(layout, panel, UI_SCROLL_AXIS_Y, panel->scroll.y + ((viewport.y - viewport.height) - (dim->pos.y - dim->dim.y)));
+            ui_panel_scroll_set(
+                layout,
+                panel,
+                UI_SCROLL_AXIS_Y,
+                panel->scroll.y + ((viewport.y - viewport.height) - (dim->pos.y - dim->dim.y))
+            );
         }
 
         if (dim->pos.x < viewport.x) {
-            ui_panel_scroll_set(layout, panel, UI_SCROLL_AXIS_X, panel->scroll.x - (viewport.x - dim->pos.x));
+            ui_panel_scroll_set(
+                layout,
+                panel,
+                UI_SCROLL_AXIS_X,
+                panel->scroll.x - (viewport.x - dim->pos.x)
+            );
         } else if (dim->pos.x + dim->dim.x > viewport.x + viewport.width) {
-            ui_panel_scroll_set(layout, panel, UI_SCROLL_AXIS_X, panel->scroll.x + (dim->pos.x + dim->dim.x - (viewport.x + viewport.width)));
+            ui_panel_scroll_set(
+                layout,
+                panel,
+                UI_SCROLL_AXIS_X,
+                panel->scroll.x + (dim->pos.x + dim->dim.x - (viewport.x + viewport.width))
+            );
         }
     }
 }
@@ -1944,7 +1954,7 @@ void ui_focus_set(UILayout* const layout, int32 offset) NO_EXCEPT
 
     element->change_type |= UI_ELEMENT_CHANGE_CONTENT;
     ui_element_scroll_into_view(layout, element);
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 }
 
 /**
@@ -1966,7 +1976,13 @@ void ui_focus_move(UILayout* const layout, int32 direction) NO_EXCEPT
     // Container = window/popup of the current focus (closest UI_ELEMENT_FLAG_HITBOX element)
     UICore* container = NULL;
     if (current) {
-        container = ui_element_closest_with_flag(layout, ui_element_parent(layout, ui_element_get(layout, current)), UI_ELEMENT_FLAG_HITBOX);
+        container = ui_element_closest_with_flag(
+            layout,
+            ui_element_parent(layout,
+                ui_element_get(layout, current)
+            ),
+            UI_ELEMENT_FLAG_HITBOX
+        );
     } else if (interaction->popup) {
         container = ui_element_get(layout, interaction->popup);
     } else if (interaction->focused) {
@@ -2184,16 +2200,14 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, ui
                 }
 
                 return true;
-            }
-
-            if (activate) {
+            } else if (activate) {
                 ui_select_open(layout, select, true);
 
                 return true;
-            }
-
-            // Closed single select: up/down changes the selection directly
-            if ((code == INPUT_TEXT_UP || code == INPUT_TEXT_DOWN) && !(select->select_flags & UI_SELECT_FLAG_MULTI)) {
+            } else if ((code == INPUT_TEXT_UP || code == INPUT_TEXT_DOWN)
+                && !(select->select_flags & UI_SELECT_FLAG_MULTI)
+            ) {
+                // Closed single select: up/down changes the selection directly
                 const int32 index = clamp_branched(select->selected + (code == INPUT_TEXT_UP ? -1 : 1), 0, select->option_count - 1);
                 if (ui_select_set(layout, select, index)) {
                     ui_element_action(app, layout, element, select->on_change);
@@ -2276,7 +2290,7 @@ void ui_input_owner_changed(void* app, UILayout* const layout, UIInput* const in
             list->scroll = 0.0f;
             list->hovered = -1;
             list->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-            ui_layout_mark_dirty(layout);
+            layout->is_dirty = true;
         } break;
         case UI_ELEMENT_TYPE_COLOR_PICKER: {
             UIColorPicker* const picker = (UIColorPicker *) owner;
@@ -2340,7 +2354,7 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
                 interaction->keyboard_focus = 0;
             }
 
-            ui_layout_mark_dirty(layout);
+            layout->is_dirty = true;
             result |= UI_INPUT_RESULT_CHANGED;
 
             return result;
@@ -2445,6 +2459,12 @@ byte ui_input_text(void* app, UILayout* const layout, const uint32* const codes,
 {
     PROFILE_DEBUG(PROFILE_UI_INPUT_TEXT);
 
+    // Usually nothing was typed or nothing has the keyboard focus
+    // The focus check is still repeated per code since a code can change it (e.g. tab, escape, enter)
+    if (!count || !ui_input_has_keyboard_focus(layout)) {
+        return UI_INPUT_RESULT_NONE;
+    }
+
     byte result = UI_INPUT_RESULT_NONE;
     for (int32 i = 0; i < count; ++i) {
         result |= ui_input_code(app, layout, codes[i]);
@@ -2529,10 +2549,18 @@ byte ui_input_navigate(void* app, UILayout* const layout, UINavigation navigatio
 
             return ui_input_code(app, layout, INPUT_TEXT_ENTER);
         }
-        case UI_NAVIGATION_UP: return ui_input_code(app, layout, INPUT_TEXT_UP);
-        case UI_NAVIGATION_DOWN: return ui_input_code(app, layout, INPUT_TEXT_DOWN);
-        case UI_NAVIGATION_LEFT: return ui_input_code(app, layout, INPUT_TEXT_LEFT);
-        case UI_NAVIGATION_RIGHT: return ui_input_code(app, layout, INPUT_TEXT_RIGHT);
+        case UI_NAVIGATION_UP: {
+            return ui_input_code(app, layout, INPUT_TEXT_UP);
+        }
+        case UI_NAVIGATION_DOWN: {
+            return ui_input_code(app, layout, INPUT_TEXT_DOWN);
+        }
+        case UI_NAVIGATION_LEFT: {
+            return ui_input_code(app, layout, INPUT_TEXT_LEFT);
+        }
+        case UI_NAVIGATION_RIGHT: {
+            return ui_input_code(app, layout, INPUT_TEXT_RIGHT);
+        }
         default:
             return UI_INPUT_RESULT_NONE;
     }
@@ -2550,9 +2578,9 @@ bool ui_input_wants_navigation(const UILayout* const layout) NO_EXCEPT
 
 /**
  * Scroll amount of a ui scroll hotkey in wheel notches
- *      mouse wheel: one key for both directions, the sign of its value is the direction
- *      analog controller key (e.g. stick): continuous scrolling while held, the sign is the direction
- *      digital key (e.g. d-pad, keyboard): one notch per press
+ *      - mouse wheel: one key for both directions, the sign of its value is the direction
+ *      - analog controller key (e.g. stick): continuous scrolling while held, the sign is the direction
+ *      - digital key (e.g. d-pad, keyboard): one notch per press
  *
  * @param code Output: key that created the value (to detect if both directions use the same key)
  */
@@ -2566,7 +2594,9 @@ f32 ui_hotkey_scroll(const Input* const input, uint16 hotkey, int16* const code)
     }
 
     const int16 value = input_hotkey_value(input, hotkey, code);
-    if (*code == (INPUT_MOUSE_PREFIX | INPUT_MOUSE_BUTTON_WHEEL) || *code == (INPUT_MOUSE_PREFIX | INPUT_MOUSE_BUTTON_HWHEEL)) {
+    if (*code == (INPUT_MOUSE_PREFIX | INPUT_MOUSE_BUTTON_WHEEL)
+        || *code == (INPUT_MOUSE_PREFIX | INPUT_MOUSE_BUTTON_HWHEEL)
+    ) {
         // 120 = one notch (WHEEL_DELTA), positive = away from the user
         return (f32) value / 120.0f;
     }
@@ -2579,7 +2609,7 @@ f32 ui_hotkey_scroll(const Input* const input, uint16 hotkey, int16* const code)
     return (state & KEY_PRESS_TYPE_PRESSED) ? 1.0f : 0.0f;
 }
 
-inline
+static inline
 f32 ui_hotkey_axis(const Input* const input, uint16 hotkey_positive, uint16 hotkey_negative) NO_EXCEPT
 {
     int16 code_positive;
@@ -2627,7 +2657,10 @@ byte ui_input(
         const Input* const input_state = &states[i];
         if ((input_state->state.dx[0] || input_state->state.dy[0])
             && (input_state->mouse.handle[0]
-                || hotkey_is_active(input_state->state.active_hotkeys, navigation_to_hotkey[UI_NAVIGATION_CURSOR_MOVEMENT1])
+                || hotkey_is_active(
+                    input_state->state.active_hotkeys,
+                    navigation_to_hotkey[UI_NAVIGATION_CURSOR_MOVEMENT1]
+                )
             )
         ) {
             _ui_pointer_input = i;
@@ -2641,18 +2674,36 @@ byte ui_input(
     }
 
     Input* const pointer_input = &states[_ui_pointer_input];
-    const v2_f32 position = ui_window_to_ui_position(ui_layout, (f32) pointer_input->state.x[0], (f32) pointer_input->state.y[0]);
+    const v2_f32 position = ui_window_to_ui_position(
+        ui_layout,
+        (f32) pointer_input->state.x[0],
+        (f32) pointer_input->state.y[0]
+    );
 
     // Released keys stay visible until the next tick / input_frame_begin() is called
     // -> a press + release within one tick (fast click) is PRESSED | RELEASED
-    const byte primary = input_hotkey_key_state(pointer_input, navigation_to_hotkey[UI_NAVIGATION_POINTER_PRIMARY_UI]);
+    const byte primary = input_hotkey_key_state(
+        pointer_input,
+        navigation_to_hotkey[UI_NAVIGATION_POINTER_PRIMARY_UI]
+    );
+
     const UIPointerInput pointer = {
         position.x, position.y,
-        input_hotkey_is_down(pointer_input, navigation_to_hotkey[UI_NAVIGATION_POINTER_PRIMARY_UI]),
+        input_hotkey_is_down(
+            pointer_input,
+            navigation_to_hotkey[UI_NAVIGATION_POINTER_PRIMARY_UI]
+        ),
         (primary & KEY_PRESS_TYPE_RELEASED) != 0,
-        (input_hotkey_key_state(pointer_input, navigation_to_hotkey[UI_NAVIGATION_POINTER_SECONDARY_UI]) & KEY_PRESS_TYPE_PRESSED) != 0,
+        (input_hotkey_key_state(
+            pointer_input,
+            navigation_to_hotkey[UI_NAVIGATION_POINTER_SECONDARY_UI]
+        ) & KEY_PRESS_TYPE_PRESSED) != 0,
         0.0f,
-        ui_hotkey_axis(pointer_input, navigation_to_hotkey[UI_NAVIGATION_SCROLL_UP_UI], navigation_to_hotkey[UI_NAVIGATION_SCROLL_DOWN_UI]),
+        ui_hotkey_axis(
+            pointer_input,
+            navigation_to_hotkey[UI_NAVIGATION_SCROLL_UP_UI],
+            navigation_to_hotkey[UI_NAVIGATION_SCROLL_DOWN_UI]
+        ),
         timestamp
     };
 

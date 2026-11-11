@@ -96,7 +96,7 @@ covered as well but are still being ported to the current APIs.
 | `hash/` | `Crc`, `GeneralHash`, `Sha1`, `Sha256`, `Hmac` (`HashTest.cpp`) |
 | `memory/` | `BufferMemory`, `RingMemory`, `ChunkMemory`, `ChunkMemoryT`, `Queue`, `QueueT`, `MemoryArena`, `Heap`, `PointerMemory`, `FragmentMemory`, `FragmentMemoryT`, `DataPool`, `SPSCQueueT`, `MPSCQueueT`, `MPMCQueueT`, `ThrdChunkMemory`, `ThrdChunkMemoryT` |
 | `stdlib/` | `HashMapT`, `ArrayVector`, `stdlib_internal`, `Helper`, `Types`/`Defines`, `PerfectHashMap`, `ThrdHashMapT`, `FixedFloat`, `Octree`, `Simd` |
-| Systems | `localization/Language`, `ui/UILayout`, `ui/UITheme`, `asset/AssetArchive`, `system/DRM`, `system/FileUtils`, `image/Qoi` |
+| Systems | `localization/Language`, `ui/UILayout`, `ui/UITheme`, `ui/UIText`, `asset/AssetArchive`, `system/DRM`, `system/FileUtils`, `image/Qoi` |
 
 Current size (uber build, DEBUG): **47 files, 483 test suites, ~7900 assertions**.
 

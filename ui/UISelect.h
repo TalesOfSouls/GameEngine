@@ -38,7 +38,7 @@ struct UISelect {
 
     UIAttributeFont font;
 
-    // Offset of the option strings, every option is \0 terminated
+    // Offset of the option texts (string list, @see ui_string_list_store)
     int32 options;
 
     // Offset of the selection bit set (1 bit per option), only with UI_SELECT_FLAG_MULTI

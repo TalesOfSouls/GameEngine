@@ -24,7 +24,7 @@ void thread_pool_notify_one(ThreadPool* const pool) NO_EXCEPT
 // Runs a single job on the calling thread
 // job points to a local copy, the queue slot is already released
 static inline
-void thread_pool_execute(ThreadPool* const pool, PoolWorker* const job) NO_EXCEPT
+void thread_pool_execute(ThreadPool* const pool, ThreadPoolJob* const job) NO_EXCEPT
 {
     ++pool->working_cnt;
 
@@ -89,7 +89,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     // Setting up thread local rng state
     rand_setup();
 
-    PoolWorker job;
+    ThreadPoolJob job;
 
     while (true) {
         THREAD_TICK(_thread_local_id);
@@ -150,7 +150,7 @@ int32 thread_pool_next_pow2(int32 v) NO_EXCEPT
     return v + 1;
 }
 
-// The job slots are cache line aligned (PoolWorker is one cache line) to avoid false sharing
+// The job slots are cache line aligned (ThreadPoolJob is one cache line) to avoid false sharing
 static FORCE_INLINE CONSTEXPR
 int32 thread_pool_alignment(int32 alignment) NO_EXCEPT
 {
@@ -165,7 +165,7 @@ size_t thread_pool_size(
 ) NO_EXCEPT
 {
     return (size_t) thread_pool_alignment(alignment) // queue_init() aligns the slots up
-        + sizeof(PoolWorker) * thread_pool_next_pow2(worker_capacity)
+        + sizeof(ThreadPoolJob) * thread_pool_next_pow2(worker_capacity)
         + ASSUMED_CACHE_LINE_SIZE // queue_init() aligns the sequence array up
         + sizeof(atomic<size_t>) * thread_pool_next_pow2(worker_capacity)
         + alignof(coms_pthread_t)
@@ -335,14 +335,14 @@ void thread_pool_fix(ThreadPool* const pool) NO_EXCEPT
 // WARNING: Keep the time between start and end short.
 //      Consumers can't see this slot, or any slot claimed after it, until it is published
 inline
-PoolWorker* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
+ThreadPoolJob* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
 {
-    PoolWorker* const slot = queue_enqueue_start(&pool->work_queue);
+    ThreadPoolJob* const slot = queue_enqueue_start(&pool->work_queue);
     if (!slot) {
         return NULL;
     }
 
-    memset(slot, 0, sizeof(PoolWorker));
+    memset(slot, 0, sizeof(ThreadPoolJob));
     slot->id = (uint64) queue_enqueue_position(&pool->work_queue, slot) + 1;
 
     return slot;
@@ -350,11 +350,11 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* const pool) NO_EXCEPT
 
 // Like thread_pool_add_work_start() but waits until a slot is free
 inline
-PoolWorker* thread_pool_add_work_start_wait(ThreadPool* const pool) NO_EXCEPT
+ThreadPoolJob* thread_pool_add_work_start_wait(ThreadPool* const pool) NO_EXCEPT
 {
-    PoolWorker* const slot = queue_enqueue_start_wait(&pool->work_queue);
+    ThreadPoolJob* const slot = queue_enqueue_start_wait(&pool->work_queue);
 
-    memset(slot, 0, sizeof(PoolWorker));
+    memset(slot, 0, sizeof(ThreadPoolJob));
     slot->id = (uint64) queue_enqueue_position(&pool->work_queue, slot) + 1;
 
     return slot;
@@ -362,7 +362,7 @@ PoolWorker* thread_pool_add_work_start_wait(ThreadPool* const pool) NO_EXCEPT
 
 // WARNING: job must not be accessed after this call, it may already be consumed and reused
 inline
-void thread_pool_add_work_end(ThreadPool* const pool, PoolWorker* const job) NO_EXCEPT
+void thread_pool_add_work_end(ThreadPool* const pool, ThreadPoolJob* const job) NO_EXCEPT
 {
     if (job->state_external) {
         job->state_external->store(POOL_WORKER_STATE_WAITING, memory_order_relaxed);
@@ -374,9 +374,9 @@ void thread_pool_add_work_end(ThreadPool* const pool, PoolWorker* const job) NO_
 
 // Returns the job id or 0 if the queue is full
 static inline
-uint64 thread_pool_add_work(ThreadPool* const pool, const PoolWorker* const job) NO_EXCEPT
+uint64 thread_pool_add_work(ThreadPool* const pool, const ThreadPoolJob* const job) NO_EXCEPT
 {
-    PoolWorker* const slot = queue_enqueue_start(&pool->work_queue);
+    ThreadPoolJob* const slot = queue_enqueue_start(&pool->work_queue);
     if (!slot) {
         return 0;
     }
@@ -392,16 +392,16 @@ uint64 thread_pool_add_work(ThreadPool* const pool, const PoolWorker* const job)
 }
 
 inline
-uint64 thread_pool_add_work(ThreadPool* const pool, const PoolWorker& job) NO_EXCEPT
+uint64 thread_pool_add_work(ThreadPool* const pool, const ThreadPoolJob& job) NO_EXCEPT
 {
     return thread_pool_add_work(pool, &job);
 }
 
 // Like thread_pool_add_work() but waits until a slot is free, always succeeds
 static inline
-uint64 thread_pool_add_work_wait(ThreadPool* const pool, const PoolWorker* const job) NO_EXCEPT
+uint64 thread_pool_add_work_wait(ThreadPool* const pool, const ThreadPoolJob* const job) NO_EXCEPT
 {
-    PoolWorker* const slot = queue_enqueue_start_wait(&pool->work_queue);
+    ThreadPoolJob* const slot = queue_enqueue_start_wait(&pool->work_queue);
 
     *slot = *job;
     slot->id = (uint64) queue_enqueue_position(&pool->work_queue, slot) + 1;
@@ -413,7 +413,7 @@ uint64 thread_pool_add_work_wait(ThreadPool* const pool, const PoolWorker* const
 }
 
 inline
-uint64 thread_pool_add_work_wait(ThreadPool* const pool, const PoolWorker& job) NO_EXCEPT
+uint64 thread_pool_add_work_wait(ThreadPool* const pool, const ThreadPoolJob& job) NO_EXCEPT
 {
     return thread_pool_add_work_wait(pool, &job);
 }
@@ -423,18 +423,18 @@ uint64 thread_pool_add_work_wait(ThreadPool* const pool, const PoolWorker& job) 
 inline
 void thread_pool_complete_counter(void* arg) NO_EXCEPT
 {
-    const PoolWorker* const job = (const PoolWorker *) arg;
+    const ThreadPoolJob* const job = (const ThreadPoolJob *) arg;
     ((atomic<int32> *) job->sink)->fetch_sub(1, memory_order_release);
 }
 
-// sink = MPMCQueueT<PoolWorker>*, pushes a copy of the completed job (blocks while full)
+// sink = MPMCQueueT<ThreadPoolJob>*, pushes a copy of the completed job (blocks while full)
 // Result data should be referenced through job->arg, not job->mem (already released)
 // For an MPSC result queue write the same 2 lines with your MPSC enqueue
 inline
 void thread_pool_complete_queue(void* arg) NO_EXCEPT
 {
-    const PoolWorker* const job = (const PoolWorker *) arg;
-    queue_enqueue_wait((MPMCQueueT<PoolWorker> *) job->sink, job);
+    const ThreadPoolJob* const job = (const ThreadPoolJob *) arg;
+    queue_enqueue_wait((MPMCQueueT<ThreadPoolJob> *) job->sink, job);
 }
 
 /**
@@ -460,7 +460,7 @@ bool thread_pool_wait(
 ) NO_EXCEPT
 {
     uint64 slept = 0;
-    PoolWorker job;
+    ThreadPoolJob job;
 
     while (counter->load(memory_order_acquire) > 0) {
         if (help_pool && queue_dequeue(&help_pool->work_queue, &job)) {

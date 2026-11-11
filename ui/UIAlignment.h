@@ -52,7 +52,7 @@ enum UIAlignAnchor : byte {
     UI_ANCHOR_V_BOTTOM_NOT = UI_ANCHOR_V_TOP | UI_ANCHOR_V_CENTER,
 };
 
-// Common combinations that place the element inside the respective corner/side of its parent
+// Common combinations
 #define UI_ANCHOR_ALIGN_TOP_LEFT (UI_ANCHOR_H_LEFT | UI_ANCHOR_V_TOP | UI_ALIGN_H_LEFT | UI_ALIGN_V_TOP)
 #define UI_ANCHOR_ALIGN_TOP_RIGHT (UI_ANCHOR_H_RIGHT | UI_ANCHOR_V_TOP | UI_ALIGN_H_RIGHT | UI_ALIGN_V_TOP)
 #define UI_ANCHOR_ALIGN_BOTTOM_LEFT (UI_ANCHOR_H_LEFT | UI_ANCHOR_V_BOTTOM | UI_ALIGN_H_LEFT | UI_ALIGN_V_BOTTOM)

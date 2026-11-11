@@ -165,6 +165,106 @@ static void test_simple_string_utils_identity_overloads()
     TEST_EQUALS(utf8_again.max_length, utf8.max_length);
 }
 
+// Pointer-less strings: the characters are stored directly behind the struct
+static void test_simple_string_inline()
+{
+    TEST_EQUALS(sizeof(SimpleStringInline<char>), 8);
+    TEST_EQUALS(sizeof(SimpleStringInline<wchar_t>), 8);
+    TEST_EQUALS(simple_string_inline_size<char>(16), 8 + 16);
+    TEST_EQUALS(simple_string_inline_size<wchar_t>(16), 8 + 16 * sizeof(wchar_t));
+
+    alignas(8) byte memory[64];
+    memset(memory, 0xFF, sizeof(memory));
+
+    SimpleStringInline<char>* const str = simple_string_inline_init<char>(memory, 16);
+    TEST_TRUE((byte *) str == memory);
+    TEST_EQUALS(str->length, 0);
+    TEST_EQUALS(str->max_length, 16);
+
+    // The characters start directly behind the header
+    TEST_TRUE((byte *) simple_string_inline_str(str) == memory + sizeof(SimpleStringInline<char>));
+    TEST_TRUE(simple_string_inline_from_str(simple_string_inline_str(str)) == str);
+
+    const SimpleStringInline<char>* const const_str = str;
+    TEST_TRUE(simple_string_inline_str(const_str) == simple_string_inline_str(str));
+    TEST_TRUE(simple_string_inline_from_str(simple_string_inline_str(const_str)) == const_str);
+
+    TEST_EQUALS(simple_string_inline_set(str, "hello", 5), 5);
+    TEST_EQUALS(str->length, 5);
+    TEST_EQUALS(memcmp(memory + 8, "hello", 5), 0);
+
+    // Nothing behind the string is touched
+    TEST_EQUALS(memory[8 + 5], 0xFF);
+
+    // View for functions that take a SimpleString
+    const SimpleString<char> view = simple_string_view(str);
+    TEST_EQUALS(view.length, 5);
+    TEST_EQUALS(view.max_length, 16);
+    TEST_TRUE(view.str == (char *) memory + 8);
+
+    const SimpleString<const char> const_view = simple_string_view(const_str);
+    TEST_EQUALS(const_view.length, 5);
+    TEST_TRUE(const_view.str == view.str);
+
+    // Too long -> cut at max_length
+    TEST_EQUALS(simple_string_inline_set(str, "0123456789ABCDEFGHIJ", 20), 16);
+    TEST_EQUALS(str->length, 16);
+    TEST_EQUALS(memcmp(memory + 8, "0123456789ABCDEF", 16), 0);
+    TEST_EQUALS(memory[8 + 16], 0xFF);
+
+    TEST_EQUALS(simple_string_inline_set(str, "", 0), 0);
+    TEST_EQUALS(str->length, 0);
+
+    // The string is position independent -> it can be copied together with its memory
+    simple_string_inline_set(str, "copy me", 7);
+    alignas(8) byte copy[64];
+    memcpy(copy, memory, simple_string_inline_size<char>(16));
+
+    const SimpleString<char> copy_view = simple_string_view((SimpleStringInline<char> *) copy);
+    TEST_EQUALS(copy_view.length, 7);
+    TEST_TRUE(copy_view.str == (char *) copy + 8);
+    TEST_EQUALS(memcmp(copy_view.str, "copy me", 7), 0);
+}
+
+static void test_simple_string_inline_wchar()
+{
+    alignas(8) byte memory[64];
+
+    SimpleStringInline<wchar_t>* const str = simple_string_inline_init<wchar_t>(memory, 8);
+    TEST_EQUALS(simple_string_inline_set(str, L"wide", 4), 4);
+
+    const SimpleString<wchar_t> view = simple_string_view(str);
+    TEST_EQUALS(view.length, 4);
+    TEST_EQUALS(view.max_length, 8);
+    TEST_EQUALS(view.str[0], L'w');
+    TEST_EQUALS(view.str[3], L'e');
+}
+
+static void test_utf8_string_inline()
+{
+    TEST_EQUALS(sizeof(Utf8StringInline), 8);
+    TEST_EQUALS(utf8_string_inline_size(16), 8 + 16);
+
+    alignas(8) byte memory[64];
+
+    Utf8StringInline* const str = utf8_string_inline_init(memory, 16);
+    TEST_EQUALS(str->length, 0);
+    TEST_EQUALS(str->max_length, 16);
+    TEST_TRUE((byte *) utf8_string_inline_str(str) == memory + 8);
+
+    // "Grüße" = 5 characters, 7 bytes
+    memcpy(utf8_string_inline_str(str), "Gr\xC3\xBC\xC3\x9F" "e", 8);
+    str->length = 5;
+
+    const Utf8String view = utf8_string_view(str);
+    TEST_EQUALS(view.length, 5);
+    TEST_EQUALS(view.max_length, 16);
+    TEST_TRUE(view.str == (char *) memory + 8);
+
+    const Utf8StringInline* const const_str = str;
+    TEST_TRUE(utf8_string_inline_str(const_str) == view.str);
+}
+
 #ifdef UBER_TEST
     #ifdef main
         #undef main
@@ -183,6 +283,9 @@ int main() {
     TEST_RUN(test_utf8_string_utils_init);
     TEST_RUN(test_utf8_string_utils_empty_init);
     TEST_RUN(test_simple_string_utils_identity_overloads);
+    TEST_RUN(test_simple_string_inline);
+    TEST_RUN(test_simple_string_inline_wchar);
+    TEST_RUN(test_utf8_string_inline);
 
     TEST_FINALIZE();
 

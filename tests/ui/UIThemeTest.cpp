@@ -19,6 +19,18 @@ static const char UI_THEME_TEST_TXT[] =
     "big_text\n"
     "\tfont_size: 20\n";
 
+// Value of a property as \0 terminated string, NULL if the property doesn't exist
+static const char* ui_theme_test_property(
+    const UIDocument* const doc,
+    const UIDocumentNode* const node,
+    const char* const key,
+    char* const buffer, int32 buffer_size
+) {
+    const int32 index = ui_document_property_find(doc, node, key);
+
+    return index < 0 ? NULL : ui_document_copy(doc, doc->properties[index].value, buffer, buffer_size);
+}
+
 static void test_theme_from_txt() {
     UITheme theme = {};
     theme.data_size = 1 * MEGABYTE;
@@ -37,16 +49,16 @@ static void test_theme_from_txt() {
 
     // Properties
     char value[64];
-    TEST_TRUE(ui_document_property_get(&theme.document, &theme.document.nodes[button], "background_color", value, sizeof(value)) != NULL);
+    TEST_TRUE(ui_theme_test_property(&theme.document, &theme.document.nodes[button], "background_color", value, sizeof(value)) != NULL);
     TEST_EQUALS(strcmp(value, "#444444FF"), 0);
-    TEST_TRUE(ui_document_property_get(&theme.document, &theme.document.nodes[text], "font_size", value, sizeof(value)) != NULL);
+    TEST_TRUE(ui_theme_test_property(&theme.document, &theme.document.nodes[text], "font_size", value, sizeof(value)) != NULL);
     TEST_EQUALS(strcmp(value, "20"), 0);
 
     // Part
     const UIDocumentNode* const part = &theme.document.nodes[theme.document.nodes[window].first_child];
     TEST_EQUALS(part->kind, UI_DOCUMENT_NODE_PART);
     TEST_TRUE(ui_document_equals(&theme.document, part->type, "title"));
-    TEST_TRUE(ui_document_property_get(&theme.document, part, "size", value, sizeof(value)) != NULL);
+    TEST_TRUE(ui_theme_test_property(&theme.document, part, "size", value, sizeof(value)) != NULL);
     TEST_EQUALS(strcmp(value, "100% 38"), 0);
 
     platform_aligned_free((void **) &theme.data);
@@ -126,7 +138,7 @@ static void test_theme_to_from_data() {
     char value[64];
     const int32 button = ui_theme_style(&theme_load, "@button");
     TEST_TRUE(button >= 0);
-    TEST_TRUE(ui_document_property_get(&theme_load.document, &theme_load.document.nodes[button], "background_color", value, sizeof(value)) != NULL);
+    TEST_TRUE(ui_theme_test_property(&theme_load.document, &theme_load.document.nodes[button], "background_color", value, sizeof(value)) != NULL);
     TEST_EQUALS(strcmp(value, "#444444FF"), 0);
 
     platform_aligned_free((void **) &out);

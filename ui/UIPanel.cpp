@@ -34,7 +34,7 @@ void ui_root_resize(UILayout* const layout, f32 width, f32 height) NO_EXCEPT
     root->dimension.pos = {0.0f, height};
 
     root->change_type |= UI_ELEMENT_CHANGE_DIM_OTHER;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 }
 
 /**
@@ -175,7 +175,7 @@ v4_f32 ui_panel_viewport(const UIPanel* const panel, bool* const has_x = NULL, b
 }
 
 /**
- * Scroll info for the scrollbar of an axis (@see UIScrollbar.h)
+ * Scroll info for the scrollbar of an axis
  *
  * @return false if the panel doesn't have a scrollbar in this axis
  */
@@ -231,7 +231,7 @@ bool ui_panel_scroll_set(UILayout* const layout, UIPanel* const panel, UIScrollA
 
     *value = clamped;
     panel->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }
@@ -299,12 +299,6 @@ UIPanel* ui_popup_get(const UILayout* const layout) NO_EXCEPT
     return layout->interaction.popup ? (UIPanel *) ui_element_get(layout, layout->interaction.popup) : NULL;
 }
 
-FORCE_INLINE
-bool ui_popup_is_open(const UILayout* const layout, const UIPanel* const popup) NO_EXCEPT
-{
-    return popup && layout->interaction.popup == ui_element_offset(layout, popup);
-}
-
 // Closes the open popup (if any)
 inline
 void ui_popup_close(UILayout* const layout) NO_EXCEPT
@@ -327,7 +321,7 @@ void ui_popup_close(UILayout* const layout) NO_EXCEPT
     }
 
     interaction->popup = 0;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 }
 
 /**
@@ -353,7 +347,7 @@ void ui_popup_open(UILayout* const layout, UIPanel* const popup, f32 x = 0.0f, f
     ui_element_move_to_front(layout, &popup->core);
 
     layout->interaction.popup = offset;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 }
 
 /**
@@ -473,11 +467,17 @@ bool ui_panel_scroll_finish(
     UIScrollInfo info;
 
     if (ui_panel_scroll_info(panel, UI_SCROLL_AXIS_Y, &info)) {
-        ui_scrollbar_vertices(&info, UI_SCROLL_AXIS_Y, scrollbar_active_y, gpu_api_type, &layout->ui_vertex_cache, &layout->ui_index_cache, zindex);
+        ui_scrollbar_vertices(
+            &info, UI_SCROLL_AXIS_Y, scrollbar_active_y,
+            gpu_api_type, &layout->ui_vertex_cache, &layout->ui_index_cache, zindex
+        );
     }
 
     if (ui_panel_scroll_info(panel, UI_SCROLL_AXIS_X, &info)) {
-        ui_scrollbar_vertices(&info, UI_SCROLL_AXIS_X, scrollbar_active_x, gpu_api_type, &layout->ui_vertex_cache, &layout->ui_index_cache, zindex);
+        ui_scrollbar_vertices(
+            &info, UI_SCROLL_AXIS_X, scrollbar_active_x,
+            gpu_api_type, &layout->ui_vertex_cache, &layout->ui_index_cache, zindex
+        );
     }
 
     return changed || scroll_changed;

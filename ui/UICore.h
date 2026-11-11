@@ -108,14 +108,16 @@ struct UICore {
     // If next_offset == skip_offset the element has no children
     int32 skip_offset;
 
-    // Offset to the class name string (0 = no class)
-    // Only needed when applying a theme
-    int32 class_name;
-
     // Incremental caching (@see ui_cache)
     // Where the vertices of this element are in the output of the last ui_cache() (= UILayout::ui_vertex_total)
-    // These members MUST stay at the end, they are not part of the change detection (@see ui_element_cache_hash)
-    // Only valid if cache_frame == UILayout::cache_frame of the last ui_cache()
+    // These members MUST stay at the end, they are not part of the change detection
+
+    // UILayout::cache_frame of the last ui_cache() that emitted this element (= copied or generated it)
+    // The ranges below point into the output of exactly that ui_cache() call.
+    // This does NOT mean the element is only re-usable for one frame: an unchanged element is copied every
+    // ui_cache() and gets the new cache_frame each time, so it can be re-used for any number of frames.
+    // It only becomes invalid if the element was NOT emitted by the last ui_cache() (e.g. it or a parent was hidden):
+    // the ranges then still point into an older output, which ui_vertex_total doesn't contain anymore.
     uint32 cache_frame;
     int32 cache_vertex_start;
     int32 cache_vertex_count;
@@ -126,7 +128,7 @@ struct UICore {
     f32 cache_zindex_start;
     f32 cache_zindex_end;
 
-    // Hash of everything the vertices depend on (@see ui_element_cache_hash)
+    // Hash of everything the vertices depend on
     uint64 cache_hash;
 };
 

@@ -6,6 +6,7 @@
 #include "../memory/RingMemory.cpp"
 #include "../system/FileUtils.cpp"
 #include "../utils/StringUtils.h"
+#include "../utils/SimpleString.h"
 #include "Language.h"
 
 /**
@@ -32,8 +33,9 @@ uint32 language_hash(const char* key) NO_EXCEPT
     return hash ? hash : 1;
 }
 
+// Slot of a key (NULL if the key doesn't exist)
 FORCE_INLINE
-const char* language_get(const Language* const lang, const char* const key) NO_EXCEPT
+const LanguageSlot* language_slot_find(const Language* const lang, const char* const key) NO_EXCEPT
 {
     if (!lang || !lang->data || !key) {
         return NULL;
@@ -53,9 +55,79 @@ const char* language_get(const Language* const lang, const char* const key) NO_E
         }
 
         if (slot->hash == hash && strcmp((const char *) (lang->data + slot->key), key) == 0) {
-            return (const char *) (lang->data + slot->value);
+            return slot;
         }
     }
+}
+
+/**
+ * @return NULL if the key doesn't exist
+ */
+FORCE_INLINE
+const char* language_get(const Language* const lang, const char* const key) NO_EXCEPT
+{
+    const LanguageSlot* const slot = language_slot_find(lang, key);
+
+    return slot ? (const char *) (lang->data + slot->value) : NULL;
+}
+
+/**
+ * Same as language_get but incl. the length of the string (no strlen required, the string is \0 terminated)
+ *
+ * @return {0, 0, NULL} if the key doesn't exist
+ */
+FORCE_INLINE
+SimpleString<const char> language_get_string(const Language* const lang, const char* const key) NO_EXCEPT
+{
+    const LanguageSlot* const slot = language_slot_find(lang, key);
+    if (!slot) {
+        SimpleString<const char> empty = { 0, 0, NULL };
+        return empty;
+    }
+
+    SimpleString<const char> str = { slot->value_length, slot->value_length, (const char *) (lang->data + slot->value) };
+
+    return str;
+}
+
+/**
+ * language_get with a caller owned cache (for strings that are needed every tick, e.g. the format of a hud label)
+ * The cache MUST be reset (= NULL) if the language is (re-)loaded
+ *
+ * @param const char** cache Cached string (NULL = not looked up yet)
+ *
+ * @return NULL if the key doesn't exist
+ */
+FORCE_INLINE
+const char* language_get_cached(const Language* const lang, const char** const cache, const char* const key) NO_EXCEPT
+{
+    if (!*cache) {
+        *cache = language_get(lang, key);
+    }
+
+    return *cache;
+}
+
+/**
+ * language_get_string with a caller owned cache (@see language_get_cached)
+ * The cache MUST be reset (= {0, 0, NULL}) if the language is (re-)loaded
+ *
+ * @param SimpleString<const char>* cache Cached string (str == NULL = not looked up yet)
+ *
+ * @return {0, 0, NULL} if the key doesn't exist
+ */
+FORCE_INLINE
+SimpleString<const char> language_get_string_cached(
+    const Language* const lang,
+    SimpleString<const char>* const cache,
+    const char* const key
+) NO_EXCEPT
+{
+    if (!cache->str) {
+        *cache = language_get_string(lang, key);
+    }
+
+    return *cache;
 }
 
 FORCE_INLINE
@@ -226,6 +298,7 @@ int32 language_from_txt(
             }
         }
 
+        const int32 value_length = (int32) (out - value);
         *out++ = '\0';
 
         // Insert (an existing key is overwritten)
@@ -237,6 +310,7 @@ int32 language_from_txt(
                 slot->hash = hash;
                 slot->key = (int32) ((byte *) key - lang->data);
                 slot->value = (int32) ((byte *) value - lang->data);
+                slot->value_length = value_length;
                 ++count;
 
                 break;
@@ -245,6 +319,7 @@ int32 language_from_txt(
             if (slot->hash == hash && strcmp((const char *) (lang->data + slot->key), key) == 0) {
                 LOG_1("[WARNING] Language: duplicate key %s in line %d", {DATA_TYPE_CHAR_STR, (void *) key}, {DATA_TYPE_INT32, &line_number});
                 slot->value = (int32) ((byte *) value - lang->data);
+                slot->value_length = value_length;
 
                 break;
             }
@@ -255,7 +330,7 @@ int32 language_from_txt(
         LOG_1("[WARNING] Language file version %d is not supported", {DATA_TYPE_INT32, &version});
     }
 
-    header->version = LANGUAGE_VERSION;
+    header->version = LANGUAGE_BINARY_VERSION;
     header->count = count;
     header->slot_count = slot_count;
     header->size = (int32) ALIGN_UP((int32) ((byte *) out - lang->data), (int32) sizeof(size_t));
@@ -309,7 +384,7 @@ int32 language_from_data(
     LOG_3("[INFO] Load language");
 
     const LanguageHeader* const header = (const LanguageHeader *) data;
-    if (header->version != LANGUAGE_VERSION || header->size < (int32) sizeof(LanguageHeader)) {
+    if (header->version != LANGUAGE_BINARY_VERSION || header->size < (int32) sizeof(LanguageHeader)) {
         LOG_1("[WARNING] Incompatible language version %d", {DATA_TYPE_INT32, (int32 *) &header->version});
         return -1;
     }

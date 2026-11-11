@@ -48,17 +48,20 @@ void ui_button_cache(
     PROFILE_DEBUG(PROFILE_UI_CACHE_BUTTON);
 
     // Without a defined dimension the button uses the image size
-    const v2_f32 content_dim = button->image.sampler
-        ? v2_f32{(f32) button->image.width, (f32) button->image.height}
-        : v2_f32{0.0f, 0.0f};
+    v2_f32 content_dim = { 0.0f, 0.0f };
+    if (button->image.sampler) {
+        content_dim.x = (f32) button->image.width;
+        content_dim.y = (f32) button->image.height;
+    }
 
     ui_dimension_calculate(layout, &button->core, content_dim);
     const v4_f32 rect = ui_dimension_rect(&button->core.dimension);
 
     // The state is updated before caching (@see ui_input_pointer), here we only pick the matching style
-    const uint32 background_color = (button->core.state & UI_STATE_HOVER) && OMS_HAS_ALPHA(button->background_color_hover)
-        ? button->background_color_hover
-        : button->background_color;
+    const uint32 background_color = (button->core.state & UI_STATE_HOVER)
+        && OMS_HAS_ALPHA(button->background_color_hover)
+            ? button->background_color_hover
+            : button->background_color;
 
     if (OMS_HAS_ALPHA(background_color)) {
         vertex_rect_create(

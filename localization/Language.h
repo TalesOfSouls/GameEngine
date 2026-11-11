@@ -4,7 +4,13 @@
 
 #include "../stdlib/Stdlib.h"
 
+// Version of the text format (.langtxt)
 #define LANGUAGE_VERSION 2
+
+// Version of the binary format (@see language_to_data)
+// 3: LanguageSlot stores the length of the value
+#define LANGUAGE_BINARY_VERSION 3
+
 #define LANGUAGE_DEFAULT_CODE L"en_US"
 
 /**
@@ -24,30 +30,31 @@
  *
  * Patterns like %n/%s are not interpreted here, they are just part of the string.
  *
- * BINARY FORMAT: .langbin / ASSET_TYPE_LANGUAGE payload, version LANGUAGE_VERSION
+ * BINARY FORMAT: .langbin / ASSET_TYPE_LANGUAGE payload, version LANGUAGE_BINARY_VERSION
  *
  * The file is exactly the memory footprint, so it can be used in place without copying or parsing:
  *
  *      offset          size        type                field
  *      0               16          LanguageHeader      scalar header
- *      16              12 * S      LanguageSlot[S]     hash map with open addressing
- *      16 + 12*S       ...         char[]              "key\0value\0" strings
+ *      16              16 * S      LanguageSlot[S]     hash map with open addressing
+ *      16 + 16*S       ...         char[]              "key\0value\0" strings
  *      total           size        -                   aligned up to sizeof(size_t)
  *
  *      S = slot_count = power of 2, at least 2 * count, minimum 8
  *
  * LanguageHeader (16 bytes)
  *
- *      0   4   int32   version         LANGUAGE_VERSION
+ *      0   4   int32   version         LANGUAGE_BINARY_VERSION
  *      4   4   int32   count           amount of strings
  *      8   4   int32   slot_count      power of 2, >= 2 * count
  *      12  4   int32   size            total size incl. this header
  *
- * LanguageSlot (12 bytes)
+ * LanguageSlot (16 bytes)
  *
  *      0   4   uint32  hash            FNV-1a (32 bit) of the key, 0 = empty slot
  *      4   4   int32   key             offset of the key in the image
  *      8   4   int32   value           offset of the value in the image
+ *      12  4   int32   value_length    length of the value in bytes excl. \0
  *
  * Lookup: bucket = hash & (slot_count - 1), linear probing (i + 1) & mask, stop at
  * the first empty slot, the key is compared with strcmp. Since the image always has
@@ -79,6 +86,9 @@ struct LanguageSlot {
     // Offsets in Language::data
     int32 key;
     int32 value;
+
+    // Length of the value in bytes excl. \0 -> language_get_string() doesn't need a strlen
+    int32 value_length;
 };
 
 struct Language {

@@ -903,7 +903,7 @@ struct ThrdSoftwareShaderArg {
 static inline
 void thrd_soft_shader(void* arg)
 {
-    PoolWorker* const job = (PoolWorker *) arg;
+    ThreadPoolJob* const job = (ThreadPoolJob *) arg;
 
     // @bug I think we need atomics or locks here to avoid race conditions and then copy the data to a thread local variable
     ThrdSoftwareShaderArg* const shader = (ThrdSoftwareShaderArg *) job->arg;
@@ -943,7 +943,7 @@ void soft_render(
 
         ThrdSoftwareShaderArg* args = (ThrdSoftwareShaderArg *) chunk_memory_get(&renderer->buf, element_count);
 
-        PoolWorker* jobs[MAX_CHUNKS];
+        ThreadPoolJob* jobs[MAX_CHUNKS];
 
         const int data_chunks = OMS_MIN(data_count / 3, MAX_CHUNKS);
         const int index_chunks = OMS_MIN(data_index_count, MAX_CHUNKS);
@@ -984,7 +984,7 @@ void soft_render(
                     renderer->active_pipeline->shader_functions[i]
                 };
 
-                const PoolWorker job = {
+                const ThreadPoolJob job = {
                     SMN(id) 0,
                     SMN(state) POOL_WORKER_STATE_WAITING,
                     SMN(automatic_release) false,

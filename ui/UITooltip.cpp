@@ -49,34 +49,15 @@ UILabel* ui_tooltip_label(const UILayout* const layout, const UIPanel* const too
     return (UILabel *) ui_element_get(layout, tooltip->core.next_offset);
 }
 
-FORCE_INLINE
-bool ui_tooltip_is_visible(const UIPanel* const tooltip) NO_EXCEPT
+// Size + position of the tooltip after its text was set (@see ui_tooltip_show)
+static inline
+void ui_tooltip_place(
+    UILayout* const layout, UIPanel* const tooltip, UILabel* const label,
+    int32 length, bool changed,
+    f32 x, f32 y
+) NO_EXCEPT
 {
-    return !(tooltip->core.state & UI_STATE_HIDDEN);
-}
-
-/**
- * Shows the tooltip next to a position (usually the pointer @see UIInteraction::pointer)
- * The tooltip is placed bottom right of the position and stays on screen
- * Only marks the ui as changed if the text or position changed
- *
- * @param text Multi line text (\n), cut at UI_TOOLTIP_MAX_LENGTH - 1 bytes
- * @param x, y Position in ui coordinates
- */
-inline
-void ui_tooltip_show(UILayout* const layout, UIPanel* const tooltip, const char* const text, f32 x, f32 y) NO_EXCEPT
-{
-    UILabel* const label = ui_tooltip_label(layout, tooltip);
-    char* const content = (char *) (layout->ui_element_buffer.memory + label->content);
-
-    bool changed = false;
-
-    const int32 length = min_branched((int32) strlen(text), label->content_length - 1);
-    if (strncmp(content, text, length) != 0 || content[length] != '\0') {
-        memcpy(content, text, length);
-        content[length] = '\0';
-        changed = true;
-    }
+    const char* const content = (const char *) (layout->ui_element_buffer.memory + label->content);
 
     // Size = widest line + padding
     int32 lines = 1;
@@ -100,7 +81,8 @@ void ui_tooltip_show(UILayout* const layout, UIPanel* const tooltip, const char*
         + 2.0f * UI_TOOLTIP_PADDING;
 
     // Bottom right of the position, flipped if it doesn't fit (y-up)
-    const v2_f32 screen = layout->ui_root ? layout->ui_root->dimension.dim : v2_f32{width, height};
+    ASSERT_TRUE(layout->ui_root);
+    const v2_f32 screen = layout->ui_root->dimension.dim;
 
     f32 left = x + UI_TOOLTIP_OFFSET;
     if (left + width > screen.x) {
@@ -130,9 +112,57 @@ void ui_tooltip_show(UILayout* const layout, UIPanel* const tooltip, const char*
     }
 
     if (changed) {
-        ui_element_mark_changed(layout, &tooltip->core);
-        ui_element_mark_changed(layout, &label->core);
+        tooltip->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
+        label->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
+        layout->is_dirty = true;
     }
+}
+
+/**
+ * Shows the tooltip next to a position (usually the pointer @see UIInteraction::pointer)
+ * The tooltip is placed bottom right of the position and stays on screen
+ * Only marks the ui as changed if the text or position changed
+ *
+ * @param text Multi line text (\n), cut at UI_TOOLTIP_MAX_LENGTH - 1 bytes
+ * @param x, y Position in ui coordinates
+ */
+inline
+void ui_tooltip_show(UILayout* const layout, UIPanel* const tooltip, const char* const text, f32 x, f32 y) NO_EXCEPT
+{
+    UILabel* const label = ui_tooltip_label(layout, tooltip);
+
+    bool changed;
+    const int32 length = ui_text_copy_length(
+        (char *) (layout->ui_element_buffer.memory + label->content), label->content_length,
+        text, &changed
+    );
+    ui_string_length_set(layout, label->content, length);
+
+    ui_tooltip_place(layout, tooltip, label, length, changed, x, y);
+}
+
+/**
+ * Same as above but with a known length (e.g. the return value of sprintf_fast)
+ *
+ * @param length Length in characters excl. \0
+ */
+inline
+void ui_tooltip_show(
+    UILayout* const layout, UIPanel* const tooltip,
+    const char* const text, int32 length,
+    f32 x, f32 y
+) NO_EXCEPT
+{
+    UILabel* const label = ui_tooltip_label(layout, tooltip);
+
+    length = min_branched(length, label->content_length - 1);
+    const bool changed = ui_text_copy(
+        (char *) (layout->ui_element_buffer.memory + label->content), label->content_length,
+        text, length
+    );
+    ui_string_length_set(layout, label->content, length);
+
+    ui_tooltip_place(layout, tooltip, label, length, changed, x, y);
 }
 
 inline
@@ -143,7 +173,8 @@ void ui_tooltip_hide(UILayout* const layout, UIPanel* const tooltip) NO_EXCEPT
     }
 
     tooltip->core.state |= UI_STATE_HIDDEN;
-    ui_element_mark_changed(layout, &tooltip->core);
+    tooltip->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
+    layout->is_dirty = true;
 }
 
 #endif

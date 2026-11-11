@@ -58,21 +58,9 @@ UIWindow* ui_window_create(UILayout* const layout, UICore* parent = NULL) NO_EXC
 }
 
 FORCE_INLINE
-UIPanel* ui_window_title(const UILayout* const layout, const UIWindow* const window) NO_EXCEPT
-{
-    return window->title ? (UIPanel *) ui_element_get(layout, window->title) : NULL;
-}
-
-FORCE_INLINE
 UILabel* ui_window_title_label(const UILayout* const layout, const UIWindow* const window) NO_EXCEPT
 {
     return window->title_label ? (UILabel *) ui_element_get(layout, window->title_label) : NULL;
-}
-
-FORCE_INLINE
-UIButton* ui_window_button_close(const UILayout* const layout, const UIWindow* const window) NO_EXCEPT
-{
-    return window->button_close ? (UIButton *) ui_element_get(layout, window->button_close) : NULL;
 }
 
 inline

@@ -11,6 +11,11 @@
 #include "UIStyleDefaults.h"
 #include "UIAlignment.h"
 
+enum UIScrollAxis : byte {
+    UI_SCROLL_AXIS_X,
+    UI_SCROLL_AXIS_Y,
+};
+
 /**
  * Generic scrollbar geometry used by all scrollable elements (panel, textarea, option list, table)
  *
@@ -19,14 +24,7 @@
  *      view    = visible size along the axis
  *      content = total content size along the axis
  *      scroll  = current scroll offset (0 = start, max = content - view)
- * @see ui_element_scroll_info()
  */
-
-enum UIScrollAxis : byte {
-    UI_SCROLL_AXIS_X,
-    UI_SCROLL_AXIS_Y,
-};
-
 struct UIScrollInfo {
     v4_f32 track;
     f32 view;
@@ -34,25 +32,27 @@ struct UIScrollInfo {
     f32 scroll;
 };
 
-FORCE_INLINE
+static FORCE_INLINE
 f32 ui_scroll_max(f32 content, f32 view) NO_EXCEPT
 {
     return content > view ? content - view : 0.0f;
 }
 
-FORCE_INLINE
+static FORCE_INLINE
 f32 ui_scroll_clamp(f32 scroll, f32 content, f32 view) NO_EXCEPT
 {
     return clamp_branched(scroll, 0.0f, ui_scroll_max(content, view));
 }
 
-FORCE_INLINE
+static FORCE_INLINE
 f32 ui_scrollbar_track_length(const UIScrollInfo* const info, UIScrollAxis axis) NO_EXCEPT
 {
-    return axis == UI_SCROLL_AXIS_Y ? info->track.height : info->track.width;
+    return axis == UI_SCROLL_AXIS_Y
+        ? info->track.height
+        : info->track.width;
 }
 
-FORCE_INLINE
+static FORCE_INLINE
 f32 ui_scrollbar_thumb_length(const UIScrollInfo* const info, UIScrollAxis axis) NO_EXCEPT
 {
     const f32 track_length = ui_scrollbar_track_length(info, axis);
@@ -76,9 +76,15 @@ v4_f32 ui_scrollbar_thumb(const UIScrollInfo* const info, UIScrollAxis axis) NO_
     const f32 t = max > 0.0f ? clamp_branched(info->scroll / max, 0.0f, 1.0f) : 0.0f;
     const f32 pos = (track_length - thumb_length) * t;
 
-    return axis == UI_SCROLL_AXIS_Y
-        ? v4_f32{info->track.x, info->track.y - pos, info->track.width, thumb_length}
-        : v4_f32{info->track.x + pos, info->track.y, thumb_length, info->track.height};
+    if (axis == UI_SCROLL_AXIS_Y) {
+        const v4_f32 thumb = { info->track.x, info->track.y - pos, info->track.width, thumb_length };
+
+        return thumb;
+    }
+
+    const v4_f32 thumb = { info->track.x + pos, info->track.y, thumb_length, info->track.height };
+
+    return thumb;
 }
 
 /**

@@ -37,7 +37,7 @@ struct UITab {
 
     UIAttributeFont font;
 
-    // Offset of the tab titles, every title is \0 terminated
+    // Offset of the tab titles (string list, @see ui_string_list_store)
     int32 titles;
 
     // 1-indexed action that is called when the active tab changes (layout->on_actions, 0 = none)

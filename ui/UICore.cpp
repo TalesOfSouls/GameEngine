@@ -11,33 +11,12 @@
 ////////////////////////////////////////////////////////////////
 // Element tree helpers
 ////////////////////////////////////////////////////////////////
-// The tree is stored in pre-order inside of ui_element_buffer (@see UICore)
+// The tree is stored in pre-order (DFS) inside of ui_element_buffer
 
-/**
- * Marks the layout as changed -> it will be re-cached (@see ui_layout_needs_cache)
- */
-FORCE_INLINE
-void ui_layout_mark_dirty(UILayout* const layout) NO_EXCEPT
-{
-    layout->dirty = true;
-}
-
-FORCE_INLINE
+static FORCE_INLINE
 UICore* ui_element_get(const UILayout* const layout, int32 offset) NO_EXCEPT
 {
     return (UICore *) (layout->ui_element_buffer.memory + offset);
-}
-
-/**
- * The output of the element changed -> re-cache
- * Needed for custom elements (UI_ELEMENT_TYPE_CUSTOM) whose content comes from outside of the ui
- * (e.g. a chart of external data), normal elements do this in their setters (e.g. ui_label_set_text)
- */
-FORCE_INLINE
-void ui_element_mark_changed(UILayout* const layout, UICore* const element) NO_EXCEPT
-{
-    element->change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->dirty = true;
 }
 
 FORCE_INLINE
@@ -56,7 +35,11 @@ UICore* ui_element_parent(const UILayout* const layout, const UICore* const elem
 }
 
 inline
-bool ui_element_is_self_or_child_of(const UILayout* const layout, const UICore* element, const UICore* const ancestor) NO_EXCEPT
+bool ui_element_is_self_or_child_of(
+    const UILayout* const layout,
+    const UICore* element,
+    const UICore* const ancestor
+) NO_EXCEPT
 {
     while (element) {
         if (element == ancestor) {
@@ -67,12 +50,6 @@ bool ui_element_is_self_or_child_of(const UILayout* const layout, const UICore* 
     }
 
     return false;
-}
-
-FORCE_INLINE
-bool ui_element_has_children(const UICore* const element) NO_EXCEPT
-{
-    return element->next_offset != element->skip_offset;
 }
 
 // Iterates the DIRECT children of an element (in render order)
@@ -89,18 +66,6 @@ bool ui_element_has_children(const UICore* const element) NO_EXCEPT
         child = ui_element_get((layout), _child_off);
 
 #define ui_element_children_iterate_end }}
-
-// Last element of the element's subtree in pre-order (the element itself if it has no children)
-static inline
-UICore* ui_element_subtree_last(const UILayout* const layout, UICore* const element) NO_EXCEPT
-{
-    UICore* last = element;
-    while (last->next_offset != element->skip_offset) {
-        last = ui_element_get(layout, last->next_offset);
-    }
-
-    return last;
-}
 
 /**
  * Removes the element and its subtree from the pre-order links
@@ -134,7 +99,7 @@ void ui_element_subtree_unlink(UILayout* const layout, UICore* const element) NO
 }
 
 /**
- * Inserts an unlinked subtree (@see ui_element_subtree_unlink) as child of parent
+ * Inserts an unlinked subtree as child of parent
  *
  * @param before Offset of the child of parent the subtree is inserted before (0 = insert as last child)
  */
@@ -220,7 +185,9 @@ void ui_element_link(
 
     ui_element_subtree_insert(
         layout, element, parent,
-        (element->flags & UI_ELEMENT_FLAG_ALWAYS_ON_TOP) ? 0 : ui_element_on_top_child(layout, parent)
+        (element->flags & UI_ELEMENT_FLAG_ALWAYS_ON_TOP)
+            ? 0
+            : ui_element_on_top_child(layout, parent)
     );
 }
 
@@ -250,7 +217,7 @@ UICore* ui_element_alloc(
     element->change_type = UI_ELEMENT_CHANGE_CONTENT;
 
     ui_element_link(layout, element, parent ? parent : layout->ui_root);
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return element;
 }
@@ -284,7 +251,7 @@ bool ui_element_move_to_front(UILayout* const layout, UICore* const element) NO_
     ui_element_subtree_unlink(layout, element);
     ui_element_subtree_insert(layout, element, parent, before);
     element->change_type |= UI_ELEMENT_CHANGE_ORDER;
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return true;
 }

@@ -51,6 +51,25 @@ UICore* ui_get_element(UILayout* const layout, const char* name) NO_EXCEPT
     return (UICore *) (layout->ui_element_buffer.memory + entry->value);
 }
 
+/**
+ * Element by name with a caller owned cache of its offset (for elements that are needed every tick)
+ * The cache MUST be reset (= 0) if the layout is rebuilt (the offsets change)
+ *
+ * @param int32* cache 0 = not looked up yet, -1 = doesn't exist, > 0 = offset
+ *
+ * @return NULL if the element doesn't exist
+ */
+FORCE_INLINE
+UICore* ui_get_element_cached(UILayout* const layout, int32* const cache, const char* name) NO_EXCEPT
+{
+    if (!*cache) {
+        const UICore* const element = ui_get_element(layout, name);
+        *cache = element ? (int32) ((const byte *) element - layout->ui_element_buffer.memory) : -1;
+    }
+
+    return *cache > 0 ? (UICore *) (layout->ui_element_buffer.memory + *cache) : NULL;
+}
+
 FORCE_INLINE
 UICore* ui_get_element(UILayout* const layout, SimpleString<const char> str) NO_EXCEPT
 {
@@ -90,8 +109,7 @@ void ui_layout_reset(UILayout* const layout) NO_EXCEPT
     layout->ui_root = NULL;
     layout->cursor = NULL;
     memset(&layout->interaction, 0, sizeof(layout->interaction));
-    layout->dirty = true;
-    layout->ui_element_changed.count = 0;
+    layout->is_dirty = true;
     layout->ui_vertex_cache.count = 0;
     layout->ui_index_cache.count = 0;
 
@@ -226,7 +244,7 @@ int32 layout_from_data(
     }
     layout->cursor = (UICursor *) ui_layout_find_first(layout, UI_ELEMENT_TYPE_CURSOR);
     memset(&layout->interaction, 0, sizeof(layout->interaction));
-    layout->dirty = true;
+    layout->is_dirty = true;
 
     LOG_1("[INFO] UI loaded layout");
 

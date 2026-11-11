@@ -138,7 +138,7 @@ void cmd_group_async(
 
         chunk_mark_complete(cb->mem, element_id + i);
 
-        const PoolWorker job = {
+        const ThreadPoolJob job = {
             SMN(id) 0,
             SMN(mem_size) 0,
             SMN(arg_size) 0,
@@ -273,7 +273,7 @@ void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
 
             cmd->is_running = true;
 
-            const PoolWorker job = {
+            const ThreadPoolJob job = {
                 SMN(id) 0,
                 SMN(mem_size) 0,
                 SMN(arg_size) 0,
@@ -288,7 +288,7 @@ void cmd_iterate(AppCmdBuffer* const cb) NO_EXCEPT
         } else if (!cmd->run_in_pool) {
             bool remove = cmd_execute(cb, cmd);
             if (!remove) {
-                continue;
+                thrd_chunk_iterate_continue;
             }
 
             if (cmd->callback) {

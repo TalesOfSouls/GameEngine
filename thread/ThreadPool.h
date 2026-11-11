@@ -56,7 +56,7 @@ struct ThreadPool {
     atomic<int32> working_cnt;
     atomic<int32> thread_cnt;
 
-    MPMCQueueT<PoolWorker> work_queue;
+    MPMCQueueT<ThreadPoolJob> work_queue;
 
     // From this memory we distribute memory to all the worker threads
     // The distributed memory depends on the requirements of the respective job

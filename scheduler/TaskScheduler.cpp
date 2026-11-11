@@ -50,7 +50,7 @@ void scheduler_free(TaskScheduler* const scheduler) NO_EXCEPT
 static inline
 void scheduler_task_done(void* arg) NO_EXCEPT
 {
-    const PoolWorker* const job = (const PoolWorker *) arg;
+    const ThreadPoolJob* const job = (const ThreadPoolJob *) arg;
     ((TaskSchedule *) job->arg)->flags.fetch_and((uint8) ~TASK_SCHEDULE_FLAG_RUNNING);
 }
 
@@ -70,22 +70,22 @@ void scheduler_run(TaskScheduler* const scheduler, uint64 current_time) NO_EXCEP
             if (!(flags & TASK_SCHEDULE_FLAG_RUNNING)) {
                 chunk_free_element(&scheduler->tasks, chunk_id);
             }
-            continue;
+            thrd_chunk_iterate_continue;
         }
 
         // Not due yet
         if (task->next_run > current_time) {
-            continue;
+            thrd_chunk_iterate_continue;
         }
 
         if ((flags & TASK_SCHEDULE_FLAG_PAUSED)
             || (flags & (TASK_SCHEDULE_FLAG_RUNNING | TASK_SCHEDULE_FLAG_MULTIPLE)) == TASK_SCHEDULE_FLAG_RUNNING
         ) {
-            continue;
+            thrd_chunk_iterate_continue;
         }
 
         task->flags.fetch_or(TASK_SCHEDULE_FLAG_RUNNING);
-        const PoolWorker job = {
+        const ThreadPoolJob job = {
             SMN(id) 0,
             SMN(mem_size) 0,
             SMN(arg_size) 0,

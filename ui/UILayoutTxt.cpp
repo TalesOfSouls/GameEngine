@@ -31,7 +31,7 @@
 #include "UITooltip.cpp"
 
 /**
- * Layout file (.layouttxt), version 2
+ * Layout file (.layouttxt)
  *
  * Defines the element tree (@see UIDocument.h for the general syntax)
  *
@@ -259,11 +259,12 @@ bool ui_txt_bool(const char* value) NO_EXCEPT
 
 /**
  * Splits a list "a | b | c" in place
+ * The entries are \0 terminated and have their length (no strlen needed later on)
  *
  * @return Amount of entries
  */
 static inline
-int32 ui_txt_list(char* value, const char** const entries, int32 max_entries) NO_EXCEPT
+int32 ui_txt_list(char* value, SimpleString<const char>* const entries, int32 max_entries) NO_EXCEPT
 {
     int32 count = 0;
     while (*value && count < max_entries) {
@@ -284,7 +285,12 @@ int32 ui_txt_list(char* value, const char** const entries, int32 max_entries) NO
 
         const bool more = *value == '|';
         *end = '\0';
-        entries[count++] = start;
+
+        const int32 length = (int32) (end - start);
+        entries[count].length = length;
+        entries[count].max_length = length;
+        entries[count].str = start;
+        ++count;
 
         if (!more) {
             break;
@@ -377,9 +383,9 @@ char* ui_txt_value_resolve(
     const char* const key = buffer + (global ? 2 : 1);
 
     const Language* const language = global ? ctx->language_global : ui_txt_document_language(ctx, doc);
-    const char* const str = language_get(language, key);
+    const SimpleString<const char> str = language_get_string(language, key);
 
-    if (!str) {
+    if (!str.str) {
         LOG_1(
             "[WARNING] UI layout: string %s doesn't exist (line %d)",
             {DATA_TYPE_CHAR_STR, (void *) buffer}, {DATA_TYPE_INT32, &line}
@@ -388,14 +394,14 @@ char* ui_txt_value_resolve(
         return buffer;
     }
 
-    const int32 length = (int32) strlen(str);
+    const int32 length = str.length;
     if (length >= buffer_size) {
         LOG_1("[WARNING] UI layout: string %s is too long (line %d)", {DATA_TYPE_CHAR_STR, (void *) buffer}, {DATA_TYPE_INT32, &line});
     }
 
     // The key is in the buffer -> copy after the lookup
     const int32 copy_length = min_branched(length, buffer_size - 1);
-    memcpy(buffer, str, copy_length);
+    memcpy(buffer, str.str, copy_length);
     buffer[copy_length] = '\0';
 
     return buffer;
@@ -849,17 +855,18 @@ bool ui_txt_is_create_key(const char* const type, const char* const key) NO_EXCE
 static inline
 void ui_txt_label_reserve(UILayout* const layout, UILabel* const label, int32 length) NO_EXCEPT
 {
-    if (label->content && label->content_length >= length) {
+    if (length <= 0 || (label->content && label->content_length >= length)) {
         return;
     }
 
-    const int32 offset = ui_text_reserve(layout, label->char_type, length);
+    const int32 offset = ui_string_reserve(layout, label->char_type, length);
     if (label->content) {
         memcpy(
             layout->ui_element_buffer.memory + offset,
             layout->ui_element_buffer.memory + label->content,
             label->content_length * ui_char_type_size(label->char_type)
         );
+        ui_string_length_set(layout, offset, ui_string_length(layout, label->content));
     }
 
     label->content = offset;
@@ -1055,10 +1062,10 @@ bool ui_txt_property_apply(
 
                 return true;
             } else if (strcmp(key, "row") == 0 || strcmp(key, "footer") == 0) {
-                const char* cells[UI_TXT_LIST_MAX] = {};
+                SimpleString<const char> cells[UI_TXT_LIST_MAX] = {};
                 const int32 count = ui_txt_list(value, cells, (int32) ARRAY_COUNT(cells));
                 for (int32 c = count; c < table->column_count && c < UI_TXT_LIST_MAX; ++c) {
-                    cells[c] = "";
+                    cells[c].str = "";
                 }
 
                 if (key[0] == 'r') {
@@ -1385,7 +1392,7 @@ UICore* ui_txt_element_create(
     const UIElementType element_type = (UIElementType) element_type_id;
 
     char value[UI_TXT_VALUE_LENGTH];
-    const char* list[UI_TXT_LIST_MAX] = {};
+    SimpleString<const char> list[UI_TXT_LIST_MAX] = {};
     UICore* element = NULL;
 
     // Create arguments
@@ -1620,7 +1627,7 @@ int32 ui_layout_from_txt(
         }
     }
 
-    ui_layout_mark_dirty(layout);
+    layout->is_dirty = true;
 
     return count;
 }

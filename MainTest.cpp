@@ -79,6 +79,7 @@
     #include "tests/localization/LanguageTest.cpp"
     #include "tests/ui/UILayoutTest.cpp"
     #include "tests/ui/UIThemeTest.cpp"
+    #include "tests/ui/UITextTest.cpp"
     #include "tests/asset/AssetArchiveTest.cpp"
     #include "tests/system/DRMTest.cpp"
     #include "tests/system/FileUtilsTest.cpp"
@@ -158,6 +159,7 @@ int main() {
         LocalizationLanguageTest();
         UIUILayoutTest();
         UIUIThemeTest();
+        UIUITextTest();
         AssetArchiveTest();
         DRMTest();
         SystemFileUtilsTest();
