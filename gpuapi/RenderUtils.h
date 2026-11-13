@@ -26,7 +26,14 @@ void vertex_degenerate_create(
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
     //          The easiest way is to just define a "degenerate" starting point
-    array_vector_reserve_one(vertices) = {{vertices->elements[vertices->count - 1].position.x, vertices->elements[vertices->count - 1].position.y, zindex}, -1, {}, 0};
+    array_vector_reserve_one(vertices) = {
+        {
+            vertices->elements[vertices->count - 1].position.x,
+            vertices->elements[vertices->count - 1].position.y,
+            zindex
+        },
+        -1, {}, 0
+    };
     array_vector_reserve_one(vertices) = {{x, y, zindex}, -1, {}, 0};
 }
 

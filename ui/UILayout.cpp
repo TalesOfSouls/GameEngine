@@ -52,7 +52,7 @@ UICore* ui_get_element(UILayout* const layout, const char* name) NO_EXCEPT
 }
 
 /**
- * Element by name with a caller owned cache of its offset (for elements that are needed every tick)
+ * Element by name with a caller owned cached position of its offset (for elements that are needed every tick)
  * The cache MUST be reset (= 0) if the layout is rebuilt (the offsets change)
  *
  * @param int32* cache 0 = not looked up yet, -1 = doesn't exist, > 0 = offset
@@ -64,7 +64,9 @@ UICore* ui_get_element_cached(UILayout* const layout, int32* const cache, const 
 {
     if (!*cache) {
         const UICore* const element = ui_get_element(layout, name);
-        *cache = element ? (int32) ((const byte *) element - layout->ui_element_buffer.memory) : -1;
+        *cache = element
+            ? (int32) ((const byte *) element - layout->ui_element_buffer.memory)
+            : -1;
     }
 
     return *cache > 0 ? (UICore *) (layout->ui_element_buffer.memory + *cache) : NULL;

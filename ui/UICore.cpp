@@ -326,4 +326,16 @@ UICore* ui_custom_create(
     return element;
 }
 
+inline
+void ui_element_height_set(UILayout* const layout, UICore* const element, f32 height) NO_EXCEPT
+{
+    if (element->dimension.dim_raw.y == height) {
+        return;
+    }
+
+    element->dimension.dim_raw.y = height;
+    element->change_type |= UI_ELEMENT_CHANGE_DIM_OTHER;
+    layout->is_dirty = true;
+}
+
 #endif
