@@ -32,6 +32,8 @@
         DEBUG_COUNTER_THREAD_ACTIVE,
 
         DEBUG_COUNTER_GPU_UPLOAD,
+        // Draw calls: counted with STATS_INCREMENT_PERSISTENT_DEBUG at every draw call (render thread),
+        // the render loop moves the total of a frame into the history (0 = no frame finished in that slot)
         DEBUG_COUNTER_GPU_DRAW_CALLS,
         DEBUG_COUNTER_GPU_DOWNLOAD,
 

@@ -2949,7 +2949,7 @@ int32 sprintf_fast(T* __restrict buffer, int32 buffer_length, const T* __restric
                 case T('T'): {
                     const int64 time = va_arg(args, int64);
                     format_time_hh_mm_ss(buffer, time);
-                    buffer += 8;
+                    buffer += offset = 8;
                 } break;
                 default: {
                     // Handle unknown format specifiers

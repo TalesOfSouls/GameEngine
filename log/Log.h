@@ -56,6 +56,15 @@
 #if _WIN32
     #include <windows.h>
 
+    // Units of LogMessage::time per second (_WINXP: local time in seconds, otherwise UTC in milliseconds)
+    #if defined(_WINXP)
+        #define LOG_TIME_PER_SECOND 1ULL
+        #define LOG_TIME_LOCAL 1
+    #else
+        #define LOG_TIME_PER_SECOND 1000ULL
+        #define LOG_TIME_LOCAL 0
+    #endif
+
     /**
      * Get the system time
      *
@@ -92,6 +101,10 @@
     #include <time.h>
     #include <sys/time.h>
     #include <unistd.h>
+
+    // Units of LogMessage::time per second (UTC in microseconds)
+    #define LOG_TIME_PER_SECOND 1000000ULL
+    #define LOG_TIME_LOCAL 0
 
     /**
      * Get the system time

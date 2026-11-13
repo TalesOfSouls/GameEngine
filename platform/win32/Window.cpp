@@ -366,14 +366,44 @@ void window_create(Window* const __restrict window, void* const __restrict proc)
     ASSERT_TRUE(platform_window->hwnd);
 }
 
+/**
+ * Shows the window and makes it the foreground window with the keyboard focus
+ *
+ * Windows only allows SetForegroundWindow() if the calling thread belongs to the foreground process
+ * and the user didn't interact with another window in the meantime (foreground lock). After a long loading
+ * screen (or if the splash screen of another thread is the foreground window) the call silently fails:
+ * the window is shown without focus -> no keyboard/raw input, the cursor isn't captured until the user
+ * alt + tabs into the window. Attaching to the input queue of the current foreground thread lifts this restriction.
+ */
 inline
 void window_open(Window* const window) NO_EXCEPT
 {
     WindowPlatform* const platform_window = (WindowPlatform *) window->platform_window;
-    ShowWindow(platform_window->hwnd, SW_SHOW);
-    SetForegroundWindow(platform_window->hwnd);
-	SetFocus(platform_window->hwnd);
-    UpdateWindow(platform_window->hwnd);
+    const HWND hwnd = platform_window->hwnd;
+
+    ShowWindow(hwnd, SW_SHOW);
+
+    const HWND foreground = GetForegroundWindow();
+    const DWORD current_thread = GetCurrentThreadId();
+    const DWORD foreground_thread = foreground ? GetWindowThreadProcessId(foreground, NULL) : 0;
+    const bool attach = foreground_thread && foreground_thread != current_thread
+        && AttachThreadInput(foreground_thread, current_thread, TRUE);
+
+    BringWindowToTop(hwnd);
+    if (!SetForegroundWindow(hwnd)) {
+        // Still locked (e.g. the user works in another application): at least flash the task bar button,
+        // the focus change is handled by WM_SETFOCUS once the user switches to the window
+        FlashWindow(hwnd, TRUE);
+    }
+
+    SetActiveWindow(hwnd);
+    SetFocus(hwnd);
+
+    if (attach) {
+        AttachThreadInput(foreground_thread, current_thread, FALSE);
+    }
+
+    UpdateWindow(hwnd);
 
     window->state_changes |= WINDOW_STATE_CHANGE_FOCUS;
 }

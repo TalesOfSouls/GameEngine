@@ -484,6 +484,7 @@ void draw_triangles_3d(VertexRef* const vertices, GLuint buffer, int32 count) NO
     glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_GPU_DRAW_CALLS);
 
     glDisableVertexAttribArray(vertices->data_id);
     glDisableVertexAttribArray(vertices->normal_id);
@@ -507,6 +508,7 @@ void draw_triangles_3d_textureless(VertexRef* const vertices, GLuint buffer, int
     glEnableVertexAttribArray(vertices->normal_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_GPU_DRAW_CALLS);
 
     glDisableVertexAttribArray(vertices->data_id);
     glDisableVertexAttribArray(vertices->normal_id);
@@ -532,6 +534,7 @@ void draw_triangles_3d_colorless(VertexRef* const vertices, GLuint buffer, int32
     glEnableVertexAttribArray(vertices->tex_coord_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_GPU_DRAW_CALLS);
 
     glDisableVertexAttribArray(vertices->data_id);
     glDisableVertexAttribArray(vertices->normal_id);
@@ -555,6 +558,7 @@ void draw_triangles_2d(VertexRef* const vertices, GLuint buffer, int32 count) NO
     glEnableVertexAttribArray(vertices->tex_coord_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_GPU_DRAW_CALLS);
 
     glDisableVertexAttribArray(vertices->position_id);
     glDisableVertexAttribArray(vertices->tex_coord_id);
@@ -577,6 +581,7 @@ void draw_triangles_2d_textureless(VertexRef* const vertices, GLuint buffer, int
     glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_GPU_DRAW_CALLS);
 
     glDisableVertexAttribArray(vertices->data_id);
     glDisableVertexAttribArray(vertices->color_id);
@@ -598,6 +603,7 @@ void draw_triangles_2d_colorless(VertexRef* const vertices, GLuint buffer, int32
     glEnableVertexAttribArray(vertices->tex_coord_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_GPU_DRAW_CALLS);
 
     glDisableVertexAttribArray(vertices->data_id);
     glDisableVertexAttribArray(vertices->tex_coord_id);

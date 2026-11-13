@@ -75,7 +75,6 @@ enum SettingDebugVisibility {
     SETTING_DEBUG_VISIBILITY_WIREFRAME = 1 << 0,
     SETTING_DEBUG_VISIBILITY_DEBUG = 1 << 1,
     SETTING_DEBUG_VISIBILITY_3D = 1 << 2,
-    SETTING_DEBUG_VISIBILITY_NORMALS = 1 << 3
 };
 
 enum SettingUiVisibility {

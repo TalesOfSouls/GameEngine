@@ -91,7 +91,9 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path)
         temp += 2;
     }
 
-    char* last = self_path + self_path_length;
+    // readlink doesn't null terminate, the last character is self_path[self_path_length - 1]
+    char* last = self_path + self_path_length - 1;
+    --self_path_length;
     while (*last != '/' && self_path_length > 0) {
         --last;
         --self_path_length;

@@ -41,17 +41,8 @@ struct Utf8String {
  *
  * The characters are not referenced by a pointer, they are stored directly behind the struct (this + 1).
  * This saves the 8 byte pointer and makes the string position independent
- * (it can be copied/dumped/loaded together with its memory, no pointer needs to be fixed).
  *
- * Memory layout:
- *      int32 length
- *      int32 max_length
- *      C characters[max_length]        <- simple_string_inline_size<C>(max_length) bytes in total
- *
- * WARNING: It is only valid as pointer/reference into the memory that also contains the characters
- *              - never copy or pass it by value (the copy has no characters behind it)
- *              - never use it for string literals, as array element or as non-last struct member
- *          Functions that only read a string should take a SimpleString (@see simple_string_view)
+ * WARNING: Obviously this mustn't be used for string literals
  */
 template <typename C>
 struct SimpleStringInline {
@@ -60,7 +51,7 @@ struct SimpleStringInline {
 };
 
 /**
- * Pointer-less version of Utf8String (@see SimpleStringInline for the rules)
+ * Pointer-less version of Utf8String
  *
  * Memory layout:
  *      int32 length                    <- characters (code points)

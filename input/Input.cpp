@@ -961,7 +961,10 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
             int16* const delta = (axis & 1)
                 ? &input->state.dy[axis >> 1]
                 : &input->state.dx[axis >> 1];
-            *delta = (int16) (*delta + controller->button[button] / 8);
+            const int32 value = (input->controller_axes_invert & (1 << axis))
+                ? -controller->button[button]
+                : controller->button[button];
+            *delta = (int16) (*delta + value / 8);
             input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
         }
     }

@@ -390,6 +390,11 @@ GL_FUNC_DEFINE(void, glTextureSubImage2D, (GLuint texture, GLint level, GLint xo
 GL_FUNC_DEFINE(GLsync, glFenceSync, (GLenum condition, GLbitfield flags));
 GL_FUNC_DEFINE(GLenum, glClientWaitSync, (GLsync GLsync, GLbitfield flags, GLuint64 timeout));
 GL_FUNC_DEFINE(void, glDeleteSync, (GLsync GLsync));
+GL_FUNC_DEFINE(void, glCreateQueries, (GLenum target, GLsizei n, GLuint* ids));
+GL_FUNC_DEFINE(void, glDeleteQueries, (GLsizei n, const GLuint* ids));
+GL_FUNC_DEFINE(void, glQueryCounter, (GLuint id, GLenum target));
+GL_FUNC_DEFINE(void, glGetQueryObjectiv, (GLuint id, GLenum pname, GLint* params));
+GL_FUNC_DEFINE(void, glGetQueryObjectui64v, (GLuint id, GLenum pname, GLuint64* params));
 GL_FUNC_DEFINE(void, glCreateFramebuffers, (GLsizei n, GLuint* framebuffers));
 GL_FUNC_DEFINE(void, glCreateRenderbuffers, (GLsizei n, GLuint* renderbuffers));
 GL_FUNC_DEFINE(void, glBindTextureUnit, (GLuint unit, GLuint texture));
@@ -819,6 +824,11 @@ void opengl_init_gl() NO_EXCEPT
     glFenceSync = (type_glFenceSync *) wglGetProcAddress("glFenceSync");
     glClientWaitSync = (type_glClientWaitSync *) wglGetProcAddress("glClientWaitSync");
     glDeleteSync = (type_glDeleteSync *) wglGetProcAddress("glDeleteSync");
+    glCreateQueries = (type_glCreateQueries *) wglGetProcAddress("glCreateQueries");
+    glDeleteQueries = (type_glDeleteQueries *) wglGetProcAddress("glDeleteQueries");
+    glQueryCounter = (type_glQueryCounter *) wglGetProcAddress("glQueryCounter");
+    glGetQueryObjectiv = (type_glGetQueryObjectiv *) wglGetProcAddress("glGetQueryObjectiv");
+    glGetQueryObjectui64v = (type_glGetQueryObjectui64v *) wglGetProcAddress("glGetQueryObjectui64v");
     glCreateFramebuffers = (type_glCreateFramebuffers *) wglGetProcAddress("glCreateFramebuffers");
     glCreateRenderbuffers = (type_glCreateRenderbuffers *) wglGetProcAddress("glCreateRenderbuffers");
     glBindTextureUnit = (type_glBindTextureUnit *) wglGetProcAddress("glBindTextureUnit");

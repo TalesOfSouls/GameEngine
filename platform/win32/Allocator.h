@@ -16,10 +16,97 @@
 
 static int32 _page_size = 0;
 
+/**
+ * Large pages (usually 2 MB instead of 4 KB pages -> far fewer TLB misses for the big memory pools)
+ *
+ * Used by platform_alloc_aligned() for allocations that are
+ *      - fixed in size (initial_size == reserve_size): large pages can only be reserved + committed at once,
+ *        they can't be committed/decommitted later (no grow/shrink)
+ *      - at least one large page in size (smaller allocations would waste most of the page)
+ *
+ * Requirements (otherwise the normal pages are used, no error):
+ *      - the user account has the right "Lock pages in memory" (SeLockMemoryPrivilege, secpol.msc ->
+ *        Local Policies -> User Rights Assignment, takes effect after a new log on)
+ *      - the privilege is enabled in the process token (@see setup_large_pages() of the application)
+ *      - the OS finds enough contiguous physical memory (can fail on a fragmented system, also after a while)
+ *
+ * WARNING: Large pages are never paged out (locked in physical memory)
+ *
+ * Set COMS_ALLOC_LARGE_PAGES to 0 to disable them
+ */
+#ifndef COMS_ALLOC_LARGE_PAGES
+    #define COMS_ALLOC_LARGE_PAGES 1
+#endif
+
+// Large page size of the system, 0 = not checked yet, -1 = the system doesn't support large pages (per module)
+static int64 _large_page_size = 0;
+
+enum PlatformAllocFlag : uint32 {
+    PLATFORM_ALLOC_FLAG_NONE = 0,
+
+    // The allocation uses large pages (can't grow/shrink)
+    PLATFORM_ALLOC_FLAG_LARGE_PAGES = 1 << 0,
+};
+
 struct platform_alloc_header {
     size_t reserved_size;
     size_t committed_size;
+
+    // @see PlatformAllocFlag
+    uint32 flags;
 };
+
+/**
+ * Tries to reserve + commit memory with large pages
+ *
+ * @param size_t size Size in bytes (incl. header + alignment)
+ * @param size_t* allocated_size Size of the allocation, a multiple of the large page size (output)
+ *
+ * @return void* NULL if large pages are not available (the caller falls back to normal pages)
+ */
+static inline
+void* platform_alloc_large_pages(size_t size, size_t* const allocated_size) NO_EXCEPT
+{
+    #if COMS_ALLOC_LARGE_PAGES
+        if (!_large_page_size) {
+            const size_t large_page_size = GetLargePageMinimum();
+            _large_page_size = large_page_size ? (int64) large_page_size : -1;
+        }
+
+        if (_large_page_size <= 0 || size < (size_t) _large_page_size) {
+            return NULL;
+        }
+
+        const size_t large_size = ALIGN_UP(size, (size_t) _large_page_size);
+        void* const base = VirtualAlloc(NULL, large_size, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
+        if (!base) {
+            const DWORD error = GetLastError();
+            if (error == ERROR_PRIVILEGE_NOT_HELD) {
+                // The privilege is missing or not enabled yet (allocations before setup_large_pages(), e.g. debug memory)
+                // Not cached: the privilege is enabled later during the setup (setup_large_pages() already logs a warning)
+                LOG_3("[INFO] Large pages not used: privilege SeLockMemoryPrivilege not held");
+            } else {
+                // E.g. not enough contiguous physical memory, a smaller allocation may still work
+                LOG_1(
+                    "[WARNING] Large page allocation of %n B failed (error %d), using normal pages",
+                    {DATA_TYPE_UINT64, (void *) &large_size}, {DATA_TYPE_UINT32, (void *) &error}
+                );
+            }
+
+            return NULL;
+        }
+
+        *allocated_size = large_size;
+        LOG_1("[INFO] Allocated %n B with large pages", {DATA_TYPE_UINT64, (void *) &large_size});
+
+        return base;
+    #else
+        (void) size;
+        (void) allocated_size;
+
+        return NULL;
+    #endif
+}
 
 // Returns zeroed memory
 inline
@@ -52,16 +139,32 @@ void* platform_alloc_aligned(
 
     ASSERT_TRUE(initial_size <= reserve_size);
 
-    void* base = VirtualAlloc(NULL, reserve_size, MEM_RESERVE, PAGE_READWRITE);
-    ASSERT_TRUE(base);
+    // Fixed size allocations: large pages if possible (@see platform_alloc_large_pages)
+    uint32 flags = PLATFORM_ALLOC_FLAG_NONE;
+    void* base = NULL;
+    if (initial_size == reserve_size) {
+        size_t large_size = 0;
+        base = platform_alloc_large_pages(reserve_size, &large_size);
+        if (base) {
+            initial_size = large_size;
+            reserve_size = large_size;
+            flags |= PLATFORM_ALLOC_FLAG_LARGE_PAGES;
+        }
+    }
 
-    const void* const committed = VirtualAlloc(base, initial_size, MEM_COMMIT, PAGE_READWRITE);
-    ASSERT_TRUE(committed == base);
-    PSEUDO_USE(committed);
+    if (!base) {
+        base = VirtualAlloc(NULL, reserve_size, MEM_RESERVE, PAGE_READWRITE);
+        ASSERT_TRUE(base);
+
+        const void* const committed = VirtualAlloc(base, initial_size, MEM_COMMIT, PAGE_READWRITE);
+        ASSERT_TRUE(committed == base);
+        PSEUDO_USE(committed);
+    }
 
     platform_alloc_header* hdr = (platform_alloc_header *) base;
     hdr->reserved_size  = reserve_size;
     hdr->committed_size = initial_size;
+    hdr->flags = flags;
 
     uintptr_t raw = (uintptr_t)base + sizeof(platform_alloc_header) + sizeof(void*);
     void* aligned = (void*) ALIGN_UP(raw, alignment);
@@ -82,6 +185,12 @@ bool platform_alloc_aligned_grow(void* aligned_ptr, size_t new_user_size) NO_EXC
     // Get the base header
     void* base = ((void**)aligned_ptr)[-1];
     platform_alloc_header* hdr = (platform_alloc_header *) base;
+
+    // Large pages are committed at once and can't grow
+    if (hdr->flags & PLATFORM_ALLOC_FLAG_LARGE_PAGES) {
+        LOG_1("[ERROR] platform_alloc_aligned_grow: large page allocations can't grow");
+        return false;
+    }
 
     // Calculate new committed size including header and alignment
     const size_t new_committed = ALIGN_UP(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
@@ -118,6 +227,11 @@ bool platform_alloc_aligned_shrink(void* aligned_ptr, size_t new_user_size) NO_E
     // Get the base header
     void* base = ((void**)aligned_ptr)[-1];
     platform_alloc_header* hdr = (platform_alloc_header *) base;
+
+    // Large pages can't be decommitted (the memory stays committed, not an error for the caller)
+    if (hdr->flags & PLATFORM_ALLOC_FLAG_LARGE_PAGES) {
+        return true;
+    }
 
     const size_t new_committed = ALIGN_UP(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
 
@@ -199,6 +313,7 @@ void* platform_shared_alloc(
 
     ASSERT_TRUE(initial_size <= reserve_size);
 
+    // Shared memory doesn't use large pages (would need SEC_LARGE_PAGES + a size that is a multiple of the large page size)
     *fd = CreateFileMappingA(
         INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,
         (DWORD)(reserve_size >> 32), (DWORD)(reserve_size & 0xFFFFFFFF), name
@@ -211,6 +326,7 @@ void* platform_shared_alloc(
     platform_alloc_header* hdr = (platform_alloc_header *) base;
     hdr->reserved_size  = reserve_size;
     hdr->committed_size = initial_size;
+    hdr->flags = PLATFORM_ALLOC_FLAG_NONE;
 
     void* user_ptr = (void*)((uintptr_t)base + sizeof(platform_alloc_header));
 

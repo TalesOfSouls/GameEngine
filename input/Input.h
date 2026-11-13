@@ -350,6 +350,9 @@ struct Input {
     // 0xFF = not mapped
     ControllerButton controller_axes[4];
 
+    // Bit per controller_axes entry: the axis value is negated (e.g. bit 1 = inverted camera y)
+    byte controller_axes_invert;
+
     // Buffer for text (e.g. text copy/clipboard)
     // In case of multiple Input elements we may even reference the same buffer
     // Used in input_text_add()
