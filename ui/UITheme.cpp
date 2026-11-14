@@ -254,9 +254,7 @@ bool ui_theme_from_txt(UITheme* const __restrict theme, const char* __restrict t
             continue;
         }
 
-        char name[HASH_MAP_MAX_KEY_LENGTH];
-        ui_document_copy(&theme->document, node->type, name, sizeof(name));
-        hashmap_insert(&theme->hash_map, name, i);
+        hashmap_insert(&theme->hash_map, theme->document.text + node->type.offset, node->type.length, i);
     }
 
     return true;

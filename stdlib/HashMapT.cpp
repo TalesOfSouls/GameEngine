@@ -11,13 +11,14 @@
 #include "../memory/ChunkMemoryT.cpp"
 #include "../hash/GeneralHash.h"
 #include "HashMapHash.h"
+#include "../utils/SimpleString.h"
 
 /**
  * Bucket index = hashmap_hash_range(hash, capacity), the head of bucket i is stored in slot i (entry->head)
  * Insert pushes the new entry to the front of its chain (no chain walk)
  * New entries are preferably placed in the slot of their own bucket -> head + entry often in one cache line
  * String entries store a 16 bit hash tag -> chain walks compare 2 bytes before comparing the key
- * The string key is hashed and measured in one pass (no strlen, no hash function pointer call)
+ * String keys are hashed/compared 8 bytes at a time, the length/SimpleString versions skip the length calculation
  * Remove only unlinks + frees the removed entry, other entries are never moved/copied
  */
 
@@ -158,7 +159,7 @@ T* hashmap_slot_create(HashMapT<T>* const hm, uint32 hash) NO_EXCEPT
 /**
  * Finds a string entry
  *
- * @param key    Stored key
+ * @param key    Stored key part (@see hashmap_str_key)
  * @param length Length of the stored key part
  */
 template <typename T>
@@ -172,8 +173,8 @@ T* hashmap_str_find(const HashMapT<T>* const hm, const char* key, int32 length, 
         T* const entry = &hm->buf.memory[next - 1];
 
         // The tag check filters out almost all non-matching entries
-        // The memcmp includes the \0 -> no partial matches
-        if (entry->tag == tag && memcmp(entry->key, key, length + 1) == 0) {
+        // The compare includes the \0 of the stored key -> no partial matches
+        if (entry->tag == tag && hashmap_str_equals(entry->key, key, length)) {
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(T));
             return entry;
         }
@@ -184,6 +185,7 @@ T* hashmap_str_find(const HashMapT<T>* const hm, const char* key, int32 length, 
     return NULL;
 }
 
+// The key doesn't have to be \0 terminated
 template <typename T>
 FORCE_INLINE
 T* hashmap_str_slot_create(HashMapT<T>* const hm, const char* key, int32 length, uint32 hash) NO_EXCEPT
@@ -193,8 +195,8 @@ T* hashmap_str_slot_create(HashMapT<T>* const hm, const char* key, int32 length,
         return NULL;
     }
 
-    // Includes the \0
-    memcpy(entry->key, key, length + 1);
+    memcpy(entry->key, key, length);
+    entry->key[length] = '\0';
     entry->tag = hashmap_hash_tag(hash);
 
     return entry;
@@ -222,11 +224,21 @@ void hashmap_unlink_free(HashMapT<T>* const hm, uint32 hash, T* const entry) NO_
     }
 }
 
+/**
+ * String key functions
+ *
+ * Every function exists in 3 versions:
+ *      const char* key                 \0 terminated key (the length is measured)
+ *      const char* key, int32 length   key with known length (doesn't have to be \0 terminated)
+ *      SimpleString<C> key             same as the length version
+ * The length versions skip the length calculation -> prefer them if the length is already known
+ */
+
 template <typename T, typename V>
-T* hashmap_insert(HashMapT<T>* const hm, const char* key, V value) NO_EXCEPT
+T* hashmap_insert(HashMapT<T>* const hm, const char* key, int32 length, V value) NO_EXCEPT
 {
-    int32 length;
-    const uint32 hash = hashmap_str_hash(&key, &length);
+    hashmap_str_key(&key, &length);
+    const uint32 hash = hashmap_str_hash(key, length);
 
     T* const entry = hashmap_str_slot_create(hm, key, length, hash);
     if (!entry) {
@@ -239,10 +251,10 @@ T* hashmap_insert(HashMapT<T>* const hm, const char* key, V value) NO_EXCEPT
 }
 
 template <typename T, typename V>
-T* hashmap_insert(HashMapT<T>* const hm, const char* key, V* value) NO_EXCEPT
+T* hashmap_insert(HashMapT<T>* const hm, const char* key, int32 length, V* value) NO_EXCEPT
 {
-    int32 length;
-    const uint32 hash = hashmap_str_hash(&key, &length);
+    hashmap_str_key(&key, &length);
+    const uint32 hash = hashmap_str_hash(key, length);
 
     T* const entry = hashmap_str_slot_create(hm, key, length, hash);
     if (!entry) {
@@ -258,12 +270,33 @@ T* hashmap_insert(HashMapT<T>* const hm, const char* key, V* value) NO_EXCEPT
     return entry;
 }
 
+template <typename T, typename V>
+FORCE_INLINE
+T* hashmap_insert(HashMapT<T>* const hm, const char* key, V value) NO_EXCEPT
+{
+    return hashmap_insert(hm, key, hashmap_str_length(key), value);
+}
+
+template <typename T, typename V>
+FORCE_INLINE
+T* hashmap_insert(HashMapT<T>* const hm, const char* key, V* value) NO_EXCEPT
+{
+    return hashmap_insert(hm, key, hashmap_str_length(key), value);
+}
+
+template <typename T, typename C, typename V>
+FORCE_INLINE
+T* hashmap_insert(HashMapT<T>* const hm, SimpleString<C> key, V value) NO_EXCEPT
+{
+    return hashmap_insert(hm, (const char *) key.str, key.length, value);
+}
+
 // The value is zero initialized (the slot may contain data of a previously removed element)
 template <typename T>
-T* hashmap_reserve(HashMapT<T>* const hm, const char* key) NO_EXCEPT
+T* hashmap_reserve(HashMapT<T>* const hm, const char* key, int32 length) NO_EXCEPT
 {
-    int32 length;
-    const uint32 hash = hashmap_str_hash(&key, &length);
+    hashmap_str_key(&key, &length);
+    const uint32 hash = hashmap_str_hash(key, length);
 
     T* const entry = hashmap_str_slot_create(hm, key, length, hash);
     if (!entry) {
@@ -273,6 +306,20 @@ T* hashmap_reserve(HashMapT<T>* const hm, const char* key) NO_EXCEPT
     memset(&entry->value, 0, sizeof(entry->value));
 
     return entry;
+}
+
+template <typename T>
+FORCE_INLINE
+T* hashmap_reserve(HashMapT<T>* const hm, const char* key) NO_EXCEPT
+{
+    return hashmap_reserve(hm, key, hashmap_str_length(key));
+}
+
+template <typename T, typename C>
+FORCE_INLINE
+T* hashmap_reserve(HashMapT<T>* const hm, SimpleString<C> key) NO_EXCEPT
+{
+    return hashmap_reserve(hm, (const char *) key.str, key.length);
 }
 
 // The value is zero initialized (the slot may contain data of a previously removed element)
@@ -294,10 +341,10 @@ T* hashmap_reserve(HashMapT<T>* const hm, K key) NO_EXCEPT
 }
 
 template <typename T>
-T* hashmap_get_reserve(HashMapT<T>* const hm, const char* key) NO_EXCEPT
+T* hashmap_get_reserve(HashMapT<T>* const hm, const char* key, int32 length) NO_EXCEPT
 {
-    int32 length;
-    const uint32 hash = hashmap_str_hash(&key, &length);
+    hashmap_str_key(&key, &length);
+    const uint32 hash = hashmap_str_hash(key, length);
 
     T* const entry = hashmap_str_find(hm, key, length, hash);
     if (entry) {
@@ -315,25 +362,67 @@ T* hashmap_get_reserve(HashMapT<T>* const hm, const char* key) NO_EXCEPT
 }
 
 template <typename T>
-inline
-T* hashmap_entry_get(const HashMapT<T>* const hm, const char* key) NO_EXCEPT
+FORCE_INLINE
+T* hashmap_get_reserve(HashMapT<T>* const hm, const char* key) NO_EXCEPT
 {
-    int32 length;
-    const uint32 hash = hashmap_str_hash(&key, &length);
+    return hashmap_get_reserve(hm, key, hashmap_str_length(key));
+}
 
-    return hashmap_str_find(hm, key, length, hash);
+template <typename T, typename C>
+FORCE_INLINE
+T* hashmap_get_reserve(HashMapT<T>* const hm, SimpleString<C> key) NO_EXCEPT
+{
+    return hashmap_get_reserve(hm, (const char *) key.str, key.length);
 }
 
 template <typename T>
-void hashmap_remove(HashMapT<T>* const hm, const char* key) NO_EXCEPT
+inline
+T* hashmap_entry_get(const HashMapT<T>* const hm, const char* key, int32 length) NO_EXCEPT
 {
-    int32 length;
-    const uint32 hash = hashmap_str_hash(&key, &length);
+    hashmap_str_key(&key, &length);
+
+    return hashmap_str_find(hm, key, length, hashmap_str_hash(key, length));
+}
+
+template <typename T>
+FORCE_INLINE
+T* hashmap_entry_get(const HashMapT<T>* const hm, const char* key) NO_EXCEPT
+{
+    return hashmap_entry_get(hm, key, hashmap_str_length(key));
+}
+
+// Same hm type as the int key version -> partial ordering picks this version for SimpleString keys
+template <typename T, typename C>
+FORCE_INLINE
+T* hashmap_entry_get(HashMapT<T>* const hm, SimpleString<C> key) NO_EXCEPT
+{
+    return hashmap_entry_get((const HashMapT<T>*) hm, (const char *) key.str, key.length);
+}
+
+template <typename T>
+void hashmap_remove(HashMapT<T>* const hm, const char* key, int32 length) NO_EXCEPT
+{
+    hashmap_str_key(&key, &length);
+    const uint32 hash = hashmap_str_hash(key, length);
 
     T* const entry = hashmap_str_find(hm, key, length, hash);
     if (entry) {
         hashmap_unlink_free(hm, hash, entry);
     }
+}
+
+template <typename T>
+FORCE_INLINE
+void hashmap_remove(HashMapT<T>* const hm, const char* key) NO_EXCEPT
+{
+    hashmap_remove(hm, key, hashmap_str_length(key));
+}
+
+template <typename T, typename C>
+FORCE_INLINE
+void hashmap_remove(HashMapT<T>* const hm, SimpleString<C> key) NO_EXCEPT
+{
+    hashmap_remove(hm, (const char *) key.str, key.length);
 }
 
 template <

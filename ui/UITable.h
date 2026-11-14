@@ -44,6 +44,13 @@ struct UITable {
     // Optional text color per row (uint32[row_capacity], 0 = font.color), @see ui_table_set_row_color
     int32 row_text_colors;
 
+    // Dynamic tables only: value per row for the owner of the table (int32[row_capacity], e.g. the id of the data in the row)
+    // Not used by the table itself, @see ui_table_row_values
+    int32 row_values;
+
+    // Value for the owner of the table (not used by the table itself, e.g. the current level of a drill down table)
+    int32 user_value;
+
     // 1-indexed action that is called when the selected row changes (layout->on_actions, 0 = none)
     int32 on_change;
 

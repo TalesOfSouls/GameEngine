@@ -14,6 +14,10 @@ struct FrameInFlight {
     OpenGLFramebufferData framebuffer;
     Texture* texture;
 
+    // Stencil of framebuffer.depth_stencil_texture as its own texture (a depth stencil texture is sampled either as
+    // depth or as stencil), 0 if unused
+    uint32 stencil_view;
+
     GpuFence fence;
 
     // msaa data

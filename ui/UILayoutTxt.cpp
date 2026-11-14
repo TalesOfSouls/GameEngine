@@ -1555,9 +1555,7 @@ UICore* ui_txt_element_create(
         if (node->name.length >= HASH_MAP_MAX_KEY_LENGTH) {
             LOG_1("[WARNING] UI layout: element name too long in line %d", {DATA_TYPE_INT32, (int32 *) &node->line});
         } else {
-            char name[HASH_MAP_MAX_KEY_LENGTH];
-            ui_document_copy(doc, node->name, name, sizeof(name));
-            ui_layout_name_element(layout, name, element);
+            ui_layout_name_element(layout, doc->text + node->name.offset, node->name.length, element);
         }
     }
 

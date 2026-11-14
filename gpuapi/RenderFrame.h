@@ -26,6 +26,9 @@ struct RenderSettings {
     // Swap interval (0 = off, 1 = on, -1 = adaptive if supported)
     int8 vsync;
 
+    // SIMD step size of the cpu (runtime check @see CSettings::simd_step_size)
+    uint8 simd_step_size;
+
     #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
         uint32 debug_visibility_flags;
     #endif

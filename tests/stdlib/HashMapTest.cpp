@@ -248,6 +248,76 @@ static void test_hashmap_long_keys() {
     hashmap_free(&hm);
 }
 
+static void test_hashmap_str_equals() {
+    char stored[HASH_MAP_MAX_KEY_LENGTH] = {0};
+    const char* const keys = "0123456789ABCDEFGHIJKLMNOP";
+
+    // Every length uses a different compare path (byte loop, 2x 4 bytes, 8 byte words + overlapping tail)
+    for (int32 length = 0; length < HASH_MAP_MAX_KEY_LENGTH; ++length) {
+        memcpy(stored, keys, length);
+        stored[length] = '\0';
+
+        TEST_TRUE(hashmap_str_equals(stored, keys, length));
+
+        // Shorter key = prefix of the stored key -> no match (the stored key has no \0 at this position)
+        if (length > 0) {
+            TEST_FALSE(hashmap_str_equals(stored, keys, length - 1));
+        }
+
+        // Every single character difference is detected
+        for (int32 i = 0; i < length; ++i) {
+            char other[HASH_MAP_MAX_KEY_LENGTH];
+            memcpy(other, keys, length);
+            other[i] = '#';
+
+            TEST_FALSE(hashmap_str_equals(stored, other, length));
+        }
+    }
+}
+
+// Keys with known length (not \0 terminated) and SimpleString keys find the same entries as \0 terminated keys
+static void test_hashmap_length_keys() {
+    HashMapT<HashEntryStrT<int32>> hm = {0};
+    hashmap_alloc(&hm, 32, 32);
+
+    // Every prefix of the string is a different key
+    const char* const text = "abcdefghijklmnopqrstu";
+    for (int32 length = 0; length < 21; ++length) {
+        TEST_NOT_EQUALS(hashmap_insert(&hm, text, length, length), NULL);
+    }
+
+    char key[32];
+    for (int32 length = 0; length < 21; ++length) {
+        memcpy(key, text, length);
+        key[length] = '\0';
+
+        // \0 terminated
+        HashEntryStrT<int32>* entry = hashmap_entry_get(&hm, key);
+        TEST_NOT_EQUALS(entry, NULL);
+        TEST_EQUALS(entry->value, length);
+
+        // SimpleString
+        SimpleString<const char> str = { length, length, text };
+        TEST_EQUALS(hashmap_entry_get(&hm, str), entry);
+    }
+
+    // SimpleString insert/get_reserve/remove
+    SimpleString<const char> name = { 6, 6, "button_close" };
+    TEST_NOT_EQUALS(hashmap_insert(&hm, name, 100), NULL);
+    TEST_EQUALS(hashmap_entry_get(&hm, "button")->value, 100);
+    TEST_EQUALS(hashmap_get_reserve(&hm, name)->value, 100);
+
+    hashmap_remove(&hm, name);
+    TEST_EQUALS(hashmap_entry_get(&hm, "button"), NULL);
+
+    // Long keys with length use the same tail as \0 terminated long keys
+    const char* const long_key = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    hashmap_insert(&hm, long_key, (int32) strlen(long_key), 7);
+    TEST_EQUALS(hashmap_entry_get(&hm, long_key)->value, 7);
+
+    hashmap_free(&hm);
+}
+
 static void test_hashmap_int_key() {
     HashMapT<HashEntryT<int32, int32>> hm = {0};
     hashmap_alloc(&hm, 16, 16);
@@ -445,6 +515,8 @@ int main() {
     TEST_RUN(test_hashmap_reserve);
     TEST_RUN(test_hashmap_many);
     TEST_RUN(test_hashmap_long_keys);
+    TEST_RUN(test_hashmap_str_equals);
+    TEST_RUN(test_hashmap_length_keys);
     TEST_RUN(test_hashmap_int_key);
     TEST_RUN(test_hashmap_dump_load);
 

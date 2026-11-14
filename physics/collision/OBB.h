@@ -395,7 +395,6 @@ void task_worker_broad_avx512(void* _t) {
 }
 #endif
 
-
 int32 cmp_minx(const void* a, const void* b) {
     return ((AABB1D *)a)->minx < ((AABB1D *)b)->minx ? -1 : 1;
 }

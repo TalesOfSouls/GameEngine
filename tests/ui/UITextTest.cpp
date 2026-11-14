@@ -35,6 +35,49 @@ static void ui_text_test_free(UILayout* const layout) {
     TEST_EQUALS(_str.length, (int32) strlen(_str.str));                                                 \
 } while (0)
 
+// Owner values of a table (@see ui_table_row_values, UITable::user_value)
+static void test_ui_table_row_values() {
+    UILayout layout;
+    ui_text_test_alloc(&layout);
+
+    const SimpleString<const char> titles[] = { simple_string_literal<const char>("a"), simple_string_literal<const char>("b") };
+
+    // Static tables have no row values
+    UITable* const static_table = ui_table_create(&layout, titles, 2, 4);
+    TEST_EQUALS(ui_table_row_values(&layout, static_table), NULL);
+
+    UITable* const table = ui_table_create(&layout, titles, 2, 4, NULL, 16);
+    TEST_EQUALS(table->user_value, 0);
+
+    int32* const values = ui_table_row_values(&layout, table);
+    TEST_NOT_EQUALS(values, NULL);
+    TEST_EQUALS(((uintptr_t) values) % alignof(int32), 0);
+
+    // Zero initialized
+    for (int32 i = 0; i < table->row_capacity; ++i) {
+        TEST_EQUALS(values[i], 0);
+    }
+
+    // The values don't overlap with the cells
+    for (int32 i = 0; i < table->row_capacity; ++i) {
+        values[i] = 100 + i;
+        ui_table_set_cell(&layout, table, i, 0, "cell_text_0123", 14);
+        ui_table_set_cell(&layout, table, i, 1, "cell_text_0123", 14);
+    }
+
+    ui_table_set_footer(&layout, table, titles);
+    for (int32 i = 0; i < table->row_capacity; ++i) {
+        TEST_EQUALS(values[i], 100 + i);
+    }
+
+    // The values are kept if rows are hidden
+    ui_table_set_row_count(&layout, table, 4);
+    ui_table_set_row_count(&layout, table, 1);
+    TEST_EQUALS(ui_table_row_values(&layout, table)[3], 103);
+
+    ui_text_test_free(&layout);
+}
+
 static void test_ui_string_reserve() {
     UILayout layout;
     ui_text_test_alloc(&layout);
@@ -406,6 +449,7 @@ static void test_input_key_names() {
 int main() {
     TEST_INIT(100);
 
+    TEST_RUN(test_ui_table_row_values);
     TEST_RUN(test_ui_string_reserve);
     TEST_RUN(test_ui_label_text_length);
     TEST_RUN(test_ui_label_text_fixed);

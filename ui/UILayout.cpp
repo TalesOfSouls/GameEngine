@@ -72,16 +72,43 @@ UICore* ui_get_element_cached(UILayout* const layout, int32* const cache, const 
     return *cache > 0 ? (UICore *) (layout->ui_element_buffer.memory + *cache) : NULL;
 }
 
+// Name with known length (faster, no length calculation), the name doesn't have to be \0 terminated
+static inline
+UICore* ui_get_element(UILayout* const layout, const char* name, int32 length) NO_EXCEPT
+{
+    if (!layout->hash_map.buf.memory) {
+        return NULL;
+    }
+
+    const HashEntryStrT<int32>* entry = hashmap_entry_get(&layout->hash_map, name, length);
+    if (!entry) {
+        return NULL;
+    }
+
+    return (UICore *) (layout->ui_element_buffer.memory + entry->value);
+}
+
+/**
+ * Preferred version, the length is known (e.g. simple_string_literal<const char>("name") calculates it at compile time)
+ * The const char* version has to calculate the length on every call
+ */
 FORCE_INLINE
 UICore* ui_get_element(UILayout* const layout, SimpleString<const char> str) NO_EXCEPT
 {
-    char name[64];
-    ASSERT_TRUE(ARRAY_COUNT(name) > str.length);
+    return ui_get_element(layout, str.str, str.length);
+}
 
-    memcpy(name, str.str, str.length);
-    name[str.length] = '\0';
+FORCE_INLINE
+UICore* ui_get_element_cached(UILayout* const layout, int32* const cache, SimpleString<const char> str) NO_EXCEPT
+{
+    if (!*cache) {
+        const UICore* const element = ui_get_element(layout, str.str, str.length);
+        *cache = element
+            ? (int32) ((const byte *) element - layout->ui_element_buffer.memory)
+            : -1;
+    }
 
-    return ui_get_element(layout, name);
+    return *cache > 0 ? (UICore *) (layout->ui_element_buffer.memory + *cache) : NULL;
 }
 
 /**
@@ -125,9 +152,10 @@ void ui_layout_reset(UILayout* const layout) NO_EXCEPT
 
 /**
  * Makes an element findable by name (@see ui_get_element)
+ * The name doesn't have to be \0 terminated
  */
 inline
-void ui_layout_name_element(UILayout* const layout, const char* name, const UICore* const element) NO_EXCEPT
+void ui_layout_name_element(UILayout* const layout, const char* name, int32 length, const UICore* const element) NO_EXCEPT
 {
     if (!layout->hash_map.buf.memory) {
         if (!layout->data) {
@@ -137,7 +165,7 @@ void ui_layout_name_element(UILayout* const layout, const char* name, const UICo
         ui_layout_hashmap_init(layout, UI_LAYOUT_DEFAULT_ELEMENT_COUNT);
     }
 
-    hashmap_insert(&layout->hash_map, name, ui_element_offset(layout, element));
+    hashmap_insert(&layout->hash_map, name, length, ui_element_offset(layout, element));
 }
 
 /**

@@ -16,7 +16,9 @@
 // Version 4: UIColorPicker palette order, UITable dynamic cells
 // Version 5: UICore incremental caching members
 // Version 8: Label/input texts are stored with their length (@see ui_string_reserve)
-#define UI_LAYOUT_VERSION 8
+// Version 9: New string hash of the element hash map (@see hashmap_str_hash)
+// Version 10: UITable row values + user value
+#define UI_LAYOUT_VERSION 10
 
 /**
  * BINARY FORMAT: .layoutbin, version UI_LAYOUT_VERSION

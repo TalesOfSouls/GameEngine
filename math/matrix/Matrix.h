@@ -682,14 +682,16 @@ void mat4_identity_sparse(f32 matrix[16]) NO_EXCEPT
     matrix[0] = 1.0f; matrix[5] = 1.0f; matrix[10] = 1.0f; matrix[15] = 1.0f;
 }
 
-FORCE_INLINE
-void mat4_identity(__m128 matrix[4]) NO_EXCEPT
-{
-    matrix[0] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
-    matrix[1] = _mm_set_ps(0.0f, 1.0f, 0.0f, 0.0f);
-    matrix[2] = _mm_set_ps(0.0f, 0.0f, 1.0f, 0.0f);
-    matrix[3] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f);
-}
+#if defined(__SSE4_2__)
+    FORCE_INLINE
+    void mat4_identity(__m128 matrix[4]) NO_EXCEPT
+    {
+        matrix[0] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
+        matrix[1] = _mm_set_ps(0.0f, 1.0f, 0.0f, 0.0f);
+        matrix[2] = _mm_set_ps(0.0f, 0.0f, 1.0f, 0.0f);
+        matrix[3] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f);
+    }
+#endif
 
 // x, y, z need to be normalized
 // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
@@ -1060,6 +1062,8 @@ void mat4vec4_mult_sse(const v16_f32* __restrict matrix, const v4_f32* __restric
     #endif
 }
 
+// x86 only (no runtime step size): only use them in code that is itself guarded by __SSE4_2__
+#if defined(__SSE4_2__)
 // @question could simple mul add sse be faster?
 FORCE_INLINE
 void mat4vec4_mult_sse(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result) NO_EXCEPT
@@ -1102,6 +1106,7 @@ void mat4vec4_mult_sse(const __m128* __restrict matrix, const __m128* __restrict
     result[2] = _mm_dp_ps(matrix[2], *vector, 0xF1);
     result[3] = _mm_dp_ps(matrix[3], *vector, 0xF1);
 }
+#endif
 
 FORCE_INLINE
 void mat4mat4_mult(const f32* __restrict a, const f32* __restrict b, f32* __restrict result) NO_EXCEPT
@@ -1127,22 +1132,220 @@ void mat4mat4_mult(const f32* __restrict a, const f32* __restrict b, f32* __rest
     result[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15];
 }
 
+// FMA is no part of SSE4.2/AVX2 itself:
+//      GCC/Clang define __FMA__ (-mfma or -march=...)
+//      MSVC has no macro, /arch:AVX2 allows FMA instructions (all AVX2 CPUs support FMA3)
+#if defined(__FMA__) || (defined(_MSC_VER) && defined(__AVX2__))
+    #define MATRIX_FMA_AVAILABLE 1
+#endif
+
+// Same result as mat4mat4_mult (result row i = sum a[i][k] * b row k)
+// Uses unaligned loads/stores -> no alignment requirements
 inline
-void mat4mat4_mult_simd(const f32* __restrict a, const f32* __restrict b, f32* __restrict result) NO_EXCEPT
+void mat4mat4_mult_simd(const f32* __restrict a, const f32* __restrict b, f32* __restrict result, MAYBE_UNUSED int32 steps = 4) NO_EXCEPT
 {
-    __m128 row1 = _mm_load_ps(&b[0]);
-    __m128 row2 = _mm_load_ps(&b[4]);
-    __m128 row3 = _mm_load_ps(&b[8]);
-    __m128 row4 = _mm_load_ps(&b[12]);
+    #if defined(__ARM_NEON)
+        if (steps >= 4) {
+            const float32x4_t row0 = vld1q_f32(&b[0]);
+            const float32x4_t row1 = vld1q_f32(&b[4]);
+            const float32x4_t row2 = vld1q_f32(&b[8]);
+            const float32x4_t row3 = vld1q_f32(&b[12]);
 
-    for (int32 i = 0; i < 4; i++) {
-        __m128 r = _mm_mul_ps(_mm_broadcast_ss(&a[i*4 + 0]), row1);
-        r = _mm_fmadd_ps(_mm_broadcast_ss(&a[i*4 + 1]), row2, r);
-        r = _mm_fmadd_ps(_mm_broadcast_ss(&a[i*4 + 2]), row3, r);
-        r = _mm_fmadd_ps(_mm_broadcast_ss(&a[i*4 + 3]), row4, r);
+            for (int32 i = 0; i < 4; ++i) {
+                float32x4_t r = vmulq_n_f32(row0, a[i * 4 + 0]);
+                r = vfmaq_n_f32(r, row1, a[i * 4 + 1]);
+                r = vfmaq_n_f32(r, row2, a[i * 4 + 2]);
+                r = vfmaq_n_f32(r, row3, a[i * 4 + 3]);
 
-        _mm_store_ps(&result[i*4], r);
+                vst1q_f32(&result[i * 4], r);
+            }
+
+            return;
+        }
+    #elif defined(__SSE4_2__)
+        // AVX2/AVX512 don't help: one row = 4 floats = 128 bit
+        if (steps >= 4) {
+            const __m128 row0 = _mm_loadu_ps(&b[0]);
+            const __m128 row1 = _mm_loadu_ps(&b[4]);
+            const __m128 row2 = _mm_loadu_ps(&b[8]);
+            const __m128 row3 = _mm_loadu_ps(&b[12]);
+
+            for (int32 i = 0; i < 4; ++i) {
+                __m128 r = _mm_mul_ps(_mm_set1_ps(a[i * 4 + 0]), row0);
+
+                #if defined(MATRIX_FMA_AVAILABLE)
+                    r = _mm_fmadd_ps(_mm_set1_ps(a[i * 4 + 1]), row1, r);
+                    r = _mm_fmadd_ps(_mm_set1_ps(a[i * 4 + 2]), row2, r);
+                    r = _mm_fmadd_ps(_mm_set1_ps(a[i * 4 + 3]), row3, r);
+                #else
+                    r = _mm_add_ps(r, _mm_mul_ps(_mm_set1_ps(a[i * 4 + 1]), row1));
+                    r = _mm_add_ps(r, _mm_mul_ps(_mm_set1_ps(a[i * 4 + 2]), row2));
+                    r = _mm_add_ps(r, _mm_mul_ps(_mm_set1_ps(a[i * 4 + 3]), row3));
+                #endif
+
+                _mm_storeu_ps(&result[i * 4], r);
+            }
+
+            return;
+        }
+    #endif
+
+    mat4mat4_mult(a, b, result);
+}
+
+/**
+ * 4x4 f64 matrix multiplication, same layout/result as mat4mat4_mult (result row i = sum a[i][k] * b row k)
+ *
+ * For column major matrices (OpenGL) this calculates b * a
+ * f64 is required if the matrices contain large world positions (e.g. inverse of a view projection)
+ *
+ * @param const f64*    a       Matrix
+ * @param const f64*    b       Matrix
+ * @param f64*          result  Result (must not be a or b)
+ * @param int32         steps   SIMD step size in f32 lanes (8 = 256 bit -> 4 f64 per register)
+ *
+ * @return void
+ */
+inline
+void mat4mat4_mult_f64(const f64* __restrict a, const f64* __restrict b, f64* __restrict result, MAYBE_UNUSED int32 steps = 4) NO_EXCEPT
+{
+    #if defined(__ARM_NEON)
+        // 128 bit = 2 f64 -> one row = 2 registers
+        if (steps >= 4) {
+            float64x2_t row_lo[4];
+            float64x2_t row_hi[4];
+            for (int32 k = 0; k < 4; ++k) {
+                row_lo[k] = vld1q_f64(&b[k * 4]);
+                row_hi[k] = vld1q_f64(&b[k * 4 + 2]);
+            }
+
+            for (int32 i = 0; i < 4; ++i) {
+                float64x2_t lo = vmulq_n_f64(row_lo[0], a[i * 4 + 0]);
+                float64x2_t hi = vmulq_n_f64(row_hi[0], a[i * 4 + 0]);
+
+                for (int32 k = 1; k < 4; ++k) {
+                    lo = vfmaq_n_f64(lo, row_lo[k], a[i * 4 + k]);
+                    hi = vfmaq_n_f64(hi, row_hi[k], a[i * 4 + k]);
+                }
+
+                vst1q_f64(&result[i * 4], lo);
+                vst1q_f64(&result[i * 4 + 2], hi);
+            }
+
+            return;
+        }
+    #else
+        // AVX512 doesn't help much (2 rows per register + shuffles) -> the AVX2 path is used
+        #if defined(__AVX2__)
+            if (steps >= 8) {
+                const __m256d row0 = _mm256_loadu_pd(&b[0]);
+                const __m256d row1 = _mm256_loadu_pd(&b[4]);
+                const __m256d row2 = _mm256_loadu_pd(&b[8]);
+                const __m256d row3 = _mm256_loadu_pd(&b[12]);
+
+                for (int32 i = 0; i < 4; ++i) {
+                    __m256d r = _mm256_mul_pd(_mm256_set1_pd(a[i * 4 + 0]), row0);
+
+                    #if defined(MATRIX_FMA_AVAILABLE)
+                        r = _mm256_fmadd_pd(_mm256_set1_pd(a[i * 4 + 1]), row1, r);
+                        r = _mm256_fmadd_pd(_mm256_set1_pd(a[i * 4 + 2]), row2, r);
+                        r = _mm256_fmadd_pd(_mm256_set1_pd(a[i * 4 + 3]), row3, r);
+                    #else
+                        r = _mm256_add_pd(r, _mm256_mul_pd(_mm256_set1_pd(a[i * 4 + 1]), row1));
+                        r = _mm256_add_pd(r, _mm256_mul_pd(_mm256_set1_pd(a[i * 4 + 2]), row2));
+                        r = _mm256_add_pd(r, _mm256_mul_pd(_mm256_set1_pd(a[i * 4 + 3]), row3));
+                    #endif
+
+                    _mm256_storeu_pd(&result[i * 4], r);
+                }
+
+                return;
+            }
+        #endif
+
+        #if defined(__SSE4_2__)
+            // 128 bit = 2 f64 -> one row = 2 registers
+            if (steps >= 4) {
+                __m128d row_lo[4];
+                __m128d row_hi[4];
+                for (int32 k = 0; k < 4; ++k) {
+                    row_lo[k] = _mm_loadu_pd(&b[k * 4]);
+                    row_hi[k] = _mm_loadu_pd(&b[k * 4 + 2]);
+                }
+
+                for (int32 i = 0; i < 4; ++i) {
+                    const __m128d s0 = _mm_set1_pd(a[i * 4 + 0]);
+                    __m128d lo = _mm_mul_pd(s0, row_lo[0]);
+                    __m128d hi = _mm_mul_pd(s0, row_hi[0]);
+
+                    for (int32 k = 1; k < 4; ++k) {
+                        const __m128d s = _mm_set1_pd(a[i * 4 + k]);
+                        lo = _mm_add_pd(lo, _mm_mul_pd(s, row_lo[k]));
+                        hi = _mm_add_pd(hi, _mm_mul_pd(s, row_hi[k]));
+                    }
+
+                    _mm_storeu_pd(&result[i * 4], lo);
+                    _mm_storeu_pd(&result[i * 4 + 2], hi);
+                }
+
+                return;
+            }
+        #endif
+    #endif
+
+    for (int32 i = 0; i < 4; ++i) {
+        for (int32 j = 0; j < 4; ++j) {
+            result[i * 4 + j] = a[i * 4 + 0] * b[j]
+                + a[i * 4 + 1] * b[4 + j]
+                + a[i * 4 + 2] * b[8 + j]
+                + a[i * 4 + 3] * b[12 + j];
+        }
     }
+}
+
+/**
+ * Inverse of a 4x4 f64 matrix (cofactors, works for row and column major)
+ *
+ * No SIMD version: the cofactors are mostly shuffles, it is only worth it for many matrices at once
+ *
+ * @param const f64*    m       Matrix
+ * @param f64*          result  Inverse (must not be m)
+ *
+ * @return bool false if the matrix is singular (result is unchanged)
+ */
+inline
+bool mat4_inverse_f64(const f64* __restrict m, f64* __restrict result) NO_EXCEPT
+{
+    f64 inv[16];
+
+    inv[0] = m[5] * m[10] * m[15] - m[5] * m[11] * m[14] - m[9] * m[6] * m[15] + m[9] * m[7] * m[14] + m[13] * m[6] * m[11] - m[13] * m[7] * m[10];
+    inv[4] = -m[4] * m[10] * m[15] + m[4] * m[11] * m[14] + m[8] * m[6] * m[15] - m[8] * m[7] * m[14] - m[12] * m[6] * m[11] + m[12] * m[7] * m[10];
+    inv[8] = m[4] * m[9] * m[15] - m[4] * m[11] * m[13] - m[8] * m[5] * m[15] + m[8] * m[7] * m[13] + m[12] * m[5] * m[11] - m[12] * m[7] * m[9];
+    inv[12] = -m[4] * m[9] * m[14] + m[4] * m[10] * m[13] + m[8] * m[5] * m[14] - m[8] * m[6] * m[13] - m[12] * m[5] * m[10] + m[12] * m[6] * m[9];
+    inv[1] = -m[1] * m[10] * m[15] + m[1] * m[11] * m[14] + m[9] * m[2] * m[15] - m[9] * m[3] * m[14] - m[13] * m[2] * m[11] + m[13] * m[3] * m[10];
+    inv[5] = m[0] * m[10] * m[15] - m[0] * m[11] * m[14] - m[8] * m[2] * m[15] + m[8] * m[3] * m[14] + m[12] * m[2] * m[11] - m[12] * m[3] * m[10];
+    inv[9] = -m[0] * m[9] * m[15] + m[0] * m[11] * m[13] + m[8] * m[1] * m[15] - m[8] * m[3] * m[13] - m[12] * m[1] * m[11] + m[12] * m[3] * m[9];
+    inv[13] = m[0] * m[9] * m[14] - m[0] * m[10] * m[13] - m[8] * m[1] * m[14] + m[8] * m[2] * m[13] + m[12] * m[1] * m[10] - m[12] * m[2] * m[9];
+    inv[2] = m[1] * m[6] * m[15] - m[1] * m[7] * m[14] - m[5] * m[2] * m[15] + m[5] * m[3] * m[14] + m[13] * m[2] * m[7] - m[13] * m[3] * m[6];
+    inv[6] = -m[0] * m[6] * m[15] + m[0] * m[7] * m[14] + m[4] * m[2] * m[15] - m[4] * m[3] * m[14] - m[12] * m[2] * m[7] + m[12] * m[3] * m[6];
+    inv[10] = m[0] * m[5] * m[15] - m[0] * m[7] * m[13] - m[4] * m[1] * m[15] + m[4] * m[3] * m[13] + m[12] * m[1] * m[7] - m[12] * m[3] * m[5];
+    inv[14] = -m[0] * m[5] * m[14] + m[0] * m[6] * m[13] + m[4] * m[1] * m[14] - m[4] * m[2] * m[13] - m[12] * m[1] * m[6] + m[12] * m[2] * m[5];
+    inv[3] = -m[1] * m[6] * m[11] + m[1] * m[7] * m[10] + m[5] * m[2] * m[11] - m[5] * m[3] * m[10] - m[9] * m[2] * m[7] + m[9] * m[3] * m[6];
+    inv[7] = m[0] * m[6] * m[11] - m[0] * m[7] * m[10] - m[4] * m[2] * m[11] + m[4] * m[3] * m[10] + m[8] * m[2] * m[7] - m[8] * m[3] * m[6];
+    inv[11] = -m[0] * m[5] * m[11] + m[0] * m[7] * m[9] + m[4] * m[1] * m[11] - m[4] * m[3] * m[9] - m[8] * m[1] * m[7] + m[8] * m[3] * m[5];
+    inv[15] = m[0] * m[5] * m[10] - m[0] * m[6] * m[9] - m[4] * m[1] * m[10] + m[4] * m[2] * m[9] + m[8] * m[1] * m[6] - m[8] * m[2] * m[5];
+
+    const f64 det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+    if (det == 0.0) {
+        return false;
+    }
+
+    const f64 inv_det = 1.0 / det;
+    for (int32 i = 0; i < 16; ++i) {
+        result[i] = inv[i] * inv_det;
+    }
+
+    return true;
 }
 
 FORCE_INLINE

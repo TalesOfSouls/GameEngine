@@ -17,7 +17,7 @@
 struct Pipeline {
     uint32 id;
 
-    OpenglDescriptorSetLayoutBinding descriptor_set_layout[7];
+    OpenglDescriptorSetLayoutBinding descriptor_set_layout[9];
 };
 
 #endif

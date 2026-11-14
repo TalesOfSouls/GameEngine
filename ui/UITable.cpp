@@ -103,6 +103,11 @@ UITable* ui_table_create(
 
         // The footer block (after the rows) is reserved but only shown after ui_table_set_footer()
         table->footer = 0;
+
+        // Owner values of the rows (@see ui_table_row_values)
+        const int32 row_values_size = (int32) sizeof(int32) * row_capacity;
+        table->row_values = ui_text_reserve(layout, CHAR_TYPE_CHAR, row_values_size);
+        memset(layout->ui_element_buffer.memory + table->row_values, 0, (size_t) row_values_size);
     }
 
     return table;
@@ -224,6 +229,21 @@ void ui_table_set_row_color(UILayout* const layout, UITable* const table, int32 
         table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
         layout->is_dirty = true;
     }
+}
+
+/**
+ * Dynamic tables only: value per row for the owner of the table (e.g. the id of the data shown in the row)
+ * The values are not rendered -> changing them doesn't mark the table as changed
+ * The values of hidden rows are kept (like the cell content)
+ *
+ * @return int32[row_capacity], NULL for static tables
+ */
+FORCE_INLINE
+int32* ui_table_row_values(UILayout* const layout, const UITable* const table) NO_EXCEPT
+{
+    return table->row_values
+        ? (int32 *) (layout->ui_element_buffer.memory + table->row_values)
+        : NULL;
 }
 
 /**

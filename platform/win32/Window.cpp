@@ -277,6 +277,36 @@ void window_mouse_clip(Window* const w) NO_EXCEPT
     }
 }
 
+/**
+ * Re-applies the cursor clip rect if it no longer matches the client area
+ *
+ * The clip rect is global system state: other applications (e.g. explorer, overlays), the windows key/UAC or a
+ * display change reset it, moving/resizing the window makes it outdated. Without this check the cursor could leave
+ * the window until the next focus change. Only call it while the window has the focus.
+ *
+ * @param Window* w Window
+ *
+ * @return void
+ */
+inline
+void window_mouse_clip_validate(Window* const w) NO_EXCEPT
+{
+    RECT rect;
+    RECT current;
+    if (!window_client_screen_rect_get(w, &rect)
+        || rect.right <= rect.left || rect.bottom <= rect.top
+        || !GetClipCursor(&current)
+    ) {
+        return;
+    }
+
+    if (current.left != rect.left || current.top != rect.top
+        || current.right != rect.right || current.bottom != rect.bottom
+    ) {
+        ClipCursor(&rect);
+    }
+}
+
 FORCE_INLINE
 void window_state_backup(Window* const w) NO_EXCEPT
 {

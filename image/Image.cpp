@@ -96,10 +96,10 @@ void image_flip_vertical_sse(Image* const image)
 
         size_t i = 0;
         for (; i + 16 <= stride; i += 16) {
-            __m128i t = _mm_load_si128((const __m128i*)(top + i));
-            __m128i b = _mm_load_si128((const __m128i*)(bottom + i));
-            _mm_store_si128((__m128i*)(top + i), b);
-            _mm_store_si128((__m128i*)(bottom + i), t);
+            __m128i t = _mm_loadu_si128((const __m128i*)(top + i));
+            __m128i b = _mm_loadu_si128((const __m128i*)(bottom + i));
+            _mm_storeu_si128((__m128i*)(top + i), b);
+            _mm_storeu_si128((__m128i*)(bottom + i), t);
         }
 
         if (pixel_size == 4) {
@@ -134,10 +134,10 @@ void image_flip_vertical_avx2(Image* const image)
 
         size_t i = 0;
         for (; i + 32 <= stride; i += 32) {
-            __m256i t = _mm256_load_si256((const __m256i*)(top + i));
-            __m256i b = _mm256_load_si256((const __m256i*)(bottom + i));
-            _mm256_store_si256((__m256i*)(top + i), b);
-            _mm256_store_si256((__m256i*)(bottom + i), t);
+            __m256i t = _mm256_loadu_si256((const __m256i*)(top + i));
+            __m256i b = _mm256_loadu_si256((const __m256i*)(bottom + i));
+            _mm256_storeu_si256((__m256i*)(top + i), b);
+            _mm256_storeu_si256((__m256i*)(bottom + i), t);
         }
 
         if (pixel_size == 4) {
@@ -172,10 +172,10 @@ void image_flip_vertical_avx512(Image* const image)
 
         size_t i = 0;
         for (; i + 64 <= stride; i += 64) {
-            __m512i t = _mm512_load_si512((const void*)(top + i));
-            __m512i b = _mm512_load_si512((const void*)(bottom + i));
-            _mm512_store_si512((void*)(top + i), b);
-            _mm512_store_si512((void*)(bottom + i), t);
+            __m512i t = _mm512_loadu_si512((const void*)(top + i));
+            __m512i b = _mm512_loadu_si512((const void*)(bottom + i));
+            _mm512_storeu_si512((void*)(top + i), b);
+            _mm512_storeu_si512((void*)(bottom + i), t);
         }
 
         if (pixel_size == 4) {
@@ -265,8 +265,8 @@ void image_flip_vertical(Image* image, int32 steps = 8) NO_EXCEPT
         }
     #else
         #if defined(__AVX512F__)
-            if (steps >= 8) {
-                image_flip_vertical_avx2(image);
+            if (steps >= 16) {
+                image_flip_vertical_avx512(image);
                 steps = 0;
             }
         #endif

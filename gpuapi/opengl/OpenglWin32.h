@@ -387,6 +387,7 @@ GL_FUNC_DEFINE(void, glTexImage2DMultisample, (GLenum target, GLsizei samples, G
 GL_FUNC_DEFINE(void, glCreateTextures, (GLenum target, GLsizei n, GLuint* textures));
 GL_FUNC_DEFINE(void, glTextureStorage2D, (GLuint texture, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height));
 GL_FUNC_DEFINE(void, glTextureSubImage2D, (GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels));
+GL_FUNC_DEFINE(void, glTextureView, (GLuint texture, GLenum target, GLuint origtexture, GLenum internalformat, GLuint minlevel, GLuint numlevels, GLuint minlayer, GLuint numlayers));
 GL_FUNC_DEFINE(GLsync, glFenceSync, (GLenum condition, GLbitfield flags));
 GL_FUNC_DEFINE(GLenum, glClientWaitSync, (GLsync GLsync, GLbitfield flags, GLuint64 timeout));
 GL_FUNC_DEFINE(void, glDeleteSync, (GLsync GLsync));
@@ -821,6 +822,7 @@ void opengl_init_gl() NO_EXCEPT
     glCreateTextures = (type_glCreateTextures *) wglGetProcAddress("glCreateTextures");
     glTextureStorage2D = (type_glTextureStorage2D *) wglGetProcAddress("glTextureStorage2D");
     glTextureSubImage2D = (type_glTextureSubImage2D *) wglGetProcAddress("glTextureSubImage2D");
+    glTextureView = (type_glTextureView *) wglGetProcAddress("glTextureView");
     glFenceSync = (type_glFenceSync *) wglGetProcAddress("glFenceSync");
     glClientWaitSync = (type_glClientWaitSync *) wglGetProcAddress("glClientWaitSync");
     glDeleteSync = (type_glDeleteSync *) wglGetProcAddress("glDeleteSync");

@@ -277,10 +277,15 @@ int32 opengl_program_optimize(const char* __restrict input, char* __restrict out
     while (*read_ptr) {
         str_skip_empty(&read_ptr);
 
+        // Preprocessor directives (e.g. #define) must start a new line, even after ; { ( ,
         if (write_ptr != output
-            && *(write_ptr - 1) != '\n' && *(write_ptr - 1) != ';' && *(write_ptr - 1) != '{'
-            && *(write_ptr - 1) != '('
-            && *(write_ptr - 1) != ','
+            && *(write_ptr - 1) != '\n'
+            && (*read_ptr == '#'
+                || (*(write_ptr - 1) != ';' && *(write_ptr - 1) != '{'
+                    && *(write_ptr - 1) != '('
+                    && *(write_ptr - 1) != ','
+                )
+            )
         ) {
             *write_ptr++ = '\n';
         }
