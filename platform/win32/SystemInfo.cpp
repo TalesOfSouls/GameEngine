@@ -823,6 +823,128 @@ int32 display_info_get(DisplayInfo* const info, int32 limit = 4) {
 }
 
 /**
+ * Desktop rectangle of a monitor from its current display mode
+ */
+static inline
+void display_monitor_from_mode(DisplayMonitor* const __restrict monitor, const wchar_t* const __restrict name, const DEVMODEW* const __restrict mode) NO_EXCEPT
+{
+    wchar_to_char(monitor->name, name, (int32) ARRAY_COUNT(monitor->name) - 1);
+    monitor->x = mode->dmPosition.x;
+    monitor->y = mode->dmPosition.y;
+    monitor->width = (int32) mode->dmPelsWidth;
+    monitor->height = (int32) mode->dmPelsHeight;
+}
+
+/**
+ * Name + desktop rectangle of a monitor
+ *
+ * @param int32 index Index of the monitor (same order as display_info_get), -1 = primary monitor
+ * @param DisplayMonitor* monitor Monitor (output)
+ *
+ * @return bool false if the monitor doesn't exist
+ */
+inline
+bool display_monitor_get(int32 index, DisplayMonitor* const monitor) NO_EXCEPT
+{
+    DISPLAY_DEVICEW device;
+    device.cb = sizeof(device);
+
+    int32 i = 0;
+    for (DWORD j = 0; j < 100 && EnumDisplayDevicesW(NULL, j, &device, 0); ++j) {
+        // Same filter as display_info_get, otherwise the indices wouldn't match the monitor list
+        if (!(device.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP)
+            || (device.StateFlags & DISPLAY_DEVICE_MIRRORING_DRIVER)
+        ) {
+            continue;
+        }
+
+        DEVMODEW mode = {};
+        mode.dmSize = sizeof(mode);
+        if (!EnumDisplaySettingsW(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
+            continue;
+        }
+
+        const bool match = index < 0
+            ? (device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) != 0
+            : i == index;
+        ++i;
+
+        if (match) {
+            display_monitor_from_mode(monitor, device.DeviceName, &mode);
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Current desktop rectangle of a monitor by its name (e.g. after its resolution was changed)
+ *
+ * @param const char* name Monitor name (@see DisplayMonitor::name)
+ * @param DisplayMonitor* monitor Monitor (output)
+ *
+ * @return bool false if the monitor doesn't exist
+ */
+inline
+bool display_monitor_by_name(const char* const name, DisplayMonitor* const monitor) NO_EXCEPT
+{
+    wchar_t device[48];
+    char_to_wchar(device, name, ARRAY_COUNT(device));
+
+    DEVMODEW mode = {};
+    mode.dmSize = sizeof(mode);
+    if (!EnumDisplaySettingsW(device, ENUM_CURRENT_SETTINGS, &mode)) {
+        return false;
+    }
+
+    display_monitor_from_mode(monitor, device, &mode);
+
+    return true;
+}
+
+/**
+ * Changes the resolution of a monitor until display_resolution_restore (fullscreen mode)
+ *
+ * @param const char* name Monitor name (@see DisplayMonitor::name)
+ * @param int32 width Width in pixels
+ * @param int32 height Height in pixels
+ *
+ * @return bool false if the monitor doesn't support the resolution
+ */
+inline
+bool display_resolution_set(const char* const name, int32 width, int32 height) NO_EXCEPT
+{
+    wchar_t device[48];
+    char_to_wchar(device, name, ARRAY_COUNT(device));
+
+    DEVMODEW mode = {};
+    mode.dmSize = sizeof(mode);
+    mode.dmPelsWidth = (DWORD) width;
+    mode.dmPelsHeight = (DWORD) height;
+    mode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+
+    return ChangeDisplaySettingsExW(device, &mode, NULL, CDS_FULLSCREEN, NULL) == DISP_CHANGE_SUCCESSFUL;
+}
+
+/**
+ * Restores the desktop resolution of a monitor (@see display_resolution_set)
+ *
+ * @param const char* name Monitor name (@see DisplayMonitor::name)
+ *
+ * @return void
+ */
+inline
+void display_resolution_restore(const char* const name) NO_EXCEPT
+{
+    wchar_t device[48];
+    char_to_wchar(device, name, ARRAY_COUNT(device));
+
+    ChangeDisplaySettingsExW(device, NULL, NULL, 0, NULL);
+}
+
+/**
  * Checks if a monitor is connected to a dedicated gpu
  *
  * Returns false if the monitor is connected to the mainboard (integrated gpu) even if a dedicated gpu exists

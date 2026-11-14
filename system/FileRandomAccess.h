@@ -210,8 +210,8 @@ uint32 file_ra_read(FileRA fh, uint64 offset, void* buffer, uint32 length) NO_EX
         total += (uint32) read;
     }
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, total);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, total);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, total);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, total);
 
     return total;
 }
@@ -251,8 +251,8 @@ bool file_ra_write(FileRA fh, uint64 offset, const void* buffer, uint32 length) 
         total += (uint32) written;
     }
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, total);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, total);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, total);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, total);
 
     return true;
 }

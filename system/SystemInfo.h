@@ -76,6 +76,18 @@ struct DisplayInfo {
     bool is_primary;
 };
 
+// Desktop area of a monitor (@see display_monitor_get)
+struct DisplayMonitor {
+    // Platform name of the monitor (e.g. \\.\DISPLAY1 on windows), same as DisplayInfo::name
+    char name[48];
+
+    // Desktop rectangle (position of the top left corner + size in pixels)
+    int32 x;
+    int32 y;
+    int32 width;
+    int32 height;
+};
+
 struct DriveInfo {
     size_t total;
     size_t free;

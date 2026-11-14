@@ -492,8 +492,8 @@ file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
 template <typename C>
@@ -559,8 +559,8 @@ file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
 template <typename C, typename T>
@@ -650,8 +650,8 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
 template <typename T>
@@ -710,8 +710,8 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
 inline
@@ -766,8 +766,8 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
 uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UINT64) NO_EXCEPT
@@ -911,8 +911,8 @@ file_write(const C* __restrict path, const FileBody* __restrict file) NO_EXCEPT
 
     CloseHandle(fp);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, length);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, length);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, length);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, length);
 
     return true;
 }
@@ -1111,8 +1111,8 @@ bool file_read_async_start(FileHandle fp, FileBodyAsync* __restrict file, uint64
         }
     }
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, read_length);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, read_length);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, read_length);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, read_length);
 
     return true;
 }
@@ -1381,8 +1381,8 @@ file_append(FileHandle fp, const char* file) NO_EXCEPT
         return false;
     }
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, written);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, written);
 
     return true;
 }
@@ -1403,8 +1403,8 @@ file_append(FileHandle fp, const char* file, size_t length) NO_EXCEPT
         return false;
     }
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, written);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, written);
 
     return true;
 }
@@ -1438,8 +1438,8 @@ bool file_append(const C* __restrict path, const C* __restrict file) NO_EXCEPT
 
     CloseHandle(fp);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, written);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_IO, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, written);
 
     return true;
 }

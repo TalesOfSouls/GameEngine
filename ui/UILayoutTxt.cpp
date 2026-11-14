@@ -75,7 +75,7 @@
  * Element types and their properties
  *      all:        style pos size anchor flags hidden update render
  *      label:      text pattern capacity font_size font_color line_height
- *      button:     text image on_click background_color background_color_hover, $label
+ *      button:     text image on_click background_color background_color_hover border_color border_color_hover border_width border_image, $label
  *      image:      image
  *      cursor:     image
  *      window:     title resizable background_color border_color border_width border_image, $title $title_label $close $resize_grip
@@ -594,6 +594,8 @@ static const UITxtField UI_TXT_FIELDS_LABEL[] = {
 static const UITxtField UI_TXT_FIELDS_BUTTON[] = {
     UI_TXT_FIELD("background_color", UI_TXT_FIELD_COLOR, UIButton, background_color),
     UI_TXT_FIELD("background_color_hover", UI_TXT_FIELD_COLOR, UIButton, background_color_hover),
+    UI_TXT_BORDER_FIELDS(UIButton, border),
+    UI_TXT_FIELD("border_color_hover", UI_TXT_FIELD_COLOR, UIButton, border_color_hover),
     UI_TXT_FIELD("image", UI_TXT_FIELD_IMAGE, UIButton, image),
     UI_TXT_FIELD("on_click", UI_TXT_FIELD_ACTION, UIButton, on_click),
 };

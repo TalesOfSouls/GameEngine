@@ -7,6 +7,7 @@
 #include "../camera/Camera.cpp"
 #include "attribute/UIAttributeDimension.cpp"
 #include "attribute/UIAttributeImage.cpp"
+#include "attribute/UIAttributeBorder.cpp"
 #include "UIAlignment.h"
 #include "UICore.cpp"
 #include "UILabel.cpp"
@@ -76,6 +77,17 @@ void ui_button_cache(
 
     if (button->image.sampler) {
         ui_image_vertices(&button->image, rect, &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex);
+        *zindex = camera_step_closer(gpu_api_type, *zindex);
+    }
+
+    // On top of the background + image (frames them), the hover color only changes a solid color border
+    if (ui_border_is_visible(&button->border)) {
+        UIAttributeBorder border = button->border;
+        if ((button->core.state & UI_STATE_HOVER) && OMS_HAS_ALPHA(button->border_color_hover)) {
+            border.color = button->border_color_hover;
+        }
+
+        ui_border_vertices(&border, rect, &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex);
         *zindex = camera_step_closer(gpu_api_type, *zindex);
     }
 }

@@ -1289,9 +1289,19 @@ void ui_select_open(UILayout* const layout, UISelect* const select, bool open) N
     }
 
     // Show the selected option
+    // Clamped like the rendering (@see ui_option_list_cache): an option near the end can't be centered,
+    // an unclamped scroll offset the hovered row against the cursor (@see ui_option_list_row_at)
+    // The list dimension isn't calculated yet (next ui_cache) -> the view height is calculated from the row count
     if (select->selected > 0) {
-        list->scroll = ui_select_row_height(select) * (f32) (select->selected - UI_SELECT_MAX_VISIBLE_OPTIONS / 2);
-        list->scroll = max_branched(list->scroll, 0.0f);
+        const f32 row_height = ui_select_row_height(select);
+        const int32 count = ui_select_filtered_count(layout, select);
+        const f32 view = row_height * (f32) clamp_branched(count, 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
+
+        list->scroll = ui_scroll_clamp(
+            row_height * (f32) (select->selected - UI_SELECT_MAX_VISIBLE_OPTIONS / 2),
+            row_height * (f32) count,
+            view
+        );
     }
 }
 

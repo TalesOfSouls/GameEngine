@@ -8,7 +8,6 @@
 #define COMS_LOG_PERFORMANCE_PROFILER_H
 
 #include "../stdlib/Stdlib.h"
-#include "../thread/SpinlockStandalone.h"
 #include "../thread/ThreadDefines.h"
 #include "../utils/StringUtils.h"
 #include "Log.h"

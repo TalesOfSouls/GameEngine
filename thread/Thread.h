@@ -26,6 +26,10 @@ int32 thread_create(ThreadWorker* worker, ThreadJobFunc routine, void* arg) NO_E
     LOG_1("[INFO] Thread starting");
     STATS_INCREMENT_DEBUG(DEBUG_COUNTER_THREAD);
 
+    // Set before the thread runs: a thread that sets it itself could overwrite a thread_stop()
+    // that happened before the thread was scheduled (= the thread never ends, thread_stop waits forever)
+    worker->state.store(1);
+
     return coms_pthread_create(&worker->thread, NULL, routine, arg);
 }
 

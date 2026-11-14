@@ -1070,7 +1070,7 @@ void gpuapi_vertex_buffer_update(
     vkDestroyBuffer(device, staging_buffer, NULL);
     vkFreeMemory(device, staging_buffer_memory, NULL);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, buffer_size - offset);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, buffer_size - offset);
 }
 
 void gpuapi_vertex_buffer_create(
@@ -1201,7 +1201,7 @@ void gpuapi_uniform_buffer_update(
     uint32 current_image, void** __restrict uniform_buffers_mapped
 ) {
     memcpy(uniform_buffers_mapped[current_image], data, data_size);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, data_size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, data_size);
 }
 
 #endif

@@ -221,8 +221,8 @@ bool file_copy(const char* __restrict src, const char* __restrict dst) {
     close(src_fd);
     close(dst_fd);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, bytes_written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, bytes_written);
 
     return success;
 }
@@ -289,7 +289,7 @@ void file_read(
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 
     close(fp);
 }
@@ -376,7 +376,7 @@ bool file_write(const char* __restrict path, const FileBody* __restrict file) {
         return false;
     }
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_DRIVE_WRITE, written);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
 
     return true;
 }

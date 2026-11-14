@@ -628,7 +628,7 @@ uint32 gpuapi_buffer_generate_legacy(int32 type, int32 size, const void* data) N
     glBindBuffer(type, bo);
     glBufferData(type, size, data, GL_STATIC_DRAW);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
     STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, size);
 
     return bo;
@@ -643,7 +643,7 @@ uint32 gpuapi_buffer_generate_dynamic_legacy(int32 type, int32 size, const void*
     glBindBuffer(type, bo);
     glBufferData(type, size, data, GL_DYNAMIC_DRAW);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
     STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, size);
 
     return bo;
@@ -668,7 +668,7 @@ void gpuapi_buffer_persistent_generate_legacy(int32 type, PersistentGpuBuffer* c
     ASSERT_GPU_API();
     ASSERT_TRUE(buffer->data);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
     STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, buffer->size);
 }
 
@@ -682,7 +682,7 @@ uint32 gpuapi_buffer_generate_static(int32 size, const void* data) NO_EXCEPT
     // Uses fixed size buffer that can be updated
     glNamedBufferStorage(bo, size, data, GL_DYNAMIC_STORAGE_BIT);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
     STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, size);
 
     return bo;
@@ -696,7 +696,7 @@ uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data) NO_EXCEPT
     glCreateBuffers(1, &bo);
     glNamedBufferData(bo, size, data, GL_DYNAMIC_DRAW);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
     STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, size);
 
     return bo;
@@ -721,7 +721,7 @@ void gpuapi_buffer_persistent_generate(PersistentGpuBuffer* const buffer) NO_EXC
     ASSERT_GPU_API();
     ASSERT_TRUE(buffer->data);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, buffer->size);
     STATS_INCREMENT_BY_PERSISTENT_DEBUG(DEBUG_COUNTER_VRAM_BYTES, buffer->size);
 }
 
@@ -818,7 +818,7 @@ void gpuapi_buffer_update_legacy(uint32 vbo, int32 size, const void* data) NO_EX
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
     PROFILE_END_DEBUG(PROFILE_GPU);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
 }
 
 FORCE_INLINE
@@ -828,7 +828,7 @@ void gpuapi_buffer_update(uint32 vbo, int32 size, const void* data) NO_EXCEPT
     glNamedBufferData(vbo, size, data, GL_DYNAMIC_DRAW);
     PROFILE_END_DEBUG(PROFILE_GPU);
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, size);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
 }
 
 // @todo change name. vulkan and directx have different functions for vertex buffer updates
@@ -855,7 +855,7 @@ void gpuapi_vertex_buffer_update_legacy(
     PROFILE_END_DEBUG(PROFILE_GPU);
     ASSERT_GPU_API();
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, vertex_size * vertex_count - offset);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, vertex_size * vertex_count - offset);
 }
 
 inline
@@ -874,7 +874,7 @@ void gpuapi_vertex_buffer_update(
     PROFILE_END_DEBUG(PROFILE_GPU);
     ASSERT_GPU_API();
 
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, vertex_size * vertex_count - offset);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, vertex_size * vertex_count - offset);
 }
 
 FORCE_INLINE

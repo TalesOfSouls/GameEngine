@@ -317,6 +317,101 @@ void window_state_backup(Window* const w) NO_EXCEPT
     );
 }
 
+/**
+ * Makes the window a borderless window that covers a rectangle of the desktop (e.g. a monitor @see display_monitor_get)
+ *
+ * The windowed state is backed up first (restored by the maximize/restore toggle @see window_restore)
+ *
+ * @param Window* w Window
+ * @param v4_int32 rect Desktop rectangle
+ *
+ * @return void
+ */
+inline
+void window_borderless_apply(Window* const w, v4_int32 rect) NO_EXCEPT
+{
+    const HWND hwnd = ((WindowPlatform *) w->platform_window)->hwnd;
+
+    if (!(w->state_flag & WINDOW_STATE_FLAG_FULLSCREEN)) {
+        window_state_backup(w);
+    }
+
+    LONG_PTR style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+    style &= ~(WS_OVERLAPPEDWINDOW | WS_MAXIMIZE);
+    style |= WS_POPUP;
+    SetWindowLongPtrW(hwnd, GWL_STYLE, style);
+
+    SetWindowPos(
+        hwnd, HWND_TOP,
+        rect.x, rect.y,
+        rect.width, rect.height,
+        SWP_NOACTIVATE | SWP_FRAMECHANGED
+    );
+
+    w->state_flag |= WINDOW_STATE_FLAG_FULLSCREEN;
+}
+
+/**
+ * Makes the window a normal window with the client size width x height, centered on a desktop rectangle (e.g. a monitor)
+ *
+ * The window is limited to the rectangle
+ *
+ * @param Window* w Window
+ * @param v4_int32 monitor Desktop rectangle
+ * @param int32 width Client width
+ * @param int32 height Client height
+ *
+ * @return void
+ */
+inline
+void window_windowed_apply(Window* const w, v4_int32 monitor, int32 width, int32 height) NO_EXCEPT
+{
+    const HWND hwnd = ((WindowPlatform *) w->platform_window)->hwnd;
+
+    LONG_PTR style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+    style &= ~(WS_POPUP | WS_MAXIMIZE);
+    style |= WS_OVERLAPPEDWINDOW;
+    SetWindowLongPtrW(hwnd, GWL_STYLE, style);
+
+    RECT outer = { 0, 0, (LONG) width, (LONG) height };
+    AdjustWindowRectExForDpi(&outer, WS_OVERLAPPEDWINDOW, FALSE, 0, GetDpiForWindow(hwnd));
+
+    const int32 outer_width = OMS_MIN((int32) (outer.right - outer.left), monitor.width);
+    const int32 outer_height = OMS_MIN((int32) (outer.bottom - outer.top), monitor.height);
+
+    SetWindowPos(
+        hwnd, NULL,
+        monitor.x + (monitor.width - outer_width) / 2,
+        monitor.y + (monitor.height - outer_height) / 2,
+        outer_width, outer_height,
+        SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED
+    );
+
+    w->state_flag &= ~WINDOW_STATE_FLAG_FULLSCREEN;
+}
+
+/**
+ * Restores a maximized window to its normal size (a maximized window ignores new positions/sizes)
+ *
+ * @param Window* w Window
+ *
+ * @return void
+ */
+FORCE_INLINE
+void window_unmaximize(Window* const w) NO_EXCEPT
+{
+    const HWND hwnd = ((WindowPlatform *) w->platform_window)->hwnd;
+    if (IsZoomed(hwnd)) {
+        ShowWindow(hwnd, SW_RESTORE);
+    }
+}
+
+FORCE_INLINE
+void window_minimize(Window* const w) NO_EXCEPT
+{
+    ShowWindow(((WindowPlatform *) w->platform_window)->hwnd, SW_MINIMIZE);
+}
+
 void window_create(Window* const __restrict window, void* const __restrict proc) NO_EXCEPT
 {
     ASSERT_TRUE(proc);

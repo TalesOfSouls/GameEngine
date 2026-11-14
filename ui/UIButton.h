@@ -4,10 +4,10 @@
 
 #include "../stdlib/Stdlib.h"
 #include "attribute/UIAttributeImage.h"
+#include "attribute/UIAttributeBorder.h"
 #include "UICore.h"
 
 // The optional text is a UILabel child element (@see ui_button_create)
-// 92 bytes
 struct UIButton {
     UICore core;
 
@@ -16,6 +16,12 @@ struct UIButton {
 
     // RGBA used while the button has UI_STATE_HOVER, no alpha = use background_color
     uint32 background_color_hover;
+
+    // Solid color or image border (same as UIPanel::border), no image + no color alpha/width = no border
+    UIAttributeBorder border;
+
+    // RGBA of a solid color border while the button has UI_STATE_HOVER, no alpha = use border.color
+    uint32 border_color_hover;
 
     // Fills the entire button
     UIAttributeImage image;

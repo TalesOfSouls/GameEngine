@@ -71,11 +71,19 @@ enum SettingWindows {
 #define SETTING_TYPE_DISABLED 0x00
 #define SETTING_TYPE_UNLIMITED 0x00
 
+// The visibility flags are split: the lower bits belong to the engine (enums below),
+// the application may use the bits above for its own flags (e.g. its windows)
+#define SETTING_DEBUG_VISIBILITY_ENGINE_BITS 8
+#define SETTING_UI_VISIBILITY_ENGINE_BITS 32
+
 enum SettingDebugVisibility {
     SETTING_DEBUG_VISIBILITY_WIREFRAME = 1 << 0,
     SETTING_DEBUG_VISIBILITY_DEBUG = 1 << 1,
     SETTING_DEBUG_VISIBILITY_3D = 1 << 2,
 };
+
+// WARNING: Update the last flag here when adding a flag
+static_assert(SETTING_DEBUG_VISIBILITY_3D < (1ULL << SETTING_DEBUG_VISIBILITY_ENGINE_BITS), "SettingDebugVisibility exceeds the engine bits");
 
 enum SettingUiVisibility {
     SETTING_UI_VISIBILITY_FPS = 1 << 0,
@@ -94,6 +102,9 @@ enum SettingUiVisibility {
     SETTING_UI_VISIBILITY_RESOURCE = 1 << 13,
     SETTING_UI_VISIBILITY_INFO = 1 << 14 // = e.g. quest info
 };
+
+// WARNING: Update the last flag here when adding a flag
+static_assert(SETTING_UI_VISIBILITY_INFO < (1ULL << SETTING_UI_VISIBILITY_ENGINE_BITS), "SettingUiVisibility exceeds the engine bits");
 
 enum SettingGameVisibility {
     SETTING_GAME_VISIBILITY_BAR_SELF = 1 << 0,

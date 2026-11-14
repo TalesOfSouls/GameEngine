@@ -15,23 +15,25 @@
  */
 
 /**
- * TEXT FORMAT: .fonttxt (e.g. written by FontBuilder from an msdf-atlas-gen .csv)
+ * TEXT FORMAT: .fonttxt (written by FontBuilder from an msdf-atlas-gen mtsdf atlas + .json, @see FontBuilder/README.md)
  *
- *      texture: ./img/ui_font_atlas.png    <- atlas image (asset path; a number = existing asset id)
- *      font_size: 32                       <- size the font was rasterized at
- *      line_height: 32
- *      image_width: 512                    <- atlas size, used to normalize the uv
+ *      texture: ./img/ui_font_atlas.png    <- atlas image (asset path; a number = existing asset id), < 32 characters
+ *      font_size: 48                       <- size the font was rasterized at (pixels per em)
+ *      line_height: 58.0781
+ *      image_width: 1024                   <- atlas size, used to normalize the uv
  *      image_height: 512
- *      glyph_count: 127
- *      32 1 1 6 0 6 1 1                    <- one line per glyph, ascending codepoint
- *      33 6 23 2 0 2 45 4
+ *      glyph_count: 219                    <- MUST be the last header line, no comments/empty lines in the header
+ *      32 0 0 0 0 12.7969 0 0              <- one line per glyph, ascending codepoint ("// ..." after the values is allowed)
+ *      33 13 42 0.8125 8.0781 0.7891 840.5 118.5
  *      ...
  *
- *      glyph line: codepoint width height offset_x offset_y advance_x uv_x uv_y
+ *      glyph line: codepoint width height offset_x offset_y advance_x uv_x uv_y (pixels at font_size)
  *          width/height    glyph quad size in pixels (not the vertex)
- *          offset_x/y      offset from the baseline in pixels
- *          advance_x       horizontal advance in pixels
- *          uv_x/uv_y       top left corner in atlas pixels, the loader normalizes them
+ *          offset_x        added to the pen position before the quad (left side bearing)
+ *          offset_y        bottom of the quad above the BOTTOM of the line box (y-up), not above the baseline
+ *          advance_x       gap after the quad: the pen moves by offset_x + width + advance_x
+ *                          (@see vertex_text_create in gpuapi/RenderUtils.h)
+ *          uv_x/uv_y       top left corner in atlas pixels (y-down), the loader normalizes them
  *                          uv_start = (x / image_width, y / image_height)
  *                          uv_end   = uv_start + (width / image_width, height / image_height)
  *

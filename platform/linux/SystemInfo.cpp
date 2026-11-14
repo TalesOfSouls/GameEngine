@@ -308,6 +308,30 @@ uint32 display_info_get(DisplayInfo* info) {
     return count;
 }
 
+// @todo Implement the monitor functions for linux (xrandr), used by the display modes of the main window
+inline
+bool display_monitor_get(int32, DisplayMonitor* const) NO_EXCEPT
+{
+    return false;
+}
+
+inline
+bool display_monitor_by_name(const char* const, DisplayMonitor* const) NO_EXCEPT
+{
+    return false;
+}
+
+inline
+bool display_resolution_set(const char* const, int32, int32) NO_EXCEPT
+{
+    return false;
+}
+
+inline
+void display_resolution_restore(const char* const) NO_EXCEPT
+{
+}
+
 static inline char hardware_id_lower(char value) NO_EXCEPT
 {
     return (value >= 'A' && value <= 'Z')

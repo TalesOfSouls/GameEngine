@@ -58,91 +58,91 @@ FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 location, bool value) NO_EXCEPT
 {
     glUniform1i(location, (int32) value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 location, int32 value) NO_EXCEPT
 {
     glUniform1i(location, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 location, const int32* value, int32 length) NO_EXCEPT
 {
     glUniform1iv(location, length, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 location, uint32 value) NO_EXCEPT
 {
     glUniform1ui(location, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 location, f32 value) NO_EXCEPT
 {
     glUniform1f(location, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_v2(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniform2fv(location, 1, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 2);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 2);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_v3(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniform3fv(location, 1, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 3);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 3);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 location, v3_f32 value) NO_EXCEPT
 {
     glUniform3fv(location, 1, value.vec);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 3);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 3);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_v4(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniform4fv(location, 1, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 4);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 4);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 location, v4_f32 value) NO_EXCEPT
 {
     glUniform4fv(location, 1, value.vec);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 4);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 4);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_m2(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniformMatrix2fv(location, 1, GL_FALSE, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 4);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 4);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_m3(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniformMatrix3fv(location, 1, GL_FALSE, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 9);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 9);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_m4(uint32 location, const f32* value) NO_EXCEPT
 {
     glUniformMatrix4fv(location, 1, GL_FALSE, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 16);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 16);
 }
 
 // These versions are the DSA versions that don't require a program to be bound
@@ -150,91 +150,91 @@ FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 program, uint32 location, bool value) NO_EXCEPT
 {
     glProgramUniform1i(program, location, (int32) value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 program, uint32 location, int32 value) NO_EXCEPT
 {
     glProgramUniform1i(program, location, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 program, uint32 location, const int32* value, int32 length) NO_EXCEPT
 {
     glProgramUniform1iv(program, location, length, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * length);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * length);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 program, uint32 location, uint32 value) NO_EXCEPT
 {
     glProgramUniform1ui(program, location, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 program, uint32 location, f32 value) NO_EXCEPT
 {
     glProgramUniform1f(program, location, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_v2(uint32 program, uint32 location, const f32* value) NO_EXCEPT
 {
     glProgramUniform2fv(program, location, 1, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 2);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 2);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_v3(uint32 program, uint32 location, const f32* value) NO_EXCEPT
 {
     glProgramUniform3fv(program, location, 1, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 3);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 3);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 program, uint32 location, v3_f32 value) NO_EXCEPT
 {
     glProgramUniform3fv(program, location, 1, value.vec);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 3);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 3);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_v4(uint32 program, uint32 location, const f32* value) NO_EXCEPT
 {
     glProgramUniform4fv(program, location, 1, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 4);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 4);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update(uint32 program, uint32 location, v4_f32 value) NO_EXCEPT
 {
     glProgramUniform4fv(program, location, 1, value.vec);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 4);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(f32) * 4);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_m2(uint32 program, uint32 location, const f32* value) NO_EXCEPT
 {
     glProgramUniformMatrix2fv(program, location, 1, GL_FALSE, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 4);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 4);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_m3(uint32 program, uint32 location, const f32* value) NO_EXCEPT
 {
     glProgramUniformMatrix3fv(program, location, 1, GL_FALSE, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 9);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 9);
 }
 
 FORCE_INLINE
 void gpuapi_uniform_buffer_update_m4(uint32 program, uint32 location, const f32* value) NO_EXCEPT
 {
     glProgramUniformMatrix4fv(program, location, 1, GL_FALSE, value);
-    STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 16);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 16);
 }
 
 FORCE_INLINE

@@ -812,6 +812,27 @@ bool input_has_active_keys(InputKey* const __restrict active_keys) NO_EXCEPT {
     return false;
 }
 
+/**
+ * Counts the keys/buttons that went down this tick (e.g. for the actions per minute)
+ *
+ * Held keys and OS key repeats are not counted (they are HELD after the first tick),
+ * mouse movement and the mouse wheel are no presses (@see input_raw_handle)
+ *
+ * @param const InputKey* active_keys Active keys of an input state
+ *
+ * @return int32
+ */
+inline
+int32 input_pressed_count(const InputKey* const __restrict active_keys) NO_EXCEPT
+{
+    int32 count = 0;
+    for (int i = 0; i < MAX_KEY_PRESSES; ++i) {
+        count += (active_keys[i].scan_code && (active_keys[i].key_state & KEY_PRESS_TYPE_PRESSED)) ? 1 : 0;
+    }
+
+    return count;
+}
+
 // Default controller pointer axes: right stick = dx/dy[0] (camera, virtual cursor), left stick = dx/dy[1] (movement)
 FORCE_INLINE
 void input_controller_axes_default(Input* const input) NO_EXCEPT
@@ -929,6 +950,11 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     // The controller mappings only fill the axes, the direction keys are created here for all controller types
     input_controller_stick_directions(controller);
 
+    // Only a real change of the controller state is an input change (INPUT_STATE_GENERAL_INPUT_CHANGE)
+    // The controllers are polled every tick and the latest report is re-applied even if nothing changed,
+    // marking every poll as a change made the ui re-cache every tick while a controller was connected (@see editor_ui_update)
+    bool changed = false;
+
     // Check active keys that might need to be set to inactive
     for (int i = 0; i < MAX_KEY_PRESSES; ++i) {
         InputKey* key = &input->state.active_keys[i];
@@ -942,6 +968,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
                 || (!controller->is_analog[scan_code] && controller->button[scan_code] == 0)
             ) {
                 key->key_state = KEY_PRESS_TYPE_RELEASED;
+                changed = true;
             }
         }
     }
@@ -965,7 +992,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
                 ? -controller->button[button]
                 : controller->button[button];
             *delta = (int16) (*delta + value / 8);
-            input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
+            changed = true;
         }
     }
 
@@ -981,6 +1008,22 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
             key.value = controller->button[i];
             key.time = time;
 
+            // New press (not active or released in the meantime) or a different analog value = change
+            const InputKey* previous = NULL;
+            for (int32 k = 0; k < MAX_KEY_PRESSES; ++k) {
+                if (input->state.active_keys[k].scan_code == key.scan_code) {
+                    previous = &input->state.active_keys[k];
+                    break;
+                }
+            }
+
+            if (!previous
+                || (previous->key_state & KEY_PRESS_TYPE_RELEASED)
+                || previous->value != controller->button[i]
+            ) {
+                changed = true;
+            }
+
             // Analog values are absolute, they must not accumulate
             InputKey* const active = input_set_state(input->state.active_keys, &key);
             if (active) {
@@ -989,7 +1032,9 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
         }
     }
 
-    input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
+    if (changed) {
+        input->general_states |= INPUT_STATE_GENERAL_INPUT_CHANGE;
+    }
 }
 
 HOT_CODE
