@@ -98,7 +98,7 @@ enum EventTaskType {
     TASK_DIVE,               // Dive into deep water or a cave
     TASK_RESIST,             // Resist temptation or a magical effect
     TASK_SNEAK,              // Sneak into a location without being detected
-    TASK_SURVEY_TERRITORY,   // Survey territory for strategic purposes
+    TASK_SURVEY_TERRITORY,   // Survey territory
     TASK_COMMUNE,            // Commune with spirits, gods, or nature
     TASK_EXORCISE,           // Exorcise a spirit or demon from a location or person
     TASK_SUMMON,             // Summon a creature, spirit, or other entity
@@ -182,7 +182,7 @@ enum EventTaskType {
     TASK_EMBARK_JOURNEY,     // Embark on a long and dangerous journey
     TASK_OVERTHROW,          // Overthrow a ruler or government
     TASK_PERFORM_CEREMONY,   // Perform a ceremonial duty or rite
-    TASK_DEPLOY_TROOPS,      // Deploy troops to a strategic location
+    TASK_DEPLOY_TROOPS,      // Deploy troops to a key location
     TASK_CONDUCT_RESEARCH,   // Conduct research on a subject, item, or creature
     TASK_COUNTERFEIT,        // Create a counterfeit item, document, or currency
     TASK_OBTAIN_FAVOR,       // Obtain the favor of a powerful NPC or faction
@@ -196,11 +196,11 @@ enum EventTaskType {
     TASK_REDEEM,             // Redeem an NPC or yourself from a past wrong
     TASK_RESTORE_BALANCE,    // Restore balance to a chaotic situation or ecosystem
     TASK_CONQUER_FORTRESS,   // Conquer a fortress or enemy stronghold
-    TASK_DEPLOY_TRAP,        // Deploy a trap in a strategic location
+    TASK_DEPLOY_TRAP,        // Deploy a trap at a chosen location
     TASK_HARNESS_POWER,      // Harness a source of power or magic
     TASK_PLANT_EVIDENCE,     // Plant evidence to frame an NPC or mislead others
     TASK_RECON_VILLAGE,      // Recon a village or settlement for information
-    TASK_ESCORT_VIP,         // Escort a VIP to a safe or strategic location
+    TASK_ESCORT_VIP,         // Escort a VIP to a safe location
     TASK_CREATE_ART,         // Create a piece of art, music, or literature
     TASK_REPAIR_REPUTATION,  // Repair the reputation of an NPC, faction, or yourself
     TASK_FIND_HEIR,          // Find a missing heir to a throne or legacy
@@ -253,7 +253,7 @@ enum EventTaskType {
     TASK_RECOVER_BODY,       // Recover a fallen ally's body from a dangerous location
     TASK_BRIBE_OFFICIAL,     // Bribe an official to gain favor or bypass a law
     TASK_PREVENT_WAR,        // Prevent a war between factions or nations
-    TASK_INTERROGATE_PRISONER,// Interrogate a prisoner for vital information
+    TASK_INTERROGATE_PRISONER,// Interrogate a prisoner for information
     TASK_FORGE_ALLIANCE,     // Forge an alliance between warring factions
     TASK_OPERATE_VEHICLE,    // Operate a vehicle, such as a ship or airship
     TASK_HARNESS_ELEMENT,    // Harness the power of an elemental force
@@ -394,7 +394,7 @@ enum EventTaskType {
     TASK_DISMANTLE_TRAP,     // Dismantle a trap set by enemies
     TASK_ACQUIRE_SEAL,       // Acquire a seal of authority or authenticity
     TASK_DEFEND_CARAVAN,     // Defend a caravan traveling through dangerous territory
-    TASK_ESTABLISH_OUTPOST,  // Establish an outpost in a remote or strategic location
+    TASK_ESTABLISH_OUTPOST,  // Establish an outpost in a remote or key location
     TASK_RESOLVE_HOSTAGE_SITUATION, // Resolve a hostage situation peacefully or by force
     TASK_REPAIR_WELL,        // Repair a well to restore access to water
     TASK_SALVAGE_SHIPWRECK,  // Salvage a shipwreck for valuable goods or information
@@ -402,7 +402,7 @@ enum EventTaskType {
     TASK_EXORCISE_SPIRIT,    // Exorcise a malevolent spirit from a location or person
     TASK_SMUGGLE_PERSON,     // Smuggle a person out of a dangerous area
     TASK_NAVIGATE_WILDERNESS, // Navigate through a dense and perilous wilderness
-    TASK_PROTECT_ARTISAN,    // Protect an artisan while they complete a crucial task
+    TASK_PROTECT_ARTISAN,    // Protect an artisan while they complete an important task
     TASK_REPAIR_ROAD,        // Repair a road to ensure safe travel
     TASK_COUNTER_INFILTRATION, // Counter enemy infiltration efforts within your ranks
     TASK_RESCUE_SAILORS,     // Rescue sailors stranded at sea or on a deserted island
@@ -446,21 +446,21 @@ enum EventTaskType {
     TASK_REPAIR_BRIDGE,      // Repair a damaged bridge to restore travel routes
     TASK_FORM_DEFENSIVE_PACT, // Form a defensive pact with another faction to deter aggression
     TASK_CONTAIN_MAGIC,      // Contain a runaway magical effect or creature
-    TASK_CONSTRUCT_WATCHTOWER, // Construct a watchtower to oversee strategic areas
+    TASK_CONSTRUCT_WATCHTOWER, // Construct a watchtower to oversee important areas
     TASK_SECURE_BORDERS,     // Secure the borders of a territory against incursions
     TASK_RECOVER_RELIC,      // Recover a stolen or lost relic of great importance
     TASK_CREATE_DIVERSION,   // Create a diversion to distract enemies or draw them away
     TASK_RESCUE_TRAPPED_MINERS, // Rescue miners trapped underground by a cave-in or collapse
     TASK_CONFRONT_WARLORD,   // Confront a warlord threatening regional stability
     TASK_NEGOTIATE_ALLIANCE, // Negotiate an alliance with a powerful faction or group
-    TASK_DEFEND_WAYPOINT,    // Defend a strategic waypoint from enemy control
+    TASK_DEFEND_WAYPOINT,    // Defend a waypoint from enemy control
     TASK_RESCUE_SPY,         // Rescue a spy who has been captured behind enemy lines
     TASK_REPEL_SEIGE,        // Repel a siege on a fortress or city
     TASK_INTERCEPT_CARGO,    // Intercept valuable cargo being transported by enemies
     TASK_DEFEND_OUTPOST,     // Defend an outpost from being overrun by enemies
     TASK_ESCORT_PRISONERS,   // Escort prisoners safely to their destination
-    TASK_SECURE_INTEL,       // Secure vital intelligence from enemy hands
-    TASK_DEFEND_STRATEGIC_POINT, // Defend a strategic point critical to the overall battle plan
+    TASK_SECURE_INTEL,       // Secure intelligence from enemy hands
+    TASK_DEFEND_STRATEGIC_POINT, // Defend a point that is critical to the battle plan
     TASK_RETRIEVE_ENCHANTED_ITEM, // Retrieve an enchanted item from a guarded location
     TASK_CONSTRUCT_TRENCH,   // Construct a trench for defensive purposes in battle
     TASK_PREPARE_AMBUSH,     // Prepare an ambush against approaching enemies
@@ -474,7 +474,7 @@ enum EventTaskType {
     TASK_REINFORCE_FORTRESS, // Reinforce a fortress under threat of attack
     TASK_CONDUCT_ESPIONAGE,  // Conduct espionage to gather enemy secrets or plans
     TASK_EXAMINE_RUINS,      // Examine ancient ruins for clues or artifacts
-    TASK_CONSTRUCT_FORT,     // Construct a fort to secure a strategic location
+    TASK_CONSTRUCT_FORT,     // Construct a fort to secure a key location
     TASK_RECOVER_STOLEN_GOODS, // Recover stolen goods from bandits or pirates
     TASK_PREVENT_ASSASSINATION, // Prevent an assassination attempt on a key figure
     TASK_RESCUE_KIDNAPPED_CHILD, // Rescue a kidnapped child from their captors
@@ -490,7 +490,7 @@ enum EventTaskType {
     TASK_CONSTRUCT_FENCE,    // Construct a fence to keep animals or enemies out
     TASK_NAVIGATE_STORMY_SEAS, // Navigate through stormy seas to reach a destination
     TASK_EXAMINE_MAGICAL_ARTIFACT, // Examine a magical artifact to determine its purpose or power
-    TASK_CONSTRUCT_OUTPOST,  // Construct an outpost in a strategic or remote location
+    TASK_CONSTRUCT_OUTPOST,  // Construct an outpost in a key or remote location
     TASK_RECOVER_SACRED_ITEM, // Recover a sacred item stolen from a temple or shrine
     TASK_ESCORT_WOUNDED,     // Escort wounded allies to a safe location for treatment
     TASK_DEFEND_FORT,        // Defend a fort from a concentrated enemy attack
@@ -502,7 +502,7 @@ enum EventTaskType {
     TASK_DEFEND_BARRICADE,   // Defend a barricade from being breached by enemies
     TASK_RETRIEVE_LOST_TREASURE, // Retrieve lost treasure from a dangerous or hidden location
     TASK_NAVIGATE_BLIZZARD,  // Navigate through a blizzard to reach a destination safely
-    TASK_REPEL_ENEMY_SCOUTS, // Repel enemy scouts from discovering strategic positions
+    TASK_REPEL_ENEMY_SCOUTS, // Keep enemy scouts from discovering our positions
     TASK_CONDUCT_RESCUE_OPERATION, // Conduct a rescue operation to save captured allies or civilians
     TASK_DEFEND_TOWER,       // Defend a tower from enemy assault
     TASK_CONSTRUCT_DEFENSIVE_POSITION, // Construct a defensive position to prepare for an imminent attack
@@ -525,9 +525,9 @@ enum EventTaskType {
     TASK_NAVIGATE_TREACHEROUS_TERRAIN, // Navigate treacherous terrain to reach an objective
     TASK_REPEL_ENEMY_PATROL, // Repel an enemy patrol from gaining information or territory
     TASK_CONDUCT_DEFENSIVE_DRILL, // Conduct a defensive drill to prepare for potential attacks
-    TASK_REINFORCE_STRATEGIC_POSITION, // Reinforce a strategic position to prevent enemy advance
+    TASK_REINFORCE_STRATEGIC_POSITION, // Reinforce a position to stop the enemy advance
     TASK_RESCUE_MISSING_SCOUTS, // Rescue scouts who have gone missing behind enemy lines
-    TASK_SECURE_WATER_SUPPLY, // Secure a water supply crucial for a settlement's survival
+    TASK_SECURE_WATER_SUPPLY, // Secure a water supply needed for a settlement's survival
     TASK_DEFEND_BORDERS,     // Defend the borders of a kingdom or territory from incursions
     TASK_REPAIR_DOCKS,       // Repair docks to ensure ships can safely dock and unload supplies
     TASK_RECLAIM_ANCIENT_CITADEL, // Reclaim an ancient citadel taken over by enemies
@@ -548,7 +548,7 @@ enum EventTaskType {
     TASK_DEFEND_AGAINST_RAID, // Defend a settlement against a raid from bandits or enemy troops
     TASK_RECLAIM_STOLEN_PROPERTY, // Reclaim stolen property taken by criminals or rival factions
     TASK_REPAIR_CITADEL_DEFENSES, // Repair the defenses of a citadel under threat
-    TASK_CONDUCT_STRATEGIC_RETREAT, // Conduct a strategic retreat to regroup and fortify
+    TASK_CONDUCT_STRATEGIC_RETREAT, // Retreat to regroup and fortify
     TASK_REPEL_FOREST_INVASION, // Repel an invasion of hostile forces in a forested area
     TASK_RESCUE_TRAPPED_SOLDIERS, // Rescue soldiers trapped behind enemy lines or in a collapsed structure
     TASK_DEFEND_HILLTOP,     // Defend a hilltop position from enemy forces trying to gain the high ground
@@ -591,7 +591,7 @@ enum EventTaskType {
     TASK_RECLAIM_ABANDONED_FORT, // Reclaim an abandoned fort from enemies or wild creatures
     TASK_RESCUE_SHIPWRECKED_CREW, // Rescue a crew stranded after a shipwreck
     TASK_DEFEND_WAR_CAMP,    // Defend a war camp from enemy sabotage or attack
-    TASK_CONSTRUCT_WATCHTOWER_NETWORK, // Construct a network of watchtowers for enhanced surveillance
+    TASK_CONSTRUCT_WATCHTOWER_NETWORK, // Construct a network of watchtowers
     TASK_REPEL_SKIRMISHERS,  // Repel skirmishers attempting to harass your forces
     TASK_REPAIR_BATTLEFIELD_DEFENSES, // Repair battlefield defenses during or after an engagement
     TASK_RECOVER_LOST_SCOUTS, // Recover scouts who have been lost or captured during a mission
@@ -619,7 +619,7 @@ enum EventTaskType {
     TASK_CONSTRUCT_DEFENSIVE_FORTIFICATIONS, // Construct defensive fortifications to protect against invasions
     TASK_REPEL_WILDERNESS_ATTACK, // Repel an attack by hostile forces emerging from the wilderness
     TASK_REPAIR_RAMPARTS,    // Repair ramparts damaged during an ongoing siege or conflict
-    TASK_SECURE_STRATEGIC_HILL, // Secure a hilltop offering a strategic advantage in battle
+    TASK_SECURE_STRATEGIC_HILL, // Secure a hilltop that gives an advantage in battle
     TASK_DEFEND_BORDER_FORT, // Defend a fort on the border of enemy territory
     TASK_RESOLVE_CONFLICT_BETWEEN_CLANS, // Resolve a conflict between rival clans threatening regional stability
     TASK_REPEL_FOREST_RAIDERS, // Repel raiders attacking from the forest or jungle
@@ -649,10 +649,10 @@ enum EventTaskType {
     TASK_REPAIR_BREACHED_WALL, // Repair a wall breached by enemy forces during an assault
     TASK_DEFEND_WATER_SUPPLY, // Defend a water supply from being poisoned or cut off
     TASK_RECOVER_DANGEROUS_ARTIFACT, // Recover an artifact that could cause great harm if left in the wrong hands
-    TASK_CONDUCT_RECON_MISSION, // Conduct a reconnaissance mission to gather vital information
+    TASK_CONDUCT_RECON_MISSION, // Conduct a reconnaissance mission to gather information
     TASK_RECLAIM_ABANDONED_MINE, // Reclaim an abandoned mine overrun by enemies or dangerous creatures
     TASK_REPEL_WINTER_OFFENSIVE, // Repel a winter offensive launched by the enemy
-    TASK_DEFEND_TRADING_HUB, // Defend a trading hub crucial for economic stability
+    TASK_DEFEND_TRADING_HUB, // Defend a trading hub needed for economic stability
     TASK_SECURE_SECRET_DOCUMENTS, // Secure documents that contain secret or sensitive information
     TASK_RECOVER_STOLEN_HORSES, // Recover horses stolen by bandits or enemy forces
     TASK_CONSTRUCT_WATCHTOWER_AT_BORDER, // Construct a watchtower at the border for surveillance and defense
@@ -668,7 +668,7 @@ enum EventTaskType {
     TASK_RESCUE_ABANDONED_WAGON, // Rescue a wagon left behind in enemy territory or dangerous conditions
     TASK_RECOVER_MAGIC_AMULET, // Recover a magic amulet of significant power or importance
     TASK_REPEL_BARBARIAN_RAID, // Repel a raid by barbarian tribes attacking a settlement or outpost
-    TASK_DEFEND_SUPPLY_CONVOY, // Defend a supply convoy transporting crucial goods
+    TASK_DEFEND_SUPPLY_CONVOY, // Defend a supply convoy transporting goods
     TASK_RECLAIM_HOLY_SITE,  // Reclaim a holy site taken over by enemies or desecrated by invaders
     TASK_SECURE_TRADE_AGREEMENT, // Secure a trade agreement to strengthen economic ties between regions
     TASK_REPEL_ENEMY_VANGUARD, // Repel an enemy vanguard seeking to establish a foothold
@@ -681,7 +681,7 @@ enum EventTaskType {
     TASK_RECLAIM_ANCIENT_WEAPON, // Reclaim an ancient weapon lost or hidden in enemy territory
     TASK_SECURE_VALLEY_PASSAGE, // Secure a valley passage critical for movement or trade
     TASK_REPEL_SWAMP_RAIDERS, // Repel raiders attacking from a swampy region
-    TASK_CONSTRUCT_HILL_FORT, // Construct a fort on a hill for strategic defense
+    TASK_CONSTRUCT_HILL_FORT, // Construct a fort on a hill
     TASK_REPAIR_MILITARY_BASE, // Repair a military base damaged by enemy action
     TASK_DEFEND_ANCIENT_FORT, // Defend an ancient fort from modern threats
     TASK_RECOVER_ENCHANTED_TALISMAN, // Recover an enchanted talisman from a dangerous location
@@ -703,8 +703,8 @@ enum EventTaskType {
     TASK_SECURE_ENCHANTED_FOREST, // Secure a forest with magical properties from intruders
     TASK_DEFEND_REMOTE_OUTPOST, // Defend a remote outpost from encroaching enemies
     TASK_REPAIR_MAGE_TOWER, // Repair a tower used by mages for their magical operations
-    TASK_RECOVER_VITAL_SUPPLIES, // Recover essential supplies lost or stolen in conflict
-    TASK_CONSTRUCT_DEFENSIVE_GATES, // Construct gates to enhance the defense of a fortification
+    TASK_RECOVER_VITAL_SUPPLIES, // Recover supplies lost or stolen in conflict
+    TASK_CONSTRUCT_DEFENSIVE_GATES, // Construct gates to strengthen a fortification
     TASK_REPEL_CLAN_WARLORD, // Repel a warlord leading a clan assault
     TASK_DEFEND_HISTORICAL_SITE, // Defend a site of historical significance from destruction
     TASK_REPAIR_FORTIFIED_WALLS, // Repair walls of a fortification to restore its defensive capability
@@ -727,12 +727,12 @@ enum EventTaskType {
     TASK_SECURE_ABANDONED_OUTPOST, // Secure an outpost that was previously abandoned
     TASK_DEFEND_NATIONAL_MONUMENT, // Defend a monument of national importance from damage or theft
     TASK_RECOVER_HEIRLOOM_WEAPON, // Recover a weapon of significant familial or historical value
-    TASK_CONDUCT_STRATEGIC_SURVEY, // Conduct a survey to assess strategic locations and conditions
+    TASK_CONDUCT_STRATEGIC_SURVEY, // Survey locations and conditions
     TASK_REPEL_DARK_MAGIC_USERS, // Repel dark magic users attempting to infiltrate or attack
     TASK_SECURE_HIDDEN_TREASURE, // Secure treasure hidden in a secret location
     TASK_DEFEND_RITUAL_SITE, // Defend a site used for important rituals from disruption or attack
     TASK_REPAIR_MAGICAL_BARRIER, // Repair a magical barrier protecting a critical location
-    TASK_CONSTRUCT_ARTILLERY_EMPLACEMENTS, // Construct emplacements for artillery to enhance defensive capabilities
+    TASK_CONSTRUCT_ARTILLERY_EMPLACEMENTS, // Construct artillery emplacements
     TASK_RECOVER_ANCESTRAL_TREASURE, // Recover treasure passed down through generations from a safe location
     TASK_DEFEND_MYSTICAL_SPRING, // Defend a mystical spring with significant magical properties
     TASK_REPAIR_AIRSHIP, // Repair an airship damaged during aerial conflict or travel
@@ -745,7 +745,7 @@ enum EventTaskType {
     TASK_SECURE_ANCIENT_TREASURE_TROVE, // Secure a trove of ancient treasures from being plundered
     TASK_DEFEND_ELITE_TROOPS, // Defend a unit of elite troops from enemy assault or capture
     TASK_REPAIR_FORTRESS_CANNONS, // Repair cannons within a fortress to restore their effectiveness
-    TASK_CONSTRUCT_REINFORCED_BUNKERS, // Construct bunkers with additional reinforcement for strategic protection
+    TASK_CONSTRUCT_REINFORCED_BUNKERS, // Construct reinforced bunkers
     TASK_RECOVER_ILLUMINATED_MANUSCRIPTS, // Recover manuscripts with illuminated texts of great value
     TASK_DEFEND_SECRET_BASE, // Defend a base hidden from enemy eyes from being discovered or attacked
     TASK_REPAIR_DEFENSIVE_TURRETS, // Repair turrets used for defending against enemy attacks
@@ -754,11 +754,11 @@ enum EventTaskType {
     TASK_DEFEND_AGAINST_MAGIC_ATTACKS, // Defend against magical attacks from enemy spellcasters
     TASK_RECOVER_HISTORICAL_RELICS, // Recover relics of historical importance from a secure location
     TASK_REPAIR_ANCIENT_DEFENSES, // Repair ancient defenses to restore their original protective capability
-    TASK_CONSTRUCT_MAGICALLY_ENCHANTED_BARRIERS, // Construct barriers with magical enchantments for enhanced defense
+    TASK_CONSTRUCT_MAGICALLY_ENCHANTED_BARRIERS, // Construct barriers with magical enchantments
     TASK_DEFEND_CULTURAL_HERITAGE, // Defend a site of cultural heritage from being attacked or damaged
-    TASK_SECURE_VITAL_MAGIC_ARTIFACT, // Secure a magic artifact crucial to your forces or plans
+    TASK_SECURE_VITAL_MAGIC_ARTIFACT, // Secure a magic artifact your forces or plans depend on
     TASK_REPAIR_DILAPIDATED_KEEP, // Repair a keep that has fallen into disrepair and disuse
-    TASK_DEFEND_CRUCIAL_RESOURCE, // Defend a resource essential for survival or strategic advantage
+    TASK_DEFEND_CRUCIAL_RESOURCE, // Defend a resource needed for survival or an advantage
     TASK_RECOVER_FAMOUS_BATTLE_STANDARD, // Recover a battle standard of historic significance
     TASK_CONSTRUCT_TACTICAL_FORTIFICATIONS, // Construct fortifications designed for tactical advantage in battle
     TASK_SECURE_ENCHANTED_WEAPONS, // Secure weapons imbued with enchantments from falling into enemy hands
@@ -766,15 +766,15 @@ enum EventTaskType {
     TASK_DEFEND_RITUAL_ALTAR, // Defend an altar used for significant rituals from desecration
     TASK_RECOVER_MAGICAL_ENCHANTMENTS, // Recover enchantments lost or stolen from magical artifacts
     TASK_REPAIR_UNDERGROUND_BUNKERS, // Repair bunkers located underground to ensure their functionality
-    TASK_CONSTRUCT_MAGICAL_OBELISKS, // Construct obelisks with magical properties for enhanced defense or power
-    TASK_DEFEND_VITAL_WAREHOUSE, // Defend a warehouse holding essential supplies or equipment
+    TASK_CONSTRUCT_MAGICAL_OBELISKS, // Construct obelisks with magical properties for defense or power
+    TASK_DEFEND_VITAL_WAREHOUSE, // Defend a warehouse holding supplies or equipment
     TASK_RECOVER_ANCESTRAL_ARTIFACTS, // Recover artifacts with ancestral or cultural importance
     TASK_REPAIR_ENCHANTED_FORGE, // Repair a forge used for creating enchanted items
     TASK_SECURE_COVERT_OPERATION_BASE, // Secure a base used for covert operations and intelligence gathering
     TASK_DEFEND_COVERT_MEETING_PLACE, // Defend a location used for secret meetings from discovery or attack
     TASK_RECOVER_ANCIENT_TEXTS, // Recover ancient texts of great knowledge
     TASK_CONSTRUCT_ELITE_DEFENSIVE_LINE, // Construct a defensive line designed to withstand elite enemy forces
-    TASK_DEFEND_VITAL_TRANSPORT_HUB, // Defend a transport hub crucial for logistics and troop movement
+    TASK_DEFEND_VITAL_TRANSPORT_HUB, // Defend a transport hub needed for logistics and troop movement
     TASK_SECURE_MYSTICAL_ARTIFACTS, // Secure artifacts with mystical properties from being stolen or destroyed
     TASK_RECOVER_COVERT_DOCUMENTS, // Recover documents related to secret operations or intelligence
     TASK_REPAIR_OBSOLETE_TURRETS, // Repair outdated turrets to bring them back into operational use
@@ -785,14 +785,14 @@ enum EventTaskType {
     TASK_RECOVER_SCARCE_RESOURCES, // Recover resources that are rare or critical for your operations
     TASK_DEFEND_LANDMARK_STRUCTURE, // Defend a landmark structure of great significance from damage or occupation
     TASK_CONSTRUCT_FORTIFIED_PERIMETER, // Construct a fortified perimeter around a key installation or settlement
-    TASK_REPAIR_CRUCIAL_COMMUNICATIONS, // Repair communication systems vital for coordinating defense or operations
-    TASK_SECURE_ENCHANTED_BARRIERS, // Secure barriers enhanced with magical protections from being breached
+    TASK_REPAIR_CRUCIAL_COMMUNICATIONS, // Repair communication systems needed for coordinating defense or operations
+    TASK_SECURE_ENCHANTED_BARRIERS, // Keep barriers with magical protections from being breached
     TASK_DEFEND_AIRBORNE_OPERATIONS, // Defend operations involving airborne units or assets from enemy interference
     TASK_RECOVER_HISTORICAL_STATUES, // Recover statues of historical importance from potential damage or theft
     TASK_REPAIR_MAGICAL_CONDUITS, // Repair conduits used to channel magical energy or spells
     TASK_CONSTRUCT_REINFORCED_TRENCHE, // Construct a trench with additional reinforcements for better protection
     TASK_SECURE_MYSTICAL_FOREST, // Secure a forest imbued with mystical properties from intruders
-    TASK_DEFEND_KEY_TRADING_POST, // Defend a trading post crucial for commerce and supply routes
+    TASK_DEFEND_KEY_TRADING_POST, // Defend a trading post needed for commerce and supply routes
     TASK_RECOVER_ANCIENT_SCROLLS, // Recover ancient scrolls containing important historical or magical information
     TASK_CONDUCT_HIGH_STAKES_NEGOTIATIONS, // Conduct negotiations of great importance to resolve conflicts or secure alliances
     TASK_DEFEND_AGAINST_NECROMANCY, // Defend against necromantic forces or magic targeting your forces or territory
@@ -805,32 +805,32 @@ enum EventTaskType {
     TASK_SECURE_FORTIFIED_OUTPOST, // Secure an outpost with fortifications to prevent enemy capture
     TASK_DEFEND_VITAL_CROSSROADS, // Defend a crossroads critical for movement and supply routes
     TASK_RECOVER_DAMAGED_RITUAL_ARTIFACTS, // Recover artifacts used in rituals that have been damaged or lost
-    TASK_REPAIR_ENCHANTED_GATES, // Repair gates enhanced with magical protections to restore their functionality
-    TASK_CONSTRUCT_STRATEGIC_OBSERVATION_POSTS, // Construct posts for strategic observation of enemy movements and positions
-    TASK_SECURE_VITAL_WEAPONSTOCKS, // Secure stocks of vital weapons from being seized or destroyed
-    TASK_DEFEND_CRUCIAL_FORTIFICATION, // Defend a fortification crucial for maintaining control over a region
+    TASK_REPAIR_ENCHANTED_GATES, // Repair gates with magical protections
+    TASK_CONSTRUCT_STRATEGIC_OBSERVATION_POSTS, // Construct posts to observe enemy movements and positions
+    TASK_SECURE_VITAL_WEAPONSTOCKS, // Secure stocks of weapons from being seized or destroyed
+    TASK_DEFEND_CRUCIAL_FORTIFICATION, // Defend a fortification needed for maintaining control over a region
     TASK_RECOVER_ANCIENT_WEAPONS, // Recover weapons of ancient origin with significant power or historical value
-    TASK_REPAIR_CIVILIAN_INFRASTRUCTURE, // Repair infrastructure essential for civilian life and support
-    TASK_SECURE_CRITICAL_LANDMARKS, // Secure landmarks of great strategic or symbolic importance from threat
+    TASK_REPAIR_CIVILIAN_INFRASTRUCTURE, // Repair civilian infrastructure
+    TASK_SECURE_CRITICAL_LANDMARKS, // Secure landmarks of great military or symbolic importance
     TASK_DEFEND_AGAINST_SPY_INTRUSION, // Defend against espionage attempts targeting sensitive areas or information
     TASK_RECOVER_SENSITIVE_DATA, // Recover data critical to operations or security from compromised sources
     TASK_CONSTRUCT_ENCHANTED_CAVERN_DEFENSES, // Construct defenses within a cavern with magical enchantments
     TASK_REPAIR_TREASURE_VAULTS, // Repair vaults used to store valuable treasures and artifacts
     TASK_SECURE_GREAT_LIBRARY, // Secure a large library holding extensive and valuable knowledge
     TASK_DEFEND_INFLUENTIAL_LEADER, // Defend a leader of great influence from threats or attempts on their life
-    TASK_RECOVER_CRITICAL_MEDICAL_SUPPLIES, // Recover medical supplies essential for treatment and recovery
+    TASK_RECOVER_CRITICAL_MEDICAL_SUPPLIES, // Recover medical supplies
     TASK_REPAIR_DAMAGED_BATTLEFIELD_STRATEGY, // Repair and adjust strategies used on the battlefield based on recent damage
     TASK_CONSTRUCT_ELITE_PROTECTIVE_ARMOR, // Construct armor designed for elite troops or high-value targets
     TASK_SECURE_ANCIENT_SECRET_TREASURE, // Secure treasure hidden in ancient locations of historical importance
     TASK_DEFEND_HIDDEN_MILITARY_BASE, // Defend a secret military base from discovery or attack
     TASK_RECOVER_DAMAGED_MAGIC_ITEMS, // Recover magic items damaged during recent conflicts or raids
-    TASK_REPAIR_BATTLEFIELD_ARTIFACTS, // Repair artifacts found on the battlefield essential for historical or strategic reasons
+    TASK_REPAIR_BATTLEFIELD_ARTIFACTS, // Repair artifacts found on the battlefield
     TASK_CONSTRUCT_PROTECTIVE_RUNES, // Construct runes for protection against magical or physical threats
     TASK_SECURE_LEGENDARY_SITES, // Secure sites of legendary significance from threats or exploitation
-    TASK_DEFEND_STRATEGIC_TRADE_ROUTE, // Defend a trade route vital for commerce and resource distribution
+    TASK_DEFEND_STRATEGIC_TRADE_ROUTE, // Defend a trade route needed for commerce and resource distribution
     TASK_RECOVER_MYSTICAL_ARTIFACTS, // Recover artifacts with mystical significance from dangerous locations
-    TASK_REPAIR_CRITICAL_INDUSTRIAL_EQUIPMENT, // Repair equipment crucial for industrial operations and production
-    TASK_CONSTRUCT_RITUALISTIC_DEFENSES, // Construct defenses based on ritualistic or magical designs for enhanced protection
+    TASK_REPAIR_CRITICAL_INDUSTRIAL_EQUIPMENT, // Repair equipment needed for industrial operations and production
+    TASK_CONSTRUCT_RITUALISTIC_DEFENSES, // Construct defenses based on ritualistic or magical designs
     TASK_SECURE_HIDDEN_MYSTICAL_ARTIFACTS, // Secure mystical artifacts hidden from general knowledge or access
     TASK_DEFEND_CULTURAL_INSTITUTIONS, // Defend institutions dedicated to culture and the arts from attack or damage
     TASK_RECOVER_DAMAGED_STATUES, // Recover and restore statues of artistic or historical significance
@@ -840,7 +840,7 @@ enum EventTaskType {
     TASK_DEFEND_MYSTICAL_CAVES, // Defend caves with mystical properties from intrusion or desecration
     TASK_RECOVER_EXPERT_CRAFTSMAN, // Recover a skilled craftsman who can create or repair valuable items
     TASK_REPAIR_ANCIENT_DEFENSIVE_STRUCTURES, // Repair ancient structures designed for defensive purposes
-    TASK_CONSTRUCT_ENCHANTED_PROTECTIVE_BARRIERS, // Construct barriers enhanced with enchantments for superior protection
+    TASK_CONSTRUCT_ENCHANTED_PROTECTIVE_BARRIERS, // Construct barriers with protective enchantments
     TASK_SECURE_ECONOMICALLY_VITAL_RESOURCES, // Secure resources critical for economic stability and growth
     TASK_DEFEND_AGAINST_MAGICAL_BEASTS, // Defend against beasts with magical properties or abilities
     TASK_RECOVER_ENCHANTED_SCROLLS, // Recover scrolls imbued with magic from secure locations
@@ -848,14 +848,14 @@ enum EventTaskType {
     TASK_CONSTRUCT_FORTIFIED_RESEARCH_LAB, // Construct a research lab with fortified defenses for scientific or magical work
     TASK_SECURE_MAGICALLY_ENHANCED_TREASURE, // Secure treasure with magical enhancements from theft or damage
     TASK_DEFEND_TACTICAL_OUTPOSTS, // Defend outposts critical for tactical operations and defense
-    TASK_RECOVER_RARE_ALCHEMICAL_REAGENTS, // Recover reagents used in alchemy that are rare or essential
+    TASK_RECOVER_RARE_ALCHEMICAL_REAGENTS, // Recover rare alchemical reagents
     TASK_REPAIR_PROTECTIVE_MAGIC_CONDUITS, // Repair conduits used to channel protective magic or enchantments
     TASK_CONSTRUCT_ADVANCED_DEFENSIVE_FORTIFICATIONS, // Construct advanced fortifications for improved defense against formidable threats
     TASK_DEFEND_ENCHANTED_SPRING, // Defend a spring with magical properties from exploitation or attack
     TASK_RECOVER_LOST_CIVILIZATION_ARTIFACTS, // Recover artifacts from a lost civilization of great historical or magical significance
     TASK_REPAIR_ADVANCED_SEA_DEFENSES, // Repair advanced defenses designed to protect against sea-based attacks
     TASK_CONSTRUCT_SECURE_RITUAL_CHAMBERS, // Construct chambers designed for performing high-security rituals
-    TASK_SECURE_CRITICAL_MAGE_TOWER, // Secure a mage tower vital for magical operations and research
+    TASK_SECURE_CRITICAL_MAGE_TOWER, // Secure a mage tower needed for magical operations and research
     TASK_DEFEND_HEAVILY_FORTIFIED_CITY, // Defend a city with extensive fortifications from sieges or attacks
     TASK_RECOVER_ANCIENT_TECHNOLOGY, // Recover technology of ancient origin with significant power or utility
     TASK_REPAIR_EXPERIMENTAL_WEAPONS, // Repair weapons of experimental design used for cutting-edge combat
@@ -864,33 +864,33 @@ enum EventTaskType {
     TASK_DEFEND_SUPPLY_DEPOT, // Defend a depot holding critical supplies from sabotage or theft
     TASK_RECOVER_DAMAGED_ANTIQUITIES, // Recover and restore antiquities damaged in recent conflicts
     TASK_REPAIR_TACTICAL_ENGINES, // Repair engines used in tactical operations or war machines
-    TASK_CONSTRUCT_RESEARCH_STATIONS, // Construct stations dedicated to research in strategic or magical fields
+    TASK_CONSTRUCT_RESEARCH_STATIONS, // Construct research stations for military or magical research
     TASK_SECURE_MAGICAL_TRANSMISSION_TOWERS, // Secure towers used for transmitting magical energy or signals from interference
     TASK_DEFEND_CONSTRUCTED_EMBASSIES, // Defend embassies constructed in dangerous regions from attack or breach
     TASK_RECOVER_OBSOLETE_ARTIFACTS, // Recover artifacts that have fallen out of use but are still of historical value
     TASK_REPAIR_SECURE_CHESTS, // Repair chests used to store valuable or sensitive items
-    TASK_CONSTRUCT_FORTIFIED_COMMAND_BUNKERS, // Construct command bunkers with advanced fortifications for strategic command
+    TASK_CONSTRUCT_FORTIFIED_COMMAND_BUNKERS, // Construct fortified command bunkers
     TASK_SECURE_ANCIENT_POWER_SOURCES, // Secure sources of ancient power from theft or misuse
     TASK_DEFEND_INFLUENTIAL_ORGANIZATIONS, // Defend organizations of great influence or power from hostile actions
     TASK_RECOVER_LOST_TREASURES, // Recover treasures that have been lost or hidden over time
-    TASK_REPAIR_EXOTIC_ARTIFACTS, // Repair artifacts of exotic origin that are crucial for various operations
+    TASK_REPAIR_EXOTIC_ARTIFACTS, // Repair artifacts of exotic origin
     TASK_CONSTRUCT_SUPPLY_CHAIN_DEFENSES, // Construct defenses to protect critical supply chains from disruption
     TASK_SECURE_LEGENDARY_TREASURE_CACHES, // Secure caches of treasure with legendary status from plunder
     TASK_DEFEND_HIGH_PRIORITY_RESEARCH_LABS, // Defend research labs with high-priority projects from attack
-    TASK_RECOVER_SENSITIVE_EQUIPMENT, // Recover equipment essential for operations that has been compromised or lost
+    TASK_RECOVER_SENSITIVE_EQUIPMENT, // Recover equipment that has been compromised or lost
     TASK_REPAIR_ANCIENT_MILITARY_EQUIPMENT, // Repair equipment of ancient military origin for restoration and use
     TASK_CONSTRUCT_ENCHANTED_SECURITY_SYSTEMS, // Construct security systems with enchantments for heightened protection
     TASK_SECURE_HISTORICAL_RESEARCH_ARCHIVES, // Secure archives containing historical research from unauthorized access or damage
     TASK_DEFEND_CRITICAL_WAR_SUPPLIES, // Defend supplies critical for ongoing war efforts from attack or theft
-    TASK_RECOVER_MAGICALLY_ENHANCED_GEAR, // Recover gear enhanced with magical properties that has been lost or stolen
+    TASK_RECOVER_MAGICALLY_ENHANCED_GEAR, // Recover magical gear that has been lost or stolen
     TASK_REPAIR_FORTIFIED_MILITARY_OUTPOSTS, // Repair military outposts with fortifications to restore their effectiveness
     TASK_CONSTRUCT_STRATEGIC_MAGICAL_OBSERVATORIES, // Construct observatories designed for monitoring magical events or phenomena
     TASK_SECURE_ANCIENT_ENCHANTED_RELICS, // Secure relics with ancient enchantments from being disturbed or misused
     TASK_DEFEND_HIGHLY_SENSITIVE_SITES, // Defend sites with highly sensitive information or assets from breaches
-    TASK_RECOVER_VITAL_MAGICAL_ESSENCES, // Recover essences crucial for magical operations or artifacts
+    TASK_RECOVER_VITAL_MAGICAL_ESSENCES, // Recover essences used for magic or artifacts
     TASK_REPAIR_ADVANCED_ENCHANTMENT_DEVICES, // Repair devices used for advanced enchantments or magical operations
     TASK_CONSTRUCT_ENCHANTED_TACTICAL_GATES, // Construct gates with enchantments for tactical advantage in defense
-    TASK_SECURE_CRITICAL_ENCHANTED_RESOURCES, // Secure resources imbued with enchantments essential for various uses
+    TASK_SECURE_CRITICAL_ENCHANTED_RESOURCES, // Secure enchanted resources
     TASK_DEFEND_AGAINST_MAGICAL_INTERFERENCE, // Defend against interference from magical sources or entities
     TASK_RECOVER_OLD_TRADITIONAL_WEAPONS, // Recover traditional weapons with significant historical or cultural importance
     TASK_REPAIR_HIGH_ECH_ARTIFACTS, // Repair artifacts with high technological advancements from damage or malfunction
@@ -899,15 +899,15 @@ enum EventTaskType {
     TASK_DEFEND_KEY_SACRED_SITES, // Defend sacred sites of great importance from desecration or attack
     TASK_RECOVER_HISTORIC_MILITARY_DOCUMENTS, // Recover documents of historic military importance from secure locations
     TASK_REPAIR_ADVANCED_PROTECTIVE_SYSTEMS, // Repair systems designed for advanced protection against various threats
-    TASK_CONSTRUCT_DEFENSIVE_RITUALS, // Construct defensive measures based on rituals for enhanced protection
+    TASK_CONSTRUCT_DEFENSIVE_RITUALS, // Construct defensive measures based on rituals
     TASK_SECURE_HIDDEN_MAGIC_TREASURES, // Secure hidden treasures with magical properties from discovery or theft
     TASK_DEFEND_CRITICAL_MAGICAL_GATES, // Defend gates with significant magical importance from breach or damage
     TASK_RECOVER_ANCIENT_ENCHANTMENTS, // Recover enchantments from ancient sources that have been lost or hidden
     TASK_REPAIR_SECURE_RESEARCH_EQUIPMENT, // Repair equipment used in secure research environments
-    TASK_CONSTRUCT_TACTICAL_ENCHANTED_FORTIFICATIONS, // Construct fortifications with tactical enchantments for strategic defense
+    TASK_CONSTRUCT_TACTICAL_ENCHANTED_FORTIFICATIONS, // Construct fortifications with tactical enchantments
     TASK_SECURE_VITAL_ANCIENT_GRIMOIRES, // Secure grimoires containing ancient knowledge from unauthorized access
     TASK_DEFEND_INTERNATIONAL_TREATY_SITES, // Defend sites related to international treaties from violations or attacks
-    TASK_RECOVER_HISTORIC_CONSTRUCTION_PLANS, // Recover plans related to historic constructions of strategic importance
+    TASK_RECOVER_HISTORIC_CONSTRUCTION_PLANS, // Recover plans of important historic constructions
     TASK_REPAIR_DEFENSIVE_ENCHANTMENTS, // Repair enchantments used to protect key defensive structures or assets
     TASK_CONSTRUCT_ADVANCED_MAGE_BARRIERS, // Construct barriers with advanced magical properties for high-level protection
     TASK_SECURE_ENCHANTED_WEAPON_STORAGE, // Secure storage areas for weapons with magical enhancements
@@ -923,8 +923,8 @@ enum EventTaskType {
     TASK_SECURE_CRUCIAL_MAGICAL_TRANSPORTS, // Secure transport routes or vessels used for moving magical resources
     TASK_DEFEND_RESEARCH_AND_DEVELOPMENT_SITES, // Defend sites dedicated to research and development from attacks or sabotage
     TASK_RECOVER_EXOTIC_RITUAL_ARTIFACTS, // Recover artifacts used in exotic rituals from danger or theft
-    TASK_REPAIR_ADVANCED_STRATEGIC_ARTIFACTS, // Repair strategic artifacts with advanced features or technology
-    TASK_CONSTRUCT_FORTIFIED_MAGIC_WARDS, // Construct wards with fortifications to enhance magical protection
+    TASK_REPAIR_ADVANCED_STRATEGIC_ARTIFACTS, // Repair artifacts with advanced features or technology
+    TASK_CONSTRUCT_FORTIFIED_MAGIC_WARDS, // Construct fortified magic wards
     TASK_SECURE_LEGENDARY_ENCHANTED_ITEMS, // Secure items of legendary enchantment from theft or destruction
     TASK_DEFEND_ANTIQUITY_STORAGE_FACILITIES, // Defend facilities storing valuable antiquities from breach or damage
     TASK_RECOVER_HISTORICAL_RESEARCH_EQUIPMENT, // Recover equipment used in historical research from loss or damage

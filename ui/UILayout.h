@@ -11,18 +11,11 @@
 #include "../gpuapi/GpuApiType.h"
 #include "UICore.h"
 
-// Version 2: flat pre-order element tree (@see UICore)
-// Version 3: UIPanel scroll/popup data, new element types (tabs, table, option list, color picker)
-// Version 4: UIColorPicker palette order, UITable dynamic cells
-// Version 5: UICore incremental caching members
-// Version 8: Label/input texts are stored with their length (@see ui_string_reserve)
-// Version 9: New string hash of the element hash map (@see hashmap_str_hash)
-// Version 10: UITable row values + user value
 #define UI_LAYOUT_VERSION 10
 
 /**
  * BINARY FORMAT: .layoutbin, version UI_LAYOUT_VERSION
- * Written by layout_to_data(), read by layout_from_data() (@see UILayout.cpp).
+ * Written by layout_to_data(), read by layout_from_data().
  *
  *      offset      size    type        field
  *      0           4       int32       version (UI_LAYOUT_VERSION)
@@ -33,7 +26,7 @@
  *
  *      S = capacity * 32 + ceil(capacity / 64) * 8 + 8      (capacity = element name slots)
  *
- * Hash map header (chunk memory dump, @see hashmap_dump / chunk_dump)
+ * Hash map header (chunk memory dump / chunk_dump)
  *
  *      offset  size    type    field
  *      0       4       int32   capacity        amount of name slots
@@ -43,23 +36,23 @@
  *
  * Slots are HashEntryStrT<int32> (32 bytes: char[22] key, uint16 next, uint16 head,
  * uint16 tag, int32 value = byte offset of the element), the free bitmap follows the
- * slots (8 bytes per 64 slots, bit set = slot in use). @see UITheme.h for the details.
+ * slots (8 bytes per 64 slots, bit set = slot in use).
  *
  * Element buffer: the raw content of UILayout::ui_element_buffer, i.e. the element
  * tree in pre-order (parent, child 1, grandchild 1.1, child 2, ...). Every element
- * starts with UICore (96 bytes) followed by the type specific fields and the inline
+ * starts with UICore followed by the type specific fields and the inline
  * strings (class name, text). All links are byte offsets into the buffer, offset 0 is
  * always the root, so the block is position independent.
  *
  * Label and input texts are C strings with an 8 byte SimpleStringInline header in
  * front of them (int32 length, int32 max_length), the elements store the offset of
- * the characters (@see ui_string_reserve).
+ * the characters ui_string_reserve().
  *
  * WARNING: the element buffer is a memory dump without any endian or layout
  * conversion. It can only be loaded by a build with the same struct layout and
  * the same endianness.
  *
- * Text format: .layouttxt, @see UILayoutTxt.h.
+ * Text format: .layouttxt,
  */
 
 ///////////////////////////////
@@ -74,21 +67,6 @@
 // ...
 // Element C (added later, linked as child of A through next_offset/skip_offset)
 // ============================
-
-struct UIChromaCodes {
-    // This array has the size of the game window and represents in color codes where interactible ui elements are
-    // Size is based on screen size (we don't need full screen size since we assume an interactible element is at least 4 pixels width and height)
-    //      width = 25% of screen size
-    //      height = 25% of screen size
-    // WARNING: what if we want to support 8k resolution? in that case 4 pixel get reduced to 1 pixel
-    //      That means a border doesn't really have a good hitbox
-    uint16 width;
-    uint16 height;
-
-    // Contains all UI elements also dynamic ones (e.g. movable windows)
-    // Every ui element has it's own color code and with that we can identify the currently hovered one
-    uint32* codes;
-};
 
 typedef struct UILayout UILayout;
 struct UICursor;
@@ -107,13 +85,10 @@ typedef void *(*UIRenderFunc)(
     BufferMemory* const __restrict mem
 ) NO_EXCEPT;
 
-// Current pointer (mouse) interaction state (@see ui_input_pointer)
+// Current pointer (mouse) interaction state (ui_input_pointer)
 // All elements are offsets into ui_element_buffer (0 = none)
 // @performance The struct below is very verbose but I think a lot of variables could be merged
 //              in combination with a helper variable
-//              e.g. it's impossible to have different elements as focused and clicked at the same time
-//              same goes for editing and active and so on. you could probably group some offsets/ids and create a
-//              bitfield that defines if active, focused etc.
 struct UIInteraction {
     // Element with UI_STATE_HOVER
     int32 hovered;
@@ -127,27 +102,28 @@ struct UIInteraction {
     // Element that is moved by dragging (e.g. the window while dragging its title)
     int32 dragged;
 
-    // Element that was clicked in this tick (pointer click or enter/space on the focused element, reset by ui_input_pointer())
+    // Element that was clicked in this tick
+    // (pointer click or enter/space on the focused element, reset by ui_input_pointer())
     int32 clicked;
 
-    // Text element that receives the keyboard input (UIInput/UITextarea, @see ui_input_text)
+    // Text element that receives the keyboard input (UIInput/UITextarea)
     int32 editing;
 
-    // Non text element that receives the keyboard input (e.g. button focused with tab, @see ui_focus_move)
+    // Non text element that receives the keyboard input (e.g. button focused with tab, ui_focus_move())
     // Text elements use editing instead, both are never set at the same time
     int32 keyboard_focus;
 
-    // Open popup (@see ui_popup_open), e.g. the option list of a select, a color picker or a context menu
+    // Open popup ui_popup_open(), e.g. the option list of a select, a color picker or a context menu
     int32 popup;
 
     // Element that was hit by the secondary button (right click) in the last ui_input_pointer() call
-    // The application decides what happens (e.g. open a context menu @see ui_popup_open)
+    // The application decides what happens (e.g. open a context menu)
     int32 context_target;
 
     // Element that is resized by dragging a UI_ELEMENT_FLAG_RESIZABLE element (e.g. window by its resize grip)
     int32 resized;
 
-    // Element whose scrollbar thumb is dragged (@see UIScrollAxis for scroll_drag_axis)
+    // Element whose scrollbar thumb is dragged
     int32 scroll_dragged;
     f32 scroll_drag_start;
     byte scroll_drag_axis;
@@ -164,7 +140,7 @@ struct UIInteraction {
     byte click_count;
 
     // Pointer position of the last ui_input_pointer() call in ui coordinates
-    // e.g. for tooltips of custom elements (@see ui_tooltip_show)
+    // e.g. for tooltips of custom elements (ui_tooltip_show)
     v2_f32 pointer;
 
     // Primary button state of the last ui_input_pointer() call
@@ -177,17 +153,43 @@ struct UIInteraction {
 
 // Modified for every scene
 // What the last ui_cache() changed in its output (ui_vertex_cache/ui_index_cache)
-// Lets the application copy/upload only the changed part of the ui (@see ui_cache)
+// Lets the application copy/upload only the changed part of the ui
+// @todo Profile if this is actually happening in reasonable amounts
+//      or if this is actually useless since it never applies
 struct UICachePatch {
-    // true  = the whole output was re-built (the vertex/index counts may have changed)
-    // false = the output was patched in place, only the ranges below changed (the counts are the same)
+    // true  = full update/upload required
+    // false = partial update/upload possible
     bool full;
 
-    // Changed vertex/index range [start, end), start >= end = nothing changed
+    // Changed vertex/index range, start >= end = nothing changed
     int32 vertex_start;
     int32 vertex_end;
     int32 index_start;
     int32 index_end;
+};
+
+enum UILayoutDirty : byte {
+    UI_LAYOUT_DIRTY_NONE = 0,
+
+    // Something changed since the last ui_cache()
+    // -> may not update immediately if the last update was too recent
+    UI_LAYOUT_DIRTY = 1 << 0,
+
+    // The change was caused by user interaction
+    // -> cache immediately
+    // -> ignores ui update limitations
+    UI_LAYOUT_DIRTY_INTERACTION = 1 << 1,
+};
+
+enum UILayoutPointerForced : byte {
+    UI_POINTER_FORCED_NONE = 0,
+
+    // Every open window that needs the pointer sets this during the tick
+    UI_POINTER_FORCED_REQUEST = 1 << 0,
+
+    // At least one window needed the pointer last tick, the application shows it even if its own pointer mode is off
+    // The application turns the requests into this state once per tick and clears the requests
+    UI_POINTER_FORCED = 1 << 1,
 };
 
 struct UILayout {
@@ -225,25 +227,19 @@ struct UILayout {
     // Hover, press, focus, drag state
     UIInteraction interaction;
 
-    // Something changed since the last ui_cache()
-    // The flag stays set until ui_cache() runs, e.g. if caching is throttled by a fps limit
-    // Custom elements (UI_ELEMENT_TYPE_CUSTOM) render through a callback, their update callback
-    // has to mark them as changed if their output changes
-    bool is_dirty;
+    // @type UILayoutDirty
+    byte dirty;
 
-    // The change was caused by user interaction (pointer, navigation, text input + the actions they trigger,
-    // @see ui_input_pointer, ui_input_text, ui_input_navigate) -> the application should cache immediately
-    // Other changes (only is_dirty, e.g. update functions like a fps label) can be throttled
-    // Reset by ui_cache()
-    bool is_dirty_interaction;
+    // The pointer is not only a UI rendering aspect it also determins camera behavior/availability
+    // @type UILayoutPointerForced
+    byte pointer_forced;
 
-    // This is where we actually store the elements (@see UICore for the tree structure)
+    // This is where we actually store the elements
     // It has to use an arbitrary buffer size per element since the element size is not uniform
     BufferMemory ui_element_buffer;
 
     // Output of the last ui_cache() (vertices + indices of all visible elements)
-    // Unchanged elements are copied from here instead of re-generating them (@see ui_cache)
-    // Not allocated (capacity 0) = no incremental caching
+    // Unchanged elements are copied from here instead of re-generating them
     ArrayVector<Vertex3DSamplerTextureColor> ui_vertex_total;
     ArrayVector<int32> ui_index_total;
 
@@ -255,17 +251,22 @@ struct UILayout {
     // Counts the ui_cache() calls, the cache data of an element is only valid for the last call
     uint32 cache_frame;
 
-    // Values that affect all elements (e.g. font), if they change everything is re-generated
-    uint64 cache_global;
+    // A simple hash created from values that affect all elements (e.g. font),
+    // if they change everything is re-generated
+    uint64 cache_global_hash;
 
     // Statistics of the last ui_cache() call
+    // @question Consider to move too STATS logging
     int32 cache_elements_generated;
     int32 cache_elements_reused;
 
-    // What the last ui_cache() changed (@see UICachePatch)
+    // What the last ui_cache() changed
+    // This doesn't describe a single element that changed but an entire range that changed
+    // ui_vertex_cache and ui_index_cache
     UICachePatch cache_patch;
 
-    // Scrollbar drag state of the last ui_cache(), the scrollbars are only re-generated by a full ui_cache()
+    // Scrollbar drag state of the last ui_cache(),
+    // the scrollbars are only re-generated by a full ui_cache()
     int32 cache_scroll_dragged;
     byte cache_scroll_drag_axis;
 

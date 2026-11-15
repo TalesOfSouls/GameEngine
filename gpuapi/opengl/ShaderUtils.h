@@ -360,7 +360,7 @@ int32 opengl_program_optimize(const char* __restrict input, char* __restrict out
  */
 GLuint gpuapi_shader_make(GLenum type, const char* source, bool fatal = true) NO_EXCEPT
 {
-    LOG_1("[INFO] Create shader");
+    LOG_1("[INFO] Create shader %s", {DATA_TYPE_CHAR_STR, source});
     const GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, (GLchar **) &source, NULL);
     glCompileShader(shader);
@@ -386,12 +386,13 @@ GLuint gpuapi_shader_make(GLenum type, const char* source, bool fatal = true) NO
     #endif
 
     if (!fatal && status == GL_FALSE) {
+        LOG_1("[ERROR] Failed shader creation %d %s", {DATA_TYPE_INT32, &shader}, {DATA_TYPE_CHAR_STR, source});
         glDeleteShader(shader);
 
         return 0;
     }
 
-    LOG_1("[INFO] Created shader");
+    LOG_1("[INFO] Created shader %d %s", {DATA_TYPE_INT32, &shader}, {DATA_TYPE_CHAR_STR, source});
 
     return shader;
 }
@@ -436,7 +437,10 @@ GLuint gpuapi_pipeline_make(
         return 0;
     }
 
-    LOG_1("[INFO] Create pipeline");
+    LOG_1(
+        "[INFO] Create pipeline %d - %d",
+        {DATA_TYPE_INT32, &vertex_shader}, {DATA_TYPE_INT32, &fragment_shader}
+    );
     GLuint program = glCreateProgram();
 
     if (geometry_shader > -1) {
@@ -488,7 +492,10 @@ GLuint gpuapi_pipeline_make(
         return 0;
     }
 
-    LOG_1("[INFO] Created pipeline");
+    LOG_1(
+        "[INFO] Created pipeline %d - %d",
+        {DATA_TYPE_INT32, &vertex_shader}, {DATA_TYPE_INT32, &fragment_shader}
+    );
 
     return program;
 }

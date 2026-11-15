@@ -882,7 +882,7 @@ bool display_monitor_get(int32 index, DisplayMonitor* const monitor) NO_EXCEPT
 /**
  * Current desktop rectangle of a monitor by its name (e.g. after its resolution was changed)
  *
- * @param const char* name Monitor name (@see DisplayMonitor::name)
+ * @param const char* name Monitor name (name)
  * @param DisplayMonitor* monitor Monitor (output)
  *
  * @return bool false if the monitor doesn't exist
@@ -907,7 +907,7 @@ bool display_monitor_by_name(const char* const name, DisplayMonitor* const monit
 /**
  * Changes the resolution of a monitor until display_resolution_restore (fullscreen mode)
  *
- * @param const char* name Monitor name (@see DisplayMonitor::name)
+ * @param const char* name Monitor name (name)
  * @param int32 width Width in pixels
  * @param int32 height Height in pixels
  *
@@ -929,9 +929,9 @@ bool display_resolution_set(const char* const name, int32 width, int32 height) N
 }
 
 /**
- * Restores the desktop resolution of a monitor (@see display_resolution_set)
+ * Restores the desktop resolution of a monitor
  *
- * @param const char* name Monitor name (@see DisplayMonitor::name)
+ * @param const char* name Monitor name (name)
  *
  * @return void
  */

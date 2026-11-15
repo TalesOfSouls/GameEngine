@@ -35,8 +35,8 @@ struct UIInput {
     UIAttributeFont font;
 
     // Offset of the utf8 text (\0 terminated)
-    // The text has a SimpleStringInline header in front of it (@see ui_string_reserve)
-    // -> the current length is known (@see ui_input_text_length), direct writers must call ui_string_length_set
+    // The text has a SimpleStringInline header in front of it
+    // -> the current length is known, direct writers must call ui_string_length_set
     int32 content;
 
     // Reserved bytes incl. \0 -> max text length = content_length - 1 bytes
@@ -57,7 +57,7 @@ struct UIInput {
     int32 on_submit; // Enter in a single line input
 
     // Element that is notified internally when the text changes, e.g. the select of a search field
-    // or the color picker of a rgba field (@see ui_input_owner_changed), 0 = none
+    // or the color picker of a rgba field, 0 = none
     int32 owner;
 
     // Scroll offset of the text in px (x = single line input, y = textarea)

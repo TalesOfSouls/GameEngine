@@ -21,10 +21,10 @@ struct UIAttributeFont {
     // RGBA
     uint32 color;
 
-    // @see UIFontDecoration
+    // @type UIFontDecoration
     byte decoration;
 
-    // Text alignment inside of the element (@see UIAlignAnchor, only the UI_ALIGN_* bits are used)
+    // Text alignment inside of the element (only the UI_ALIGN_* bits are used)
     byte alignment;
 };
 

@@ -7,7 +7,7 @@
 #include "UICore.h"
 
 enum UIPanelFlag : byte {
-    // Scrollable content (@see ui_scroll_panel_create)
+    // Scrollable content
     UI_PANEL_FLAG_SCROLL_X = 1 << 0,
     UI_PANEL_FLAG_SCROLL_Y = 1 << 1,
 
@@ -17,7 +17,7 @@ enum UIPanelFlag : byte {
     // The content child of a scroll panel, it is positioned by the scroll offset of its parent
     UI_PANEL_FLAG_SCROLL_CONTENT = 1 << 3,
 
-    // Hidden until opened (@see ui_popup_open), drawn on top of everything and gets the pointer input first
+    // Hidden until opened, drawn on top of everything and gets the pointer input first
     // Pressing outside of the popup closes it
     UI_PANEL_FLAG_POPUP = 1 << 4,
 
@@ -38,7 +38,7 @@ struct UIPanel {
 
     UIAttributeBorder border;
 
-    // @see UIPanelFlag
+    // @type UIPanelFlag
     byte panel_flags;
 
     // Scroll panel: offset of the content child (all children of the scroll panel are added to the content)

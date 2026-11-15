@@ -10,7 +10,7 @@
  *      GIDC_ARRIVAL = rawinput_device_add(), GIDC_REMOVAL = rawinput_device_remove()
  *
  *      WARNING: Windows also sends GIDC_ARRIVAL for all present devices right after the registration
- *               Adding a device is idempotent
+ *               Adding the same device twice does nothing
  */
 #pragma once
 #ifndef COMS_PLATFORM_WIN32_INPUT_RAW_H
@@ -736,7 +736,7 @@ int16 input_raw_handle(
             states[input_handle.vec[0]].state.dx[0] += dx;
             states[input_handle.vec[0]].state.dy[0] += dy;
 
-            // A locked pointer stays where it is (only dx/dy change, @see Input::pointer_locked)
+            // A locked pointer stays where it is (only dx/dy change)
             if (!states[input_handle.vec[0]].pointer_locked) {
                 states[input_handle.vec[0]].state.x[0] += dx;
                 states[input_handle.vec[0]].state.y[0] += dy;

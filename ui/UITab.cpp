@@ -80,7 +80,7 @@ bool ui_tab_set_active(UILayout* const layout, UITab* const tab, int32 index) NO
     } ui_element_children_iterate_end;
 
     tab->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return changed;
 }
@@ -121,7 +121,7 @@ UITab* ui_tab_create(
 
     tab->tab_size = orientation == UI_TAB_ORIENTATION_HORIZONTAL ? UI_TAB_MIN_WIDTH : UI_DEFAULT_ROW_HEIGHT + 2.0f;
 
-    // Titles are stored directly after the tab view as string list (@see ui_string_list_store)
+    // Titles are stored directly after the tab view as string list
     tab->titles = ui_string_list_store(layout, titles, tab_count);
 
     tab->tab_count = (int16) tab_count;
@@ -187,7 +187,7 @@ bool ui_tab_hover(UILayout* const layout, UITab* const tab, int32 index) NO_EXCE
 
     tab->hovered = (int16) index;
     tab->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }

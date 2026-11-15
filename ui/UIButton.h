@@ -7,7 +7,7 @@
 #include "attribute/UIAttributeBorder.h"
 #include "UICore.h"
 
-// The optional text is a UILabel child element (@see ui_button_create)
+// The optional text is a UILabel child element
 struct UIButton {
     UICore core;
 

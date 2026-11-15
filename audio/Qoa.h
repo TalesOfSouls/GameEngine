@@ -415,7 +415,9 @@ uint32 qoa_decode_frame(const byte* bytes, uint32 channels, QoaLms* lms, int16* 
 // @param data_size Size of the compressed data (NOT the uncompressed audio->size)
 uint32 qoa_decode(const byte* data, Audio* audio, uint32 data_size = UINT32_MAX)
 {
-	LOG_3("QOA decode audio");
+	// @todo replace log with performance log
+	LOG_3("[INFO] QOA decode audio");
+
     uint32 p = 0;
     byte* sample_ptr = audio->data;
     const byte* const sample_end = audio->data + audio->size;

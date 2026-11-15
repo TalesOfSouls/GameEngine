@@ -51,7 +51,8 @@
 // Max nesting of clipping panels (e.g. scroll panel in a scroll panel)
 #define UI_CLIP_STACK_SIZE 4
 
-// Cursor position
+// Input state that holds the cursor/pointer
+// @question Consider to move to UILayout instead of global state
 static int32 _ui_pointer_input = 0;
 
 // Is the element and all of its parents visible?
@@ -72,22 +73,17 @@ bool ui_element_is_visible(const UILayout* const layout, const UICore* element) 
 /**
  * Runs the update functions (UICore::update_func) of all visible elements
  *
- * The update functions are responsible for flagging their changes (UICore::change_type + UILayout::is_dirty)
+ * The update functions are responsible for flagging their changes (UICore::change_type + UILayout::dirty)
  * and only if something actually changed (e.g. the fps label only if the fps changed).
  * The ui functions that change elements (e.g. ui_label_set_text, ui_table_set_cell) flag the element themselves,
  * so an update function just has to avoid calling them if nothing changed.
  *
  * MUST be called before ui_cache(), ui_cache() itself never changes the element state
  *
- * @return true if the layout needs to be re-cached
- */
-/**
- * Runs the update functions of the visible elements
- *
  * @param bool content_tick false = only the update functions of elements with UI_ELEMENT_FLAG_UPDATE_TICK run
  *                          (e.g. the cursor), true = all of them (e.g. labels/tables with statistics)
- *                          The application decides the rate of the content ticks, content changes don't have to
- *                          be generated (and re-cached) more often than they can be read
+ *
+ * @return true if the layout needs to be re-cached
  */
 bool ui_update(void* app, UILayout* const layout, bool content_tick = true) NO_EXCEPT
 {
@@ -95,7 +91,7 @@ bool ui_update(void* app, UILayout* const layout, bool content_tick = true) NO_E
     ASSERT_TRUE(layout->ui_root);
 
     if (!layout->update) {
-        return layout->is_dirty;
+        return (layout->dirty & UI_LAYOUT_DIRTY) != 0;
     }
 
     int32 offset = layout->ui_root->next_offset;
@@ -116,7 +112,7 @@ bool ui_update(void* app, UILayout* const layout, bool content_tick = true) NO_E
         offset = element->next_offset;
     }
 
-    return layout->is_dirty;
+    return (layout->dirty & UI_LAYOUT_DIRTY) != 0;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -230,7 +226,7 @@ struct UICacheClip {
 // or it wasn't visible in the last ui_cache() (no cached vertices).
 // Copied elements get their indices rebased and their zindex shifted (if the zindex steps of previous elements changed).
 //
-// The output is the same as re-generating everything (@see UILayout::cache_incremental to switch it off)
+// The output is the same as re-generating everything (cache_incremental to switch it off)
 // The gpu upload still uploads the whole vertex buffer.
 
 // Elements that are always re-generated since they depend on other elements (e.g. the option list on its select)
@@ -246,7 +242,7 @@ bool ui_element_cache_volatile(const UICore* const element) NO_EXCEPT
             // Doesn't use the zindex (always on top) + moves all the time anyway
             return true;
         case UI_ELEMENT_TYPE_VIEW_PANEL:
-            // Popups are placed relative to their owner (@see ui_popup_layout)
+            // Popups are placed relative to their owner
             return ((const UIPanel *) element)->panel_flags & UI_PANEL_FLAG_POPUP;
         default:
             return false;
@@ -264,15 +260,20 @@ uint64 ui_cache_hash_str(uint64 hash, const char* const str) NO_EXCEPT
 {
     // + 1 = including the \0, otherwise "ab" + "c" == "a" + "bc"
     // NULL = only a distinct value is mixed in (no need to actually hash anything)
+    // 0x9E3779B97F4A7C15 = 2^64 = golden ratio
+    // Any value with well mixed bits works, it only has to make NULL different from ""
     return str
         ? hash_murmur3_64(str, strlen(str) + 1, hash)
         : hash ^ 0x9E3779B97F4A7C15ULL;
 }
 
 // Same as ui_cache_hash_str but with a known length (the string must be \0 terminated)
+// NULL mixes in the same golden ratio constant as above
 FORCE_INLINE
 uint64 ui_cache_hash_str(uint64 hash, SimpleString<const char> str) NO_EXCEPT
 {
+    // 0x9E3779B97F4A7C15 = 2^64 = golden ratio
+    // Any value with well mixed bits works, it only has to make NULL different from ""
     return str.str
         ? hash_murmur3_64(str.str, (size_t) str.length + 1, hash)
         : hash ^ 0x9E3779B97F4A7C15ULL;
@@ -291,7 +292,7 @@ uint64 ui_cache_hash_text(
         return hash;
     }
 
-    // The length of the text is stored with the text (@see ui_string_reserve) -> no strlen
+    // The length of the text is stored with the text -> no strlen
     if (char_type == CHAR_TYPE_CHAR) {
         return ui_cache_hash_str(hash, ui_string_get(layout, offset));
     }
@@ -340,7 +341,7 @@ uint64 ui_element_cache_hash(
     hash = ui_cache_hash_bytes(hash, &parent->dimension.dim, sizeof(parent->dimension.dim));
 
     if (parent->type == UI_ELEMENT_TYPE_VIEW_PANEL) {
-        // The content of a scroll panel depends on the scroll offset + scrollbars (@see ui_panel_cache)
+        // The content of a scroll panel depends on the scroll offset + scrollbars
         const UIPanel* const parent_panel = (const UIPanel *) parent;
         hash = ui_cache_hash_bytes(hash, &parent_panel->scroll, sizeof(parent_panel->scroll));
         hash = ui_cache_hash_bytes(hash, &parent_panel->content_size, sizeof(parent_panel->content_size));
@@ -401,7 +402,7 @@ uint64 ui_element_cache_hash(
         } break;
         case UI_ELEMENT_TYPE_CHECKBOX:
         case UI_ELEMENT_TYPE_RADIO: {
-            // The size includes the label (@see ui_checkbox_cache)
+            // The size includes the label
             const UICheckbox* const checkbox = (const UICheckbox *) element;
             if (checkbox->label) {
                 const UICore* const label = ui_element_get(layout, checkbox->label);
@@ -595,7 +596,7 @@ void ui_element_cache_element(
  * Most changes don't change the structure of the output (e.g. the cursor moved, a hovered button changed its color,
  * a label got a text of the same length). The changed elements are re-generated with their old zindex and written over
  * their old vertex/index range -> the unchanged elements are neither copied nor re-generated and the application only
- * has to copy/upload the changed ranges (@see UILayout::cache_patch).
+ * has to copy/upload the changed ranges (cache_patch).
  *
  * The patch is rejected (-> normal ui_cache) if the structure of the output changed:
  *      - an element appeared or disappeared
@@ -839,8 +840,7 @@ bool ui_cache_patch(
     layout->cache_patch = patch;
     layout->cache_elements_generated = regenerated_count;
     layout->cache_elements_reused = visited - regenerated_count;
-    layout->is_dirty = false;
-    layout->is_dirty_interaction = false;
+    layout->dirty = 0;
 
     return true;
 }
@@ -852,12 +852,12 @@ bool ui_cache_patch(
  *      1. a parent is always calculated before its children (dimension calculation only needs the parent)
  *      2. later elements are drawn on top of earlier elements (zindex moves closer with every element)
  *
- * Children of clipping panels (e.g. scroll panels) are clipped on the cpu (@see UIClip.h).
+ * Children of clipping panels (e.g. scroll panels) are clipped on the cpu.
  * The clip rects are a stack, a subtree ends when the traversal reaches the skip_offset of the panel.
  *
- * Unchanged elements are copied from the last output if layout->cache_incremental (@see Incremental caching above)
+ * Unchanged elements are copied from the last output if layout->cache_incremental
  *
- * ui_cache() only renders the current state, it never changes it (@see ui_update, ui_input_pointer)
+ * ui_cache() only renders the current state, it never changes it (ui_input_pointer)
  * Exception: calculated values like dimensions or the content size of scroll panels.
  * If such a value changed in a way that affects other elements (e.g. scrollbars appear) the layout stays dirty.
  */
@@ -873,11 +873,11 @@ void ui_cache(
     ArrayVector<Vertex3DSamplerTextureColor>* const vertices = &layout->ui_vertex_cache;
     ArrayVector<int32>* const indices = &layout->ui_index_cache;
 
-    // Fast path: patch the last output in place (@see ui_cache_patch)
+    // Fast path: patch the last output in place
     // Only if the last output + its copy (ui_vertex_total) are valid for the current global values
     if (layout->ui_root
         && layout->cache_frame
-        && layout->cache_global == ((uint64) (uintptr_t) layout->font ^ ((uint64) gpu_api_type << 56))
+        && layout->cache_global_hash == ((uint64) (uintptr_t) layout->font ^ ((uint64) gpu_api_type << 56))
         && layout->ui_vertex_total.elements
         && layout->ui_index_total.elements
         && layout->ui_vertex_total.count == vertices->count
@@ -894,12 +894,11 @@ void ui_cache(
     layout->cache_elements_generated = 0;
     layout->cache_elements_reused = 0;
 
-    // Degenerate starting point (@see vertex_degenerate_create)
+    // Degenerate starting point
     array_vector_insert(vertices, {{0.0f, 0.0f, UI_ZINDEX_START}, 0, {0}});
 
     if (!layout->ui_root) {
-        layout->is_dirty = false;
-        layout->is_dirty_interaction = false;
+        layout->dirty = 0;
         layout->cache_patch = {true, 0, vertices->count, 0, indices->count};
 
         return;
@@ -907,7 +906,7 @@ void ui_cache(
 
     // Values that affect every element, if one of them changed nothing can be re-used
     // (no need to hash them, the font pointer + gpu api fit into one value)
-    const uint64 cache_global = (uint64) (uintptr_t) layout->font ^ ((uint64) gpu_api_type << 56);
+    const uint64 cache_global_hash = (uint64) (uintptr_t) layout->font ^ ((uint64) gpu_api_type << 56);
 
     // The element cache data is only valid for the last ui_cache() call
     const uint32 previous_frame = layout->cache_frame;
@@ -915,18 +914,18 @@ void ui_cache(
 
     const bool incremental = layout->ui_vertex_total.elements
         && layout->ui_index_total.elements
-        && layout->cache_global == cache_global
+        && layout->cache_global_hash == cache_global_hash
         // 0 = never cached, overflow of the frame counter -> old cache data might look valid
         && previous_frame
         && frame > previous_frame;
 
-    layout->cache_global = cache_global;
+    layout->cache_global_hash = cache_global_hash;
 
     const UIInteraction* const interaction = &layout->interaction;
 
     f32 zindex = UI_ZINDEX_START;
     // Is another ui_cache() needed right after this one?
-    // A scroll panel only knows its content size after all of its children were laid out (@see ui_panel_scroll_finish).
+    // A scroll panel only knows its content size after all of its children were laid out.
     // If the content size changed in a way that makes a scrollbar appear/disappear, the viewport of the panel changes
     // -> its children were laid out for the old viewport and must be laid out again.
     // In that case the layout stays dirty and the next ui_cache() converges (the scrollbars don't change again).
@@ -1083,14 +1082,13 @@ void ui_cache(
         layout->cache_frame += 1;
     }
 
-    // The whole output changed (@see ui_cache_patch for the in-place updates)
+    // The whole output changed
     layout->cache_patch = {true, 0, vertices->count, 0, indices->count};
     layout->cache_scroll_dragged = interaction->scroll_dragged;
     layout->cache_scroll_drag_axis = interaction->scroll_drag_axis;
 
     // A needed re-cache (e.g. scrollbars appeared) should converge immediately
-    layout->is_dirty = needs_recache;
-    layout->is_dirty_interaction = needs_recache;
+    layout->dirty = needs_recache ? (byte) (UI_LAYOUT_DIRTY | UI_LAYOUT_DIRTY_INTERACTION) : (byte) 0;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1255,7 +1253,7 @@ v2_f32 ui_window_to_ui_position(const UILayout* const layout, f32 x, f32 y) NO_E
 
 // Pointer (mouse) state for one tick
 struct UIPointerInput {
-    // Pointer position in ui coordinates (@see ui_window_to_ui_position)
+    // Pointer position in ui coordinates
     f32 x;
     f32 y;
 
@@ -1266,7 +1264,7 @@ struct UIPointerInput {
     // Required to detect a press + release within the same tick (key state PRESSED | RELEASED -> down = false, released = true)
     bool released;
 
-    // Secondary button (e.g. right mouse button) was pressed this tick (@see UIInteraction::context_target)
+    // Secondary button (e.g. right mouse button) was pressed this tick (context_target)
     bool secondary_pressed;
 
     // Mouse wheel movement this tick in notches (y: positive = away from the user, x: positive = right)
@@ -1292,7 +1290,7 @@ enum UIInputResult : byte {
     // An element got clicked
     UI_INPUT_RESULT_CLICKED = 1 << 2,
 
-    // An element got right clicked (@see UIInteraction::context_target), e.g. open a context menu
+    // An element got right clicked (context_target), e.g. open a context menu
     UI_INPUT_RESULT_CONTEXT = 1 << 3,
 };
 
@@ -1380,7 +1378,7 @@ bool ui_drag_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
     }
 
     // pos_raw is an offset from the anchor where positive values point towards the inside of the parent
-    // (@see ui_dimension_calculate) -> the sign depends on the anchor
+    // -> the sign depends on the anchor
     const v2_f32 new_pos = {
         interaction->drag_start_pos.x + ((dim->align_anchor & UI_ANCHOR_H_RIGHT) ? -dx : dx),
         interaction->drag_start_pos.y + ((dim->align_anchor & UI_ANCHOR_V_TOP) ? -dy : dy)
@@ -1540,7 +1538,7 @@ bool ui_input_set_editing(UILayout* const layout, int32 offset) NO_EXCEPT
         ui_input_scroll_to_caret(layout, input);
     }
 
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -1582,8 +1580,8 @@ void ui_select_open(UILayout* const layout, UISelect* const select, bool open) N
     }
 
     // Show the selected option
-    // Clamped like the rendering (@see ui_option_list_cache): an option near the end can't be centered,
-    // an unclamped scroll offset the hovered row against the cursor (@see ui_option_list_row_at)
+    // Clamped like the rendering: an option near the end can't be centered,
+    // an unclamped scroll offset the hovered row against the cursor
     // The list dimension isn't calculated yet (next ui_cache) -> the view height is calculated from the row count
     if (select->selected > 0) {
         const f32 row_height = ui_select_row_height(select);
@@ -1626,7 +1624,7 @@ void ui_select_set_options(
     }
 
     select->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 // Opens/closes the popup of a popup owner (select, color picker)
@@ -1808,30 +1806,30 @@ bool ui_element_hover_item(UILayout* const layout, UICore* const element, f32 x,
 }
 
 /**
- * Marks every change made during the scope as caused by user interaction (UILayout::is_dirty_interaction)
+ * Marks every change made during the scope as caused by user interaction (UI_LAYOUT_DIRTY_INTERACTION)
  *
  * Used by the input entry points (pointer, text, navigation): everything that marks the layout dirty while
  * the input is processed (hover, press, focus, typing, scrolling, the actions of clicked elements, ...) is interaction.
- * Changes outside of them (e.g. update functions) only set is_dirty -> the application can throttle them.
+ * Changes outside of them (e.g. update functions) only set UI_LAYOUT_DIRTY -> the application can throttle them.
  * Nested scopes are fine (e.g. ui_input -> ui_input_pointer).
  */
 struct UIInteractionDirtyScope {
     UILayout* layout;
-    bool was_dirty;
+    byte was_dirty;
 
     explicit UIInteractionDirtyScope(UILayout* const l) NO_EXCEPT
-        : layout(l), was_dirty(l->is_dirty)
+        : layout(l), was_dirty(l->dirty)
     {
-        layout->is_dirty = false;
+        layout->dirty = UI_LAYOUT_DIRTY_NONE;
     }
 
     ~UIInteractionDirtyScope() NO_EXCEPT
     {
-        if (layout->is_dirty) {
-            layout->is_dirty_interaction = true;
+        if (layout->dirty & UI_LAYOUT_DIRTY) {
+            layout->dirty |= UI_LAYOUT_DIRTY_INTERACTION;
         }
 
-        layout->is_dirty |= was_dirty;
+        layout->dirty |= was_dirty;
     }
 };
 
@@ -1841,18 +1839,18 @@ struct UIInteractionDirtyScope {
  *      hover:      closest UI_ELEMENT_FLAG_HOVERABLE element under the pointer (unchanged while dragging)
  *      press:      closest element with an action under the pointer gets UI_STATE_ACTIVE
  *                  closest UI_ELEMENT_FLAG_HITBOX element gets UI_STATE_FOCUS and is moved to the front (e.g. window)
- *                  pressing an UI_ELEMENT_FLAG_MOVABLE element starts dragging (@see ui_element_drag_target)
+ *                  pressing an UI_ELEMENT_FLAG_MOVABLE element starts dragging
  *                  pressing an UI_ELEMENT_FLAG_RESIZABLE element starts resizing (e.g. window resize grip)
  *                  pressing a scrollbar starts dragging its thumb (pressing the track jumps to the position)
  *      drag:       the dragged element follows the pointer until the button is released
- *      click:      button released over the pressed element (and it wasn't dragged) -> @see ui_element_click
- *      value:      sliders/color gradients follow the pointer while pressed (@see ui_element_drag_value)
+ *      click:      button released over the pressed element (and it wasn't dragged) ->
+ *      value:      sliders/color gradients follow the pointer while pressed
  *      wheel:      scrolls the closest scrollable element under the pointer
  *      right:      the hit element is reported as context target (UI_INPUT_RESULT_CONTEXT)
- *      text:       pressing an input/textarea starts editing it (@see ui_input_text), pressing anything else stops it
+ *      text:       pressing an input/textarea starts editing it, pressing anything else stops it
  *      popup:      the open popup is on top -> it gets the pointer input first, pressing outside of it closes it
  *
- * MUST be called after the input was polled and before ui_cache() (@see Input handling above)
+ * MUST be called after the input was polled and before ui_cache()
  *
  * @return UIInputResult flags
  */
@@ -1909,7 +1907,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
 
     // 2. Popup
     // It is on top of everything -> the hit test already prefers it
-    // Pressing outside of it closes it (pressing the owner toggles it through the click @see ui_element_click)
+    // Pressing outside of it closes it (pressing the owner toggles it through the click)
     ////////////////////////////////////////////////////////
     if (interaction->popup) {
         UIPanel* const popup = ui_popup_get(layout);
@@ -2149,7 +2147,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
     }
 
     if (result & UI_INPUT_RESULT_CHANGED) {
-        layout->is_dirty = true;
+        layout->dirty |= UI_LAYOUT_DIRTY;
     }
 
     return result;
@@ -2159,7 +2157,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
 // Keyboard focus (tab navigation)
 ////////////////////////////////////////////////////////////////
 //
-// Text elements receive the keyboard input through interaction.editing (@see ui_input_set_editing).
+// Text elements receive the keyboard input through interaction.editing.
 // Other elements can only get the keyboard focus through tab navigation (interaction.keyboard_focus),
 // clicking them with the pointer doesn't focus them (otherwise every button click would block the game hotkeys).
 // The application should enable its typing context while ui_input_has_keyboard_focus() is true.
@@ -2286,7 +2284,7 @@ void ui_focus_set(UILayout* const layout, int32 offset) NO_EXCEPT
 
     element->change_type |= UI_ELEMENT_CHANGE_CONTENT;
     ui_element_scroll_into_view(layout, element);
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 /**
@@ -2409,7 +2407,7 @@ void ui_element_click_keyboard(void* app, UILayout* const layout, UICore* const 
  *      tab:          arrows = previous/next tab
  *      table:        up/down/home/end = select row, enter/space = click on the selected row (the first row if none is selected)
  *
- * Enter/space = mouse click (@see ui_element_click_keyboard)
+ * Enter/space = mouse click
  *
  * @return true if something changed
  */
@@ -2622,7 +2620,7 @@ void ui_input_owner_changed(void* app, UILayout* const layout, UIInput* const in
             list->scroll = 0.0f;
             list->hovered = -1;
             list->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-            layout->is_dirty = true;
+            layout->dirty |= UI_LAYOUT_DIRTY;
         } break;
         case UI_ELEMENT_TYPE_COLOR_PICKER: {
             UIColorPicker* const picker = (UIColorPicker *) owner;
@@ -2635,16 +2633,16 @@ void ui_input_owner_changed(void* app, UILayout* const layout, UIInput* const in
 }
 
 /**
- * Applies one keyboard code to the element with the keyboard focus (@see ui_input_text)
+ * Applies one keyboard code to the element with the keyboard focus
  *
- *      tab / shift + tab: next/previous focusable element (@see ui_focus_move)
- *      text elements (@see ui_input_set_editing):
+ *      tab / shift + tab: next/previous focusable element
+ *      text elements:
  *          escape: stops editing (and closes the popup the element is in, e.g. search field of a select)
  *          search field of a select: up/down = row in the option list, enter = hovered row or first match
- *      other elements (@see ui_element_key):
+ *      other elements:
  *          escape: closes the open popup or removes the keyboard focus
  *
- * @param code Unicode codepoint or InputTextControl value (@see InputState::text)
+ * @param code Unicode codepoint or InputTextControl value (text)
  *
  * @return UIInputResult flags
  */
@@ -2686,7 +2684,7 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
                 interaction->keyboard_focus = 0;
             }
 
-            layout->is_dirty = true;
+            layout->dirty |= UI_LAYOUT_DIRTY;
             result |= UI_INPUT_RESULT_CHANGED;
 
             return result;
@@ -2783,7 +2781,7 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
 /**
  * Applies the keyboard text input (typed this tick) to the element with the keyboard focus
  *
- * @param codes Unicode codepoints or InputTextControl values (@see InputState::text)
+ * @param codes Unicode codepoints or InputTextControl values (text)
  *
  * @return UIInputResult flags
  */
@@ -2813,7 +2811,7 @@ byte ui_input_text(void* app, UILayout* const layout, const uint32* const codes,
 enum UINavigation : byte {
     UI_NAVIGATION_NONE,
 
-    // Next/previous focusable element (@see ui_focus_move), also starts the navigation if nothing has the focus
+    // Next/previous focusable element, also starts the navigation if nothing has the focus
     UI_NAVIGATION_NEXT,
     UI_NAVIGATION_PREV,
 

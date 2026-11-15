@@ -20,7 +20,7 @@ struct MainboardInfo {
 /**
  * Hardware identifiers used for anti-cheat hardware bans
  *
- * The combined uuid is intentionally based only on values that Windows and Linux
+ * The combined uuid is only based on values that Windows and Linux
  * can read from the same underlying hardware:
  *      system_uuid     SMBIOS type 1 machine UUID
  *      cpu_id          CPUID leaf 1 signature (vendor/family/model/stepping/EAX/EDX)

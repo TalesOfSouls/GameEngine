@@ -22,7 +22,7 @@
  *      UIPanel  tooltip (pointer transparent)
  *          UILabel  text (multi line)
  *
- * The owner decides when it is shown (@see ui_tooltip_show, ui_tooltip_hide), usually in an update function
+ * The owner decides when it is shown (ui_tooltip_hide), usually in an update function
  */
 inline
 UIPanel* ui_tooltip_create(UILayout* const layout, f32 font_size = UI_DEFAULT_FONT_SIZE) NO_EXCEPT
@@ -49,7 +49,7 @@ UILabel* ui_tooltip_label(const UILayout* const layout, const UIPanel* const too
     return (UILabel *) ui_element_get(layout, tooltip->core.next_offset);
 }
 
-// Size + position of the tooltip after its text was set (@see ui_tooltip_show)
+// Size + position of the tooltip after its text was set
 static inline
 void ui_tooltip_place(
     UILayout* const layout, UIPanel* const tooltip, UILabel* const label,
@@ -114,12 +114,12 @@ void ui_tooltip_place(
     if (changed) {
         tooltip->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
         label->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-        layout->is_dirty = true;
+        layout->dirty |= UI_LAYOUT_DIRTY;
     }
 }
 
 /**
- * Shows the tooltip next to a position (usually the pointer @see UIInteraction::pointer)
+ * Shows the tooltip next to a position (usually the pointer)
  * The tooltip is placed bottom right of the position and stays on screen
  * Only marks the ui as changed if the text or position changed
  *
@@ -174,7 +174,7 @@ void ui_tooltip_hide(UILayout* const layout, UIPanel* const tooltip) NO_EXCEPT
 
     tooltip->core.state |= UI_STATE_HIDDEN;
     tooltip->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 #endif

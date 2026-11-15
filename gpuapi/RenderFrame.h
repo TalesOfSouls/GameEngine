@@ -27,7 +27,7 @@ struct RenderSettings {
     // Swap interval (0 = off, 1 = on, -1 = adaptive if supported)
     int8 vsync;
 
-    // SIMD step size of the cpu (runtime check @see CSettings::simd_step_size)
+    // SIMD step size of the cpu (runtime check)
     uint8 simd_step_size;
 
     #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
@@ -35,9 +35,9 @@ struct RenderSettings {
     #endif
 };
 
-// Changed vertex/index range of one ui version (@see UICachePatch in ui/UILayout.h)
+// Changed vertex/index range of one ui version
 // The render frames + gpu buffers can be several versions behind -> the last versions are kept
-// and a copy only covers the ranges that changed since its version (@see render_frame_ui_patch_range)
+// and a copy only covers the ranges that changed since its version
 #define RENDER_FRAME_UI_PATCH_HISTORY 8
 
 struct RenderFrameUiPatch {
@@ -154,6 +154,8 @@ struct RenderFrame {
     Camera camera;
     RenderFrameUi ui;
 
+    // Scene specific data to be passed from update thread to render thread
+    // @todo consider to change to a queue or similar
     byte data[3904];
 };
 

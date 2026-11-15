@@ -5,7 +5,7 @@
 #include "../../stdlib/Stdlib.h"
 
 // Sampler/texture slot used by the ui shader
-// Font = 1, UI atlas = 2 (@see ui shader)
+// Font = 1, UI atlas = 2
 #define UI_SAMPLER_NONE 0
 #define UI_SAMPLER_FONT 1
 #define UI_SAMPLER_ATLAS 2

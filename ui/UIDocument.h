@@ -23,7 +23,7 @@
  * Indentation: spaces, a tab counts as 4 spaces
  * Properties, parts and child blocks can be in any order
  *
- * The document only references the text (no copies), the values are interpreted by the user (@see UILayoutTxt.cpp)
+ * The document only references the text (no copies), the values are interpreted by the user
  */
 
 #define UI_DOCUMENT_TAB_WIDTH 4

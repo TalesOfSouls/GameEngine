@@ -34,7 +34,7 @@ void ui_root_resize(UILayout* const layout, f32 width, f32 height) NO_EXCEPT
     root->dimension.pos = {0.0f, height};
 
     root->change_type |= UI_ELEMENT_CHANGE_DIM_OTHER;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 /**
@@ -103,7 +103,7 @@ bool ui_panel_is_clipping(const UICore* const element) NO_EXCEPT
 //          content panel (moved by the scroll offset, all elements are added to the content)
 //              ... your elements
 //
-// The content size is calculated from the children of the content panel (@see ui_cache)
+// The content size is calculated from the children of the content panel
 
 /**
  * @param flags UI_PANEL_FLAG_SCROLL_X and/or UI_PANEL_FLAG_SCROLL_Y
@@ -231,14 +231,14 @@ bool ui_panel_scroll_set(UILayout* const layout, UIPanel* const panel, UIScrollA
 
     *value = clamped;
     panel->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
 
 /**
  * Size of the content of a scroll panel = extent of the visible children of the content panel
- * The children MUST already be calculated (@see ui_cache, called after the subtree was cached)
+ * The children MUST already be calculated (called after the subtree was cached)
  */
 inline
 v2_f32 ui_panel_content_extent(const UILayout* const layout, const UIPanel* const panel) NO_EXCEPT
@@ -321,7 +321,7 @@ void ui_popup_close(UILayout* const layout) NO_EXCEPT
     }
 
     interaction->popup = 0;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 /**
@@ -347,7 +347,7 @@ void ui_popup_open(UILayout* const layout, UIPanel* const popup, f32 x = 0.0f, f
     ui_element_move_to_front(layout, &popup->core);
 
     layout->interaction.popup = offset;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 /**
@@ -410,7 +410,7 @@ void ui_panel_cache(
         panel->core.dimension.pos = {viewport.x - scroll_panel->scroll.x, viewport.y + scroll_panel->scroll.y};
         panel->core.dimension.dim = {viewport.width, viewport.height};
     } else if (!(panel->panel_flags & UI_PANEL_FLAG_POPUP)) {
-        // Popups are placed before (@see ui_popup_place)
+        // Popups are placed before
         ui_dimension_calculate(layout, &panel->core);
     }
 

@@ -324,7 +324,7 @@ bool ui_color_picker_set(UILayout* const layout, UIColorPicker* const picker, ui
     ui_color_picker_update_inputs(layout, picker);
 
     picker->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -349,14 +349,14 @@ bool ui_color_picker_set_hsv(UILayout* const layout, UIColorPicker* const picker
     if (changed) {
         ui_color_picker_update_inputs(layout, picker);
         picker->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-        layout->is_dirty = true;
+        layout->dirty |= UI_LAYOUT_DIRTY;
     }
 
     return changed;
 }
 
 /**
- * Reads the rgba input fields (called when one of them changed @see ui_input_owner_changed)
+ * Reads the rgba input fields (called when one of them changed)
  *
  * @return true if the color changed
  */
@@ -390,13 +390,13 @@ bool ui_color_picker_inputs_changed(UILayout* const layout, UIColorPicker* const
     picker->color = color;
     ui_color_to_hsv(color, &picker->hue, &picker->saturation, &picker->value);
     picker->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
 
 /**
- * @param type @see UIColorPickerType
+ * @param type UIColorPickerType
  * @param palette Palette colors (rgba), NULL = 256 ansi colors (only used by UI_COLOR_PICKER_TYPE_PALETTE)
  * @param parent NULL = root
  */
@@ -532,7 +532,7 @@ bool ui_rect_contains(v4_f32 rect, f32 x, f32 y) NO_EXCEPT
 }
 
 /**
- * @return Grid cell at the position or -1 (@see ui_color_picker_cell_index)
+ * @return Grid cell at the position or -1
  */
 inline
 int32 ui_color_panel_cell_at(const UILayout* const layout, const UIColorPanel* const panel, f32 x, f32 y) NO_EXCEPT
@@ -558,7 +558,7 @@ bool ui_color_panel_hover(UILayout* const layout, UIColorPanel* const panel, int
 
     panel->hovered = (int16) index;
     panel->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -714,7 +714,7 @@ void ui_color_panel_cache(
     ArrayVector<int32>* const indices = &layout->ui_index_cache;
 
     if (picker->picker_type == UI_COLOR_PICKER_TYPE_PALETTE) {
-        // Cells in display order (@see ui_color_palette_order)
+        // Cells in display order
         for (int32 cell = 0; cell < picker->palette_cells; ++cell) {
             const int32 index = ui_color_picker_cell_index(layout, picker, cell);
             if (index < 0) {

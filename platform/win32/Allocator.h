@@ -27,7 +27,7 @@ static int32 _page_size = 0;
  * Requirements (otherwise the normal pages are used, no error):
  *      - the user account has the right "Lock pages in memory" (SeLockMemoryPrivilege, secpol.msc ->
  *        Local Policies -> User Rights Assignment, takes effect after a new log on)
- *      - the privilege is enabled in the process token (@see setup_large_pages() of the application)
+ *      - the privilege is enabled in the process token
  *      - the OS finds enough contiguous physical memory (can fail on a fragmented system, also after a while)
  *
  * WARNING: Large pages are never paged out (locked in physical memory)
@@ -52,7 +52,7 @@ struct platform_alloc_header {
     size_t reserved_size;
     size_t committed_size;
 
-    // @see PlatformAllocFlag
+    // @type PlatformAllocFlag
     uint32 flags;
 };
 
@@ -139,7 +139,7 @@ void* platform_alloc_aligned(
 
     ASSERT_TRUE(initial_size <= reserve_size);
 
-    // Fixed size allocations: large pages if possible (@see platform_alloc_large_pages)
+    // Fixed size allocations: large pages if possible
     uint32 flags = PLATFORM_ALLOC_FLAG_NONE;
     void* base = NULL;
     if (initial_size == reserve_size) {

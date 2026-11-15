@@ -9,7 +9,7 @@
 
 #include "../../stdlib/Stdlib.h"
 
-// @todo Implement with X11/Wayland (@see GuiUtils.h for an older X11 draft)
+// @todo Implement with X11/Wayland
 //      Same function layout as platform/win32/Clipboard.h
 
 inline

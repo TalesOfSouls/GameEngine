@@ -7,14 +7,14 @@
 #include "UITheme.h"
 #include "../localization/Language.h"
 
-// Version of the .layouttxt format (@see UILayoutTxt.cpp)
+// Version of the .layouttxt format
 #define UI_LAYOUT_TXT_VERSION 2
 
 /**
  * TEXT FORMAT: .layouttxt, version UI_LAYOUT_TXT_VERSION
  *
  * Defines the element tree of a scene/hud. The syntax is the ui document syntax
- * (@see UIDocument.h):
+ *:
  *
  *      version 2
  *
@@ -31,7 +31,7 @@
  *          label status                <- child element (more indentation than the parent)
  *              text: Status: -
  *
- *      indentation:  spaces, a tab counts as 4 (@see UI_DOCUMENT_TAB_WIDTH)
+ *      indentation:  spaces, a tab counts as 4
  *      block:        "type [name]"
  *      property:     "key: value"
  *      part:         "$part [argument]"
@@ -50,7 +50,7 @@
  *                    e.g. "top right" or "top right / top left"
  *
  * Order in which the properties are applied
- *      1. create arguments (e.g. columns of a table, @see ui_txt_is_create_key)
+ *      1. create arguments (e.g. columns of a table)
  *      2. type default styles of the themes ("@table")
  *      3. styles listed in "style:" (in this order)
  *      4. own properties and parts (file order)
@@ -58,21 +58,21 @@
  *
  * Element types: window, panel, label, button, image, cursor, custom, checkbox,
  * radio, slider, input, textarea, select, tab, table, colorpicker, tooltip.
- * The authoritative list of the properties per element type is the table at the
+ * The actual list of the properties per element type is the table at the
  * top of UILayoutTxt.cpp (all, label, button, ..., tooltip) - keep both in sync.
  *
  * BINARY FORMAT: .layoutbin, version UI_LAYOUT_VERSION
  * @see UILayout.h for the byte layout (layout_to_data / layout_from_data).
  */
 
-// Name -> id, e.g. function names of the layout file -> UICore::update_func (@see UILayoutTxtContext)
+// Name -> id, e.g. function names of the layout file -> UICore::update_func
 struct UINameId {
     const char* name;
     int32 id;
 };
 
 /**
- * Everything the layout file references by name (@see ui_layout_from_txt)
+ * Everything the layout file references by name
  * Unknown names are reported (LOG) and ignored
  */
 struct UILayoutTxtContext {
@@ -95,7 +95,7 @@ struct UILayoutTxtContext {
     const UINameId* actions;
     int32 action_count;
 
-    // Strings of the layout file ("@key", @see ui_txt_value_resolve), NULL = no layout language
+    // Strings of the layout file ("@key"), NULL = no layout language
     // Strings in a theme file use the language of the theme (UITheme::language)
     const Language* language;
 

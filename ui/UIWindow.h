@@ -12,7 +12,7 @@
 //              UILabel  title label
 //              UIButton close button
 //          ... content added later
-//          UIPanel  resize grip (optional, @see ui_window_set_resizable)
+//          UIPanel  resize grip (optional)
 //
 // The children are real elements in the tree, the offsets below are just shortcuts
 struct UIWindow {

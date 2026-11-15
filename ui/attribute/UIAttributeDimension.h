@@ -23,14 +23,14 @@ enum UIDimensionFlag : byte {
 
 // 36 bytes
 struct UIAttributeDimension {
-    // @see UIDimensionFlag
+    // @type UIDimensionFlag
     byte flag;
 
-    // @see UIAlignAnchor
+    // @type UIAlignAnchor
     byte align_anchor;
 
     // This is the calculated position/dimension
-    // pos = top left corner (y-up coordinate system, @see UIAlignment.h)
+    // pos = top left corner (y-up coordinate system)
     v2_f32 pos;
     v2_f32 dim;
 

@@ -6,7 +6,7 @@
 #include "UICore.h"
 
 // Very basic custom element that only has the core data
-// Rendering and updating is handled by callbacks (@see UICore::render_func, UICore::update_func)
+// Rendering and updating is handled by callbacks (update_func)
 struct UICustom {
     UICore core;
 };

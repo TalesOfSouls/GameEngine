@@ -21,7 +21,7 @@ enum UITabOrientation : byte {
 //          page 1 (UIPanel, only the active page is visible)
 //          page 2
 //          ...
-// Add your elements to the pages (@see ui_tab_page)
+// Add your elements to the pages
 //
 // 120 bytes
 struct UITab {
@@ -37,7 +37,7 @@ struct UITab {
 
     UIAttributeFont font;
 
-    // Offset of the tab titles (string list, @see ui_string_list_store)
+    // Offset of the tab titles (string list)
     int32 titles;
 
     // 1-indexed action that is called when the active tab changes (layout->on_actions, 0 = none)
@@ -56,7 +56,7 @@ struct UITab {
     // Tab header under the pointer (-1 = none)
     int16 hovered;
 
-    // @see UITabOrientation
+    // @type UITabOrientation
     byte orientation;
 };
 

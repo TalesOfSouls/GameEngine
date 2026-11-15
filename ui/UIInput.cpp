@@ -61,7 +61,7 @@ UIInput* ui_textarea_create(UILayout* const layout, int32 max_length, UICore* pa
     return ui_input_create(layout, max_length, parent, UI_ELEMENT_TYPE_TEXTAREA);
 }
 
-// WARNING: If you change the text through this pointer you must update its length (@see ui_string_length_set)
+// WARNING: If you change the text through this pointer you must update its length
 FORCE_INLINE
 char* ui_input_get_text(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
 {
@@ -109,7 +109,7 @@ void ui_input_set_text(UILayout* const layout, UIInput* const input, const char*
     input->selection_anchor = length;
 
     input->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 FORCE_INLINE
@@ -126,7 +126,7 @@ void ui_input_set_placeholder(UILayout* const layout, UIInput* const input, cons
     memcpy(layout->ui_element_buffer.memory + input->placeholder, text, length);
     ui_string_length_set(layout, input->placeholder, length - 1);
 
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 // Byte offset of the previous/next utf8 character
@@ -419,7 +419,7 @@ int32 ui_input_insert(
 // Clipboard
 ////////////////////////////////////////////////////////////////
 
-// The clipboard functions come from the platform layer (@see system/Clipboard.h)
+// The clipboard functions come from the platform layer
 inline
 void ui_input_copy(const UIInput* const input, const char* const text) NO_EXCEPT
 {
@@ -520,7 +520,7 @@ bool ui_input_scroll_set(UILayout* const layout, UIInput* const input, UIScrollA
 
     *value = scroll;
     input->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -630,7 +630,7 @@ int32 ui_input_caret_at(const UILayout* const layout, const UIInput* const input
     return line_end;
 }
 
-// Word boundaries around a position (@see ui_text_is_word_char)
+// Word boundaries around a position
 inline
 void ui_input_select_word(const UILayout* const layout, UIInput* const input, int32 pos) NO_EXCEPT
 {
@@ -694,7 +694,7 @@ bool ui_input_select_at(UILayout* const layout, UIInput* const input, f32 x, f32
     }
 
     input->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
     ui_input_scroll_to_caret(layout, input);
 
     return true;
@@ -714,7 +714,7 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
 {
     char* const text = ui_input_get_text(layout, input);
 
-    // Every change below must keep the length up to date, it is stored at the end (@see ui_string_length_set)
+    // Every change below must keep the length up to date, it is stored at the end
     int32 length = ui_input_text_length(layout, input);
     const bool multiline = input->core.type == UI_ELEMENT_TYPE_TEXTAREA;
 
@@ -866,7 +866,7 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
     }
 
     input->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
     ui_input_scroll_to_caret(layout, input);
 
     if (text_changed && input->on_change && layout->on_actions) {
@@ -990,7 +990,7 @@ void ui_input_cache(
         ui_rect_vertices({caret_x, caret_y, UI_INPUT_CARET_WIDTH, line_height}, input->font.color, vertices, indices, *zindex);
     }
 
-    // Text that doesn't fit is cut off (@see ui_input_scroll_to_caret)
+    // Text that doesn't fit is cut off
     ui_vertices_clip_or_remove(vertices, indices, vertex_start, index_start, clip);
 
     *zindex = camera_step_closer(gpu_api_type, *zindex);

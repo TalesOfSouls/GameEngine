@@ -10,7 +10,7 @@
 #include "UIAttributeImage.cpp"
 
 /**
- * Resolves 8 atlas elements (order @see UIBorderType) into the inline 9-slice border data
+ * Resolves 8 atlas elements (order) into the inline 9-slice border data
  */
 inline
 void ui_border_attribute_from_atlas(

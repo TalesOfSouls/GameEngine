@@ -138,7 +138,7 @@ void ui_layout_reset(UILayout* const layout) NO_EXCEPT
     layout->ui_root = NULL;
     layout->cursor = NULL;
     memset(&layout->interaction, 0, sizeof(layout->interaction));
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
     layout->ui_vertex_cache.count = 0;
     layout->ui_index_cache.count = 0;
 
@@ -151,7 +151,7 @@ void ui_layout_reset(UILayout* const layout) NO_EXCEPT
 }
 
 /**
- * Makes an element findable by name (@see ui_get_element)
+ * Makes an element findable by name
  * The name doesn't have to be \0 terminated
  */
 inline
@@ -263,7 +263,7 @@ int32 layout_from_data(
     // Restore the helper pointers
     layout->ui_root = buffer_size ? (UICore *) layout->ui_element_buffer.memory : NULL;
 
-    // The cached vertices of the elements don't exist anymore (@see ui_cache)
+    // The cached vertices of the elements don't exist anymore
     if (layout->ui_root) {
         int32 offset = 0;
         do {
@@ -274,7 +274,7 @@ int32 layout_from_data(
     }
     layout->cursor = (UICursor *) ui_layout_find_first(layout, UI_ELEMENT_TYPE_CURSOR);
     memset(&layout->interaction, 0, sizeof(layout->interaction));
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     LOG_1("[INFO] UI loaded layout");
 

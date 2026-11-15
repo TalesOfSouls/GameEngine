@@ -147,7 +147,7 @@ static void test_data_pool_element_get() {
     TEST_EQUALS(element2, pool.memory + 2 * 16);
     TEST_FALSE(chunk_is_free_internal(pool.used, 2));
 
-    // Getting the same element twice is idempotent
+    // Getting the same element twice doesn't change anything
     TEST_EQUALS(pool_element_get(&pool, 2), element2);
 
     // Out of bounds

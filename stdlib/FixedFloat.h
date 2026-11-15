@@ -2,7 +2,7 @@
  * Universal float implementation that works across all platforms.
  *
  * On some platforms functions like sin, cos etc. may work differently and result in differences.
- * Usually this is not a huge issue as long as the authoritative owner frequently corrects everyone else.
+ * Usually this is not a huge issue as long as the owner (e.g. the server) frequently corrects everyone else.
  * However, there are situations where you mustn't have any differences at any time or synchronization
  * happens very rarely.
  *

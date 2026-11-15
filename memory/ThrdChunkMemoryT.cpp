@@ -238,7 +238,7 @@ int32 chunk_reserve_one_from_hint(ThrdChunkMemoryT<T>* const buf, int32 hint) NO
     }
 
     // Last resort: the bits before start_bit in the start word,
-    // which were deliberately skipped above.
+    // which we skipped above.
     if (low_bits_mask != 0) {
         size_t word = buf->free[start_word].load(memory_order_relaxed);
         while (true) {

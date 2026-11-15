@@ -54,7 +54,7 @@
  * 3. Connect / disconnect (window procedure)
  *      WM_INPUT_DEVICE_CHANGE  -> input_raw_device_change()    keyboard, mouse, raw input controllers
  *                                 WARNING: Windows also sends ARRIVAL for all present devices after the
- *                                          registration -> adding a device is idempotent
+ *                                          registration -> adding the same device twice does nothing
  *      WM_DEVICECHANGE         -> input_hid_device_change()    hid controllers (by device path)
  *                                                              XInput controllers (rescan)
  *      WM_TIMER                -> input_controllers_rescan()   XInput needs some time until a new controller

@@ -15,7 +15,7 @@
 /**
  * Theme file (.themetxt), version 2
  *
- * A theme is a list of named styles. A style is a set of element properties (@see UILayoutTxt.cpp)
+ * A theme is a list of named styles. A style is a set of element properties
  * that is applied to elements, it can also style the parts of an element ($title of a window, ...).
  *
  *      version 2
@@ -31,19 +31,19 @@
  *          $title
  *              background_color: #00FF00FF
  *          $title_label
- *              text: @window_title         <- string of the theme language (@see ui_theme_language_from_txt)
+ *              text: @window_title         <- string of the theme language
  *
  * Style names are limited to HASH_MAP_MAX_KEY_LENGTH - 1 characters
  *
- * Language: themes/<theme>/lang/<language>/<name>.langtxt (@see ui_theme_language_load, Language.cpp)
+ * Language: themes/<theme>/lang/<language>/<name>.langtxt (Language.cpp)
  *
- * Assets: the "@theme" block defines the assets of the theme as hex asset ids (@see the generated asset id headers)
+ * Assets: the "@theme" block defines the assets of the theme as hex asset ids
  *      @theme
  *          font: 04000000      <- font (.fonttxt asset), e.g. AA_ID_UI_FONT_FONTTXT = 0 | (4 << 24)
  *          atlas: 04000002     <- ui texture atlas (.atlastxt asset) for the images of the layouts
  * The archive is part of the id (high byte) -> a theme can use its own assets or the assets of the application
  * Not defined = the font/atlas of another theme is used (e.g. a scene theme uses the general theme font)
- * The assets are loaded or re-used (if already loaded) by the theme loader (@see cmd_theme_load_sync)
+ * The assets are loaded or re-used (if already loaded) by the theme loader
  */
 
 #define UI_THEME_HASHMAP_ALIGNMENT ALIGN_UP((int32) sizeof(HashEntryStrT<int32>), 32)
@@ -93,7 +93,7 @@ int32 ui_theme_asset_id_parse(const char* value) NO_EXCEPT
 }
 
 /**
- * Asset ids of the "@theme" block (@see the format description above)
+ * Asset ids of the "@theme" block
  */
 static inline
 void ui_theme_assets_parse(const UIDocument* const doc, UIThemeData* const header) NO_EXCEPT
@@ -237,7 +237,7 @@ bool ui_theme_from_txt(UITheme* const __restrict theme, const char* __restrict t
     theme->used_data_size = (int32) ((byte *) (document.properties + document.property_count) - theme->data);
     ui_theme_document_restore(theme);
 
-    // The assets are loaded by the theme loader (@see cmd_theme_load_sync)
+    // The assets are loaded by the theme loader
     theme->font = NULL;
     theme->atlas = NULL;
 
@@ -262,7 +262,7 @@ bool ui_theme_from_txt(UITheme* const __restrict theme, const char* __restrict t
 
 /**
  * Adds the language of the theme (strings referenced with "@key" in the theme file)
- * The language is stored in theme->data after the document -> it is part of the binary theme (@see theme_to_data)
+ * The language is stored in theme->data after the document -> it is part of the binary theme
  *
  * WARNING: Must be called after ui_theme_from_txt(), replaces an existing language
  *
@@ -453,7 +453,7 @@ int32 theme_from_data(
         return -1;
     }
 
-    // The capacity is the first value of the hash map data (@see hashmap_dump)
+    // The capacity is the first value of the hash map data
     int32 capacity;
     read_le(in, &capacity);
     SWAP_ENDIAN_LITTLE_SELF(capacity);
@@ -480,7 +480,7 @@ int32 theme_from_data(
     theme->used_data_size = (int32) ((byte *) header - theme->data) + document_size;
     ui_theme_document_restore(theme);
 
-    // The assets are loaded by the theme loader (@see cmd_theme_load_sync)
+    // The assets are loaded by the theme loader
     theme->font = NULL;
     theme->atlas = NULL;
 

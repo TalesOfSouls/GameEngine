@@ -318,9 +318,9 @@ void window_state_backup(Window* const w) NO_EXCEPT
 }
 
 /**
- * Makes the window a borderless window that covers a rectangle of the desktop (e.g. a monitor @see display_monitor_get)
+ * Makes the window a borderless window that covers a rectangle of the desktop (e.g. a monitor)
  *
- * The windowed state is backed up first (restored by the maximize/restore toggle @see window_restore)
+ * The windowed state is backed up first (restored by the maximize/restore toggle)
  *
  * @param Window* w Window
  * @param v4_int32 rect Desktop rectangle

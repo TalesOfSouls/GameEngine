@@ -10,14 +10,14 @@
 #include "../localization/Language.h"
 #include "../object/TextureAtlas.h"
 
-// Version 2: text format (@see UITheme.cpp)
+// Version 2: text format
 #define UI_THEME_VERSION 2
 
-// Version of the binary format (@see theme_to_data)
+// Version of the binary format
 // 3: + language
 // 4: + font/atlas asset ids
 // 6: language slots store the value length (LANGUAGE_BINARY_VERSION 3)
-// 7: new string hash of the style hash map (@see hashmap_str_hash)
+// 7: new string hash of the style hash map
 #define UI_THEME_BINARY_VERSION 7
 
 // Asset id of a theme asset that is not defined (0 is a valid asset id)
@@ -26,7 +26,7 @@
 /**
  * TEXT FORMAT: .themetxt, version UI_THEME_VERSION
  *
- * The text format is the ui document syntax (@see UIDocument.h):
+ * The text format is the ui document syntax:
  *
  *      version 2
  *
@@ -49,18 +49,18 @@
  *      @cursor                         <- mouse cursor style
  *          image: mouse_cursor         <- atlas element name
  *
- *      indentation: spaces, a tab counts as 4 (@see UI_DOCUMENT_TAB_WIDTH)
+ *      indentation: spaces, a tab counts as 4
  *      style name:  max. HASH_MAP_MAX_KEY_LENGTH - 1 = 21 characters
  *      property:    "key: value", the keys are the element properties of the
- *                   layout format (@see UILayoutTxt.h / UILayoutTxt.cpp)
+ *                   layout format
  *
  * Strings: "@key" is replaced with the value of the theme language
  * (theme file ./lang/<language_code>/<name>.langtxt, LANGUAGE_DEFAULT_CODE as
  * fallback). The language is stored inside the binary theme if it was loaded
- * before theme_to_data() (@see ui_theme_language_from_txt).
+ * before theme_to_data().
  *
  * BINARY FORMAT: .themebin, version UI_THEME_BINARY_VERSION
- * Also the payload of an ASSET_TYPE_THEME asset (@see AssetArchive.h).
+ * Also the payload of an ASSET_TYPE_THEME asset.
  *
  *      offset      size        type        field
  *      0           4           int32       version (UI_THEME_BINARY_VERSION)
@@ -71,7 +71,7 @@
  *
  *      S = capacity * 32 + ceil(capacity / 64) * 8 + 8
  *
- * Hash map header (chunk memory dump, @see hashmap_dump / chunk_dump)
+ * Hash map header (chunk memory dump / chunk_dump)
  *
  *      offset  size    type    field
  *      0       4       int32   capacity        amount of slots (max(style_count * 2, 2))
@@ -96,7 +96,7 @@
  *      ...                     pad to sizeof(size_t)
  *      ...                     line_count * 44     UIDocumentNode[line_count] (upper bound, node_count used)
  *      ...                     property_count * 24 UIDocumentProperty[property_count]
- *      ...                     language_size       Language image, optional (@see Language.h)
+ *      ...                     language_size       Language image, optional
  *
  * UIThemeData (48 bytes, 12 * int32)
  *
@@ -147,7 +147,7 @@
  *      text of the theme file
  *      document nodes
  *      document properties
- *      language (optional, @see ui_theme_language_from_txt)
+ *      language (optional)
  */
 struct UITheme {
     // Style name -> index of the style node in document.nodes
@@ -168,12 +168,12 @@ struct UITheme {
     // Parsed theme file, all pointers point into data
     UIDocument document;
 
-    // Strings of the theme file ("@key" values, @see UILayoutTxt.cpp), data points into data
+    // Strings of the theme file ("@key" values), data points into data
     // Empty if the theme has no language file
     Language language;
 
     // Assets of the theme ("@theme" block in the theme file), UI_THEME_ASSET_NONE = not defined
-    // The theme only stores the ids, the assets are loaded/re-used by the theme loader (@see cmd_theme_load_sync)
+    // The theme only stores the ids, the assets are loaded/re-used by the theme loader
     int32 font_asset_id;
     int32 atlas_asset_id;
 

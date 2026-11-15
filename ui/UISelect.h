@@ -21,7 +21,7 @@ enum UISelectFlag : byte {
 //
 // Tree (all created by ui_select_create):
 //      select (in your layout)
-//      popup (UIPanel, child of the root, @see ui_popup_create)
+//      popup (UIPanel, child of the root)
 //          search (UIInput, only with UI_SELECT_FLAG_SEARCH)
 //          option list (UIOptionList)
 //
@@ -38,7 +38,7 @@ struct UISelect {
 
     UIAttributeFont font;
 
-    // Offset of the option texts (string list, @see ui_string_list_store)
+    // Offset of the option texts (string list)
     int32 options;
 
     // Offset of the selection bit set (1 bit per option), only with UI_SELECT_FLAG_MULTI
@@ -57,7 +57,7 @@ struct UISelect {
     // -1 = nothing selected (single selection)
     int16 selected;
 
-    // @see UISelectFlag
+    // @type UISelectFlag
     byte select_flags;
 };
 

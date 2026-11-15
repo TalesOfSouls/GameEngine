@@ -117,7 +117,7 @@ void ui_dimension_calculate(
     v2_f32 content_dim = {0.0f, 0.0f}
 ) NO_EXCEPT
 {
-    // The root is not calculated, it is defined by the screen size (@see ui_root_resize)
+    // The root is not calculated, it is defined by the screen size
     if (core == layout->ui_root) {
         return;
     }

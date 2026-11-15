@@ -36,7 +36,7 @@ struct UIAttributeBorder {
     // RGBA of a solid color border
     uint32 color;
 
-    // Natural size (width, height) in px of every piece (@see UIBorderType)
+    // Natural size (width, height) in px of every piece
     // Edges only use their thickness (T/B = height, L/R = width)
     uint8 size[UI_BORDER_SIZE][2];
 

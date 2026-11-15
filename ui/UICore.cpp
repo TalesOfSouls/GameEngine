@@ -69,7 +69,7 @@ bool ui_element_is_self_or_child_of(
 
 /**
  * Removes the element and its subtree from the pre-order links
- * The memory isn't touched, the subtree stays intact and can be re-inserted (@see ui_element_subtree_insert)
+ * The memory isn't touched, the subtree stays intact and can be re-inserted
  *
  * Complexity is O(element count), this only happens on rare structural changes (e.g. bring window to front)
  */
@@ -179,7 +179,7 @@ void ui_element_link(
     UICore* const __restrict parent
 ) NO_EXCEPT
 {
-    // An "unlinked" element without children (@see ui_element_subtree_insert)
+    // An "unlinked" element without children
     element->next_offset = -1;
     element->skip_offset = -1;
 
@@ -217,7 +217,7 @@ UICore* ui_element_alloc(
     element->change_type = UI_ELEMENT_CHANGE_CONTENT;
 
     ui_element_link(layout, element, parent ? parent : layout->ui_root);
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return element;
 }
@@ -251,7 +251,7 @@ bool ui_element_move_to_front(UILayout* const layout, UICore* const element) NO_
     ui_element_subtree_unlink(layout, element);
     ui_element_subtree_insert(layout, element, parent, before);
     element->change_type |= UI_ELEMENT_CHANGE_ORDER;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -335,7 +335,7 @@ void ui_element_height_set(UILayout* const layout, UICore* const element, f32 he
 
     element->dimension.dim_raw.y = height;
     element->change_type |= UI_ELEMENT_CHANGE_DIM_OTHER;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 #endif

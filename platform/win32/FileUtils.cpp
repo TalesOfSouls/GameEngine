@@ -1336,7 +1336,7 @@ FileHandle file_read_handle_shared(const C* path) NO_EXCEPT
 
 /**
  * Same as file_read_async_handle() but other processes may still write, replace or delete the file
- * while the handle is open (@see file_read_handle_shared)
+ * while the handle is open
  *
  * @param const C* path File path
  *

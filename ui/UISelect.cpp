@@ -21,7 +21,7 @@
 
 /**
  * @param options Option texts (copied into the ui_element_buffer)
- * @param flags @see UISelectFlag
+ * @param flags UISelectFlag
  * @param parent NULL = root
  */
 inline
@@ -47,7 +47,7 @@ UISelect* ui_select_create(
     select->select_flags = flags;
     select->selected = (option_count > 0 && !(flags & UI_SELECT_FLAG_MULTI)) ? 0 : -1;
 
-    // Options are stored directly after the select as string list (@see ui_string_list_store)
+    // Options are stored directly after the select as string list
     select->options = ui_string_list_store(layout, options, option_count);
     select->option_count = (int16) option_count;
 
@@ -241,7 +241,7 @@ bool ui_select_set(UILayout* const layout, UISelect* const select, int32 index, 
     }
 
     select->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -357,7 +357,7 @@ bool ui_option_list_scroll_set(UILayout* const layout, UIOptionList* const list,
 
     list->scroll = scroll;
     list->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -376,7 +376,7 @@ int32 ui_option_list_row_at(const UILayout* const layout, const UIOptionList* co
     const f32 row_height = ui_select_row_height(select);
     const int32 count = ui_select_filtered_count(layout, select);
 
-    // Same scroll as the rendering (@see ui_option_list_cache), otherwise the hovered row is offset against the cursor
+    // Same scroll as the rendering, otherwise the hovered row is offset against the cursor
     const f32 scroll = ui_scroll_clamp(list->scroll, row_height * (f32) count, list->core.dimension.dim.y);
     const int32 row = (int32) ((list->core.dimension.pos.y - y + scroll) / row_height);
 
@@ -392,7 +392,7 @@ bool ui_option_list_hover(UILayout* const layout, UIOptionList* const list, int3
 
     list->hovered = (int16) row;
     list->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }

@@ -30,10 +30,10 @@ enum UIElementType : byte {
     UI_ELEMENT_TYPE_RADIO,
     UI_ELEMENT_TYPE_SLIDER,
 
-    // Option list in the popup of a select (@see UISelect)
+    // Option list in the popup of a select
     UI_ELEMENT_TYPE_OPTION_LIST,
 
-    // Color swatch that opens a color popup (@see UIColorPicker)
+    // Color swatch that opens a color popup
     UI_ELEMENT_TYPE_COLOR_PICKER,
 
     // Gradient or palette area in the popup of a color picker

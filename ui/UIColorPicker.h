@@ -45,7 +45,7 @@ struct UIColorPicker {
     int32 palette;
 
     // Display order of the palette (int16 palette index per grid cell, -1 = empty cell)
-    // The colors are shown as a gradient (@see ui_color_palette_order), duplicates are removed
+    // The colors are shown as a gradient, duplicates are removed
     int32 palette_order;
     int16 palette_cells;
 
@@ -54,7 +54,7 @@ struct UIColorPicker {
 
     int16 palette_count;
 
-    // @see UIColorPickerType
+    // @type UIColorPickerType
     byte picker_type;
 };
 
@@ -69,7 +69,7 @@ struct UIColorPanel {
     // Palette cell under the pointer (-1 = none)
     int16 hovered;
 
-    // Gradient area that is dragged (@see UIColorPanelArea)
+    // Gradient area that is dragged
     byte drag_area;
 };
 

@@ -19,10 +19,9 @@ enum UIElementFlag : uint16 {
     UI_ELEMENT_FLAG_IGNORE_HIT = 1 << 6,
 
     // Other elements are never moved in front of this element (e.g. mouse cursor)
-    // @see ui_element_move_to_front()
     UI_ELEMENT_FLAG_ALWAYS_ON_TOP = 1 << 7,
 
-    // The update function runs every ui_update(), otherwise only in content ticks (@see ui_update)
+    // The update function runs every ui_update(), otherwise only in content ticks
     // Only for updates that react to the user directly (e.g. the cursor, showing a window by hotkey),
     // content (e.g. statistics, labels) doesn't have to be updated more often than it can be read
     UI_ELEMENT_FLAG_UPDATE_TICK = 1 << 8,
@@ -95,7 +94,7 @@ struct UICore {
     // UIElementChangeType
     byte change_type;
 
-    // Explicit padding, must stay 0: the change detection hashes the raw bytes of the element (@see ui_element_cache_hash)
+    // Explicit padding, must stay 0: the change detection hashes the raw bytes of the element
     byte _reserved[3];
 
     // 1-indexed, 0 = no function defined
@@ -116,7 +115,7 @@ struct UICore {
     // If next_offset == skip_offset the element has no children
     int32 skip_offset;
 
-    // Incremental caching (@see ui_cache)
+    // Incremental caching
     // Where the vertices of this element are in the output of the last ui_cache() (= UILayout::ui_vertex_total)
     // These members MUST stay at the end, they are not part of the change detection
 

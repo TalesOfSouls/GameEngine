@@ -15,7 +15,7 @@
 #include "UILabel.cpp"
 #include "UITable.h"
 
-// n-th string of a static string list (@see ui_string_list_store), "" if the list doesn't exist
+// n-th string of a static string list, "" if the list doesn't exist
 FORCE_INLINE
 const char* ui_table_string(const UILayout* const layout, const UITable* const table, int32 offset, int32 column) NO_EXCEPT
 {
@@ -39,9 +39,9 @@ const char* ui_table_row_string(const UILayout* const layout, const UITable* con
 
 /**
  * @param titles Header titles (one per column)
- * @param row_capacity Max amount of rows (@see ui_table_add_row)
+ * @param row_capacity Max amount of rows
  * @param parent NULL = root
- * @param cell_capacity > 0 = dynamic table with fixed size cells incl. \0 (@see ui_table_set_cell)
+ * @param cell_capacity > 0 = dynamic table with fixed size cells incl. \0
  *                      The memory for all rows (+ footer) is reserved immediately: row_capacity * column_count * cell_capacity
  */
 inline
@@ -83,7 +83,7 @@ UITable* ui_table_create(
     table->row_capacity = (int16) row_capacity;
     table->rows = ui_text_reserve(layout, CHAR_TYPE_CHAR, (int32) sizeof(int32) * max_branched(row_capacity, 1));
 
-    // Optional per row text color, 0 = font.color (@see ui_table_set_row_color)
+    // Optional per row text color, 0 = font.color
     const int32 row_colors_size = (int32) sizeof(uint32) * max_branched(row_capacity, 1);
     table->row_text_colors = ui_text_reserve(layout, CHAR_TYPE_CHAR, row_colors_size);
     memset(layout->ui_element_buffer.memory + table->row_text_colors, 0, (size_t) row_colors_size);
@@ -104,7 +104,7 @@ UITable* ui_table_create(
         // The footer block (after the rows) is reserved but only shown after ui_table_set_footer()
         table->footer = 0;
 
-        // Owner values of the rows (@see ui_table_row_values)
+        // Owner values of the rows
         const int32 row_values_size = (int32) sizeof(int32) * row_capacity;
         table->row_values = ui_text_reserve(layout, CHAR_TYPE_CHAR, row_values_size);
         memset(layout->ui_element_buffer.memory + table->row_values, 0, (size_t) row_values_size);
@@ -124,7 +124,7 @@ void ui_table_set_column_width(UILayout* const layout, UITable* const table, int
     }
 
     ((f32 *) (layout->ui_element_buffer.memory + table->column_widths))[column] = fraction;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 // Offset of a fixed size cell of a dynamic table (row = row_capacity -> footer)
@@ -154,7 +154,7 @@ bool ui_table_cell_copy(
 }
 
 /**
- * Dynamic tables only (@see ui_table_create cell_capacity): changes the text of a cell
+ * Dynamic tables only: changes the text of a cell
  * Too long texts are truncated to cell_capacity - 1 bytes
  * Only marks the ui as dirty if the text changed
  *
@@ -173,7 +173,7 @@ bool ui_table_set_cell(UILayout* const layout, UITable* const table, int32 row, 
 
     if (row < table->row_count) {
         table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-        layout->is_dirty = true;
+        layout->dirty |= UI_LAYOUT_DIRTY;
     }
 
     return true;
@@ -201,7 +201,7 @@ bool ui_table_set_cell(
 
     if (row < table->row_count) {
         table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-        layout->is_dirty = true;
+        layout->dirty |= UI_LAYOUT_DIRTY;
     }
 
     return true;
@@ -227,7 +227,7 @@ void ui_table_set_row_color(UILayout* const layout, UITable* const table, int32 
 
     if (row < table->row_count) {
         table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-        layout->is_dirty = true;
+        layout->dirty |= UI_LAYOUT_DIRTY;
     }
 }
 
@@ -267,7 +267,7 @@ void ui_table_set_row_count(UILayout* const layout, UITable* const table, int32 
     }
 
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 /**
@@ -296,7 +296,7 @@ int32 ui_table_add_row(UILayout* const layout, UITable* const table, const Simpl
     }
 
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return table->row_count++;
 }
@@ -326,7 +326,7 @@ void ui_table_set_footer(UILayout* const layout, UITable* const table, const Sim
     }
 
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 inline
@@ -383,7 +383,7 @@ bool ui_table_scroll_set(UILayout* const layout, UITable* const table, f32 scrol
 
     table->scroll = scroll;
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -417,7 +417,7 @@ int32 ui_table_column_at(const UILayout* const layout, const UITable* const tabl
         return -1;
     }
 
-    // Same width as the rendering (without the scrollbar @see ui_table_cache)
+    // Same width as the rendering (without the scrollbar)
     UIScrollInfo info;
     const f32 width = body.width - (ui_table_scroll_info(table, &info) ? UI_SCROLLBAR_SIZE : 0.0f);
 
@@ -442,7 +442,7 @@ bool ui_table_hover(UILayout* const layout, UITable* const table, int32 row) NO_
 
     table->hovered = (int16) row;
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -459,7 +459,7 @@ bool ui_table_select(UILayout* const layout, UITable* const table, int32 row) NO
 
     table->selected = (int16) row;
     table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -604,7 +604,7 @@ void ui_table_cache(
         for (int32 row = first_row; row <= last_row; ++row) {
             const f32 row_y = body.y + scroll - table->row_height * (f32) row;
 
-            // Per row text color, e.g. log severity (@see ui_table_set_row_color)
+            // Per row text color, e.g. log severity
             const uint32 color = (text_colors && text_colors[row]) ? text_colors[row] : table->font.color;
             ui_table_row_vertices(layout, table, rows[row], table->cell_capacity != 0, row_y, width, color, body_clip, *zindex, mem);
         }

@@ -10,7 +10,7 @@
 //
 // The table renders all cells itself (no element per cell/row) and only creates vertices for the visible rows.
 // Data in the ui_element_buffer (one string per column):
-//      columns:        header titles (string list, @see ui_string_list_store)
+//      columns:        header titles (string list)
 //      column_widths:  f32 per column, fraction of the table width (sum = 1.0)
 //      rows:           int32 per row = offset of the cell strings of that row
 //      footer:         footer cell strings (0 = no footer)
@@ -41,11 +41,11 @@ struct UITable {
     int32 rows;
     int32 footer;
 
-    // Optional text color per row (uint32[row_capacity], 0 = font.color), @see ui_table_set_row_color
+    // Optional text color per row (uint32[row_capacity], 0 = font.color)
     int32 row_text_colors;
 
     // Dynamic tables only: value per row for the owner of the table (int32[row_capacity], e.g. the id of the data in the row)
-    // Not used by the table itself, @see ui_table_row_values
+    // Not used by the table itself
     int32 row_values;
 
     // Value for the owner of the table (not used by the table itself, e.g. the current level of a drill down table)
@@ -70,7 +70,7 @@ struct UITable {
     int16 selected;
     int16 hovered;
 
-    // Bytes per cell incl. \0 (0 = static table @see above)
+    // Bytes per cell incl. \0 (0 = static table)
     int16 cell_capacity;
 };
 

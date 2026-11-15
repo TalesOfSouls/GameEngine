@@ -45,9 +45,9 @@ int32 ui_text_reserve(UILayout* const layout, CharType char_type, int32 length) 
  *      characters[capacity]    <- the returned offset, always \0 terminated
  *
  * The offset points to a normal C string -> code that only reads the text doesn't have to care about the header.
- * The length is available without strlen (@see ui_string_length, ui_string_get).
+ * The length is available without strlen (ui_string_get).
  *
- * WARNING: Code that changes the characters directly must update the length (@see ui_string_length_set)
+ * WARNING: Code that changes the characters directly must update the length
  *
  * @param capacity Reserved length in characters incl. \0
  *
@@ -222,7 +222,7 @@ int32 ui_string_list_store(UILayout* const layout, const SimpleString<const char
 }
 
 /**
- * n-th string of a string list (@see ui_string_list_store)
+ * n-th string of a string list
  *
  * @param count Amount of strings in the list (stored by the owner, e.g. UISelect::option_count)
  *
@@ -248,7 +248,7 @@ SimpleString<const char> ui_string_list_get(const UILayout* const layout, int32 
 }
 
 /**
- * Sets a \0 terminated text in the ui_element_buffer (label content/pattern, @see ui_string_reserve)
+ * Sets a \0 terminated text in the ui_element_buffer (label content/pattern)
  * New memory is only reserved if the reserved memory is too small
  *
  * @param offset Text offset (0 = no memory reserved yet)
@@ -388,7 +388,7 @@ bool ui_label_set_text_fixed(UILayout* const layout, UILabel* const label, const
     }
 
     label->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -410,7 +410,7 @@ bool ui_label_set_text(UILayout* const layout, UILabel* const label, const char*
     }
 
     label->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -430,7 +430,7 @@ bool ui_label_set_text(UILayout* const layout, UILabel* const label, const char*
     }
 
     label->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return true;
 }
@@ -490,7 +490,7 @@ UILabel* ui_label_create(
 
 /**
  * The label size is the text size unless the element defines a dimension
- * The text is placed in the top left corner of the element (@see UIAttributeFont::alignment for other alignments)
+ * The text is placed in the top left corner of the element (alignment for other alignments)
  */
 void ui_label_cache(
     UILabel* const label,
@@ -633,7 +633,7 @@ f32 ui_text_range_width(
         }
 
         if (!glyph) {
-            // The 0 index character is the special character for "not found" (@see text_to_glyphs)
+            // The 0 index character is the special character for "not found"
             glyph = &font->base.glyphs[0];
         }
 

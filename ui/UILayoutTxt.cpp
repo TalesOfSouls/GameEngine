@@ -33,12 +33,12 @@
 /**
  * Layout file (.layouttxt)
  *
- * Defines the element tree (@see UIDocument.h for the general syntax)
+ * Defines the element tree
  *
  *      version 2
  *
  *      window test_window              <- "type [name]", the name can be used with ui_get_element()
- *          style: window_default       <- styles of the theme (@see UITheme.cpp), applied before the own properties
+ *          style: window_default       <- styles of the theme, applied before the own properties
  *          anchor: top left
  *          pos: 512 256
  *          size: 560 480
@@ -50,7 +50,7 @@
  *              text: Status: -
  *
  * Order in which the properties are applied:
- *      1. create arguments (e.g. columns of a table, @see ui_txt_is_create_key)
+ *      1. create arguments (e.g. columns of a table)
  *      2. type default styles of the themes ("@table")
  *      3. styles listed in "style:" (in this order)
  *      4. own properties and parts (in file order)
@@ -90,7 +90,7 @@
  *      tab:        tabs orientation(horizontal|vertical) active on_change header_size tab_size header_color tab_color tab_color_hover tab_color_active page_color border_color font_size font_color, $page <index>
  *      table:      columns row_capacity cell_capacity widths row footer on_change row_height header_color row_color row_color_alt row_color_hover row_color_selected footer_color border_color font_size font_color
  *      colorpicker: type(gradient|palette) color on_change border_color border_color_hover
- *      tooltip:    font_size (only top level, @see UITooltip.cpp)
+ *      tooltip:    font_size (only top level)
  *
  * Child elements of a scroll panel are added to its content panel, child elements of a tab have to be in a $page
  * Type default styles are only applied to elements of the layout file, not to parts
@@ -358,7 +358,7 @@ const Language* ui_txt_document_language(const UILayoutTxtContext* const ctx, co
 
 /**
  * Final property value (escape sequences, language strings)
- *      "@key"  = string of the document language (@see ui_txt_document_language)
+ *      "@key"  = string of the document language
  *      "@@key" = global string (ctx->language_global)
  * A missing string is reported and the value stays "@key" (visible in the ui)
  */
@@ -407,7 +407,7 @@ char* ui_txt_value_resolve(
     return buffer;
 }
 
-// Final property value (NULL = the property doesn't exist, @see ui_txt_value_resolve)
+// Final property value (NULL = the property doesn't exist)
 static inline
 char* ui_txt_value_get(
     const UILayoutTxtContext* const ctx,
@@ -824,7 +824,7 @@ bool ui_txt_field_set(
 }
 
 /**
- * Keys that are only used when the element is created (@see ui_txt_element_create)
+ * Keys that are only used when the element is created
  */
 static inline
 bool ui_txt_is_create_key(const char* const type, const char* const key) NO_EXCEPT
@@ -1628,14 +1628,14 @@ int32 ui_layout_from_txt(
         }
     }
 
-    layout->is_dirty = true;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 
     return count;
 }
 
 /**
  * Creates the layout from a text file (e.g. used by the theme builder)
- * The elements are created as children of a newly created root (the root size is defined at runtime @see ui_root_resize)
+ * The elements are created as children of a newly created root (the root size is defined at runtime)
  * Without a context no styles, images and functions are resolved
  *
  * WARNING: layout->data needs to have memory already reserved

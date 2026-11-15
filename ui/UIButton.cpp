@@ -58,7 +58,7 @@ void ui_button_cache(
     ui_dimension_calculate(layout, &button->core, content_dim);
     const v4_f32 rect = ui_dimension_rect(&button->core.dimension);
 
-    // The state is updated before caching (@see ui_input_pointer), here we only pick the matching style
+    // The state is updated before caching, here we only pick the matching style
     const uint32 background_color = (button->core.state & UI_STATE_HOVER)
         && OMS_HAS_ALPHA(button->background_color_hover)
             ? button->background_color_hover
