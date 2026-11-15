@@ -8,6 +8,7 @@
 #define COMS_GPUAPI_RENDER_FRAME_H
 
 #include "../stdlib/Types.h"
+#include "../stdlib/Defines.h"
 #include "../camera/Camera.h"
 #include "../gpuapi/anti_aliasing/AntiAliasingType.h"
 
@@ -34,6 +35,25 @@ struct RenderSettings {
     #endif
 };
 
+// Changed vertex/index range of one ui version (@see UICachePatch in ui/UILayout.h)
+// The render frames + gpu buffers can be several versions behind -> the last versions are kept
+// and a copy only covers the ranges that changed since its version (@see render_frame_ui_patch_range)
+#define RENDER_FRAME_UI_PATCH_HISTORY 8
+
+struct RenderFrameUiPatch {
+    // The ui version this patch created (index in the history = version % RENDER_FRAME_UI_PATCH_HISTORY)
+    uint16 version;
+
+    // true = everything changed (e.g. full ui re-build, other layout) -> full copy
+    bool full;
+
+    // Changed range [start, end), start >= end = nothing changed
+    uint32 vertex_start;
+    uint32 vertex_end;
+    uint32 index_start;
+    uint32 index_end;
+};
+
 struct RenderFrameUi {
     void* vertices;
     uint32* indices;
@@ -42,7 +62,68 @@ struct RenderFrameUi {
     uint32 index_capacity;
     uint32 vertex_count;
     uint32 index_count;
+
+    // Patch history at the time of the copy, the render thread uses it for the gpu buffers
+    RenderFrameUiPatch patches[RENDER_FRAME_UI_PATCH_HISTORY];
 };
+
+/**
+ * Combines the patches of the versions (from, to] into one changed range
+ *
+ * @param const RenderFrameUiPatch* patches Patch history (RENDER_FRAME_UI_PATCH_HISTORY entries)
+ * @param uint16 from Version of the data that is updated
+ * @param uint16 to Version to update to
+ *
+ * @return bool false = a full copy is needed (too old, unknown version or a full change in between)
+ */
+inline
+bool render_frame_ui_patch_range(
+    const RenderFrameUiPatch* const patches,
+    uint16 from, uint16 to,
+    uint32* const vertex_start, uint32* const vertex_end,
+    uint32* const index_start, uint32* const index_end
+) NO_EXCEPT
+{
+    *vertex_start = 0xFFFFFFFF;
+    *vertex_end = 0;
+    *index_start = 0xFFFFFFFF;
+    *index_end = 0;
+
+    const uint16 count = (uint16) (to - from);
+    if (count > RENDER_FRAME_UI_PATCH_HISTORY) {
+        return false;
+    }
+
+    for (uint16 i = 1; i <= count; ++i) {
+        const uint16 version = (uint16) (from + i);
+        const RenderFrameUiPatch* const patch = &patches[version % RENDER_FRAME_UI_PATCH_HISTORY];
+        if (patch->version != version || patch->full) {
+            return false;
+        }
+
+        if (patch->vertex_start < patch->vertex_end) {
+            *vertex_start = patch->vertex_start < *vertex_start ? patch->vertex_start : *vertex_start;
+            *vertex_end = patch->vertex_end > *vertex_end ? patch->vertex_end : *vertex_end;
+        }
+
+        if (patch->index_start < patch->index_end) {
+            *index_start = patch->index_start < *index_start ? patch->index_start : *index_start;
+            *index_end = patch->index_end > *index_end ? patch->index_end : *index_end;
+        }
+    }
+
+    if (*vertex_start >= *vertex_end) {
+        *vertex_start = 0;
+        *vertex_end = 0;
+    }
+
+    if (*index_start >= *index_end) {
+        *index_start = 0;
+        *index_end = 0;
+    }
+
+    return true;
+}
 
 // @todo Instead of passing these things as fixed part of the RenderFrame,
 //      we might want to pass them as part of a queue element

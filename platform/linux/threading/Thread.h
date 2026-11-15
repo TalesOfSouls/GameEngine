@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 #include <linux/futex.h>
 #include <sys/syscall.h>
+#include <sys/resource.h>
 #include <sched.h>
 
 #include "../../../stdlib/Stdlib.h"
@@ -30,6 +31,20 @@ void coms_thread_affinity_set(coms_pthread_t* thread, int64 mask) NO_EXCEPT
     CPU_SET(mask, &cpuset);
 
     sched_setaffinity(0, sizeof(cpuset), &cpuset);
+}
+
+/**
+ * Lowers the priority of the calling thread (background work, e.g. the thread pool workers)
+ *
+ * When all cores are busy the interactive threads (update, render) are scheduled first.
+ * Linux: the nice value is per thread (no privileges required to increase it)
+ *
+ * @return void
+ */
+inline
+void coms_thread_priority_background() NO_EXCEPT
+{
+    setpriority(PRIO_PROCESS, (id_t) syscall(SYS_gettid), 5);
 }
 
 inline

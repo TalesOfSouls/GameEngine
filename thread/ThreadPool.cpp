@@ -89,6 +89,10 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     // Setting up thread local rng state
     rand_setup();
 
+    // The pool does background work (loading, generation, ...), the interactive threads of the application
+    // (update, render) must not stutter when the pool keeps all cores busy (@see coms_thread_priority_background)
+    coms_thread_priority_background();
+
     ThreadPoolJob job;
 
     while (true) {

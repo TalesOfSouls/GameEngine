@@ -20,6 +20,21 @@ void coms_thread_affinity_set(coms_pthread_t* const thread, int64 mask) NO_EXCEP
     SetThreadAffinityMask(thread->h, (DWORD_PTR) mask);
 }
 
+/**
+ * Lowers the priority of the calling thread (background work, e.g. the thread pool workers)
+ *
+ * When all cores are busy (e.g. a map generation on all workers) the interactive threads (update, render) are
+ * scheduled first, otherwise they lose whole time slices (20-40 ms) to the workers -> visible stutters.
+ * The background threads still get all the cpu time the interactive threads don't use.
+ *
+ * @return void
+ */
+inline
+void coms_thread_priority_background() NO_EXCEPT
+{
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+}
+
 inline
 int32 coms_pthread_create(
     coms_pthread_t* const __restrict thread,

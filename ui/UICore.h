@@ -6,7 +6,7 @@
 #include "attribute/UIAttributeDimension.h"
 #include "UIElementType.h"
 
-enum UIElementFlag : byte {
+enum UIElementFlag : uint16 {
     UI_ELEMENT_FLAG_HITBOX = 1 << 0, // e.g. can be clicked to change focus
     UI_ELEMENT_FLAG_INTERACTABLE = 1 << 1, // Used for interaction (e.g. drop down, button, ...)
     UI_ELEMENT_FLAG_MOVABLE = 1 << 2, // Used for draggable areas (e.g. window title)
@@ -21,6 +21,11 @@ enum UIElementFlag : byte {
     // Other elements are never moved in front of this element (e.g. mouse cursor)
     // @see ui_element_move_to_front()
     UI_ELEMENT_FLAG_ALWAYS_ON_TOP = 1 << 7,
+
+    // The update function runs every ui_update(), otherwise only in content ticks (@see ui_update)
+    // Only for updates that react to the user directly (e.g. the cursor, showing a window by hotkey),
+    // content (e.g. statistics, labels) doesn't have to be updated more often than it can be read
+    UI_ELEMENT_FLAG_UPDATE_TICK = 1 << 8,
 };
 
 // Elements with any of these flags "have an action bound"
@@ -81,14 +86,17 @@ enum UIElementChangeType : byte {
 struct UICore {
     UIElementType type;
 
-    // UIElementFlag
-    byte flags;
-
     // UIState
     byte state;
 
+    // UIElementFlag
+    uint16 flags;
+
     // UIElementChangeType
     byte change_type;
+
+    // Explicit padding, must stay 0: the change detection hashes the raw bytes of the element (@see ui_element_cache_hash)
+    byte _reserved[3];
 
     // 1-indexed, 0 = no function defined
     int16 update_func;

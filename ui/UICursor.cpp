@@ -26,7 +26,8 @@ UICursor* ui_cursor_create(UILayout* const layout, UICore* parent = NULL) NO_EXC
     cursor->core.dimension.align_anchor = UI_ANCHOR_ALIGN_TOP_LEFT;
 
     // The cursor is always at the mouse position -> it would always be the hit element
-    cursor->core.flags = UI_ELEMENT_FLAG_IGNORE_HIT | UI_ELEMENT_FLAG_ALWAYS_ON_TOP;
+    // It follows the pointer -> its update function (if any) runs every tick
+    cursor->core.flags = UI_ELEMENT_FLAG_IGNORE_HIT | UI_ELEMENT_FLAG_ALWAYS_ON_TOP | UI_ELEMENT_FLAG_UPDATE_TICK;
 
     layout->cursor = cursor;
 

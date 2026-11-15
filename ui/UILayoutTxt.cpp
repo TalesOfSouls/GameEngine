@@ -69,7 +69,7 @@
  *      names:      functions (update, render, on_click, ...), images (atlas elements)
  *      anchor:     <parent point> [/ <element point>], points: left|center|right top|center|bottom
  *                  e.g. "top right" = inside the top right corner, "top right / top left" = right of the top right corner
- *      flags:      hitbox interactable movable resizable hoverable selectable ignore_hit always_on_top
+ *      flags:      hitbox interactable movable resizable hoverable selectable ignore_hit always_on_top update_tick
  *                  +flag / -flag add/remove a flag, otherwise the flags are replaced
  *
  * Element types and their properties
@@ -499,7 +499,7 @@ byte ui_txt_anchor(const char* value) NO_EXCEPT
 }
 
 static inline
-byte ui_txt_flags(const char* value, byte flags) NO_EXCEPT
+uint16 ui_txt_flags(const char* value, uint16 flags) NO_EXCEPT
 {
     static const UINameId FLAG_NAMES[] = {
         {"hitbox", UI_ELEMENT_FLAG_HITBOX},
@@ -510,6 +510,7 @@ byte ui_txt_flags(const char* value, byte flags) NO_EXCEPT
         {"selectable", UI_ELEMENT_FLAG_SELECTABLE},
         {"ignore_hit", UI_ELEMENT_FLAG_IGNORE_HIT},
         {"always_on_top", UI_ELEMENT_FLAG_ALWAYS_ON_TOP},
+        {"update_tick", UI_ELEMENT_FLAG_UPDATE_TICK},
     };
 
     // Without +/- the flags are replaced
@@ -542,7 +543,7 @@ byte ui_txt_flags(const char* value, byte flags) NO_EXCEPT
         }
     }
 
-    return (byte) (((replace ? 0 : flags) | add) & ~remove);
+    return (uint16) (((replace ? 0 : flags) | add) & ~remove);
 }
 
 ////////////////////////////////////////////////////////////////
