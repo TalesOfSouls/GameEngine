@@ -34,6 +34,7 @@
 #include "UIImage.cpp"
 #include "UICheckbox.cpp"
 #include "UISlider.cpp"
+#include "UINavigation.h"
 #include "UIInput.cpp"
 #include "UISelect.cpp"
 #include "UITab.cpp"
@@ -1299,7 +1300,7 @@ bool ui_element_state_set(UILayout* const layout, int32 offset, byte state, bool
     if (!offset) {
         // We should never go in here?!
         // @todo If this never triggers remove the entire if
-        ASSERT_TRUE(false);
+        //ASSERT_TRUE(false);
         return false;
     }
 
@@ -1560,7 +1561,7 @@ void ui_select_open(UILayout* const layout, UISelect* const select, bool open) N
     if (!select->popup) {
         // We should never go in here?!
         // @todo If this never triggers remove the entire if
-        ASSERT_TRUE(false);
+        //ASSERT_TRUE(false);
         return;
     }
 
@@ -1642,7 +1643,7 @@ void ui_popup_toggle(UILayout* const layout, int32 popup) NO_EXCEPT
     if (!popup) {
         // We should never go in here?!
         // @todo If this never triggers remove the entire if
-        ASSERT_TRUE(false);
+        //ASSERT_TRUE(false);
         return;
     }
 
@@ -2411,29 +2412,28 @@ void ui_element_click_keyboard(void* app, UILayout* const layout, UICore* const 
 }
 
 /**
- * Keyboard input for the focused (non text) element
- *      button:       enter/space = click
- *      checkbox:     enter/space = toggle
- *      radio:        enter/space = check, arrows = previous/next radio of the group
- *      slider:       arrows = -/+ step, home/end = min/max
- *      select:       enter/space = open/pick, up/down = previous/next option (or row while open)
- *      color picker: enter/space = open/close
- *      tab:          arrows = previous/next tab
- *      table:        up/down/home/end = select row, enter/space = click on the selected row (the first row if none is selected)
+ * Action (keyboard, controller, ...) for the focused (non text) element
+ *      button:       confirm = click
+ *      checkbox:     confirm = toggle
+ *      radio:        confirm = check, directions = previous/next radio of the group
+ *      slider:       directions = -/+ step, first/last = min/max
+ *      select:       confirm = open/pick, up/down = previous/next option (or row while open)
+ *      color picker: confirm = open/close
+ *      tab:          directions = previous/next tab
+ *      table:        up/down/first/last = select row, confirm = click on the selected row (the first row if none is selected)
  *
- * Enter/space = mouse click
+ * Confirm = mouse click
  *
  * @return true if something changed
  */
 inline
-bool ui_element_key(void* app, UILayout* const layout, UICore* const element, uint32 code) NO_EXCEPT
+bool ui_element_key(void* app, UILayout* const layout, UICore* const element, UINavigation action) NO_EXCEPT
 {
-    code &= ~((uint32) INPUT_TEXT_MOD_MASK);
-
-    const bool activate = code == INPUT_TEXT_ENTER || code == ' ';
-    const int32 delta = (code == INPUT_TEXT_LEFT || code == INPUT_TEXT_UP)
+    const bool activate = action == UI_NAVIGATION_CONFIRM;
+    const bool vertical = action == UI_NAVIGATION_UP || action == UI_NAVIGATION_DOWN;
+    const int32 delta = (action == UI_NAVIGATION_LEFT || action == UI_NAVIGATION_UP)
         ? -1
-        : ((code == INPUT_TEXT_RIGHT || code == INPUT_TEXT_DOWN) ? 1 : 0);
+        : ((action == UI_NAVIGATION_RIGHT || action == UI_NAVIGATION_DOWN) ? 1 : 0);
 
     switch (element->type) {
         case UI_ELEMENT_TYPE_BUTTON:
@@ -2502,9 +2502,9 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, ui
             f32 value = slider->value;
             if (delta) {
                 value += step * (f32) delta;
-            } else if (code == INPUT_TEXT_HOME) {
+            } else if (action == UI_NAVIGATION_FIRST) {
                 value = 0.0f;
-            } else if (code == INPUT_TEXT_END) {
+            } else if (action == UI_NAVIGATION_LAST) {
                 value = 1.0f;
             } else {
                 return false;
@@ -2522,8 +2522,8 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, ui
             if (ui_select_is_open(layout, select)) {
                 UIOptionList* const list = (UIOptionList *) ui_element_get(layout, select->list);
 
-                if (code == INPUT_TEXT_UP || code == INPUT_TEXT_DOWN) {
-                    return ui_option_list_move_hover(layout, list, code == INPUT_TEXT_UP ? -1 : 1);
+                if (vertical) {
+                    return ui_option_list_move_hover(layout, list, delta);
                 }
 
                 if (!activate) {
@@ -2548,11 +2548,11 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, ui
                 ui_select_open(layout, select, true);
 
                 return true;
-            } else if ((code == INPUT_TEXT_UP || code == INPUT_TEXT_DOWN)
+            } else if (vertical
                 && !(select->select_flags & UI_SELECT_FLAG_MULTI)
             ) {
                 // Closed single select: up/down changes the selection directly
-                const int32 index = clamp_branched(select->selected + (code == INPUT_TEXT_UP ? -1 : 1), 0, select->option_count - 1);
+                const int32 index = clamp_branched(select->selected + delta, 0, select->option_count - 1);
                 if (ui_select_set(layout, select, index)) {
                     ui_element_action(app, layout, element, select->on_change);
                 }
@@ -2593,13 +2593,13 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, ui
             }
 
             int32 row;
-            if (code == INPUT_TEXT_UP || code == INPUT_TEXT_DOWN) {
+            if (vertical) {
                 row = table->selected < 0
                     ? 0
-                    : clamp_branched(table->selected + (code == INPUT_TEXT_UP ? -1 : 1), 0, table->row_count - 1);
-            } else if (code == INPUT_TEXT_HOME) {
+                    : clamp_branched(table->selected + delta, 0, table->row_count - 1);
+            } else if (action == UI_NAVIGATION_FIRST) {
                 row = 0;
-            } else if (code == INPUT_TEXT_END) {
+            } else if (action == UI_NAVIGATION_LAST) {
                 row = table->row_count - 1;
             } else {
                 return false;
@@ -2647,75 +2647,88 @@ void ui_input_owner_changed(void* app, UILayout* const layout, UIInput* const in
 }
 
 /**
- * Applies one keyboard code to the element with the keyboard focus
+ * Keyboard code -> ui action
+ * (tab = next, shift + tab = previous, enter/space = confirm, escape = cancel, arrows, home/end = first/last)
+ */
+static inline
+UINavigation ui_navigation_from_code(uint32 code) NO_EXCEPT
+{
+    switch (code & ~((uint32) INPUT_TEXT_MOD_MASK)) {
+        case INPUT_TEXT_TAB: return (code & INPUT_TEXT_MOD_SHIFT) ? UI_NAVIGATION_PREV : UI_NAVIGATION_NEXT;
+        case INPUT_TEXT_ENTER:
+        case ' ': return UI_NAVIGATION_CONFIRM;
+        case INPUT_TEXT_ESCAPE: return UI_NAVIGATION_CANCEL;
+        case INPUT_TEXT_UP: return UI_NAVIGATION_UP;
+        case INPUT_TEXT_DOWN: return UI_NAVIGATION_DOWN;
+        case INPUT_TEXT_LEFT: return UI_NAVIGATION_LEFT;
+        case INPUT_TEXT_RIGHT: return UI_NAVIGATION_RIGHT;
+        case INPUT_TEXT_HOME: return UI_NAVIGATION_FIRST;
+        case INPUT_TEXT_END: return UI_NAVIGATION_LAST;
+        default: return UI_NAVIGATION_NONE;
+    }
+}
+
+/**
+ * Applies an action to the element with the keyboard focus (not a text element that is edited)
  *
- *      tab / shift + tab: next/previous focusable element
- *      text elements:
- *          escape: stops editing (and closes the popup the element is in, e.g. search field of a select)
- *          search field of a select: up/down = row in the option list, enter = hovered row or first match
- *      other elements:
- *          escape: closes the open popup or removes the keyboard focus
- *
- * @param code Unicode codepoint or InputTextControl value (text)
+ *      cancel: closes the open popup or removes the keyboard focus
+ *      the other actions are handled by the element in ui_element_key()
  *
  * @return UIInputResult flags
  */
-inline
-byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
+static inline
+byte ui_input_focus_action(void* app, UILayout* const layout, UINavigation action) NO_EXCEPT
 {
-    PROFILE_DEBUG(PROFILE_UI_INPUT_CODE);
-
     UIInteraction* const interaction = &layout->interaction;
-    if (!ui_input_has_keyboard_focus(layout)) {
+    if (!interaction->keyboard_focus) {
         return UI_INPUT_RESULT_NONE;
     }
 
     byte result = UI_INPUT_RESULT_CAPTURED;
-    const uint32 base = code & ~((uint32) INPUT_TEXT_MOD_MASK);
 
-    if (base == INPUT_TEXT_TAB) {
-        ui_focus_move(layout, (code & INPUT_TEXT_MOD_SHIFT) ? -1 : 1);
+    UICore* const element = ui_element_get(layout, interaction->keyboard_focus);
+    if (!ui_element_is_visible(layout, element)) {
+        interaction->keyboard_focus = 0;
         result |= UI_INPUT_RESULT_CHANGED;
 
         return result;
     }
 
-    // Non text element (tab navigation)
-    ////////////////////////////////////////////////////////
-    if (interaction->keyboard_focus) {
-        UICore* const element = ui_element_get(layout, interaction->keyboard_focus);
-        if (!ui_element_is_visible(layout, element)) {
+    if (action == UI_NAVIGATION_CANCEL) {
+        if (interaction->popup) {
+            ui_popup_close(layout);
+        } else {
             interaction->keyboard_focus = 0;
-            result |= UI_INPUT_RESULT_CHANGED;
-
-            return result;
         }
 
-        if (base == INPUT_TEXT_ESCAPE) {
-            if (interaction->popup) {
-                ui_popup_close(layout);
-            } else {
-                interaction->keyboard_focus = 0;
-            }
-
-            layout->dirty |= UI_LAYOUT_DIRTY;
-            result |= UI_INPUT_RESULT_CHANGED;
-
-            return result;
-        }
-
-        if (ui_element_key(app, layout, element, code)) {
-            result |= UI_INPUT_RESULT_CHANGED;
-        }
+        layout->dirty |= UI_LAYOUT_DIRTY;
+        result |= UI_INPUT_RESULT_CHANGED;
 
         return result;
     }
 
-    // Text element
-    ////////////////////////////////////////////////////////
-    if (!interaction->editing) {
-        return result;
+    if (ui_element_key(app, layout, element, action)) {
+        result |= UI_INPUT_RESULT_CHANGED;
     }
+
+    return result;
+}
+
+/**
+ * Applies an action to the text element that is edited
+ *
+ *      cancel:     stops editing (and closes the popup the element is in, e.g. search field of a select)
+ *      confirm:    submits the input, search field of a select = picks the hovered row or the first match
+ *      up/down:    search field of a select = row in the option list
+ *      directions, first/last: caret movement (shift = selection, ctrl = word wise/whole text)
+ *
+ * @return UIInputResult flags
+ */
+static inline
+byte ui_input_editing_action(void* app, UILayout* const layout, UINavigation action, bool shift, bool ctrl) NO_EXCEPT
+{
+    UIInteraction* const interaction = &layout->interaction;
+    byte result = UI_INPUT_RESULT_CAPTURED;
 
     UIInput* const input = (UIInput *) ui_element_get(layout, interaction->editing);
     if (!ui_element_is_visible(layout, &input->core)) {
@@ -2725,9 +2738,7 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
         return result;
     }
 
-    UICore* const owner = input->owner ? ui_element_get(layout, input->owner) : NULL;
-
-    if (base == INPUT_TEXT_ESCAPE) {
+    if (action == UI_NAVIGATION_CANCEL) {
         UIPanel* const popup = ui_popup_get(layout);
         if (popup && ui_element_is_self_or_child_of(layout, &input->core, &popup->core)) {
             ui_popup_close(layout);
@@ -2739,20 +2750,22 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
         return result;
     }
 
+    UICore* const owner = input->owner ? ui_element_get(layout, input->owner) : NULL;
+
     // Search field of a select: navigate/pick in the option list
     if (owner && owner->type == UI_ELEMENT_TYPE_SELECT) {
         UISelect* const select = (UISelect *) owner;
         UIOptionList* const list = (UIOptionList *) ui_element_get(layout, select->list);
 
-        if (base == INPUT_TEXT_UP || base == INPUT_TEXT_DOWN) {
-            if (ui_option_list_move_hover(layout, list, base == INPUT_TEXT_UP ? -1 : 1)) {
+        if (action == UI_NAVIGATION_UP || action == UI_NAVIGATION_DOWN) {
+            if (ui_option_list_move_hover(layout, list, action == UI_NAVIGATION_UP ? -1 : 1)) {
                 result |= UI_INPUT_RESULT_CHANGED;
             }
 
             return result;
         }
 
-        if (base == INPUT_TEXT_ENTER) {
+        if (action == UI_NAVIGATION_CONFIRM) {
             const int32 option = ui_select_filtered_option(layout, select, list->hovered >= 0 ? list->hovered : 0);
 
             if (option >= 0) {
@@ -2773,7 +2786,128 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
         }
     }
 
-    // Only the owner needs to know about text changes (not caret movements)
+    // Confirm in a textarea is a new line (only the keyboard creates it, as text)
+    if (action == UI_NAVIGATION_CONFIRM) {
+        if (input->core.type != UI_ELEMENT_TYPE_TEXTAREA && input->on_submit && layout->on_actions) {
+            layout->on_actions[input->on_submit - 1](app, layout, &input->core);
+            result |= UI_INPUT_RESULT_CHANGED;
+        }
+
+        return result;
+    }
+
+    if (ui_input_caret_move(layout, input, action, shift, ctrl)) {
+        result |= UI_INPUT_RESULT_CHANGED;
+    }
+
+    return result;
+}
+
+/**
+ * Applies a ui action, regardless of the device it comes from (keyboard, controller, ...)
+ *
+ *      next/previous: next/previous focusable element
+ *      a text element is edited: ui_input_editing_action()
+ *      an element has the keyboard focus: ui_input_focus_action()
+ *      cancel without focus: closes the open popup (e.g. opened with the pointer)
+ *
+ * @param bool shift Keyboard only: extend the selection of a text element
+ * @param bool ctrl Keyboard only: word wise/whole text caret movement of a text element
+ *
+ * @return UIInputResult flags (CAPTURED = the ui used the action)
+ */
+static inline
+byte ui_navigation_apply(void* app, UILayout* const layout, UINavigation action, bool shift, bool ctrl) NO_EXCEPT
+{
+    switch (action) {
+        case UI_NAVIGATION_NEXT:
+        case UI_NAVIGATION_PREV: {
+            ui_focus_move(layout, action == UI_NAVIGATION_NEXT ? 1 : -1);
+
+            return (byte) (UI_INPUT_RESULT_CAPTURED | UI_INPUT_RESULT_CHANGED);
+        }
+        case UI_NAVIGATION_UP:
+        case UI_NAVIGATION_DOWN:
+        case UI_NAVIGATION_LEFT:
+        case UI_NAVIGATION_RIGHT:
+        case UI_NAVIGATION_FIRST:
+        case UI_NAVIGATION_LAST:
+        case UI_NAVIGATION_CONFIRM:
+        case UI_NAVIGATION_CANCEL: {
+            if (layout->interaction.editing) {
+                return ui_input_editing_action(app, layout, action, shift, ctrl);
+            }
+
+            if (layout->interaction.keyboard_focus) {
+                return ui_input_focus_action(app, layout, action);
+            }
+
+            if (action == UI_NAVIGATION_CANCEL && layout->interaction.popup) {
+                ui_popup_close(layout);
+
+                return (byte) (UI_INPUT_RESULT_CAPTURED | UI_INPUT_RESULT_CHANGED);
+            }
+
+            return UI_INPUT_RESULT_NONE;
+        }
+        default:
+            return UI_INPUT_RESULT_NONE;
+    }
+}
+
+/**
+ * Applies one keyboard code to the element with the keyboard focus
+ *
+ * Keys with a ui meaning (tab, enter, escape, arrows, home/end) are converted to the ui action, ui_navigation_apply().
+ * While a text element is edited everything else is text (characters, backspace, clipboard, ...),
+ * also space and enter in a textarea.
+ *
+ * @param code Unicode codepoint or InputTextControl value (text)
+ *
+ * @return UIInputResult flags
+ */
+inline
+byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_UI_INPUT_CODE);
+
+    UIInteraction* const interaction = &layout->interaction;
+    if (!ui_input_has_keyboard_focus(layout)) {
+        return UI_INPUT_RESULT_NONE;
+    }
+
+    const uint32 base = code & ~((uint32) INPUT_TEXT_MOD_MASK);
+    const UINavigation action = ui_navigation_from_code(code);
+
+    // Not edited as text: only the ui actions matter (other keys are captured but do nothing)
+    if (!interaction->editing) {
+        return action ? ui_navigation_apply(app, layout, action, false, false) : (byte) UI_INPUT_RESULT_CAPTURED;
+    }
+
+    UIInput* const input = (UIInput *) ui_element_get(layout, interaction->editing);
+    const bool is_text = !action
+        || base == ' '
+        || (base == INPUT_TEXT_ENTER && input->core.type == UI_ELEMENT_TYPE_TEXTAREA);
+
+    if (!is_text) {
+        return ui_navigation_apply(
+            app, layout, action,
+            (code & INPUT_TEXT_MOD_SHIFT) != 0,
+            (code & INPUT_TEXT_MOD_CTRL) != 0
+        );
+    }
+
+    byte result = UI_INPUT_RESULT_CAPTURED;
+    if (!ui_element_is_visible(layout, &input->core)) {
+        ui_input_set_editing(layout, 0);
+        result |= UI_INPUT_RESULT_CHANGED;
+
+        return result;
+    }
+
+    // Only the owner needs to know about text changes (e.g. search field of a select)
+    UICore* const owner = input->owner ? ui_element_get(layout, input->owner) : NULL;
+
     char before[128];
     const char* const text = ui_input_get_text(layout, input);
     const bool track_text = owner && input->content_length <= (int32) sizeof(before);
@@ -2822,38 +2956,11 @@ byte ui_input_text(void* app, UILayout* const layout, const uint32* const codes,
 // Navigation input (device independent, e.g. hotkeys of a controller or keyboard)
 ////////////////////////////////////////////////////////////////
 
-enum UINavigation : byte {
-    UI_NAVIGATION_NONE,
-
-    // Next/previous focusable element, also starts the navigation if nothing has the focus
-    UI_NAVIGATION_NEXT,
-    UI_NAVIGATION_PREV,
-
-    UI_NAVIGATION_UP,
-    UI_NAVIGATION_DOWN,
-    UI_NAVIGATION_LEFT,
-    UI_NAVIGATION_RIGHT,
-
-    // e.g. click a button, open a select, submit an input
-    UI_NAVIGATION_CONFIRM,
-
-    // e.g. close the popup, stop editing, remove the focus
-    UI_NAVIGATION_CANCEL,
-
-    UI_NAVIGATION_CURSOR_MOVEMENT1,
-    UI_NAVIGATION_POINTER_PRIMARY_UI,
-    UI_NAVIGATION_POINTER_SECONDARY_UI,
-    UI_NAVIGATION_SCROLL_UP_UI,
-    UI_NAVIGATION_SCROLL_DOWN_UI,
-
-    UI_NAVIGATION_SIZE
-};
-
 /**
- * Device independent focus navigation (e.g. controller: shoulder buttons, d-pad, cross/circle)
+ * Device independent ui action (e.g. controller: shoulder buttons, d-pad, cross/circle)
  *
- * The application maps its (user defined) hotkeys to navigation actions.
- * Keyboard text editing still uses ui_input_text() (caret movement, selection, typing):
+ * The application maps its (user defined) hotkeys to ui actions.
+ * Text (typing, clipboard, ...) still comes from ui_input_text():
  * while a text element is edited the keyboard keys create text codes and don't trigger hotkeys (HOTKEY_CONTEXT_TYPING)
  *
  * @return UIInputResult flags (CAPTURED = the ui used the action)
@@ -2864,52 +2971,7 @@ byte ui_input_navigate(void* app, UILayout* const layout, UINavigation navigatio
     PROFILE_DEBUG(PROFILE_UI_INPUT_NAVIGATE);
     UIInteractionDirtyScope interaction_scope(layout);
 
-    switch (navigation) {
-        case UI_NAVIGATION_NEXT:
-        case UI_NAVIGATION_PREV: {
-            ui_focus_move(layout, navigation == UI_NAVIGATION_NEXT ? 1 : -1);
-
-            return (byte) (UI_INPUT_RESULT_CAPTURED | UI_INPUT_RESULT_CHANGED);
-        }
-        case UI_NAVIGATION_CANCEL: {
-            // Nothing focused but a popup is open (e.g. opened with the pointer)
-            if (!ui_input_has_keyboard_focus(layout)) {
-                if (!layout->interaction.popup) {
-                    return UI_INPUT_RESULT_NONE;
-                }
-
-                ui_popup_close(layout);
-
-                return (byte) (UI_INPUT_RESULT_CAPTURED | UI_INPUT_RESULT_CHANGED);
-            }
-
-            return ui_input_code(app, layout, INPUT_TEXT_ESCAPE);
-        }
-        case UI_NAVIGATION_CONFIRM: {
-            // Enter in a textarea is a new line, not a confirmation
-            if (layout->interaction.editing
-                && ui_element_get(layout, layout->interaction.editing)->type == UI_ELEMENT_TYPE_TEXTAREA
-            ) {
-                return UI_INPUT_RESULT_CAPTURED;
-            }
-
-            return ui_input_code(app, layout, INPUT_TEXT_ENTER);
-        }
-        case UI_NAVIGATION_UP: {
-            return ui_input_code(app, layout, INPUT_TEXT_UP);
-        }
-        case UI_NAVIGATION_DOWN: {
-            return ui_input_code(app, layout, INPUT_TEXT_DOWN);
-        }
-        case UI_NAVIGATION_LEFT: {
-            return ui_input_code(app, layout, INPUT_TEXT_LEFT);
-        }
-        case UI_NAVIGATION_RIGHT: {
-            return ui_input_code(app, layout, INPUT_TEXT_RIGHT);
-        }
-        default:
-            return UI_INPUT_RESULT_NONE;
-    }
+    return ui_navigation_apply(app, layout, navigation, false, false);
 }
 
 /**
@@ -3058,6 +3120,39 @@ byte ui_input(
     *pointer_position = position;
 
     return ui_input_result;
+}
+
+/**
+ * Text + focus actions of all inputs (keyboard, controller, ...)
+ *
+ * The text is only filled while a text element is edited (the keyboard keys don't trigger hotkeys then).
+ * The focus actions come from the hotkeys of navigation_to_hotkey (UI_NAVIGATION_NEXT ... UI_NAVIGATION_CANCEL),
+ * 0 = the action has no hotkey.
+ *
+ * @param uint16* navigation_to_hotkey Hotkey per UINavigation
+ *
+ * @return void
+ */
+void ui_input_navigation(
+    Input* const states, int32 state_count,
+    const uint16* const navigation_to_hotkey,
+    void* const app,
+    UILayout* const ui_layout
+) NO_EXCEPT
+{
+    for (int32 i = 0; i < state_count; ++i) {
+        const Input* const input_state = &states[i];
+
+        ui_input_text(app, ui_layout, input_state->state.text, input_state->state.text_count);
+
+        for (int32 navigation = UI_NAVIGATION_NEXT; navigation <= UI_NAVIGATION_CANCEL; ++navigation) {
+            if (navigation_to_hotkey[navigation]
+                && hotkey_is_active(input_state->state.active_hotkeys, navigation_to_hotkey[navigation])
+            ) {
+                ui_input_navigate(app, ui_layout, (UINavigation) navigation);
+            }
+        }
+    }
 }
 
 #endif

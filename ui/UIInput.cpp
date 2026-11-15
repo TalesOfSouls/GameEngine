@@ -16,6 +16,7 @@
 #include "UIScrollbar.h"
 #include "UIClip.h"
 #include "UIInput.h"
+#include "UINavigation.h"
 
 #define UI_INPUT_CARET_WIDTH 1.0f
 
@@ -701,6 +702,84 @@ bool ui_input_select_at(UILayout* const layout, UIInput* const input, f32 x, f32
 }
 
 /**
+ * Moves the caret of a text input (keyboard arrows/home/end, any device through the ui navigation)
+ *
+ *      left/right:  previous/next character, ctrl = word wise
+ *      up/down:     previous/next line of a textarea
+ *      first/last:  start/end of the line of a textarea, otherwise (or ctrl) start/end of the text
+ *      shift:       extends the selection, otherwise the selection collapses
+ *
+ * @return true if the caret or selection changed
+ */
+inline
+bool ui_input_caret_move(UILayout* const layout, UIInput* const input, UINavigation direction, bool shift, bool ctrl) NO_EXCEPT
+{
+    char* const text = ui_input_get_text(layout, input);
+    const int32 length = ui_input_text_length(layout, input);
+    const bool multiline = input->core.type == UI_ELEMENT_TYPE_TEXTAREA;
+
+    const int32 old_caret = input->caret;
+    const int32 old_anchor = input->selection_anchor;
+
+    int32 sel_start, sel_end;
+    ui_input_selection(input, &sel_start, &sel_end);
+    const bool has_selection = sel_start != sel_end;
+
+    switch (direction) {
+        case UI_NAVIGATION_LEFT: {
+            if (has_selection && !shift) {
+                input->caret = sel_start;
+            } else {
+                input->caret = ctrl
+                    ? ui_text_word_prev(text, input->caret)
+                    : ui_utf8_prev(text, input->caret);
+            }
+        } break;
+        case UI_NAVIGATION_RIGHT: {
+            if (has_selection && !shift) {
+                input->caret = sel_end;
+            } else {
+                input->caret = ctrl
+                    ? ui_text_word_next(text, input->caret, length)
+                    : ui_utf8_next(text, input->caret, length);
+            }
+        } break;
+        case UI_NAVIGATION_FIRST: {
+            input->caret = multiline && !ctrl
+                ? ui_text_line_start(text, input->caret)
+                : 0;
+        } break;
+        case UI_NAVIGATION_LAST: {
+            input->caret = multiline && !ctrl
+                ? ui_text_line_end(text, input->caret, length)
+                : length;
+        } break;
+        case UI_NAVIGATION_UP:
+        case UI_NAVIGATION_DOWN: {
+            if (multiline) {
+                input->caret = ui_text_caret_vertical(text, input->caret, length, direction == UI_NAVIGATION_UP);
+            }
+        } break;
+        default:
+            return false;
+    }
+
+    if (!shift) {
+        input->selection_anchor = input->caret;
+    }
+
+    if (old_caret == input->caret && old_anchor == input->selection_anchor) {
+        return false;
+    }
+
+    input->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
+    layout->dirty |= UI_LAYOUT_DIRTY;
+    ui_input_scroll_to_caret(layout, input);
+
+    return true;
+}
+
+/**
  * Applies one text input code (unicode codepoint or InputTextControl incl. modifier bits) to the input
  *
  *      shift + navigation = extend the selection
@@ -725,13 +804,6 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
     const int32 old_caret = input->caret;
     const int32 old_anchor = input->selection_anchor;
     bool text_changed = false;
-
-    // Navigation keys collapse the selection unless shift is pressed
-    bool is_navigation = false;
-
-    int32 sel_start, sel_end;
-    ui_input_selection(input, &sel_start, &sel_end);
-    const bool has_selection = sel_start != sel_end;
 
     switch (code) {
         case INPUT_TEXT_BACKSPACE: {
@@ -762,45 +834,13 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
                 text_changed = true;
             }
         } break;
-        case INPUT_TEXT_LEFT: {
-            is_navigation = true;
-            if (has_selection && !shift) {
-                input->caret = sel_start;
-            } else {
-                input->caret = ctrl
-                    ? ui_text_word_prev(text, input->caret)
-                    : ui_utf8_prev(text, input->caret);
-            }
-        } break;
-        case INPUT_TEXT_RIGHT: {
-            is_navigation = true;
-            if (has_selection && !shift) {
-                input->caret = sel_end;
-            } else {
-                input->caret = ctrl
-                    ? ui_text_word_next(text, input->caret, length)
-                    : ui_utf8_next(text, input->caret, length);
-            }
-        } break;
-        case INPUT_TEXT_HOME: {
-            is_navigation = true;
-            input->caret = multiline && !ctrl
-                ? ui_text_line_start(text, input->caret)
-                : 0;
-        } break;
-        case INPUT_TEXT_END: {
-            is_navigation = true;
-            input->caret = multiline && !ctrl
-                ? ui_text_line_end(text, input->caret, length)
-                : length;
-        } break;
-        case INPUT_TEXT_UP:
-        case INPUT_TEXT_DOWN: {
-            is_navigation = true;
-            if (multiline) {
-                input->caret = ui_text_caret_vertical(text, input->caret, length, code == INPUT_TEXT_UP);
-            }
-        } break;
+        // Caret movement (the length doesn't change)
+        case INPUT_TEXT_LEFT: return ui_input_caret_move(layout, input, UI_NAVIGATION_LEFT, shift, ctrl);
+        case INPUT_TEXT_RIGHT: return ui_input_caret_move(layout, input, UI_NAVIGATION_RIGHT, shift, ctrl);
+        case INPUT_TEXT_HOME: return ui_input_caret_move(layout, input, UI_NAVIGATION_FIRST, shift, ctrl);
+        case INPUT_TEXT_END: return ui_input_caret_move(layout, input, UI_NAVIGATION_LAST, shift, ctrl);
+        case INPUT_TEXT_UP: return ui_input_caret_move(layout, input, UI_NAVIGATION_UP, shift, ctrl);
+        case INPUT_TEXT_DOWN: return ui_input_caret_move(layout, input, UI_NAVIGATION_DOWN, shift, ctrl);
         case INPUT_TEXT_SELECT_ALL: {
             input->selection_anchor = 0;
             input->caret = length;
@@ -856,10 +896,6 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
 
     // Must happen before the early return and before the actions, both may read the text
     ui_string_length_set(layout, input->content, length);
-
-    if (is_navigation && !shift) {
-        input->selection_anchor = input->caret;
-    }
 
     if (!text_changed && old_caret == input->caret && old_anchor == input->selection_anchor) {
         return false;
