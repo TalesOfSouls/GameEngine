@@ -49,20 +49,19 @@ enum UIState : byte {
 };
 
 enum UIElementChangeType : byte {
-    // If an element got larger we can update it VERY efficiently
-    UI_ELEMENT_CHANGE_DIM_LARGER = 1 << 0,
+    UI_ELEMENT_CHANGE_NONE = 0,
 
-    // dimensions got smaller or one axis got smaller and only one got bigger
-    UI_ELEMENT_CHANGE_DIM_OTHER = 1 << 1,
+    // Dimensions changed
+    UI_ELEMENT_CHANGE_DIM_OTHER = 1 << 0,
 
-    UI_ELEMENT_CHANGE_POS = 1 << 2,
+    UI_ELEMENT_CHANGE_POS = 1 << 1,
 
     // Z-axis changed
-    UI_ELEMENT_CHANGE_ORDER = 1 << 3,
+    UI_ELEMENT_CHANGE_ORDER = 1 << 2,
 
     // This is the most complex change since it also results in different vertex counts
     // We now have to change the entire vertex cache/index cache after this element as well
-    UI_ELEMENT_CHANGE_CONTENT = 1 << 4,
+    UI_ELEMENT_CHANGE_CONTENT = 1 << 3,
 };
 
 /**
@@ -79,8 +78,6 @@ enum UIElementChangeType : byte {
  *
  * All links are byte offsets into ui_element_buffer (no pointers) -> the buffer can be saved/loaded/copied as is
  * Offset 0 is ALWAYS the root element. Since nothing can link to the root, 0 is also used as "no element"
- *
- * 96 bytes
  */
 struct UICore {
     UIElementType type;
@@ -94,7 +91,7 @@ struct UICore {
     // UIElementChangeType
     byte change_type;
 
-    // Explicit padding, must stay 0: the change detection hashes the raw bytes of the element
+    // Explicit padding, for optimized 8 byte hashing algorithm
     byte _reserved[3];
 
     // 1-indexed, 0 = no function defined
