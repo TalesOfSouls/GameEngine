@@ -56,7 +56,7 @@ UICore* ui_root_create(UILayout* layout, f32 width, f32 height) NO_EXCEPT
 
     UIPanel* const element = (UIPanel *) memory_get(&layout->ui_element_buffer, sizeof(UIPanel), alignof(UIPanel));
     ASSERT_TRUE((byte *) element == layout->ui_element_buffer.memory);
-    MEMORY_ELEMENT_ZERO(element);
+    ZERO_PTR(element);
 
     element->core.type = UI_ELEMENT_TYPE_VIEW_PANEL;
     element->core.dimension.align_anchor = UI_ANCHOR_ALIGN_TOP_LEFT;

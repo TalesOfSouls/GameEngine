@@ -34,10 +34,11 @@ uint32 language_hash(const char* key) NO_EXCEPT
 }
 
 // Slot of a key (NULL if the key doesn't exist)
-FORCE_INLINE
+static inline
 const LanguageSlot* language_slot_find(const Language* const lang, const char* const key) NO_EXCEPT
 {
     if (!lang || !lang->data || !key) {
+        ASSERT_TRUE(false);
         return NULL;
     }
 
@@ -85,7 +86,11 @@ SimpleString<const char> language_get_string(const Language* const lang, const c
         return empty;
     }
 
-    SimpleString<const char> str = { slot->value_length, slot->value_length, (const char *) (lang->data + slot->value) };
+    SimpleString<const char> str = {
+        slot->value_length,
+        slot->value_length,
+        (const char *) (lang->data + slot->value)
+    };
 
     return str;
 }

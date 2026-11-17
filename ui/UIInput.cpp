@@ -69,20 +69,6 @@ char* ui_input_get_text(const UILayout* const layout, const UIInput* const input
     return (char *) (layout->ui_element_buffer.memory + input->content);
 }
 
-// Length of the text in bytes (the length is stored with the text -> no strlen)
-FORCE_INLINE
-int32 ui_input_text_length(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
-{
-    return ui_string_length(layout, input->content);
-}
-
-// Text incl. its length
-FORCE_INLINE
-SimpleString<const char> ui_input_string(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
-{
-    return ui_string_get(layout, input->content);
-}
-
 /**
  * Sets the text, the text is cut if it is longer than the reserved memory
  * The caret is placed at the end
@@ -113,12 +99,14 @@ void ui_input_set_text(UILayout* const layout, UIInput* const input, const char*
     layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
+// @performance Should be replaced with the function above
 FORCE_INLINE
 void ui_input_set_text(UILayout* const layout, UIInput* const input, const char* const text) NO_EXCEPT
 {
     ui_input_set_text(layout, input, text, text ? (int32) strlen(text) : 0);
 }
 
+// @performance Shouldn't use c strings
 inline
 void ui_input_set_placeholder(UILayout* const layout, UIInput* const input, const char* const text) NO_EXCEPT
 {
@@ -222,14 +210,14 @@ int32 ui_text_caret_vertical(const char* const text, int32 caret, int32 length, 
 // Selection
 ////////////////////////////////////////////////////////////////
 
-FORCE_INLINE
+static FORCE_INLINE
 bool ui_input_has_selection(const UIInput* const input) NO_EXCEPT
 {
     return input->selection_anchor != input->caret;
 }
 
 // Selected byte range [start, end)
-FORCE_INLINE
+static FORCE_INLINE
 void ui_input_selection(const UIInput* const input, int32* const start, int32* const end) NO_EXCEPT
 {
     *start = min_branched(input->selection_anchor, input->caret);
@@ -401,7 +389,13 @@ int32 ui_input_insert(
     const int32 space = input->content_length - 1 - *length;
 
     char filtered[UI_INPUT_PASTE_MAX];
-    const int32 bytes = ui_input_filter(input, insert, insert_length, filtered, min_branched(space, (int32) sizeof(filtered)));
+    const int32 bytes = ui_input_filter(
+        input,
+        insert,
+        insert_length,
+        filtered,
+        min_branched(space, (int32) sizeof(filtered))
+    );
     if (bytes <= 0) {
         return 0;
     }
@@ -469,6 +463,7 @@ f32 ui_input_content_height(const UILayout* const layout, const UIInput* const i
     const char* const text = ui_input_get_text(layout, input);
 
     int32 lines = 1;
+    // @performance surely we could apply some bit tricks here to check multiple bytes
     for (const char* c = text; *c; ++c) {
         lines += *c == '\n';
     }
@@ -494,7 +489,12 @@ bool ui_input_scroll_info(const UILayout* const layout, const UIInput* const inp
         return false;
     }
 
-    info->track = {dim->pos.x + dim->dim.x - UI_SCROLLBAR_SIZE - 1.0f, dim->pos.y - 1.0f, UI_SCROLLBAR_SIZE, dim->dim.y - 2.0f};
+    info->track = {
+        dim->pos.x + dim->dim.x - UI_SCROLLBAR_SIZE - 1.0f,
+        dim->pos.y - 1.0f,
+        UI_SCROLLBAR_SIZE,
+        dim->dim.y - 2.0f
+    };
     info->view = dim->dim.y;
     info->content = content;
     info->scroll = input->scroll.y;
@@ -510,7 +510,11 @@ bool ui_input_scroll_set(UILayout* const layout, UIInput* const input, UIScrollA
         : &input->scroll.x;
 
     if (axis == UI_SCROLL_AXIS_Y) {
-        scroll = ui_scroll_clamp(scroll, ui_input_content_height(layout, input), input->core.dimension.dim.y);
+        scroll = ui_scroll_clamp(
+            scroll,
+            ui_input_content_height(layout, input),
+            input->core.dimension.dim.y
+        );
     } else {
         scroll = max_branched(scroll, 0.0f);
     }
@@ -544,6 +548,7 @@ void ui_input_scroll_to_caret(UILayout* const layout, UIInput* const input) NO_E
         const f32 line_height = ui_input_line_height(layout, input);
 
         int32 line = 0;
+        // @performance bit trick?
         for (int32 i = 0; i < input->caret; ++i) {
             line += text[i] == '\n';
         }
@@ -560,8 +565,8 @@ void ui_input_scroll_to_caret(UILayout* const layout, UIInput* const input) NO_E
 
         ui_input_scroll_set(layout, input, UI_SCROLL_AXIS_Y, scroll);
     } else {
-        const f32 caret_x = ui_text_width(layout->font, text, input->caret, input->font.size);
-        const f32 text_width = ui_text_width(layout->font, text, ui_input_text_length(layout, input), input->font.size);
+        const f32 caret_x = ui_text_range_width(layout->font, text, 0, input->caret, input->font.size);
+        const f32 text_width = ui_text_range_width(layout->font, text, 0, ui_string_length(layout, input->content), input->font.size);
         const f32 view = dim->dim.x - 2.0f * UI_DEFAULT_TEXT_PADDING - UI_INPUT_CARET_WIDTH;
 
         f32 scroll = input->scroll.x;
@@ -590,7 +595,7 @@ inline
 int32 ui_input_caret_at(const UILayout* const layout, const UIInput* const input, f32 x, f32 y) NO_EXCEPT
 {
     const char* const text = ui_input_get_text(layout, input);
-    const int32 length = ui_input_text_length(layout, input);
+    const int32 length = ui_string_length(layout, input->content);
     const UIAttributeDimension* const dim = &input->core.dimension;
 
     // Line under the pointer (textarea only)
@@ -636,7 +641,7 @@ inline
 void ui_input_select_word(const UILayout* const layout, UIInput* const input, int32 pos) NO_EXCEPT
 {
     const char* const text = ui_input_get_text(layout, input);
-    const int32 length = ui_input_text_length(layout, input);
+    const int32 length = ui_string_length(layout, input->content);
 
     int32 start = pos;
     int32 end = pos;
@@ -657,7 +662,7 @@ inline
 void ui_input_select_all(const UILayout* const layout, UIInput* const input) NO_EXCEPT
 {
     input->selection_anchor = 0;
-    input->caret = ui_input_text_length(layout, input);
+    input->caret = ui_string_length(layout, input->content);
 }
 
 /**
@@ -715,7 +720,7 @@ inline
 bool ui_input_caret_move(UILayout* const layout, UIInput* const input, UINavigation direction, bool shift, bool ctrl) NO_EXCEPT
 {
     char* const text = ui_input_get_text(layout, input);
-    const int32 length = ui_input_text_length(layout, input);
+    const int32 length = ui_string_length(layout, input->content);
     const bool multiline = input->core.type == UI_ELEMENT_TYPE_TEXTAREA;
 
     const int32 old_caret = input->caret;
@@ -794,7 +799,7 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
     char* const text = ui_input_get_text(layout, input);
 
     // Every change below must keep the length up to date, it is stored at the end
-    int32 length = ui_input_text_length(layout, input);
+    int32 length = ui_string_length(layout, input->content);
     const bool multiline = input->core.type == UI_ELEMENT_TYPE_TEXTAREA;
 
     const bool shift = (code & INPUT_TEXT_MOD_SHIFT) != 0;
@@ -835,12 +840,24 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
             }
         } break;
         // Caret movement (the length doesn't change)
-        case INPUT_TEXT_LEFT: return ui_input_caret_move(layout, input, UI_NAVIGATION_LEFT, shift, ctrl);
-        case INPUT_TEXT_RIGHT: return ui_input_caret_move(layout, input, UI_NAVIGATION_RIGHT, shift, ctrl);
-        case INPUT_TEXT_HOME: return ui_input_caret_move(layout, input, UI_NAVIGATION_FIRST, shift, ctrl);
-        case INPUT_TEXT_END: return ui_input_caret_move(layout, input, UI_NAVIGATION_LAST, shift, ctrl);
-        case INPUT_TEXT_UP: return ui_input_caret_move(layout, input, UI_NAVIGATION_UP, shift, ctrl);
-        case INPUT_TEXT_DOWN: return ui_input_caret_move(layout, input, UI_NAVIGATION_DOWN, shift, ctrl);
+        case INPUT_TEXT_LEFT: {
+            return ui_input_caret_move(layout, input, UI_NAVIGATION_LEFT, shift, ctrl);
+        }
+        case INPUT_TEXT_RIGHT: {
+            return ui_input_caret_move(layout, input, UI_NAVIGATION_RIGHT, shift, ctrl);
+        }
+        case INPUT_TEXT_HOME: {
+            return ui_input_caret_move(layout, input, UI_NAVIGATION_FIRST, shift, ctrl);
+        }
+        case INPUT_TEXT_END: {
+            return ui_input_caret_move(layout, input, UI_NAVIGATION_LAST, shift, ctrl);
+        }
+        case INPUT_TEXT_UP: {
+            return ui_input_caret_move(layout, input, UI_NAVIGATION_UP, shift, ctrl);
+        }
+        case INPUT_TEXT_DOWN: {
+            return ui_input_caret_move(layout, input, UI_NAVIGATION_DOWN, shift, ctrl);
+        }
         case INPUT_TEXT_SELECT_ALL: {
             input->selection_anchor = 0;
             input->caret = length;
@@ -890,7 +907,8 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
 
             // Replaces the selection (the selection is also deleted if the input is full)
             const int32 old_length = length;
-            text_changed = ui_input_insert(input, text, &length, filtered, filtered_length) > 0 || length != old_length;
+            text_changed = ui_input_insert(input, text, &length, filtered, filtered_length) > 0
+                || length != old_length;
         }
     }
 
@@ -935,7 +953,9 @@ void ui_input_cache(
     const bool is_editing = (input->core.state & UI_STATE_FOCUS) != 0;
     ui_border_solid_vertices(
         rect,
-        (is_editing || (input->core.state & UI_STATE_HOVER)) ? input->border_color_focus : input->border_color,
+        (is_editing || (input->core.state & UI_STATE_HOVER))
+            ? input->border_color_focus
+            : input->border_color,
         1,
         vertices, indices, *zindex
     );
@@ -973,9 +993,10 @@ void ui_input_cache(
     if (is_editing && ui_input_has_selection(input)) {
         int32 start, end;
         ui_input_selection(input, &start, &end);
-        const int32 length = ui_input_text_length(layout, input);
+        const int32 length = ui_string_length(layout, input->content);
 
         int32 line = 0;
+        // @performance bit trick
         for (int32 i = 0; i < start; ++i) {
             line += text[i] == '\n';
         }
@@ -983,8 +1004,8 @@ void ui_input_cache(
         for (int32 pos = start; pos < end; ++line) {
             const int32 line_end = min_branched(ui_text_line_end(text, pos, length), end);
 
-            const f32 x0 = text_x + ui_text_width(font, text, pos, input->font.size);
-            f32 x1 = text_x + ui_text_width(font, text, line_end, input->font.size);
+            const f32 x0 = text_x + ui_text_range_width(font, text, 0, pos, input->font.size);
+            f32 x1 = text_x + ui_text_range_width(font, text, 0, line_end, input->font.size);
 
             // A selected line break is shown as a small box (like most editors)
             if (line_end < end) {
@@ -1015,11 +1036,12 @@ void ui_input_cache(
     // Caret
     if (is_editing) {
         int32 line = 0;
+        // @performance bit trick
         for (int32 i = 0; i < input->caret; ++i) {
             line += text[i] == '\n';
         }
 
-        const f32 caret_x = text_x + ui_text_width(font, text, input->caret, input->font.size);
+        const f32 caret_x = text_x + ui_text_range_width(font, text, 0, input->caret, input->font.size);
         const f32 caret_y = text_y - (f32) line * line_height;
 
         *zindex = camera_step_closer(gpu_api_type, *zindex);

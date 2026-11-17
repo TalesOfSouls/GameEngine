@@ -161,11 +161,21 @@ bool ui_table_cell_copy(
  * @return true if the text changed
  */
 inline
-bool ui_table_set_cell(UILayout* const layout, UITable* const table, int32 row, int32 column, const char* const text) NO_EXCEPT
+bool ui_table_set_cell(
+    UILayout* const layout,
+    UITable* const table,
+    int32 row,
+    int32 column,
+    const char* const text
+) NO_EXCEPT
 {
-    if (!table->cell_capacity || row < 0 || row >= table->row_capacity || column < 0 || column >= table->column_count) {
-        return false;
-    }
+    ASSERT_TRUE(
+        table->cell_capacity
+            && row >= 0
+            && row < table->row_capacity
+            && column >= 0
+            && column < table->column_count
+    );
 
     if (!ui_table_cell_copy(layout, table, ui_table_cell_offset(layout, table, row, column), text)) {
         return false;
@@ -252,8 +262,10 @@ int32* ui_table_row_values(UILayout* const layout, const UITable* const table) N
 inline
 void ui_table_set_row_count(UILayout* const layout, UITable* const table, int32 count) NO_EXCEPT
 {
+    ASSERT_TRUE(table->cell_capacity);
+
     count = OMS_CLAMP(count, 0, (int32) table->row_capacity);
-    if (!table->cell_capacity || count == table->row_count) {
+    if (count == table->row_count) {
         return;
     }
 
@@ -453,7 +465,9 @@ bool ui_table_hover(UILayout* const layout, UITable* const table, int32 row) NO_
 inline
 bool ui_table_select(UILayout* const layout, UITable* const table, int32 row) NO_EXCEPT
 {
-    if (row < -1 || row >= table->row_count || row == table->selected) {
+    ASSERT_TRUE(row >= 0 && row < table->row_count);
+
+    if (row == table->selected) {
         return false;
     }
 

@@ -40,7 +40,9 @@
 #endif
 
 #define MEMORY_OFFSET(high, low) (size_t) ((uintptr_t) (high) - (uintptr_t) (low))
-#define MEMORY_ELEMENT_ZERO(ptr) memset(ptr, 0, sizeof(*ptr))
+
+#define ZERO_PTR(ptr) memset(ptr, 0, sizeof(*ptr))
+#define ZERO_STRUCT(str) memset(&str, 0, sizeof(str))
 
 template <typename T, size_t N>
 CONSTEXPR int32_t array_count_helper(const T (&)[N]) {

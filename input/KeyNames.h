@@ -20,7 +20,6 @@
 #include "ControllerInput.h"
 
 // The names are stored with their length (known at compile time) -> no strlen when they are used
-// KN = key name, only defined for the tables below
 #define KN(name) simple_string_literal(name)
 #define KN_NONE simple_string_empty_init<char>()
 
@@ -113,27 +112,22 @@ SimpleString<char> input_key_name_string(int32 key) NO_EXCEPT
     if (code & INPUT_CONTROLLER_PREFIX) {
         const uint32 button = code & ~INPUT_CONTROLLER_PREFIX;
 
-        return button < (uint32) CONTROLLER_BUTTON_SIZE ? _input_controller_names[button] : simple_string_empty_init<char>();
+        return button < (uint32) CONTROLLER_BUTTON_SIZE
+            ? _input_controller_names[button]
+            : simple_string_empty_init<char>();
     }
 
     if (code & INPUT_KEYBOARD_PREFIX) {
         const uint32 scan_code = code & 0xFF;
 
-        return scan_code < (uint32) ARRAY_COUNT(_input_keyboard_names) ? _input_keyboard_names[scan_code] : simple_string_empty_init<char>();
+        return scan_code < (uint32) ARRAY_COUNT(_input_keyboard_names)
+            ? _input_keyboard_names[scan_code]
+            : simple_string_empty_init<char>();
     }
 
-    return code < (uint32) ARRAY_COUNT(_input_mouse_names) ? _input_mouse_names[code] : simple_string_empty_init<char>();
-}
-
-/**
- * Name of a single key (with device prefix, e.g. INPUT_KEYBOARD_PREFIX | KEY_SCAN_CODE_W)
- *
- * @return NULL for unknown keys
- */
-FORCE_INLINE
-const char* input_key_name(int32 key) NO_EXCEPT
-{
-    return input_key_name_string(key).str;
+    return code < (uint32) ARRAY_COUNT(_input_mouse_names)
+        ? _input_mouse_names[code]
+        : simple_string_empty_init<char>();
 }
 
 /**

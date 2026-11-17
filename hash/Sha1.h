@@ -152,7 +152,7 @@ void sha1_final(Sha1Context* const ctx, byte digest[20], int32 steps) NO_EXCEPT
 
     // WARNING: We are not doing this since no sensitive data should use sha1 anyways
     // Normally this would be done to reduce side channel attacks
-    // memset(ctx, 0, sizeof(*ctx));
+    // ZERO_PTR(ctx);
 }
 
 inline

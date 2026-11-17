@@ -19,10 +19,83 @@ UICore* ui_element_get(const UILayout* const layout, int32 offset) NO_EXCEPT
     return (UICore *) (layout->ui_element_buffer.memory + offset);
 }
 
+// Name with known length (faster, no length calculation), the name doesn't have to be \0 terminated
+static inline
+UICore* ui_element_get(const UILayout* const layout, const char* name, int32 length) NO_EXCEPT
+{
+    if (!layout->hash_map.buf.memory) {
+        return NULL;
+    }
+
+    const HashEntryStrT<int32>* entry = hashmap_entry_get(&layout->hash_map, name, length);
+    if (!entry) {
+        return NULL;
+    }
+
+    return (UICore *) (layout->ui_element_buffer.memory + entry->value);
+}
+
+FORCE_INLINE
+UICore* ui_element_get(const UILayout* const layout, const char* name) NO_EXCEPT
+{
+    return ui_element_get(layout, name, (int32) strlen(name));
+}
+
+/**
+ * Preferred version, the length is known (e.g. simple_string_literal<const char>("name") calculates it at compile time)
+ * The const char* version has to calculate the length on every call
+ */
+FORCE_INLINE
+UICore* ui_element_get(const UILayout* const layout, SimpleString<const char> str) NO_EXCEPT
+{
+    return ui_element_get(layout, str.str, str.length);
+}
+
+/**
+ * Element by name with a caller owned cached position of its offset (for elements that are needed every tick)
+ * The cache MUST be reset (= 0) if the layout is rebuilt (the offsets change)
+ *
+ * @param int32* cache 0 = not looked up yet, -1 = doesn't exist, > 0 = offset
+ *
+ * @return NULL if the element doesn't exist
+ */
+FORCE_INLINE
+UICore* ui_element_cached_get(const UILayout* const layout, int32* const cache, const char* name) NO_EXCEPT
+{
+    if (!*cache) {
+        const UICore* const element = ui_element_get(layout, name);
+        *cache = element
+            ? (int32) ((const byte *) element - layout->ui_element_buffer.memory)
+            : -1;
+    }
+
+    return *cache > 0 ? (UICore *) (layout->ui_element_buffer.memory + *cache) : NULL;
+}
+
 FORCE_INLINE
 int32 ui_element_offset(const UILayout* const layout, const void* const element) NO_EXCEPT
 {
     return (int32) ((uintptr_t) element - (uintptr_t) layout->ui_element_buffer.memory);
+}
+
+FORCE_INLINE
+int32 ui_element_offset(const UILayout* const layout, SimpleString<const char> name) NO_EXCEPT
+{
+    const UICore* const element = ui_element_get(layout, name.str, name.length);
+    return element ? ui_element_offset(layout, element) : 0;
+}
+
+FORCE_INLINE
+UICore* ui_element_cached_get(UILayout* const layout, int32* const cache, SimpleString<const char> str) NO_EXCEPT
+{
+    if (!*cache) {
+        const UICore* const element = ui_element_get(layout, str.str, str.length);
+        *cache = element
+            ? (int32) ((const byte *) element - layout->ui_element_buffer.memory)
+            : -1;
+    }
+
+    return *cache > 0 ? (UICore *) (layout->ui_element_buffer.memory + *cache) : NULL;
 }
 
 // Returns NULL for the root element
@@ -32,6 +105,38 @@ UICore* ui_element_parent(const UILayout* const layout, const UICore* const elem
     return element == layout->ui_root
         ? NULL
         : ui_element_get(layout, element->parent_offset);
+}
+
+/**
+ * Shows/hides an element (e.g. the map selection overlay)
+ *
+ * WARNING: Some UI elements need additional visibility handling (e.g. unset focus, change input mode)
+ *          In such situations you must implement your own visibility function
+ *
+ * @param UILayout* layout UI layout
+ * @param int32 offset Element offset
+ * @param bool visible Visibility
+ *
+ * @return void
+ */
+inline
+void ui_element_visibility(UILayout* const layout, int32 offset, bool visible) NO_EXCEPT
+{
+    ASSERT_TRUE(offset);
+
+    UICore* const core = ui_element_get(layout, offset);
+    if (((core->state & UI_STATE_HIDDEN) == 0) == visible) {
+        return;
+    }
+
+    if (visible) {
+        core->state &= ~UI_STATE_HIDDEN;
+    } else {
+        core->state |= UI_STATE_HIDDEN;
+    }
+
+    core->change_type |= UI_ELEMENT_CHANGE_CONTENT;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 inline
@@ -234,9 +339,7 @@ UICore* ui_element_alloc(
 bool ui_element_move_to_front(UILayout* const layout, UICore* const element) NO_EXCEPT
 {
     UICore* const parent = ui_element_parent(layout, element);
-    if (!parent) {
-        return false;
-    }
+    ASSERT_TRUE(parent);
 
     // Find the insert position = first sibling that must stay on top
     const int32 before = (element->flags & UI_ELEMENT_FLAG_ALWAYS_ON_TOP)
@@ -261,9 +364,7 @@ bool ui_element_move_to_front(UILayout* const layout, UICore* const element) NO_
  */
 UICore* ui_parent_element_by_type(const UILayout* const layout, const UICore* element, UIElementType type) NO_EXCEPT
 {
-    if (!element) {
-        return NULL;
-    }
+    ASSERT_TRUE(element);
 
     UICore* parent = ui_element_parent(layout, element);
     while (parent) {
@@ -282,9 +383,7 @@ UICore* ui_parent_element_by_type(const UILayout* const layout, const UICore* el
  */
 UICore* ui_parent_element_by_type(const UILayout* const layout, const UICore* element, uint32 type_flags) NO_EXCEPT
 {
-    if (!element) {
-        return NULL;
-    }
+    ASSERT_TRUE(element);
 
     UICore* parent = ui_element_parent(layout, element);
     while (parent) {

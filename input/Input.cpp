@@ -378,7 +378,7 @@ void input_frame_begin(Input* const input) NO_EXCEPT
         InputKey* const key = &state->active_keys[i];
 
         if (key->key_state & KEY_PRESS_TYPE_RELEASED) {
-            memset(key, 0, sizeof(*key));
+            ZERO_PTR(key);
         } else if (key->key_state & KEY_PRESS_TYPE_PRESSED) {
             key->key_state = KEY_PRESS_TYPE_HELD;
         }

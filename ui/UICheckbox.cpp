@@ -13,6 +13,7 @@
 #include "UILabel.cpp"
 #include "UICheckbox.h"
 
+// @question Consider to move to styles
 #define UI_CHECKBOX_BOX_SIZE 16.0f
 #define UI_CHECKBOX_LABEL_GAP 6.0f
 

@@ -1130,6 +1130,7 @@ int32 str_copy(char* __restrict dest, const char* __restrict src) NO_EXCEPT
     return (int32) (dest - start);
 }
 
+// WARNING: you have to make sure that src has at least length characters and dest can hold length characters
 template <typename C>
 inline
 int32 str_copy(C* __restrict dest, const C* __restrict src, int32 length) NO_EXCEPT

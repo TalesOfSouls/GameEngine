@@ -302,7 +302,7 @@ AuthSession* session_registry_create(
         }
     }
 
-    memset(session, 0, sizeof(*session));
+    ZERO_PTR(session);
 
     session->session_id = session_id;
     session->account_id = account_id;

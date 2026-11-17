@@ -18,7 +18,8 @@
     #include "../platform/linux/SystemInfo.cpp"
 #endif
 
-static inline void hardware_id_hex32(char* const out, uint32 value) NO_EXCEPT
+static inline
+void hardware_id_hex32(char* const out, uint32 value) NO_EXCEPT
 {
     static const char HEX[] = "0123456789ABCDEF";
 
@@ -36,12 +37,9 @@ static inline void hardware_id_hex32(char* const out, uint32 value) NO_EXCEPT
  * The same DMI string can be reported with different case by Windows and Linux,
  * so the hash input must be normalized.
  */
-static inline void hardware_id_normalize(char* const value) NO_EXCEPT
+static inline
+void hardware_id_normalize(char* const value) NO_EXCEPT
 {
-    if (!value) {
-        return;
-    }
-
     char* start = value;
     while (*start == ' ' || *start == '\t' || *start == '\r' || *start == '\n') {
         ++start;

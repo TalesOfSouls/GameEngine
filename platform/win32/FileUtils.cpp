@@ -158,9 +158,9 @@ int32 self_file_path(C* path) NO_EXCEPT
     static C spath[PATH_MAX_LENGTH];
     static int32 spath_length = 0;
 
-    if (spath_length == 0) {
+    if (!spath_length) {
         spath_length = (int32) GetModuleFileNameWrapper(NULL, spath, PATH_MAX_LENGTH);
-        if (spath_length == 0) {
+        if (!spath_length) {
             return 0;
         }
     }
@@ -178,9 +178,9 @@ int32 self_file_path(const C** path) NO_EXCEPT
     static C spath[PATH_MAX_LENGTH];
     static int32 spath_length = 0;
 
-    if (spath_length == 0) {
+    if (!spath_length) {
         spath_length = (int32) GetModuleFileNameWrapper(NULL, spath, PATH_MAX_LENGTH);
-        if (spath_length == 0) {
+        if (!spath_length) {
             return 0;
         }
     }
@@ -198,9 +198,9 @@ int32 self_directory_path(C* path) NO_EXCEPT
     static C spath[PATH_MAX_LENGTH];
     static int32 spath_length = 0;
 
-    if (spath_length == 0) {
+    if (!spath_length) {
         int32 length = self_file_path(spath);
-        if (length == 0) {
+        if (!length) {
             return 0;
         }
 
@@ -231,9 +231,9 @@ int32 self_directory_path(const C** path) NO_EXCEPT
     static C sdir[PATH_MAX_LENGTH];
     static int32 sdir_length = 0;
 
-    if (sdir_length == 0) {
+    if (!sdir_length) {
         int32 length = self_file_path(sdir);
-        if (length == 0) {
+        if (!length) {
             *path = sdir;
             return 0;
         }
@@ -253,6 +253,7 @@ int32 self_directory_path(const C** path) NO_EXCEPT
     return sdir_length;
 }
 
+// @performance Consider to return the new path length, we often need it afterwards
 template <typename C>
 static inline
 void relative_to_absolute(const C* __restrict rel, C* __restrict path) NO_EXCEPT

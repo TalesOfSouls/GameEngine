@@ -37,7 +37,7 @@
  *
  *      version 2
  *
- *      window test_window              <- "type [name]", the name can be used with ui_get_element()
+ *      window test_window              <- "type [name]", the name can be used with ui_element_get()
  *          style: window_default       <- styles of the theme, applied before the own properties
  *          anchor: top left
  *          pos: 512 256

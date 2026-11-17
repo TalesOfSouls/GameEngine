@@ -68,27 +68,22 @@ int32 ui_string_reserve(UILayout* const layout, CharType char_type, int32 capaci
     return ui_element_offset(layout, str + 1);
 }
 
-// Header of a text that was created with ui_string_reserve
-FORCE_INLINE
-SimpleStringInline<char>* ui_string_header(const UILayout* const layout, int32 offset) NO_EXCEPT
-{
-    ASSERT_TRUE(offset);
-
-    return simple_string_inline_from_str((char *) (layout->ui_element_buffer.memory + offset));
-}
-
 // Length in characters excl. \0 (0 if there is no text)
 FORCE_INLINE
 int32 ui_string_length(const UILayout* const layout, int32 offset) NO_EXCEPT
 {
-    return offset ? ui_string_header(layout, offset)->length : 0;
+    return offset
+        ? simple_string_inline_from_str((char *) (layout->ui_element_buffer.memory + offset))->length
+        : 0;
 }
 
 // Must be called by everyone who changes the characters of a text directly
 FORCE_INLINE
 void ui_string_length_set(const UILayout* const layout, int32 offset, int32 length) NO_EXCEPT
 {
-    SimpleStringInline<char>* const str = ui_string_header(layout, offset);
+    SimpleStringInline<char>* const str = simple_string_inline_from_str(
+        (char *) (layout->ui_element_buffer.memory + offset)
+    );
     ASSERT_TRUE(length >= 0 && length <= str->max_length);
 
     str->length = length;
@@ -98,12 +93,10 @@ void ui_string_length_set(const UILayout* const layout, int32 offset, int32 leng
 FORCE_INLINE
 SimpleString<const char> ui_string_get(const UILayout* const layout, int32 offset) NO_EXCEPT
 {
-    if (!offset) {
-        SimpleString<const char> empty = { 0, 0, "" };
-        return empty;
-    }
-
-    const SimpleString<const char> str = simple_string_view((const SimpleStringInline<char> *) ui_string_header(layout, offset));
+    ASSERT_TRUE(offset);
+    const SimpleString<const char> str = simple_string_view(
+        simple_string_inline_from_str((const char *) (layout->ui_element_buffer.memory + offset))
+    );
 
     // Somebody changed the characters without updating the length
     ASSERT_TRUE(str.str[str.length] == '\0');
@@ -371,10 +364,7 @@ static inline
 bool ui_label_set_text_fixed(UILayout* const layout, UILabel* const label, const char* const text) NO_EXCEPT
 {
     ASSERT_TRUE(label->char_type == CHAR_TYPE_CHAR);
-
-    if (!label->content) {
-        return false;
-    }
+    ASSERT_TRUE(label->content);
 
     bool changed;
     const int32 length = ui_text_copy_length(
@@ -518,8 +508,11 @@ void ui_label_cache(
     const char* const text = (const char *) (layout->ui_element_buffer.memory + label->content);
     const f32 scale = label->font.size / font->base.size;
 
-    int32 glyph_count;
-    const int16* const glyphs = text_to_glyphs(font, text, mem, &glyph_count);
+    // The byte length is an upper bound of the codepoint count (cheaper than utf8_strlen())
+    // @question Why am I doing this stupid stuff, isn't vertex_text_create already returning the dim?
+    const int32 byte_count = (int32) strlen(text);
+    int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
+    int32 glyph_count = text_to_glyphs(font, text, glyphs);
     const v2_f32 text_dim = text_calculate_dimensions(font, glyphs, glyph_count, scale);
 
     ui_dimension_calculate(layout, &label->core, text_dim);
@@ -579,8 +572,10 @@ v2_f32 ui_text_vertices(
 
     const f32 scale = size / font->base.size;
 
-    int32 glyph_count;
-    const int16* const glyphs = text_to_glyphs(font, text, mem, &glyph_count);
+    // @question Why am I doing this stupid stuff, isn't vertex_text_create already returning the dim?
+    const int32 byte_count = (int32) strlen(text);
+    int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
+    int32 glyph_count = text_to_glyphs(font, text, glyphs);
     const v2_f32 text_dim = text_calculate_dimensions(font, glyphs, glyph_count, scale);
 
     vertex_text_create(
@@ -641,20 +636,6 @@ f32 ui_text_range_width(
     }
 
     return width;
-}
-
-/**
- * Width of the LAST line of the first `length` bytes of an utf8 text (e.g. to position a caret)
- */
-FORCE_INLINE
-f32 ui_text_width(
-    const FontSystem* const font,
-    const char* const text, int32 length,
-    f32 size,
-    BufferMemory* const __restrict /* mem */ = NULL
-) NO_EXCEPT
-{
-    return ui_text_range_width(font, text, 0, length, size);
 }
 
 #endif

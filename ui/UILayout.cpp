@@ -30,87 +30,6 @@
 // Max. amount of named elements (if the hash map wasn't initialized by loading a binary layout)
 #define UI_LAYOUT_DEFAULT_ELEMENT_COUNT 512
 
-FORCE_INLINE
-UICore* ui_get_element(UILayout* const layout, int32 offset) NO_EXCEPT
-{
-    return (UICore *) (layout->ui_element_buffer.memory + offset);
-}
-
-FORCE_INLINE
-UICore* ui_get_element(UILayout* const layout, const char* name) NO_EXCEPT
-{
-    if (!layout->hash_map.buf.memory) {
-        return NULL;
-    }
-
-    const HashEntryStrT<int32>* entry = hashmap_entry_get(&layout->hash_map, name);
-    if (!entry) {
-        return NULL;
-    }
-
-    return (UICore *) (layout->ui_element_buffer.memory + entry->value);
-}
-
-/**
- * Element by name with a caller owned cached position of its offset (for elements that are needed every tick)
- * The cache MUST be reset (= 0) if the layout is rebuilt (the offsets change)
- *
- * @param int32* cache 0 = not looked up yet, -1 = doesn't exist, > 0 = offset
- *
- * @return NULL if the element doesn't exist
- */
-FORCE_INLINE
-UICore* ui_get_element_cached(UILayout* const layout, int32* const cache, const char* name) NO_EXCEPT
-{
-    if (!*cache) {
-        const UICore* const element = ui_get_element(layout, name);
-        *cache = element
-            ? (int32) ((const byte *) element - layout->ui_element_buffer.memory)
-            : -1;
-    }
-
-    return *cache > 0 ? (UICore *) (layout->ui_element_buffer.memory + *cache) : NULL;
-}
-
-// Name with known length (faster, no length calculation), the name doesn't have to be \0 terminated
-static inline
-UICore* ui_get_element(UILayout* const layout, const char* name, int32 length) NO_EXCEPT
-{
-    if (!layout->hash_map.buf.memory) {
-        return NULL;
-    }
-
-    const HashEntryStrT<int32>* entry = hashmap_entry_get(&layout->hash_map, name, length);
-    if (!entry) {
-        return NULL;
-    }
-
-    return (UICore *) (layout->ui_element_buffer.memory + entry->value);
-}
-
-/**
- * Preferred version, the length is known (e.g. simple_string_literal<const char>("name") calculates it at compile time)
- * The const char* version has to calculate the length on every call
- */
-FORCE_INLINE
-UICore* ui_get_element(UILayout* const layout, SimpleString<const char> str) NO_EXCEPT
-{
-    return ui_get_element(layout, str.str, str.length);
-}
-
-FORCE_INLINE
-UICore* ui_get_element_cached(UILayout* const layout, int32* const cache, SimpleString<const char> str) NO_EXCEPT
-{
-    if (!*cache) {
-        const UICore* const element = ui_get_element(layout, str.str, str.length);
-        *cache = element
-            ? (int32) ((const byte *) element - layout->ui_element_buffer.memory)
-            : -1;
-    }
-
-    return *cache > 0 ? (UICore *) (layout->ui_element_buffer.memory + *cache) : NULL;
-}
-
 /**
  * (Re-)initializes the hash map for element names in layout->data
  */
@@ -174,9 +93,7 @@ void ui_layout_name_element(UILayout* const layout, const char* name, int32 leng
 static inline
 UICore* ui_layout_find_first(const UILayout* const layout, UIElementType type) NO_EXCEPT
 {
-    if (!layout->ui_root) {
-        return NULL;
-    }
+    ASSERT_TRUE(layout->ui_root);
 
     int32 offset = layout->ui_root->next_offset;
     while (offset) {

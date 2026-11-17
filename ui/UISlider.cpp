@@ -60,6 +60,22 @@ bool ui_slider_set(UILayout* const layout, UISlider* const slider, f32 value) NO
 }
 
 /**
+ * Returns the value of a named slider
+ *
+ * @param UILayout* layout UI layout
+ * @param const char* name Element name
+ * @param f32 default_value Value if the slider doesn't exist
+ *
+ * @return f32
+ */
+static inline
+f32 ui_slider_get(UILayout* const layout, SimpleString<const char> name) NO_EXCEPT
+{
+    const UICore* const slider = ui_element_get(layout, name.str, name.length);
+    return ((const UISlider *) slider)->value;
+}
+
+/**
  * Sets the value from a pointer x position (ui coordinates)
  *
  * @return true if the value changed

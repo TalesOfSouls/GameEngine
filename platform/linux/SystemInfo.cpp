@@ -609,7 +609,7 @@ void hardware_id_get(HardwareId* const id, const SystemInfo* const info) NO_EXCE
         return;
     }
 
-    memset(id, 0, sizeof(*id));
+    ZERO_PTR(id);
 
     hardware_id_read_dmi("product_uuid", id->system_uuid, sizeof(id->system_uuid), true);
     hardware_id_read_dmi("product_serial", id->system_serial, sizeof(id->system_serial), true);

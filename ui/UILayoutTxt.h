@@ -19,7 +19,7 @@
  *      version 2
  *
  *      // Comment (only full line comments)
- *      window test_window              <- "type [name]", the name is used by ui_get_element()
+ *      window test_window              <- "type [name]", the name is used by ui_element_get()
  *          style: window_default       <- styles of the theme, applied before the own properties
  *          anchor: top left
  *          pos: 512 256

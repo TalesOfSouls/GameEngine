@@ -79,12 +79,12 @@ void ui_border_vertices(
             return;
         }
 
-        const f32 bw = (f32) border->width;
+        const f32 border_width = (f32) border->width;
         const v4_f32 rects[4] = {
-            {x, y, w, bw}, // top
-            {x, y - h + bw, w, bw}, // bottom
-            {x, y - bw, bw, h - 2.0f * bw}, // left
-            {x + w - bw, y - bw, bw, h - 2.0f * bw}, // right
+            {x, y, w, border_width}, // top
+            {x, y - h + border_width, w, border_width}, // bottom
+            {x, y - border_width, border_width, h - 2.0f * border_width}, // left
+            {x + w - border_width, y - border_width, border_width, h - 2.0f * border_width}, // right
         };
 
         for (int32 i = 0; i < 4; ++i) {
@@ -103,55 +103,55 @@ void ui_border_vertices(
         return;
     }
 
-    const uint8 (*s)[2] = border->size;
+    const uint8 (*sizes)[2] = border->size;
 
     // Corners keep their natural size
     ui_border_piece_vertices(border, UI_BORDER_TL,
         x, y,
-        s[UI_BORDER_TL][0], s[UI_BORDER_TL][1],
+        sizes[UI_BORDER_TL][0], sizes[UI_BORDER_TL][1],
         vertex_cache, index_cache, zindex
     );
 
     ui_border_piece_vertices(border, UI_BORDER_TR,
-        x + w - s[UI_BORDER_TR][0], y,
-        s[UI_BORDER_TR][0], s[UI_BORDER_TR][1],
+        x + w - sizes[UI_BORDER_TR][0], y,
+        sizes[UI_BORDER_TR][0], sizes[UI_BORDER_TR][1],
         vertex_cache, index_cache, zindex
     );
 
     ui_border_piece_vertices(border, UI_BORDER_BR,
-        x + w - s[UI_BORDER_BR][0], y - h + s[UI_BORDER_BR][1],
-        s[UI_BORDER_BR][0], s[UI_BORDER_BR][1],
+        x + w - sizes[UI_BORDER_BR][0], y - h + sizes[UI_BORDER_BR][1],
+        sizes[UI_BORDER_BR][0], sizes[UI_BORDER_BR][1],
         vertex_cache, index_cache, zindex
     );
 
     ui_border_piece_vertices(border, UI_BORDER_BL,
-        x, y - h + s[UI_BORDER_BL][1],
-        s[UI_BORDER_BL][0], s[UI_BORDER_BL][1],
+        x, y - h + sizes[UI_BORDER_BL][1],
+        sizes[UI_BORDER_BL][0], sizes[UI_BORDER_BL][1],
         vertex_cache, index_cache, zindex
     );
 
     // Edges are stretched between the corners
     ui_border_piece_vertices(border, UI_BORDER_T,
-        x + s[UI_BORDER_TL][0], y,
-        w - s[UI_BORDER_TL][0] - s[UI_BORDER_TR][0], s[UI_BORDER_T][1],
+        x + sizes[UI_BORDER_TL][0], y,
+        w - sizes[UI_BORDER_TL][0] - sizes[UI_BORDER_TR][0], sizes[UI_BORDER_T][1],
         vertex_cache, index_cache, zindex
     );
 
     ui_border_piece_vertices(border, UI_BORDER_B,
-        x + s[UI_BORDER_BL][0], y - h + s[UI_BORDER_B][1],
-        w - s[UI_BORDER_BL][0] - s[UI_BORDER_BR][0], s[UI_BORDER_B][1],
+        x + sizes[UI_BORDER_BL][0], y - h + sizes[UI_BORDER_B][1],
+        w - sizes[UI_BORDER_BL][0] - sizes[UI_BORDER_BR][0], sizes[UI_BORDER_B][1],
         vertex_cache, index_cache, zindex
     );
 
     ui_border_piece_vertices(border, UI_BORDER_L,
-        x, y - s[UI_BORDER_TL][1],
-        s[UI_BORDER_L][0], h - s[UI_BORDER_TL][1] - s[UI_BORDER_BL][1],
+        x, y - sizes[UI_BORDER_TL][1],
+        sizes[UI_BORDER_L][0], h - sizes[UI_BORDER_TL][1] - sizes[UI_BORDER_BL][1],
         vertex_cache, index_cache, zindex
     );
 
     ui_border_piece_vertices(border, UI_BORDER_R,
-        x + w - s[UI_BORDER_R][0], y - s[UI_BORDER_TR][1],
-        s[UI_BORDER_R][0], h - s[UI_BORDER_TR][1] - s[UI_BORDER_BR][1],
+        x + w - sizes[UI_BORDER_R][0], y - sizes[UI_BORDER_TR][1],
+        sizes[UI_BORDER_R][0], h - sizes[UI_BORDER_TR][1] - sizes[UI_BORDER_BR][1],
         vertex_cache, index_cache, zindex
     );
 }

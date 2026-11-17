@@ -109,7 +109,7 @@ bool cmd_theme_assets_load_sync(
 
             // The font system is a copy of the font + caches
             FontSystem* const font_system = assets->font_storage;
-            memset(font_system, 0, sizeof(*font_system));
+            ZERO_PTR(font_system);
             memcpy(&font_system->base, (const Font *) font_asset->self, sizeof(Font));
             font_system_newline_cache(font_system);
 

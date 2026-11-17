@@ -507,7 +507,7 @@ static void test_helper_wrapped_and_swap() {
     MEMSET_ZERO_32(&zero32);
     TEST_EQUALS(zero32, 0);
     HelperMemberTest member_zero = {{0}, -1, {{0}}};
-    MEMORY_ELEMENT_ZERO(&member_zero);
+    ZERO_PTR(&member_zero);
     TEST_EQUALS(member_zero.value, 0);
     TEST_EQUALS(member_zero.name[0], 0);
 

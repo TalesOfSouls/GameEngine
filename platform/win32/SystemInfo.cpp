@@ -1019,12 +1019,14 @@ struct RawSmbiosData {
     BYTE table[1];
 };
 
-static inline char hardware_id_lower(char value) NO_EXCEPT
+static inline
+char hardware_id_lower(char value) NO_EXCEPT
 {
     return (value >= 'A' && value <= 'Z') ? (char) (value + ('a' - 'A')) : value;
 }
 
-static inline bool hardware_id_equal_ci(const char* lhs, const char* rhs) NO_EXCEPT
+static inline
+bool hardware_id_equal_ci(const char* lhs, const char* rhs) NO_EXCEPT
 {
     if (!lhs || !rhs) {
         return false;
@@ -1042,7 +1044,8 @@ static inline bool hardware_id_equal_ci(const char* lhs, const char* rhs) NO_EXC
     return *lhs == *rhs;
 }
 
-static inline bool hardware_id_ignored(const char* value) NO_EXCEPT
+static inline
+bool hardware_id_ignored(const char* value) NO_EXCEPT
 {
     static const char* const ignored[] = {
         "none",
@@ -1078,7 +1081,8 @@ static inline bool hardware_id_ignored(const char* value) NO_EXCEPT
 /**
  * Copies a firmware string, trims whitespace and drops OEM placeholders
  */
-static inline void hardware_id_copy(
+static inline
+void hardware_id_copy(
     char* const __restrict dst,
     size_t dst_size,
     const char* src
@@ -1123,12 +1127,14 @@ static inline void hardware_id_copy(
     }
 }
 
-static inline uint16 hardware_id_u16(const byte* const data) NO_EXCEPT
+static inline
+uint16 hardware_id_u16(const byte* const data) NO_EXCEPT
 {
     return (uint16) (data[0] | ((uint16) data[1] << 8));
 }
 
-static inline uint32 hardware_id_u32(const byte* const data) NO_EXCEPT
+static inline
+uint32 hardware_id_u32(const byte* const data) NO_EXCEPT
 {
     return (uint32) data[0]
         | ((uint32) data[1] << 8)
@@ -1136,7 +1142,8 @@ static inline uint32 hardware_id_u32(const byte* const data) NO_EXCEPT
         | ((uint32) data[3] << 24);
 }
 
-static inline char* hardware_id_hex(char* out, uint64 value, int32 digits) NO_EXCEPT
+static inline
+char* hardware_id_hex(char* out, uint64 value, int32 digits) NO_EXCEPT
 {
     static const char HEX[] = "0123456789ABCDEF";
 
@@ -1154,7 +1161,8 @@ static inline char* hardware_id_hex(char* out, uint64 value, int32 digits) NO_EX
  * SMBIOS 2.6+ stores the first three UUID fields little-endian and the remaining
  * bytes as-is. Older tables used the raw byte order.
  */
-static inline void hardware_id_smbios_uuid(
+static inline
+void hardware_id_smbios_uuid(
     const byte* const data,
     char* const out,
     bool little_endian
@@ -1201,7 +1209,8 @@ static inline void hardware_id_smbios_uuid(
     *cursor = '\0';
 }
 
-static inline const char* hardware_id_smbios_string(
+static inline
+const char* hardware_id_smbios_string(
     const byte* const strings,
     size_t strings_length,
     byte index
@@ -1232,7 +1241,8 @@ static inline const char* hardware_id_smbios_string(
 /**
  * Parses the SMBIOS structures relevant for a hardware ban
  */
-static inline void hardware_id_smbios_parse(
+static inline
+void hardware_id_smbios_parse(
     const byte* const table,
     size_t table_size,
     HardwareId* const id,
@@ -1342,7 +1352,8 @@ static inline void hardware_id_smbios_parse(
     }
 }
 
-static inline void hardware_id_smbios_read(
+static inline
+void hardware_id_smbios_read(
     HardwareId* const id
 ) NO_EXCEPT
 {
@@ -1376,7 +1387,8 @@ static inline void hardware_id_smbios_read(
  *      PCI\VEN_10DE&DEV_1B80&SUBSYS_85AA1043&REV_A1
  *      -> VEN_10DE&DEV_1B80&SUBSYS_85AA1043
  */
-static inline bool hardware_id_gpu_canonicalize(
+static inline
+bool hardware_id_gpu_canonicalize(
     const char* const pnp_id,
     char* const out,
     size_t out_size
@@ -1412,7 +1424,8 @@ static inline bool hardware_id_gpu_canonicalize(
     return true;
 }
 
-static inline void hardware_id_gpu_collect(HardwareId* const id) NO_EXCEPT
+static inline
+void hardware_id_gpu_collect(HardwareId* const id) NO_EXCEPT
 {
     DISPLAY_DEVICEW device = {};
     device.cb = sizeof(device);
@@ -1447,14 +1460,15 @@ void hardware_id_get(HardwareId* const id, const SystemInfo* const info) NO_EXCE
         return;
     }
 
-    memset(id, 0, sizeof(*id));
+    ZERO_PTR(id);
 
     hardware_id_cpu_fill(id);
     hardware_id_smbios_read(id);
     hardware_id_gpu_collect(id);
 }
 
-static inline bool hardware_id_contains_ci(const char* const value, const char* const needle) NO_EXCEPT
+static inline
+bool hardware_id_contains_ci(const char* const value, const char* const needle) NO_EXCEPT
 {
     if (!value || !needle || !*needle) {
         return false;
@@ -1478,7 +1492,8 @@ static inline bool hardware_id_contains_ci(const char* const value, const char* 
     return false;
 }
 
-static inline bool hardware_id_known_vm_string(const char* const value) NO_EXCEPT
+static inline
+bool hardware_id_known_vm_string(const char* const value) NO_EXCEPT
 {
     static const char* const markers[] = {
         "vmware",

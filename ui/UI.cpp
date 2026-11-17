@@ -89,8 +89,6 @@ bool ui_element_is_visible(const UILayout* const layout, const UICore* element) 
 bool ui_update(void* app, UILayout* const layout, bool content_tick = true) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_UI_UPDATE);
-    ASSERT_TRUE(layout->ui_root);
-
     if (!layout->update) {
         return (layout->dirty & UI_LAYOUT_DIRTY) != 0;
     }
@@ -892,13 +890,6 @@ void ui_cache(
     // Degenerate starting point
     array_vector_insert(vertices, {{0.0f, 0.0f, UI_ZINDEX_START}, 0, {0}});
 
-    if (!layout->ui_root) {
-        layout->dirty = 0;
-        layout->cache_patch = {true, 0, vertices->count, 0, indices->count};
-
-        return;
-    }
-
     // Values that affect every element, if one of them changed nothing can be re-used
     // (no need to hash them, the font pointer + gpu api fit into one value)
     const uint64 cache_global_hash = (uint64) (uintptr_t) layout->font ^ ((uint64) gpu_api_type << 56);
@@ -1297,12 +1288,7 @@ enum UIInputResult : byte {
 inline
 bool ui_element_state_set(UILayout* const layout, int32 offset, byte state, bool enable) NO_EXCEPT
 {
-    if (!offset) {
-        // We should never go in here?!
-        // @todo If this never triggers remove the entire if
-        //ASSERT_TRUE(false);
-        return false;
-    }
+    ASSERT_TRUE(offset);
 
     UICore* const element = ui_element_get(layout, offset);
     const byte new_state = enable
@@ -1527,15 +1513,16 @@ bool ui_input_set_editing(UILayout* const layout, int32 offset) NO_EXCEPT
         return false;
     }
 
-    ui_element_state_set(layout, interaction->editing, UI_STATE_FOCUS, false);
+    if (interaction->editing) {
+        ui_element_state_set(layout, interaction->editing, UI_STATE_FOCUS, false);
+    }
 
-    // @question the function below only does something if offset is true -> move inside if below?
-    ui_element_state_set(layout, offset, UI_STATE_FOCUS, true);
     interaction->editing = offset;
 
     if (offset) {
+        ui_element_state_set(layout, offset, UI_STATE_FOCUS, true);
         UIInput* const input = (UIInput *) ui_element_get(layout, offset);
-        input->caret = ui_input_text_length(layout, input);
+        input->caret = ui_string_length(layout, input->content);
         input->selection_anchor = input->caret;
         ui_input_scroll_to_caret(layout, input);
     }
@@ -1558,12 +1545,7 @@ bool ui_select_is_open(const UILayout* const layout, const UISelect* const selec
 inline
 void ui_select_open(UILayout* const layout, UISelect* const select, bool open) NO_EXCEPT
 {
-    if (!select->popup) {
-        // We should never go in here?!
-        // @todo If this never triggers remove the entire if
-        //ASSERT_TRUE(false);
-        return;
-    }
+    ASSERT_TRUE(select->popup);
 
     if (!open) {
         if (ui_select_is_open(layout, select)) {
@@ -1640,12 +1622,7 @@ void ui_select_set_options(
 inline
 void ui_popup_toggle(UILayout* const layout, int32 popup) NO_EXCEPT
 {
-    if (!popup) {
-        // We should never go in here?!
-        // @todo If this never triggers remove the entire if
-        //ASSERT_TRUE(false);
-        return;
-    }
+    ASSERT_TRUE(popup);
 
     if (layout->interaction.popup == popup) {
         ui_popup_close(layout);
@@ -1729,7 +1706,7 @@ void ui_element_click(void* app, UILayout* const layout, UICore* const element, 
         } break;
         case UI_ELEMENT_TYPE_COLOR_PANEL: {
             UIColorPanel* const panel = (UIColorPanel *) element;
-            UIColorPicker* const picker = ui_color_panel_picker(layout, panel);
+            UIColorPicker* const picker = (UIColorPicker *) ui_element_get(layout, panel->picker);
 
             if (picker->picker_type == UI_COLOR_PICKER_TYPE_PALETTE && ui_color_panel_cell_at(layout, panel, x, y) >= 0) {
                 if (ui_color_panel_pick(layout, panel, x, y)) {
@@ -1772,7 +1749,7 @@ bool ui_element_drag_value(void* app, UILayout* const layout, UICore* const elem
         case UI_ELEMENT_TYPE_COLOR_PANEL: {
             UIColorPanel* const panel = (UIColorPanel *) element;
             if (ui_color_panel_set_from_position(layout, panel, x, y, start)) {
-                UIColorPicker* const picker = ui_color_panel_picker(layout, panel);
+                UIColorPicker* const picker = (UIColorPicker *) ui_element_get(layout, panel->picker);
                 ui_element_action(app, layout, &picker->core, picker->on_change);
 
                 return true;
@@ -1874,14 +1851,6 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
     interaction->clicked = 0;
     interaction->context_target = 0;
 
-    if (!layout->ui_root) {
-        // We should never go in here?!
-        // @todo If this never triggers remove the entire if
-        //      There are other places that check !layout->ui_root, potentially remove those as well
-        ASSERT_TRUE(false);
-        return UI_INPUT_RESULT_NONE;
-    }
-
     byte result = UI_INPUT_RESULT_NONE;
     const f32 x = input->x;
     const f32 y = input->y;
@@ -1951,12 +1920,14 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
         if (hovered_offset != interaction->hovered) {
             if (interaction->hovered) {
                 ui_element_hover_item(layout, ui_element_get(layout, interaction->hovered), x, y, true);
+                ui_element_state_set(layout, interaction->hovered, UI_STATE_HOVER, false);
             }
 
-            ui_element_state_set(layout, interaction->hovered, UI_STATE_HOVER, false);
-            ui_element_state_set(layout, hovered_offset, UI_STATE_HOVER, true);
-            interaction->hovered = hovered_offset;
+            if (hovered_offset) {
+                ui_element_state_set(layout, hovered_offset, UI_STATE_HOVER, true);
+            }
 
+            interaction->hovered = hovered_offset;
             result |= UI_INPUT_RESULT_CHANGED;
         }
 
@@ -2029,8 +2000,14 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
         const int32 focused_offset = focused ? ui_element_offset(layout, focused) : 0;
 
         if (focused_offset != interaction->focused) {
-            ui_element_state_set(layout, interaction->focused, UI_STATE_FOCUS, false);
-            ui_element_state_set(layout, focused_offset, UI_STATE_FOCUS, true);
+            if (interaction->focused) {
+                ui_element_state_set(layout, interaction->focused, UI_STATE_FOCUS, false);
+            }
+
+            if (focused_offset) {
+                ui_element_state_set(layout, focused_offset, UI_STATE_FOCUS, true);
+            }
+
             interaction->focused = focused_offset;
 
             result |= UI_INPUT_RESULT_CHANGED;
@@ -2312,10 +2289,6 @@ inline
 void ui_focus_move(UILayout* const layout, int32 direction) NO_EXCEPT
 {
     UIInteraction* const interaction = &layout->interaction;
-    if (!layout->ui_root) {
-        return;
-    }
-
     const int32 current = interaction->editing ? interaction->editing : interaction->keyboard_focus;
 
     // Container = window/popup of the current focus (closest UI_ELEMENT_FLAG_HITBOX element)

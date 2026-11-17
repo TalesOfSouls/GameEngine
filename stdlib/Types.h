@@ -89,6 +89,17 @@ struct v2_int8 {
     };
 };
 
+struct v2_uint8 {
+    union {
+        struct { uint8 x, y; };
+        struct { uint8 width, height; };
+        struct { uint8 min, max; };
+
+        uint8 vec[2];
+        uint16 val;
+    };
+};
+
 struct v3_int8 {
     union {
         struct { int8 x, y, z; };

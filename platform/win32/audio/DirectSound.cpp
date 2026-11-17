@@ -62,19 +62,10 @@ bool direct_sound_settings_load(
         16, // .wBitsPerSample =
         0
     };
-    /*
-    wf.wFormatTag = WAVE_FORMAT_PCM;
-    wf.nChannels = 2;
-    wf.wBitsPerSample = 16;
-    wf.nBlockAlign = (wf.nChannels * wf.wBitsPerSample) / 8; //(WORD) compiler_div_pow2(wf.nChannels * wf.wBitsPerSample, 8);
-    wf.nSamplesPerSec = setting->sample_rate;
-    wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
-    wf.cbSize = 0;
-    */
 
     // Create primary buffer
     DSBUFFERDESC buffer_desc;
-    ZeroMemory(&buffer_desc, sizeof(DSBUFFERDESC));
+    memset(&buffer_desc, 0, sizeof(DSBUFFERDESC));
 
     buffer_desc.dwSize = sizeof(DSBUFFERDESC);
     buffer_desc.dwFlags = DSBCAPS_PRIMARYBUFFER;
@@ -97,7 +88,7 @@ bool direct_sound_settings_load(
 
     // Create secondary buffer
     DSBUFFERDESC buffer_desc2;
-    ZeroMemory(&buffer_desc2, sizeof(DSBUFFERDESC));
+    memset(&buffer_desc2, 0, sizeof(DSBUFFERDESC));
 
     buffer_desc2.dwSize = sizeof(DSBUFFERDESC);
     // @todo check alternative flags

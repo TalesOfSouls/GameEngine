@@ -463,18 +463,13 @@ v2_int32 vertex_text_create(
  *
  * The glyphs array is temporary memory (memory_get_temp) of mem
  */
-template <typename T>
-int16* text_to_glyphs(
+int32 text_to_glyphs(
     FontSystem* const __restrict font, const char* const __restrict text,
-    T* const __restrict mem, int32* const __restrict glyph_count
+    int16* const __restrict glyphs
 ) NO_EXCEPT
 {
-    // The byte length is an upper bound of the codepoint count (cheaper than utf8_strlen())
-    const int32 byte_count = (int32) strlen(text);
-
     // Try to find all the necessary glyphs
     // We use offsets instead of pointer chasing
-    int16* const __restrict glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
     int32 count = 0;
 
     int32 i = 0;
@@ -518,9 +513,7 @@ int16* text_to_glyphs(
         glyphs[count++] = glyph;
     }
 
-    *glyph_count = count;
-
-    return glyphs;
+    return count;
 }
 
 template <typename T>
@@ -534,8 +527,9 @@ v2_int32 vertex_text_create(
 {
     PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
 
-    int32 glyph_count;
-    const int16* const glyphs = text_to_glyphs(font, text, mem, &glyph_count);
+    const int32 byte_count = (int32) strlen(text);
+    int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
+    int32 glyph_count = text_to_glyphs(font, text, glyphs);
 
     return vertex_text_create(
         vertices, indices, zindex,
@@ -559,42 +553,9 @@ v2_int32 vertex_text_create(
     // Try to find all the necessary glyphs
     // We use offsets instead of pointer chasing
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
-    int16* const __restrict glyphs = (int16*) memory_get_temp(mem, text.length * sizeof(int16), alignof(uintptr_t));
-    int32 glyph_count = 0;
-
-    int32 i = 0;
-    int32 c = 0;
-
-    while (c < text.length) {
-        uint32 codepoint;
-        const int32 byte_len = utf8_decode(text.str + i, &codepoint);
-
-        if (byte_len == 0) {
-            ++i;
-            ++c;
-            continue;
-        }
-
-        i += byte_len;
-        ++c;
-
-        int16 glyph = font_glyph_index_find(&font->base, codepoint);
-        if (glyph < 0 && font->has_extended) {
-            const int16 extended_glyph = font_glyph_index_find(&font->extended, codepoint);
-            if (extended_glyph < 0) {
-                continue;
-            }
-
-            glyph = extended_glyph | 0x8000;
-            font->has_changes = true;
-        }
-
-        if (glyph < 0) {
-            glyph = 0;
-        }
-
-        glyphs[glyph_count++] = glyph;
-    }
+    const int32 byte_count = text.length;
+    int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
+    int32 glyph_count = text_to_glyphs(font, text, glyphs);
 
     return vertex_text_create(
         vertices, indices, zindex,

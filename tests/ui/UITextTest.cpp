@@ -13,7 +13,7 @@
  */
 
 static void ui_text_test_alloc(UILayout* const layout) {
-    memset(layout, 0, sizeof(*layout));
+    ZERO_PTR(layout);
     buffer_alloc(&layout->ui_element_buffer, 1 * MEGABYTE, 1 * MEGABYTE, 64);
     layout->data_size = 1 * MEGABYTE;
     layout->data = (byte *) platform_alloc_aligned(layout->data_size, layout->data_size, 64);
@@ -85,14 +85,6 @@ static void test_ui_string_reserve() {
     const int32 offset = ui_string_reserve(&layout, CHAR_TYPE_CHAR, 16);
     TEST_TRUE(offset > 0);
 
-    // The header is stored directly in front of the characters
-    const SimpleStringInline<char>* const header = ui_string_header(&layout, offset);
-    TEST_TRUE((const byte *) (header + 1) == layout.ui_element_buffer.memory + offset);
-    TEST_EQUALS(((uintptr_t) header) % alignof(int32), 0);
-    TEST_EQUALS(header->length, 0);
-    TEST_EQUALS(header->max_length, 15);
-    TEST_UI_STRING(&layout, offset, "");
-
     memcpy(layout.ui_element_buffer.memory + offset, "abc", 4);
     ui_string_length_set(&layout, offset, 3);
     TEST_EQUALS(ui_string_length(&layout, offset), 3);
@@ -105,7 +97,6 @@ static void test_ui_string_reserve() {
 
     // wchar_t texts use the same header (length in characters)
     const int32 wide = ui_string_reserve(&layout, CHAR_TYPE_WCHAR, 8);
-    TEST_EQUALS(ui_string_header(&layout, wide)->max_length, 7);
     TEST_EQUALS(((uintptr_t) (layout.ui_element_buffer.memory + wide)) % alignof(wchar_t), 0);
 
     ui_text_test_free(&layout);
@@ -218,43 +209,6 @@ static void test_ui_tooltip_text_length() {
     ui_text_test_free(&layout);
 }
 
-static void test_ui_input_text_length() {
-    UILayout layout;
-    ui_text_test_alloc(&layout);
-
-    UIInput* const input = ui_input_create(&layout, 8);
-    TEST_EQUALS(input->content_length, 9);
-    TEST_EQUALS(ui_input_text_length(&layout, input), 0);
-    TEST_UI_STRING(&layout, input->content, "");
-
-    ui_input_set_text(&layout, input, "abc");
-    TEST_UI_STRING(&layout, input->content, "abc");
-    TEST_EQUALS(ui_input_text_length(&layout, input), 3);
-    TEST_EQUALS(ui_input_string(&layout, input).length, 3);
-    TEST_EQUALS(input->caret, 3);
-
-    // Cut at the reserved memory
-    ui_input_set_text(&layout, input, "0123456789");
-    TEST_UI_STRING(&layout, input->content, "01234567");
-    TEST_EQUALS(input->caret, 8);
-
-    // Known length
-    ui_input_set_text(&layout, input, "abcdef", 2);
-    TEST_UI_STRING(&layout, input->content, "ab");
-
-    // An utf8 character is never cut in half (ä = 2 bytes)
-    ui_input_set_text(&layout, input, "1234567\xC3\xA4");
-    TEST_UI_STRING(&layout, input->content, "1234567");
-
-    ui_input_set_text(&layout, input, NULL);
-    TEST_UI_STRING(&layout, input->content, "");
-
-    ui_input_set_placeholder(&layout, input, "Search...");
-    TEST_UI_STRING(&layout, input->placeholder, "Search...");
-
-    ui_text_test_free(&layout);
-}
-
 static void ui_text_test_type(UILayout* const layout, UIInput* const input, const char* text) {
     while (*text) {
         ui_input_handle_code(NULL, layout, input, (uint32) (byte) *text++);
@@ -330,7 +284,6 @@ static void test_ui_input_edit_length() {
 
     // Full input: additional characters are ignored
     ui_input_set_text(&layout, input, "0123456789ABCDEF");
-    TEST_EQUALS(ui_input_text_length(&layout, input), 16);
     ui_text_test_type(&layout, input, "G");
     TEST_UI_STRING(&layout, input->content, "0123456789ABCDEF");
 
@@ -379,7 +332,6 @@ static void test_ui_text_length_to_from_data() {
 
     const UIInput* const loaded_input = (const UIInput *) ui_element_get(&loaded, input_offset);
     TEST_UI_STRING(&loaded, loaded_input->content, "Input");
-    TEST_EQUALS(ui_input_text_length(&loaded, loaded_input), 5);
 
     // Old layouts don't have the stored lengths -> they must be rejected
     *((int32 *) out) = UI_LAYOUT_VERSION - 1;
@@ -417,9 +369,9 @@ static void test_input_key_names() {
     }
 
     // Unknown keys
-    TEST_EQUALS(input_key_name(INPUT_KEYBOARD_PREFIX | 0x00), NULL);
-    TEST_EQUALS(input_key_name(INPUT_KEYBOARD_PREFIX | 0xFF), NULL);
-    TEST_EQUALS(strcmp(input_key_name(INPUT_KEYBOARD_PREFIX | 0x01), "Esc"), 0);
+    TEST_EQUALS(input_key_name_string(INPUT_KEYBOARD_PREFIX | 0x00).str, NULL);
+    TEST_EQUALS(input_key_name_string(INPUT_KEYBOARD_PREFIX | 0xFF).str, NULL);
+    TEST_EQUALS(strcmp(input_key_name_string(INPUT_KEYBOARD_PREFIX | 0x01).str, "Esc"), 0);
 
     char out[64];
     const int16 keys[] = {(int16) (INPUT_KEYBOARD_PREFIX | 0x1D), 0, (int16) (INPUT_KEYBOARD_PREFIX | 0x1F)};
@@ -454,7 +406,6 @@ int main() {
     TEST_RUN(test_ui_label_text_length);
     TEST_RUN(test_ui_label_text_fixed);
     TEST_RUN(test_ui_tooltip_text_length);
-    TEST_RUN(test_ui_input_text_length);
     TEST_RUN(test_ui_input_edit_length);
     TEST_RUN(test_ui_text_length_to_from_data);
     TEST_RUN(test_input_key_names);

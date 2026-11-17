@@ -39,13 +39,13 @@ enum UIColorPanelArea : byte {
 // Color helpers
 ////////////////////////////////////////////////////////////////
 
-FORCE_INLINE
+static FORCE_INLINE
 uint32 ui_color_rgba(uint32 r, uint32 g, uint32 b, uint32 a) NO_EXCEPT
 {
     return (r << 24) | (g << 16) | (b << 8) | a;
 }
 
-FORCE_INLINE
+static FORCE_INLINE
 uint32 ui_color_channel(uint32 color, int32 channel) NO_EXCEPT
 {
     return (color >> (24 - 8 * channel)) & 0xFF;
@@ -68,12 +68,36 @@ uint32 ui_color_from_hsv(f32 h, f32 s, f32 v, f32 a = 1.0f) NO_EXCEPT
 
     f32 r, g, b;
     switch (sector) {
-        case 0: r = v; g = t; b = p; break;
-        case 1: r = q; g = v; b = p; break;
-        case 2: r = p; g = v; b = t; break;
-        case 3: r = p; g = q; b = v; break;
-        case 4: r = t; g = p; b = v; break;
-        default: r = v; g = p; b = q; break;
+        case 0: {
+            r = v;
+            g = t;
+            b = p;
+        } break;
+        case 1: {
+            r = q;
+            g = v;
+            b = p;
+        } break;
+        case 2: {
+            r = p;
+            g = v;
+            b = t;
+        } break;
+        case 3: {
+            r = p;
+            g = q;
+            b = v;
+        } break;
+        case 4: {
+            r = t;
+            g = p;
+            b = v;
+        } break;
+        default: {
+            r = v;
+            g = p;
+            b = q;
+        } break;
     }
 
     return ui_color_rgba(
@@ -134,9 +158,7 @@ uint32 ui_color_ansi256(int32 index) NO_EXCEPT
 
     if (index < 16) {
         return system_colors[index < 0 ? 0 : index];
-    }
-
-    if (index < 232) {
+    } else if (index < 232) {
         static const uint32 levels[6] = { 0, 95, 135, 175, 215, 255 };
         const int32 i = index - 16;
 
@@ -151,12 +173,6 @@ uint32 ui_color_ansi256(int32 index) NO_EXCEPT
 ////////////////////////////////////////////////////////////////
 // Color picker
 ////////////////////////////////////////////////////////////////
-
-FORCE_INLINE
-int32 ui_color_picker_palette_count(const UIColorPicker* const picker) NO_EXCEPT
-{
-    return picker->palette ? picker->palette_count : 256;
-}
 
 inline
 uint32 ui_color_picker_palette_color(const UILayout* const layout, const UIColorPicker* const picker, int32 index) NO_EXCEPT
@@ -262,7 +278,9 @@ int32 ui_color_palette_order(const uint32* const colors, int32 count, int16* con
 
     // Grid
     int32 cell = 0;
-    const int32 grey_cells = ((grey_count + UI_COLOR_PALETTE_COLUMNS - 1) / UI_COLOR_PALETTE_COLUMNS) * UI_COLOR_PALETTE_COLUMNS;
+    const int32 grey_cells = ((grey_count + UI_COLOR_PALETTE_COLUMNS - 1) / UI_COLOR_PALETTE_COLUMNS)
+        * UI_COLOR_PALETTE_COLUMNS;
+
     for (; cell < grey_cells; ++cell) {
         order[cell] = cell < grey_count ? greys[cell] : -1;
     }
@@ -440,7 +458,10 @@ UIColorPicker* ui_color_picker_create(
 
     if (type == UI_COLOR_PICKER_TYPE_PALETTE) {
         // Display order (gradient)
-        const int32 count = min_branched(ui_color_picker_palette_count(picker), 1024);
+        const int32 count = min_branched(
+            picker->palette ? picker->palette_count : 256,
+            1024
+        );
         uint32 colors[1024];
         for (int32 i = 0; i < count; ++i) {
             colors[i] = ui_color_picker_palette_color(layout, picker, i);
@@ -449,7 +470,11 @@ UIColorPicker* ui_color_picker_create(
         int16 order[1024 + 2 * UI_COLOR_PALETTE_COLUMNS];
         const int32 cells = ui_color_palette_order(colors, count, order);
 
-        picker->palette_order = ui_text_reserve(layout, CHAR_TYPE_CHAR, max_branched(cells, 1) * (int32) sizeof(int16));
+        picker->palette_order = ui_text_reserve(
+            layout,
+            CHAR_TYPE_CHAR,
+            max_branched(cells, 1) * (int32) sizeof(int16)
+        );
         memcpy(layout->ui_element_buffer.memory + picker->palette_order, order, cells * sizeof(int16));
         picker->palette_cells = (int16) cells;
 
@@ -500,12 +525,6 @@ UIColorPicker* ui_color_picker_create(
 // Color panel (gradient or palette in the popup)
 ////////////////////////////////////////////////////////////////
 
-FORCE_INLINE
-UIColorPicker* ui_color_panel_picker(const UILayout* const layout, const UIColorPanel* const panel) NO_EXCEPT
-{
-    return (UIColorPicker *) ui_element_get(layout, panel->picker);
-}
-
 // Rects of the gradient areas (x, y = top left)
 inline
 v4_f32 ui_color_panel_area_rect(const UIColorPanel* const panel, UIColorPanelArea area) NO_EXCEPT
@@ -514,21 +533,22 @@ v4_f32 ui_color_panel_area_rect(const UIColorPanel* const panel, UIColorPanelAre
 
     switch (area) {
         case UI_COLOR_PANEL_AREA_HUE:
-            return {dim->pos.x + UI_COLOR_GRADIENT_SIZE + UI_COLOR_GAP, dim->pos.y, UI_COLOR_BAR_WIDTH, UI_COLOR_GRADIENT_SIZE};
+            return {
+                dim->pos.x + UI_COLOR_GRADIENT_SIZE + UI_COLOR_GAP,
+                dim->pos.y,
+                UI_COLOR_BAR_WIDTH,
+                UI_COLOR_GRADIENT_SIZE
+            };
         case UI_COLOR_PANEL_AREA_ALPHA:
             return {
-                dim->pos.x + UI_COLOR_GRADIENT_SIZE + 2.0f * UI_COLOR_GAP + UI_COLOR_BAR_WIDTH, dim->pos.y,
-                UI_COLOR_BAR_WIDTH, UI_COLOR_GRADIENT_SIZE
+                dim->pos.x + UI_COLOR_GRADIENT_SIZE + 2.0f * UI_COLOR_GAP + UI_COLOR_BAR_WIDTH,
+                dim->pos.y,
+                UI_COLOR_BAR_WIDTH,
+                UI_COLOR_GRADIENT_SIZE
             };
         default:
             return {dim->pos.x, dim->pos.y, UI_COLOR_GRADIENT_SIZE, UI_COLOR_GRADIENT_SIZE};
     }
-}
-
-FORCE_INLINE
-bool ui_rect_contains(v4_f32 rect, f32 x, f32 y) NO_EXCEPT
-{
-    return x >= rect.x && x < rect.x + rect.width && y <= rect.y && y > rect.y - rect.height;
 }
 
 /**
@@ -537,8 +557,10 @@ bool ui_rect_contains(v4_f32 rect, f32 x, f32 y) NO_EXCEPT
 inline
 int32 ui_color_panel_cell_at(const UILayout* const layout, const UIColorPanel* const panel, f32 x, f32 y) NO_EXCEPT
 {
-    const UIColorPicker* const picker = ui_color_panel_picker(layout, panel);
-    if (picker->picker_type != UI_COLOR_PICKER_TYPE_PALETTE || !ui_dimension_contains(&panel->core.dimension, x, y)) {
+    const UIColorPicker* const picker = (UIColorPicker *) ui_element_get(layout, panel->picker);
+    if (picker->picker_type != UI_COLOR_PICKER_TYPE_PALETTE
+        || !ui_dimension_contains(&panel->core.dimension, x, y)
+    ) {
         return -1;
     }
 
@@ -546,7 +568,8 @@ int32 ui_color_panel_cell_at(const UILayout* const layout, const UIColorPanel* c
     const int32 row = (int32) ((panel->core.dimension.pos.y - y) / UI_COLOR_PALETTE_CELL);
     const int32 cell = row * UI_COLOR_PALETTE_COLUMNS + column;
 
-    return column < UI_COLOR_PALETTE_COLUMNS && ui_color_picker_cell_index(layout, picker, cell) >= 0 ? cell : -1;
+    return column < UI_COLOR_PALETTE_COLUMNS
+        && ui_color_picker_cell_index(layout, picker, cell) >= 0 ? cell : -1;
 }
 
 inline
@@ -573,7 +596,7 @@ bool ui_color_panel_hover(UILayout* const layout, UIColorPanel* const panel, int
 inline
 bool ui_color_panel_set_from_position(UILayout* const layout, UIColorPanel* const panel, f32 x, f32 y, bool start) NO_EXCEPT
 {
-    UIColorPicker* const picker = ui_color_panel_picker(layout, panel);
+    UIColorPicker* const picker = (UIColorPicker *) ui_element_get(layout, panel->picker);
     if (picker->picker_type != UI_COLOR_PICKER_TYPE_GRADIENT) {
         return false;
     }
@@ -581,7 +604,9 @@ bool ui_color_panel_set_from_position(UILayout* const layout, UIColorPanel* cons
     if (start) {
         panel->drag_area = UI_COLOR_PANEL_AREA_NONE;
         for (byte area = UI_COLOR_PANEL_AREA_GRADIENT; area <= UI_COLOR_PANEL_AREA_ALPHA; ++area) {
-            if (ui_rect_contains(ui_color_panel_area_rect(panel, (UIColorPanelArea) area), x, y)) {
+            const v4_f32 rect = ui_color_panel_area_rect(panel, (UIColorPanelArea) area);
+            // is x/y in rect?
+            if (x >= rect.x && x < rect.x + rect.width && y <= rect.y && y > rect.y - rect.height) {
                 panel->drag_area = area;
                 break;
             }
@@ -627,8 +652,13 @@ bool ui_color_panel_set_from_position(UILayout* const layout, UIColorPanel* cons
 inline
 bool ui_color_panel_pick(UILayout* const layout, UIColorPanel* const panel, f32 x, f32 y) NO_EXCEPT
 {
-    UIColorPicker* const picker = ui_color_panel_picker(layout, panel);
-    const int32 index = ui_color_picker_cell_index(layout, picker, ui_color_panel_cell_at(layout, panel, x, y));
+    UIColorPicker* const picker = (UIColorPicker *) ui_element_get(layout, panel->picker);
+    const int32 index = ui_color_picker_cell_index(
+        layout,
+        picker,
+        ui_color_panel_cell_at(layout, panel, x, y)
+    );
+
     if (index < 0) {
         return false;
     }
@@ -656,8 +686,10 @@ void ui_color_checker_vertices(
         for (int32 c = 0; c < columns; ++c) {
             ui_rect_vertices(
                 {
-                    rect.x + (f32) c * cell, rect.y - (f32) r * cell,
-                    min_branched(cell, rect.width - (f32) c * cell), min_branched(cell, rect.height - (f32) r * cell)
+                    rect.x + (f32) c * cell,
+                    rect.y - (f32) r * cell,
+                    min_branched(cell, rect.width - (f32) c * cell),
+                    min_branched(cell, rect.height - (f32) r * cell)
                 },
                 ((r + c) & 1) ? 0x666666FF : 0x999999FF, vertices, indices, zindex
             );
@@ -708,7 +740,7 @@ void ui_color_panel_cache(
 
     ui_dimension_calculate(layout, &panel->core);
     const UIAttributeDimension* const dim = &panel->core.dimension;
-    const UIColorPicker* const picker = ui_color_panel_picker(layout, panel);
+    const UIColorPicker* const picker = (UIColorPicker *) ui_element_get(layout, panel->picker);
 
     ArrayVector<Vertex3DSamplerTextureColor>* const vertices = &layout->ui_vertex_cache;
     ArrayVector<int32>* const indices = &layout->ui_index_cache;
@@ -790,7 +822,12 @@ void ui_color_panel_cache(
     ui_color_checker_vertices(alpha, alpha.width * 0.5f, vertices, indices, *zindex);
 
     // Preview of the current color below the gradient
-    const v4_f32 preview = {dim->pos.x, dim->pos.y - UI_COLOR_GRADIENT_SIZE - UI_COLOR_GAP, 40.0f, UI_DEFAULT_ROW_HEIGHT};
+    const v4_f32 preview = {
+        dim->pos.x,
+        dim->pos.y - UI_COLOR_GRADIENT_SIZE - UI_COLOR_GAP,
+        40.0f,
+        UI_DEFAULT_ROW_HEIGHT
+    };
     ui_color_checker_vertices(preview, 6.0f, vertices, indices, *zindex);
 
     *zindex = camera_step_closer(gpu_api_type, *zindex);
@@ -799,7 +836,12 @@ void ui_color_panel_cache(
     const f32 alpha_cell = alpha.height / UI_COLOR_GRADIENT_CELLS;
     for (int32 i = 0; i < UI_COLOR_GRADIENT_CELLS; ++i) {
         const uint32 a = (uint32) ((1.0f - ((f32) i + 0.5f) / UI_COLOR_GRADIENT_CELLS) * 255.0f);
-        ui_rect_vertices({alpha.x, alpha.y - (f32) i * alpha_cell, alpha.width, alpha_cell}, rgb | a, vertices, indices, *zindex);
+        ui_rect_vertices(
+            {alpha.x, alpha.y - (f32) i * alpha_cell, alpha.width, alpha_cell},
+            rgb | a,
+            vertices, indices,
+            *zindex
+        );
     }
 
     ui_rect_vertices(preview, picker->color, vertices, indices, *zindex);
@@ -811,14 +853,36 @@ void ui_color_panel_cache(
     // Markers of the current values
     const f32 marker_x = gradient.x + picker->saturation * gradient.width;
     const f32 marker_y = gradient.y - (1.0f - picker->value) * gradient.height;
-    ui_border_solid_vertices({marker_x - 4.0f, marker_y + 4.0f, 8.0f, 8.0f}, 0x000000FF, 1, vertices, indices, *zindex);
-    ui_border_solid_vertices({marker_x - 3.0f, marker_y + 3.0f, 6.0f, 6.0f}, 0xFFFFFFFF, 1, vertices, indices, *zindex);
+    ui_border_solid_vertices(
+        {marker_x - 4.0f, marker_y + 4.0f, 8.0f, 8.0f},
+        0x000000FF,
+        1,
+        vertices, indices,
+        *zindex
+    );
+    ui_border_solid_vertices(
+        {marker_x - 3.0f, marker_y + 3.0f, 6.0f, 6.0f},
+        0xFFFFFFFF,
+        1,
+        vertices, indices,
+        *zindex
+    );
 
     const f32 hue_y = hue.y - picker->hue * hue.height;
-    ui_rect_vertices({hue.x - 2.0f, hue_y + 1.5f, hue.width + 4.0f, 3.0f}, 0xFFFFFFFF, vertices, indices, *zindex);
+    ui_rect_vertices(
+        {hue.x - 2.0f, hue_y + 1.5f, hue.width + 4.0f, 3.0f},
+        0xFFFFFFFF,
+        vertices, indices,
+        *zindex
+    );
 
     const f32 alpha_y = alpha.y - (1.0f - (f32) ui_color_channel(picker->color, 3) / 255.0f) * alpha.height;
-    ui_rect_vertices({alpha.x - 2.0f, alpha_y + 1.5f, alpha.width + 4.0f, 3.0f}, 0xFFFFFFFF, vertices, indices, *zindex);
+    ui_rect_vertices(
+        {alpha.x - 2.0f, alpha_y + 1.5f, alpha.width + 4.0f, 3.0f},
+        0xFFFFFFFF,
+        vertices, indices,
+        *zindex
+    );
 
     *zindex = camera_step_closer(gpu_api_type, *zindex);
 }

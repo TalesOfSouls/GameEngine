@@ -17,7 +17,8 @@
 FORCE_INLINE
 f32 lerp(f32 a, f32 b, f32 t) NO_EXCEPT
 {
-    return a + t * (b - a);
+    // FMA version (less stable but faster)
+    return t * (b - a) + a;
 }
 
 FORCE_INLINE
@@ -25,6 +26,7 @@ f32 smoothstep(f32 t) NO_EXCEPT
 {
     return t * t * (3 - 2 * t);
 }
+
 FORCE_INLINE
 f32 anim_discrete(f32 t) NO_EXCEPT
 {

@@ -55,7 +55,7 @@ static const char UI_LAYOUT_TEST_TXT[] =
 static void* ui_layout_test_function(void*, UILayout*, UICore*) NO_EXCEPT { return NULL; }
 
 static void ui_layout_test_init(UILayout* const layout) {
-    memset(layout, 0, sizeof(*layout));
+    ZERO_PTR(layout);
     buffer_alloc(&layout->ui_element_buffer, 1 * MEGABYTE, 1 * MEGABYTE, 64);
     layout->data_size = 1 * MEGABYTE;
     layout->data = (byte *) platform_alloc_aligned(layout->data_size, layout->data_size, 64);
@@ -89,7 +89,7 @@ static void test_layout_from_txt() {
     TEST_EQUALS(ui_layout_from_txt(&layout, UI_LAYOUT_TEST_TXT, (int32) sizeof(UI_LAYOUT_TEST_TXT) - 1, &ctx, &mem), 2);
 
     // Window: style + own properties + part
-    const UIWindow* const window = (const UIWindow *) ui_get_element(&layout, "test_window");
+    const UIWindow* const window = (const UIWindow *) ui_element_get(&layout, "test_window");
     TEST_NOT_EQUALS(window, NULL);
     TEST_EQUALS(window->core.type, UI_ELEMENT_TYPE_VIEW_WINDOW);
     TEST_EQUALS(window->background_color, 0x262626FFU);
@@ -100,14 +100,14 @@ static void test_layout_from_txt() {
     TEST_EQUALS(strcmp((const char *) (layout.ui_element_buffer.memory + ui_window_title_label(&layout, window)->content), "Test"), 0);
 
     // Children of a scroll panel are in its content panel
-    UIPanel* const scroll = (UIPanel *) ui_get_element(&layout, "test_scroll");
+    UIPanel* const scroll = (UIPanel *) ui_element_get(&layout, "test_scroll");
     TEST_NOT_EQUALS(scroll, NULL);
     TEST_TRUE(scroll->panel_flags & UI_PANEL_FLAG_SCROLL_Y);
     TEST_TRUE(scroll->core.dimension.flag & UI_DIMENSION_DIM_X_RELATIVE);
     TEST_EQUALS_WITH_DELTA(scroll->core.dimension.dim_raw.y, -30.0f, 0.001f);
 
     // Style order: type default < style < own properties
-    const UIButton* const button = (const UIButton *) ui_get_element(&layout, "test_button");
+    const UIButton* const button = (const UIButton *) ui_element_get(&layout, "test_button");
     TEST_NOT_EQUALS(button, NULL);
     TEST_EQUALS(button->core.parent_offset, ui_element_offset(&layout, ui_panel_content(&layout, scroll)));
     TEST_EQUALS(button->background_color, 0x444444FFU);
@@ -116,7 +116,7 @@ static void test_layout_from_txt() {
     TEST_TRUE(button->label != 0);
 
     // Escape sequences, anchor + align, flags, functions
-    const UILabel* const label = (const UILabel *) ui_get_element(&layout, "test_label");
+    const UILabel* const label = (const UILabel *) ui_element_get(&layout, "test_label");
     TEST_NOT_EQUALS(label, NULL);
     TEST_EQUALS(strcmp((const char *) (layout.ui_element_buffer.memory + label->content), "Line 1\nLine 2"), 0);
     TEST_EQUALS(label->core.dimension.align_anchor, (byte) (UI_ANCHOR_H_RIGHT | UI_ANCHOR_V_TOP | UI_ALIGN_V_TOP));
@@ -124,7 +124,7 @@ static void test_layout_from_txt() {
     TEST_EQUALS(label->core.update_func, 1);
 
     // Table rows (missing cells are empty)
-    const UITable* const table = (const UITable *) ui_get_element(&layout, "test_table");
+    const UITable* const table = (const UITable *) ui_element_get(&layout, "test_table");
     TEST_NOT_EQUALS(table, NULL);
     TEST_EQUALS(table->column_count, 2);
     TEST_EQUALS(table->row_count, 2);
@@ -216,17 +216,17 @@ static void test_layout_language() {
     TEST_EQUALS(ui_layout_from_txt(&layout, layout_txt, (int32) sizeof(layout_txt) - 1, &ctx, &mem), 1);
 
     const byte* const buffer = layout.ui_element_buffer.memory;
-    const UIWindow* const window = (const UIWindow *) ui_get_element(&layout, "lang_window_element");
+    const UIWindow* const window = (const UIWindow *) ui_element_get(&layout, "lang_window_element");
     TEST_NOT_EQUALS(window, NULL);
     TEST_EQUALS(strcmp((const char *) (buffer + ui_window_title_label(&layout, window)->content), "Theme title"), 0);
 
-    TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_get_element(&layout, "lang_local"))->content), "Hello world"), 0);
-    TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_get_element(&layout, "lang_global"))->content), "Quit"), 0);
-    TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_get_element(&layout, "lang_literal"))->content), "@hello"), 0);
-    TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_get_element(&layout, "lang_missing"))->content), "@missing"), 0);
-    TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_get_element(&layout, "lang_pattern"))->pattern), "FPS: %n"), 0);
+    TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_element_get(&layout, "lang_local"))->content), "Hello world"), 0);
+    TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_element_get(&layout, "lang_global"))->content), "Quit"), 0);
+    TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_element_get(&layout, "lang_literal"))->content), "@hello"), 0);
+    TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_element_get(&layout, "lang_missing"))->content), "@missing"), 0);
+    TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_element_get(&layout, "lang_pattern"))->pattern), "FPS: %n"), 0);
 
-    const UISelect* const select = (const UISelect *) ui_get_element(&layout, "lang_select");
+    const UISelect* const select = (const UISelect *) ui_element_get(&layout, "lang_select");
     TEST_NOT_EQUALS(select, NULL);
     TEST_EQUALS(select->option_count, 3);
     TEST_EQUALS(strcmp(ui_select_option(&layout, select, 1), "Banana"), 0);
@@ -271,9 +271,9 @@ static void test_layout_to_from_data() {
     const int64 used = layout_dump.ui_element_buffer.head - layout_dump.ui_element_buffer.memory;
     TEST_EQUALS(layout_load.ui_element_buffer.head - layout_load.ui_element_buffer.memory, used);
 
-    const UICore* const window = ui_get_element(&layout_load, "test_window");
+    const UICore* const window = ui_element_get(&layout_load, "test_window");
     TEST_NOT_EQUALS(window, NULL);
-    TEST_EQUALS(ui_element_offset(&layout_load, window), ui_element_offset(&layout_dump, ui_get_element(&layout_dump, "test_window")));
+    TEST_EQUALS(ui_element_offset(&layout_load, window), ui_element_offset(&layout_dump, ui_element_get(&layout_dump, "test_window")));
 
     platform_aligned_free((void **) &out);
     buffer_free(&mem);
