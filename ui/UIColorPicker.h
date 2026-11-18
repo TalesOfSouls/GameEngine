@@ -41,17 +41,13 @@ struct UIColorPicker {
     int32 panel;
     int32 inputs[4];
 
-    // Palette colors (uint32 rgba), 0 = 256 ansi colors
+    // Palette colors (uint32 rgba) in display order (0 = empty cell), 0 = ansi colors (UI_COLOR_PALETTE_ANSI)
     int32 palette;
-
-    // Display order of the palette (int16 palette index per grid cell, -1 = empty cell)
-    // The colors are shown as a gradient, duplicates are removed
-    int32 palette_order;
-    int16 palette_cells;
 
     // 1-indexed action that is called when the color changes (layout->on_actions, 0 = none)
     int32 on_change;
 
+    // Amount of palette cells
     int16 palette_count;
 
     // @type UIColorPickerType

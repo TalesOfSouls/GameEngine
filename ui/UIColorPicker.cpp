@@ -143,169 +143,50 @@ void ui_color_to_hsv(uint32 color, f32* const hue, f32* const saturation, f32* c
 }
 
 /**
- * The 256 ansi (xterm) colors
- *      0 - 15:    system colors
- *      16 - 231:  6x6x6 color cube
- *      232 - 255: grey ramp
- */
-inline
-uint32 ui_color_ansi256(int32 index) NO_EXCEPT
-{
-    static const uint32 system_colors[16] = {
-        0x000000FF, 0x800000FF, 0x008000FF, 0x808000FF, 0x000080FF, 0x800080FF, 0x008080FF, 0xC0C0C0FF,
-        0x808080FF, 0xFF0000FF, 0x00FF00FF, 0xFFFF00FF, 0x0000FFFF, 0xFF00FFFF, 0x00FFFFFF, 0xFFFFFFFF,
-    };
-
-    if (index < 16) {
-        return system_colors[index < 0 ? 0 : index];
-    } else if (index < 232) {
-        static const uint32 levels[6] = { 0, 95, 135, 175, 215, 255 };
-        const int32 i = index - 16;
-
-        return ui_color_rgba(levels[i / 36], levels[(i / 6) % 6], levels[i % 6], 255);
-    }
-
-    const uint32 grey = 8 + 10 * (uint32) (min_branched(index, 255) - 232);
-
-    return ui_color_rgba(grey, grey, grey, 255);
-}
-
-////////////////////////////////////////////////////////////////
-// Color picker
-////////////////////////////////////////////////////////////////
-
-inline
-uint32 ui_color_picker_palette_color(const UILayout* const layout, const UIColorPicker* const picker, int32 index) NO_EXCEPT
-{
-    return picker->palette
-        ? ((const uint32 *) (layout->ui_element_buffer.memory + picker->palette))[index]
-        : ui_color_ansi256(index);
-}
-
-/**
- * Calculates the display order of a palette as a gradient
- *      1. duplicate colors are removed
- *      2. grey colors first (dark -> light, row by row)
- *      3. other colors: columns = hue (equal amount of colors per column), rows = light -> dark
+ * Default palette: the 256 ansi (xterm) colors in display order (UI_COLOR_PALETTE_COLUMNS cells per row, 0 = empty cell)
+ *      1. grey colors (dark -> light)
+ *      2. other colors: columns = hue (equal amount of colors per column), rows = light -> dark
  *
- * @param order Output: palette index per grid cell (-1 = empty), size >= count + 2 * UI_COLOR_PALETTE_COLUMNS
- *
- * @return Amount of grid cells (multiple of UI_COLOR_PALETTE_COLUMNS)
+ * The ansi palette repeats colors (the system colors 0 - 15 are also part of the 6x6x6 color cube / grey ramp),
+ * only the 247 unique colors are listed.
  */
-inline
-int32 ui_color_palette_order(const uint32* const colors, int32 count, int16* const order) NO_EXCEPT
-{
-    // Work arrays (palettes are small, max 1024 colors)
-    int16 greys[1024];
-    int16 chroma[1024];
-    f32 keys[1024];
-    int32 grey_count = 0;
-    int32 chroma_count = 0;
+static const uint32 UI_COLOR_PALETTE_ANSI[] = {
+    0x000000FF, 0x080808FF, 0x121212FF, 0x1C1C1CFF, 0x262626FF, 0x303030FF, 0x3A3A3AFF, 0x444444FF, 0x4E4E4EFF, 0x585858FF, 0x5F5F5FFF, 0x626262FF, 0x6C6C6CFF, 0x767676FF, 0x808080FF, 0x878787FF,
+    0x8A8A8AFF, 0x949494FF, 0x9E9E9EFF, 0xA8A8A8FF, 0xAFAFAFFF, 0xB2B2B2FF, 0xBCBCBCFF, 0xC0C0C0FF, 0xC6C6C6FF, 0xD0D0D0FF, 0xD7D7D7FF, 0xDADADAFF, 0xE4E4E4FF, 0xEEEEEEFF, 0xFFFFFFFF, 0x00000000,
+    0xD7AFAFFF, 0xFFD7D7FF, 0xFFD787FF, 0xFFFFD7FF, 0xD7FFAFFF, 0xAFFF87FF, 0xD7FFD7FF, 0xAFFFD7FF, 0x87FFFFFF, 0xD7FFFFFF, 0xAFD7FFFF, 0xD7D7FFFF, 0xD7AFFFFF, 0xD75FFFFF, 0xFFD7FFFF, 0xFFAFD7FF,
+    0xD78787FF, 0xFFAFAFFF, 0xFFD75FFF, 0xFFFFAFFF, 0xD7FF87FF, 0x87FF5FFF, 0xAFFFAFFF, 0x87FFD7FF, 0x5FFFFFFF, 0xAFFFFFFF, 0x87AFFFFF, 0xAFAFFFFF, 0xAF87FFFF, 0xAF87AFFF, 0xFFAFFFFF, 0xFF87D7FF,
+    0xFF5F5FFF, 0xFFD7AFFF, 0xD7AF5FFF, 0xD7D7AFFF, 0xD7FF5FFF, 0x87D75FFF, 0x87FF87FF, 0x5FFFAFFF, 0x87D7D7FF, 0xAFD7D7FF, 0x5FAFFFFF, 0x8787FFFF, 0xD787FFFF, 0xAF5FAFFF, 0xD7AFD7FF, 0xFF87AFFF,
+    0xAF8787FF, 0xFF8787FF, 0xFFAF00FF, 0xFFFF87FF, 0xAFD787FF, 0x5FD75FFF, 0xAFD7AFFF, 0x87D7AFFF, 0x5FD7D7FF, 0x87D7FFFF, 0x87AFD7FF, 0xAFAFD7FF, 0xAF5FFFFF, 0xD700FFFF, 0xFF87FFFF, 0xFF5FAFFF,
+    0xD75F5FFF, 0xFFAF87FF, 0xFFD700FF, 0xD7D787FF, 0xAFFF5FFF, 0x5FAF5FFF, 0x87FFAFFF, 0x5FFFD7FF, 0x87AFAFFF, 0x5FD7FFFF, 0x5F87FFFF, 0x5F5FFFFF, 0xAF87D7FF, 0xFF00FFFF, 0xD787D7FF, 0xD787AFFF,
+    0xAF5F5FFF, 0xFF875FFF, 0xFFFF00FF, 0xFFFF5FFF, 0xAFD75FFF, 0x5FFF00FF, 0x5FFF5FFF, 0x5FD7AFFF, 0x5FAFAFFF, 0x5FAFD7FF, 0x5F87D7FF, 0x8787D7FF, 0xAF5FD7FF, 0x875F87FF, 0xFF5FFFFF, 0xFF5F87FF,
+    0xFF0000FF, 0xD7AF87FF, 0xD78700FF, 0xAFAF87FF, 0x87AF5FFF, 0x00FF00FF, 0x87D787FF, 0x00FF87FF, 0x00FFFFFF, 0x00D7FFFF, 0x5F87AFFF, 0x875FFFFF, 0x875FAFFF, 0xAF00D7FF, 0xFF5FD7FF, 0xD75FAFFF,
+    0x875F5FFF, 0xFFAF5FFF, 0xD7AF00FF, 0xD7D75FFF, 0xAFFF00FF, 0x5F875FFF, 0x5FFF87FF, 0x00FFAFFF, 0x5F8787FF, 0x00AFFFFF, 0x005FFFFF, 0x5F5FD7FF, 0x5F00FFFF, 0xD700D7FF, 0xD75FD7FF, 0xD75F87FF,
+    0xD70000FF, 0xD7875FFF, 0xAF8700FF, 0xAFAF5FFF, 0x87FF00FF, 0x5FD700FF, 0x87AF87FF, 0x00FFD7FF, 0x00D7D7FF, 0x0087FFFF, 0x0000FFFF, 0x8787AFFF, 0x8700FFFF, 0x8700AFFF, 0xFF00D7FF, 0xAF5F87FF,
+    0xAF0000FF, 0xAF875FFF, 0x875F00FF, 0xD7FF00FF, 0x87D700FF, 0x00D700FF, 0x5FD787FF, 0x00D787FF, 0x00AFAFFF, 0x00AFD7FF, 0x005FD7FF, 0x875FD7FF, 0xAF00FFFF, 0xAF00AFFF, 0xFF00AFFF, 0xFF0087FF,
+    0x870000FF, 0xFF5F00FF, 0x878700FF, 0x87875FFF, 0x87AF00FF, 0x00AF00FF, 0x5FAF87FF, 0x00D7AFFF, 0x008787FF, 0x0087D7FF, 0x000087FF, 0x5F5FAFFF, 0x5F00D7FF, 0x5F0087FF, 0xD700AFFF, 0xFF005FFF,
+    0x800000FF, 0xFF8700FF, 0x808000FF, 0xD7D700FF, 0x5FAF00FF, 0x008700FF, 0x00FF5FFF, 0x00AF5FFF, 0x008080FF, 0x0087AFFF, 0x000080FF, 0x5F5F87FF, 0x8700D7FF, 0x870087FF, 0xAF0087FF, 0xD70087FF,
+    0x5F0000FF, 0xD75F00FF, 0x5F5F00FF, 0xAFD700FF, 0x5F8700FF, 0x008000FF, 0x00D75FFF, 0x00AF87FF, 0x005F5FFF, 0x005FAFFF, 0x00005FFF, 0x0000D7FF, 0x5F00AFFF, 0x800080FF, 0x87005FFF, 0xD7005FFF,
+    0x00000000, 0xAF5F00FF, 0x00000000, 0xAFAF00FF, 0x00000000, 0x005F00FF, 0x00000000, 0x00875FFF, 0x00000000, 0x005F87FF, 0x00000000, 0x0000AFFF, 0x00000000, 0x5F005FFF, 0x00000000, 0xAF005FFF,
+};
 
-    count = min_branched(count, 1024);
-
-    for (int32 i = 0; i < count; ++i) {
-        bool duplicate = false;
-        for (int32 j = 0; j < i; ++j) {
-            if (colors[j] == colors[i]) {
-                duplicate = true;
-                break;
-            }
-        }
-
-        if (duplicate) {
-            continue;
-        }
-
-        f32 h = 0.0f, s = 0.0f, v = 0.0f;
-        ui_color_to_hsv(colors[i], &h, &s, &v);
-
-        if (s < 0.1f) {
-            greys[grey_count++] = (int16) i;
-        } else {
-            chroma[chroma_count++] = (int16) i;
-        }
-    }
-
-    // Insertion sort by key (ascending)
-    auto sort_by_key = [&](int16* const items, int32 n) {
-        for (int32 i = 1; i < n; ++i) {
-            const int16 item = items[i];
-            const f32 key = keys[item];
-
-            int32 j = i - 1;
-            while (j >= 0 && keys[items[j]] > key) {
-                items[j + 1] = items[j];
-                --j;
-            }
-
-            items[j + 1] = item;
-        }
-    };
-
-    // Greys: dark -> light
-    for (int32 i = 0; i < grey_count; ++i) {
-        f32 h = 0.0f, s = 0.0f, v = 0.0f;
-        ui_color_to_hsv(colors[greys[i]], &h, &s, &v);
-        keys[greys[i]] = v;
-    }
-
-    sort_by_key(greys, grey_count);
-
-    // Colors: by hue
-    for (int32 i = 0; i < chroma_count; ++i) {
-        f32 h = 0.0f, s = 0.0f, v = 0.0f;
-        ui_color_to_hsv(colors[chroma[i]], &h, &s, &v);
-        keys[chroma[i]] = h;
-    }
-
-    sort_by_key(chroma, chroma_count);
-
-    // Every column gets the same amount of colors, a column goes from light (top) to dark (bottom)
-    for (int32 i = 0; i < chroma_count; ++i) {
-        f32 h = 0.0f, s = 0.0f, v = 0.0f;
-        ui_color_to_hsv(colors[chroma[i]], &h, &s, &v);
-        keys[chroma[i]] = -(v * (1.0f - s * 0.5f)); // hsl lightness, descending
-    }
-
-    int32 rows = 0;
-    for (int32 c = 0; c < UI_COLOR_PALETTE_COLUMNS; ++c) {
-        const int32 start = c * chroma_count / UI_COLOR_PALETTE_COLUMNS;
-        const int32 end = (c + 1) * chroma_count / UI_COLOR_PALETTE_COLUMNS;
-        sort_by_key(chroma + start, end - start);
-        rows = max_branched(rows, end - start);
-    }
-
-    // Grid
-    int32 cell = 0;
-    const int32 grey_cells = ((grey_count + UI_COLOR_PALETTE_COLUMNS - 1) / UI_COLOR_PALETTE_COLUMNS)
-        * UI_COLOR_PALETTE_COLUMNS;
-
-    for (; cell < grey_cells; ++cell) {
-        order[cell] = cell < grey_count ? greys[cell] : -1;
-    }
-
-    for (int32 r = 0; r < rows; ++r) {
-        for (int32 c = 0; c < UI_COLOR_PALETTE_COLUMNS; ++c) {
-            const int32 start = c * chroma_count / UI_COLOR_PALETTE_COLUMNS;
-            const int32 end = (c + 1) * chroma_count / UI_COLOR_PALETTE_COLUMNS;
-
-            order[cell++] = start + r < end ? chroma[start + r] : -1;
-        }
-    }
-
-    return cell;
-}
-
-// Palette index of a grid cell (-1 = empty cell)
+// Amount of grid cells of the palette
 FORCE_INLINE
-int32 ui_color_picker_cell_index(const UILayout* const layout, const UIColorPicker* const picker, int32 cell) NO_EXCEPT
+int32 ui_color_picker_cell_count(const UIColorPicker* const picker) NO_EXCEPT
 {
-    if (cell < 0 || cell >= picker->palette_cells) {
-        return -1;
+    return picker->palette ? picker->palette_count : (int32) ARRAY_COUNT(UI_COLOR_PALETTE_ANSI);
+}
+
+// Color of a grid cell (0 = empty cell or outside of the palette)
+FORCE_INLINE
+uint32 ui_color_picker_cell_color(const UILayout* const layout, const UIColorPicker* const picker, int32 cell) NO_EXCEPT
+{
+    if (cell < 0 || cell >= ui_color_picker_cell_count(picker)) {
+        return 0;
     }
 
-    return ((const int16 *) (layout->ui_element_buffer.memory + picker->palette_order))[cell];
+    return picker->palette
+        ? ((const uint32 *) (layout->ui_element_buffer.memory + picker->palette))[cell]
+        : UI_COLOR_PALETTE_ANSI[cell];
 }
 
 // Writes the rgba values into the input fields (except the one that is currently edited)
@@ -415,7 +296,9 @@ bool ui_color_picker_inputs_changed(UILayout* const layout, UIColorPicker* const
 
 /**
  * @param type UIColorPickerType
- * @param palette Palette colors (rgba), NULL = 256 ansi colors (only used by UI_COLOR_PICKER_TYPE_PALETTE)
+ * @param palette Palette colors (rgba) in display order: UI_COLOR_PALETTE_COLUMNS cells per row, 0 = empty cell
+ *                NULL = ansi colors (UI_COLOR_PALETTE_ANSI), only used by UI_COLOR_PICKER_TYPE_PALETTE
+ * @param palette_count Amount of cells
  * @param parent NULL = root
  */
 inline
@@ -457,28 +340,7 @@ UIColorPicker* ui_color_picker_create(
     picker->panel = ui_element_offset(layout, panel);
 
     if (type == UI_COLOR_PICKER_TYPE_PALETTE) {
-        // Display order (gradient)
-        const int32 count = min_branched(
-            picker->palette ? picker->palette_count : 256,
-            1024
-        );
-        uint32 colors[1024];
-        for (int32 i = 0; i < count; ++i) {
-            colors[i] = ui_color_picker_palette_color(layout, picker, i);
-        }
-
-        int16 order[1024 + 2 * UI_COLOR_PALETTE_COLUMNS];
-        const int32 cells = ui_color_palette_order(colors, count, order);
-
-        picker->palette_order = ui_text_reserve(
-            layout,
-            CHAR_TYPE_CHAR,
-            max_branched(cells, 1) * (int32) sizeof(int16)
-        );
-        memcpy(layout->ui_element_buffer.memory + picker->palette_order, order, cells * sizeof(int16));
-        picker->palette_cells = (int16) cells;
-
-        const int32 rows = cells / UI_COLOR_PALETTE_COLUMNS;
+        const int32 rows = (ui_color_picker_cell_count(picker) + UI_COLOR_PALETTE_COLUMNS - 1) / UI_COLOR_PALETTE_COLUMNS;
         panel->core.dimension.dim_raw = {
             UI_COLOR_PALETTE_COLUMNS * UI_COLOR_PALETTE_CELL,
             (f32) rows * UI_COLOR_PALETTE_CELL
@@ -569,7 +431,7 @@ int32 ui_color_panel_cell_at(const UILayout* const layout, const UIColorPanel* c
     const int32 cell = row * UI_COLOR_PALETTE_COLUMNS + column;
 
     return column < UI_COLOR_PALETTE_COLUMNS
-        && ui_color_picker_cell_index(layout, picker, cell) >= 0 ? cell : -1;
+        && ui_color_picker_cell_color(layout, picker, cell) ? cell : -1;
 }
 
 inline
@@ -653,17 +515,12 @@ inline
 bool ui_color_panel_pick(UILayout* const layout, UIColorPanel* const panel, f32 x, f32 y) NO_EXCEPT
 {
     UIColorPicker* const picker = (UIColorPicker *) ui_element_get(layout, panel->picker);
-    const int32 index = ui_color_picker_cell_index(
-        layout,
-        picker,
-        ui_color_panel_cell_at(layout, panel, x, y)
-    );
-
-    if (index < 0) {
+    const uint32 color = ui_color_picker_cell_color(layout, picker, ui_color_panel_cell_at(layout, panel, x, y));
+    if (!color) {
         return false;
     }
 
-    return ui_color_picker_set(layout, picker, ui_color_picker_palette_color(layout, picker, index));
+    return ui_color_picker_set(layout, picker, color);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -747,9 +604,10 @@ void ui_color_panel_cache(
 
     if (picker->picker_type == UI_COLOR_PICKER_TYPE_PALETTE) {
         // Cells in display order
-        for (int32 cell = 0; cell < picker->palette_cells; ++cell) {
-            const int32 index = ui_color_picker_cell_index(layout, picker, cell);
-            if (index < 0) {
+        const int32 cells = ui_color_picker_cell_count(picker);
+        for (int32 cell = 0; cell < cells; ++cell) {
+            const uint32 color = ui_color_picker_cell_color(layout, picker, cell);
+            if (!color) {
                 continue;
             }
 
@@ -759,7 +617,7 @@ void ui_color_panel_cache(
                     dim->pos.y - (f32) (cell / UI_COLOR_PALETTE_COLUMNS) * UI_COLOR_PALETTE_CELL,
                     UI_COLOR_PALETTE_CELL - 1.0f, UI_COLOR_PALETTE_CELL - 1.0f
                 },
-                ui_color_picker_palette_color(layout, picker, index), vertices, indices, *zindex
+                color, vertices, indices, *zindex
             );
         }
 
@@ -767,10 +625,9 @@ void ui_color_panel_cache(
         for (int32 pass = 0; pass < 2; ++pass) {
             *zindex = camera_step_closer(gpu_api_type, *zindex);
 
-            for (int32 cell = 0; cell < picker->palette_cells; ++cell) {
-                const int32 index = ui_color_picker_cell_index(layout, picker, cell);
+            for (int32 cell = 0; cell < cells; ++cell) {
                 const bool show = pass == 0
-                    ? index >= 0 && ui_color_picker_palette_color(layout, picker, index) == picker->color
+                    ? picker->color && ui_color_picker_cell_color(layout, picker, cell) == picker->color
                     : cell == panel->hovered;
 
                 if (!show) {
