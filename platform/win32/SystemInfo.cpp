@@ -559,9 +559,7 @@ void os_info_get(OSInfo* const info) {
     info->vendor[15] = '\0';
     info->name[63] = '\0';
 
-    OSVERSIONINFOEXW version_info;
-    memset(&version_info, 0, sizeof(OSVERSIONINFOEXW));
-
+    OSVERSIONINFOEXW version_info = {0};
     version_info.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEXW);
 
     RtlGetVersion(&version_info);
