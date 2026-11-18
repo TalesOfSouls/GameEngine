@@ -29,9 +29,9 @@ struct SqliteStatement {
 /**
  * Prepare a statement
  *
- * @param DatabaseConnection* con      Connection
- * @param const char*         sql      SQL
- * @param SqliteStatement*    statement Prepared statement
+ * @param DatabaseConnection*   con         Connection
+ * @param const char*           sql         SQL
+ * @param SqliteStatement*      statement   Prepared statement
  *
  * @return int32 0 on success, sqlite error code otherwise
  */

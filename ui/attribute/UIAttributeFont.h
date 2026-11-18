@@ -11,12 +11,9 @@ enum UIFontDecoration : byte {
 
 // Only contains what the text rendering actually uses
 // Outline/weight/shadow can be added again once the text rendering supports them
-// 16 bytes
+// 12 bytes (2 bytes padding)
 struct UIAttributeFont {
     f32 size;
-
-    // 0 = use the line height of the font
-    f32 line_height;
 
     // RGBA
     uint32 color;

@@ -71,7 +71,7 @@ bool rawinput_extract_vid_pid(
  * Remember one physical device may have multiple logical devices (e.g. additional keys = additional keyboard)
  * They all have the same id -> we group them together as one device
  *
- * @param out_id 32 characters, zero filled
+ * @param wchar_t* out_id 32 characters, zero filled
  */
 static inline
 bool rawinput_device_id(
@@ -107,7 +107,7 @@ bool rawinput_device_id(
 /**
  * Adds a keyboard/mouse to an input
  *
- * @return Input index (-1 = not added)
+ * @return int32 Input index (-1 = not added)
  */
 static
 int32 rawinput_kbm_add(
@@ -187,7 +187,7 @@ int32 rawinput_kbm_add(
 /**
  * Adds a controller (only used if raw input is the controller api)
  *
- * @return Input index (-1 = not added)
+ * @return int32 Input index (-1 = not added)
  */
 static
 int32 rawinput_controller_add(
@@ -244,10 +244,10 @@ int32 rawinput_controller_add(
 /**
  * Adds a raw input device (e.g. GIDC_ARRIVAL)
  *
- * @param controllers       Also add controllers (= raw input is the controller api)
- * @param preferred_types   Which InputType is preferred for which state
+ * @param bool          controllers     Also add controllers (= raw input is the controller api)
+ * @param const byte*   preferred_types Which InputType is preferred for which state
  *
- * @return Input index the device was added to (-1 = not added, e.g. already known)
+ * @return int32 Input index the device was added to (-1 = not added, e.g. already known)
  */
 int32 rawinput_device_add(
     Input* const __restrict states, int32 count,
@@ -289,9 +289,9 @@ int32 rawinput_device_add(
  *
  * The active keys of the device are released (no stuck keys)
  *
- * @param kind Kind of the removed device (output, optional)
+ * @param InputDeviceKind* kind Kind of the removed device (output, optional)
  *
- * @return Input index the device was removed from (-1 = unknown device)
+ * @return int32 Input index the device was removed from (-1 = unknown device)
  */
 int32 rawinput_device_remove(
     Input* const __restrict states, int32 count,
@@ -354,7 +354,7 @@ int32 rawinput_device_remove(
 /**
  * Adds all present raw input devices
  *
- * @return Amount of devices added
+ * @return int32 Amount of devices added
  */
 static
 int32 rawinput_devices_add_all(
@@ -393,7 +393,7 @@ int32 rawinput_devices_add_all(
  *
  * The registration also happens if no device is present -> devices connected later on are handled
  *
- * @return false = raw input couldn't be registered (-> use polling)
+ * @return bool false = raw input couldn't be registered (-> use polling)
  */
 bool rawinput_kbm_init(
     HWND hwnd,
@@ -432,7 +432,7 @@ bool rawinput_kbm_init(
  * WARNING: While this works we highly recommend to use hid_init_controllers
  *          Many controllers constantly send reports (gyro etc.) -> floods the raw input buffer
  *
- * @return Amount of controllers found
+ * @return int32 Amount of controllers found
  */
 int32 rawinput_init_controllers(
     HWND hwnd,
@@ -550,7 +550,7 @@ uint32 rawinput_key_to_text_control(byte vkey) NO_EXCEPT
  *
  * Only call this while typing (HOTKEY_CONTEXT_TYPING), the conversion is not free and may change the dead key state
  *
- * @return true if the key is a text key (the caller should set INPUT_KEY_FLAG_TEXT on the active key)
+ * @return bool true if the key is a text key (the caller should set INPUT_KEY_FLAG_TEXT on the active key)
  */
 inline
 bool input_text_add(InputState* const __restrict state, const InputKey* const __restrict key) NO_EXCEPT

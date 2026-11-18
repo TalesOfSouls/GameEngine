@@ -10,8 +10,8 @@
 /**
  * Calculates pos/dim from pos_raw/dim_raw relative to the parent
  *
- * @param content_dim Natural size of the content (e.g. text or image size)
- *                    Used for every axis where dim_raw is 0 and the axis is not relative
+ * @param v2_f32 content_dim Natural size of the content (e.g. text or image size)
+ *                           Used for every axis where dim_raw is 0 and the axis is not relative
  *
  * @see UIAlignment.h for the coordinate system
  */

@@ -129,8 +129,8 @@ uint32 session_registry_active_count(const AuthSessionRegistry* const __restrict
 /**
  * Find a session slot for a session id
  *
- * @param const AuthSessionRegistry* registry Registry
- * @param uint64                     session_id Session id
+ * @param const AuthSessionRegistry*    registry    Registry
+ * @param uint64                        session_id  Session id
  *
  * @return AuthSession* Session or NULL
  */

@@ -28,7 +28,7 @@
  * @param int32     payload_size    Echo payload size in bytes
  * @param int32     timeout         Timeout in milliseconds
  *
- * @return -1 on error, 0 on timeout, round trip time in ms on success
+ * @return int32 -1 on error, 0 on timeout, round trip time in ms on success
  */
 static inline
 int32 ping_ipv4(IPAddr address, int32 payload_size, int32 timeout) NO_EXCEPT
@@ -96,7 +96,7 @@ int32 ping_ipv4(IPAddr address, int32 payload_size, int32 timeout) NO_EXCEPT
  * @param int32                 payload_size    Echo payload size in bytes
  * @param int32                 timeout         Timeout in milliseconds
  *
- * @return -1 on error, 0 on timeout, round trip time in ms on success
+ * @return int32 -1 on error, 0 on timeout, round trip time in ms on success
  */
 static inline
 int32 ping_ipv6(const SOCKADDR_IN6* const address, int32 payload_size, int32 timeout) NO_EXCEPT
@@ -174,7 +174,7 @@ int32 ping_ipv6(const SOCKADDR_IN6* const address, int32 payload_size, int32 tim
  * @param int32         payload_size    Echo payload size in bytes
  * @param int32         timeout         Timeout in milliseconds
  *
- * @return -1 on error, 0 on timeout, round trip time in ms on success
+ * @return int32 -1 on error, 0 on timeout, round trip time in ms on success
  */
 static inline
 int32 ping_host(const char* const host, int32 payload_size, int32 timeout = 2000) NO_EXCEPT

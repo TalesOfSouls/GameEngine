@@ -8,8 +8,8 @@
 /**
  * Calculates the time of the day
  *
- * @param f64 time Can be any reference value, as long as it increments every second
- * @param f32 day_length The length of a day in seconds
+ * @param f64   time        Can be any reference value, as long as it increments every second
+ * @param f32   day_length  The length of a day in seconds
  *
  * @return f32 A day time ranging from 0.0 to 1.0
  */
@@ -23,8 +23,8 @@ f32 time_of_day(f64 time, f32 day_length) {
 /**
  * Calculates a daylight intensity based on the time of the day
  *
- * @param f64 time Can be any reference value, as long as it increments every second
- * @param f32 day_length The length of a day in seconds
+ * @param f64   time        Can be any reference value, as long as it increments every second
+ * @param f32   day_length  The length of a day in seconds
  *
  * @return f32 Light intensity
  */

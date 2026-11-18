@@ -250,7 +250,7 @@ uint64 system_app_memory_usage()
  *
  * The locale is parsed once per thread because it can't change while the process runs
  *
- * @return Locale name character pair, 0 = unknown
+ * @return uint16 Locale name character pair, 0 = unknown
  */
 static inline
 uint16 system_locale_code(int32 offset) NO_EXCEPT
@@ -295,7 +295,7 @@ struct WmiConnection {
 /**
  * Opens a WMI connection to ROOT\CIMV2, the caller has to call wmi_disconnect() when done
  *
- * @return false if COM or WMI isn't available, connection is unusable then
+ * @return bool false if COM or WMI isn't available, connection is unusable then
  */
 static inline
 bool wmi_connect(WmiConnection* const connection) NO_EXCEPT
@@ -609,7 +609,7 @@ void ram_info_get(RamInfo* const info) {
  *      BankLabel:      "P0 CHANNEL A", "CHANNEL B"
  *      DeviceLocator:  "ChannelA-DIMM0", "DIMM_A1", "DIMMB2"
  *
- * @return Channel letter ('A', 'B', ...), 0 = unknown
+ * @return wchar_t Channel letter ('A', 'B', ...), 0 = unknown
  */
 static inline
 wchar_t ram_module_channel(const wchar_t* str) NO_EXCEPT
@@ -862,8 +862,8 @@ void display_monitor_from_mode(DisplayMonitor* const __restrict monitor, const w
 /**
  * Name + desktop rectangle of a monitor
  *
- * @param int32 index Index of the monitor (same order as display_info_get), -1 = primary monitor
- * @param DisplayMonitor* monitor Monitor (output)
+ * @param int32             index   Index of the monitor (same order as display_info_get), -1 = primary monitor
+ * @param DisplayMonitor*   monitor Monitor (output)
  *
  * @return bool false if the monitor doesn't exist
  */
@@ -906,8 +906,8 @@ bool display_monitor_get(int32 index, DisplayMonitor* const monitor) NO_EXCEPT
 /**
  * Current desktop rectangle of a monitor by its name (e.g. after its resolution was changed)
  *
- * @param const char* name Monitor name (name)
- * @param DisplayMonitor* monitor Monitor (output)
+ * @param const char*       name    Monitor name (name)
+ * @param DisplayMonitor*   monitor Monitor (output)
  *
  * @return bool false if the monitor doesn't exist
  */
@@ -931,9 +931,9 @@ bool display_monitor_by_name(const char* const name, DisplayMonitor* const monit
 /**
  * Changes the resolution of a monitor until display_resolution_restore (fullscreen mode)
  *
- * @param const char* name Monitor name (name)
- * @param int32 width Width in pixels
- * @param int32 height Height in pixels
+ * @param const char*   name    Monitor name (name)
+ * @param int32         width   Width in pixels
+ * @param int32         height  Height in pixels
  *
  * @return bool false if the monitor doesn't support the resolution
  */

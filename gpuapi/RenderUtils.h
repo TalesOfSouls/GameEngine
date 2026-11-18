@@ -375,7 +375,7 @@ f32 text_calculate_dimensions_height(
  *      UI_ALIGN_H_RIGHT:   dimension.x = right side of the text (widest line)
  *      UI_ALIGN_H_CENTER:  dimension.x = horizontal center of the text (widest line)
  *
- * @return Text dimension (width of the widest line, height of all lines)
+ * @return v2_f32 Text dimension (width of the widest line, height of all lines)
  */
 HOT_CODE
 v2_f32 vertex_text_create(

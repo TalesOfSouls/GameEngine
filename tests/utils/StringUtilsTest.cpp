@@ -396,6 +396,34 @@ static void test_str_length_and_str_right()
     TEST_TRUE(wcscmp(wlast_slash, L"/c") == 0);
 }
 
+static void test_utf8_prev_next()
+{
+    // "a" (1 byte), U+00E4 (2 bytes), U+20AC (3 bytes), U+1F600 (4 bytes), "b"
+    const char text[] = "a\xC3\xA4\xE2\x82\xAC\xF0\x9F\x98\x80" "b";
+    const int32 length = (int32) sizeof(text) - 1;
+    TEST_EQUALS(length, 11);
+
+    // Forward: character starts 0, 1, 3, 6, 10, end 11
+    TEST_EQUALS(utf8_next(text, 0, length), 1);
+    TEST_EQUALS(utf8_next(text, 1, length), 3);
+    TEST_EQUALS(utf8_next(text, 3, length), 6);
+    TEST_EQUALS(utf8_next(text, 6, length), 10);
+    TEST_EQUALS(utf8_next(text, 10, length), 11);
+    TEST_EQUALS(utf8_next(text, 11, length), 11);
+
+    // Backward
+    TEST_EQUALS(utf8_prev(text, 11), 10);
+    TEST_EQUALS(utf8_prev(text, 10), 6);
+    TEST_EQUALS(utf8_prev(text, 6), 3);
+    TEST_EQUALS(utf8_prev(text, 3), 1);
+    TEST_EQUALS(utf8_prev(text, 1), 0);
+    TEST_EQUALS(utf8_prev(text, 0), 0);
+
+    // From inside of a character: start of that character (prev) / start of the next character (next)
+    TEST_EQUALS(utf8_prev(text, 8), 6);
+    TEST_EQUALS(utf8_next(text, 7, length), 10);
+}
+
 static void test_str_copy_and_copy_until()
 {
     alignas(size_t) char aligned_src[64] = "hello";
@@ -1108,6 +1136,7 @@ int main() {
     TEST_RUN(test_int_to_str_wchar_and_thousands);
     TEST_RUN(test_str_length_and_str_right);
     TEST_RUN(test_str_copy_and_copy_until);
+    TEST_RUN(test_utf8_prev_next);
     TEST_RUN(test_str_append_concat_insert_remove);
     TEST_RUN(test_str_count_and_contains);
     TEST_RUN(test_str_compare_caseless_and_ends_with);

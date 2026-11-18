@@ -16,7 +16,7 @@
 #define UI_SLIDER_TRACK_HEIGHT 4.0f
 
 /**
- * @param parent NULL = root
+ * @param UICore* parent NULL = root
  */
 inline
 UISlider* ui_slider_create(UILayout* const layout, f32 value = 0.0f, UICore* parent = NULL) NO_EXCEPT
@@ -36,7 +36,7 @@ UISlider* ui_slider_create(UILayout* const layout, f32 value = 0.0f, UICore* par
 }
 
 /**
- * @return true if the value changed
+ * @return bool true if the value changed
  */
 inline
 bool ui_slider_set(UILayout* const layout, UISlider* const slider, f32 value) NO_EXCEPT
@@ -78,7 +78,7 @@ f32 ui_slider_get(UILayout* const layout, SimpleString<const char> name) NO_EXCE
 /**
  * Sets the value from a pointer x position (ui coordinates)
  *
- * @return true if the value changed
+ * @return bool true if the value changed
  */
 inline
 bool ui_slider_set_from_position(UILayout* const layout, UISlider* const slider, f32 x) NO_EXCEPT

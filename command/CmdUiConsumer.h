@@ -82,7 +82,7 @@ struct CmdThemeAssets {
  *      3. otherwise the asset is loaded from its archive (incl. the texture)
  * An asset that is not defined by the theme stays NULL (-> the ui uses the font/atlas of another theme)
  *
- * @return false if a defined asset couldn't be loaded
+ * @return bool false if a defined asset couldn't be loaded
  */
 inline
 bool cmd_theme_assets_load_sync(
@@ -147,8 +147,8 @@ bool cmd_theme_assets_load_sync(
  *
  * WARNING: theme->data and theme->data_size need to be set
  *
- * @param language_code e.g. L"en_US", NULL = LANGUAGE_DEFAULT_CODE
- * @param assets        Where the assets are loaded from, NULL = the assets are not loaded (e.g. tools)
+ * @param const wchar_t*        language_code   e.g. L"en_US", NULL = LANGUAGE_DEFAULT_CODE
+ * @param const CmdThemeAssets* assets          Where the assets are loaded from, NULL = the assets are not loaded (e.g. tools)
  */
 inline
 UITheme* cmd_theme_load_sync(

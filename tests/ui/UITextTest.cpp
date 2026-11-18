@@ -128,7 +128,7 @@ static void test_ui_label_text_length() {
     const int32 old_content = label->content;
     TEST_TRUE(ui_label_set_text(&layout, label, "A much longer text"));
     TEST_TRUE(label->content != old_content);
-    TEST_EQUALS(label->content_length, 19);
+    TEST_EQUALS(ui_string_max_length(&layout, label->content), 18);
     TEST_UI_STRING(&layout, label->content, "A much longer text");
 
     // Known length
@@ -261,7 +261,7 @@ static void test_ui_input_edit_length() {
     TEST_UI_STRING(&layout, input->content, "eXYll");
 
     // Word wise delete (ctrl + backspace/delete)
-    ui_input_set_text(&layout, input, "one two three");
+    ui_input_set_text(&layout, input, simple_string_literal<const char>("one two three"));
     TEST_TRUE(ui_input_handle_code(NULL, &layout, input, INPUT_TEXT_BACKSPACE | INPUT_TEXT_MOD_CTRL));
     TEST_UI_STRING(&layout, input->content, "one two ");
     TEST_TRUE(ui_input_handle_code(NULL, &layout, input, INPUT_TEXT_HOME));
@@ -276,21 +276,21 @@ static void test_ui_input_edit_length() {
     TEST_UI_STRING(&layout, input->content, "Z");
 
     // Shift selection + backspace deletes the selection
-    ui_input_set_text(&layout, input, "abcdef");
+    ui_input_set_text(&layout, input, simple_string_literal<const char>("abcdef"));
     TEST_TRUE(ui_input_handle_code(NULL, &layout, input, INPUT_TEXT_LEFT | INPUT_TEXT_MOD_SHIFT));
     TEST_TRUE(ui_input_handle_code(NULL, &layout, input, INPUT_TEXT_LEFT | INPUT_TEXT_MOD_SHIFT));
     TEST_TRUE(ui_input_handle_code(NULL, &layout, input, INPUT_TEXT_BACKSPACE));
     TEST_UI_STRING(&layout, input->content, "abcd");
 
     // Full input: additional characters are ignored
-    ui_input_set_text(&layout, input, "0123456789ABCDEF");
+    ui_input_set_text(&layout, input, simple_string_literal<const char>("0123456789ABCDEF"));
     ui_text_test_type(&layout, input, "G");
     TEST_UI_STRING(&layout, input->content, "0123456789ABCDEF");
 
     // The selection helpers use the stored length
     ui_input_select_all(&layout, input);
     TEST_EQUALS(input->caret, 16);
-    ui_input_set_text(&layout, input, "foo bar");
+    ui_input_set_text(&layout, input, simple_string_literal<const char>("foo bar"));
     ui_input_select_word(&layout, input, 5);
     TEST_EQUALS(input->selection_anchor, 4);
     TEST_EQUALS(input->caret, 7);
@@ -316,7 +316,7 @@ static void test_ui_text_length_to_from_data() {
     const int32 label_offset = ui_element_offset(&layout, label);
 
     UIInput* const input = ui_input_create(&layout, 16);
-    ui_input_set_text(&layout, input, "Input");
+    ui_input_set_text(&layout, input, simple_string_literal<const char>("Input"));
     const int32 input_offset = ui_element_offset(&layout, input);
 
     byte* const out = (byte *) platform_alloc_aligned(2 * MEGABYTE, 2 * MEGABYTE, 64);

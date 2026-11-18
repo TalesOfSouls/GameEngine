@@ -95,9 +95,9 @@ void xinput_free() NO_EXCEPT
 /**
  * Checks all xinput slots that are not assigned yet and assigns connected controllers to an input
  *
- * @param preferred_types Which InputType is preferred for which state
+ * @param const byte* preferred_types Which InputType is preferred for which state
  *
- * @return Bit field of the inputs that got a new controller
+ * @return uint32 Bit field of the inputs that got a new controller
  */
 uint32 xinput_controllers_scan(
     Input* const __restrict states, int32 count,
@@ -227,7 +227,7 @@ void input_map_xinput(ControllerInput* const __restrict controller, const XINPUT
 /**
  * Polls the controller state
  *
- * @return false = controller disconnected (the caller must disconnect the controller)
+ * @return bool false = controller disconnected (the caller must disconnect the controller)
  */
 inline
 bool xinput_controller_poll(Input* const input, uint64 time) NO_EXCEPT

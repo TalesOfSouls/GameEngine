@@ -143,9 +143,9 @@ bool input_device_slot_is_free(const Input* const input, InputDeviceKind kind) N
  *
  * Reconnects of known devices are handled by the caller (device name/id matching)
  *
- * @param preferred_types Which InputType is preferred for which state
+ * @param const byte* preferred_types Which InputType is preferred for which state
  *
- * @return Input index (-1 = no input available)
+ * @return int32 Input index (-1 = no input available)
  */
 inline
 int32 input_state_assign(
@@ -263,7 +263,7 @@ void input_release_keys(Input* const input, InputDeviceKind kind) NO_EXCEPT
 /**
  * Adds a handle to a kbm device
  *
- * @return false if the handle list is full
+ * @return bool false if the handle list is full
  */
 inline
 bool input_kbm_handle_add(KBMDevice* const device, InputHandle handle) NO_EXCEPT
@@ -285,7 +285,7 @@ bool input_kbm_handle_add(KBMDevice* const device, InputHandle handle) NO_EXCEPT
 /**
  * Removes a handle from a kbm device and keeps the list compact
  *
- * @return true if the handle was found
+ * @return bool true if the handle was found
  */
 inline
 bool input_kbm_handle_remove(KBMDevice* const device, InputHandle handle) NO_EXCEPT
@@ -555,11 +555,11 @@ int32 hotkey_key_count(const Hotkey* const key) NO_EXCEPT
  * Useful for hotkeys that need the full press/hold/release cycle (e.g. ui pointer button, drag & drop)
  * Both mappings are checked, the first mapping where all keys are active wins
  *
- * @return KeyPressType flags:
- *      PRESSED  = all keys are down and at least one went down this tick
- *      HELD     = all keys are down
- *      RELEASED = all keys are active and at least one went up this tick
- *      0        = not active
+ * @return byte KeyPressType flags:
+ *           PRESSED  = all keys are down and at least one went down this tick
+ *           HELD     = all keys are down
+ *           RELEASED = all keys are active and at least one went up this tick
+ *           0        = not active
  */
 inline
 byte input_hotkey_key_state(const Input* const input, uint16 hotkey) NO_EXCEPT
@@ -617,7 +617,7 @@ bool input_hotkey_is_down(const Input* const input, uint16 hotkey) NO_EXCEPT
 /**
  * Value of the first key of a hotkey (e.g. mouse wheel delta, stick deflection)
  *
- * @return 0 if the hotkey is not active
+ * @return int16 0 if the hotkey is not active
  */
 inline
 int16 input_hotkey_value(const Input* const input, uint16 hotkey, int16* const scan_code = NULL) NO_EXCEPT
@@ -748,7 +748,7 @@ void hotkey_set_processed(
 /**
  * Applies a key event to the active keys
  *
- * @return The active key (NULL if all key slots are in use)
+ * @return InputKey* The active key (NULL if all key slots are in use)
  */
 inline HOT_CODE
 InputKey* input_set_state(
@@ -847,7 +847,7 @@ void input_controller_axes_default(Input* const input) NO_EXCEPT
  * Current value of a controller axis (-128 - 127), 0 if it is inside the deadzone or not mapped
  * The axes are active keys with absolute values (@see input_set_controller_state)
  *
- * @param button ControllerButton (e.g. Input::controller_axes[0])
+ * @param uint32 button ControllerButton (e.g. Input::controller_axes[0])
  */
 inline
 int32 input_controller_axis_value(const Input* const input, uint32 button) NO_EXCEPT
@@ -893,7 +893,7 @@ f32 input_controller_axis_speed(int32 value, int32 deadzone) NO_EXCEPT
 /**
  * Splits a stick axis into its two directions (0 - 127 each)
  *
- * @param negative Direction of negative values (up for vertical axes, left for horizontal axes)
+ * @param ControllerButton negative Direction of negative values (up for vertical axes, left for horizontal axes)
  */
 static inline
 void input_controller_axis_split(
@@ -1231,7 +1231,7 @@ uint32 input_get_typed_character(InputState* state, uint64 time, uint64 dt) NO_E
 /**
  * Runs the events of the active hotkeys
  *
- * @param input_id Index of the input (passed to the event callbacks)
+ * @param int32 input_id Index of the input (passed to the event callbacks)
  */
 inline
 void input_hotkeys_handle(const Input* const input, void* data, int32 input_id = 0) NO_EXCEPT

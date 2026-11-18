@@ -159,8 +159,8 @@ T* hashmap_slot_create(HashMapT<T>* const hm, uint32 hash) NO_EXCEPT
 /**
  * Finds a string entry
  *
- * @param key    Stored key part (@see hashmap_str_key)
- * @param length Length of the stored key part
+ * @param const char*   key     Stored key part (@see hashmap_str_key)
+ * @param int32         length  Length of the stored key part
  */
 template <typename T>
 FORCE_INLINE

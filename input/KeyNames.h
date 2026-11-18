@@ -102,7 +102,7 @@ static const SimpleString<char> _input_controller_names[CONTROLLER_BUTTON_SIZE] 
 /**
  * Name of a single key incl. its length (with device prefix, e.g. INPUT_KEYBOARD_PREFIX | KEY_SCAN_CODE_W)
  *
- * @return {0, 0, NULL} for unknown keys
+ * @return SimpleString<char> {0, 0, NULL} for unknown keys
  */
 inline
 SimpleString<char> input_key_name_string(int32 key) NO_EXCEPT
@@ -133,12 +133,12 @@ SimpleString<char> input_key_name_string(int32 key) NO_EXCEPT
 /**
  * Text of a key combination, e.g. "Ctrl + S"
  *
- * @param keys      Keys of the combination (0 = unused)
- * @param count     Amount of keys
- * @param out       Output buffer
- * @param out_size  Size of the output buffer (incl. \0)
+ * @param const int16*  keys        Keys of the combination (0 = unused)
+ * @param int32         count       Amount of keys
+ * @param char*         out         Output buffer
+ * @param int32         out_size    Size of the output buffer (incl. \0)
  *
- * @return Length of the text (0 = no keys)
+ * @return int32 Length of the text (0 = no keys)
  */
 inline
 int32 input_key_combination_name(const int16* const keys, int32 count, char* const out, int32 out_size) NO_EXCEPT

@@ -180,10 +180,10 @@ void input_controller_disconnect(Input* const input) NO_EXCEPT
 /**
  * Initializes the controller api and adds all connected controllers
  *
- * @param controller_api    ControllerInputType (in/out), changed if the api is not available (fallback = HID)
- * @param preferred_types   Which InputType is preferred for which state
+ * @param byte*         controller_api  ControllerInputType (in/out), changed if the api is not available (fallback = HID)
+ * @param const byte*   preferred_types Which InputType is preferred for which state
  *
- * @return Amount of controllers found
+ * @return int32 Amount of controllers found
  */
 int32 input_controller_init(
     byte* const __restrict controller_api,
@@ -233,7 +233,7 @@ int32 input_controller_init(
  *
  * This tells the window to receive a WM whenever a input device changes
  *
- * @return Notification handle (NULL = failed)
+ * @return HDEVNOTIFY Notification handle (NULL = failed)
  */
 inline
 HDEVNOTIFY input_device_notification_register(HWND hwnd) NO_EXCEPT
@@ -264,7 +264,7 @@ void input_device_notification_unregister(HDEVNOTIFY* const notification) NO_EXC
  *
  * WARNING: Slow (XInputGetState on empty slots), only call after device changes (e.g. timer after WM_DEVICECHANGE)
  *
- * @return Bit field of the inputs that changed
+ * @return uint32 Bit field of the inputs that changed
  */
 inline
 uint32 input_controllers_rescan(
@@ -283,7 +283,7 @@ uint32 input_controllers_rescan(
 /**
  * Handles WM_INPUT_DEVICE_CHANGE (raw input devices: keyboard, mouse and raw input controllers)
  *
- * @return Bit field of the inputs that changed
+ * @return uint32 Bit field of the inputs that changed
  */
 inline
 uint32 input_raw_device_change(
@@ -317,10 +317,10 @@ uint32 input_raw_device_change(
 /**
  * Handles WM_DEVICECHANGE (hid device interfaces)
  *
- * @param needs_rescan Set to true if input_controllers_rescan() should be called again a little bit later
- *                     (e.g. XInput needs some time until a new controller is available)
+ * @param bool* needs_rescan Set to true if input_controllers_rescan() should be called again a little bit later
+ *                           (e.g. XInput needs some time until a new controller is available)
  *
- * @return Bit field of the inputs that changed
+ * @return uint32 Bit field of the inputs that changed
  */
 uint32 input_hid_device_change(
     WPARAM wparam, LPARAM lparam,
@@ -387,7 +387,7 @@ uint32 input_hid_device_change(
 /**
  * Polls all connected controllers (once per tick, after input_frame_begin)
  *
- * @return Bit field of the inputs whose controller disconnected
+ * @return uint32 Bit field of the inputs whose controller disconnected
  */
 uint32 input_controllers_poll(
     Input* const states, int32 count,

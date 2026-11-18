@@ -19,10 +19,10 @@
 /**
  * Parse response data
  *
- * @param char*  data  Response data
- * @param size_t size  Response size
- * @param count  count Response count
- * @param void*  arg   Parsed data
+ * @param char*     data    Response data
+ * @param size_t    size    Response size
+ * @param size_t    count   count Response count
+ * @param void*     arg     Parsed data
  *
  * @return size_t Parsed data size
  */

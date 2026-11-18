@@ -38,11 +38,11 @@ const char* ui_table_row_string(const UILayout* const layout, const UITable* con
 }
 
 /**
- * @param titles Header titles (one per column)
- * @param row_capacity Max amount of rows
- * @param parent NULL = root
- * @param cell_capacity > 0 = dynamic table with fixed size cells incl. \0
- *                      The memory for all rows (+ footer) is reserved immediately: row_capacity * column_count * cell_capacity
+ * @param const SimpleString<const char>*   titles          Header titles (one per column)
+ * @param int32                             row_capacity    Max amount of rows
+ * @param UICore*                           parent          NULL = root
+ * @param int32                             cell_capacity   > 0 = dynamic table with fixed size cells incl. \0
+ *                                                          The memory for all rows (+ footer) is reserved immediately: row_capacity * column_count * cell_capacity
  */
 inline
 UITable* ui_table_create(
@@ -111,7 +111,7 @@ UITable* ui_table_create(
 }
 
 /**
- * @param fraction Fraction of the table width (all columns should sum up to 1.0)
+ * @param f32 fraction Fraction of the table width (all columns should sum up to 1.0)
  */
 inline
 void ui_table_set_column_width(UILayout* const layout, UITable* const table, int32 column, f32 fraction) NO_EXCEPT
@@ -166,7 +166,7 @@ bool ui_table_cell_copy(UILayout* const layout, const UITable* const table, int3
  * Too long texts are truncated to cell_capacity - 1 bytes
  * Only marks the ui as dirty if the text changed
  *
- * @return true if the text changed
+ * @return bool true if the text changed
  */
 inline
 bool ui_table_set_cell(
@@ -200,7 +200,7 @@ bool ui_table_set_cell(
 /**
  * Same as above but with a known length (e.g. the return value of sprintf_fast)
  *
- * @param length Length in characters excl. \0
+ * @param int32 length Length in characters excl. \0
  */
 inline
 bool ui_table_set_cell(
@@ -254,7 +254,7 @@ void ui_table_set_row_color(UILayout* const layout, UITable* const table, int32 
  * The values are not rendered -> changing them doesn't mark the table as changed
  * The values of hidden rows are kept (like the cell content)
  *
- * @return int32[row_capacity], NULL for static tables
+ * @return int32* int32[row_capacity], NULL for static tables
  */
 FORCE_INLINE
 int32* ui_table_row_values(UILayout* const layout, const UITable* const table) NO_EXCEPT
@@ -291,9 +291,9 @@ void ui_table_set_row_count(UILayout* const layout, UITable* const table, int32 
 }
 
 /**
- * @param cells One string per column
+ * @param const SimpleString<const char>* cells One string per column
  *
- * @return Row index or -1 if the table is full
+ * @return int32 Row index or -1 if the table is full
  */
 inline
 int32 ui_table_add_row(UILayout* const layout, UITable* const table, const SimpleString<const char>* cells) NO_EXCEPT
@@ -409,7 +409,7 @@ bool ui_table_scroll_set(UILayout* const layout, UITable* const table, f32 scrol
 }
 
 /**
- * @return Body row at the position or -1 (header/footer/empty area)
+ * @return int32 Body row at the position or -1 (header/footer/empty area)
  */
 inline
 int32 ui_table_row_at(const UITable* const table, f32 x, f32 y) NO_EXCEPT
@@ -427,7 +427,7 @@ int32 ui_table_row_at(const UITable* const table, f32 x, f32 y) NO_EXCEPT
 /**
  * Column at the x position (e.g. the clicked cell is ui_table_row_at() + ui_table_column_at())
  *
- * @return Column or -1 if the position is outside of the columns (e.g. scrollbar)
+ * @return int32 Column or -1 if the position is outside of the columns (e.g. scrollbar)
  */
 inline
 int32 ui_table_column_at(const UILayout* const layout, const UITable* const table, f32 x) NO_EXCEPT
@@ -468,7 +468,7 @@ bool ui_table_hover(UILayout* const layout, UITable* const table, int32 row) NO_
 }
 
 /**
- * @return true if the selection changed
+ * @return bool true if the selection changed
  */
 inline
 bool ui_table_select(UILayout* const layout, UITable* const table, int32 row) NO_EXCEPT

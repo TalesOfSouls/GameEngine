@@ -230,7 +230,7 @@ void thrd_queue_free(Queue* const queue, MemoryArena* const mem)
  *
  * WARNING: The semaphores of the thrd_ functions are not adjusted
  *
- * @return false if the new capacity can't hold the unhandled elements or the memory couldn't be resized
+ * @return bool false if the new capacity can't hold the unhandled elements or the memory couldn't be resized
  */
 inline
 bool memory_resize(Queue* const queue, size_t new_capacity) NO_EXCEPT

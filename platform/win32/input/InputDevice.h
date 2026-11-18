@@ -27,7 +27,7 @@ wchar_t input_device_char_lower(wchar_t c) NO_EXCEPT
  * The same device interface may be reported with different casing
  * (e.g. SetupDi = lower case, WM_DEVICECHANGE = upper case)
  *
- * @return 0 = invalid path
+ * @return uint64 0 = invalid path
  */
 inline
 uint64 input_device_path_hash(const wchar_t* path) NO_EXCEPT

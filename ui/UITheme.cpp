@@ -61,7 +61,7 @@ int32 ui_theme_capacity(const UITheme* const theme) NO_EXCEPT
 /**
  * Asset id of the "@theme" block: hex, optional 0x (e.g. 04000002)
  *
- * @return UI_THEME_ASSET_NONE if the value is not a valid hex id
+ * @return int32 UI_THEME_ASSET_NONE if the value is not a valid hex id
  */
 static inline
 int32 ui_theme_asset_id_parse(const char* value) NO_EXCEPT
@@ -175,7 +175,7 @@ void ui_theme_document_restore(UITheme* const theme) NO_EXCEPT
  *
  * WARNING: theme->data and theme->data_size need to be set
  *
- * @return false if theme->data is too small
+ * @return bool false if theme->data is too small
  */
 inline
 bool ui_theme_from_txt(UITheme* const __restrict theme, const char* __restrict text, int32 length) NO_EXCEPT
@@ -266,7 +266,7 @@ bool ui_theme_from_txt(UITheme* const __restrict theme, const char* __restrict t
  *
  * WARNING: Must be called after ui_theme_from_txt(), replaces an existing language
  *
- * @return false if theme->data is too small
+ * @return bool false if theme->data is too small
  */
 inline
 bool ui_theme_language_from_txt(UITheme* const __restrict theme, const char* __restrict text, int32 length) NO_EXCEPT
@@ -303,10 +303,10 @@ bool ui_theme_language_from_txt(UITheme* const __restrict theme, const char* __r
  * Loads the language file of a theme file (falls back to LANGUAGE_DEFAULT_CODE)
  *      ./themes/default/general.themetxt -> ./themes/default/lang/<language_code>/general.langtxt
  *
- * @param language_code NULL/empty = LANGUAGE_DEFAULT_CODE
- * @param mem           Temporary memory for the file content
+ * @param const wchar_t*    language_code   NULL/empty = LANGUAGE_DEFAULT_CODE
+ * @param M*                mem             Temporary memory for the file content
  *
- * @return false if the theme has no language file
+ * @return bool false if the theme has no language file
  */
 template <typename M>
 bool ui_theme_language_load(
@@ -364,9 +364,9 @@ bool ui_theme_language_load(
 /**
  * Index of a style node in theme->document.nodes
  *
- * @param name Style name or "@type" for the type default
+ * @param const char* name Style name or "@type" for the type default
  *
- * @return -1 if the theme doesn't define the style
+ * @return int32 -1 if the theme doesn't define the style
  */
 inline
 int32 ui_theme_style(const UITheme* const theme, const char* const name) NO_EXCEPT
@@ -432,7 +432,7 @@ int32 theme_to_data(
 /**
  * WARNING: theme->data and theme->data_size need to be set
  *
- * @return Bytes read or -1 if the data is not a compatible theme
+ * @return int32 Bytes read or -1 if the data is not a compatible theme
  */
 int32 theme_from_data(
     const byte* __restrict data,

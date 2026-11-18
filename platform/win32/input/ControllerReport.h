@@ -20,7 +20,7 @@
 /**
  * Maps a report to the controller keys of the input
  *
- * @return false if there is no mapping for this controller type
+ * @return bool false if there is no mapping for this controller type
  */
 inline
 bool input_controller_report_handle(Input* const input, const byte* const report, uint64 time) NO_EXCEPT

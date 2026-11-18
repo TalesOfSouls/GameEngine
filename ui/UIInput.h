@@ -39,8 +39,6 @@ struct UIInput {
     // -> the current length is known, direct writers must call ui_string_length_set
     int32 content;
 
-    // Reserved bytes incl. \0 -> max text length = content_length - 1 bytes
-    int32 content_length;
 
     // Byte offset of the caret in content
     int32 caret;

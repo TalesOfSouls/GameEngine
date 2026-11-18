@@ -269,11 +269,11 @@ uint32 lz4_fast_sequence(
 /**
  * Compresses a block (hash table based, fast)
  *
- * @param const byte* in Input
- * @param uint32 in_length Input length
- * @param byte* out Output
- * @param uint32 out_capacity Output size (lz4_encode_bound() never fails)
- * @param uint32* table Scratch hash table with LZ4_FAST_HASH_SIZE entries (contents don't matter)
+ * @param const byte*   in              Input
+ * @param uint32        in_length       Input length
+ * @param byte*         out             Output
+ * @param uint32        out_capacity    Output size (lz4_encode_bound() never fails)
+ * @param uint32*       table           Scratch hash table with LZ4_FAST_HASH_SIZE entries (contents don't matter)
  *
  * @return uint32 Compressed size, 0 if the output is too small (or in_length is 0)
  */
@@ -344,10 +344,10 @@ uint32 lz4_encode_fast(
 /**
  * Decompresses a block with bounds checks (corrupted input never reads/writes out of bounds)
  *
- * @param const byte* in Compressed block
- * @param uint32 in_length Compressed size
- * @param byte* out Output
- * @param uint32 out_capacity Output size
+ * @param const byte*   in              Compressed block
+ * @param uint32        in_length       Compressed size
+ * @param byte*         out             Output
+ * @param uint32        out_capacity    Output size
  *
  * @return int32 Decompressed size, -1 on corrupted input or if the output is too small
  */

@@ -196,9 +196,9 @@ void auth_token_deserialize_payload(const byte* const __restrict in, AuthToken* 
 /**
  * Sign a token
  *
- * @param AuthToken*  token      Token to sign
- * @param const byte* secret     Signing secret
- * @param size_t      secret_size Secret size in bytes
+ * @param AuthToken*    token       Token to sign
+ * @param const byte*   secret      Signing secret
+ * @param size_t        secret_size Secret size in bytes
  *
  * @return bool True on success
  */
@@ -226,9 +226,9 @@ bool auth_token_sign(
 /**
  * Verify the signature of a token
  *
- * @param const AuthToken* token      Token
- * @param const byte*      secret     Signing secret
- * @param size_t           secret_size Secret size in bytes
+ * @param const AuthToken*  token       Token
+ * @param const byte*       secret      Signing secret
+ * @param size_t            secret_size Secret size in bytes
  *
  * @return bool True if the signature is valid
  */
@@ -301,11 +301,11 @@ int32 auth_token_to_bytes(const AuthToken* const __restrict token, byte* const _
 /**
  * Deserialize and verify a complete token
  *
- * @param const byte*  data      Serialized token
- * @param size_t       size      Size of the serialized token
- * @param const byte*  secret    Signing secret
- * @param size_t       secret_size Secret size in bytes
- * @param AuthToken*   token     Output token
+ * @param const byte*   data        Serialized token
+ * @param size_t        size        Size of the serialized token
+ * @param const byte*   secret      Signing secret
+ * @param size_t        secret_size Secret size in bytes
+ * @param AuthToken*    token       Output token
  *
  * @return bool True if the token is valid
  */

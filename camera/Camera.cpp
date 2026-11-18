@@ -162,8 +162,8 @@ void camera_vectors_update(Camera* const camera) NO_EXCEPT
 /**
  * Rotates the camera by angles (e.g. time based controller stick rotation)
  *
- * @param yaw   Rotation around the world up axis [rad], > 0 = left
- * @param pitch Rotation around the camera right axis [rad], > 0 = up
+ * @param f32   yaw     Rotation around the world up axis [rad], > 0 = left
+ * @param f32   pitch   Rotation around the camera right axis [rad], > 0 = up
  */
 inline HOT_CODE
 void camera_rotate_radians(Camera* const camera, f32 yaw, f32 pitch) NO_EXCEPT

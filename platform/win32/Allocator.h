@@ -59,8 +59,8 @@ struct platform_alloc_header {
 /**
  * Tries to reserve + commit memory with large pages
  *
- * @param size_t size Size in bytes (incl. header + alignment)
- * @param size_t* allocated_size Size of the allocation, a multiple of the large page size (output)
+ * @param size_t    size            Size in bytes (incl. header + alignment)
+ * @param size_t*   allocated_size  Size of the allocation, a multiple of the large page size (output)
  *
  * @return void* NULL if large pages are not available (the caller falls back to normal pages)
  */

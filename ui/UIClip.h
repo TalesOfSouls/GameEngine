@@ -72,7 +72,7 @@ bool ui_clip_is_quad(const Vertex3DSamplerTextureColor* const v) NO_EXCEPT
  * Other geometry (e.g. circles) only has its vertices clamped which is correct for solid colors.
  * Quads completely outside of the clip rect become zero sized (invisible).
  *
- * @return false if all vertices are outside of the clip rect (the caller can remove them)
+ * @return bool false if all vertices are outside of the clip rect (the caller can remove them)
  */
 static inline
 bool ui_vertices_clip(

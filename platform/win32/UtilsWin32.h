@@ -14,7 +14,7 @@
 /**
  * Converts a key into a unicode codepoint (0 = no character, e.g. dead key or function key)
  *
- * @param keyboard_state Pressed keys (0x80 = down), used for modifiers (shift, alt gr, ...)
+ * @param byte [256] keyboard_state Pressed keys (0x80 = down), used for modifiers (shift, alt gr, ...)
  */
 uint32 key_to_unicode(byte scan_code, byte vkey, byte keyboard_state[256]) NO_EXCEPT
 {

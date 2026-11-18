@@ -12,8 +12,6 @@ struct UILabel {
     UIAttributeFont font;
 
     // Reserved length (in characters incl. \0) of content/pattern
-    int32 content_length;
-    int32 pattern_length;
 
     CharType char_type;
 

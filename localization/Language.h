@@ -57,7 +57,7 @@
  *      12  4   int32   value_length    length of the value in bytes excl. \0
  *
  * Lookup: bucket = hash & (slot_count - 1), linear probing (i + 1) & mask, stop at
- * the first empty slot, the key is compared with strcmp. Since the image always has
+ * the first empty slot, the key is compared with its length (memcmp + \0 check). Since the image always has
  * empty slots the probe always terminates. The strings are NUL terminated and
  * contiguous, keys and values can be interleaved.
  *
@@ -89,6 +89,21 @@ struct LanguageSlot {
 
     // Length of the value in bytes excl. \0 -> language_get_string() doesn't need a strlen
     int32 value_length;
+};
+
+/**
+ * Key of a string incl. its hash and length
+ *
+ * String literals should use language_key("...") -> the hash + length are calculated at compile time,
+ * the lookup doesn't need to hash the key or calculate its length.
+ */
+struct LanguageKey {
+    uint32 hash;
+
+    // Length in bytes excl. \0
+    int32 length;
+
+    const char* str;
 };
 
 struct Language {

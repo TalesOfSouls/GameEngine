@@ -84,8 +84,8 @@
     /**
      * Start the spinlock
      *
-     * @param standalone_spinlock32*   lock    Spinlock variable
-     * @param int32             delay   Minimum amount of time spend befor rechecking spinlock
+     * @param standalone_spinlock32*    lock    Spinlock variable
+     * @param int32                     delay   Minimum amount of time spend befor rechecking spinlock
      *
      * @return void
      */
@@ -155,8 +155,8 @@
     /**
      * Start the spinlock
      *
-     * @param standalone_spinlock32*   lock    Spinlock variable
-     * @param int32             delay   Minimum amount of time spend befor rechecking spinlock
+     * @param standalone_spinlock32*    lock    Spinlock variable
+     * @param int32                     delay   Minimum amount of time spend befor rechecking spinlock
      *
      * @return void
      */

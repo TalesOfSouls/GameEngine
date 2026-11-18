@@ -166,7 +166,7 @@ void thrd_queue_free(QueueT<T>* const queue, MemoryArena* const mem) NO_EXCEPT
  *
  * WARNING: The semaphores of the thrd_ functions are not adjusted
  *
- * @return false if the new capacity can't hold the unhandled elements or the memory couldn't be resized
+ * @return bool false if the new capacity can't hold the unhandled elements or the memory couldn't be resized
  */
 template <typename T>
 inline

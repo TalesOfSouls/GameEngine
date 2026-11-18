@@ -55,7 +55,7 @@ UIPanel* ui_tab_page(const UILayout* const layout, const UITab* const tab, int32
 /**
  * Shows the page of the tab and hides all other pages
  *
- * @return true if the active tab changed
+ * @return bool true if the active tab changed
  */
 inline
 bool ui_tab_set_active(UILayout* const layout, UITab* const tab, int32 index) NO_EXCEPT
@@ -88,8 +88,8 @@ bool ui_tab_set_active(UILayout* const layout, UITab* const tab, int32 index) NO
 /**
  * Creates the tab view and one page per title
  *
- * @param header_size Horizontal: header height, vertical: header width (0 = default)
- * @param parent NULL = root
+ * @param f32       header_size Horizontal: header height, vertical: header width (0 = default)
+ * @param UICore*   parent      NULL = root
  */
 inline
 UITab* ui_tab_create(
@@ -163,7 +163,7 @@ v4_f32 ui_tab_header_rect(const UITab* const tab, int32 index) NO_EXCEPT
 }
 
 /**
- * @return Tab header at the position or -1
+ * @return int32 Tab header at the position or -1
  */
 inline
 int32 ui_tab_at(const UITab* const tab, f32 x, f32 y) NO_EXCEPT

@@ -74,7 +74,7 @@
  *
  * Element types and their properties
  *      all:        style pos size anchor flags hidden update render
- *      label:      text pattern capacity font_size font_color line_height
+ *      label:      text pattern capacity font_size font_color
  *      button:     text image on_click background_color background_color_hover border_color border_color_hover border_width border_image, $label
  *      image:      image
  *      cursor:     image
@@ -120,7 +120,7 @@ void ui_txt_skip_space(const char** const pos) NO_EXCEPT
 /**
  * Reads the next word (until whitespace or one of the stop characters)
  *
- * @return Length of the word (0 = no word)
+ * @return int32 Length of the word (0 = no word)
  */
 static inline
 int32 ui_txt_word(const char** const pos, char* const out, int32 out_size, const char* const stop = "") NO_EXCEPT
@@ -144,7 +144,7 @@ int32 ui_txt_word(const char** const pos, char* const out, int32 out_size, const
 /**
  * Number with an optional % (= relative, returned as fraction)
  *
- * @return false if there is no number
+ * @return bool false if there is no number
  */
 static inline
 bool ui_txt_number(const char** const pos, f32* const out, bool* const relative = NULL) NO_EXCEPT
@@ -261,7 +261,7 @@ bool ui_txt_bool(const char* value) NO_EXCEPT
  * Splits a list "a | b | c" in place
  * The entries are \0 terminated and have their length (no strlen needed later on)
  *
- * @return Amount of entries
+ * @return int32 Amount of entries
  */
 static inline
 int32 ui_txt_list(char* value, SimpleString<const char>* const entries, int32 max_entries) NO_EXCEPT
@@ -303,7 +303,7 @@ int32 ui_txt_list(char* value, SimpleString<const char>* const entries, int32 ma
 }
 
 /**
- * @return The id or -1 if the name is unknown ("none" = 0)
+ * @return int32 The id or -1 if the name is unknown ("none" = 0)
  */
 static inline
 int32 ui_txt_name_id(const UINameId* const names, int32 count, const char* const name) NO_EXCEPT
@@ -325,8 +325,9 @@ int32 ui_txt_name_id(const UINameId* const names, int32 count, const char* const
  * Escape sequences in values: \n = new line, \t = tab, \\ = backslash
  */
 static inline
-void ui_txt_unescape(char* value) NO_EXCEPT
+int32 ui_txt_unescape(char* value) NO_EXCEPT
 {
+    char* const start = value;
     char* out = value;
     while (*value) {
         if (*value == '\\' && value[1]) {
@@ -339,6 +340,8 @@ void ui_txt_unescape(char* value) NO_EXCEPT
     }
 
     *out = '\0';
+
+    return (int32) (out - start);
 }
 
 /**
@@ -361,6 +364,8 @@ const Language* ui_txt_document_language(const UILayoutTxtContext* const ctx, co
  *      "@key"  = string of the document language
  *      "@@key" = global string (ctx->language_global)
  * A missing string is reported and the value stays "@key" (visible in the ui)
+ *
+ * @param int32* length Length of the final value in bytes excl. \0 (optional output)
  */
 static
 char* ui_txt_value_resolve(
@@ -368,13 +373,17 @@ char* ui_txt_value_resolve(
     const UIDocument* const doc,
     UIDocumentString raw,
     MAYBE_UNUSED int32 line,
-    char* const buffer, int32 buffer_size
+    char* const buffer, int32 buffer_size,
+    int32* const length = NULL
 ) NO_EXCEPT
 {
     ui_document_copy(doc, raw, buffer, buffer_size);
 
     if (buffer[0] != '@') {
-        ui_txt_unescape(buffer);
+        const int32 unescaped = ui_txt_unescape(buffer);
+        if (length) {
+            *length = unescaped;
+        }
 
         return buffer;
     }
@@ -391,18 +400,25 @@ char* ui_txt_value_resolve(
             {DATA_TYPE_CHAR_STR, (void *) buffer}, {DATA_TYPE_INT32, &line}
         );
 
+        if (length) {
+            *length = min_branched(raw.length, buffer_size - 1);
+        }
+
         return buffer;
     }
 
-    const int32 length = str.length;
-    if (length >= buffer_size) {
+    if (str.length >= buffer_size) {
         LOG_1("[WARNING] UI layout: string %s is too long (line %d)", {DATA_TYPE_CHAR_STR, (void *) buffer}, {DATA_TYPE_INT32, &line});
     }
 
     // The key is in the buffer -> copy after the lookup
-    const int32 copy_length = min_branched(length, buffer_size - 1);
+    const int32 copy_length = min_branched(str.length, buffer_size - 1);
     memcpy(buffer, str.str, copy_length);
     buffer[copy_length] = '\0';
+
+    if (length) {
+        *length = copy_length;
+    }
 
     return buffer;
 }
@@ -430,7 +446,7 @@ char* ui_txt_value_get(
 /**
  * Anchor/align points "left|center|right top|center|bottom"
  *
- * @param align true = element point (UI_ALIGN_*), false = parent point (UI_ANCHOR_*)
+ * @param bool align true = element point (UI_ALIGN_*), false = parent point (UI_ANCHOR_*)
  */
 static inline
 byte ui_txt_anchor_point(const char** const pos, bool align) NO_EXCEPT
@@ -565,6 +581,9 @@ enum UITxtFieldType : byte {
 
     // 8 atlas element names (UI_BORDER_TL, T, TR, R, BR, B, BL, L) -> UIAttributeBorder
     UI_TXT_FIELD_BORDER_IMAGE,
+
+    // Width in px of all sides -> UIAttributeBorder::size of the edges
+    UI_TXT_FIELD_BORDER_WIDTH,
 };
 
 // Property that is stored directly in the element
@@ -580,12 +599,11 @@ struct UITxtField {
 
 #define UI_TXT_FONT_FIELDS(struct_type, member) \
     UI_TXT_FIELD2("font_size", UI_TXT_FIELD_F32, struct_type, member, UIAttributeFont, size), \
-    UI_TXT_FIELD2("font_color", UI_TXT_FIELD_COLOR, struct_type, member, UIAttributeFont, color), \
-    UI_TXT_FIELD2("line_height", UI_TXT_FIELD_F32, struct_type, member, UIAttributeFont, line_height)
+    UI_TXT_FIELD2("font_color", UI_TXT_FIELD_COLOR, struct_type, member, UIAttributeFont, color)
 
 #define UI_TXT_BORDER_FIELDS(struct_type, member) \
     UI_TXT_FIELD2("border_color", UI_TXT_FIELD_COLOR, struct_type, member, UIAttributeBorder, color), \
-    UI_TXT_FIELD2("border_width", UI_TXT_FIELD_UINT8, struct_type, member, UIAttributeBorder, width), \
+    UI_TXT_FIELD("border_width", UI_TXT_FIELD_BORDER_WIDTH, struct_type, member), \
     UI_TXT_FIELD("border_image", UI_TXT_FIELD_BORDER_IMAGE, struct_type, member)
 
 static const UITxtField UI_TXT_FIELDS_LABEL[] = {
@@ -723,7 +741,7 @@ const UITxtField* ui_txt_fields(UIElementType type, int32* const count) NO_EXCEP
 }
 
 /**
- * @return false if the value is invalid
+ * @return bool false if the value is invalid
  */
 static
 bool ui_txt_field_set(
@@ -818,6 +836,17 @@ bool ui_txt_field_set(
 
             return true;
         }
+        case UI_TXT_FIELD_BORDER_WIDTH: {
+            const char* pos = value;
+            f32 number = 0.0f;
+            if (!ui_txt_number(&pos, &number)) {
+                return false;
+            }
+
+            ui_border_width_set((UIAttributeBorder *) member, (uint8) number);
+
+            return true;
+        }
         default:
             UNREACHABLE();
     }
@@ -858,28 +887,29 @@ bool ui_txt_is_create_key(const char* const type, const char* const key) NO_EXCE
 static inline
 void ui_txt_label_reserve(UILayout* const layout, UILabel* const label, int32 length) NO_EXCEPT
 {
-    if (length <= 0 || (label->content && label->content_length >= length)) {
+    if (length <= 0 || (label->content && ui_string_max_length(layout, label->content) >= length - 1)) {
         return;
     }
 
     const int32 offset = ui_string_reserve(layout, label->char_type, length);
     if (label->content) {
+        // Characters incl. \0
+        const int32 old_length = ui_string_length(layout, label->content);
         memcpy(
             layout->ui_element_buffer.memory + offset,
             layout->ui_element_buffer.memory + label->content,
-            label->content_length * char_type_size(label->char_type)
+            (size_t) (old_length + 1) * char_type_size(label->char_type)
         );
-        ui_string_length_set(layout, offset, ui_string_length(layout, label->content));
+        ui_string_length_set(layout, offset, old_length);
     }
 
     label->content = offset;
-    label->content_length = length;
 }
 
 /**
  * Applies one property to an element
  *
- * @return false if the key is unknown or the value invalid
+ * @return bool false if the key is unknown or the value invalid
  */
 static
 bool ui_txt_property_apply(
@@ -887,7 +917,7 @@ bool ui_txt_property_apply(
     UILayout* const layout,
     UICore* const element,
     const char* const key,
-    char* const value
+    char* const value, int32 value_length
 ) NO_EXCEPT
 {
     UIAttributeDimension* const dim = &element->dimension;
@@ -1026,11 +1056,11 @@ bool ui_txt_property_apply(
         case UI_ELEMENT_TYPE_TEXTAREA: {
             UIInput* const input = (UIInput *) element;
             if (strcmp(key, "text") == 0) {
-                ui_input_set_text(layout, input, value);
+                ui_input_set_text(layout, input, value, value_length);
 
                 return true;
             } else if (strcmp(key, "placeholder") == 0) {
-                ui_input_set_placeholder(layout, input, value);
+                ui_input_set_placeholder(layout, input, value, value_length);
 
                 return true;
             }
@@ -1188,7 +1218,7 @@ UICore* ui_txt_children_parent(UILayout* const layout, UICore* const element) NO
 /**
  * Applies a style of the themes (in theme order) incl. its parts
  *
- * @param name Style name or "@type"
+ * @param const char* name Style name or "@type"
  */
 static
 void ui_txt_style_apply(
@@ -1248,7 +1278,7 @@ void ui_txt_styles_apply(
 /**
  * Applies the properties + parts of a node (layout element or style) to an element
  *
- * @param type Element type name of the node in a layout file (create keys are skipped), "" for styles
+ * @param const char* type Element type name of the node in a layout file (create keys are skipped), "" for styles
  */
 static
 void ui_txt_node_apply(
@@ -1281,9 +1311,10 @@ void ui_txt_node_apply(
             LOG_1("[WARNING] UI layout: value too long in line %d", {DATA_TYPE_INT32, (int32 *) &property->line});
         }
 
-        ui_txt_value_resolve(ctx, doc, property->value, property->line, value, UI_TXT_VALUE_LENGTH);
+        int32 value_length;
+        ui_txt_value_resolve(ctx, doc, property->value, property->line, value, UI_TXT_VALUE_LENGTH, &value_length);
 
-        if (!ui_txt_property_apply(ctx, layout, element, key, value)) {
+        if (!ui_txt_property_apply(ctx, layout, element, key, value, value_length)) {
             LOG_1(
                 "[WARNING] UI layout: invalid property %s in line %d",
                 {DATA_TYPE_CHAR_STR, (void *) key}, {DATA_TYPE_INT32, (int32 *) &property->line}
@@ -1368,7 +1399,7 @@ int32 ui_txt_element_type(const char* const type) NO_EXCEPT
 /**
  * Creates an element (incl. children) from a layout node
  *
- * @return NULL if the element type is unknown
+ * @return UICore* NULL if the element type is unknown
  */
 static
 UICore* ui_txt_element_create(
@@ -1584,10 +1615,10 @@ UICore* ui_txt_element_create(
 /**
  * Creates the elements of a layout file
  *
- * @param parent    The elements are added to this element (NULL = root), the root must already exist
- * @param mem       Temporary memory for the parsed document
+ * @param UICore*       parent  The elements are added to this element (NULL = root), the root must already exist
+ * @param BufferMemory* mem     Temporary memory for the parsed document
  *
- * @return Amount of created top level elements, -1 on error
+ * @return int32 Amount of created top level elements, -1 on error
  */
 int32 ui_layout_from_txt(
     UILayout* const __restrict layout,

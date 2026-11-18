@@ -127,7 +127,7 @@ char* settings_save_float(f64 value, char* __restrict out) NO_EXCEPT
 /**
  * Writes the value of one integer/float element
  *
- * @param type Element type (e.g. DATA_TYPE_UINT16 for DATA_TYPE_UINT16_ARRAY)
+ * @param DataType type Element type (e.g. DATA_TYPE_UINT16 for DATA_TYPE_UINT16_ARRAY)
  */
 static inline
 char* settings_save_number(const byte* const __restrict member, DataType type, char* __restrict out) NO_EXCEPT
@@ -254,7 +254,7 @@ char* settings_save_value(
 /**
  * Writes one complete setting line without the line break ("name{} 1 2 3", "name 5")
  *
- * @param match_index Index of the match (for structs the index of the struct match)
+ * @param int32 match_index Index of the match (for structs the index of the struct match)
  */
 inline
 char* settings_save_line(
@@ -271,7 +271,7 @@ char* settings_save_line(
 /**
  * Element type + size of an array type (e.g. DATA_TYPE_UINT8 for DATA_TYPE_UINT8_ARRAY)
  *
- * @return false if the type is no number array
+ * @return bool false if the type is no number array
  */
 static inline
 bool settings_array_element(DataType type, DataType* const __restrict element_type, int32* const __restrict element_size) NO_EXCEPT
@@ -298,8 +298,8 @@ bool settings_array_element(DataType type, DataType* const __restrict element_ty
  *      "name 5 // comment" -> the comment is kept
  *      "name"              -> stays without value as long as the value is empty/0 (e.g. "not set" settings)
  *
- * @param line          Existing line (without line break)
- * @param name_length   Length of the name at the beginning of the line (@see settings_name_length)
+ * @param const char*   line        Existing line (without line break)
+ * @param int32         name_length Length of the name at the beginning of the line (@see settings_name_length)
  */
 static inline
 char* settings_save_existing_line(
@@ -424,9 +424,9 @@ bool settings_file_contains(const char* __restrict in, const char* __restrict na
  * Comments, empty lines and unknown settings are kept, the values of known settings are replaced
  * Settings that are not in the old file are NOT added (@see settings_save_line)
  *
- * @param in Content of the existing file (NULL or "" = empty file)
+ * @param const char* in Content of the existing file (NULL or "" = empty file)
  *
- * @return Length of the output
+ * @return size_t Length of the output
  */
 size_t settings_save(
     const void* const __restrict settings_data,

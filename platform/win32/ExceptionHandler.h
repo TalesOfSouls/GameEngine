@@ -245,10 +245,10 @@ bool exception_dbghelp_available() NO_EXCEPT
 /**
  * Collects the return addresses of a thread
  *
- * @param thread    Thread handle (must be suspended if it isn't the current thread)
- * @param context   Register state of the thread, it is modified
+ * @param HANDLE    thread  Thread handle (must be suspended if it isn't the current thread)
+ * @param CONTEXT*  context Register state of the thread, it is modified
  *
- * @return Number of addresses
+ * @return int32 Number of addresses
  */
 static inline
 int32 exception_stack_collect(HANDLE thread, CONTEXT* const context, DWORD64* const addresses, int32 capacity) NO_EXCEPT

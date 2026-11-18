@@ -57,7 +57,7 @@ UICore* ui_element_get(const UILayout* const layout, SimpleString<const char> st
  *
  * @param int32* cache 0 = not looked up yet, -1 = doesn't exist, > 0 = offset
  *
- * @return NULL if the element doesn't exist
+ * @return UICore* NULL if the element doesn't exist
  */
 FORCE_INLINE
 UICore* ui_element_cached_get(const UILayout* const layout, int32* const cache, const char* name) NO_EXCEPT
@@ -113,9 +113,9 @@ UICore* ui_element_parent(const UILayout* const layout, const UICore* const elem
  * WARNING: Some UI elements need additional visibility handling (e.g. unset focus, change input mode)
  *          In such situations you must implement your own visibility function
  *
- * @param UILayout* layout UI layout
- * @param int32 offset Element offset
- * @param bool visible Visibility
+ * @param UILayout* layout  UI layout
+ * @param int32     offset  Element offset
+ * @param bool      visible Visibility
  *
  * @return void
  */
@@ -206,7 +206,7 @@ void ui_element_subtree_unlink(UILayout* const layout, UICore* const element) NO
 /**
  * Inserts an unlinked subtree as child of parent
  *
- * @param before Offset of the child of parent the subtree is inserted before (0 = insert as last child)
+ * @param int32 before Offset of the child of parent the subtree is inserted before (0 = insert as last child)
  */
 static
 void ui_element_subtree_insert(
@@ -299,7 +299,7 @@ void ui_element_link(
 /**
  * Allocates a zeroed element and links it as the last child of parent
  *
- * @param parent NULL = root
+ * @param UICore* parent NULL = root
  */
 static inline
 UICore* ui_element_alloc(
@@ -334,7 +334,7 @@ UICore* ui_element_alloc(
  * Moves the element (incl. its subtree) to the end of its siblings -> it is drawn on top of them
  * Siblings with UI_ELEMENT_FLAG_ALWAYS_ON_TOP stay in front (e.g. the mouse cursor)
  *
- * @return true if the order changed
+ * @return bool true if the order changed
  */
 bool ui_element_move_to_front(UILayout* const layout, UICore* const element) NO_EXCEPT
 {
@@ -401,7 +401,7 @@ UICore* ui_parent_element_by_type(const UILayout* const layout, const UICore* el
  * Element that is rendered by a callback (layout->render[render_func - 1])
  * and/or updated by a callback (layout->update[update_func - 1])
  *
- * @param parent NULL = root
+ * @param UICore* parent NULL = root
  */
 UICore* ui_custom_create(
     UILayout* const layout,

@@ -24,7 +24,7 @@
  *              close button
  *                  close label (empty, a theme can set "text: X" instead of an image)
  *
- * @param parent NULL = root
+ * @param UICore* parent NULL = root
  */
 UIWindow* ui_window_create(UILayout* const layout, UICore* parent = NULL) NO_EXCEPT
 {

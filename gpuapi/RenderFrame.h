@@ -71,8 +71,8 @@ struct RenderFrameUi {
  * Combines the patches of the versions (from, to] into one changed range
  *
  * @param const RenderFrameUiPatch* patches Patch history (RENDER_FRAME_UI_PATCH_HISTORY entries)
- * @param uint16 from Version of the data that is updated
- * @param uint16 to Version to update to
+ * @param uint16                    from    Version of the data that is updated
+ * @param uint16                    to      Version to update to
  *
  * @return bool false = a full copy is needed (too old, unknown version or a full change in between)
  */

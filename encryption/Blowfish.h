@@ -196,11 +196,11 @@ void blowfish_expand_key(
  * as blowfish_expand_key but the salt is XORed into the running block before
  * every encryption.
  *
- * @param BlowfishContext* ctx      Context
- * @param const byte*      salt     Salt (may be NULL to skip salt mixing)
- * @param int32            salt_size Salt size in bytes
- * @param const byte*      key      Key
- * @param int32            key_size Key size in bytes
+ * @param BlowfishContext*  ctx         Context
+ * @param const byte*       salt        Salt (may be NULL to skip salt mixing)
+ * @param int32             salt_size   Salt size in bytes
+ * @param const byte*       key         Key
+ * @param int32             key_size    Key size in bytes
  */
 inline
 void blowfish_expand_state(

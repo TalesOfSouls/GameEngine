@@ -13,7 +13,7 @@
 /**
  * The size is the image size unless set otherwise
  *
- * @param parent NULL = root
+ * @param UICore* parent NULL = root
  */
 inline
 UIImage* ui_image_create(UILayout* const layout, UICore* parent = NULL) NO_EXCEPT

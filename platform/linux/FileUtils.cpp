@@ -498,8 +498,8 @@ FileHandle file_read_handle_shared(const char* path) NO_EXCEPT
 /**
  * Opens a file for reading and writing (e.g. random access with file_read_at() / file_write_at())
  *
- * @param const char* path File path
- * @param FileOpenMode mode Open mode
+ * @param const char*   path    File path
+ * @param FileOpenMode  mode    Open mode
  *
  * @return FileHandle 0 on failure
  */
@@ -651,10 +651,10 @@ bool directory_tree_create(const char* path) NO_EXCEPT
 /**
  * Lists the direct sub directories of a directory (not recursive, hidden "." directories are skipped)
  *
- * @param const char* path Directory path
- * @param char* names Output names (count * name_size chars)
- * @param int32 name_size Max. size of a name incl. the null terminator (longer names are skipped)
- * @param int32 count Max. number of names
+ * @param const char*   path        Directory path
+ * @param char*         names       Output names (count * name_size chars)
+ * @param int32         name_size   Max. size of a name incl. the null terminator (longer names are skipped)
+ * @param int32         count       Max. number of names
  *
  * @return int32 Number of names written
  */

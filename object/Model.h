@@ -688,8 +688,8 @@ uint64 model_data_size(const ModelFile* file) NO_EXCEPT
 /**
  * Writes the binary representation (out must be at least model_data_size() bytes)
  *
- * @param const ModelFile* file Model
- * @param byte* out Output
+ * @param const ModelFile*  file    Model
+ * @param byte*             out     Output
  *
  * @return uint64 Written bytes
  */
@@ -767,8 +767,8 @@ bool model_binary_pointers_fix(ModelFile* file) NO_EXCEPT
 /**
  * Size of the data block of binary data (= memory model_from_data() needs for file->data)
  *
- * @param const byte* data Binary data
- * @param uint64 size Size of the binary data
+ * @param const byte*   data    Binary data
+ * @param uint64        size    Size of the binary data
  *
  * @return uint64 0 if the data is invalid
  */
@@ -786,9 +786,9 @@ uint64 model_data_block_size(const byte* data, uint64 size) NO_EXCEPT
  *
  * file->data MUST point to at least model_data_block_size() bytes (MODEL_MEMORY_ALIGNMENT aligned)
  *
- * @param const byte* data Binary data
- * @param uint64 size Size of the binary data
- * @param ModelFile* file Model (output)
+ * @param const byte*   data    Binary data
+ * @param uint64        size    Size of the binary data
+ * @param ModelFile*    file    Model (output)
  *
  * @return bool false if the data is invalid
  */
@@ -816,9 +816,9 @@ bool model_from_data(const byte* data, uint64 size, ModelFile* file) NO_EXCEPT
  *
  * The ModelFile points into data afterwards -> data must stay alive and must be MODEL_MEMORY_ALIGNMENT aligned
  *
- * @param byte* data Binary data
- * @param uint64 size Size of the binary data
- * @param ModelFile* file Model (output)
+ * @param byte*         data    Binary data
+ * @param uint64        size    Size of the binary data
+ * @param ModelFile*    file    Model (output)
  *
  * @return bool false if the data is invalid
  */

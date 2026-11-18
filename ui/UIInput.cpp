@@ -26,8 +26,8 @@
 /**
  * Single line input (UI_ELEMENT_TYPE_INPUT) or multi line textarea (UI_ELEMENT_TYPE_TEXTAREA)
  *
- * @param max_length Max text length in bytes (utf8)
- * @param parent NULL = root
+ * @param int32     max_length  Max text length in bytes (utf8)
+ * @param UICore*   parent      NULL = root
  */
 inline
 UIInput* ui_input_create(
@@ -50,8 +50,7 @@ UIInput* ui_input_create(
     input->font.color = UI_DEFAULT_TEXT_COLOR;
 
     // The text memory is placed directly after the element
-    input->content_length = max_length + 1;
-    input->content = ui_string_reserve(layout, CHAR_TYPE_CHAR, input->content_length);
+    input->content = ui_string_reserve(layout, CHAR_TYPE_CHAR, max_length + 1);
 
     return input;
 }
@@ -73,17 +72,17 @@ char* ui_input_get_text(const UILayout* const layout, const UIInput* const input
  * Sets the text, the text is cut if it is longer than the reserved memory
  * The caret is placed at the end
  *
- * @param text_length Length in bytes excl. \0
+ * @param int32 text_length Length in bytes excl. \0
  */
 inline
 void ui_input_set_text(UILayout* const layout, UIInput* const input, const char* const text, int32 text_length) NO_EXCEPT
 {
     char* const content = ui_input_get_text(layout, input);
-    int32 length = min_branched(text_length, input->content_length - 1);
+    int32 length = min_branched(text_length, ui_string_max_length(layout, input->content));
 
-    // Don't cut an utf8 character in half
-    while (length > 0 && length < text_length && (text[length] & 0xC0) == 0x80) {
-        --length;
+    // Don't cut an utf8 character in half (-> start of the character that contains the byte at length)
+    if (length < text_length) {
+        length = utf8_prev(text, length + 1);
     }
 
     if (length) {
@@ -99,54 +98,36 @@ void ui_input_set_text(UILayout* const layout, UIInput* const input, const char*
     layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
-// @performance Should be replaced with the function above
+// Same as above, e.g. ui_input_set_text(layout, input, simple_string_literal<const char>("text"))
 FORCE_INLINE
-void ui_input_set_text(UILayout* const layout, UIInput* const input, const char* const text) NO_EXCEPT
+void ui_input_set_text(UILayout* const layout, UIInput* const input, SimpleString<const char> text) NO_EXCEPT
 {
-    ui_input_set_text(layout, input, text, text ? (int32) strlen(text) : 0);
+    ui_input_set_text(layout, input, text.str, text.length);
 }
 
-// @performance Shouldn't use c strings
+/**
+ * Sets the placeholder (shown while the input is empty), new memory is reserved
+ *
+ * @param int32 length Length in bytes excl. \0
+ */
 inline
-void ui_input_set_placeholder(UILayout* const layout, UIInput* const input, const char* const text) NO_EXCEPT
+void ui_input_set_placeholder(UILayout* const layout, UIInput* const input, const char* const text, int32 length) NO_EXCEPT
 {
-    const int32 length = (int32) strlen(text) + 1;
-    input->placeholder = ui_string_reserve(layout, CHAR_TYPE_CHAR, length);
-    memcpy(layout->ui_element_buffer.memory + input->placeholder, text, length);
-    ui_string_length_set(layout, input->placeholder, length - 1);
+    input->placeholder = ui_string_reserve(layout, CHAR_TYPE_CHAR, length + 1);
+
+    char* const placeholder = (char *) (layout->ui_element_buffer.memory + input->placeholder);
+    memcpy(placeholder, text, length);
+    placeholder[length] = '\0';
+    ui_string_length_set(layout, input->placeholder, length);
 
     layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
-// Byte offset of the previous/next utf8 character
+// Same as above, e.g. ui_input_set_placeholder(layout, input, simple_string_literal<const char>("Search..."))
 FORCE_INLINE
-int32 ui_utf8_prev(const char* const text, int32 pos) NO_EXCEPT
+void ui_input_set_placeholder(UILayout* const layout, UIInput* const input, SimpleString<const char> text) NO_EXCEPT
 {
-    if (pos <= 0) {
-        return 0;
-    }
-
-    --pos;
-    while (pos > 0 && (text[pos] & 0xC0) == 0x80) {
-        --pos;
-    }
-
-    return pos;
-}
-
-FORCE_INLINE
-int32 ui_utf8_next(const char* const text, int32 pos, int32 length) NO_EXCEPT
-{
-    if (pos >= length) {
-        return length;
-    }
-
-    ++pos;
-    while (pos < length && (text[pos] & 0xC0) == 0x80) {
-        ++pos;
-    }
-
-    return pos;
+    ui_input_set_placeholder(layout, input, text.str, text.length);
 }
 
 FORCE_INLINE
@@ -177,7 +158,7 @@ int32 ui_text_caret_vertical(const char* const text, int32 caret, int32 length, 
 
     // Character column in the current line
     int32 column = 0;
-    for (int32 i = line_start; i < caret; i = ui_utf8_next(text, i, length)) {
+    for (int32 i = line_start; i < caret; i = utf8_next(text, i, length)) {
         ++column;
     }
 
@@ -200,7 +181,7 @@ int32 ui_text_caret_vertical(const char* const text, int32 caret, int32 length, 
     const int32 target_end = ui_text_line_end(text, target_start, length);
     int32 pos = target_start;
     while (column-- > 0 && pos < target_end) {
-        pos = ui_utf8_next(text, pos, length);
+        pos = utf8_next(text, pos, length);
     }
 
     return pos;
@@ -227,7 +208,7 @@ void ui_input_selection(const UIInput* const input, int32* const start, int32* c
 /**
  * Deletes the selected text (if any), the caret is placed at the start of the selection
  *
- * @return true if something was deleted
+ * @return bool true if something was deleted
  */
 inline
 bool ui_input_delete_selection(UIInput* const input, char* const text, int32* const length) NO_EXCEPT
@@ -302,7 +283,7 @@ int32 ui_text_word_next(const char* const text, int32 pos, int32 length) NO_EXCE
  *      - numeric inputs only allow numeric characters
  * Only complete utf8 characters are copied
  *
- * @return Length of dst in bytes
+ * @return int32 Length of dst in bytes
  */
 inline
 int32 ui_input_filter(
@@ -374,7 +355,7 @@ int32 ui_input_filter(
  * Inserts the text at the caret (replaces the selection)
  * The text is cut if the input is full (only complete utf8 characters)
  *
- * @return Inserted bytes
+ * @return int32 Inserted bytes
  */
 inline
 int32 ui_input_insert(
@@ -385,8 +366,8 @@ int32 ui_input_insert(
 {
     ui_input_delete_selection(input, text, length);
 
-    // Space left (content_length includes the \0)
-    const int32 space = input->content_length - 1 - *length;
+    // Space left (text is the content of the input -> the reserved length is stored in front of it)
+    const int32 space = simple_string_inline_from_str(text)->max_length - *length;
 
     char filtered[UI_INPUT_PASTE_MAX];
     const int32 bytes = ui_input_filter(
@@ -429,7 +410,7 @@ void ui_input_copy(const UIInput* const input, const char* const text) NO_EXCEPT
 }
 
 /**
- * @return Inserted bytes
+ * @return int32 Inserted bytes
  */
 inline
 int32 ui_input_paste(UIInput* const input, char* const text, int32* const length) NO_EXCEPT
@@ -474,7 +455,7 @@ f32 ui_input_content_height(const UILayout* const layout, const UIInput* const i
 /**
  * Vertical scrollbar of a textarea
  *
- * @return false if the element has no scrollbar (single line input or the text fits)
+ * @return bool false if the element has no scrollbar (single line input or the text fits)
  */
 inline
 bool ui_input_scroll_info(const UILayout* const layout, const UIInput* const input, UIScrollInfo* const info) NO_EXCEPT
@@ -622,7 +603,7 @@ int32 ui_input_caret_at(const UILayout* const layout, const UIInput* const input
 
     int32 pos = line_start;
     while (pos < line_end) {
-        const int32 next = ui_utf8_next(text, pos, length);
+        const int32 next = utf8_next(text, pos, length);
         const f32 width = font_system_text_range_width(layout->font, text, pos, next, input->font.size);
 
         if (x < char_x + width * 0.5f) {
@@ -668,10 +649,10 @@ void ui_input_select_all(const UILayout* const layout, UIInput* const input) NO_
 /**
  * Pointer selection (pressing and dragging in the text)
  *
- * @param start true = pointer pressed, false = pointer moved while pressed (extends the selection)
- * @param click_count 1 = place the caret, 2 = select the word, 3 = select everything
+ * @param bool  start       true = pointer pressed, false = pointer moved while pressed (extends the selection)
+ * @param int32 click_count 1 = place the caret, 2 = select the word, 3 = select everything
  *
- * @return true if the caret/selection changed
+ * @return bool true if the caret/selection changed
  */
 inline
 bool ui_input_select_at(UILayout* const layout, UIInput* const input, f32 x, f32 y, bool start, int32 click_count) NO_EXCEPT
@@ -714,7 +695,7 @@ bool ui_input_select_at(UILayout* const layout, UIInput* const input, f32 x, f32
  *      first/last:  start/end of the line of a textarea, otherwise (or ctrl) start/end of the text
  *      shift:       extends the selection, otherwise the selection collapses
  *
- * @return true if the caret or selection changed
+ * @return bool true if the caret or selection changed
  */
 inline
 bool ui_input_caret_move(UILayout* const layout, UIInput* const input, UINavigation direction, bool shift, bool ctrl) NO_EXCEPT
@@ -737,7 +718,7 @@ bool ui_input_caret_move(UILayout* const layout, UIInput* const input, UINavigat
             } else {
                 input->caret = ctrl
                     ? ui_text_word_prev(text, input->caret)
-                    : ui_utf8_prev(text, input->caret);
+                    : utf8_prev(text, input->caret);
             }
         } break;
         case UI_NAVIGATION_RIGHT: {
@@ -746,7 +727,7 @@ bool ui_input_caret_move(UILayout* const layout, UIInput* const input, UINavigat
             } else {
                 input->caret = ctrl
                     ? ui_text_word_next(text, input->caret, length)
-                    : ui_utf8_next(text, input->caret, length);
+                    : utf8_next(text, input->caret, length);
             }
         } break;
         case UI_NAVIGATION_FIRST: {
@@ -791,7 +772,7 @@ bool ui_input_caret_move(UILayout* const layout, UIInput* const input, UINavigat
  *      ctrl + left/right/backspace/delete = word wise
  *      ctrl + a/c/x/v = select all, copy, cut, paste
  *
- * @return true if the text, caret or selection changed
+ * @return bool true if the text, caret or selection changed
  */
 inline
 bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const input, uint32 code) NO_EXCEPT
@@ -817,7 +798,7 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
             } else if (input->caret > 0) {
                 const int32 prev = ctrl
                     ? ui_text_word_prev(text, input->caret)
-                    : ui_utf8_prev(text, input->caret);
+                    : utf8_prev(text, input->caret);
 
                 memmove(text + prev, text + input->caret, length - input->caret + 1);
                 length -= input->caret - prev;
@@ -832,7 +813,7 @@ bool ui_input_handle_code(void* app, UILayout* const layout, UIInput* const inpu
             } else if (input->caret < length) {
                 const int32 next = ctrl
                     ? ui_text_word_next(text, input->caret, length)
-                    : ui_utf8_next(text, input->caret, length);
+                    : utf8_next(text, input->caret, length);
 
                 memmove(text + input->caret, text + next, length - next + 1);
                 length -= next - input->caret;

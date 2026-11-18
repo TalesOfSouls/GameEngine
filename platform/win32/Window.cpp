@@ -322,8 +322,8 @@ void window_state_backup(Window* const w) NO_EXCEPT
  *
  * The windowed state is backed up first (restored by the maximize/restore toggle)
  *
- * @param Window* w Window
- * @param v4_int32 rect Desktop rectangle
+ * @param Window*   w       Window
+ * @param v4_int32  rect    Desktop rectangle
  *
  * @return void
  */
@@ -356,10 +356,10 @@ void window_borderless_apply(Window* const w, v4_int32 rect) NO_EXCEPT
  *
  * The window is limited to the rectangle
  *
- * @param Window* w Window
- * @param v4_int32 monitor Desktop rectangle
- * @param int32 width Client width
- * @param int32 height Client height
+ * @param Window*   w       Window
+ * @param v4_int32  monitor Desktop rectangle
+ * @param int32     width   Client width
+ * @param int32     height  Client height
  *
  * @return void
  */

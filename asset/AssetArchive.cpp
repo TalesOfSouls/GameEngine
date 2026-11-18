@@ -342,7 +342,7 @@ struct AssetArchiveLoad {
 /**
  * Starts loading an asset: starts the overlapped read and reserves the asset memory while the read is in flight
  *
- * @return false on failure
+ * @return bool false on failure
  */
 static
 bool asset_archive_load_begin(

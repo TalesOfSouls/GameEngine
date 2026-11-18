@@ -72,7 +72,7 @@ UICore* ui_root_create(UILayout* layout, f32 width, f32 height) NO_EXCEPT
 }
 
 /**
- * @param parent NULL = root
+ * @param UICore* parent NULL = root
  */
 inline
 UIPanel* ui_panel_create(
@@ -106,8 +106,8 @@ bool ui_panel_is_clipping(const UICore* const element) NO_EXCEPT
 // The content size is calculated from the children of the content panel
 
 /**
- * @param flags UI_PANEL_FLAG_SCROLL_X and/or UI_PANEL_FLAG_SCROLL_Y
- * @param parent NULL = root
+ * @param byte      flags   UI_PANEL_FLAG_SCROLL_X and/or UI_PANEL_FLAG_SCROLL_Y
+ * @param UICore*   parent  NULL = root
  */
 inline
 UIPanel* ui_scroll_panel_create(
@@ -139,7 +139,7 @@ UICore* ui_panel_content(const UILayout* const layout, UIPanel* const panel) NO_
  * Visible area of a scroll panel (excluding the scrollbars)
  * Uses the dimension and content size of the last ui_cache()
  *
- * @return x, y = top left, width, height
+ * @return v4_f32 x, y = top left, width, height
  */
 inline
 v4_f32 ui_panel_viewport(const UIPanel* const panel, bool* const has_x = NULL, bool* const has_y = NULL) NO_EXCEPT
@@ -177,7 +177,7 @@ v4_f32 ui_panel_viewport(const UIPanel* const panel, bool* const has_x = NULL, b
 /**
  * Scroll info for the scrollbar of an axis
  *
- * @return false if the panel doesn't have a scrollbar in this axis
+ * @return bool false if the panel doesn't have a scrollbar in this axis
  */
 inline
 bool ui_panel_scroll_info(const UIPanel* const panel, UIScrollAxis axis, UIScrollInfo* const info) NO_EXCEPT
@@ -213,7 +213,7 @@ bool ui_panel_scroll_info(const UIPanel* const panel, UIScrollAxis axis, UIScrol
 }
 
 /**
- * @return true if the scroll offset changed
+ * @return bool true if the scroll offset changed
  */
 inline
 bool ui_panel_scroll_set(UILayout* const layout, UIPanel* const panel, UIScrollAxis axis, f32 scroll) NO_EXCEPT
@@ -274,7 +274,7 @@ v2_f32 ui_panel_content_extent(const UILayout* const layout, const UIPanel* cons
 // Only one popup is open at a time (UIInteraction::popup)
 
 /**
- * @param owner Element the popup belongs to and is placed below (NULL = placed at the position ui_popup_open() gets)
+ * @param UICore* owner Element the popup belongs to and is placed below (NULL = placed at the position ui_popup_open() gets)
  */
 inline
 UIPanel* ui_popup_create(UILayout* const layout, UICore* const owner = NULL, uint32 background_color = UI_DEFAULT_LIST_BACKGROUND) NO_EXCEPT
@@ -284,7 +284,7 @@ UIPanel* ui_popup_create(UILayout* const layout, UICore* const owner = NULL, uin
     popup->panel_flags = UI_PANEL_FLAG_POPUP;
     popup->popup_owner = owner ? ui_element_offset(layout, owner) : 0;
     popup->border.color = UI_DEFAULT_CONTROL_BORDER_FOCUS;
-    popup->border.width = 1;
+    ui_border_width_set(&popup->border, 1);
 
     // Clicking inside of a popup "focuses" it -> it stays in front
     popup->core.flags = UI_ELEMENT_FLAG_HITBOX;
@@ -327,7 +327,7 @@ void ui_popup_close(UILayout* const layout) NO_EXCEPT
 /**
  * Opens a popup (closes the currently open one)
  *
- * @param x, y Position of the top left corner in ui coordinates (only used if the popup has no owner)
+ * @param f32 x, y Position of the top left corner in ui coordinates (only used if the popup has no owner)
  */
 inline
 void ui_popup_open(UILayout* const layout, UIPanel* const popup, f32 x = 0.0f, f32 y = 0.0f) NO_EXCEPT
@@ -354,7 +354,7 @@ void ui_popup_open(UILayout* const layout, UIPanel* const popup, f32 x = 0.0f, f
  * Calculates the popup position
  * Popups with an owner are placed below the owner (or above if there is not enough space below)
  *
- * @param size Size of the popup
+ * @param v2_f32 size Size of the popup
  */
 inline
 void ui_popup_place(const UILayout* const layout, UIPanel* const popup, v2_f32 size) NO_EXCEPT
@@ -438,7 +438,7 @@ void ui_panel_cache(
  *      1. updates the content size (the children are calculated now)
  *      2. draws the scrollbars on top of the content
  *
- * @return true if the content size changed (-> the ui needs another ui_cache() since the scrollbars may change)
+ * @return bool true if the content size changed (-> the ui needs another ui_cache() since the scrollbars may change)
  */
 bool ui_panel_scroll_finish(
     UIPanel* const panel,

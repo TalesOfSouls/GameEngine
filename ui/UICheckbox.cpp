@@ -18,8 +18,8 @@
 #define UI_CHECKBOX_LABEL_GAP 6.0f
 
 /**
- * @param text NULL = no label
- * @param parent NULL = root
+ * @param const char*   text    NULL = no label
+ * @param UICore*       parent  NULL = root
  */
 inline
 UICheckbox* ui_checkbox_create(
@@ -52,7 +52,7 @@ UICheckbox* ui_checkbox_create(
 }
 
 /**
- * @param group Radios with the same group and parent are mutually exclusive
+ * @param int16 group Radios with the same group and parent are mutually exclusive
  */
 inline
 UIRadio* ui_radio_create(
@@ -72,7 +72,7 @@ UIRadio* ui_radio_create(
  * Changes the checked state
  * Checking a radio unchecks all other radios of the same group (and parent)
  *
- * @return true if the value changed
+ * @return bool true if the value changed
  */
 inline
 bool ui_checkbox_set(UILayout* const layout, UICheckbox* const checkbox, bool checked) NO_EXCEPT

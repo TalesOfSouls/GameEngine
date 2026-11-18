@@ -170,9 +170,9 @@ void stats_snapshot() NO_EXCEPT
  * which can be much faster than the code that sets the value (e.g. the fps of the render loop)
  * -> the slot is already overwritten before it is shown
  *
- * @param int32 id  Stats id
- * @param int64 value  New value
- * @param bool debug Debug stat (@see stats_is_collecting)
+ * @param int32 id      Stats id
+ * @param int64 value   New value
+ * @param bool  debug   Debug stat (@see stats_is_collecting)
  *
  * @return void
  */
@@ -206,9 +206,9 @@ void stats_set(int32 id, int64 value = 1, bool debug = false) NO_EXCEPT
  * User stats (debug = false) also keep a running total in persistent_stats,
  * users are shown rates calculated from it (e.g. bytes per second, @see stats_set why the slots aren't enough)
  *
- * @param int32 id  Stats id
- * @param int64 by  Change amount
- * @param bool debug Debug stat (@see stats_is_collecting)
+ * @param int32 id      Stats id
+ * @param int64 by      Change amount
+ * @param bool  debug   Debug stat (@see stats_is_collecting)
  *
  * @return void
  */
@@ -241,9 +241,9 @@ void stats_increment(int32 id, int64 by = 1, bool debug = false) NO_EXCEPT
  *
  * User stats (debug = false) also keep a running total in persistent_stats (@see stats_increment)
  *
- * @param int32 id  Stats id
- * @param int64 by  Change amount
- * @param bool debug Debug stat (@see stats_is_collecting)
+ * @param int32 id      Stats id
+ * @param int64 by      Change amount
+ * @param bool  debug   Debug stat (@see stats_is_collecting)
  *
  * @return void
  */
@@ -310,8 +310,8 @@ void stats_decrement_persistent(int32 id, int64 by = 1, bool debug = false) NO_E
 /**
  * Logs the maximum value
  *
- * @param int32 id  Stats id
- * @param int64 value  Max value
+ * @param int32 id      Stats id
+ * @param int64 value   Max value
  *
  * @return void
  */
@@ -329,8 +329,8 @@ void stats_max_persistent(int32 id, int64 value, bool debug = false) NO_EXCEPT
 /**
  * Logs the minimum value
  *
- * @param int32 id  Stats id
- * @param int64 value  Min value
+ * @param int32 id      Stats id
+ * @param int64 value   Min value
  *
  * @return void
  */

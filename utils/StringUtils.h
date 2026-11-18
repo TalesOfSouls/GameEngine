@@ -132,6 +132,55 @@ int32 utf8_decode(const uint32 codepoint, char* out) NO_EXCEPT
     return 0;
 }
 
+/**
+ * Byte offset of the previous utf8 character (code point)
+ * The continuation bytes (10xxxxxx) are skipped, the text isn't validated
+ *
+ * @param const char*   text    Utf8 text
+ * @param int32         pos     Byte offset (usually the start of a character)
+ *
+ * @return int32 Byte offset of the start of the previous character, 0 at the beginning of the text
+ */
+FORCE_INLINE
+int32 utf8_prev(const char* const text, int32 pos) NO_EXCEPT
+{
+    if (pos <= 0) {
+        return 0;
+    }
+
+    --pos;
+    while (pos > 0 && (text[pos] & 0xC0) == 0x80) {
+        --pos;
+    }
+
+    return pos;
+}
+
+/**
+ * Byte offset of the next utf8 character (code point)
+ * The continuation bytes (10xxxxxx) are skipped, the text isn't validated
+ *
+ * @param const char*   text    Utf8 text
+ * @param int32         pos     Byte offset (usually the start of a character)
+ * @param int32         length  Length of the text in bytes
+ *
+ * @return int32 Byte offset of the start of the next character, length at the end of the text
+ */
+FORCE_INLINE
+int32 utf8_next(const char* const text, int32 pos, int32 length) NO_EXCEPT
+{
+    if (pos >= length) {
+        return length;
+    }
+
+    ++pos;
+    while (pos < length && (text[pos] & 0xC0) == 0x80) {
+        ++pos;
+    }
+
+    return pos;
+}
+
 inline
 int32 utf8_strlen(const char* in) NO_EXCEPT
 {
@@ -3062,7 +3111,7 @@ void sprintf_fast_iter(char* __restrict buffer, const char* __restrict format, .
  * Bounded version of sprintf_fast_iter(), only the first % is replaced
  * The output is truncated to buffer_size - 1 characters and always \0 terminated
  *
- * @return Length of the output
+ * @return int32 Length of the output
  */
 int32 sprintf_fast_iter(char* __restrict buffer, int32 buffer_size, const char* __restrict format, ...) NO_EXCEPT
 {

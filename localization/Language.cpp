@@ -22,6 +22,19 @@
  * FNV-1a (32 bit), 0 is reserved for empty slots
  */
 inline CONSTEXPR
+uint32 language_hash(const char* key, int32 length) NO_EXCEPT
+{
+    uint32 hash = 2166136261U;
+    for (int32 i = 0; i < length; ++i) {
+        hash ^= (uint32) (byte) key[i];
+        hash *= 16777619U;
+    }
+
+    return hash ? hash : 1;
+}
+
+// Same as above for \0 terminated keys
+inline CONSTEXPR
 uint32 language_hash(const char* key) NO_EXCEPT
 {
     uint32 hash = 2166136261U;
@@ -33,54 +46,71 @@ uint32 language_hash(const char* key) NO_EXCEPT
     return hash ? hash : 1;
 }
 
+/**
+ * Key of a string literal, the hash + length are calculated at compile time
+ *
+ * @example language_get(lang, language_key("menu_quit"))
+ */
+template <size_t N>
+CONSTEVAL
+LanguageKey language_key(const char (&key)[N]) NO_EXCEPT
+{
+    return { language_hash(key, (int32) (N - 1)), (int32) (N - 1), key };
+}
+
+// Key that is only known at runtime but with a known length (e.g. parsed from a file)
+FORCE_INLINE
+LanguageKey language_key(const char* const key, int32 length) NO_EXCEPT
+{
+    return { language_hash(key, length), length, key };
+}
+
 // Slot of a key (NULL if the key doesn't exist)
 static inline
-const LanguageSlot* language_slot_find(const Language* const lang, const char* const key) NO_EXCEPT
+const LanguageSlot* language_slot_find(const Language* const lang, const LanguageKey& key) NO_EXCEPT
 {
-    if (!lang || !lang->data || !key) {
+    if (!lang || !lang->data || !key.str) {
         ASSERT_TRUE(false);
         return NULL;
     }
-
-    const uint32 hash = language_hash(key);
 
     const LanguageHeader* const header = (const LanguageHeader *) lang->data;
     const LanguageSlot* const slots = (const LanguageSlot *) (header + 1);
     const uint32 mask = (uint32) header->slot_count - 1;
 
     // Terminates since there are always empty slots (slot_count >= 2 * count)
-    for (uint32 i = hash & mask; ; i = (i + 1) & mask) {
+    for (uint32 i = key.hash & mask; ; i = (i + 1) & mask) {
         const LanguageSlot* const slot = &slots[i];
         if (!slot->hash) {
             return NULL;
         }
 
-        if (slot->hash == hash && strcmp((const char *) (lang->data + slot->key), key) == 0) {
-            return slot;
+        // The size check keeps the comparison inside of the data (a shorter key could be the last string)
+        if (slot->hash == key.hash && slot->key + key.length < lang->size) {
+            const char* const stored = (const char *) (lang->data + slot->key);
+            if (stored[key.length] == '\0' && memcmp(stored, key.str, key.length) == 0) {
+                return slot;
+            }
         }
     }
 }
 
-/**
- * @return NULL if the key doesn't exist
- */
-FORCE_INLINE
-const char* language_get(const Language* const lang, const char* const key) NO_EXCEPT
+// Same as above for \0 terminated keys (e.g. keys that are only known at runtime)
+static inline
+const LanguageSlot* language_slot_find(const Language* const lang, const char* const key) NO_EXCEPT
 {
-    const LanguageSlot* const slot = language_slot_find(lang, key);
+    if (!key) {
+        ASSERT_TRUE(false);
+        return NULL;
+    }
 
-    return slot ? (const char *) (lang->data + slot->value) : NULL;
+    return language_slot_find(lang, language_key(key, (int32) strlen(key)));
 }
 
-/**
- * Same as language_get but incl. the length of the string (no strlen required, the string is \0 terminated)
- *
- * @return {0, 0, NULL} if the key doesn't exist
- */
+// String of a slot incl. its length ({0, 0, NULL} if there is no slot)
 FORCE_INLINE
-SimpleString<const char> language_get_string(const Language* const lang, const char* const key) NO_EXCEPT
+SimpleString<const char> language_slot_string(const Language* const lang, const LanguageSlot* const slot) NO_EXCEPT
 {
-    const LanguageSlot* const slot = language_slot_find(lang, key);
     if (!slot) {
         SimpleString<const char> empty = { 0, 0, NULL };
         return empty;
@@ -96,13 +126,60 @@ SimpleString<const char> language_get_string(const Language* const lang, const c
 }
 
 /**
+ * @return const char* NULL if the key doesn't exist
+ */
+FORCE_INLINE
+const char* language_get(const Language* const lang, const LanguageKey& key) NO_EXCEPT
+{
+    const LanguageSlot* const slot = language_slot_find(lang, key);
+
+    return slot ? (const char *) (lang->data + slot->value) : NULL;
+}
+
+// Same as above for \0 terminated keys (prefer language_key("...") for string literals)
+FORCE_INLINE
+const char* language_get(const Language* const lang, const char* const key) NO_EXCEPT
+{
+    const LanguageSlot* const slot = language_slot_find(lang, key);
+
+    return slot ? (const char *) (lang->data + slot->value) : NULL;
+}
+
+/**
+ * Same as language_get but incl. the length of the string (no strlen required, the string is \0 terminated)
+ *
+ * @return SimpleString<const char> {0, 0, NULL} if the key doesn't exist
+ */
+FORCE_INLINE
+SimpleString<const char> language_get_string(const Language* const lang, const LanguageKey& key) NO_EXCEPT
+{
+    return language_slot_string(lang, language_slot_find(lang, key));
+}
+
+FORCE_INLINE
+SimpleString<const char> language_get_string(const Language* const lang, const char* const key) NO_EXCEPT
+{
+    return language_slot_string(lang, language_slot_find(lang, key));
+}
+
+/**
  * language_get with a caller owned cache (for strings that are needed every tick, e.g. the format of a hud label)
  * The cache MUST be reset (= NULL) if the language is (re-)loaded
  *
  * @param const char** cache Cached string (NULL = not looked up yet)
  *
- * @return NULL if the key doesn't exist
+ * @return const char* NULL if the key doesn't exist
  */
+FORCE_INLINE
+const char* language_get_cached(const Language* const lang, const char** const cache, const LanguageKey& key) NO_EXCEPT
+{
+    if (!*cache) {
+        *cache = language_get(lang, key);
+    }
+
+    return *cache;
+}
+
 FORCE_INLINE
 const char* language_get_cached(const Language* const lang, const char** const cache, const char* const key) NO_EXCEPT
 {
@@ -119,8 +196,22 @@ const char* language_get_cached(const Language* const lang, const char** const c
  *
  * @param SimpleString<const char>* cache Cached string (str == NULL = not looked up yet)
  *
- * @return {0, 0, NULL} if the key doesn't exist
+ * @return SimpleString<const char> {0, 0, NULL} if the key doesn't exist
  */
+FORCE_INLINE
+SimpleString<const char> language_get_string_cached(
+    const Language* const lang,
+    SimpleString<const char>* const cache,
+    const LanguageKey& key
+) NO_EXCEPT
+{
+    if (!cache->str) {
+        *cache = language_get_string(lang, key);
+    }
+
+    return *cache;
+}
+
 FORCE_INLINE
 SimpleString<const char> language_get_string_cached(
     const Language* const lang,
@@ -165,9 +256,9 @@ int32 language_txt_memory_size(const char* const text, int32 length) NO_EXCEPT
 /**
  * Parses a language text into lang->data
  *
- * @param capacity Size of lang->data (language_txt_memory_size() is always enough)
+ * @param int32 capacity Size of lang->data (language_txt_memory_size() is always enough)
  *
- * @return Size of the memory or -1 if lang->data is too small
+ * @return int32 Size of the memory or -1 if lang->data is too small
  */
 inline
 int32 language_from_txt(
@@ -349,9 +440,9 @@ int32 language_from_txt(
 /**
  * Loads a language text file (e.g. used by the asset builder)
  *
- * @param capacity Size of lang->data
+ * @param int32 capacity Size of lang->data
  *
- * @return Size of the memory or -1 if the file doesn't exist or lang->data is too small
+ * @return int32 Size of the memory or -1 if the file doesn't exist or lang->data is too small
  *
  * @todo remove this shouldn't be here it all it does is load the text file which should not be in here
  */

@@ -117,8 +117,8 @@ const SimpleStringInline<C>* simple_string_inline_from_str(const C* const charac
 /**
  * Creates an empty SimpleStringInline in memory
  *
- * @param memory        At least simple_string_inline_size<C>(max_length) bytes, 4 byte aligned
- * @param max_length    Max amount of characters
+ * @param void* memory      At least simple_string_inline_size<C>(max_length) bytes, 4 byte aligned
+ * @param int32 max_length  Max amount of characters
  */
 template <typename C>
 FORCE_INLINE
@@ -136,7 +136,7 @@ SimpleStringInline<C>* simple_string_inline_init(void* const memory, int32 max_l
 /**
  * Copies characters into the string (cut at max_length)
  *
- * @return Amount of copied characters
+ * @return int32 Amount of copied characters
  */
 template <typename C>
 inline
@@ -251,8 +251,8 @@ const char* utf8_string_inline_str(const Utf8StringInline* const str) NO_EXCEPT
 /**
  * Creates an empty Utf8StringInline in memory
  *
- * @param memory        At least utf8_string_inline_size(max_length) bytes, 4 byte aligned
- * @param max_length    Max amount of bytes
+ * @param void* memory      At least utf8_string_inline_size(max_length) bytes, 4 byte aligned
+ * @param int32 max_length  Max amount of bytes
  */
 FORCE_INLINE
 Utf8StringInline* utf8_string_inline_init(void* const memory, int32 max_length) NO_EXCEPT

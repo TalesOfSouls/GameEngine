@@ -17,7 +17,7 @@
  * The position is the mouse position (pos_raw = window coordinates, y-down) relative to the top left of the root
  * The size is the image size unless set otherwise
  *
- * @param parent NULL = root
+ * @param UICore* parent NULL = root
  */
 static
 UICursor* ui_cursor_create(UILayout* const layout, UICore* parent = NULL) NO_EXCEPT

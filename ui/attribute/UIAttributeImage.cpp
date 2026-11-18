@@ -38,7 +38,7 @@ void ui_image_attribute_from_atlas(
 /**
  * Renders the image so that it fills the rect
  *
- * @param rect x, y = top left corner, width, height
+ * @param v4_f32 rect x, y = top left corner, width, height
  */
 FORCE_INLINE
 void ui_image_vertices(

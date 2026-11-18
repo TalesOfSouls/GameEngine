@@ -75,11 +75,11 @@ void hid_controller_close(ControllerDevice* const controller) NO_EXCEPT
  *
  * Safe to call for any hid device and for already connected controllers (e.g. duplicate notifications)
  *
- * @param path                Device interface path
- * @param preferred_types Which InputType is preferred for which state
- * @param skip_xinput_devices Ignore XInput compatible devices (they are handled by XInput)
+ * @param const wchar_t*    path                Device interface path
+ * @param const byte*       preferred_types     Which InputType is preferred for which state
+ * @param bool              skip_xinput_devices Ignore XInput compatible devices (they are handled by XInput)
  *
- * @return Input index the controller was assigned to (-1 = not a controller, already connected or no free input)
+ * @return int32 Input index the controller was assigned to (-1 = not a controller, already connected or no free input)
  */
 int32 hid_controller_add(
     Input* const __restrict states, int32 count,
@@ -234,7 +234,7 @@ int32 hid_controller_add(
 /**
  * Finds the input of a connected hid controller by its device path
  *
- * @return Input index (-1 = not a connected hid controller)
+ * @return int32 Input index (-1 = not a connected hid controller)
  */
 inline
 int32 hid_controller_find_by_path(
@@ -262,7 +262,7 @@ int32 hid_controller_find_by_path(
 /**
  * Adds all connected hid controllers
  *
- * @return Amount of controllers added
+ * @return int32 Amount of controllers added
  */
 int32 hid_init_controllers(
     Input* const __restrict states, int32 count,
@@ -340,7 +340,7 @@ int32 hid_init_controllers(
  * The latest report is also mapped if no new report arrived
  * Stick values stay active every tick (deltas are reset every tick in input_frame_begin)
  *
- * @return false = device disconnected (the caller must disconnect the controller)
+ * @return bool false = device disconnected (the caller must disconnect the controller)
  */
 inline
 bool hid_controller_poll(Input* const input, uint64 time) NO_EXCEPT

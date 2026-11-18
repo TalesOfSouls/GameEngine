@@ -20,9 +20,9 @@
 #define UI_SELECT_CHECK_SIZE 12.0f
 
 /**
- * @param options Option texts (copied into the ui_element_buffer)
- * @param flags UISelectFlag
- * @param parent NULL = root
+ * @param const SimpleString<const char>*   options Option texts (copied into the ui_element_buffer)
+ * @param byte                              flags   UISelectFlag
+ * @param UICore*                           parent  NULL = root
  */
 inline
 UISelect* ui_select_create(
@@ -66,7 +66,7 @@ UISelect* ui_select_create(
         search->core.dimension.flag = UI_DIMENSION_DIM_X_RELATIVE;
         search->core.dimension.dim_raw = {1.0f, UI_DEFAULT_ROW_HEIGHT};
         search->owner = ui_element_offset(layout, select);
-        ui_input_set_placeholder(layout, search, "Search...");
+        ui_input_set_placeholder(layout, search, simple_string_literal<const char>("Search..."));
 
         select->search = ui_element_offset(layout, search);
         list_y = UI_DEFAULT_ROW_HEIGHT;
@@ -153,7 +153,7 @@ bool ui_text_contains_case_insensitive(const char* text, const char* const searc
 /**
  * Index of the option in the n-th row of the filtered list
  *
- * @return option index or -1
+ * @return int32 option index or -1
  */
 inline
 int32 ui_select_filtered_option(const UILayout* const layout, const UISelect* const select, int32 row) NO_EXCEPT
@@ -212,7 +212,7 @@ bool ui_select_is_checked(const UILayout* const layout, const UISelect* const se
  * Single selection: selects the option
  * Multi selection: sets the checked state of the option
  *
- * @return true if the selection changed
+ * @return bool true if the selection changed
  */
 inline
 bool ui_select_set(UILayout* const layout, UISelect* const select, int32 index, bool checked = true) NO_EXCEPT
@@ -323,7 +323,7 @@ UISelect* ui_option_list_select(const UILayout* const layout, const UIOptionList
 }
 
 /**
- * @return false if the list doesn't need a scrollbar
+ * @return bool false if the list doesn't need a scrollbar
  */
 inline
 bool ui_option_list_scroll_info(const UILayout* const layout, const UIOptionList* const list, UIScrollInfo* const info) NO_EXCEPT
@@ -363,7 +363,7 @@ bool ui_option_list_scroll_set(UILayout* const layout, UIOptionList* const list,
 }
 
 /**
- * @return Row (index in the filtered list) at the position or -1
+ * @return int32 Row (index in the filtered list) at the position or -1
  */
 inline
 int32 ui_option_list_row_at(const UILayout* const layout, const UIOptionList* const list, f32 x, f32 y) NO_EXCEPT
@@ -400,7 +400,7 @@ bool ui_option_list_hover(UILayout* const layout, UIOptionList* const list, int3
 /**
  * Moves the hovered row by delta (keyboard navigation) and scrolls it into view
  *
- * @return true if it changed
+ * @return bool true if it changed
  */
 inline
 bool ui_option_list_move_hover(UILayout* const layout, UIOptionList* const list, int32 delta) NO_EXCEPT

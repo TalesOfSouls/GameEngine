@@ -109,7 +109,7 @@ uint32 ui_color_from_hsv(f32 h, f32 s, f32 v, f32 a = 1.0f) NO_EXCEPT
 }
 
 /**
- * @param hue Is only changed if the color has a hue (not grey)
+ * @param f32* hue Is only changed if the color has a hue (not grey)
  */
 inline
 void ui_color_to_hsv(uint32 color, f32* const hue, f32* const saturation, f32* const value) NO_EXCEPT
@@ -200,16 +200,15 @@ void ui_color_picker_update_inputs(UILayout* const layout, UIColorPicker* const 
 
         char text[12];
         const int32 length = int_to_str((int64) ui_color_channel(picker->color, i), text);
-        text[length] = '\0';
 
-        ui_input_set_text(layout, (UIInput *) ui_element_get(layout, picker->inputs[i]), text);
+        ui_input_set_text(layout, (UIInput *) ui_element_get(layout, picker->inputs[i]), text, length);
     }
 }
 
 /**
  * Sets the color (rgba)
  *
- * @return true if the color changed
+ * @return bool true if the color changed
  */
 inline
 bool ui_color_picker_set(UILayout* const layout, UIColorPicker* const picker, uint32 color) NO_EXCEPT
@@ -231,7 +230,7 @@ bool ui_color_picker_set(UILayout* const layout, UIColorPicker* const picker, ui
 /**
  * Sets the color by hsv (keeps the hue even for grey colors)
  *
- * @return true if the color changed
+ * @return bool true if the color changed
  */
 inline
 bool ui_color_picker_set_hsv(UILayout* const layout, UIColorPicker* const picker, f32 h, f32 s, f32 v, f32 a) NO_EXCEPT
@@ -257,7 +256,7 @@ bool ui_color_picker_set_hsv(UILayout* const layout, UIColorPicker* const picker
 /**
  * Reads the rgba input fields (called when one of them changed)
  *
- * @return true if the color changed
+ * @return bool true if the color changed
  */
 inline
 bool ui_color_picker_inputs_changed(UILayout* const layout, UIColorPicker* const picker) NO_EXCEPT
@@ -295,11 +294,11 @@ bool ui_color_picker_inputs_changed(UILayout* const layout, UIColorPicker* const
 }
 
 /**
- * @param type UIColorPickerType
- * @param palette Palette colors (rgba) in display order: UI_COLOR_PALETTE_COLUMNS cells per row, 0 = empty cell
- *                NULL = ansi colors (UI_COLOR_PALETTE_ANSI), only used by UI_COLOR_PICKER_TYPE_PALETTE
- * @param palette_count Amount of cells
- * @param parent NULL = root
+ * @param UIColorPickerType type            UIColorPickerType
+ * @param const uint32*     palette         Palette colors (rgba) in display order: UI_COLOR_PALETTE_COLUMNS cells per row, 0 = empty cell
+ *                                          NULL = ansi colors (UI_COLOR_PALETTE_ANSI), only used by UI_COLOR_PICKER_TYPE_PALETTE
+ * @param int32             palette_count   Amount of cells
+ * @param UICore*           parent          NULL = root
  */
 inline
 UIColorPicker* ui_color_picker_create(
@@ -414,7 +413,7 @@ v4_f32 ui_color_panel_area_rect(const UIColorPanel* const panel, UIColorPanelAre
 }
 
 /**
- * @return Grid cell at the position or -1
+ * @return int32 Grid cell at the position or -1
  */
 inline
 int32 ui_color_panel_cell_at(const UILayout* const layout, const UIColorPanel* const panel, f32 x, f32 y) NO_EXCEPT
@@ -451,9 +450,9 @@ bool ui_color_panel_hover(UILayout* const layout, UIColorPanel* const panel, int
 /**
  * Gradient: changes the color based on the pointer position (pressing and dragging)
  *
- * @param start true = pointer pressed (decides which area is dragged), false = pointer moved while pressed
+ * @param bool start true = pointer pressed (decides which area is dragged), false = pointer moved while pressed
  *
- * @return true if the color changed
+ * @return bool true if the color changed
  */
 inline
 bool ui_color_panel_set_from_position(UILayout* const layout, UIColorPanel* const panel, f32 x, f32 y, bool start) NO_EXCEPT
@@ -509,7 +508,7 @@ bool ui_color_panel_set_from_position(UILayout* const layout, UIColorPanel* cons
 /**
  * Palette: picks the color at the position
  *
- * @return true if the color changed
+ * @return bool true if the color changed
  */
 inline
 bool ui_color_panel_pick(UILayout* const layout, UIColorPanel* const panel, f32 x, f32 y) NO_EXCEPT

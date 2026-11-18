@@ -1212,9 +1212,9 @@ bool file_read_async(
  * Waits for/checks an overlapped read started by file_read_async()
  * Sets file->size to the bytes actually read and null terminates the content
  *
- * @param wait false = only check if the read is completed
+ * @param bool wait false = only check if the read is completed
  *
- * @return true if the read completed successfully (false if it is still pending or failed, file->size = 0)
+ * @return bool true if the read completed successfully (false if it is still pending or failed, file->size = 0)
  */
 inline
 bool file_async_wait(FileHandle fp, FileBodyAsync* const file, bool wait = true) NO_EXCEPT
@@ -1620,8 +1620,8 @@ bool file_delete(const C* path) NO_EXCEPT
  * Opens a file for reading and writing (e.g. random access with file_read_at() / file_write_at())
  * Other handles may still read the file, writing is exclusive
  *
- * @param const C* path File path
- * @param FileOpenMode mode Open mode
+ * @param const C*      path    File path
+ * @param FileOpenMode  mode    Open mode
  *
  * @return FileHandle NULL on failure
  */
@@ -1669,10 +1669,10 @@ uint64 file_size(FileHandle fp) NO_EXCEPT
  * Reads at a file position without using/changing a shared file position
  * (unlike file_read() with an offset, no seek and no null termination)
  *
- * @param FileHandle fp File handle
- * @param uint64 offset File position
- * @param void* buffer Destination
- * @param uint32 length Bytes to read
+ * @param FileHandle    fp      File handle
+ * @param uint64        offset  File position
+ * @param void*         buffer  Destination
+ * @param uint32        length  Bytes to read
  *
  * @return uint32 Bytes read (less than length at the end of the file or on failure)
  */
@@ -1703,10 +1703,10 @@ uint32 file_read_at(FileHandle fp, uint64 offset, void* buffer, uint32 length) N
 /**
  * Writes at a file position, the file grows if necessary
  *
- * @param FileHandle fp File handle (file_read_write_handle())
- * @param uint64 offset File position
- * @param const void* buffer Source
- * @param uint32 length Bytes to write
+ * @param FileHandle    fp      File handle (file_read_write_handle())
+ * @param uint64        offset  File position
+ * @param const void*   buffer  Source
+ * @param uint32        length  Bytes to write
  *
  * @return bool
  */
@@ -1764,10 +1764,10 @@ bool directory_exists(const C* path) NO_EXCEPT
 /**
  * Lists the direct sub directories of a directory (not recursive, hidden "." directories are skipped)
  *
- * @param const char* path Directory path
- * @param char* names Output names (count * name_size chars)
- * @param int32 name_size Max. size of a name incl. the null terminator (longer names are skipped)
- * @param int32 count Max. number of names
+ * @param const char*   path        Directory path
+ * @param char*         names       Output names (count * name_size chars)
+ * @param int32         name_size   Max. size of a name incl. the null terminator (longer names are skipped)
+ * @param int32         count       Max. number of names
  *
  * @return int32 Number of names written
  */

@@ -32,9 +32,9 @@
  *
  * The text is cut if it doesn't fit (never in the middle of an utf8 character)
  *
- * @param max_length Size of text in bytes incl. \0
+ * @param int32 max_length Size of text in bytes incl. \0
  *
- * @return Length of the text in bytes (without \0)
+ * @return int32 Length of the text in bytes (without \0)
  */
 inline
 int32 clipboard_get(char* const text, int32 max_length) NO_EXCEPT
@@ -93,10 +93,10 @@ int32 clipboard_get(char* const text, int32 max_length) NO_EXCEPT
 /**
  * Sets the clipboard text
  *
- * @param text utf8 text (doesn't need to be \0 terminated)
- * @param length Length in bytes
+ * @param const char*   text    utf8 text (doesn't need to be \0 terminated)
+ * @param int32         length  Length in bytes
  *
- * @return true on success
+ * @return bool true on success
  */
 inline
 bool clipboard_set(const char* const text, int32 length) NO_EXCEPT

@@ -84,7 +84,7 @@ bool ui_element_is_visible(const UILayout* const layout, const UICore* element) 
  * @param bool content_tick false = only the update functions of elements with UI_ELEMENT_FLAG_UPDATE_TICK run
  *                          (e.g. the cursor), true = all of them (e.g. labels/tables with statistics)
  *
- * @return true if the layout needs to be re-cached
+ * @return bool true if the layout needs to be re-cached
  */
 bool ui_update(void* app, UILayout* const layout, bool content_tick = true) NO_EXCEPT
 {
@@ -122,7 +122,7 @@ bool ui_update(void* app, UILayout* const layout, bool content_tick = true) NO_E
  * Scroll info of an element for one axis
  * Uses the dimensions of the last ui_cache()
  *
- * @return false if the element can't scroll in this axis (or the content fits)
+ * @return bool false if the element can't scroll in this axis (or the content fits)
  */
 inline
 bool ui_element_scroll_info(
@@ -150,7 +150,7 @@ bool ui_element_scroll_info(
 }
 
 /**
- * @return true if the scroll offset changed
+ * @return bool true if the scroll offset changed
  */
 inline
 bool ui_element_scroll_set(UILayout* const layout, UICore* const element, UIScrollAxis axis, f32 scroll) NO_EXCEPT
@@ -283,7 +283,6 @@ uint64 ui_cache_hash_text(
     uint64 hash,
     const UILayout* const layout,
     int32 offset,
-    int32 length,
     CharType char_type
 ) NO_EXCEPT
 {
@@ -298,7 +297,7 @@ uint64 ui_cache_hash_text(
 
     const char* const text = (const char *) (layout->ui_element_buffer.memory + offset);
 
-    return ui_cache_hash_bytes(hash, text, (size_t) length * char_type_size(char_type));
+    return ui_cache_hash_bytes(hash, text, (size_t) ui_string_length(layout, offset) * char_type_size(char_type));
 }
 
 /**
@@ -361,14 +360,14 @@ uint64 ui_element_cache_hash(
     switch (element->type) {
         case UI_ELEMENT_TYPE_LABEL: {
             const UILabel* const label = (const UILabel *) element;
-            hash = ui_cache_hash_text(hash, layout, label->content, label->content_length, label->char_type);
-            hash = ui_cache_hash_text(hash, layout, label->pattern, label->pattern_length, label->char_type);
+            hash = ui_cache_hash_text(hash, layout, label->content, label->char_type);
+            hash = ui_cache_hash_text(hash, layout, label->pattern, label->char_type);
         } break;
         case UI_ELEMENT_TYPE_INPUT:
         case UI_ELEMENT_TYPE_TEXTAREA: {
             const UIInput* const input = (const UIInput *) element;
-            hash = ui_cache_hash_text(hash, layout, input->content, input->content_length, CHAR_TYPE_CHAR);
-            hash = ui_cache_hash_text(hash, layout, input->placeholder, 0, CHAR_TYPE_CHAR);
+            hash = ui_cache_hash_text(hash, layout, input->content, CHAR_TYPE_CHAR);
+            hash = ui_cache_hash_text(hash, layout, input->placeholder, CHAR_TYPE_CHAR);
         } break;
         case UI_ELEMENT_TYPE_SELECT: {
             const UISelect* const select = (const UISelect *) element;
@@ -417,7 +416,7 @@ uint64 ui_element_cache_hash(
 /**
  * Copies the vertices of an unchanged element from the last ui_cache() output
  *
- * @param zindex_delta Difference between the new and the old zindex
+ * @param f32 zindex_delta Difference between the new and the old zindex
  */
 static inline
 void ui_element_cache_copy(UILayout* const layout, UICore* const element, f32 zindex_delta) NO_EXCEPT
@@ -1112,10 +1111,10 @@ bool ui_element_has_action(const UICore* const element) NO_EXCEPT
  *      e.g. click on the window title label (no action) -> window title (movable) is returned
  *           click on a button label (no action) -> button (on_click) is returned
  *
- * @param hit_element (optional) Top most element at (x, y) regardless of actions.
- *                    If it is NULL the UI wasn't hit at all (e.g. forward the input to the game world)
+ * @param UICore** hit_element (optional) Top most element at (x, y) regardless of actions.
+ *                             If it is NULL the UI wasn't hit at all (e.g. forward the input to the game world)
  *
- * @return Element with an action bound or NULL
+ * @return UICore* Element with an action bound or NULL
  */
 UICore* ui_element_at_position(
     const UILayout* const layout,
@@ -1177,7 +1176,7 @@ UICore* ui_element_at_position(
 /**
  * Find the element a scrollbar belongs to
  *
- * @return Element the scrollbar belongs to or NULL
+ * @return UICore* Element the scrollbar belongs to or NULL
  */
 inline
 UICore* ui_scrollbar_at(
@@ -1283,7 +1282,7 @@ enum UIInputResult : byte {
  *
  * @param bool enable Defines wether the state value should be added(set) or removed(unset)
  *
- * @return true if the state changed
+ * @return bool true if the state changed
  */
 inline
 bool ui_element_state_set(UILayout* const layout, int32 offset, byte state, bool enable) NO_EXCEPT
@@ -1338,7 +1337,7 @@ UICore* ui_element_drag_target(const UILayout* const layout, UICore* const movab
 /**
  * Moves the dragged element by the pointer movement since the drag start
  *
- * @return true if the position changed
+ * @return bool true if the position changed
  */
 inline
 bool ui_drag_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
@@ -1384,7 +1383,7 @@ bool ui_drag_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
  * The top left corner stays where it is (the position is corrected for other alignments)
  * Only pixel sizes can be resized (relative/fill sizes are kept)
  *
- * @return true if the size changed
+ * @return bool true if the size changed
  */
 inline
 bool ui_resize_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
@@ -1459,7 +1458,7 @@ bool ui_resize_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
 /**
  * Moves the content of the element whose scrollbar thumb is dragged
  *
- * @return true if the scroll offset changed
+ * @return bool true if the scroll offset changed
  */
 inline
 bool ui_scroll_drag_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
@@ -1503,7 +1502,7 @@ bool ui_element_is_text_input(const UICore* const element) NO_EXCEPT
  * Changes which text element receives the keyboard input (0 = none)
  * The caret is placed at the end of the text
  *
- * @return true if it changed
+ * @return bool true if it changed
  */
 inline
 bool ui_input_set_editing(UILayout* const layout, int32 offset) NO_EXCEPT
@@ -1562,7 +1561,7 @@ void ui_select_open(UILayout* const layout, UISelect* const select, bool open) N
     ui_popup_open(layout, (UIPanel *) ui_element_get(layout, select->popup));
 
     if (select->search) {
-        ui_input_set_text(layout, (UIInput *) ui_element_get(layout, select->search), "");
+        ui_input_set_text(layout, (UIInput *) ui_element_get(layout, select->search), "", 0);
         ui_input_set_editing(layout, select->search);
     }
 
@@ -1588,7 +1587,7 @@ void ui_select_open(UILayout* const layout, UISelect* const select, bool open) N
  * Replaces the options (e.g. options that are only known at runtime like the connected monitors)
  * The old option texts stay in the element buffer (unused) -> don't call this every frame
  *
- * @param selected Selected option (single selection, -1 = none), multi selection: nothing is checked
+ * @param int32 selected Selected option (single selection, -1 = none), multi selection: nothing is checked
  */
 inline
 void ui_select_set_options(
@@ -1723,9 +1722,9 @@ void ui_element_click(void* app, UILayout* const layout, UICore* const element, 
 /**
  * Value elements follow the pointer while they are pressed (slider, color gradient)
  *
- * @param start true = the element was just pressed
+ * @param bool start true = the element was just pressed
  *
- * @return true if the value changed
+ * @return bool true if the value changed
  */
 inline
 bool ui_element_drag_value(void* app, UILayout* const layout, UICore* const element, f32 x, f32 y, bool start) NO_EXCEPT
@@ -1764,10 +1763,10 @@ bool ui_element_drag_value(void* app, UILayout* const layout, UICore* const elem
 /**
  * Updates the "sub element" under the pointer of elements that render multiple items (option rows, tabs, ...)
  *
- * @param x, y Pointer position
- * @param reset true = the element is not hovered anymore
+ * @param f32   x, y    Pointer position
+ * @param bool  reset   true = the element is not hovered anymore
  *
- * @return true if it changed
+ * @return bool true if it changed
  */
 inline
 bool ui_element_hover_item(UILayout* const layout, UICore* const element, f32 x, f32 y, bool reset) NO_EXCEPT
@@ -1840,7 +1839,7 @@ struct UIInteractionDirtyScope {
  *
  * MUST be called after the input was polled and before ui_cache()
  *
- * @return UIInputResult flags
+ * @return byte UIInputResult flags
  */
 byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* const input) NO_EXCEPT
 {
@@ -2285,7 +2284,7 @@ void ui_focus_set(UILayout* const layout, int32 offset) NO_EXCEPT
  * Moves the focus to the next/previous focusable element (e.g. tab / shift + tab, controller d-pad)
  * The focus cycles within the window/popup of the current focus
  *
- * @param direction 1 = next, -1 = previous
+ * @param int32 direction 1 = next, -1 = previous
  */
 inline
 void ui_focus_move(UILayout* const layout, int32 direction) NO_EXCEPT
@@ -2399,7 +2398,7 @@ void ui_element_click_keyboard(void* app, UILayout* const layout, UICore* const 
  *
  * Confirm = mouse click
  *
- * @return true if something changed
+ * @return bool true if something changed
  */
 inline
 bool ui_element_key(void* app, UILayout* const layout, UICore* const element, UINavigation action) NO_EXCEPT
@@ -2649,7 +2648,7 @@ UINavigation ui_navigation_from_code(uint32 code) NO_EXCEPT
  *      cancel: closes the open popup or removes the focus
  *      the other actions are handled by the element in ui_element_key()
  *
- * @return UIInputResult flags
+ * @return byte UIInputResult flags
  */
 static inline
 byte ui_input_focus_action(void* app, UILayout* const layout, UINavigation action) NO_EXCEPT
@@ -2697,7 +2696,7 @@ byte ui_input_focus_action(void* app, UILayout* const layout, UINavigation actio
  *      up/down:    search field of a select = row in the option list
  *      directions, first/last: caret movement (shift = selection, ctrl = word wise/whole text)
  *
- * @return UIInputResult flags
+ * @return byte UIInputResult flags
  */
 static inline
 byte ui_input_editing_action(void* app, UILayout* const layout, UINavigation action, bool shift, bool ctrl) NO_EXCEPT
@@ -2786,10 +2785,10 @@ byte ui_input_editing_action(void* app, UILayout* const layout, UINavigation act
  *      an element has the focus: ui_input_focus_action()
  *      cancel without focus: closes the open popup (e.g. opened with the pointer)
  *
- * @param bool shift Keyboard only: extend the selection of a text element
- * @param bool ctrl Keyboard only: word wise/whole text caret movement of a text element
+ * @param bool  shift   Keyboard only: extend the selection of a text element
+ * @param bool  ctrl    Keyboard only: word wise/whole text caret movement of a text element
  *
- * @return UIInputResult flags (CAPTURED = the ui used the action)
+ * @return byte UIInputResult flags (CAPTURED = the ui used the action)
  */
 static inline
 byte ui_navigation_apply(void* app, UILayout* const layout, UINavigation action, bool shift, bool ctrl) NO_EXCEPT
@@ -2837,9 +2836,9 @@ byte ui_navigation_apply(void* app, UILayout* const layout, UINavigation action,
  * While a text element is edited everything else is text (characters, backspace, clipboard, ...),
  * also space and enter in a textarea.
  *
- * @param code Unicode codepoint or InputTextControl value (text)
+ * @param uint32 code Unicode codepoint or InputTextControl value (text)
  *
- * @return UIInputResult flags
+ * @return byte UIInputResult flags
  */
 inline
 byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
@@ -2885,9 +2884,10 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
 
     char before[128];
     const char* const text = ui_input_get_text(layout, input);
-    const bool track_text = owner && input->content_length <= (int32) sizeof(before);
+    const int32 before_length = ui_string_length(layout, input->content);
+    const bool track_text = owner && before_length < (int32) sizeof(before);
     if (track_text) {
-        memcpy(before, text, input->content_length);
+        memcpy(before, text, before_length + 1);
     }
 
     if (ui_input_handle_code(app, layout, input, code)) {
@@ -2904,9 +2904,9 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
 /**
  * Applies the keyboard text input (typed this tick) to the element with the focus
  *
- * @param codes Unicode codepoints or InputTextControl values (text)
+ * @param const uint32* codes Unicode codepoints or InputTextControl values (text)
  *
- * @return UIInputResult flags
+ * @return byte UIInputResult flags
  */
 byte ui_input_text(void* app, UILayout* const layout, const uint32* const codes, int32 count) NO_EXCEPT
 {
@@ -2938,7 +2938,7 @@ byte ui_input_text(void* app, UILayout* const layout, const uint32* const codes,
  * Text (typing, clipboard, ...) still comes from ui_input_text():
  * while a text element is edited the keyboard keys create text codes and don't trigger hotkeys (HOTKEY_CONTEXT_TYPING)
  *
- * @return UIInputResult flags (CAPTURED = the ui used the action)
+ * @return byte UIInputResult flags (CAPTURED = the ui used the action)
  */
 inline
 byte ui_input_navigate(void* app, UILayout* const layout, UINavigation navigation) NO_EXCEPT
@@ -2965,7 +2965,7 @@ bool ui_input_wants_navigation(const UILayout* const layout) NO_EXCEPT
  *      - analog controller key (e.g. stick): continuous scrolling while held, the sign is the direction
  *      - digital key (e.g. d-pad, keyboard): one notch per press
  *
- * @param code Output: key that created the value (to detect if both directions use the same key)
+ * @param int16* code Output: key that created the value (to detect if both directions use the same key)
  */
 static inline
 f32 ui_hotkey_scroll(const Input* const input, uint16 hotkey, int16* const code) NO_EXCEPT
@@ -3017,9 +3017,9 @@ f32 ui_hotkey_axis(const Input* const input, uint16 hotkey_positive, uint16 hotk
  *      navigation: EDITOR_HOTKEY_NEXT_UI, ...
  *      text:       keyboard text while a text element is edited
  *
- * @param pointer_position Output: pointer position in ui coordinates (e.g. to open a context menu there)
+ * @param v2_f32* pointer_position Output: pointer position in ui coordinates (e.g. to open a context menu there)
  *
- * @return UIInputResult flags of the pointer input (e.g. UI_INPUT_RESULT_CONTEXT = right click on an element)
+ * @return byte UIInputResult flags of the pointer input (e.g. UI_INPUT_RESULT_CONTEXT = right click on an element)
  */
 byte ui_input(
     Input* const states, int32 state_count,

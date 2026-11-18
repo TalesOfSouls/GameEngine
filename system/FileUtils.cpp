@@ -120,9 +120,9 @@ bool file_write_atomic(const C* const path, const FileBody* const file) NO_EXCEP
  * Unlike file_read() the buffer size is checked, nothing is appended (no null termination)
  * and a missing file is no error
  *
- * @param const C* path File path
- * @param void* buffer Destination
- * @param uint32 capacity Buffer size
+ * @param const C*  path        File path
+ * @param void*     buffer      Destination
+ * @param uint32    capacity    Buffer size
  *
  * @return int64 File size, -1 if the file doesn't exist, can't be read or doesn't fit into the buffer
  */
@@ -173,10 +173,10 @@ void build_base_path(const C* base, C* out) NO_EXCEPT
  * One path is the base path and the other one is relative to the base bath.
  * This function also handles the special case where the other path is already an absolute path
  *
- * @param const C* base Base path could even be the path of the exe.
- *                      This will be used to create the base path
- * @param const C* dest Destination path which is either an absolute path or relative path, relative to base
- * @param C* out Where do we want to store the final path
+ * @param const C*  base    Base path could even be the path of the exe.
+ *                          This will be used to create the base path
+ * @param const C*  dest    Destination path which is either an absolute path or relative path, relative to base
+ * @param C*        out     Where do we want to store the final path
  */
 template <typename C>
 inline

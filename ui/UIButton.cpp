@@ -14,8 +14,8 @@
 #include "UIButton.h"
 
 /**
- * @param text NULL = no label child
- * @param parent NULL = root
+ * @param const char*   text    NULL = no label child
+ * @param UICore*       parent  NULL = root
  */
 UIButton* ui_button_create(
     UILayout* const layout,

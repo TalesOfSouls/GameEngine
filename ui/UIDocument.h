@@ -124,10 +124,10 @@ bool ui_document_is_space(char c) NO_EXCEPT
 /**
  * Parses the text
  *
- * @param text      The text is NOT copied, it must stay valid as long as the document is used
- * @param memory    ui_document_memory_size(ui_document_line_count(text, length)) bytes, aligned to sizeof(size_t)
+ * @param const char*   text    The text is NOT copied, it must stay valid as long as the document is used
+ * @param byte*         memory  ui_document_memory_size(ui_document_line_count(text, length)) bytes, aligned to sizeof(size_t)
  *
- * @return Amount of errors (e.g. property without block), the lines with errors are ignored
+ * @return int32 Amount of errors (e.g. property without block), the lines with errors are ignored
  */
 inline
 int32 ui_document_parse(
@@ -326,7 +326,7 @@ bool ui_document_equals(const UIDocument* const doc, UIDocumentString str, const
 /**
  * Copies a string as null terminated string (truncated if the buffer is too small)
  *
- * @return The buffer
+ * @return char* The buffer
  */
 FORCE_INLINE
 char* ui_document_copy(const UIDocument* const doc, UIDocumentString str, char* const buffer, int32 buffer_size) NO_EXCEPT

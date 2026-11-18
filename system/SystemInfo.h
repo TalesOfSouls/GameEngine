@@ -119,8 +119,8 @@ struct SystemInfo {
 /**
  * Collects the platform hardware identifiers for anti-cheat bans
  *
- * @param HardwareId* id Hardware identifiers to fill
- * @param const SystemInfo* info System information containing CPU/GPU data
+ * @param HardwareId*       id      Hardware identifiers to fill
+ * @param const SystemInfo* info    System information containing CPU/GPU data
  *
  * @return void
  */
@@ -138,8 +138,8 @@ void hardware_id_cpu_fill(HardwareId* id) NO_EXCEPT;
 /**
  * Adds a canonical VEN_/DEV_/SUBSYS_ GPU id (deduplicated)
  *
- * @param HardwareId* id Hardware identifiers to fill
- * @param const char* value Canonical GPU PCI id
+ * @param HardwareId*   id      Hardware identifiers to fill
+ * @param const char*   value   Canonical GPU PCI id
  *
  * @return void
  */
@@ -157,9 +157,9 @@ void hardware_id_gpu_sort(HardwareId* id) NO_EXCEPT;
 /**
  * Hashes the cross-platform hardware identifiers into a UUID-shaped ban id
  *
- * @param const SystemInfo* info System information containing the hardware identifiers
- * @param char* out Output buffer (at least 37 bytes)
- * @param size_t out_size Output buffer size
+ * @param const SystemInfo* info        System information containing the hardware identifiers
+ * @param char*             out         Output buffer (at least 37 bytes)
+ * @param size_t            out_size    Output buffer size
  *
  * @return bool false if no system UUID is available
  */

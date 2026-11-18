@@ -31,7 +31,7 @@ UIPanel* ui_tooltip_create(UILayout* const layout, f32 font_size = UI_DEFAULT_FO
     tooltip->core.flags = UI_ELEMENT_FLAG_IGNORE_HIT;
     tooltip->core.state |= UI_STATE_HIDDEN;
     tooltip->border.color = UI_DEFAULT_CONTROL_BORDER;
-    tooltip->border.width = 1;
+    ui_border_width_set(&tooltip->border, 1);
 
     UILabel* const label = ui_label_create(layout, CHAR_TYPE_CHAR, 0, UI_TOOLTIP_MAX_LENGTH, &tooltip->core);
     label->core.flags = UI_ELEMENT_FLAG_IGNORE_HIT;
@@ -123,9 +123,9 @@ void ui_tooltip_place(
  * The tooltip is placed bottom right of the position and stays on screen
  * Only marks the ui as changed if the text or position changed
  *
- * @param text Multi line text (\n), cut at UI_TOOLTIP_MAX_LENGTH - 1 bytes
- * @param length Length in characters excl. \0
- * @param x, y Position in ui coordinates
+ * @param const char*   text    Multi line text (\n), cut at UI_TOOLTIP_MAX_LENGTH - 1 bytes
+ * @param int32         length  Length in characters excl. \0
+ * @param f32           x, y    Position in ui coordinates
  */
 inline
 void ui_tooltip_show(
@@ -138,7 +138,7 @@ void ui_tooltip_show(
 
     // The text is cut if it doesn't fit
     char* const content = (char *) (layout->ui_element_buffer.memory + label->content);
-    length = min_branched(length, label->content_length - 1);
+    length = min_branched(length, ui_string_max_length(layout, label->content));
 
     const bool changed = memcmp(content, text, length) != 0 || content[length] != '\0';
     if (changed) {

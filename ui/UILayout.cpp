@@ -141,7 +141,7 @@ int32 layout_to_data(
 /**
  * The size of layout->data should be the hash map size + a bunch of additional data for theme dependent data
  *
- * @return Bytes read or -1 if the data is not a compatible layout
+ * @return int32 Bytes read or -1 if the data is not a compatible layout
  */
 int32 layout_from_data(
     const byte* const __restrict data,

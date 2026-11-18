@@ -102,6 +102,43 @@ static void test_language_from_txt() {
 }
 
 // Many keys -> collisions in the hash map
+// The hash + length of a literal key are calculated at compile time
+static_assert(language_key("menu_quit").hash == language_hash("menu_quit"), "language_key must be evaluated at compile time");
+static_assert(language_key("menu_quit").length == 9, "language_key must be evaluated at compile time");
+
+static void test_language_key() {
+    const int32 length = (int32) sizeof(LANGUAGE_TEST_TXT) - 1;
+    const int32 capacity = language_txt_memory_size(LANGUAGE_TEST_TXT, length);
+
+    Language lang = {};
+    lang.data = (byte *) platform_alloc_aligned(capacity, capacity, 64);
+    TEST_TRUE(language_from_txt(&lang, LANGUAGE_TEST_TXT, length, capacity) > 0);
+
+    // Same result as the \0 terminated key
+    TEST_TRUE(language_get(&lang, language_key("menu_quit")) == language_get(&lang, "menu_quit"));
+    TEST_TRUE(language_get(&lang, language_key("status_prefix")) == language_get(&lang, "status_prefix"));
+    TEST_TRUE(language_get(&lang, language_key("empty")) == language_get(&lang, "empty"));
+    TEST_EQUALS(strcmp(language_get(&lang, language_key("format")), "Ping: %l"), 0);
+
+    // Missing keys, prefixes and longer keys
+    TEST_EQUALS(language_get(&lang, language_key("missing")), NULL);
+    TEST_EQUALS(language_get(&lang, language_key("menu")), NULL);
+    TEST_EQUALS(language_get(&lang, language_key("menu_quit_")), NULL);
+
+    // Runtime key with a known length (not \0 terminated)
+    const char buffer[] = "status_prefix: rest";
+    TEST_TRUE(language_get(&lang, language_key(buffer, 13)) == language_get(&lang, "status_prefix"));
+    TEST_EQUALS(language_get(&lang, language_key(buffer, 6)), NULL);
+
+    TEST_EQUALS(language_get_string(&lang, language_key("status_prefix")).length, 8);
+
+    const char* cache = NULL;
+    TEST_TRUE(language_get_cached(&lang, &cache, language_key("format")) == language_get(&lang, "format"));
+    TEST_TRUE(cache == language_get(&lang, "format"));
+
+    platform_aligned_free((void **) &lang.data);
+}
+
 static void test_language_many() {
     char text[64 * 1024];
     int32 length = 0;
@@ -148,6 +185,7 @@ int main() {
 
     TEST_RUN(test_language_from_txt);
     TEST_RUN(test_language_many);
+    TEST_RUN(test_language_key);
 
     TEST_FINALIZE();
 

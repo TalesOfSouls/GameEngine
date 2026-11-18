@@ -92,8 +92,8 @@ int32 hashmap_str_length(const char* str) NO_EXCEPT
  * If the key is longer than HASH_MAP_MAX_KEY_LENGTH - 1 only the last HASH_MAP_MAX_KEY_LENGTH - 1 characters are used
  * (this is also what gets stored in the entry, which makes it possible to look up/remove an entry by its stored key)
  *
- * @param key    In: key, Out: start of the stored key part
- * @param length In: key length, Out: length of the stored key part (without \0)
+ * @param const char**  key     In: key, Out: start of the stored key part
+ * @param int32*        length  In: key length, Out: length of the stored key part (without \0)
  */
 FORCE_INLINE
 void hashmap_str_key(const char** key, int32* length) NO_EXCEPT
@@ -111,8 +111,8 @@ void hashmap_str_key(const char** key, int32* length) NO_EXCEPT
  * Longer keys are loaded word by word, the last word overlaps with the previous one
  * The length is part of the seed -> overlapping loads can't create collisions between different lengths
  *
- * @param key    Stored key part (@see hashmap_str_key)
- * @param length Length of the stored key part (without \0)
+ * @param const char*   key     Stored key part (@see hashmap_str_key)
+ * @param int32         length  Length of the stored key part (without \0)
  */
 FORCE_INLINE
 uint32 hashmap_str_hash(const char* key, int32 length) NO_EXCEPT
@@ -153,8 +153,8 @@ uint32 hashmap_str_hash(const char* key, int32 length) NO_EXCEPT
 /**
  * Measures + hashes a \0 terminated key
  *
- * @param key    In: key, Out: start of the stored key part
- * @param length Out: length of the stored key part (without \0)
+ * @param const char**  key     In: key, Out: start of the stored key part
+ * @param int32*        length  Out: length of the stored key part (without \0)
  */
 FORCE_INLINE
 uint32 hashmap_str_hash(const char** key, int32* length) NO_EXCEPT
@@ -169,9 +169,9 @@ uint32 hashmap_str_hash(const char** key, int32* length) NO_EXCEPT
  * Compares a stored key (\0 terminated, HASH_MAP_MAX_KEY_LENGTH bytes) with a key of known length
  * Compares 8 bytes at a time, the \0 check of the stored key rejects longer stored keys
  *
- * @param stored Stored key of the entry
- * @param key    Stored key part (@see hashmap_str_key)
- * @param length Length of the stored key part (without \0)
+ * @param const char*   stored  Stored key of the entry
+ * @param const char*   key     Stored key part (@see hashmap_str_key)
+ * @param int32         length  Length of the stored key part (without \0)
  */
 FORCE_INLINE
 bool hashmap_str_equals(const char* stored, const char* key, int32 length) NO_EXCEPT
