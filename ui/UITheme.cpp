@@ -101,13 +101,13 @@ void ui_theme_assets_parse(const UIDocument* const doc, UIThemeData* const heade
     header->font_asset_id = UI_THEME_ASSET_NONE;
     header->atlas_asset_id = UI_THEME_ASSET_NONE;
 
-    for (int32 i = doc->first_node; i >= 0; i = doc->nodes[i].next_sibling) {
+    for (int32 i = doc->first_node; i; i = doc->nodes[i].next_sibling) {
         const UIDocumentNode* const node = &doc->nodes[i];
         if (node->kind != UI_DOCUMENT_NODE_BLOCK || !ui_document_equals(doc, node->type, "@theme")) {
             continue;
         }
 
-        for (int32 p = node->first_property; p >= 0; p = doc->properties[p].next) {
+        for (int32 p = node->first_property; p; p = doc->properties[p].next) {
             const UIDocumentProperty* const property = &doc->properties[p];
 
             char value[32];
@@ -246,7 +246,7 @@ bool ui_theme_from_txt(UITheme* const __restrict theme, const char* __restrict t
     }
 
     // Style name -> node
-    for (int32 i = theme->document.first_node; i >= 0; i = theme->document.nodes[i].next_sibling) {
+    for (int32 i = theme->document.first_node; i; i = theme->document.nodes[i].next_sibling) {
         const UIDocumentNode* const node = &theme->document.nodes[i];
 
         if (node->type.length >= HASH_MAP_MAX_KEY_LENGTH) {
@@ -366,18 +366,18 @@ bool ui_theme_language_load(
  *
  * @param const char* name Style name or "@type" for the type default
  *
- * @return int32 -1 if the theme doesn't define the style
+ * @return int32 0 if the theme doesn't define the style (node 0 is the reserved empty node)
  */
 inline
 int32 ui_theme_style(const UITheme* const theme, const char* const name) NO_EXCEPT
 {
     if (!theme || !theme->hash_map.buf.memory) {
-        return -1;
+        return 0;
     }
 
     const HashEntryStrT<int32>* const entry = hashmap_entry_get(&theme->hash_map, name);
 
-    return entry ? entry->value : -1;
+    return entry ? entry->value : 0;
 }
 
 /**

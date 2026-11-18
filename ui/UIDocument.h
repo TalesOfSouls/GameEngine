@@ -24,6 +24,9 @@
  * Properties, parts and child blocks can be in any order
  *
  * The document only references the text (no copies), the values are interpreted by the user
+ *
+ * Index 0 of the node and property arrays is a reserved empty entry
+ * -> all references (first_node, first_child, next, ...) use 0 = none
  */
 
 #define UI_DOCUMENT_TAB_WIDTH 4
@@ -46,7 +49,7 @@ struct UIDocumentProperty {
     UIDocumentString key;
     UIDocumentString value;
 
-    // Next property of the same node (-1 = none)
+    // Next property of the same node (0 = none)
     int32 next;
 
     // Line number in the file (1-based) for error messages
@@ -66,7 +69,7 @@ struct UIDocumentNode {
     // Line number in the file (1-based) for error messages
     int32 line;
 
-    // -1 = none
+    // 0 = none
     int32 first_property;
     int32 last_property;
     int32 first_child;
@@ -81,13 +84,15 @@ struct UIDocument {
     // "version N" in the first line, 0 = not defined
     int32 version;
 
+    // Index 0 is the reserved empty node -> node_count includes it
     UIDocumentNode* nodes;
     int32 node_count;
 
+    // Index 0 is the reserved empty property -> property_count includes it
     UIDocumentProperty* properties;
     int32 property_count;
 
-    // First top level node (-1 = none), the others are linked through next_sibling
+    // First top level node (0 = none), the others are linked through next_sibling
     int32 first_node;
 };
 
@@ -106,13 +111,13 @@ int32 ui_document_line_count(const char* text, int32 length) NO_EXCEPT
 }
 
 /**
- * Memory required for the node + property arrays
+ * Memory required for the node + property arrays (incl. the reserved empty entry at index 0)
  */
 FORCE_INLINE
 int32 ui_document_memory_size(int32 line_count) NO_EXCEPT
 {
-    return (int32) ALIGN_UP(line_count * sizeof(UIDocumentNode), sizeof(size_t))
-        + (int32) (line_count * sizeof(UIDocumentProperty));
+    return (int32) ALIGN_UP((line_count + 1) * sizeof(UIDocumentNode), sizeof(size_t))
+        + (int32) ((line_count + 1) * sizeof(UIDocumentProperty));
 }
 
 FORCE_INLINE
@@ -142,10 +147,14 @@ int32 ui_document_parse(
     doc->text_length = length;
     doc->version = 0;
     doc->nodes = (UIDocumentNode *) memory;
-    doc->node_count = 0;
-    doc->properties = (UIDocumentProperty *) (memory + ALIGN_UP(line_count * sizeof(UIDocumentNode), sizeof(size_t)));
-    doc->property_count = 0;
-    doc->first_node = -1;
+    doc->properties = (UIDocumentProperty *) (memory + ALIGN_UP((line_count + 1) * sizeof(UIDocumentNode), sizeof(size_t)));
+    doc->first_node = 0;
+
+    // Index 0 = reserved empty entry (0 = none)
+    memset(&doc->nodes[0], 0, sizeof(UIDocumentNode));
+    memset(&doc->properties[0], 0, sizeof(UIDocumentProperty));
+    doc->node_count = 1;
+    doc->property_count = 1;
 
     // Open blocks/parts (indentation + node index)
     const int32 MAX_DEPTH = 64;
@@ -153,7 +162,7 @@ int32 ui_document_parse(
     int32 stack_node[MAX_DEPTH];
     int32 stack_count = 0;
 
-    int32 last_root = -1;
+    int32 last_root = 0;
     int32 errors = 0;
 
     int32 pos = 0;
@@ -197,7 +206,8 @@ int32 ui_document_parse(
         const int32 word_end = i;
 
         // Version line
-        if (!doc->node_count && !doc->property_count && !doc->version
+        // Only before the first node/property (the counts include the reserved empty entry)
+        if (doc->node_count == 1 && doc->property_count == 1 && !doc->version
             && word_end - word_start == 7 && strncmp(text + word_start, "version", 7) == 0
             && i < line_end && text[i] != ':'
         ) {
@@ -215,11 +225,12 @@ int32 ui_document_parse(
             --stack_count;
         }
 
-        const int32 parent = stack_count > 0 ? stack_node[stack_count - 1] : -1;
+        // 0 = top level
+        const int32 parent = stack_count > 0 ? stack_node[stack_count - 1] : 0;
 
         if (i < line_end && text[i] == ':') {
             // Property "key: value"
-            if (parent < 0) {
+            if (!parent) {
                 LOG_1("[WARNING] UI document: property without block in line %d", {DATA_TYPE_INT32, &line_number});
                 ++errors;
 
@@ -235,11 +246,11 @@ int32 ui_document_parse(
             UIDocumentProperty* const property = &doc->properties[property_index];
             property->key = {word_start, word_end - word_start};
             property->value = {value_start, line_end - value_start};
-            property->next = -1;
+            property->next = 0;
             property->line = line_number;
 
             UIDocumentNode* const node = &doc->nodes[parent];
-            if (node->last_property < 0) {
+            if (!node->last_property) {
                 node->first_property = property_index;
             } else {
                 doc->properties[node->last_property].next = property_index;
@@ -252,7 +263,7 @@ int32 ui_document_parse(
 
         // Block "type [name]" or part "$part [argument]"
         const bool is_part = text[word_start] == '$';
-        if (is_part && parent < 0) {
+        if (is_part && !parent) {
             LOG_1("[WARNING] UI document: part without block in line %d", {DATA_TYPE_INT32, &line_number});
             ++errors;
 
@@ -278,18 +289,16 @@ int32 ui_document_parse(
 
         const int32 node_index = doc->node_count++;
         UIDocumentNode* const node = &doc->nodes[node_index];
+
+        // No properties, children, siblings (0 = none)
+        memset(node, 0, sizeof(UIDocumentNode));
         node->kind = is_part ? UI_DOCUMENT_NODE_PART : UI_DOCUMENT_NODE_BLOCK;
         node->type = {word_start + (is_part ? 1 : 0), word_end - word_start - (is_part ? 1 : 0)};
         node->name = {name_start, i - name_start};
         node->line = line_number;
-        node->first_property = -1;
-        node->last_property = -1;
-        node->first_child = -1;
-        node->last_child = -1;
-        node->next_sibling = -1;
 
-        if (parent < 0) {
-            if (last_root < 0) {
+        if (!parent) {
+            if (!last_root) {
                 doc->first_node = node_index;
             } else {
                 doc->nodes[last_root].next_sibling = node_index;
@@ -298,7 +307,7 @@ int32 ui_document_parse(
             last_root = node_index;
         } else {
             UIDocumentNode* const parent_node = &doc->nodes[parent];
-            if (parent_node->last_child < 0) {
+            if (!parent_node->last_child) {
                 parent_node->first_child = node_index;
             } else {
                 doc->nodes[parent_node->last_child].next_sibling = node_index;
@@ -339,18 +348,18 @@ char* ui_document_copy(const UIDocument* const doc, UIDocumentString str, char* 
 }
 
 /**
- * First property with this key (-1 = none)
+ * First property with this key (0 = none)
  */
 inline
 int32 ui_document_property_find(const UIDocument* const doc, const UIDocumentNode* const node, const char* const key) NO_EXCEPT
 {
-    for (int32 i = node->first_property; i >= 0; i = doc->properties[i].next) {
+    for (int32 i = node->first_property; i; i = doc->properties[i].next) {
         if (ui_document_equals(doc, doc->properties[i].key, key)) {
             return i;
         }
     }
 
-    return -1;
+    return 0;
 }
 
 #endif

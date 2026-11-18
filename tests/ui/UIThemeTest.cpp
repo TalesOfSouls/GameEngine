@@ -28,7 +28,7 @@ static const char* ui_theme_test_property(
 ) {
     const int32 index = ui_document_property_find(doc, node, key);
 
-    return index < 0 ? NULL : ui_document_copy(doc, doc->properties[index].value, buffer, buffer_size);
+    return !index ? NULL : ui_document_copy(doc, doc->properties[index].value, buffer, buffer_size);
 }
 
 static void test_theme_from_txt() {
@@ -42,10 +42,10 @@ static void test_theme_from_txt() {
     const int32 button = ui_theme_style(&theme, "@button");
     const int32 window = ui_theme_style(&theme, "window_default");
     const int32 text = ui_theme_style(&theme, "big_text");
-    TEST_TRUE(button >= 0);
-    TEST_TRUE(window >= 0);
-    TEST_TRUE(text >= 0);
-    TEST_EQUALS(ui_theme_style(&theme, "unknown"), -1);
+    TEST_TRUE(button > 0);
+    TEST_TRUE(window > 0);
+    TEST_TRUE(text > 0);
+    TEST_EQUALS(ui_theme_style(&theme, "unknown"), 0);
 
     // Properties
     char value[64];
@@ -94,7 +94,7 @@ static void test_theme_assets() {
     TEST_EQUALS(theme.font_asset_id, 0x04000000);
     TEST_EQUALS(theme.atlas_asset_id, 0x0400000A);
     TEST_EQUALS(theme.font, NULL);
-    TEST_TRUE(ui_theme_style(&theme, "big_text") >= 0);
+    TEST_TRUE(ui_theme_style(&theme, "big_text") > 0);
 
     // The asset ids are part of the binary theme
     byte* out = (byte *) platform_alloc_aligned(1 * MEGABYTE, 1 * MEGABYTE, 64);
@@ -137,7 +137,7 @@ static void test_theme_to_from_data() {
 
     char value[64];
     const int32 button = ui_theme_style(&theme_load, "@button");
-    TEST_TRUE(button >= 0);
+    TEST_TRUE(button > 0);
     TEST_TRUE(ui_theme_test_property(&theme_load.document, &theme_load.document.nodes[button], "background_color", value, sizeof(value)) != NULL);
     TEST_EQUALS(strcmp(value, "#444444FF"), 0);
 

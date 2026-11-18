@@ -94,8 +94,11 @@
  *      +0                      48                  UIThemeData
  *      +48                     text_length + 1     char[] text (NUL terminated)
  *      ...                     pad to sizeof(size_t)
- *      ...                     line_count * 44     UIDocumentNode[line_count] (upper bound, node_count used)
- *      ...                     property_count * 24 UIDocumentProperty[property_count]
+ *      ...                     (line_count + 1) * 44   UIDocumentNode[line_count + 1] (upper bound, node_count used)
+ *      ...                     property_count * 24     UIDocumentProperty[property_count]
+ *
+ *      Index 0 of both arrays is the reserved empty entry (included in node_count/property_count),
+ *      all references (first_node, first_child, next, ...) use 0 = none
  *      ...                     language_size       Language image, optional
  *
  * UIThemeData (48 bytes, 12 * int32)
@@ -106,7 +109,7 @@
  *      12  node_count
  *      16  property_offset
  *      20  property_count
- *      24  first_node          -1 = none
+ *      24  first_node          0 = none
  *      28  version             text format version (UI_THEME_VERSION)
  *      32  language_offset     0 = no language
  *      36  language_size       0 = no language

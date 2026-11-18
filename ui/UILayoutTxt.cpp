@@ -434,7 +434,7 @@ char* ui_txt_value_get(
 ) NO_EXCEPT
 {
     const int32 index = ui_document_property_find(doc, node, key);
-    if (index < 0) {
+    if (!index) {
         return NULL;
     }
 
@@ -1239,7 +1239,7 @@ void ui_txt_style_apply(
     for (int32 i = 0; i < ctx->theme_count; ++i) {
         const UITheme* const theme = ctx->themes[i];
         const int32 index = ui_theme_style(theme, name);
-        if (index < 0) {
+        if (!index) {
             continue;
         }
 
@@ -1299,7 +1299,7 @@ void ui_txt_node_apply(
     char key[64];
     char value[UI_TXT_VALUE_LENGTH];
 
-    for (int32 i = node->first_property; i >= 0; i = doc->properties[i].next) {
+    for (int32 i = node->first_property; i; i = doc->properties[i].next) {
         const UIDocumentProperty* const property = &doc->properties[i];
         ui_document_copy(doc, property->key, key, sizeof(key));
 
@@ -1323,7 +1323,7 @@ void ui_txt_node_apply(
     }
 
     // Parts + child elements of parts
-    for (int32 i = node->first_child; i >= 0; i = doc->nodes[i].next_sibling) {
+    for (int32 i = node->first_child; i; i = doc->nodes[i].next_sibling) {
         const UIDocumentNode* const child = &doc->nodes[i];
         if (child->kind != UI_DOCUMENT_NODE_PART) {
             continue;
@@ -1357,7 +1357,7 @@ void ui_txt_node_apply(
         // Child elements of the part (only in layout files)
         if (*type) {
             UICore* const children_parent = ui_txt_children_parent(layout, part);
-            for (int32 j = child->first_child; j >= 0; j = doc->nodes[j].next_sibling) {
+            for (int32 j = child->first_child; j; j = doc->nodes[j].next_sibling) {
                 if (doc->nodes[j].kind == UI_DOCUMENT_NODE_BLOCK) {
                     ui_txt_element_create(ctx, layout, doc, &doc->nodes[j], children_parent);
                 }
@@ -1603,7 +1603,7 @@ UICore* ui_txt_element_create(
 
     // Children
     UICore* const children_parent = ui_txt_children_parent(layout, element);
-    for (int32 i = node->first_child; i >= 0; i = doc->nodes[i].next_sibling) {
+    for (int32 i = node->first_child; i; i = doc->nodes[i].next_sibling) {
         if (doc->nodes[i].kind == UI_DOCUMENT_NODE_BLOCK) {
             ui_txt_element_create(ctx, layout, doc, &doc->nodes[i], children_parent);
         }
@@ -1649,7 +1649,7 @@ int32 ui_layout_from_txt(
     }
 
     int32 count = 0;
-    for (int32 i = doc.first_node; i >= 0; i = doc.nodes[i].next_sibling) {
+    for (int32 i = doc.first_node; i; i = doc.nodes[i].next_sibling) {
         if (doc.nodes[i].kind != UI_DOCUMENT_NODE_BLOCK) {
             continue;
         }
