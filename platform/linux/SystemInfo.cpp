@@ -15,6 +15,7 @@
 #include <locale.h>
 #include <sys/resource.h>
 #include <dirent.h>
+#include <sys/statvfs.h>
 
 // -lX11 -lXrandr
 
@@ -187,6 +188,40 @@ void cpu_info_get(CpuInfo* info) {
 
     info->family = 0;
     info->page_size = 4096;  // Assuming standard page size of 4KB in Linux
+}
+
+inline
+bool system_drive_space(
+    const char* path,
+    size_t* total_bytes,
+    size_t* free_bytes
+) NO_EXCEPT
+{
+    struct statvfs stats;
+    if (statvfs(path, &stats) != 0) {
+        return false;
+    }
+
+    if (total_bytes) {
+        *total_bytes = (size_t) stats.f_blocks * stats.f_frsize;
+    }
+
+    if (free_bytes) {
+        *free_bytes = (size_t) stats.f_bfree * stats.f_frsize;
+    }
+
+    return true;
+}
+
+// Space of the file system the executable is on
+void drive_info_get(DriveInfo* const info) NO_EXCEPT
+{
+    info->total = 0;
+    info->free = 0;
+
+    char path[PATH_MAX_LENGTH];
+    self_directory_path(path);
+    system_drive_space(path, &info->total, &info->free);
 }
 
 void os_info_get(OSInfo* info) {

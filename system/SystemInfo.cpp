@@ -348,21 +348,7 @@ void system_info_get(SystemInfo* const info) NO_EXCEPT
     info->language = system_language_code();
     info->country = system_country_code();
 
-    wchar_t path[PATH_MAX_LENGTH];
-    self_directory_path(path);
-
-    // @bug only works on windows
-    wchar_t* temp = path;
-    while (*temp != L':' && *temp) {
-        ++temp;
-    }
-
-    if (*temp == L':') {
-        temp[1] = L'\\';
-        temp[2] = L'\\';
-        temp[3] = L'\0';
-        system_drive_space(path, &info->drive.total, &info->drive.free);
-    }
+    drive_info_get(&info->drive);
 }
 
 #endif

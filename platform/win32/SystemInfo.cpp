@@ -14,6 +14,7 @@
 #include "../../system/SystemInfo.h"
 #include "../../architecture/CpuInfo.cpp"
 #include "../../hash/Sha1.h"
+#include "../../system/FileUtils.cpp"
 
 #include <psapi.h>
 #include <winsock2.h>
@@ -131,6 +132,31 @@ bool system_drive_space(
     }
 
     return true;
+}
+
+// Space of the drive the executable is on
+void drive_info_get(DriveInfo* const info) NO_EXCEPT
+{
+    info->total = 0;
+    info->free = 0;
+
+    wchar_t path[PATH_MAX_LENGTH];
+    self_directory_path(path);
+
+    // Drive root, e.g. "C:\\"
+    wchar_t* temp = path;
+    while (*temp != L':' && *temp) {
+        ++temp;
+    }
+
+    if (*temp != L':') {
+        return;
+    }
+
+    temp[1] = L'\\';
+    temp[2] = L'\\';
+    temp[3] = L'\0';
+    system_drive_space(path, &info->total, &info->free);
 }
 
 #include <winternl.h>
