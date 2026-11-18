@@ -38,7 +38,7 @@ struct UIAttributeBorder {
 
     // Natural size (width, height) in px of every piece
     // Edges only use their thickness (T/B = height, L/R = width)
-    uint8 size[UI_BORDER_SIZE][2];
+    v2_uint8 size[UI_BORDER_SIZE];
 
     // bl.x, bl.y, tr.x, tr.y per piece as unorm16
     uint16 uv[UI_BORDER_SIZE][4];
