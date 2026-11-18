@@ -475,7 +475,7 @@ void ui_select_cache(
     if (layout->font) {
         char buffer[128];
         const char* const text = ui_select_display_text(layout, select, buffer, (int32) sizeof(buffer)).str;
-        const f32 line_height = ui_text_line_height(layout->font, select->font.size);
+        const f32 line_height = font_line_height(&layout->font->base, select->font.size);
 
         const int32 vertex_start = vertices->count;
         const int32 index_start = indices->count;
@@ -536,7 +536,7 @@ void ui_option_list_cache(
     const int32 last_row = min_branched(count - 1, (int32) ((scroll + dim->dim.y) / row_height));
 
     const bool is_multi = (select->select_flags & UI_SELECT_FLAG_MULTI) != 0;
-    const f32 line_height = layout->font ? ui_text_line_height(layout->font, select->font.size) : 0.0f;
+    const f32 line_height = layout->font ? font_line_height(&layout->font->base, select->font.size) : 0.0f;
 
     // WARNING: Overlapping geometry needs its own zindex (the depth test rejects equal depth values)
     //          -> 3 layers: row background, checkbox background, checkbox border/check + text

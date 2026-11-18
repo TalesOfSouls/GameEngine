@@ -69,7 +69,7 @@ void ui_tooltip_place(
         }
 
         if (layout->font) {
-            text_width = max_branched(text_width, ui_text_range_width(layout->font, content, line_start, i, label->font.size));
+            text_width = max_branched(text_width, font_system_text_range_width(layout->font, content, line_start, i, label->font.size));
         }
 
         lines += i < length;
@@ -77,7 +77,7 @@ void ui_tooltip_place(
     }
 
     const f32 width = text_width + 2.0f * UI_TOOLTIP_PADDING;
-    const f32 height = (layout->font ? ui_text_line_height(layout->font, label->font.size) : label->font.size) * (f32) lines
+    const f32 height = (layout->font ? font_line_height(&layout->font->base, label->font.size) : label->font.size) * (f32) lines
         + 2.0f * UI_TOOLTIP_PADDING;
 
     // Bottom right of the position, flipped if it doesn't fit (y-up)
@@ -124,27 +124,8 @@ void ui_tooltip_place(
  * Only marks the ui as changed if the text or position changed
  *
  * @param text Multi line text (\n), cut at UI_TOOLTIP_MAX_LENGTH - 1 bytes
- * @param x, y Position in ui coordinates
- */
-inline
-void ui_tooltip_show(UILayout* const layout, UIPanel* const tooltip, const char* const text, f32 x, f32 y) NO_EXCEPT
-{
-    UILabel* const label = ui_tooltip_label(layout, tooltip);
-
-    bool changed;
-    const int32 length = ui_text_copy_length(
-        (char *) (layout->ui_element_buffer.memory + label->content), label->content_length,
-        text, &changed
-    );
-    ui_string_length_set(layout, label->content, length);
-
-    ui_tooltip_place(layout, tooltip, label, length, changed, x, y);
-}
-
-/**
- * Same as above but with a known length (e.g. the return value of sprintf_fast)
- *
  * @param length Length in characters excl. \0
+ * @param x, y Position in ui coordinates
  */
 inline
 void ui_tooltip_show(
@@ -155,14 +136,24 @@ void ui_tooltip_show(
 {
     UILabel* const label = ui_tooltip_label(layout, tooltip);
 
+    // The text is cut if it doesn't fit
+    char* const content = (char *) (layout->ui_element_buffer.memory + label->content);
     length = min_branched(length, label->content_length - 1);
-    const bool changed = ui_text_copy(
-        (char *) (layout->ui_element_buffer.memory + label->content), label->content_length,
-        text, length
-    );
-    ui_string_length_set(layout, label->content, length);
+
+    const bool changed = memcmp(content, text, length) != 0 || content[length] != '\0';
+    if (changed) {
+        str_copy(content, text, length);
+        ui_string_length_set(layout, label->content, length);
+    }
 
     ui_tooltip_place(layout, tooltip, label, length, changed, x, y);
+}
+
+// Same as above but the length is calculated
+inline
+void ui_tooltip_show(UILayout* const layout, UIPanel* const tooltip, const char* const text, f32 x, f32 y) NO_EXCEPT
+{
+    ui_tooltip_show(layout, tooltip, text, (int32) strlen(text), x, y);
 }
 
 inline

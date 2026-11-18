@@ -543,6 +543,10 @@ static void test_helper_misc() {
     TEST_EQUALS(CharTypeOf<wchar_t>::value, CHAR_TYPE_WCHAR);
     TEST_EQUALS(CharTypeOf<char32_t>::value, CHAR_TYPE_UTF32);
 
+    TEST_EQUALS(char_type_size(CHAR_TYPE_CHAR), (int32) sizeof(char));
+    TEST_EQUALS(char_type_size(CHAR_TYPE_WCHAR), (int32) sizeof(wchar_t));
+    TEST_EQUALS(char_type_size(CHAR_TYPE_UTF32), (int32) sizeof(char32_t));
+
     // Type sizes the whole engine relies on
     TEST_EQUALS(sizeof(int8), 1);
     TEST_EQUALS(sizeof(int16), 2);

@@ -113,8 +113,8 @@ static void test_ui_label_text_length() {
     // Fits
     TEST_TRUE(ui_label_set_text(&layout, label, "Hello"));
     TEST_UI_STRING(&layout, label->content, "Hello");
-    TEST_EQUALS(ui_label_string(&layout, label).length, 5);
-    TEST_EQUALS(strcmp(ui_label_text(&layout, label), "Hello"), 0);
+    TEST_EQUALS(ui_string_get(&layout, label->content).length, 5);
+    TEST_EQUALS(strcmp(ui_text_get(&layout, label->content), "Hello"), 0);
 
     // Unchanged
     TEST_FALSE(ui_label_set_text(&layout, label, "Hello"));
@@ -147,14 +147,14 @@ static void test_ui_label_text_length() {
     // Pattern
     ui_label_set_pattern(&layout, label, "FPS: %n");
     TEST_UI_STRING(&layout, label->pattern, "FPS: %n");
-    TEST_EQUALS(ui_label_pattern_string(&layout, label).length, 7);
+    TEST_EQUALS(ui_string_get(&layout, label->pattern).length, 7);
     ui_label_set_pattern(&layout, label, "A pattern that doesn't fit", 26);
     TEST_UI_STRING(&layout, label->pattern, "A pattern that doesn't fit");
 
     // Label without reserved memory
     UILabel* const empty = ui_label_create(&layout, CHAR_TYPE_CHAR);
     TEST_EQUALS(empty->content, 0);
-    TEST_EQUALS(ui_label_string(&layout, empty).length, 0);
+    TEST_EQUALS(ui_string_get(&layout, empty->content).length, 0);
     TEST_FALSE(ui_label_set_text_fixed(&layout, empty, "ignored"));
     TEST_TRUE(ui_label_set_text(&layout, empty, "Now it has text"));
     TEST_UI_STRING(&layout, empty->content, "Now it has text");

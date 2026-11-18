@@ -452,7 +452,7 @@ FORCE_INLINE
 f32 ui_input_line_height(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
 {
     return layout->font
-        ? ui_text_line_height(layout->font, input->font.size)
+        ? font_line_height(&layout->font->base, input->font.size)
         : input->font.size * 1.25f;
 }
 
@@ -565,8 +565,8 @@ void ui_input_scroll_to_caret(UILayout* const layout, UIInput* const input) NO_E
 
         ui_input_scroll_set(layout, input, UI_SCROLL_AXIS_Y, scroll);
     } else {
-        const f32 caret_x = ui_text_range_width(layout->font, text, 0, input->caret, input->font.size);
-        const f32 text_width = ui_text_range_width(layout->font, text, 0, ui_string_length(layout, input->content), input->font.size);
+        const f32 caret_x = font_system_text_range_width(layout->font, text, 0, input->caret, input->font.size);
+        const f32 text_width = font_system_text_range_width(layout->font, text, 0, ui_string_length(layout, input->content), input->font.size);
         const f32 view = dim->dim.x - 2.0f * UI_DEFAULT_TEXT_PADDING - UI_INPUT_CARET_WIDTH;
 
         f32 scroll = input->scroll.x;
@@ -623,7 +623,7 @@ int32 ui_input_caret_at(const UILayout* const layout, const UIInput* const input
     int32 pos = line_start;
     while (pos < line_end) {
         const int32 next = ui_utf8_next(text, pos, length);
-        const f32 width = ui_text_range_width(layout->font, text, pos, next, input->font.size);
+        const f32 width = font_system_text_range_width(layout->font, text, pos, next, input->font.size);
 
         if (x < char_x + width * 0.5f) {
             return pos;
@@ -981,7 +981,7 @@ void ui_input_cache(
     const int32 index_start = indices->count;
 
     const char* const text = ui_input_get_text(layout, input);
-    const f32 line_height = ui_text_line_height(font, input->font.size);
+    const f32 line_height = font_line_height(&font->base, input->font.size);
 
     // Single line inputs are vertically centered, textareas start at the top
     const f32 text_x = dim->pos.x + UI_DEFAULT_TEXT_PADDING - input->scroll.x;
@@ -1004,8 +1004,8 @@ void ui_input_cache(
         for (int32 pos = start; pos < end; ++line) {
             const int32 line_end = min_branched(ui_text_line_end(text, pos, length), end);
 
-            const f32 x0 = text_x + ui_text_range_width(font, text, 0, pos, input->font.size);
-            f32 x1 = text_x + ui_text_range_width(font, text, 0, line_end, input->font.size);
+            const f32 x0 = text_x + font_system_text_range_width(font, text, 0, pos, input->font.size);
+            f32 x1 = text_x + font_system_text_range_width(font, text, 0, line_end, input->font.size);
 
             // A selected line break is shown as a small box (like most editors)
             if (line_end < end) {
@@ -1041,7 +1041,7 @@ void ui_input_cache(
             line += text[i] == '\n';
         }
 
-        const f32 caret_x = text_x + ui_text_range_width(font, text, 0, input->caret, input->font.size);
+        const f32 caret_x = text_x + font_system_text_range_width(font, text, 0, input->caret, input->font.size);
         const f32 caret_y = text_y - (f32) line * line_height;
 
         *zindex = camera_step_closer(gpu_api_type, *zindex);

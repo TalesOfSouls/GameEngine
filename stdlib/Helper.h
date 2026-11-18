@@ -517,6 +517,20 @@ template <> struct CharTypeOf<wchar_t> { static constexpr uint8 value = CHAR_TYP
 template <typename C>
 inline constexpr CharType CharTypeOf_v = (CharType) CharTypeOf<C>::value;
 
+// Size of one character in bytes
+FORCE_INLINE CONSTEXPR
+int32 char_type_size(CharType char_type) NO_EXCEPT
+{
+    switch (char_type) {
+        case CHAR_TYPE_CHAR:
+            return (int32) sizeof(char);
+        case CHAR_TYPE_WCHAR:
+            return (int32) sizeof(wchar_t);
+        default:
+            return (int32) sizeof(char32_t);
+    }
+}
+
 /**
  * This is a micro optimization for debug builds.
  * MSVC doesn't optimize this with /Od while other compilers optimize it even with O0.

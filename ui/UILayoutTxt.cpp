@@ -867,7 +867,7 @@ void ui_txt_label_reserve(UILayout* const layout, UILabel* const label, int32 le
         memcpy(
             layout->ui_element_buffer.memory + offset,
             layout->ui_element_buffer.memory + label->content,
-            label->content_length * ui_char_type_size(label->char_type)
+            label->content_length * char_type_size(label->char_type)
         );
         ui_string_length_set(layout, offset, ui_string_length(layout, label->content));
     }

@@ -298,7 +298,7 @@ uint64 ui_cache_hash_text(
 
     const char* const text = (const char *) (layout->ui_element_buffer.memory + offset);
 
-    return ui_cache_hash_bytes(hash, text, (size_t) length * ui_char_type_size(char_type));
+    return ui_cache_hash_bytes(hash, text, (size_t) length * char_type_size(char_type));
 }
 
 /**

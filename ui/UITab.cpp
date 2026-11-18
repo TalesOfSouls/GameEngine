@@ -219,7 +219,7 @@ void ui_tab_cache(
         f32 max_width = 0.0f;
         for (int32 i = 0; i < tab->tab_count; ++i) {
             const SimpleString<const char> title = ui_tab_title_string(layout, tab, i);
-            max_width = max_branched(max_width, ui_text_range_width(layout->font, title.str, 0, title.length, tab->font.size));
+            max_width = max_branched(max_width, font_system_text_range_width(layout->font, title.str, 0, title.length, tab->font.size));
         }
 
         tab->tab_size = max_branched(max_width + 2.0f * UI_TAB_TEXT_PADDING, UI_TAB_MIN_WIDTH);
@@ -247,7 +247,7 @@ void ui_tab_cache(
     const int32 vertex_start = vertices->count;
     const int32 index_start = indices->count;
 
-    const f32 line_height = layout->font ? ui_text_line_height(layout->font, tab->font.size) : 0.0f;
+    const f32 line_height = layout->font ? font_line_height(&layout->font->base, tab->font.size) : 0.0f;
 
     for (int32 i = 0; i < tab->tab_count; ++i) {
         const v4_f32 rect = ui_tab_header_rect(tab, i);

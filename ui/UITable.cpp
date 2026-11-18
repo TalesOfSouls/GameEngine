@@ -137,20 +137,31 @@ int32 ui_table_cell_offset(const UILayout* const layout, const UITable* const ta
 }
 
 // Copies the text into a fixed size cell (truncated), returns true if the content changed
-FORCE_INLINE
-bool ui_table_cell_copy(UILayout* const layout, const UITable* const table, int32 offset, const char* const text) NO_EXCEPT
-{
-    return ui_text_copy((char *) (layout->ui_element_buffer.memory + offset), table->cell_capacity, text ? text : "");
-}
-
-// Same as above but with a known length
-FORCE_INLINE
+// Same as below but with a known length
+inline
 bool ui_table_cell_copy(
     UILayout* const layout, const UITable* const table, int32 offset,
     const char* const text, int32 length
 ) NO_EXCEPT
 {
-    return ui_text_copy((char *) (layout->ui_element_buffer.memory + offset), table->cell_capacity, text, length);
+    char* const cell = (char *) (layout->ui_element_buffer.memory + offset);
+    length = min_branched(length, table->cell_capacity - 1);
+
+    if (memcmp(cell, text, length) == 0 && cell[length] == '\0') {
+        return false;
+    }
+
+    str_copy(cell, text, length);
+
+    return true;
+}
+
+FORCE_INLINE
+bool ui_table_cell_copy(UILayout* const layout, const UITable* const table, int32 offset, const char* const text) NO_EXCEPT
+{
+    return text
+        ? ui_table_cell_copy(layout, table, offset, text, (int32) strlen(text))
+        : ui_table_cell_copy(layout, table, offset, "", 0);
 }
 
 /**
@@ -511,7 +522,7 @@ void ui_table_row_vertices(
     ArrayVector<int32>* const indices = &layout->ui_index_cache;
 
     const f32* const widths = (const f32 *) (layout->ui_element_buffer.memory + table->column_widths);
-    const f32 line_height = ui_text_line_height(layout->font, table->font.size);
+    const f32 line_height = font_line_height(&layout->font->base, table->font.size);
 
     f32 x = table->core.dimension.pos.x;
     for (int32 column = 0; column < table->column_count; ++column) {
