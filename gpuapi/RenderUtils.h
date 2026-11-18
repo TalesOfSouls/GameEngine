@@ -189,36 +189,37 @@ void vertex_circle_create(
     const f32 rx = dimension.width * 0.5f;
     const f32 ry = dimension.height * 0.5f;
 
-    // Generate a triangle fan: center + pairs of edge vertices
+    if (segments < 1) {
+        return;
+    }
 
+    // Triangle fan: center + one vertex per edge point
+    // Neighboring triangles share their edge point (the last triangle wraps around to the first point)
     const int32 center_index = vertices->count;
-    array_vector_reserve_one(vertices) = {{cx, cy, zindex}, sampler, tex_center, rgba};
+    Vertex3DSamplerTextureColor* const __restrict v = array_vector_reserve(vertices, segments + 1);
+    int32* const __restrict idx = array_vector_reserve(indices, segments * 3);
 
-    // @performance For sure this is vectorizable (SIMD)
-    for (int i = 0; i < segments; ++i) {
-        const f32 angle0 = (OMS_TWO_PI_F32 * i) / segments;
-        const f32 angle1 = (OMS_TWO_PI_F32 * (i + 1)) / segments;
+    v[0] = {{cx, cy, zindex}, sampler, tex_center, rgba};
 
-        f32 s, c;
+    // The edge points are rotated by a fixed step instead of calculating sin/cos for every point
+    // The f32 error of the rotation is far below a pixel for the segment counts used in the ui
+    f32 step_s, step_c;
+    SINCOSF(OMS_TWO_PI_F32 / (f32) segments, step_s, step_c);
 
-        SINCOSF(angle0, s, c);
-        const f32 x0 = cx + c * rx;
-        const f32 y0 = cy + s * ry;
+    f32 c = 1.0f;
+    f32 s = 0.0f;
+    for (int32 i = 0; i < segments; ++i) {
+        v[1 + i] = {{cx + c * rx, cy + s * ry, zindex}, sampler, tex_edge, rgba};
 
-        SINCOSF(angle1, s, c);
-        const f32 x1 = cx + c * rx;
-        const f32 y1 = cy + s * ry;
+        const f32 c_next = c * step_c - s * step_s;
+        s = s * step_c + c * step_s;
+        c = c_next;
 
-        // WARNING: Clockwise order (center -> next -> current) like all other primitives (e.g. vertex_rect_create)
-        //          The renderer uses glFrontFace(GL_CW) + back face culling -> counter clockwise triangles are invisible
-        array_vector_reserve_one(indices) = center_index;
-        array_vector_reserve_one(indices) = vertices->count + 1;
-        array_vector_reserve_one(indices) = vertices->count;
-
-        // @performance Isn't one of the points on the circle arcs a duplicate same as the center
-        //              We fixed it for the center but not for the previous circle arc point
-        array_vector_reserve_one(vertices) = {{x0, y0, zindex}, sampler, tex_edge, rgba};
-        array_vector_reserve_one(vertices) = {{x1, y1, zindex}, sampler, tex_edge, rgba};
+        // WARNING: Clockwise order (center -> next -> current)
+        const int32 next = i + 1 < segments ? i + 1 : 0;
+        idx[i * 3 + 0] = center_index;
+        idx[i * 3 + 1] = center_index + 1 + next;
+        idx[i * 3 + 2] = center_index + 1 + i;
     }
 }
 
@@ -251,34 +252,38 @@ void vertex_arc_create(
     const f32 rx = dimension.width * 0.5f;
     const f32 ry = dimension.height * 0.5f;
 
+    if (segments < 1) {
+        return;
+    }
+
+    // Triangle fan over the arc: center + one vertex per edge point (segments + 1 points, the arc isn't closed)
+    // Neighboring triangles share their edge point
     const int32 center_index = vertices->count;
-    array_vector_reserve_one(vertices) = {{cx, cy, zindex}, sampler, tex_center, rgba};
+    Vertex3DSamplerTextureColor* const __restrict v = array_vector_reserve(vertices, segments + 2);
+    int32* const __restrict idx = array_vector_reserve(indices, segments * 3);
 
-    // Generate a triangle fan over the arc
+    v[0] = {{cx, cy, zindex}, sampler, tex_center, rgba};
+
+    // The edge points are rotated by a fixed step instead of calculating sin/cos for every point
+    f32 step_s, step_c;
+    SINCOSF(arc_angle / (f32) segments, step_s, step_c);
+
+    f32 s, c;
+    SINCOSF(start_angle, s, c);
+
+    for (int32 i = 0; i <= segments; ++i) {
+        v[1 + i] = {{cx + c * rx, cy + s * ry, zindex}, sampler, tex_edge, rgba};
+
+        const f32 c_next = c * step_c - s * step_s;
+        s = s * step_c + c * step_s;
+        c = c_next;
+    }
+
+    // WARNING: Clockwise order (center -> next -> current)
     for (int32 i = 0; i < segments; ++i) {
-        const f32 angle0 = start_angle + (arc_angle * (f32) i / segments);
-        const f32 angle1 = start_angle + (arc_angle * (f32) (i + 1) / segments);
-
-        f32 s, c;
-
-        SINCOSF(angle0, s, c);
-        const f32 x0 = cx + c * rx;
-        const f32 y0 = cy + s * ry;
-
-        SINCOSF(angle1, s, c);
-        const f32 x1 = cx + c * rx;
-        const f32 y1 = cy + s * ry;
-
-        // WARNING: Clockwise order (center -> next -> current) like all other primitives (e.g. vertex_rect_create)
-        //          The renderer uses glFrontFace(GL_CW) + back face culling -> counter clockwise triangles are invisible
-        array_vector_reserve_one(indices) = center_index;
-        array_vector_reserve_one(indices) = vertices->count + 1;
-        array_vector_reserve_one(indices) = vertices->count;
-
-        // @performance Isn't one of the points on the circle arcs a duplicate same as the center
-        //              We fixed it for the center but not for the previous circle arc point
-        array_vector_reserve_one(vertices) = {{x0, y0, zindex}, sampler, tex_edge, rgba};
-        array_vector_reserve_one(vertices) = {{x1, y1, zindex}, sampler, tex_edge, rgba};
+        idx[i * 3 + 0] = center_index;
+        idx[i * 3 + 1] = center_index + 2 + i;
+        idx[i * 3 + 2] = center_index + 1 + i;
     }
 }
 
