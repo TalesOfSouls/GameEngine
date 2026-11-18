@@ -353,7 +353,7 @@ uint64 ui_element_cache_hash(
 
     // Interaction state that is not stored in the element
     const UIInteraction* const interaction = &layout->interaction;
-    const uint32 interaction_state = (interaction->keyboard_focus == offset ? 1 : 0)
+    const uint32 interaction_state = (interaction->nav_focus == offset ? 1 : 0)
         | (interaction->scroll_dragged == offset ? (2 | (interaction->scroll_drag_axis << 2)) : 0);
     hash = ui_cache_hash_bytes(hash, &interaction_state, sizeof(interaction_state));
 
@@ -466,7 +466,7 @@ void ui_element_cache_copy(UILayout* const layout, UICore* const element, f32 zi
 }
 
 /**
- * Generates the vertices of one element (incl. the keyboard focus frame)
+ * Generates the vertices of one element (incl. the focus frame)
  * The vertices are not clipped yet
  */
 static
@@ -574,7 +574,7 @@ void ui_element_cache_element(
     }
 
     // Keyboard focus (e.g. tab navigation) is shown as a frame around the element
-    if (offset == layout->interaction.keyboard_focus) {
+    if (offset == layout->interaction.nav_focus) {
         *zindex = camera_step_closer(gpu_api_type, *zindex);
 
         const UIAttributeDimension* const dim = &element->dimension;
@@ -1975,9 +1975,9 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
     // 6. Press
     ////////////////////////////////////////////////////////
     if (pressed) {
-        // The pointer takes over -> no keyboard focus anymore (text elements use editing below)
-        if (interaction->keyboard_focus) {
-            interaction->keyboard_focus = 0;
+        // The pointer takes over -> no navigation focus anymore (text elements use editing below)
+        if (interaction->nav_focus) {
+            interaction->nav_focus = 0;
             result |= UI_INPUT_RESULT_CHANGED;
         }
 
@@ -2146,19 +2146,21 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
 }
 
 ////////////////////////////////////////////////////////////////
-// Keyboard focus (tab navigation)
+// Input focus (navigation)
 ////////////////////////////////////////////////////////////////
 //
 // Text elements receive the keyboard input through interaction.editing.
-// Other elements can only get the keyboard focus through tab navigation (interaction.keyboard_focus),
+// Other elements can only get the focus through navigation (interaction.nav_focus),
+// regardless of the device (e.g. tab on the keyboard, d-pad on a controller, see ui_input_navigate()),
 // clicking them with the pointer doesn't focus them (otherwise every button click would block the game hotkeys).
-// The application should enable its typing context while ui_input_has_keyboard_focus() is true.
+// The application should enable its typing context while interaction.editing is set
+// and its ui navigation context while ui_input_wants_navigation() is true.
 
-// Does the ui receive the keyboard input? (e.g. to disable hotkeys)
+// Does a ui element have the input focus? (text element being edited or element focused by navigation)
 FORCE_INLINE
-bool ui_input_has_keyboard_focus(const UILayout* const layout) NO_EXCEPT
+bool ui_input_has_focus(const UILayout* const layout) NO_EXCEPT
 {
-    return layout->interaction.editing != 0 || layout->interaction.keyboard_focus != 0;
+    return layout->interaction.editing != 0 || layout->interaction.nav_focus != 0;
 }
 
 // Can the element be reached with tab?
@@ -2249,7 +2251,7 @@ void ui_element_scroll_into_view(UILayout* const layout, const UICore* const ele
 }
 
 /**
- * Gives the element the keyboard focus
+ * Gives the element the focus
  * Text elements start editing with the whole text selected (typing replaces it)
  */
 inline
@@ -2263,7 +2265,7 @@ void ui_focus_set(UILayout* const layout, int32 offset) NO_EXCEPT
     UICore* const element = ui_element_get(layout, offset);
 
     if (ui_element_is_text_input(element)) {
-        interaction->keyboard_focus = 0;
+        interaction->nav_focus = 0;
         ui_input_set_editing(layout, offset);
 
         UIInput* const input = (UIInput *) element;
@@ -2271,7 +2273,7 @@ void ui_focus_set(UILayout* const layout, int32 offset) NO_EXCEPT
         ui_input_scroll_to_caret(layout, input);
     } else {
         ui_input_set_editing(layout, 0);
-        interaction->keyboard_focus = offset;
+        interaction->nav_focus = offset;
     }
 
     element->change_type |= UI_ELEMENT_CHANGE_CONTENT;
@@ -2280,7 +2282,7 @@ void ui_focus_set(UILayout* const layout, int32 offset) NO_EXCEPT
 }
 
 /**
- * Moves the keyboard focus to the next/previous focusable element (tab / shift + tab)
+ * Moves the focus to the next/previous focusable element (e.g. tab / shift + tab, controller d-pad)
  * The focus cycles within the window/popup of the current focus
  *
  * @param direction 1 = next, -1 = previous
@@ -2289,7 +2291,7 @@ inline
 void ui_focus_move(UILayout* const layout, int32 direction) NO_EXCEPT
 {
     UIInteraction* const interaction = &layout->interaction;
-    const int32 current = interaction->editing ? interaction->editing : interaction->keyboard_focus;
+    const int32 current = interaction->editing ? interaction->editing : interaction->nav_focus;
 
     // Container = window/popup of the current focus (closest UI_ELEMENT_FLAG_HITBOX element)
     UICore* container = NULL;
@@ -2642,9 +2644,9 @@ UINavigation ui_navigation_from_code(uint32 code) NO_EXCEPT
 }
 
 /**
- * Applies an action to the element with the keyboard focus (not a text element that is edited)
+ * Applies an action to the element with the focus (not a text element that is edited)
  *
- *      cancel: closes the open popup or removes the keyboard focus
+ *      cancel: closes the open popup or removes the focus
  *      the other actions are handled by the element in ui_element_key()
  *
  * @return UIInputResult flags
@@ -2653,15 +2655,15 @@ static inline
 byte ui_input_focus_action(void* app, UILayout* const layout, UINavigation action) NO_EXCEPT
 {
     UIInteraction* const interaction = &layout->interaction;
-    if (!interaction->keyboard_focus) {
+    if (!interaction->nav_focus) {
         return UI_INPUT_RESULT_NONE;
     }
 
     byte result = UI_INPUT_RESULT_CAPTURED;
 
-    UICore* const element = ui_element_get(layout, interaction->keyboard_focus);
+    UICore* const element = ui_element_get(layout, interaction->nav_focus);
     if (!ui_element_is_visible(layout, element)) {
-        interaction->keyboard_focus = 0;
+        interaction->nav_focus = 0;
         result |= UI_INPUT_RESULT_CHANGED;
 
         return result;
@@ -2671,7 +2673,7 @@ byte ui_input_focus_action(void* app, UILayout* const layout, UINavigation actio
         if (interaction->popup) {
             ui_popup_close(layout);
         } else {
-            interaction->keyboard_focus = 0;
+            interaction->nav_focus = 0;
         }
 
         layout->dirty |= UI_LAYOUT_DIRTY;
@@ -2781,7 +2783,7 @@ byte ui_input_editing_action(void* app, UILayout* const layout, UINavigation act
  *
  *      next/previous: next/previous focusable element
  *      a text element is edited: ui_input_editing_action()
- *      an element has the keyboard focus: ui_input_focus_action()
+ *      an element has the focus: ui_input_focus_action()
  *      cancel without focus: closes the open popup (e.g. opened with the pointer)
  *
  * @param bool shift Keyboard only: extend the selection of a text element
@@ -2811,7 +2813,7 @@ byte ui_navigation_apply(void* app, UILayout* const layout, UINavigation action,
                 return ui_input_editing_action(app, layout, action, shift, ctrl);
             }
 
-            if (layout->interaction.keyboard_focus) {
+            if (layout->interaction.nav_focus) {
                 return ui_input_focus_action(app, layout, action);
             }
 
@@ -2829,7 +2831,7 @@ byte ui_navigation_apply(void* app, UILayout* const layout, UINavigation action,
 }
 
 /**
- * Applies one keyboard code to the element with the keyboard focus
+ * Applies one keyboard code to the element with the focus
  *
  * Keys with a ui meaning (tab, enter, escape, arrows, home/end) are converted to the ui action, ui_navigation_apply().
  * While a text element is edited everything else is text (characters, backspace, clipboard, ...),
@@ -2845,7 +2847,7 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
     PROFILE_DEBUG(PROFILE_UI_INPUT_CODE);
 
     UIInteraction* const interaction = &layout->interaction;
-    if (!ui_input_has_keyboard_focus(layout)) {
+    if (!ui_input_has_focus(layout)) {
         return UI_INPUT_RESULT_NONE;
     }
 
@@ -2900,7 +2902,7 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
 }
 
 /**
- * Applies the keyboard text input (typed this tick) to the element with the keyboard focus
+ * Applies the keyboard text input (typed this tick) to the element with the focus
  *
  * @param codes Unicode codepoints or InputTextControl values (text)
  *
@@ -2911,9 +2913,9 @@ byte ui_input_text(void* app, UILayout* const layout, const uint32* const codes,
     PROFILE_DEBUG(PROFILE_UI_INPUT_TEXT);
     UIInteractionDirtyScope interaction_scope(layout);
 
-    // Usually nothing was typed or nothing has the keyboard focus
+    // Usually nothing was typed or nothing has the focus
     // The focus check is still repeated per code since a code can change it (e.g. tab, escape, enter)
-    if (!count || !ui_input_has_keyboard_focus(layout)) {
+    if (!count || !ui_input_has_focus(layout)) {
         return UI_INPUT_RESULT_NONE;
     }
 
@@ -2949,12 +2951,12 @@ byte ui_input_navigate(void* app, UILayout* const layout, UINavigation navigatio
 
 /**
  * The ui wants the navigation input (the application should enable HOTKEY_CONTEXT_UI)
- * e.g. an element has the keyboard focus or a popup is open
+ * e.g. an element has the focus or a popup is open
  */
 FORCE_INLINE
 bool ui_input_wants_navigation(const UILayout* const layout) NO_EXCEPT
 {
-    return ui_input_has_keyboard_focus(layout) || layout->interaction.popup != 0;
+    return ui_input_has_focus(layout) || layout->interaction.popup != 0;
 }
 
 /**

@@ -109,9 +109,9 @@ struct UIInteraction {
     // Text element that receives the keyboard input (UIInput/UITextarea)
     int32 editing;
 
-    // Non text element that receives the keyboard input (e.g. button focused with tab, ui_focus_move())
+    // Non text element focused by navigation (e.g. tab, controller d-pad, ui_focus_move())
     // Text elements use editing instead, both are never set at the same time
-    int32 keyboard_focus;
+    int32 nav_focus;
 
     // Open popup ui_popup_open(), e.g. the option list of a select, a color picker or a context menu
     int32 popup;
