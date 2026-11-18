@@ -74,27 +74,25 @@ UITable* ui_table_create(
     table->columns = ui_string_list_store(layout, titles, column_count);
 
     // Equal column widths by default
-    table->column_widths = ui_text_reserve(layout, CHAR_TYPE_CHAR, (int32) sizeof(f32) * max_branched(column_count, 1));
+    table->column_widths = ui_buffer_reserve(layout, (int32) sizeof(f32) * max_branched(column_count, 1), alignof(f32));
     f32* const widths = (f32 *) (layout->ui_element_buffer.memory + table->column_widths);
     for (int32 i = 0; i < column_count; ++i) {
         widths[i] = 1.0f / (f32) column_count;
     }
 
     table->row_capacity = (int16) row_capacity;
-    table->rows = ui_text_reserve(layout, CHAR_TYPE_CHAR, (int32) sizeof(int32) * max_branched(row_capacity, 1));
+    table->rows = ui_buffer_reserve(layout, (int32) sizeof(int32) * max_branched(row_capacity, 1), alignof(int32));
 
     // Optional per row text color, 0 = font.color
     const int32 row_colors_size = (int32) sizeof(uint32) * max_branched(row_capacity, 1);
-    table->row_text_colors = ui_text_reserve(layout, CHAR_TYPE_CHAR, row_colors_size);
-    memset(layout->ui_element_buffer.memory + table->row_text_colors, 0, (size_t) row_colors_size);
+    table->row_text_colors = ui_buffer_reserve(layout, row_colors_size, alignof(uint32));
 
     if (cell_capacity > 0) {
         table->cell_capacity = (int16) cell_capacity;
 
         // All rows + the footer as one block, every row points to its part of the block
         const int32 row_size = column_count * cell_capacity;
-        const int32 cells = ui_text_reserve(layout, CHAR_TYPE_CHAR, row_size * (row_capacity + 1));
-        memset(layout->ui_element_buffer.memory + cells, 0, (size_t) row_size * (row_capacity + 1));
+        const int32 cells = ui_buffer_reserve(layout, row_size * (row_capacity + 1), alignof(char));
 
         int32* const rows = (int32 *) (layout->ui_element_buffer.memory + table->rows);
         for (int32 i = 0; i < row_capacity; ++i) {
@@ -106,8 +104,7 @@ UITable* ui_table_create(
 
         // Owner values of the rows
         const int32 row_values_size = (int32) sizeof(int32) * row_capacity;
-        table->row_values = ui_text_reserve(layout, CHAR_TYPE_CHAR, row_values_size);
-        memset(layout->ui_element_buffer.memory + table->row_values, 0, (size_t) row_values_size);
+        table->row_values = ui_buffer_reserve(layout, row_values_size, alignof(int32));
     }
 
     return table;
@@ -531,14 +528,14 @@ void ui_table_row_vertices(
         const int32 vertex_start = vertices->count;
         const int32 index_start = indices->count;
 
-        ui_text_vertices(
-            layout,
+        vertex_text_create(
+            &layout->ui_vertex_cache, &layout->ui_index_cache, zindex,
+            {x + UI_DEFAULT_TEXT_PADDING, row_y - (table->row_height - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
+            layout->font,
             fixed_cells
                 ? (const char *) (layout->ui_element_buffer.memory + strings + column * table->cell_capacity)
                 : ui_table_string(layout, table, strings, column),
-            table->font.size, color,
-            x + UI_DEFAULT_TEXT_PADDING, row_y - (table->row_height - line_height) * 0.5f,
-            zindex, mem
+            table->font.size, color, mem
         );
 
         // Long texts are cut at the column border

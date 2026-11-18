@@ -273,10 +273,11 @@ void ui_tab_cache(
     if (layout->font) {
         for (int32 i = 0; i < tab->tab_count; ++i) {
             const v4_f32 rect = ui_tab_header_rect(tab, i);
-            ui_text_vertices(
-                layout, ui_tab_title(layout, tab, i), tab->font.size, tab->font.color,
-                rect.x + UI_TAB_TEXT_PADDING, rect.y - (rect.height - line_height) * 0.5f,
-                *zindex, mem
+            vertex_text_create(
+                &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex,
+                {rect.x + UI_TAB_TEXT_PADDING, rect.y - (rect.height - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
+                layout->font, ui_tab_title(layout, tab, i),
+                tab->font.size, tab->font.color, mem
             );
         }
     }

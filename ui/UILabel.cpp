@@ -17,17 +17,19 @@
 #define UI_LABEL_DEFAULT_FONT_SIZE 11.0f
 
 /**
- * Reserves zeroed text memory in the ui_element_buffer
+ * Reserves zeroed memory in the ui_element_buffer for element data that isn't a text
+ * (e.g. bit sets, arrays of colors/offsets/widths, fixed size table cells)
+ * Texts with a length use ui_string_reserve()
  *
- * @param length Length in characters incl. \0
+ * @param size Size in bytes
+ * @param alignment Alignment of the data (e.g. alignof(f32))
  *
  * @return Offset into the ui_element_buffer
  */
 static inline
-int32 ui_text_reserve(UILayout* const layout, CharType char_type, int32 length) NO_EXCEPT
+int32 ui_buffer_reserve(UILayout* const layout, int32 size, int32 alignment) NO_EXCEPT
 {
-    const int32 size = char_type_size(char_type) * length;
-    byte* const memory = memory_get(&layout->ui_element_buffer, size, alignof(wchar_t));
+    byte* const memory = memory_get(&layout->ui_element_buffer, size, alignment);
     memset(memory, 0, size);
 
     return ui_element_offset(layout, memory);
@@ -417,8 +419,9 @@ void ui_label_cache(
     const char* const text = (const char *) (layout->ui_element_buffer.memory + label->content);
     const f32 scale = label->font.size / font->base.size;
 
+    // The text dimension is needed before the vertices are created (element size + alignment inside of the element)
+    // -> the glyphs are created here and passed to vertex_text_create (no second conversion)
     // The byte length is an upper bound of the codepoint count (cheaper than utf8_strlen())
-    // @question Why am I doing this stupid stuff, isn't vertex_text_create already returning the dim?
     const int32 byte_count = (int32) strlen(text);
     int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
     int32 glyph_count = text_to_glyphs(font, text, glyphs);
@@ -428,8 +431,8 @@ void ui_label_cache(
 
     const UIAttributeDimension* const dim = &label->core.dimension;
 
-    // vertex_text_create expects the bottom left corner of the first line
-    v4_f32 origin = {dim->pos.x, dim->pos.y - font->base.line_height * scale, 0.0f, 0.0f};
+    // Top left corner of the text
+    v4_f32 origin = {dim->pos.x, dim->pos.y, 0.0f, 0.0f};
 
     // Text alignment inside of the element (only matters if the element is larger than the text)
     if (label->font.alignment & UI_ALIGN_H_RIGHT) {
@@ -444,51 +447,10 @@ void ui_label_cache(
 
     vertex_text_create(
         &layout->ui_vertex_cache, &layout->ui_index_cache, zindex,
-        origin, 0,
+        origin, UI_ALIGN_V_TOP,
         font, glyphs, glyph_count,
         label->font.size, label->font.color
     );
-}
-
-////////////////////////////////////////////////////////////////
-// Text helpers (used by all elements that render text)
-////////////////////////////////////////////////////////////////
-
-/**
- * Renders utf8 text with the top left corner of the first line at (x, y)
- *
- * @return Text dimension
- */
-inline
-v2_f32 ui_text_vertices(
-    UILayout* const layout,
-    const char* const text,
-    f32 size, uint32 color,
-    f32 x, f32 y, f32 zindex,
-    BufferMemory* const __restrict mem
-) NO_EXCEPT
-{
-    FontSystem* const font = layout->font;
-    if (!font || !text || !*text || size <= 0.0f) {
-        return {0.0f, 0.0f};
-    }
-
-    const f32 scale = size / font->base.size;
-
-    // @question Why am I doing this stupid stuff, isn't vertex_text_create already returning the dim?
-    const int32 byte_count = (int32) strlen(text);
-    int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
-    int32 glyph_count = text_to_glyphs(font, text, glyphs);
-    const v2_f32 text_dim = text_calculate_dimensions(font, glyphs, glyph_count, scale);
-
-    vertex_text_create(
-        &layout->ui_vertex_cache, &layout->ui_index_cache, zindex,
-        {x, y - font->base.line_height * scale, 0.0f, 0.0f}, 0,
-        font, glyphs, glyph_count,
-        size, color
-    );
-
-    return text_dim;
 }
 
 #endif

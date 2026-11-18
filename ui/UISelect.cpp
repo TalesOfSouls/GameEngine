@@ -53,7 +53,7 @@ UISelect* ui_select_create(
 
     if ((flags & UI_SELECT_FLAG_MULTI) && option_count > 0) {
         // Zero initialized bit set
-        select->multi_selected = ui_text_reserve(layout, CHAR_TYPE_CHAR, (option_count + 7) / 8);
+        select->multi_selected = ui_buffer_reserve(layout, (option_count + 7) / 8, 1);
     }
 
     // Popup with the (optional) search field and the option list
@@ -480,10 +480,11 @@ void ui_select_cache(
         const int32 vertex_start = vertices->count;
         const int32 index_start = indices->count;
 
-        ui_text_vertices(
-            layout, text, select->font.size, select->font.color,
-            dim->pos.x + UI_DEFAULT_TEXT_PADDING, dim->pos.y - (dim->dim.y - line_height) * 0.5f,
-            *zindex, mem
+        vertex_text_create(
+            &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex,
+            {dim->pos.x + UI_DEFAULT_TEXT_PADDING, dim->pos.y - (dim->dim.y - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
+            layout->font, text,
+            select->font.size, select->font.color, mem
         );
 
         // Long texts must not overlap the arrow
@@ -589,19 +590,21 @@ void ui_option_list_cache(
         }
 
         if (layout->font) {
-            ui_text_vertices(
-                layout, text, select->font.size, select->font.color,
-                text_x, row_y - (row_height - line_height) * 0.5f,
-                z_content, mem
+            vertex_text_create(
+                &layout->ui_vertex_cache, &layout->ui_index_cache, z_content,
+                {text_x, row_y - (row_height - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
+                layout->font, text,
+                select->font.size, select->font.color, mem
             );
         }
     }
 
     if (!count && layout->font) {
-        ui_text_vertices(
-            layout, "No results", select->font.size, UI_DEFAULT_PLACEHOLDER_COLOR,
-            dim->pos.x + UI_DEFAULT_TEXT_PADDING, dim->pos.y - (row_height - line_height) * 0.5f,
-            *zindex, mem
+        vertex_text_create(
+            &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex,
+            {dim->pos.x + UI_DEFAULT_TEXT_PADDING, dim->pos.y - (row_height - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
+            layout->font, "No results",
+            select->font.size, UI_DEFAULT_PLACEHOLDER_COLOR, mem
         );
     }
 

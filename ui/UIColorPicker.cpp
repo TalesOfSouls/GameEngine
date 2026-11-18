@@ -323,7 +323,7 @@ UIColorPicker* ui_color_picker_create(
     picker->value = 1.0f;
 
     if (palette && palette_count > 0) {
-        picker->palette = ui_text_reserve(layout, CHAR_TYPE_CHAR, palette_count * (int32) sizeof(uint32));
+        picker->palette = ui_buffer_reserve(layout, palette_count * (int32) sizeof(uint32), alignof(uint32));
         memcpy(layout->ui_element_buffer.memory + picker->palette, palette, palette_count * sizeof(uint32));
         picker->palette_count = (int16) palette_count;
     }

@@ -364,8 +364,21 @@ f32 text_calculate_dimensions_height(
     return y;
 }
 
+/**
+ * Creates the vertices of a text
+ *
+ * The position depends on the alignment:
+ *      no vertical flag:   dimension.y = bottom of the first line (the text continues downwards)
+ *      UI_ALIGN_V_TOP:     dimension.y = top of the text
+ *      UI_ALIGN_V_CENTER:  dimension.y = vertical center of the text
+ *      no horizontal flag: dimension.x = left side of the text
+ *      UI_ALIGN_H_RIGHT:   dimension.x = right side of the text (widest line)
+ *      UI_ALIGN_H_CENTER:  dimension.x = horizontal center of the text (widest line)
+ *
+ * @return Text dimension (width of the widest line, height of all lines)
+ */
 HOT_CODE
-v2_int32 vertex_text_create(
+v2_f32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
     v4_f32 dimension, byte align_anchor,
     FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length,
@@ -386,36 +399,47 @@ v2_int32 vertex_text_create(
     // We thought that this would improve the performance, because this way we could avoid one iteration over glyphs.
     // However, as it turns out this would only improve the performance in debug builds
     // BUT make it slower in release builds.
-    if (align_anchor & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
-        if ((align_anchor & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER))
-            && (align_anchor & (UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER))
-        ) {
+    // UI_ALIGN_V_TOP doesn't need the text dimension (only the line height)
+    if (align_anchor & (UI_ALIGN_H_LEFT_NOT | UI_ALIGN_V_CENTER)) {
+        if ((align_anchor & UI_ALIGN_H_LEFT_NOT) && (align_anchor & UI_ALIGN_V_CENTER)) {
             const v2_f32 dim = text_calculate_dimensions(font, glyphs, length, scale);
             dimension.width = dim.width;
             dimension.height = dim.height;
-        } else if (align_anchor & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER)) {
+        } else if (align_anchor & UI_ALIGN_H_LEFT_NOT) {
             dimension.width = text_calculate_dimensions_width(font, glyphs, length, scale);
         } else {
             dimension.height = text_calculate_dimensions_height(font, glyphs, length, line_height_scaled);
         }
-
-        adjust_aligned_position(&dimension, align_anchor);
     }
 
-    f32 rendered_width = 0;
+    if (align_anchor & UI_ALIGN_H_RIGHT) {
+        dimension.x -= dimension.width;
+    } else if (align_anchor & UI_ALIGN_H_CENTER) {
+        dimension.x -= dimension.width * 0.5f;
+    }
+
+    // The glyph loop below starts at the bottom of the first line and continues downwards
+    if (align_anchor & UI_ALIGN_V_TOP) {
+        dimension.y -= line_height_scaled;
+    } else if (align_anchor & UI_ALIGN_V_CENTER) {
+        dimension.y += dimension.height * 0.5f - line_height_scaled;
+    }
+
+    f32 rendered_width = 0.0f;
     f32 rendered_height = line_height_scaled;
 
-    f32 offset_x = dimension.x;
+    const f32 line_start = dimension.x;
+    f32 offset_x = line_start;
     const Glyph* const __restrict tables[] = { font->base.glyphs, font->extended.glyphs };
 
     for (int32 i = 0; i < length; ++i) {
         const uint16 g = glyphs[i];
         if (g == font->newline_id) {
+            rendered_width = max_branched(rendered_width, offset_x - line_start);
             rendered_height += line_height_scaled;
-            rendered_width = max_branched(rendered_width, offset_x - dimension.x);
 
             dimension.y -= line_height_scaled;
-            offset_x = dimension.x;
+            offset_x = line_start;
 
             continue;
         }
@@ -425,7 +449,6 @@ v2_int32 vertex_text_create(
         const GlyphMetrics* const __restrict metrics = &glyph->metrics;
         const f32 offset_y = dimension.y + metrics->offset_y * scale;
         offset_x += metrics->offset_x * scale;
-        rendered_width += metrics->offset_x * scale;
 
         if (glyph->codepoint != ' ' && glyph->codepoint != '\t') {
             const f32 x_end_scaled = offset_x + metrics->width * scale;
@@ -448,9 +471,7 @@ v2_int32 vertex_text_create(
             v[3] = {{offset_x, offset_y, zindex}, 1, {glyph->uv_start.x, glyph->uv_end.y}, text_color}; // bl
         }
 
-        const f32 add_offset = (metrics->width + metrics->advance_x) * scale;
-        offset_x += add_offset;
-        rendered_width += add_offset;
+        offset_x += (metrics->width + metrics->advance_x) * scale;
     }
 
     // @question How and where to cut off text out of view (here or somewhere else)
@@ -459,7 +480,7 @@ v2_int32 vertex_text_create(
     //      This way we can ensure no overflow easily
     // @todo implement line align_anchor, currently only total align_anchor is considered
 
-    return {(int32) rendered_width, (int32) rendered_height};
+    return {max_branched(rendered_width, offset_x - line_start), rendered_height};
 }
 
 /**
@@ -523,7 +544,7 @@ int32 text_to_glyphs(
 
 template <typename T>
 HOT_CODE
-v2_int32 vertex_text_create(
+v2_f32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
     const v4_f32& dimension, byte align_anchor,
     FontSystem* const __restrict font, const char* const __restrict text,
@@ -531,6 +552,11 @@ v2_int32 vertex_text_create(
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_VERTEX_TEXT_CREATE);
+
+    ASSERT_TRUE(font && text && size > 0.0f);
+    if (!*text) {
+        return {0.0f, 0.0f};
+    }
 
     const int32 byte_count = (int32) strlen(text);
     int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
@@ -546,7 +572,7 @@ v2_int32 vertex_text_create(
 
 template <typename T>
 HOT_CODE
-v2_int32 vertex_text_create(
+v2_f32 vertex_text_create(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices, ArrayVector<int32>* const __restrict indices, f32 zindex,
     const v4_f32& dimension, byte align_anchor,
     FontSystem* const __restrict font, const Utf8String& text,
@@ -597,10 +623,10 @@ struct FontTextCache {
     // that usually the string length is shorter
     FixedArrayVector<Vertex3DSamplerTextureColor, 4 * MAX_STACK_GLYPH_CACHE> cached_vertices;
     FixedArrayVector<int32, 6 * MAX_STACK_GLYPH_CACHE> cached_indices;
-    v2_int32 cached_dim;
+    v2_f32 cached_dim;
 };
 
-v2_int32 vertex_text_cached_append(
+v2_f32 vertex_text_cached_append(
     ArrayVector<Vertex3DSamplerTextureColor>* const __restrict vertices,
     ArrayVector<int32>* const __restrict indices,
     const FontTextCache* const __restrict cache,

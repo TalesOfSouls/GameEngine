@@ -1604,7 +1604,7 @@ void ui_select_set_options(
 
     if (select->select_flags & UI_SELECT_FLAG_MULTI) {
         select->multi_selected = option_count > 0
-            ? ui_text_reserve(layout, CHAR_TYPE_CHAR, (option_count + 7) / 8) // @performance fix division
+            ? ui_buffer_reserve(layout, (option_count + 7) / 8, 1) // @performance fix division
             : 0;
         select->selected = -1;
     } else {

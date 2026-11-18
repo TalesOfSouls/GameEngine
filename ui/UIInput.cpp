@@ -1025,11 +1025,18 @@ void ui_input_cache(
     }
 
     if (*text) {
-        ui_text_vertices(layout, text, input->font.size, input->font.color, text_x, text_y, *zindex, mem);
+        vertex_text_create(
+            &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex,
+            {text_x, text_y, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
+            layout->font, text,
+            input->font.size, input->font.color, mem
+        );
     } else if (input->placeholder && !is_editing) {
-        ui_text_vertices(
-            layout, ui_string_get(layout, input->placeholder).str,
-            input->font.size, UI_DEFAULT_PLACEHOLDER_COLOR, text_x, text_y, *zindex, mem
+        vertex_text_create(
+            &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex,
+            {text_x, text_y, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
+            layout->font, ui_string_get(layout, input->placeholder).str,
+            input->font.size, UI_DEFAULT_PLACEHOLDER_COLOR, mem
         );
     }
 
