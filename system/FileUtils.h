@@ -15,6 +15,18 @@
     #include "../platform/linux/FileUtils.h"
 #endif
 
+// Open mode of file_read_write_handle()
+enum FileOpenMode : byte {
+    // The file must exist
+    FILE_OPEN_MODE_EXISTING,
+
+    // The file is created if it doesn't exist
+    FILE_OPEN_MODE_ALWAYS,
+
+    // The file is created if it doesn't exist, an existing file is truncated
+    FILE_OPEN_MODE_TRUNCATE,
+};
+
 struct FileBody {
     // doesn't include null termination (same as strlen)
     size_t size;

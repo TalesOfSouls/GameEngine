@@ -102,6 +102,16 @@ static inline bool MoveFileWrapper(const wchar_t* lpExistingFileName, const wcha
     return MoveFileW(lpExistingFileName, lpNewFileName);
 }
 
+static inline bool MoveFileExWrapper(const char* lpExistingFileName, const char* lpNewFileName, DWORD dwFlags) NO_EXCEPT
+{
+    return MoveFileExA(lpExistingFileName, lpNewFileName, dwFlags);
+}
+
+static inline bool MoveFileExWrapper(const wchar_t* lpExistingFileName, const wchar_t* lpNewFileName, DWORD dwFlags) NO_EXCEPT
+{
+    return MoveFileExW(lpExistingFileName, lpNewFileName, dwFlags);
+}
+
 static inline bool CopyFileWrapper(const char* lpExistingFileName, const char* lpNewFileName, BOOL bFailIfExists) NO_EXCEPT
 {
     return CopyFileA(lpExistingFileName, lpNewFileName, bFailIfExists);
@@ -1601,9 +1611,196 @@ void iterate_directory(
 
 template <typename C>
 FORCE_INLINE
-void file_delete(const C* path) NO_EXCEPT
+bool file_delete(const C* path) NO_EXCEPT
 {
-    DeleteFileWrapper(path);
+    return DeleteFileWrapper(path);
+}
+
+/**
+ * Opens a file for reading and writing (e.g. random access with file_read_at() / file_write_at())
+ * Other handles may still read the file, writing is exclusive
+ *
+ * @param const C* path File path
+ * @param FileOpenMode mode Open mode
+ *
+ * @return FileHandle NULL on failure
+ */
+template <typename C>
+inline
+FileHandle file_read_write_handle(const C* path, FileOpenMode mode) NO_EXCEPT
+{
+    DWORD disposition = OPEN_EXISTING;
+    if (mode == FILE_OPEN_MODE_ALWAYS) {
+        disposition = OPEN_ALWAYS;
+    } else if (mode == FILE_OPEN_MODE_TRUNCATE) {
+        disposition = CREATE_ALWAYS;
+    }
+
+    FileHandle fp = CreateFileWrapper(path,
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ,
+        NULL,
+        disposition,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
+
+    if (fp == INVALID_HANDLE_VALUE) {
+        return NULL;
+    }
+
+    STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
+
+    return fp;
+}
+
+FORCE_INLINE
+uint64 file_size(FileHandle fp) NO_EXCEPT
+{
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(fp, &size)) {
+        return 0;
+    }
+
+    return (uint64) size.QuadPart;
+}
+
+/**
+ * Reads at a file position without using/changing a shared file position
+ * (unlike file_read() with an offset, no seek and no null termination)
+ *
+ * @param FileHandle fp File handle
+ * @param uint64 offset File position
+ * @param void* buffer Destination
+ * @param uint32 length Bytes to read
+ *
+ * @return uint32 Bytes read (less than length at the end of the file or on failure)
+ */
+inline
+uint32 file_read_at(FileHandle fp, uint64 offset, void* buffer, uint32 length) NO_EXCEPT
+{
+    uint32 total = 0;
+
+    while (total < length) {
+        OVERLAPPED ov = {};
+        ov.Offset = (DWORD) ((offset + total) & 0xFFFFFFFF);
+        ov.OffsetHigh = (DWORD) ((offset + total) >> 32);
+
+        DWORD bytes_read = 0;
+        if (!ReadFile(fp, (byte *) buffer + total, length - total, &bytes_read, &ov) || bytes_read == 0) {
+            break;
+        }
+
+        total += bytes_read;
+    }
+
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, total);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, total);
+
+    return total;
+}
+
+/**
+ * Writes at a file position, the file grows if necessary
+ *
+ * @param FileHandle fp File handle (file_read_write_handle())
+ * @param uint64 offset File position
+ * @param const void* buffer Source
+ * @param uint32 length Bytes to write
+ *
+ * @return bool
+ */
+inline
+bool file_write_at(FileHandle fp, uint64 offset, const void* buffer, uint32 length) NO_EXCEPT
+{
+    uint32 total = 0;
+
+    while (total < length) {
+        OVERLAPPED ov = {};
+        ov.Offset = (DWORD) ((offset + total) & 0xFFFFFFFF);
+        ov.OffsetHigh = (DWORD) ((offset + total) >> 32);
+
+        DWORD written = 0;
+        if (!WriteFile(fp, (const byte *) buffer + total, length - total, &written, &ov) || written == 0) {
+            return false;
+        }
+
+        total += written;
+    }
+
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, total);
+    STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, total);
+
+    return true;
+}
+
+// Flushes the written data to the drive
+FORCE_INLINE
+void file_flush(FileHandle fp) NO_EXCEPT
+{
+    FlushFileBuffers(fp);
+}
+
+/**
+ * Replaces dst with src (atomic on the same volume)
+ * Unlike file_move() an existing dst is overwritten and no directories are created
+ */
+template <typename C>
+FORCE_INLINE
+bool file_replace(const C* __restrict src, const C* __restrict dst) NO_EXCEPT
+{
+    return MoveFileExWrapper(src, dst, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+}
+
+template <typename C>
+FORCE_INLINE
+bool directory_exists(const C* path) NO_EXCEPT
+{
+    const DWORD attr = GetFileAttributesWrapper(path);
+
+    return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY);
+}
+
+/**
+ * Lists the direct sub directories of a directory (not recursive, hidden "." directories are skipped)
+ *
+ * @param const char* path Directory path
+ * @param char* names Output names (count * name_size chars)
+ * @param int32 name_size Max. size of a name incl. the null terminator (longer names are skipped)
+ * @param int32 count Max. number of names
+ *
+ * @return int32 Number of names written
+ */
+inline
+int32 directory_list_subdirectories(const char* path, char* names, int32 name_size, int32 count) NO_EXCEPT
+{
+    char search_path[PATH_MAX_LENGTH];
+    snprintf(search_path, PATH_MAX_LENGTH, "%s/*", path);
+
+    WIN32_FIND_DATAA find_data;
+    HANDLE find = FindFirstFileA(search_path, &find_data);
+    if (find == INVALID_HANDLE_VALUE) {
+        return 0;
+    }
+
+    int32 found = 0;
+    do {
+        if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || find_data.cFileName[0] == '.') {
+            continue;
+        }
+
+        const size_t name_length = strlen(find_data.cFileName);
+        if ((int32) name_length >= name_size) {
+            continue;
+        }
+
+        memcpy(names + found * name_size, find_data.cFileName, name_length + 1);
+        ++found;
+    } while (found < count && FindNextFileA(find, &find_data));
+
+    FindClose(find);
+
+    return found;
 }
 
 #endif

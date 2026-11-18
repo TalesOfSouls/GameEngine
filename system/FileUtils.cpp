@@ -74,6 +74,75 @@ bool file_write_secure(const C* const path, const FileBody* const file, T* const
 }
 
 /**
+ * Writes a complete file atomically: temporary file + flush + replace
+ * Unlike file_write_secure() the written data isn't read back for verification (no memory needed)
+ * and the old file is replaced in one step (it never goes missing)
+ *
+ * @return bool
+ */
+template <typename C>
+inline
+bool file_write_atomic(const C* const path, const FileBody* const file) NO_EXCEPT
+{
+    C temp_path[PATH_MAX_LENGTH];
+    const size_t path_len = str_length(path);
+    if (path_len + ARRAY_COUNT(file_suffix_array<C>::value) > PATH_MAX_LENGTH) {
+        return false;
+    }
+
+    memcpy(temp_path, path, path_len * sizeof(C));
+    memcpy(
+        temp_path + path_len,
+        file_suffix_array<C>::value,
+        sizeof(file_suffix_array<C>::value)
+    );
+
+    FileHandle fp = file_read_write_handle(temp_path, FILE_OPEN_MODE_TRUNCATE);
+    if (!fp) {
+        return false;
+    }
+
+    const bool ok = file_write_at(fp, 0, file->content, (uint32) file->size);
+    file_flush(fp);
+    file_close_handle(fp);
+
+    if (!ok) {
+        file_delete(temp_path);
+
+        return false;
+    }
+
+    return file_replace(temp_path, path);
+}
+
+/**
+ * Reads a complete file into a caller provided buffer
+ * Unlike file_read() the buffer size is checked, nothing is appended (no null termination)
+ * and a missing file is no error
+ *
+ * @param const C* path File path
+ * @param void* buffer Destination
+ * @param uint32 capacity Buffer size
+ *
+ * @return int64 File size, -1 if the file doesn't exist, can't be read or doesn't fit into the buffer
+ */
+template <typename C>
+inline
+int64 file_read_buffer(const C* const path, void* const buffer, uint32 capacity) NO_EXCEPT
+{
+    FileHandle fp = file_read_handle_shared(path);
+    if (!fp) {
+        return -1;
+    }
+
+    const uint64 size = file_size(fp);
+    const uint32 bytes_read = size <= capacity ? file_read_at(fp, 0, buffer, (uint32) size) : 0;
+    file_close_handle(fp);
+
+    return size <= capacity && bytes_read == size ? (int64) size : -1;
+}
+
+/**
  * @param const C* base Base path could even be the path of the exe.
  *                      This will be used to create the base path
  * @param const C* dest Destination path which is either an absolute path or relative path, relative to base
