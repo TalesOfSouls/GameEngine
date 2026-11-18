@@ -391,6 +391,10 @@ v2_f32 vertex_text_create(
     const uint32 text_color = rgba ? rgba : 0xFFFFFFFF;
 
     const Font* const __restrict font_base = &font->base;
+
+    // Global font scale (e.g. accessibility text size)
+    size *= font_base->scale;
+
     const f32 scale = size / font_base->size;
     const f32 line_height_scaled = font_base->line_height * scale;
 

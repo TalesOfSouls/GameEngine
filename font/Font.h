@@ -97,6 +97,11 @@ struct Font {
     // How tall is a single line (mostly important for multiple lines)
     f32 line_height;
 
+    // Multiplier of all requested font sizes (e.g. accessibility text size), 1.0 = unchanged
+    // Runtime only, not part of the binary format (set to 1.0 by the loaders)
+    // Applied by the text functions themselves (vertex_text_create, font_line_height, ...)
+    f32 scale;
+
     // WARNING: Glyphs MUST be sorted ascending based on codepoint
     Glyph* glyphs;
 };

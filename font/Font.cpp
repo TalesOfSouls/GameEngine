@@ -14,6 +14,7 @@ void font_init(Font* const font, byte* data, int count) NO_EXCEPT
 {
     font->glyphs = (Glyph *) data;
     font->glyph_count = (uint16) count;
+    font->scale = 1.0f;
 }
 
 static inline
@@ -213,6 +214,9 @@ void font_from_file_txt(
 
     int header_completed = 0;
 
+    // Runtime only (not part of the file)
+    font->scale = 1.0f;
+
     // Font header
     while (*pos != '\0') {
         // Parsing general data
@@ -340,6 +344,9 @@ int32 font_from_data(
     // Read line height
     pos = read_le(pos, &font->line_height);
 
+    // Runtime only (not part of the binary format)
+    font->scale = 1.0f;
+
     memcpy(font->glyphs, pos, font->glyph_count * sizeof(Glyph));
 
     SWAP_ENDIAN_LITTLE_SIMD(
@@ -397,6 +404,8 @@ int32 font_to_data(
 FORCE_INLINE
 f32 font_line_height(const Font* const font, f32 size) NO_EXCEPT
 {
+    size *= font->scale;
+
     return font->line_height * size / font->size;
 }
 

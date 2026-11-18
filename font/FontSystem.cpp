@@ -30,6 +30,9 @@ f32 font_system_text_range_width(
         return 0.0f;
     }
 
+    // Global font scale (e.g. accessibility text size)
+    size *= font->base.scale;
+
     const f32 scale = size / font->base.size;
     f32 width = 0.0f;
 

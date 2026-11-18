@@ -251,7 +251,7 @@ struct UILayout {
     // Counts the ui_cache() calls, the cache data of an element is only valid for the last call
     uint32 cache_frame;
 
-    // A simple hash created from values that affect all elements (e.g. font),
+    // A simple hash created from values that affect all elements (e.g. font, font scale),
     // if they change everything is re-generated
     uint64 cache_global_hash;
 

@@ -865,11 +865,20 @@ void ui_cache(
     ArrayVector<Vertex3DSamplerTextureColor>* const vertices = &layout->ui_vertex_cache;
     ArrayVector<int32>* const indices = &layout->ui_index_cache;
 
+    // Values that affect every element, if one of them changed nothing can be re-used
+    // (no need to hash them, the font pointer, font scale + gpu api fit into one value)
+    // The values of a layout only change one at a time -> a xor of them always results in a different value
+    const uint32 font_scale_bits = layout->font ? BITCAST(layout->font->base.scale, uint32) : 0;
+
+    const uint64 cache_global_hash = (uint64) (uintptr_t) layout->font
+        ^ ((uint64) font_scale_bits << 16)
+        ^ ((uint64) gpu_api_type << 56);
+
     // Fast path: patch the last output in place
     // Only if the last output + its copy (ui_vertex_total) are valid for the current global values
     if (layout->ui_root
         && layout->cache_frame
-        && layout->cache_global_hash == ((uint64) (uintptr_t) layout->font ^ ((uint64) gpu_api_type << 56))
+        && layout->cache_global_hash == cache_global_hash
         && layout->ui_vertex_total.elements
         && layout->ui_index_total.elements
         && layout->ui_vertex_total.count == vertices->count
@@ -888,10 +897,6 @@ void ui_cache(
 
     // Degenerate starting point
     array_vector_insert(vertices, {{0.0f, 0.0f, UI_ZINDEX_START}, 0, {0}});
-
-    // Values that affect every element, if one of them changed nothing can be re-used
-    // (no need to hash them, the font pointer + gpu api fit into one value)
-    const uint64 cache_global_hash = (uint64) (uintptr_t) layout->font ^ ((uint64) gpu_api_type << 56);
 
     // The element cache data is only valid for the last ui_cache() call
     const uint32 previous_frame = layout->cache_frame;

@@ -422,7 +422,8 @@ void ui_label_cache(
     }
 
     const char* const text = (const char *) (layout->ui_element_buffer.memory + label->content);
-    const f32 scale = label->font.size / font->base.size;
+    // Same scale as vertex_text_create() (incl. the global font scale)
+    const f32 scale = label->font.size * font->base.scale / font->base.size;
 
     // The text dimension is needed before the vertices are created (element size + alignment inside of the element)
     // -> the glyphs are created here and passed to vertex_text_create (no second conversion)
