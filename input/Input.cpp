@@ -271,9 +271,7 @@ bool input_kbm_handle_add(KBMDevice* const device, InputHandle handle) NO_EXCEPT
     for (int32 i = 0; i < ARRAY_COUNT(device->handle); ++i) {
         if (device->handle[i] == handle) {
             return true;
-        }
-
-        if (!device->handle[i]) {
+        } else if (!device->handle[i]) {
             device->handle[i] = handle;
             return true;
         }

@@ -38,6 +38,7 @@
  *
  * @return bool True if the buffer was filled
  */
+// @check this doesn't follow the normal pattern of win32 and linux specific files
 inline
 bool secure_random_bytes(void* const data, size_t length) NO_EXCEPT
 {

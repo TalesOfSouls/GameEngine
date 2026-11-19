@@ -70,6 +70,7 @@ static inline
 const LanguageSlot* language_slot_find(const Language* const lang, const LanguageKey& key) NO_EXCEPT
 {
     if (!lang || !lang->data || !key.str) {
+        // @check 
         ASSERT_TRUE(false);
         return NULL;
     }

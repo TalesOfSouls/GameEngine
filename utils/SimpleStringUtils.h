@@ -7,7 +7,6 @@
 #ifndef COMS_UTILS_SIMPLE_STRING_UTILS_H
 #define COMS_UTILS_SIMPLE_STRING_UTILS_H
 
-#include <stdarg.h>
 #include "../stdlib/Stdlib.h"
 #include "SimpleString.h"
 #include "StringUtils.h"

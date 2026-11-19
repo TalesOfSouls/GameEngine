@@ -38,6 +38,7 @@ bool ct_memcmp(const void* const __restrict a, const void* const __restrict b, s
 
     byte diff = 0;
 
+    // @check how is this consttime?
     for (size_t i = 0; i < length; ++i) {
         diff |= (byte) (va[i] ^ vb[i]);
     }
@@ -84,6 +85,7 @@ void ct_memzero(void* const data, size_t length) NO_EXCEPT
 {
     volatile byte* const p = (volatile byte *) data;
 
+    // @check how is this consttime
     for (size_t i = 0; i < length; ++i) {
         p[i] = 0;
     }
