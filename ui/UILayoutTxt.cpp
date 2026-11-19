@@ -995,11 +995,11 @@ bool ui_txt_property_apply(
         case UI_ELEMENT_TYPE_LABEL: {
             UILabel* const label = (UILabel *) element;
             if (strcmp(key, "text") == 0) {
-                ui_label_set_text(layout, label, value);
+                ui_label_set_text(layout, label, value, value_length);
 
                 return true;
             } else if (strcmp(key, "pattern") == 0) {
-                ui_label_set_pattern(layout, label, value);
+                ui_label_set_pattern(layout, label, value, value_length);
 
                 return true;
             } else if (strcmp(key, "capacity") == 0) {
@@ -1021,7 +1021,7 @@ bool ui_txt_property_apply(
                     return false;
                 }
 
-                ui_label_set_text(layout, (UILabel *) ui_element_get(layout, label), value);
+                ui_label_set_text(layout, (UILabel *) ui_element_get(layout, label), value, value_length);
 
                 return true;
             }

@@ -283,7 +283,7 @@ size_t wchar_to_char(char* dst, wchar_t wc)
 inline
 void wchar_to_char(wchar_t* str) NO_EXCEPT
 {
-    ASSERT_TRUE_CONST(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
+    static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
 
     char* dest = (char *) str;
 
@@ -317,7 +317,7 @@ void wchar_to_char(wchar_t* str) NO_EXCEPT
 inline
 void wchar_to_char(char* __restrict dest, const wchar_t* __restrict str) NO_EXCEPT
 {
-    ASSERT_TRUE_CONST(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
+    static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
 
     while (*str) {
         const wchar_t wc = *str++;
@@ -352,7 +352,7 @@ void wchar_to_char(
     int32 length
 ) NO_EXCEPT
 {
-    ASSERT_TRUE_CONST(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
+    static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
 
     int32 i = 0;
 
@@ -1618,7 +1618,7 @@ void str_concat_new(wchar_t* __restrict dst,
     const wchar_t* __restrict src3
 ) NO_EXCEPT
 {
-    ASSERT_TRUE_CONST(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
+    static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
 
     const wchar_t* sources[3] = { src1, src2, src3 };
 

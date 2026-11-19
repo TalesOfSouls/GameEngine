@@ -33,17 +33,9 @@ struct UIScrollInfo {
 };
 
 static FORCE_INLINE
-f32 ui_scroll_max(f32 content, f32 view) NO_EXCEPT
-{
-    // @check replace with max?
-    return content > view ? content - view : 0.0f;
-}
-
-// @check replace
-static FORCE_INLINE
 f32 ui_scroll_clamp(f32 scroll, f32 content, f32 view) NO_EXCEPT
 {
-    return clamp_branched(scroll, 0.0f, ui_scroll_max(content, view));
+    return clamp_branched(scroll, 0.0f, max_branched(0.0f, content - view));
 }
 
 static FORCE_INLINE
@@ -74,7 +66,7 @@ v4_f32 ui_scrollbar_thumb(const UIScrollInfo* const info, UIScrollAxis axis) NO_
     const f32 track_length = ui_scrollbar_track_length(info, axis);
     const f32 thumb_length = ui_scrollbar_thumb_length(info, axis);
 
-    const f32 max = ui_scroll_max(info->content, info->view);
+    const f32 max = max_branched(0.0f, info->content - info->view);
     const f32 t = max > 0.0f ? clamp_branched(info->scroll / max, 0.0f, 1.0f) : 0.0f;
     const f32 pos = (track_length - thumb_length) * t;
 
@@ -101,7 +93,7 @@ f32 ui_scrollbar_pointer_to_scroll(const UIScrollInfo* const info, UIScrollAxis 
         return 0.0f;
     }
 
-    return pointer_delta * ui_scroll_max(info->content, info->view) / free_length;
+    return pointer_delta * max_branched(0.0f, info->content - info->view) / free_length;
 }
 
 /**

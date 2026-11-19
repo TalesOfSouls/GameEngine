@@ -16,7 +16,6 @@
 #include "UITable.h"
 
 // n-th string of a static string list, "" if the list doesn't exist
-// @check remove
 FORCE_INLINE
 const char* ui_table_string(const UILayout* const layout, const UITable* const table, int32 offset, int32 column) NO_EXCEPT
 {
@@ -27,12 +26,6 @@ const char* ui_table_string(const UILayout* const layout, const UITable* const t
 inline
 const char* ui_table_row_string(const UILayout* const layout, const UITable* const table, int32 offset, int32 column) NO_EXCEPT
 {
-    if (!offset) {
-        // @check
-        ASSERT_TRUE(offset);
-        return "";
-    }
-
     if (table->cell_capacity) {
         return (const char *) (layout->ui_element_buffer.memory + offset + column * table->cell_capacity);
     }
@@ -119,7 +112,7 @@ UITable* ui_table_create(
 inline
 void ui_table_set_column_width(UILayout* const layout, UITable* const table, int32 column, f32 fraction) NO_EXCEPT
 {
-    ASSERT_TRUE(column > 0 && column < table->column_count);
+    ASSERT_TRUE(column >= 0 && column < table->column_count);
 
     ((f32 *) (layout->ui_element_buffer.memory + table->column_widths))[column] = fraction;
     layout->dirty |= UI_LAYOUT_DIRTY;
@@ -308,12 +301,6 @@ void ui_table_set_row_count(UILayout* const layout, UITable* const table, int32 
 inline
 int32 ui_table_add_row(UILayout* const layout, UITable* const table, const SimpleString<const char>* cells) NO_EXCEPT
 {
-    if (table->row_count >= table->row_capacity) {
-        // @check
-        ASSERT_TRUE(false);
-        return -1;
-    }
-
     if (table->cell_capacity) {
         for (int32 i = 0; i < table->column_count; ++i) {
             ui_table_cell_copy(
@@ -364,7 +351,6 @@ void ui_table_set_footer(UILayout* const layout, UITable* const table, const Sim
 inline
 const char* ui_table_cell(const UILayout* const layout, const UITable* const table, int32 row, int32 column) NO_EXCEPT
 {
-    // @check
     ASSERT_TRUE(
         row >= 0
             && row < table->row_count
@@ -526,12 +512,6 @@ void ui_table_row_vertices(
     BufferMemory* const __restrict mem
 ) NO_EXCEPT
 {
-    if (!layout->font || !strings) {
-        // @check
-        ASSERT_TRUE(false);
-        return;
-    }
-
     ArrayVector<Vertex3DSamplerTextureColor>* const vertices = &layout->ui_vertex_cache;
     ArrayVector<int32>* const indices = &layout->ui_index_cache;
 

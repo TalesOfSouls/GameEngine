@@ -111,22 +111,22 @@ static void test_ui_label_text_length() {
     TEST_UI_STRING(&layout, label->pattern, "");
 
     // Fits
-    TEST_TRUE(ui_label_set_text(&layout, label, "Hello"));
+    TEST_TRUE(ui_label_set_text(&layout, label, "Hello", 5));
     TEST_UI_STRING(&layout, label->content, "Hello");
     TEST_EQUALS(ui_string_get(&layout, label->content).length, 5);
     TEST_EQUALS(strcmp(ui_text_get(&layout, label->content), "Hello"), 0);
 
     // Unchanged
-    TEST_FALSE(ui_label_set_text(&layout, label, "Hello"));
+    TEST_FALSE(ui_label_set_text(&layout, label, "Hello", 5));
     TEST_UI_STRING(&layout, label->content, "Hello");
 
     // Shorter
-    TEST_TRUE(ui_label_set_text(&layout, label, "Hi"));
+    TEST_TRUE(ui_label_set_text(&layout, label, "Hi", 2));
     TEST_UI_STRING(&layout, label->content, "Hi");
 
     // Too long -> new memory
     const int32 old_content = label->content;
-    TEST_TRUE(ui_label_set_text(&layout, label, "A much longer text"));
+    TEST_TRUE(ui_label_set_text(&layout, label, "A much longer text", 18));
     TEST_TRUE(label->content != old_content);
     TEST_EQUALS(ui_string_max_length(&layout, label->content), 18);
     TEST_UI_STRING(&layout, label->content, "A much longer text");
@@ -141,11 +141,11 @@ static void test_ui_label_text_length() {
     TEST_UI_STRING(&layout, label->content, "This text needs even more memory");
 
     // NULL = empty
-    TEST_TRUE(ui_label_set_text(&layout, label, NULL));
+    TEST_TRUE(ui_label_set_text(&layout, label, NULL, 0));
     TEST_UI_STRING(&layout, label->content, "");
 
     // Pattern
-    ui_label_set_pattern(&layout, label, "FPS: %n");
+    ui_label_set_pattern(&layout, label, "FPS: %n", 7);
     TEST_UI_STRING(&layout, label->pattern, "FPS: %n");
     TEST_EQUALS(ui_string_get(&layout, label->pattern).length, 7);
     ui_label_set_pattern(&layout, label, "A pattern that doesn't fit", 26);
@@ -156,12 +156,12 @@ static void test_ui_label_text_length() {
     TEST_EQUALS(empty->content, 0);
     TEST_EQUALS(ui_string_get(&layout, empty->content).length, 0);
     TEST_FALSE(ui_label_set_text_fixed(&layout, empty, "ignored"));
-    TEST_TRUE(ui_label_set_text(&layout, empty, "Now it has text"));
+    TEST_TRUE(ui_label_set_text(&layout, empty, "Now it has text", 15));
     TEST_UI_STRING(&layout, empty->content, "Now it has text");
 
     // NULL for a label without memory reserves an empty text
     UILabel* const empty2 = ui_label_create(&layout, CHAR_TYPE_CHAR);
-    TEST_FALSE(ui_label_set_text(&layout, empty2, NULL));
+    TEST_FALSE(ui_label_set_text(&layout, empty2, NULL, 0));
     TEST_TRUE(empty2->content != 0);
     TEST_UI_STRING(&layout, empty2->content, "");
 
@@ -195,15 +195,15 @@ static void test_ui_tooltip_text_length() {
     ui_text_test_alloc(&layout);
 
     UIPanel* const tooltip = ui_tooltip_create(&layout);
-    UILabel* const label = ui_tooltip_label(&layout, tooltip);
+    UILabel* const label = (UILabel *) ui_element_get(&layout, tooltip->core.next_offset);
 
-    ui_tooltip_show(&layout, tooltip, "Line 1\nLine 2", 10.0f, 10.0f);
+    ui_tooltip_show(&layout, tooltip, "Line 1\nLine 2", sizeof("Line 1\nLine 2") - 1, 10.0f, 10.0f);
     TEST_UI_STRING(&layout, label->content, "Line 1\nLine 2");
 
-    ui_tooltip_show(&layout, tooltip, "Short", 5, 10.0f, 10.0f);
+    ui_tooltip_show(&layout, tooltip, "Short", sizeof("Short") - 1, 10.0f, 10.0f);
     TEST_UI_STRING(&layout, label->content, "Short");
 
-    ui_tooltip_show(&layout, tooltip, "Known length text", 5, 10.0f, 10.0f);
+    ui_tooltip_show(&layout, tooltip, "Known length text", sizeof("Known") - 1, 10.0f, 10.0f);
     TEST_UI_STRING(&layout, label->content, "Known");
 
     ui_text_test_free(&layout);
@@ -312,7 +312,7 @@ static void test_ui_text_length_to_from_data() {
     ui_layout_hashmap_init(&layout, 16);
 
     UILabel* const label = ui_label_create(&layout, CHAR_TYPE_CHAR, 0, 16);
-    ui_label_set_text(&layout, label, "Label text");
+    ui_label_set_text(&layout, label, "Label text", 10);
     const int32 label_offset = ui_element_offset(&layout, label);
 
     UIInput* const input = ui_input_create(&layout, 16);

@@ -38,7 +38,6 @@ bool ct_memcmp(const void* const __restrict a, const void* const __restrict b, s
 
     byte diff = 0;
 
-    // @check how is this consttime?
     for (size_t i = 0; i < length; ++i) {
         diff |= (byte) (va[i] ^ vb[i]);
     }
@@ -85,7 +84,6 @@ void ct_memzero(void* const data, size_t length) NO_EXCEPT
 {
     volatile byte* const p = (volatile byte *) data;
 
-    // @check how is this consttime
     for (size_t i = 0; i < length; ++i) {
         p[i] = 0;
     }
@@ -107,6 +105,16 @@ void ct_memzero(void* const data, size_t length) NO_EXCEPT
 FORCE_INLINE
 uint32 ct_select(uint32 mask, uint32 a, uint32 b) NO_EXCEPT
 {
+    #if defined(__GNUC__) || defined(__clang__)
+        // Value barrier: the optimizer can no longer assume mask is 0 or ~0,
+        // so it can't turn the select back into a branch
+        __asm__ __volatile__("" : "+r"(mask));
+    #else
+        // MSVC x64 has no inline asm, so a volatile round trip does the same job
+        volatile uint32 vmask = mask;
+        mask = vmask;
+    #endif
+
     return (a & mask) | (b & ~mask);
 }
 

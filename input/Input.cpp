@@ -14,6 +14,7 @@
 #include "ControllerInput.h"
 #include "InputConnectionType.h"
 #include "Input.h"
+#include "KeyCodes.h"
 
 #ifdef _WIN32
     #include "../platform/win32/UtilsWin32.h"
@@ -1271,6 +1272,228 @@ void input_hotkeys_handle(const Input* const input, void* data, int32 input_id =
             active_event->callback(data, input_id);
         }
     }
+}
+
+/////////////////////////////////////////////////////////////////////////
+// Hotkey binding (e.g. rebinding in the settings)
+/////////////////////////////////////////////////////////////////////////
+
+/**
+ * Two key combinations consist of the same keys (in any order)
+ *
+ * @param const int16* a Keys (MAX_HOTKEY_COMBINATION, 0 = unused)
+ * @param const int16* b Keys (MAX_HOTKEY_COMBINATION, 0 = unused)
+ *
+ * @return bool
+ */
+inline
+bool hotkey_keys_equal(const int16* const a, const int16* const b) NO_EXCEPT
+{
+    for (int32 i = 0; i < MAX_HOTKEY_COMBINATION; ++i) {
+        int32 count_a = 0;
+        int32 count_b = 0;
+        for (int32 j = 0; j < MAX_HOTKEY_COMBINATION; ++j) {
+            count_a += a[j] == a[i];
+            count_b += b[j] == a[i];
+        }
+
+        if (count_a != count_b) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Two hotkeys with the same keys collide if they can be active at the same time
+ * (one of them is always available or both have the same context)
+ *
+ * @param byte a Hotkey::context
+ * @param byte b Hotkey::context
+ *
+ * @return bool
+ */
+FORCE_INLINE
+bool hotkey_contexts_collide(byte a, byte b) NO_EXCEPT
+{
+    return !a || !b || a == b;
+}
+
+/**
+ * Binds keys to a hotkey, other hotkeys with the same keys that would collide lose their keys
+ *
+ * @param Hotkey*       mapping Hotkeys of a device type (index = hotkey - 1)
+ * @param int32         count   Amount of hotkeys in the mapping
+ * @param int32         index   Index of the hotkey to bind
+ * @param const int16*  keys    New keys (MAX_HOTKEY_COMBINATION)
+ *
+ * @return void
+ */
+inline
+void hotkey_bind(Hotkey* const mapping, int32 count, int32 index, const int16* const keys) NO_EXCEPT
+{
+    Hotkey* const target = &mapping[index];
+
+    for (int32 i = 0; i < count; ++i) {
+        Hotkey* const other = &mapping[i];
+        if (other != target
+            && hotkey_keys_equal(other->scan_codes, keys)
+            && hotkey_contexts_collide(other->context, target->context)
+        ) {
+            memset(other->scan_codes, 0, sizeof(other->scan_codes));
+        }
+    }
+
+    memcpy(target->scan_codes, keys, sizeof(target->scan_codes));
+
+    // A hotkey that was never bound has no key state -> it would never fire
+    if (!target->key_state) {
+        target->key_state = KEY_PRESS_TYPE_PRESSED;
+    }
+}
+
+/**
+ * Keyboard modifier that can be combined with other keys (shift, ctrl, alt)
+ *
+ * @param int16 key Key with device prefix
+ *
+ * @return bool
+ */
+inline
+bool input_key_is_modifier(int16 key) NO_EXCEPT
+{
+    if (!((uint16) key & INPUT_KEYBOARD_PREFIX)) {
+        return false;
+    }
+
+    // Right ctrl/alt have the same scan code as the left ones (E0 prefix is not stored)
+    const int32 scan_code = key & 0xFF;
+
+    return scan_code == KEY_SCAN_CODE_LSHIFT
+        || scan_code == KEY_SCAN_CODE_RSHIFT
+        || scan_code == KEY_SCAN_CODE_LCTRL
+        || scan_code == KEY_SCAN_CODE_LALT;
+}
+
+/**
+ * Keys that can be bound to hotkeys (e.g. not the mouse movement or a stick axis)
+ *
+ * @param int16 key Key with device prefix
+ *
+ * @return bool
+ */
+inline
+bool input_key_is_bindable(int16 key) NO_EXCEPT
+{
+    const uint32 code = (uint16) key;
+
+    if (code & INPUT_CONTROLLER_PREFIX) {
+        // The axes themselves are no buttons (the direction keys like STICK_LEFT_UP are)
+        const uint32 button = code & ~INPUT_CONTROLLER_PREFIX;
+
+        return button < (uint32) CONTROLLER_BUTTON_SIZE
+            && button != (uint32) CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL
+            && button != (uint32) CONTROLLER_BUTTON_STICK_LEFT_VERTICAL
+            && button != (uint32) CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL
+            && button != (uint32) CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL;
+    }
+
+    if (code & INPUT_KEYBOARD_PREFIX) {
+        return (code & 0xFF) != 0;
+    }
+
+    return code >= (uint32) INPUT_MOUSE_BUTTON_1 && code <= (uint32) INPUT_MOUSE_BUTTON_HWHEEL;
+}
+
+enum InputKeyCaptureResult : byte {
+    // Still waiting for keys
+    INPUT_KEY_CAPTURE_NONE,
+
+    // The keys are recorded
+    INPUT_KEY_CAPTURE_DONE,
+
+    // Esc was pressed
+    INPUT_KEY_CAPTURE_CANCELLED,
+};
+
+/**
+ * Records a key combination for a hotkey, call it every tick while recording
+ *      Esc                         = cancel
+ *      modifier + key              = combination (e.g. ctrl + s), max. MAX_HOTKEY_COMBINATION keys
+ *      modifier released alone     = the modifier is the hotkey
+ *      mouse button / controller   = single button
+ *
+ * @param const InputKey*   active_keys Active keys of the input (InputState::active_keys)
+ * @param int16*            modifier    Recording state, last pressed modifier (0 when the recording starts)
+ * @param int16*            keys        Output: recorded keys (MAX_HOTKEY_COMBINATION, only valid for INPUT_KEY_CAPTURE_DONE)
+ *
+ * @return InputKeyCaptureResult
+ */
+inline
+InputKeyCaptureResult input_key_combination_capture(
+    const InputKey* const active_keys,
+    int16* const modifier,
+    int16* const keys
+) NO_EXCEPT
+{
+    memset(keys, 0, sizeof(int16) * MAX_HOTKEY_COMBINATION);
+
+    for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
+        const InputKey* const key = &active_keys[i];
+        const int16 code = (int16) key->scan_code;
+
+        if (!key->scan_code || !input_key_is_bindable(code)) {
+            continue;
+        }
+
+        if ((uint32) key->scan_code == (uint32) (INPUT_KEYBOARD_PREFIX | KEY_SCAN_CODE_ESCAPE)) {
+            if (key->key_state & KEY_PRESS_TYPE_PRESSED) {
+                return INPUT_KEY_CAPTURE_CANCELLED;
+            }
+
+            continue;
+        }
+
+        if (input_key_is_modifier(code)) {
+            if (key->key_state & KEY_PRESS_TYPE_PRESSED) {
+                *modifier = code;
+            }
+
+            // Released without another key -> the modifier alone
+            if ((key->key_state & KEY_PRESS_TYPE_RELEASED) && *modifier == code) {
+                keys[0] = code;
+
+                return INPUT_KEY_CAPTURE_DONE;
+            }
+
+            continue;
+        }
+
+        if (!(key->key_state & KEY_PRESS_TYPE_PRESSED)) {
+            continue;
+        }
+
+        // Modifiers that are still down + the key (only keyboard + mouse keys can be combined with modifiers)
+        int32 count = 0;
+        if (!((uint16) code & INPUT_CONTROLLER_PREFIX)) {
+            for (int32 j = 0; j < MAX_KEY_PRESSES && count < MAX_HOTKEY_COMBINATION - 1; ++j) {
+                const InputKey* const other = &active_keys[j];
+                if (other->scan_code
+                    && input_key_is_modifier((int16) other->scan_code)
+                    && !(other->key_state & KEY_PRESS_TYPE_RELEASED)
+                ) {
+                    keys[count++] = (int16) other->scan_code;
+                }
+            }
+        }
+
+        keys[count] = code;
+
+        return INPUT_KEY_CAPTURE_DONE;
+    }
+
+    return INPUT_KEY_CAPTURE_NONE;
 }
 
 #endif

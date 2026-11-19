@@ -196,7 +196,7 @@ FORCE_INLINE
 void gpuapi_fence_lock(GpuFence* const fence) NO_EXCEPT
 {
     if (fence) {
-        ASSERT_TRUE_CONST(false);
+        ASSERT_TRUE(false);
         glDeleteSync(*fence);
         *fence = 0;
     }
@@ -231,7 +231,7 @@ bool gpuapi_fence_is_unlocked(GpuFence* const fence) NO_EXCEPT
         return true;
     }
 
-    ASSERT_TRUE_CONST(false);
+    ASSERT_TRUE(false);
 
     return false;
 }

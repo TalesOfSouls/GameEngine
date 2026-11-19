@@ -106,7 +106,7 @@ void generate_default_png_references(const FileBody* file, Png* png)
     }
 
     // The first chunk MUST be IHDR -> we handle it here
-    ASSERT_TRUE_CONST(PNG_HEADER_SIZE + PNG_IHDR_SIZE == 33);
+    static_assert(PNG_HEADER_SIZE + PNG_IHDR_SIZE == 33);
     memcpy(png, file->content, PNG_HEADER_SIZE + PNG_IHDR_SIZE);
 
     SWAP_ENDIAN_BIG_SELF(png->ihdr.length);

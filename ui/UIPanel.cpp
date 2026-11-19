@@ -132,9 +132,8 @@ UIPanel* ui_scroll_panel_create(
 FORCE_INLINE
 UICore* ui_panel_content(const UILayout* const layout, UIPanel* const panel) NO_EXCEPT
 {
-    ASSERT_TRUE(panel->content); // @check
-    return panel->content 
-        ? ui_element_get(layout, panel->content) 
+    return panel->content
+        ? ui_element_get(layout, panel->content)
         : &panel->core;
 }
 
@@ -246,11 +245,6 @@ bool ui_panel_scroll_set(UILayout* const layout, UIPanel* const panel, UIScrollA
 inline
 v2_f32 ui_panel_content_extent(const UILayout* const layout, const UIPanel* const panel) NO_EXCEPT
 {
-    if (!panel->content) {
-        ASSERT_TRUE(panel->content); // @check
-        return {0.0f, 0.0f};
-    }
-
     const UICore* const content = ui_element_get(layout, panel->content);
     const v2_f32 origin = content->dimension.pos;
 
@@ -295,13 +289,6 @@ UIPanel* ui_popup_create(UILayout* const layout, UICore* const owner = NULL, uin
     popup->core.state = UI_STATE_HIDDEN;
 
     return popup;
-}
-
-// @check Remove
-FORCE_INLINE
-UIPanel* ui_popup_get(const UILayout* const layout) NO_EXCEPT
-{
-    return layout->interaction.popup ? (UIPanel *) ui_element_get(layout, layout->interaction.popup) : NULL;
 }
 
 // Closes the open popup (if any)

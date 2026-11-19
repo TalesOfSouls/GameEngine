@@ -571,7 +571,7 @@ inline uint32 div_pow2(size_t value) NO_EXCEPT
     if (value == 536870912) return 29;
     if (value == 1073741824) return 30;
 
-    ASSERT_TRUE_CONST(false);
+    ASSERT_TRUE(false);
 
     return 0;
 }

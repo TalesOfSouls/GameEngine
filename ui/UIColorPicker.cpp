@@ -367,7 +367,8 @@ UIColorPicker* ui_color_picker_create(
             UILabel* const label = ui_label_create(layout, CHAR_TYPE_CHAR, 0, 0, &popup->core);
             label->core.dimension.pos_raw = {x + 2.0f, UI_COLOR_GAP * 2.0f + UI_COLOR_GRADIENT_SIZE + UI_DEFAULT_ROW_HEIGHT + 2.0f};
             label->font.color = UI_DEFAULT_PLACEHOLDER_COLOR;
-            ui_label_set_text(layout, label, names[i]);
+            // Single letter names
+            ui_label_set_text(layout, label, names[i], 1);
         }
 
         ui_color_picker_update_inputs(layout, picker);

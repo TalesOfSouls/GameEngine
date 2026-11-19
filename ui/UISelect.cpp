@@ -92,26 +92,16 @@ UISelect* ui_select_create(
 FORCE_INLINE
 SimpleString<const char> ui_select_option_string(const UILayout* const layout, const UISelect* const select, int32 index) NO_EXCEPT
 {
-    if (index < 0 || index >= select->option_count || !select->options) {
-        SimpleString<const char> none = { 0, 0, NULL };
-        return none;
-    }
-
+    ASSERT_TRUE(index >= 0 && index < select->option_count && select->options);
     return ui_string_list_get(layout, select->options, select->option_count, index);
-}
-
-// Option text, NULL if the index is invalid
-// @check replace
-FORCE_INLINE
-const char* ui_select_option(const UILayout* const layout, const UISelect* const select, int32 index) NO_EXCEPT
-{
-    return ui_select_option_string(layout, select, index).str;
 }
 
 FORCE_INLINE
 f32 ui_select_row_height(const UISelect* const select) NO_EXCEPT
 {
-    return select->core.dimension.dim.y > 0.0f ? select->core.dimension.dim.y : UI_DEFAULT_ROW_HEIGHT;
+    return select->core.dimension.dim.y > 0.0f
+        ? select->core.dimension.dim.y
+        : UI_DEFAULT_ROW_HEIGHT;
 }
 
 // Search text ("" = no search)
@@ -168,7 +158,7 @@ int32 ui_select_filtered_option(const UILayout* const layout, const UISelect* co
 
     const char* const search = ui_select_search_text(layout, select);
     for (int32 i = 0; i < select->option_count; ++i) {
-        if (ui_text_contains_case_insensitive(ui_select_option(layout, select, i), search) && row-- == 0) {
+        if (ui_text_contains_case_insensitive(ui_select_option_string(layout, select, i).str, search) && row-- == 0) {
             return i;
         }
     }
@@ -190,7 +180,7 @@ int32 ui_select_filtered_count(const UILayout* const layout, const UISelect* con
 
     int32 count = 0;
     for (int32 i = 0; i < select->option_count; ++i) {
-        count += ui_text_contains_case_insensitive(ui_select_option(layout, select, i), search);
+        count += ui_text_contains_case_insensitive(ui_select_option_string(layout, select, i).str, search);
     }
 
     return count;
@@ -318,20 +308,13 @@ v2_f32 ui_select_popup_size(const UILayout* const layout, const UISelect* const 
 // Option list
 ////////////////////////////////////////////////////////////////
 
-// @check replace
-FORCE_INLINE
-UISelect* ui_option_list_select(const UILayout* const layout, const UIOptionList* const list) NO_EXCEPT
-{
-    return (UISelect *) ui_element_get(layout, list->select);
-}
-
 /**
  * @return bool false if the list doesn't need a scrollbar
  */
 inline
 bool ui_option_list_scroll_info(const UILayout* const layout, const UIOptionList* const list, UIScrollInfo* const info) NO_EXCEPT
 {
-    const UISelect* const select = ui_option_list_select(layout, list);
+    const UISelect* const select = (UISelect *) ui_element_get(layout, list->select);
     const UIAttributeDimension* const dim = &list->core.dimension;
 
     const f32 content = ui_select_row_height(select) * (f32) ui_select_filtered_count(layout, select);
@@ -350,7 +333,7 @@ bool ui_option_list_scroll_info(const UILayout* const layout, const UIOptionList
 inline
 bool ui_option_list_scroll_set(UILayout* const layout, UIOptionList* const list, f32 scroll) NO_EXCEPT
 {
-    const UISelect* const select = ui_option_list_select(layout, list);
+    const UISelect* const select = (UISelect *) ui_element_get(layout, list->select);
     const f32 content = ui_select_row_height(select) * (f32) ui_select_filtered_count(layout, select);
     scroll = ui_scroll_clamp(scroll, content, list->core.dimension.dim.y);
 
@@ -375,7 +358,7 @@ int32 ui_option_list_row_at(const UILayout* const layout, const UIOptionList* co
         return -1;
     }
 
-    const UISelect* const select = ui_option_list_select(layout, list);
+    const UISelect* const select = (UISelect *) ui_element_get(layout, list->select);
     const f32 row_height = ui_select_row_height(select);
     const int32 count = ui_select_filtered_count(layout, select);
 
@@ -408,7 +391,7 @@ bool ui_option_list_hover(UILayout* const layout, UIOptionList* const list, int3
 inline
 bool ui_option_list_move_hover(UILayout* const layout, UIOptionList* const list, int32 delta) NO_EXCEPT
 {
-    const UISelect* const select = ui_option_list_select(layout, list);
+    const UISelect* const select = (UISelect *) ui_element_get(layout, list->select);
     const int32 count = ui_select_filtered_count(layout, select);
     if (!count) {
         return false;
@@ -475,27 +458,25 @@ void ui_select_cache(
 
     *zindex = camera_step_closer(gpu_api_type, *zindex);
 
-    if (layout->font) {
-        char buffer[128];
-        const char* const text = ui_select_display_text(layout, select, buffer, (int32) sizeof(buffer)).str;
-        const f32 line_height = font_line_height(&layout->font->base, select->font.size);
+    char buffer[128];
+    const char* const text = ui_select_display_text(layout, select, buffer, (int32) sizeof(buffer)).str;
+    const f32 line_height = font_line_height(&layout->font->base, select->font.size);
 
-        const int32 vertex_start = vertices->count;
-        const int32 index_start = indices->count;
+    const int32 vertex_start = vertices->count;
+    const int32 index_start = indices->count;
 
-        vertex_text_create(
-            &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex,
-            {dim->pos.x + UI_DEFAULT_TEXT_PADDING, dim->pos.y - (dim->dim.y - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
-            layout->font, text,
-            select->font.size, select->font.color, mem
-        );
+    vertex_text_create(
+        &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex,
+        {dim->pos.x + UI_DEFAULT_TEXT_PADDING, dim->pos.y - (dim->dim.y - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
+        layout->font, text,
+        select->font.size, select->font.color, mem
+    );
 
-        // Long texts must not overlap the arrow
-        ui_vertices_clip_or_remove(
-            vertices, indices, vertex_start, index_start,
-            ui_clip_from_rect({dim->pos.x, dim->pos.y, max_branched(dim->dim.x - 20.0f, 0.0f), dim->dim.y})
-        );
-    }
+    // Long texts must not overlap the arrow
+    ui_vertices_clip_or_remove(
+        vertices, indices, vertex_start, index_start,
+        ui_clip_from_rect({dim->pos.x, dim->pos.y, max_branched(dim->dim.x - 20.0f, 0.0f), dim->dim.y})
+    );
 
     *zindex = camera_step_closer(gpu_api_type, *zindex);
 }
@@ -514,7 +495,7 @@ void ui_option_list_cache(
 {
     PROFILE_DEBUG(PROFILE_UI_CACHE_OPTION_LIST);
 
-    const UISelect* const select = ui_option_list_select(layout, list);
+    const UISelect* const select = (UISelect *) ui_element_get(layout, list->select);
     const f32 row_height = ui_select_row_height(select);
     const int32 count = ui_select_filtered_count(layout, select);
     const int32 visible_rows = clamp_branched(count, 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
@@ -540,7 +521,7 @@ void ui_option_list_cache(
     const int32 last_row = min_branched(count - 1, (int32) ((scroll + dim->dim.y) / row_height));
 
     const bool is_multi = (select->select_flags & UI_SELECT_FLAG_MULTI) != 0;
-    const f32 line_height = layout->font ? font_line_height(&layout->font->base, select->font.size) : 0.0f;
+    const f32 line_height = font_line_height(&layout->font->base, select->font.size);
 
     // WARNING: Overlapping geometry needs its own zindex (the depth test rejects equal depth values)
     //          -> 3 layers: row background, checkbox background, checkbox border/check + text
@@ -555,7 +536,7 @@ void ui_option_list_cache(
 
     int32 row = 0;
     for (int32 option = 0; select->options && option < select->option_count && row <= last_row; ++option) {
-        const char* const text = ui_select_option(layout, select, option);
+        const char* const text = ui_select_option_string(layout, select, option).str;
         if (!ui_text_contains_case_insensitive(text, search) || row++ < first_row) {
             continue;
         }
@@ -592,19 +573,15 @@ void ui_option_list_cache(
             text_x += UI_SELECT_CHECK_SIZE + UI_DEFAULT_TEXT_PADDING;
         }
 
-        // @check font must be set, search and remove all these checks
-        if (layout->font) {
-            vertex_text_create(
-                &layout->ui_vertex_cache, &layout->ui_index_cache, z_content,
-                {text_x, row_y - (row_height - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
-                layout->font, text,
-                select->font.size, select->font.color, mem
-            );
-        }
+        vertex_text_create(
+            &layout->ui_vertex_cache, &layout->ui_index_cache, z_content,
+            {text_x, row_y - (row_height - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
+            layout->font, text,
+            select->font.size, select->font.color, mem
+        );
     }
 
-    // @check also remove this type of font check
-    if (!count && layout->font) {
+    if (!count) {
         vertex_text_create(
             &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex,
             {dim->pos.x + UI_DEFAULT_TEXT_PADDING, dim->pos.y - (row_height - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,

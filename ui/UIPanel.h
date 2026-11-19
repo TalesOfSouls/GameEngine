@@ -35,8 +35,6 @@ struct UIPanel {
     // RGBA, no alpha = no background
     uint32 background_color;
 
-    // @check Why do panels need a border anyway? Are any panels currently using a border?
-    //          Borders for panels should be really rare and therefore only be an optional element/attribute
     UIAttributeBorder border;
 
     // @type UIPanelFlag

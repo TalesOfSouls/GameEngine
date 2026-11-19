@@ -165,16 +165,7 @@ int32 ui_string_list_store(UILayout* const layout, const SimpleString<const char
 FORCE_INLINE
 SimpleString<const char> ui_string_list_get(const UILayout* const layout, int32 offset, int32 count, int32 index) NO_EXCEPT
 {
-    // @check why we don't use 0-indexed string list
-    // @check depends on the one below, 0 is not allowed
-    ASSERT_TRUE(index >= 0 && index < count);
-
-    if (!offset) {
-        // @check
-        ASSERT_TRUE(false);
-        SimpleString<const char> empty = { 0, 0, "" };
-        return empty;
-    }
+    ASSERT_TRUE(offset && index >= 0 && index < count);
 
     const int32* const starts = (const int32 *) (layout->ui_element_buffer.memory + offset);
     const char* const characters = (const char *) (starts + count + 1);
@@ -186,62 +177,15 @@ SimpleString<const char> ui_string_list_get(const UILayout* const layout, int32 
 }
 
 /**
- * Sets a \0 terminated text in the ui_element_buffer (label content/pattern)
+ * Sets a text in the ui_element_buffer (label content/pattern)
  * New memory is only reserved if the reserved memory is too small (the reserved length is stored with the text)
  *
  * @param UILayout*     layout  UI layout
  * @param int32*        offset  Text offset (0 = no memory reserved yet)
- * @param const char*   text    Text
+ * @param const char*   text    Text (doesn't need to be \0 terminated)
+ * @param int32         length  Length in characters excl. \0 (e.g. the return value of sprintf_fast)
  *
  * @return bool true if the text changed
- * 
- * @check Who is using this and check why they aren't using SimpleString (avoid strlen below)
- */
-static inline
-bool ui_text_set(UILayout* const layout, int32* const offset, const char* const text) NO_EXCEPT
-{
-    // @check
-    ASSERT_TRUE(text);
-
-    if (!text) {
-        if (!*offset) {
-            *offset = ui_string_reserve(layout, CHAR_TYPE_CHAR, 1);
-        }
-
-        char* const content = (char *) (layout->ui_element_buffer.memory + *offset);
-        const bool changed = *content != '\0';
-        *content = '\0';
-        ui_string_length_set(layout, *offset, 0);
-
-        return changed;
-    }
-
-    const int32 length = (int32) strlen(text);
-    if (*offset && length <= ui_string_max_length(layout, *offset)) {
-        char* const content = (char *) (layout->ui_element_buffer.memory + *offset);
-
-        const bool changed = memcmp(content, text, length) != 0 || content[length] != '\0';
-        if (changed) {
-            str_copy(content, text, length);
-        }
-
-        ui_string_length_set(layout, *offset, length);
-
-        return changed;
-    }
-
-    // Not enough memory
-    *offset = ui_string_reserve(layout, CHAR_TYPE_CHAR, length + 1);
-    memcpy(layout->ui_element_buffer.memory + *offset, text, length + 1);
-    ui_string_length_set(layout, *offset, length);
-
-    return true;
-}
-
-/**
- * Same as above but with a known length (e.g. the return value of sprintf_fast)
- *
- * @param int32 length Length in characters excl. \0
  */
 static inline
 bool ui_text_set(
@@ -315,27 +259,9 @@ bool ui_label_set_text_fixed(UILayout* const layout, UILabel* const label, const
  * -> can be called every frame (the text is only copied if it differs)
  * If the reserved memory is too small new memory is reserved
  *
- * @return bool true if the text changed
- */
-static inline
-bool ui_label_set_text(UILayout* const layout, UILabel* const label, const char* const text) NO_EXCEPT
-{
-    ASSERT_TRUE(label->char_type == CHAR_TYPE_CHAR);
-
-    if (!ui_text_set(layout, &label->content, text)) {
-        return false;
-    }
-
-    label->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-    layout->dirty |= UI_LAYOUT_DIRTY;
-
-    return true;
-}
-
-/**
- * Same as above but with a known length (e.g. the return value of sprintf_fast)
+ * @param int32 length Length in characters excl. \0 (e.g. the return value of sprintf_fast)
  *
- * @param int32 length Length in characters excl. \0
+ * @return bool true if the text changed
  */
 static inline
 bool ui_label_set_text(UILayout* const layout, UILabel* const label, const char* const text, int32 length) NO_EXCEPT
@@ -355,15 +281,9 @@ bool ui_label_set_text(UILayout* const layout, UILabel* const label, const char*
 /**
  * Same as ui_label_set_text but for the pattern which is used by update functions (e.g. "FPS: %n")
  * The pattern isn't rendered -> the label isn't flagged as changed
+ *
+ * @param int32 length Length in characters excl. \0
  */
-static inline
-void ui_label_set_pattern(UILayout* const layout, UILabel* const label, const char* const pattern) NO_EXCEPT
-{
-    ASSERT_TRUE(label->char_type == CHAR_TYPE_CHAR);
-
-    ui_text_set(layout, &label->pattern, pattern);
-}
-
 static inline
 void ui_label_set_pattern(UILayout* const layout, UILabel* const label, const char* const pattern, int32 length) NO_EXCEPT
 {

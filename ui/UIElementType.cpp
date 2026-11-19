@@ -7,7 +7,6 @@
 #include "UIButton.h"
 #include "UISelect.h"
 #include "UIInput.h"
-#include "UIText.h"
 #include "UILabel.h"
 #include "UITextarea.h"
 #include "UIImage.h"
@@ -34,8 +33,6 @@ int32 ui_element_type_size(UIElementType e) NO_EXCEPT
             return sizeof(UIInput);
         case UI_ELEMENT_TYPE_LABEL:
             return sizeof(UILabel);
-        case UI_ELEMENT_TYPE_TEXT:
-            return sizeof(UIText);
         case UI_ELEMENT_TYPE_TEXTAREA:
             return sizeof(UITextarea);
         case UI_ELEMENT_TYPE_IMAGE:

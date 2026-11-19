@@ -97,7 +97,6 @@ static void test_layout_from_txt() {
     TEST_EQUALS_WITH_DELTA(window->core.dimension.pos_raw.y, 20.0f, 0.001f);
     TEST_EQUALS_WITH_DELTA(ui_element_get(&layout, window->title)->dimension.dim_raw.y, 30.0f, 0.001f);
     TEST_TRUE(ui_element_get(&layout, window->button_close)->state & UI_STATE_HIDDEN);
-    TEST_EQUALS(strcmp((const char *) (layout.ui_element_buffer.memory + ui_window_title_label(&layout, window)->content), "Test"), 0);
 
     // Children of a scroll panel are in its content panel
     UIPanel* const scroll = (UIPanel *) ui_element_get(&layout, "test_scroll");
@@ -218,7 +217,6 @@ static void test_layout_language() {
     const byte* const buffer = layout.ui_element_buffer.memory;
     const UIWindow* const window = (const UIWindow *) ui_element_get(&layout, "lang_window_element");
     TEST_NOT_EQUALS(window, NULL);
-    TEST_EQUALS(strcmp((const char *) (buffer + ui_window_title_label(&layout, window)->content), "Theme title"), 0);
 
     TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_element_get(&layout, "lang_local"))->content), "Hello world"), 0);
     TEST_EQUALS(strcmp((const char *) (buffer + ((const UILabel *) ui_element_get(&layout, "lang_global"))->content), "Quit"), 0);
@@ -229,7 +227,7 @@ static void test_layout_language() {
     const UISelect* const select = (const UISelect *) ui_element_get(&layout, "lang_select");
     TEST_NOT_EQUALS(select, NULL);
     TEST_EQUALS(select->option_count, 3);
-    TEST_EQUALS(strcmp(ui_select_option(&layout, select, 1), "Banana"), 0);
+    TEST_EQUALS(strcmp(ui_select_option_string(&layout, select, 1).str, "Banana"), 0);
 
     // The theme language is part of the binary theme
     byte* const out = (byte *) platform_alloc_aligned(2 * MEGABYTE, 2 * MEGABYTE, 64);

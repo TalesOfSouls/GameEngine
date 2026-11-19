@@ -42,15 +42,6 @@ UIPanel* ui_tooltip_create(UILayout* const layout, f32 font_size = UI_DEFAULT_FO
     return tooltip;
 }
 
-
-// @check remove
-FORCE_INLINE
-UILabel* ui_tooltip_label(const UILayout* const layout, const UIPanel* const tooltip) NO_EXCEPT
-{
-    // The label is the first child (allocated directly after the tooltip)
-    return (UILabel *) ui_element_get(layout, tooltip->core.next_offset);
-}
-
 // Size + position of the tooltip after its text was set
 static inline
 void ui_tooltip_place(
@@ -70,16 +61,14 @@ void ui_tooltip_place(
             continue;
         }
 
-        if (layout->font) {
-            text_width = max_branched(text_width, font_system_text_range_width(layout->font, content, line_start, i, label->font.size));
-        }
+        text_width = max_branched(text_width, font_system_text_range_width(layout->font, content, line_start, i, label->font.size));
 
         lines += i < length;
         line_start = i + 1;
     }
 
     const f32 width = text_width + 2.0f * UI_TOOLTIP_PADDING;
-    const f32 height = (layout->font ? font_line_height(&layout->font->base, label->font.size) : label->font.size) * (f32) lines
+    const f32 height = font_line_height(&layout->font->base, label->font.size) * (f32) lines
         + 2.0f * UI_TOOLTIP_PADDING;
 
     // Bottom right of the position, flipped if it doesn't fit (y-up)
@@ -136,7 +125,7 @@ void ui_tooltip_show(
     f32 x, f32 y
 ) NO_EXCEPT
 {
-    UILabel* const label = ui_tooltip_label(layout, tooltip);
+    UILabel* const label = (UILabel *) ui_element_get(layout, tooltip->core.next_offset);
 
     // The text is cut if it doesn't fit
     char* const content = (char *) (layout->ui_element_buffer.memory + label->content);
@@ -149,14 +138,6 @@ void ui_tooltip_show(
     }
 
     ui_tooltip_place(layout, tooltip, label, length, changed, x, y);
-}
-
-// Same as above but the length is calculated
-// @check remove
-inline
-void ui_tooltip_show(UILayout* const layout, UIPanel* const tooltip, const char* const text, f32 x, f32 y) NO_EXCEPT
-{
-    ui_tooltip_show(layout, tooltip, text, (int32) strlen(text), x, y);
 }
 
 inline

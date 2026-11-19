@@ -69,11 +69,7 @@ LanguageKey language_key(const char* const key, int32 length) NO_EXCEPT
 static inline
 const LanguageSlot* language_slot_find(const Language* const lang, const LanguageKey& key) NO_EXCEPT
 {
-    if (!lang || !lang->data || !key.str) {
-        // @check 
-        ASSERT_TRUE(false);
-        return NULL;
-    }
+    ASSERT_TRUE(lang && lang->data && key.str);
 
     const LanguageHeader* const header = (const LanguageHeader *) lang->data;
     const LanguageSlot* const slots = (const LanguageSlot *) (header + 1);

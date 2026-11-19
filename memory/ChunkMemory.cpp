@@ -488,7 +488,7 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
         LOG_3("No free chunk memory index found");
 
         // This shouldn't happen in an ideal world and we should adjust our code
-        ASSERT_TRUE_CONST(false);
+        ASSERT_TRUE(false);
 
         return -1;
     }

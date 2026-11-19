@@ -868,7 +868,7 @@ void ui_cache(
     // Values that affect every element, if one of them changed nothing can be re-used
     // (no need to hash them, the font pointer, font scale + gpu api fit into one value)
     // The values of a layout only change one at a time -> a xor of them always results in a different value
-    const uint32 font_scale_bits = layout->font ? BITCAST(layout->font->base.scale, uint32) : 0;
+    const uint32 font_scale_bits = BITCAST(layout->font->base.scale, uint32);
 
     const uint64 cache_global_hash = (uint64) (uintptr_t) layout->font
         ^ ((uint64) font_scale_bits << 16)
@@ -1585,6 +1585,12 @@ void ui_select_open(UILayout* const layout, UISelect* const select, bool open) N
             row_height * (f32) count,
             view
         );
+
+        list->scroll = ui_scroll_clamp(
+            row_height * (f32) (select->selected - UI_SELECT_MAX_VISIBLE_OPTIONS / 2),
+            row_height * (f32) count,
+            view
+        );
     }
 }
 
@@ -1672,7 +1678,7 @@ void ui_element_click(void* app, UILayout* const layout, UICore* const element, 
         } break;
         case UI_ELEMENT_TYPE_OPTION_LIST: {
             UIOptionList* const list = (UIOptionList *) element;
-            UISelect* const select = ui_option_list_select(layout, list);
+            UISelect* const select = (UISelect *) ui_element_get(layout, list->select);
 
             const int32 option = ui_select_filtered_option(layout, select, ui_option_list_row_at(layout, list, x, y));
             if (option < 0) {
@@ -1722,6 +1728,68 @@ void ui_element_click(void* app, UILayout* const layout, UICore* const element, 
         } break;
         default: {}
     }
+}
+
+/**
+ * Value of a control as number (e.g. data driven settings, console)
+ *      slider:     0..1
+ *      checkbox:   0 / 1
+ *      select:     selected option (-1 = none)
+ *      tab:        active tab
+ *
+ * @param const UICore* element Control
+ *
+ * @return f32 0 for elements without a value
+ */
+inline
+f32 ui_element_value_get(const UICore* const element) NO_EXCEPT
+{
+    switch (element->type) {
+        case UI_ELEMENT_TYPE_SLIDER: return ((const UISlider *) element)->value;
+        case UI_ELEMENT_TYPE_CHECKBOX: return ((const UICheckbox *) element)->checked ? 1.0f : 0.0f;
+        case UI_ELEMENT_TYPE_SELECT: return (f32) ((const UISelect *) element)->selected;
+        case UI_ELEMENT_TYPE_VIEW_TAB: return (f32) ((const UITab *) element)->active;
+        default: return 0.0f;
+    }
+}
+
+/**
+ * Sets the value of a control (same meaning as ui_element_value_get), doesn't call the on_change action
+ * Select + tab: the value is rounded and clamped to the available options
+ *
+ * @param UILayout* layout  UI layout
+ * @param UICore*   element Control
+ * @param f32       value   New value
+ *
+ * @return bool false if the element has no value
+ */
+inline
+bool ui_element_value_set(UILayout* const layout, UICore* const element, f32 value) NO_EXCEPT
+{
+    switch (element->type) {
+        case UI_ELEMENT_TYPE_SLIDER: {
+            ui_slider_set(layout, (UISlider *) element, value);
+        } break;
+        case UI_ELEMENT_TYPE_CHECKBOX: {
+            ui_checkbox_set(layout, (UICheckbox *) element, value > 0.5f);
+        } break;
+        case UI_ELEMENT_TYPE_SELECT: {
+            UISelect* const select = (UISelect *) element;
+            const int32 index = OMS_CLAMP((int32) (value + 0.5f), 0, OMS_MAX(select->option_count - 1, 0));
+            ui_select_set(layout, select, select->option_count ? index : -1);
+        } break;
+        case UI_ELEMENT_TYPE_VIEW_TAB: {
+            UITab* const tab = (UITab *) element;
+            if (tab->tab_count) {
+                ui_tab_set_active(layout, tab, OMS_CLAMP((int32) (value + 0.5f), 0, tab->tab_count - 1));
+            }
+        } break;
+        default: {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /**
@@ -1898,7 +1966,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
     // Pressing outside of it closes it (pressing the owner toggles it through the click)
     ////////////////////////////////////////////////////////
     if (interaction->popup) {
-        UIPanel* const popup = ui_popup_get(layout);
+        UIPanel* const popup = (UIPanel *) ui_element_get(layout, layout->interaction.popup);
         const UICore* const owner = popup->popup_owner ? ui_element_get(layout, popup->popup_owner) : NULL;
 
         if (!ui_element_is_visible(layout, &popup->core)
@@ -2105,7 +2173,10 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
                 ui_element_click(app, layout, active, x, y);
 
                 // e.g. context menu: clicking an entry closes the menu
-                const UIPanel* const popup = ui_popup_get(layout);
+                const UIPanel* const popup = layout->interaction.popup
+                    ? (UIPanel *) ui_element_get(layout, layout->interaction.popup)
+                    : NULL;
+
                 if (popup
                     && (popup->panel_flags & UI_PANEL_FLAG_CLOSE_ON_CLICK)
                     && active != &popup->core
@@ -2380,7 +2451,10 @@ void ui_element_click_keyboard(void* app, UILayout* const layout, UICore* const 
     );
 
     // e.g. context menu: clicking an entry closes the menu
-    const UIPanel* const popup = ui_popup_get(layout);
+    const UIPanel* const popup = layout->interaction.popup
+        ? (UIPanel *) ui_element_get(layout, layout->interaction.popup)
+        : NULL;
+
     if (popup
         && (popup->panel_flags & UI_PANEL_FLAG_CLOSE_ON_CLICK)
         && element != &popup->core
@@ -2718,7 +2792,10 @@ byte ui_input_editing_action(void* app, UILayout* const layout, UINavigation act
     }
 
     if (action == UI_NAVIGATION_CANCEL) {
-        UIPanel* const popup = ui_popup_get(layout);
+        UIPanel* const popup = layout->interaction.popup
+            ? (UIPanel *) ui_element_get(layout, layout->interaction.popup)
+            : NULL;
+
         if (popup && ui_element_is_self_or_child_of(layout, &input->core, &popup->core)) {
             ui_popup_close(layout);
         }
@@ -3029,7 +3106,7 @@ f32 ui_hotkey_axis(const Input* const input, uint16 hotkey_positive, uint16 hotk
 byte ui_input(
     Input* const states, int32 state_count,
     uint64 timestamp,
-    uint16* navigation_to_hotkey,
+    const uint16* const navigation_to_hotkey,
     void* const app,
     UILayout* const ui_layout,
     v2_f32* const pointer_position
@@ -3109,7 +3186,7 @@ byte ui_input(
  * The focus actions come from the hotkeys of navigation_to_hotkey (UI_NAVIGATION_NEXT ... UI_NAVIGATION_CANCEL),
  * 0 = the action has no hotkey.
  *
- * @param uint16* navigation_to_hotkey Hotkey per UINavigation
+ * @param const uint16* navigation_to_hotkey Hotkey per UINavigation
  *
  * @return void
  */

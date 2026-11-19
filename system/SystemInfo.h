@@ -38,6 +38,13 @@ struct MainboardInfo {
  * They are one signal for a ban decision, not proof of identity. Treat them as
  * personal data where required by law.
  */
+
+// Hardware (ban) id: 128 bit hash of the cross-platform hardware identifiers as hex, excl. \0 (@see system_hardware_id)
+#define SYSTEM_HARDWARE_ID_LENGTH 32
+
+// The same id in the UUID format 8-4-4-4-12, excl. \0 (@see system_hardware_uuid)
+#define SYSTEM_HARDWARE_UUID_LENGTH (SYSTEM_HARDWARE_ID_LENGTH + 4)
+
 struct HardwareId {
     char system_uuid[37];
     char system_serial[64];
@@ -47,7 +54,7 @@ struct HardwareId {
     char bios_serial[64];
     char cpu_id[192];
     char gpu_id[3][128];
-    char uuid[37];
+    char uuid[SYSTEM_HARDWARE_UUID_LENGTH + 1];
     uint8 gpu_id_count;
 };
 
@@ -155,10 +162,21 @@ void hardware_id_gpu_add(HardwareId* id, const char* value) NO_EXCEPT;
 void hardware_id_gpu_sort(HardwareId* id) NO_EXCEPT;
 
 /**
- * Hashes the cross-platform hardware identifiers into a UUID-shaped ban id
+ * Hashes the cross-platform hardware identifiers into a ban id (hex)
  *
  * @param const SystemInfo* info        System information containing the hardware identifiers
- * @param char*             out         Output buffer (at least 37 bytes)
+ * @param char*             out         Output buffer (at least SYSTEM_HARDWARE_ID_LENGTH + 1 bytes)
+ * @param size_t            out_size    Output buffer size
+ *
+ * @return bool false if no system UUID is available
+ */
+bool system_hardware_id(const SystemInfo* info, char* out, size_t out_size) NO_EXCEPT;
+
+/**
+ * Same as system_hardware_id() in the UUID format (8-4-4-4-12)
+ *
+ * @param const SystemInfo* info        System information containing the hardware identifiers
+ * @param char*             out         Output buffer (at least SYSTEM_HARDWARE_UUID_LENGTH + 1 bytes)
  * @param size_t            out_size    Output buffer size
  *
  * @return bool false if no system UUID is available

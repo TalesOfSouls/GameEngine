@@ -57,19 +57,15 @@ UIWindow* ui_window_create(UILayout* const layout, UICore* parent = NULL) NO_EXC
     return window;
 }
 
-// @check useless
-FORCE_INLINE
-UILabel* ui_window_title_label(const UILayout* const layout, const UIWindow* const window) NO_EXCEPT
-{
-    return window->title_label ? (UILabel *) ui_element_get(layout, window->title_label) : NULL;
-}
-
 inline
 void ui_window_set_title(UILayout* const layout, UIWindow* const window, const char* const text) NO_EXCEPT
 {
-    UILabel* const label = ui_window_title_label(layout, window);
+    UILabel* const label = window->title_label
+        ? (UILabel *) ui_element_get(layout, window->title_label)
+        : NULL;
+
     if (label) {
-        ui_label_set_text(layout, label, text);
+        ui_label_set_text(layout, label, text, (int32) strlen(text));
     }
 }
 

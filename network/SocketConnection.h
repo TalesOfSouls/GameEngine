@@ -8,19 +8,7 @@
 #define COMS_NETWORK_SOCKET_CONNECTION_H
 
 #include "../stdlib/Stdlib.h"
-
-#if _WIN32
-    #include <winsock2.h>
-    #include <ws2ipdef.h>
-
-    typedef SOCKET socketid;
-#else
-    #include <netdb.h>
-    #include <unistd.h>
-    #include <arpa/inet.h>
-
-    typedef int32 socketid;
-#endif
+#include "Socket.h"
 
 struct SocketConnection {
     socketid sd;

@@ -416,7 +416,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
     uint64 intermediate_offset = 0;
     uint64 required_size = 0;
 
-    ASSERT_TRUE_CONST(number_of_resources < 16);
+    static_assert(number_of_resources < 16);
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT layouts[16];
     uint64 row_size[16];
     uint32 row_num[16];

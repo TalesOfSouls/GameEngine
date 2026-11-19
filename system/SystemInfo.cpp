@@ -196,9 +196,9 @@ static inline int32 hardware_id_append(
     return offset < capacity ? offset : capacity - 1;
 }
 
-bool system_hardware_uuid(const SystemInfo* const info, char* const out, size_t out_size) NO_EXCEPT
+bool system_hardware_id(const SystemInfo* const info, char* const out, size_t out_size) NO_EXCEPT
 {
-    if (!info || !out || out_size < 37) {
+    if (!info || !out || out_size < SYSTEM_HARDWARE_ID_LENGTH + 1) {
         return false;
     }
 
@@ -233,9 +233,24 @@ bool system_hardware_uuid(const SystemInfo* const info, char* const out, size_t 
     digest[6] = (byte) ((digest[6] & 0x0F) | 0x80);
     digest[8] = (byte) ((digest[8] & 0x3F) | 0x80);
 
-    char hex[33];
-    bytes_to_hex(digest, 16, hex);
-    hex[32] = '\0';
+    bytes_to_hex(digest, SYSTEM_HARDWARE_ID_LENGTH / 2, out);
+    out[SYSTEM_HARDWARE_ID_LENGTH] = '\0';
+
+    return true;
+}
+
+bool system_hardware_uuid(const SystemInfo* const info, char* const out, size_t out_size) NO_EXCEPT
+{
+    if (!out || out_size < SYSTEM_HARDWARE_UUID_LENGTH + 1) {
+        return false;
+    }
+
+    out[0] = '\0';
+
+    char hex[SYSTEM_HARDWARE_ID_LENGTH + 1];
+    if (!system_hardware_id(info, hex, sizeof(hex))) {
+        return false;
+    }
 
     memcpy(out, hex, 8);
     out[8] = '-';
@@ -246,7 +261,7 @@ bool system_hardware_uuid(const SystemInfo* const info, char* const out, size_t 
     memcpy(out + 19, hex + 16, 4);
     out[23] = '-';
     memcpy(out + 24, hex + 20, 12);
-    out[36] = '\0';
+    out[SYSTEM_HARDWARE_UUID_LENGTH] = '\0';
 
     return true;
 }
