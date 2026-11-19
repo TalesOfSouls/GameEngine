@@ -57,6 +57,7 @@ UIWindow* ui_window_create(UILayout* const layout, UICore* parent = NULL) NO_EXC
     return window;
 }
 
+// @check useless
 FORCE_INLINE
 UILabel* ui_window_title_label(const UILayout* const layout, const UIWindow* const window) NO_EXCEPT
 {

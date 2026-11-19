@@ -7,6 +7,7 @@
 #include "UICore.h"
 
 // @todo Not implemented yet
+// @check remove
 struct UIText {
     UICore core;
     UIAttributeFont font;

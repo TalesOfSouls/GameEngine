@@ -67,6 +67,8 @@ bool ui_slider_set(UILayout* const layout, UISlider* const slider, f32 value) NO
  * @param f32 default_value Value if the slider doesn't exist
  *
  * @return f32
+ * 
+ * @check remove
  */
 static inline
 f32 ui_slider_get(UILayout* const layout, SimpleString<const char> name) NO_EXCEPT

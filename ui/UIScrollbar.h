@@ -35,9 +35,11 @@ struct UIScrollInfo {
 static FORCE_INLINE
 f32 ui_scroll_max(f32 content, f32 view) NO_EXCEPT
 {
+    // @check replace with max?
     return content > view ? content - view : 0.0f;
 }
 
+// @check replace
 static FORCE_INLINE
 f32 ui_scroll_clamp(f32 scroll, f32 content, f32 view) NO_EXCEPT
 {

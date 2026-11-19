@@ -42,6 +42,8 @@ UIPanel* ui_tooltip_create(UILayout* const layout, f32 font_size = UI_DEFAULT_FO
     return tooltip;
 }
 
+
+// @check remove
 FORCE_INLINE
 UILabel* ui_tooltip_label(const UILayout* const layout, const UIPanel* const tooltip) NO_EXCEPT
 {
@@ -150,6 +152,7 @@ void ui_tooltip_show(
 }
 
 // Same as above but the length is calculated
+// @check remove
 inline
 void ui_tooltip_show(UILayout* const layout, UIPanel* const tooltip, const char* const text, f32 x, f32 y) NO_EXCEPT
 {

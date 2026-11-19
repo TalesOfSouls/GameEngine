@@ -42,6 +42,7 @@ struct UISelect {
     int32 options;
 
     // Offset of the selection bit set (1 bit per option), only with UI_SELECT_FLAG_MULTI
+    // @question Consider to increase to 64 bit
     int32 multi_selected;
 
     // 1-indexed action that is called when the selection changes (layout->on_actions, 0 = none)

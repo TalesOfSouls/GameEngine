@@ -16,6 +16,7 @@
 #include "UITable.h"
 
 // n-th string of a static string list, "" if the list doesn't exist
+// @check remove
 FORCE_INLINE
 const char* ui_table_string(const UILayout* const layout, const UITable* const table, int32 offset, int32 column) NO_EXCEPT
 {
@@ -27,6 +28,8 @@ inline
 const char* ui_table_row_string(const UILayout* const layout, const UITable* const table, int32 offset, int32 column) NO_EXCEPT
 {
     if (!offset) {
+        // @check
+        ASSERT_TRUE(offset);
         return "";
     }
 
@@ -116,9 +119,7 @@ UITable* ui_table_create(
 inline
 void ui_table_set_column_width(UILayout* const layout, UITable* const table, int32 column, f32 fraction) NO_EXCEPT
 {
-    if (column < 0 || column >= table->column_count) {
-        return;
-    }
+    ASSERT_TRUE(column > 0 && column < table->column_count);
 
     ((f32 *) (layout->ui_element_buffer.memory + table->column_widths))[column] = fraction;
     layout->dirty |= UI_LAYOUT_DIRTY;
@@ -209,9 +210,13 @@ bool ui_table_set_cell(
     const char* const text, int32 length
 ) NO_EXCEPT
 {
-    if (!table->cell_capacity || row < 0 || row >= table->row_capacity || column < 0 || column >= table->column_count) {
-        return false;
-    }
+    ASSERT_TRUE(
+        table->cell_capacity
+            && row >= 0
+            && row < table->row_capacity
+            && column >= 0
+            && column < table->column_count
+    );
 
     if (!ui_table_cell_copy(layout, table, ui_table_cell_offset(layout, table, row, column), text, length)) {
         return false;
@@ -232,9 +237,12 @@ bool ui_table_set_cell(
 inline
 void ui_table_set_row_color(UILayout* const layout, UITable* const table, int32 row, uint32 color) NO_EXCEPT
 {
-    if (!table->cell_capacity || !table->row_text_colors || row < 0 || row >= table->row_capacity) {
-        return;
-    }
+    ASSERT_TRUE(
+        table->cell_capacity
+            && row >= 0
+            && row < table->row_capacity
+            && table->row_text_colors
+    );
 
     uint32* const colors = (uint32 *) (layout->ui_element_buffer.memory + table->row_text_colors);
     if (colors[row] == color) {
@@ -243,10 +251,12 @@ void ui_table_set_row_color(UILayout* const layout, UITable* const table, int32 
 
     colors[row] = color;
 
-    if (row < table->row_count) {
-        table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
-        layout->dirty |= UI_LAYOUT_DIRTY;
+    if (row >= table->row_count) {
+        return;
     }
+
+    table->core.change_type |= UI_ELEMENT_CHANGE_CONTENT;
+    layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
 /**
@@ -299,6 +309,8 @@ inline
 int32 ui_table_add_row(UILayout* const layout, UITable* const table, const SimpleString<const char>* cells) NO_EXCEPT
 {
     if (table->row_count >= table->row_capacity) {
+        // @check
+        ASSERT_TRUE(false);
         return -1;
     }
 
@@ -352,12 +364,15 @@ void ui_table_set_footer(UILayout* const layout, UITable* const table, const Sim
 inline
 const char* ui_table_cell(const UILayout* const layout, const UITable* const table, int32 row, int32 column) NO_EXCEPT
 {
-    if (row < 0 || row >= table->row_count || column < 0 || column >= table->column_count) {
-        return NULL;
-    }
+    // @check
+    ASSERT_TRUE(
+        row >= 0
+            && row < table->row_count
+            && column >= 0
+            && column < table->column_count
+    );
 
     const int32* const rows = (const int32 *) (layout->ui_element_buffer.memory + table->rows);
-
     return ui_table_row_string(layout, table, rows[row], column);
 }
 
@@ -512,6 +527,8 @@ void ui_table_row_vertices(
 ) NO_EXCEPT
 {
     if (!layout->font || !strings) {
+        // @check
+        ASSERT_TRUE(false);
         return;
     }
 

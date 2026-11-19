@@ -5,6 +5,7 @@
 #include "../stdlib/Stdlib.h"
 #include "../gpuapi/RenderUtils.h"
 #include "../camera/Camera.cpp"
+#include "../utils/SimpleStringUtils.h"
 #include "attribute/UIAttributeDimension.cpp"
 #include "attribute/UIAttributeBorder.cpp"
 #include "UIAlignment.h"
@@ -66,6 +67,8 @@ UISelect* ui_select_create(
         search->core.dimension.flag = UI_DIMENSION_DIM_X_RELATIVE;
         search->core.dimension.dim_raw = {1.0f, UI_DEFAULT_ROW_HEIGHT};
         search->owner = ui_element_offset(layout, select);
+        // @question Best way to replace this with a localized string?
+        //          Probably only possible by using global array for such cases that can be referenced internally
         ui_input_set_placeholder(layout, search, simple_string_literal<const char>("Search..."));
 
         select->search = ui_element_offset(layout, search);
@@ -98,6 +101,7 @@ SimpleString<const char> ui_select_option_string(const UILayout* const layout, c
 }
 
 // Option text, NULL if the index is invalid
+// @check replace
 FORCE_INLINE
 const char* ui_select_option(const UILayout* const layout, const UISelect* const select, int32 index) NO_EXCEPT
 {
@@ -217,9 +221,7 @@ bool ui_select_is_checked(const UILayout* const layout, const UISelect* const se
 inline
 bool ui_select_set(UILayout* const layout, UISelect* const select, int32 index, bool checked = true) NO_EXCEPT
 {
-    if (index < -1 || index >= select->option_count) {
-        return false;
-    }
+    ASSERT_TRUE(index >= 0 && index < select->option_count);
 
     if (select->select_flags & UI_SELECT_FLAG_MULTI) {
         if (index < 0 || !select->multi_selected || ui_select_is_checked(layout, select, index) == checked) {
@@ -316,6 +318,7 @@ v2_f32 ui_select_popup_size(const UILayout* const layout, const UISelect* const 
 // Option list
 ////////////////////////////////////////////////////////////////
 
+// @check replace
 FORCE_INLINE
 UISelect* ui_option_list_select(const UILayout* const layout, const UIOptionList* const list) NO_EXCEPT
 {
@@ -589,6 +592,7 @@ void ui_option_list_cache(
             text_x += UI_SELECT_CHECK_SIZE + UI_DEFAULT_TEXT_PADDING;
         }
 
+        // @check font must be set, search and remove all these checks
         if (layout->font) {
             vertex_text_create(
                 &layout->ui_vertex_cache, &layout->ui_index_cache, z_content,
@@ -599,6 +603,7 @@ void ui_option_list_cache(
         }
     }
 
+    // @check also remove this type of font check
     if (!count && layout->font) {
         vertex_text_create(
             &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex,

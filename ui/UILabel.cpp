@@ -165,9 +165,13 @@ int32 ui_string_list_store(UILayout* const layout, const SimpleString<const char
 FORCE_INLINE
 SimpleString<const char> ui_string_list_get(const UILayout* const layout, int32 offset, int32 count, int32 index) NO_EXCEPT
 {
+    // @check why we don't use 0-indexed string list
+    // @check depends on the one below, 0 is not allowed
     ASSERT_TRUE(index >= 0 && index < count);
 
     if (!offset) {
+        // @check
+        ASSERT_TRUE(false);
         SimpleString<const char> empty = { 0, 0, "" };
         return empty;
     }
@@ -190,10 +194,15 @@ SimpleString<const char> ui_string_list_get(const UILayout* const layout, int32 
  * @param const char*   text    Text
  *
  * @return bool true if the text changed
+ * 
+ * @check Who is using this and check why they aren't using SimpleString (avoid strlen below)
  */
 static inline
 bool ui_text_set(UILayout* const layout, int32* const offset, const char* const text) NO_EXCEPT
 {
+    // @check
+    ASSERT_TRUE(text);
+
     if (!text) {
         if (!*offset) {
             *offset = ui_string_reserve(layout, CHAR_TYPE_CHAR, 1);

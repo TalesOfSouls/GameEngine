@@ -29,13 +29,14 @@ enum UIPanelFlag : byte {
 
 // Generic container with an optional background and border
 // Also used for the root element, the window title, scroll panels and popups
-// 180 bytes
 struct UIPanel {
     UICore core;
 
     // RGBA, no alpha = no background
     uint32 background_color;
 
+    // @check Why do panels need a border anyway? Are any panels currently using a border?
+    //          Borders for panels should be really rare and therefore only be an optional element/attribute
     UIAttributeBorder border;
 
     // @type UIPanelFlag

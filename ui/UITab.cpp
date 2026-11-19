@@ -23,7 +23,8 @@
 FORCE_INLINE
 SimpleString<const char> ui_tab_title_string(const UILayout* const layout, const UITab* const tab, int32 index) NO_EXCEPT
 {
-    if (index < 0 || index >= tab->tab_count || !tab->titles) {
+    ASSERT_TRUE(index >= 0 && index < tab->tab_count);
+    if (!tab->titles) {
         SimpleString<const char> none = { 0, 0, NULL };
         return none;
     }
@@ -32,6 +33,7 @@ SimpleString<const char> ui_tab_title_string(const UILayout* const layout, const
 }
 
 // Title, NULL if the index is invalid
+// @check remove
 FORCE_INLINE
 const char* ui_tab_title(const UILayout* const layout, const UITab* const tab, int32 index) NO_EXCEPT
 {
@@ -60,9 +62,7 @@ UIPanel* ui_tab_page(const UILayout* const layout, const UITab* const tab, int32
 inline
 bool ui_tab_set_active(UILayout* const layout, UITab* const tab, int32 index) NO_EXCEPT
 {
-    if (index < 0 || index >= tab->tab_count) {
-        return false;
-    }
+    ASSERT_TRUE(index >= 0 && index < tab->tab_count);
 
     const bool changed = tab->active != index;
     tab->active = (int16) index;
@@ -152,14 +152,20 @@ v4_f32 ui_tab_header_rect(const UITab* const tab, int32 index) NO_EXCEPT
     const UIAttributeDimension* const dim = &tab->core.dimension;
 
     if (tab->orientation == UI_TAB_ORIENTATION_HORIZONTAL) {
-        const v4_f32 rect = { dim->pos.x + tab->tab_size * (f32) index, dim->pos.y, tab->tab_size, tab->header_size };
-
-        return rect;
+        return { 
+            dim->pos.x + tab->tab_size * (f32) index, 
+            dim->pos.y, 
+            tab->tab_size, 
+            tab->header_size 
+        };
     }
 
-    const v4_f32 rect = { dim->pos.x, dim->pos.y - tab->tab_size * (f32) index, tab->header_size, tab->tab_size };
-
-    return rect;
+    return { 
+        dim->pos.x, 
+        dim->pos.y - tab->tab_size * (f32) index, 
+        tab->header_size, 
+        tab->tab_size 
+    };
 }
 
 /**
@@ -170,7 +176,9 @@ int32 ui_tab_at(const UITab* const tab, f32 x, f32 y) NO_EXCEPT
 {
     for (int32 i = 0; i < tab->tab_count; ++i) {
         const v4_f32 rect = ui_tab_header_rect(tab, i);
-        if (x >= rect.x && x < rect.x + rect.width && y <= rect.y && y > rect.y - rect.height) {
+        if (x >= rect.x && x < rect.x + rect.width 
+            && y <= rect.y && y > rect.y - rect.height
+        ) {
             return i;
         }
     }
@@ -219,7 +227,10 @@ void ui_tab_cache(
         f32 max_width = 0.0f;
         for (int32 i = 0; i < tab->tab_count; ++i) {
             const SimpleString<const char> title = ui_tab_title_string(layout, tab, i);
-            max_width = max_branched(max_width, font_system_text_range_width(layout->font, title.str, 0, title.length, tab->font.size));
+            max_width = max_branched(
+                max_width, 
+                font_system_text_range_width(layout->font, title.str, 0, title.length, tab->font.size)
+            );
         }
 
         tab->tab_size = max_branched(max_width + 2.0f * UI_TAB_TEXT_PADDING, UI_TAB_MIN_WIDTH);
@@ -228,7 +239,12 @@ void ui_tab_cache(
     // Header + page background
     // Horizontal: header on top, vertical: header on the left
     v4_f32 header = { dim->pos.x, dim->pos.y, dim->dim.x, tab->header_size };
-    v4_f32 page = { dim->pos.x, dim->pos.y - tab->header_size, dim->dim.x, dim->dim.y - tab->header_size };
+    v4_f32 page = { 
+        dim->pos.x, 
+        dim->pos.y - tab->header_size, 
+        dim->dim.x, 
+        dim->dim.y - tab->header_size 
+    };
     if (!horizontal) {
         header.width = tab->header_size;
         header.height = dim->dim.y;
@@ -247,6 +263,7 @@ void ui_tab_cache(
     const int32 vertex_start = vertices->count;
     const int32 index_start = indices->count;
 
+    // @check useless
     const f32 line_height = layout->font ? font_line_height(&layout->font->base, tab->font.size) : 0.0f;
 
     for (int32 i = 0; i < tab->tab_count; ++i) {
@@ -275,7 +292,12 @@ void ui_tab_cache(
             const v4_f32 rect = ui_tab_header_rect(tab, i);
             vertex_text_create(
                 &layout->ui_vertex_cache, &layout->ui_index_cache, *zindex,
-                {rect.x + UI_TAB_TEXT_PADDING, rect.y - (rect.height - line_height) * 0.5f, 0.0f, 0.0f}, UI_ALIGN_V_TOP,
+                {
+                    rect.x + UI_TAB_TEXT_PADDING, 
+                    rect.y - (rect.height - line_height) * 0.5f, 
+                    0.0f, 
+                    0.0f
+                }, UI_ALIGN_V_TOP,
                 layout->font, ui_tab_title(layout, tab, i),
                 tab->font.size, tab->font.color, mem
             );
