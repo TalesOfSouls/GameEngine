@@ -3093,7 +3093,7 @@ f32 ui_hotkey_axis(const Input* const input, uint16 hotkey_positive, uint16 hotk
 /**
  * Passes the input of all input devices to the ui
  * Everything is based on (user defined) hotkeys -> works for keyboard + mouse and controllers
- *      pointer:    position of the input that moved last (mouse or virtual cursor like game_cursor_movement())
+ *      pointer:    position of the input that moved last (mouse or virtual cursor like game_cursor_movement_hotkey())
  *                  buttons = EDITOR_HOTKEY_POINTER_PRIMARY_UI / EDITOR_HOTKEY_POINTER_SECONDARY_UI
  *                  wheel = EDITOR_HOTKEY_SCROLL_UP_UI / EDITOR_HOTKEY_SCROLL_DOWN_UI
  *      navigation: EDITOR_HOTKEY_NEXT_UI, ...

@@ -77,6 +77,10 @@ typedef void *(*UIUpdateFunc)(
     UICore* core
 ) NO_EXCEPT;
 
+// Called by user interaction (e.g. UIButton::on_click, UICheckbox::on_change)
+// Same signature as UIUpdateFunc, the separate name documents the role of the callback tables
+typedef UIUpdateFunc UIActionFunc;
+
 typedef void *(*UIRenderFunc)(
     void* user_data,
     UICore* element,
@@ -274,7 +278,7 @@ struct UILayout {
     const UIRenderFunc* render;
 
     // Action callbacks, e.g. UIButton::on_click (1-indexed)
-    const UIUpdateFunc* on_actions;
+    const UIActionFunc* on_actions;
 };
 
 #endif
