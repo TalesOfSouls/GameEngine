@@ -187,7 +187,7 @@ T* queue_enqueue_start_wait(MPMCQueueT<T>* const queue) NO_EXCEPT
 {
     T* slot;
     while ((slot = queue_enqueue_start(queue)) == NULL) {
-        YieldProcessor();
+        cpu_yield();
     }
 
     return slot;
@@ -301,7 +301,7 @@ T* queue_dequeue_start_wait(MPMCQueueT<T>* const queue) NO_EXCEPT
 {
     T* slot;
     while ((slot = queue_dequeue_start(queue)) == NULL) {
-        YieldProcessor();
+        cpu_yield();
     }
 
     return slot;

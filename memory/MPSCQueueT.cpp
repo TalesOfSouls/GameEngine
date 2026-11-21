@@ -183,7 +183,7 @@ T* queue_reserve_slot_wait(MPSCQueueT<T>* const queue) NO_EXCEPT
 {
     T* slot;
     while ((slot = queue_reserve_slot(queue)) == NULL) {
-        YieldProcessor();
+        cpu_yield();
     }
 
     return slot;

@@ -21,4 +21,12 @@ typedef int32 FileHandle;
 // Memory mapped file handle, the file descriptor itself on Linux
 typedef int MMFHandle;
 
+// Same layout as platform/win32/FileUtils.h without the OVERLAPPED member
+// The "async" reads are synchronous on Linux (pread), file_async_wait() only reports the result
+struct FileBodyAsync {
+    // doesn't include null termination (same as str_length)
+    uint64 size;
+    byte* content;
+};
+
 #endif

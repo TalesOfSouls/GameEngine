@@ -187,7 +187,7 @@ Asset* ams_asset_get_wait(AssetManagementSystem* const ams, const char* key) NO_
 
     bool is_loaded;
     while (!(is_loaded = chunk_is_complete(&ams->hash_map.buf, entry))) {
-        YieldProcessor();
+        cpu_yield();
     }
 
     if (!is_loaded) {
@@ -211,7 +211,7 @@ Asset* ams_asset_get_reserve_wait(AssetManagementSystem* const ams, byte type, c
     if (asset->self) {
         bool is_loaded;
         while (!(is_loaded = chunk_is_complete(&ams->hash_map.buf, entry))) {
-            YieldProcessor();
+            cpu_yield();
         }
 
         if (is_loaded) {

@@ -226,18 +226,18 @@ inline
 void asset_archive_close(AssetArchive* const archive) {
     if (archive->fd) {
         file_close_handle(archive->fd);
-        archive->fd = NULL;
+        archive->fd = 0;
     }
 
     if (archive->fd_async) {
         file_close_handle(archive->fd_async);
-        archive->fd_async = NULL;
+        archive->fd_async = 0;
     }
 
     // Not created in debug/internal builds because we need asset reloading for those
     if (archive->mmf) {
         file_mmf_close(archive->mmf);
-        archive->mmf = NULL;
+        archive->mmf = 0;
     }
 }
 
@@ -281,7 +281,7 @@ void asset_archive_load(
     }
 
     #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
-        archive->mmf = NULL;
+        archive->mmf = 0;
     #else
         archive->mmf = file_mmf_handle(archive->fd_async);
     #endif
@@ -822,8 +822,8 @@ AssetArchiveReloadResult asset_archive_reload(
         asset_archive_close(archive);
         archive->fd = fd;
         archive->fd_async = fd_async;
-        fd = NULL;
-        fd_async = NULL;
+        fd = 0;
+        fd_async = 0;
 
         archive->last_modified = last_modified;
         result = ASSET_ARCHIVE_RELOAD_OK;

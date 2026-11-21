@@ -46,7 +46,7 @@ void thread_pool_execute(ThreadPool* const pool, ThreadPoolJob* const job) NO_EX
                 if (job->mem) {
                     job->func(job);
                 } else {
-                    YieldProcessor();
+                    cpu_yield();
                 }
             } while (!job->mem);
         } else {
@@ -289,7 +289,7 @@ void thread_pool_destroy(ThreadPool* const pool) NO_EXCEPT
 
     if (pool->is_detached) {
         while (pool->thread_cnt.load() > 0) {
-            YieldProcessor();
+            cpu_yield();
         }
     } else {
         for (int32 i = 0; i < pool->size; ++i) {
@@ -454,7 +454,7 @@ void thread_pool_complete_queue(void* arg) NO_EXCEPT
  *      WARNING: The jobs then run on the caller thread (its thread locals, rng state, ...)
  *      WARNING: A helped job may itself wait and help, so nested waits nest on the stack
  *          (depth is bounded by the number of waiting jobs in the queue)
- * sleep_time: 0 = spin with YieldProcessor(), otherwise usleep(sleep_time) between checks
+ * sleep_time: 0 = spin with cpu_yield(), otherwise usleep(sleep_time) between checks
  * max_sleep: 0 = wait forever, otherwise give up after sleeping that long (needs sleep_time > 0)
  *
  * Returns true if the counter reached 0
@@ -477,7 +477,7 @@ bool thread_pool_wait(
         }
 
         if (!sleep_time) {
-            YieldProcessor();
+            cpu_yield();
             continue;
         }
 

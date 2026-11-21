@@ -8,6 +8,7 @@
 #define COMS_PLATFORM_LINUX_THREADING_SPINLOCK_C
 
 #include "../../../stdlib/Stdlib.h"
+#include "../TimeUtils.h"
 #include "Spinlock.h"
 #include <time.h>
 
@@ -27,7 +28,8 @@ void spinlock_start(spinlock32* lock, int32 delay) {
     // Otherwise InterlockedExchange may invalidate the cache
     // for all other threads that also try to access this
     while (lock->load() || lock->exchange(1)) {
-        usleep(delay);
+        // Same as win32 (usleep(int32) would be ambiguous with the POSIX usleep)
+        thread_usleep((uint64) delay);
     }
 }
 

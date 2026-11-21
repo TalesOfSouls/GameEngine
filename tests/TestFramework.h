@@ -31,7 +31,8 @@ static int64_t _test_start;
 static int64_t _test_total_start;
 
 // If you need more loop iterations when performing a profiling test, temporarily modify this value
-static int _test_profiling_loops = 1000;
+// maybe_unused: only used by the profiling macros (gcc warns about an unused static variable otherwise)
+[[maybe_unused]] static int _test_profiling_loops = 1000;
 
 #if _WIN32
     #include <windows.h>
@@ -57,7 +58,18 @@ static int _test_profiling_loops = 1000;
 
     static LARGE_INTEGER _test_performance_frequency = {};
 #else
-    #define test_timestamp_counter() __builtin_readcyclecounter()
+    #include <time.h>
+    #include <signal.h>
+    #include <stdlib.h>
+    #include <execinfo.h>
+
+    // __builtin_readcyclecounter() only exists in clang
+    #ifdef __aarch64__
+        #define test_timestamp_counter() ({ uint64_t cntvct; asm volatile("mrs %0, cntvct_el0" : "=r"(cntvct)); cntvct; })
+    #else
+        #include <x86intrin.h>
+        #define test_timestamp_counter() __rdtsc()
+    #endif
 #endif
 
 #define TEST_HEADER()                                              \
@@ -202,7 +214,7 @@ inline void TEST_INIT(int test_count)
     }
 }
 #else
-#include <time.h>
+static inline
 void test_print_stack_trace() {
     void* buffer[100]; // Array to store the return addresses
     int num_ptrs = backtrace(buffer, 100); // Capture the stack trace
@@ -228,17 +240,19 @@ inline void test_exception_handler(int signum)
     exit(1);
 }
 
+// Nanoseconds
 inline int64_t test_start_time()
 {
     struct timespec start;
     clock_gettime(CLOCK_MONOTONIC, &start);
 
-    return start.tv_sec * 1e9 + start.tv_nsec;
+    return (int64_t) start.tv_sec * 1000000000LL + (int64_t) start.tv_nsec;
 }
 
+// Seconds (same as the win32 version, the report column is "Time(s)")
 inline double test_duration_time(int64_t start)
 {
-    return (double)(test_start_time() - start);
+    return (double) (test_start_time() - start) / 1e9;
 }
 
 inline double test_measure_func_time_ns(

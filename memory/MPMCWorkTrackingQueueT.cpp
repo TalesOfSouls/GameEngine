@@ -83,7 +83,7 @@ T* queue_enqueue_start(MPMCWorkTrackingQueueT<T>* queue) NO_EXCEPT
         }
 
         if (spin > 16) {
-            YieldProcessor();
+            cpu_yield();
         }
     }
 }
@@ -152,7 +152,7 @@ T* queue_dequeue_keep(MPMCWorkTrackingQueueT<T>* queue) NO_EXCEPT
         }
 
         if (spin > 16) {
-            YieldProcessor();
+            cpu_yield();
         }
     }
 }

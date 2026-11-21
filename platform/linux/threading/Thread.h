@@ -23,8 +23,9 @@
 #include "Atomic.h"
 #include "../../../log/PerformanceProfiler.h"
 
+// @bug The thread parameter is ignored, the affinity of the calling thread is set (sched_setaffinity(0, ...))
 inline
-void coms_thread_affinity_set(coms_pthread_t* thread, int64 mask) NO_EXCEPT
+void coms_thread_affinity_set(MAYBE_UNUSED coms_pthread_t* thread, int64 mask) NO_EXCEPT
 {
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
@@ -77,7 +78,9 @@ int32 coms_pthread_join(coms_pthread_t thread, void** retval) NO_EXCEPT
 {
     THREAD_LOG_DELETE((int32) thread.h);
 
-    int32 res = syscall(SYS_waitid, P_PID, thread, retval, WEXITED, NULL) == -1
+    // @bug Threads created with CLONE_THREAD can't be waited for with waitid (it fails immediately)
+    //      -> the stack below is released while the thread may still run. Linux threads should use pthreads.
+    int32 res = syscall(SYS_waitid, P_PID, (id_t) thread.h, retval, WEXITED, NULL) == -1
         ? 1
         : 0;
 
@@ -306,6 +309,13 @@ FORCE_INLINE
 int32 thread_current_id()
 {
     return (int32) syscall(SYS_gettid);
+}
+
+// CPU the calling thread currently runs on (same as win32 GetCurrentProcessorNumber)
+FORCE_INLINE
+int32 thread_cpu_id()
+{
+    return (int32) sched_getcpu();
 }
 
 #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)

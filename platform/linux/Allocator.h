@@ -30,7 +30,7 @@ void* platform_alloc_aligned(
     int32 alignment = sizeof(void*)
 ) NO_EXCEPT
 {
-    ASSERT_TRUE(alignment >= sizeof(void*));
+    ASSERT_TRUE((size_t) alignment >= sizeof(void*));
 
     if (!reserve_size) {
         reserve_size = initial_size;
@@ -62,9 +62,9 @@ void* platform_alloc_aligned(
     );
     ASSERT_TRUE(base != MAP_FAILED);
 
-    ASSERT_TRUE(
-        mprotect(base, initial_size, PROT_READ | PROT_WRITE) == 0
-    );
+    // Not inside of ASSERT_TRUE: the assert (incl. its expression) is removed in release builds
+    MAYBE_UNUSED const int32 protect_result = mprotect(base, initial_size, PROT_READ | PROT_WRITE);
+    ASSERT_TRUE(protect_result == 0);
 
     platform_alloc_header* hdr = (platform_alloc_header *) base;
     hdr->reserved_size  = reserve_size;
@@ -96,9 +96,9 @@ bool platform_alloc_aligned_grow(void* aligned_ptr, size_t new_user_size) NO_EXC
     ASSERT_TRUE(new_committed > hdr->committed_size);
     ASSERT_TRUE(new_committed <= hdr->reserved_size);
 
-    ASSERT_TRUE(
-        mprotect(hdr, new_committed, PROT_READ | PROT_WRITE) == 0
-    );
+    // Not inside of ASSERT_TRUE: the assert (incl. its expression) is removed in release builds
+    MAYBE_UNUSED const int32 protect_result = mprotect(hdr, new_committed, PROT_READ | PROT_WRITE);
+    ASSERT_TRUE(protect_result == 0);
 
     STATS_INCREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, new_committed - hdr->committed_size);
 
@@ -124,13 +124,9 @@ bool platform_alloc_aligned_shrink(void* aligned_ptr, size_t new_user_size) NO_E
 
     const size_t delta = hdr->committed_size - new_committed;
 
-    ASSERT_TRUE(
-        mprotect(
-            (uint8_t*)hdr + new_committed,
-            delta,
-            PROT_NONE
-        ) == 0
-    );
+    // Not inside of ASSERT_TRUE: the assert (incl. its expression) is removed in release builds
+    MAYBE_UNUSED const int32 protect_result = mprotect((uint8_t*)hdr + new_committed, delta, PROT_NONE);
+    ASSERT_TRUE(protect_result == 0);
 
     madvise(
         (uint8_t*)hdr + new_committed,
@@ -142,6 +138,28 @@ bool platform_alloc_aligned_shrink(void* aligned_ptr, size_t new_user_size) NO_E
     STATS_DECREMENT_BY_DEBUG(DEBUG_COUNTER_MEM_ALLOC, delta);
 
     return true;
+}
+
+// Same as platform/win32/Allocator.h
+inline
+bool platform_alloc_aligned_resize(void* aligned_ptr, size_t new_user_size) NO_EXCEPT
+{
+    ASSERT_TRUE(aligned_ptr);
+
+    if (!_page_size) {
+        _page_size = (int32) sysconf(_SC_PAGESIZE);
+    }
+
+    const platform_alloc_header* const hdr = (const platform_alloc_header *) ((void **) aligned_ptr)[-1];
+    const size_t new_committed = ALIGN_UP(new_user_size + sizeof(platform_alloc_header) + sizeof(void*), _page_size);
+
+    if (new_committed == hdr->committed_size) {
+        return true;
+    } else if (new_committed > hdr->committed_size) {
+        return platform_alloc_aligned_grow(aligned_ptr, new_user_size);
+    }
+
+    return platform_alloc_aligned_shrink(aligned_ptr, new_user_size);
 }
 
 inline
@@ -188,7 +206,9 @@ void* platform_shared_alloc(
         _page_size
     );
 
-    ASSERT_TRUE(ftruncate(*fd, reserve_size) == 0);
+    // Not inside of ASSERT_TRUE: the assert (incl. its expression) is removed in release builds
+    MAYBE_UNUSED const int32 truncate_result = ftruncate(*fd, reserve_size);
+    ASSERT_TRUE(truncate_result == 0);
 
     void* base = mmap(
         NULL,
@@ -200,9 +220,9 @@ void* platform_shared_alloc(
     );
     ASSERT_TRUE(base != MAP_FAILED);
 
-    ASSERT_TRUE(
-        mprotect(base, initial_size, PROT_READ | PROT_WRITE) == 0
-    );
+    // Not inside of ASSERT_TRUE: the assert (incl. its expression) is removed in release builds
+    MAYBE_UNUSED const int32 protect_result = mprotect(base, initial_size, PROT_READ | PROT_WRITE);
+    ASSERT_TRUE(protect_result == 0);
 
     platform_alloc_header* hdr = (platform_alloc_header *) base;
     hdr->reserved_size  = reserve_size;
@@ -228,9 +248,9 @@ bool platform_shared_alloc_grow(
     ASSERT_TRUE(new_committed > hdr->committed_size);
     ASSERT_TRUE(new_committed <= hdr->reserved_size);
 
-    ASSERT_TRUE(
-        mprotect(hdr, new_committed, PROT_READ | PROT_WRITE) == 0
-    );
+    // Not inside of ASSERT_TRUE: the assert (incl. its expression) is removed in release builds
+    MAYBE_UNUSED const int32 protect_result = mprotect(hdr, new_committed, PROT_READ | PROT_WRITE);
+    ASSERT_TRUE(protect_result == 0);
 
     STATS_INCREMENT_BY_DEBUG(
         DEBUG_COUNTER_MEM_ALLOC,
@@ -261,13 +281,9 @@ bool platform_shared_alloc_shrink(
 
     const size_t delta = hdr->committed_size - new_committed;
 
-    ASSERT_TRUE(
-        mprotect(
-            (uint8_t*)hdr + new_committed,
-            delta,
-            PROT_NONE
-        ) == 0
-    );
+    // Not inside of ASSERT_TRUE: the assert (incl. its expression) is removed in release builds
+    MAYBE_UNUSED const int32 protect_result = mprotect((uint8_t*)hdr + new_committed, delta, PROT_NONE);
+    ASSERT_TRUE(protect_result == 0);
 
     madvise(
         (uint8_t*)hdr + new_committed,

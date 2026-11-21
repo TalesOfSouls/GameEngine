@@ -11,9 +11,12 @@
 #include <ctime>
 #include <sys/time.h>
 #include <unistd.h>
+#include <errno.h>
 #include "../../stdlib/Stdlib.h"
 #include "../../log/PerformanceProfiler.h"
 
+// WARNING: this is a busy sleep, use thread_usleep for idle sleep (same as platform/win32/Sleep.h)
+// WARNING: POSIX also declares usleep(useconds_t) -> pass a uint64, other integer types are ambiguous
 inline
 void usleep(uint64 microseconds) NO_EXCEPT
 {
@@ -21,7 +24,7 @@ void usleep(uint64 microseconds) NO_EXCEPT
 
     struct timespec start, now;
     clock_gettime(CLOCK_MONOTONIC, &start);
-    uint64 target_ns = usec * 1000ULL;
+    const uint64 target_ns = microseconds * 1000ULL;
 
     do {
         clock_gettime(CLOCK_MONOTONIC, &now);
@@ -32,6 +35,21 @@ void usleep(uint64 microseconds) NO_EXCEPT
             break;
         }
     } while (true);
+}
+
+// Idle sleep, the thread is suspended (same as platform/win32/Sleep.h)
+inline
+void thread_usleep(uint64 us) NO_EXCEPT
+{
+    PROFILE_DEBUG(PROFILE_SLEEP, (char *) NULL, PROFILE_FLAG_ADD_HISTORY);
+
+    struct timespec remaining = {
+        (time_t) (us / 1000000ULL),
+        (long) ((us % 1000000ULL) * 1000ULL)
+    };
+
+    // Interrupted by a signal -> continue with the remaining time
+    while (nanosleep(&remaining, &remaining) == -1 && errno == EINTR) {}
 }
 
 inline
