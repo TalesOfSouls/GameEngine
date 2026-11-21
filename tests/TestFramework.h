@@ -43,7 +43,13 @@ static int64_t _test_total_start;
     #endif
 
     #ifdef __aarch64__
-        #define test_timestamp_counter() ({ uint64_t cntvct; asm volatile("mrs %0, cntvct_el0" : "=r"(cntvct)); cntvct; })
+        #ifdef _MSC_VER
+            // MSVC has no gcc style inline assembly, same counter register
+            #include <intrin.h>
+            #define test_timestamp_counter() ((uint64_t) _ReadStatusReg(ARM64_CNTVCT))
+        #else
+            #define test_timestamp_counter() ({ uint64_t cntvct; asm volatile("mrs %0, cntvct_el0" : "=r"(cntvct)); cntvct; })
+        #endif
     #else
         #include <immintrin.h>
         #include <intrin.h>
@@ -107,14 +113,22 @@ void test_print_stack_trace(CONTEXT* context)
     SymInitialize(process, NULL, TRUE);
 
     STACKFRAME64 stack_frame = {};
-    DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
 
-    // Initialize stack frame for x64
-    stack_frame.AddrPC.Offset = context->Rip;
+    // The CONTEXT registers depend on the architecture
+    #if defined(_M_ARM64)
+        DWORD machine_type = IMAGE_FILE_MACHINE_ARM64;
+        stack_frame.AddrPC.Offset = context->Pc;
+        stack_frame.AddrFrame.Offset = context->Fp;
+        stack_frame.AddrStack.Offset = context->Sp;
+    #else
+        DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
+        stack_frame.AddrPC.Offset = context->Rip;
+        stack_frame.AddrFrame.Offset = context->Rbp;
+        stack_frame.AddrStack.Offset = context->Rsp;
+    #endif
+
     stack_frame.AddrPC.Mode = AddrModeFlat;
-    stack_frame.AddrFrame.Offset = context->Rbp;
     stack_frame.AddrFrame.Mode = AddrModeFlat;
-    stack_frame.AddrStack.Offset = context->Rsp;
     stack_frame.AddrStack.Mode = AddrModeFlat;
 
     printf("Stack trace:\n");

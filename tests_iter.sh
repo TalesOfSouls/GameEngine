@@ -36,6 +36,12 @@ elif [ "$1" = "-d" ]; then
     DEBUG_DATA="-g"
 fi
 
+# -m64 only exists for x86 (gcc on aarch64 rejects it)
+ARCH_FLAGS=""
+if [ "$(uname -m)" = "x86_64" ]; then
+    ARCH_FLAGS="-m64"
+fi
+
 source ./check_cpu_features.sh
 
 # Detect CPU features
@@ -50,7 +56,7 @@ while read -r test_file; do
     echo "Compiling $test_file..."
 
     # Compile each test file
-    g++ $BUILD_FLAGS -std=c++23 -m64 \
+    g++ $BUILD_FLAGS -std=c++23 $ARCH_FLAGS \
         -DUNICODE -D_UNICODE -D__linux__ \
         -Wno-unused-result \
         -fsanitize=address \

@@ -19,8 +19,16 @@ if not defined DevEnvDir (call "C:\Program Files\Microsoft Visual Studio\2022\Co
 REM vcvars64.bat may change the working directory
 cd /d "%~dp0"
 
-if "%Platform%" neq "x64" (
-    echo ERROR: Platform is not "x64" - previous bat call failed.
+REM Target of the developer command prompt (vcvars64.bat = x64, vcvarsarm64.bat/vcvarsall.bat arm64 = arm64)
+set "MACHINE="
+if /I "%Platform%"=="x64" set "MACHINE=X64"
+if /I "%Platform%"=="arm64" set "MACHINE=ARM64"
+REM Fallback: target architecture of VsDevCmd (always set by the developer command prompt)
+if not defined MACHINE if /I "%VSCMD_ARG_TGT_ARCH%"=="x64" set "MACHINE=X64"
+if not defined MACHINE if /I "%VSCMD_ARG_TGT_ARCH%"=="arm64" set "MACHINE=ARM64"
+
+if not defined MACHINE (
+    echo ERROR: Platform "%Platform%" is not x64 or arm64 - previous bat call failed.
     popd
     exit /b 1
 )
@@ -57,7 +65,7 @@ cl ^
     /Fo"%DESTINATION_DIR%/" /Fe"%DESTINATION_DIR%\MainTest.exe" %DEBUG_DATA% ^
     MainTest.cpp ^
     /link /INCREMENTAL:no ^
-    /SUBSYSTEM:CONSOLE /MACHINE:X64 ^
+    /SUBSYSTEM:CONSOLE /MACHINE:%MACHINE% ^
     kernel32.lib user32.lib gdi32.lib winmm.lib
 
 REM Check if the compilation was successful

@@ -387,11 +387,14 @@ inline
 PerfectHashEntry* perfect_hashmap_entry_get(const PerfectHashMap* __restrict hm, const char* __restrict key) NO_EXCEPT
 {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
-    PerfectHashEntry* entry = (PerfectHashEntry *) (hm->hash_entries + hm->entry_size * index);
+
+    // The key is the first member of every entry type, the entries are only aligned for their own type
+    // (e.g. PerfectHashEntryInt32Int32 = 36 bytes) -> no member access through PerfectHashEntry (pointer member, 8 byte alignment)
+    char* const entry_key = (char *) (hm->hash_entries + hm->entry_size * index);
 
     key = perfect_hashmap_key_tail(key);
 
-    return str_compare(entry->key, key) == 0 ? entry : NULL;
+    return str_compare(entry_key, key) == 0 ? (PerfectHashEntry *) entry_key : NULL;
 }
 
 inline
@@ -409,17 +412,19 @@ inline
 void perfect_hashmap_delete_entry(PerfectHashMap* __restrict hm, const char* __restrict key) NO_EXCEPT
 {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
-    PerfectHashEntry* entry = (PerfectHashEntry *) (hm->hash_entries + hm->entry_size * index);
+
+    // The key is the first member of every entry type (@see perfect_hashmap_entry_get)
+    char* const entry_key = (char *) (hm->hash_entries + hm->entry_size * index);
 
     key = perfect_hashmap_key_tail(key);
 
-    if (str_compare(entry->key, key) != 0) {
+    if (str_compare(entry_key, key) != 0) {
         return;
     }
 
     // This depends on where we check if an element exists
     // If we change perfect_hashmap_entry_get this also needs changing
-    *entry->key = '\0';
+    *entry_key = '\0';
 }
 
 int64 perfect_hashmap_dump(const PerfectHashMap* hm, byte* data)

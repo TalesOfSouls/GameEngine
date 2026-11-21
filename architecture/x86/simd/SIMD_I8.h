@@ -68,7 +68,8 @@ int simd_equal(const byte* a, const byte* b, int32 size, int32 steps = 8) {
                 __m256i b_8;
                 __m256i result_8;
 
-                for (; i <= size - steps; i += steps) {
+                // 32 bytes per iteration (steps counts 32 bit lanes, the pointers are bytes)
+                for (; i <= size - 32; i += 32) {
                     a_8 = _mm256_load_si256((__m256i*) a);
                     b_8 = _mm256_load_si256((__m256i*) b);
 
@@ -78,8 +79,8 @@ int simd_equal(const byte* a, const byte* b, int32 size, int32 steps = 8) {
                         return false;
                     }
 
-                    a += steps;
-                    b += steps;
+                    a += 32;
+                    b += 32;
                 }
             }
 
@@ -97,7 +98,8 @@ int simd_equal(const byte* a, const byte* b, int32 size, int32 steps = 8) {
                 __m128i b_4;
                 __m128i result_4;
 
-                for (; i <= size - steps; i += steps) {
+                // 16 bytes per iteration (steps counts 32 bit lanes, the pointers are bytes)
+                for (; i <= size - 16; i += 16) {
                     a_4 = _mm_load_si128((__m128i*) a);
                     b_4 = _mm_load_si128((__m128i*) b);
 
@@ -107,8 +109,8 @@ int simd_equal(const byte* a, const byte* b, int32 size, int32 steps = 8) {
                         return false;
                     }
 
-                    a += steps;
-                    b += steps;
+                    a += 16;
+                    b += 16;
                 }
             }
         }

@@ -63,7 +63,8 @@ void __internal_memmove(void* dst, const void* src, size_t len)
         const uintptr_t* sw = (const uintptr_t*)s;
 
         while (len >= sizeof(uintptr_t)) {
-            *dw++ = *sw++;
+            // Only dst is aligned, src may be unaligned
+            *dw++ = compiler_load_unaligned<uintptr_t>(sw++);
             len -= sizeof(uintptr_t);
         }
 
@@ -94,7 +95,8 @@ void __internal_memmove(void* dst, const void* src, size_t len)
         while (len >= sizeof(uintptr_t)) {
             --dw;
             --sw;
-            *dw = *sw;
+            // Only dst is aligned, src may be unaligned
+            *dw = compiler_load_unaligned<uintptr_t>(sw);
             len -= sizeof(uintptr_t);
         }
 
@@ -126,7 +128,8 @@ void __internal_memcpy(void* dst, const void* src, size_t len)
     const uintptr_t* sw = (const uintptr_t*)s;
 
     while (len >= sizeof(uintptr_t)) {
-        *dw++ = *sw++;
+        // Only dst is aligned, src may be unaligned
+        *dw++ = compiler_load_unaligned<uintptr_t>(sw++);
         len -= sizeof(uintptr_t);
     }
 

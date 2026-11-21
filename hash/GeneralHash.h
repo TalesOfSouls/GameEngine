@@ -320,6 +320,10 @@ uint64 hash_murmur3_64(const void* key, size_t len, uint64 seed = 0) NO_EXCEPT
 // Seeded hash functions
 ////////////////////////////////////
 
+// seed + (seed << 6) + (seed >> 2) without the signed overflow (undefined behavior for large seeds)
+// The unsigned arithmetic wraps -> the same bits as before, the result is an int32 again (the hash values don't change)
+#define HASH_SEED_MIX(seed) ((int32) ((uint32) (seed) + ((uint32) (seed) << 6) + (uint32) ((seed) >> 2)))
+
 inline
 uint64 hash_djb2_seeded(const char* key, int32 seed) NO_EXCEPT
 {
@@ -330,7 +334,7 @@ uint64 hash_djb2_seeded(const char* key, int32 seed) NO_EXCEPT
         hash = ((hash << 5) + hash) + c;
     }
 
-    return hash ^ (seed + (seed << 6) + (seed >> 2));
+    return hash ^ HASH_SEED_MIX(seed);
 }
 
 inline
@@ -343,7 +347,7 @@ uint64 hash_sdbm_seeded(const char* key, int32 seed) NO_EXCEPT
         hash = c + (hash << 6) + (hash << 16) - hash;
     }
 
-    return hash ^ (seed + (seed << 6) + (seed >> 2));
+    return hash ^ HASH_SEED_MIX(seed);
 }
 
 inline
@@ -356,7 +360,7 @@ uint64 hash_lose_lose_seeded(const char* key, int32 seed) NO_EXCEPT
 	    hash += c;
     }
 
-	return hash ^ (seed + (seed << 6) + (seed >> 2));
+	return hash ^ HASH_SEED_MIX(seed);
 }
 
 inline
@@ -373,7 +377,7 @@ uint64 hash_polynomial_rolling_seeded(const char* str, int32 seed) NO_EXCEPT
         str++;
     }
 
-    return hash ^ (seed + (seed << 6) + (seed >> 2));
+    return hash ^ HASH_SEED_MIX(seed);
 }
 
 inline
@@ -389,7 +393,7 @@ uint64 hash_fnv1a_seeded(const char* str, int32 seed) NO_EXCEPT
         str++;
     }
 
-    return hash ^ (seed + (seed << 6) + (seed >> 2));
+    return hash ^ HASH_SEED_MIX(seed);
 }
 
 inline
@@ -407,7 +411,7 @@ uint64 hash_oat_seeded(const char* str, int32 seed) NO_EXCEPT
     hash ^= (hash >> 11);
     hash += (hash << 15);
 
-    return hash ^ (seed + (seed << 6) + (seed >> 2));;
+    return hash ^ HASH_SEED_MIX(seed);;
 }
 
 inline
@@ -421,7 +425,7 @@ uint64 hash_ejb_seeded(const char* str, int32 seed) NO_EXCEPT
 		hash = hash * PRIME1 ^ (*str++ - ' ');
 	}
 
-	return (hash % PRIME2) ^ (seed + (seed << 6) + (seed >> 2));;
+	return (hash % PRIME2) ^ HASH_SEED_MIX(seed);;
 }
 
 inline

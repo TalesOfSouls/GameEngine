@@ -361,6 +361,34 @@ static void test_simd_scalar_reference() {
     TEST_EQUALS_WITH_DELTA(simd_sum(product, 32, 8), product_sum, 0.001);
 }
 
+// int16 * scalar float -> int16: truncated like the scalar cast, element order kept, nothing written behind size
+static void test_simd_i16_mult() {
+    // 37 = whole registers of every SIMD level + a remainder
+    enum { I16_COUNT = 37, I16_GUARD = 8 };
+
+    alignas(64) int16 a[I16_COUNT];
+    alignas(64) int16 result[I16_COUNT + I16_GUARD];
+
+    for (int32 i = 0; i < I16_COUNT; ++i) {
+        // Distinct values (detects a wrong element order), positive + negative (truncation towards 0)
+        a[i] = (int16) (i * 37 - 500);
+    }
+
+    for (int32 i = 0; i < I16_COUNT + I16_GUARD; ++i) {
+        result[i] = 0x5A5A;
+    }
+
+    simd_mult(a, 1.7f, result, I16_COUNT);
+
+    for (int32 i = 0; i < I16_COUNT; ++i) {
+        TEST_EQUALS(result[i], (int16) ((f32) a[i] * 1.7f));
+    }
+
+    for (int32 i = I16_COUNT; i < I16_COUNT + I16_GUARD; ++i) {
+        TEST_EQUALS(result[i], 0x5A5A);
+    }
+}
+
 #ifdef UBER_TEST
     #ifdef main
         #undef main
@@ -377,6 +405,7 @@ int main() {
     TEST_RUN(test_simd_f32_div);
     TEST_RUN(test_simd_i32_add_mult_div);
     TEST_RUN(test_simd_equal);
+    TEST_RUN(test_simd_i16_mult);
     TEST_RUN(test_simd_endian_swap);
     TEST_RUN(test_simd_intrinsic_helpers);
     TEST_RUN(test_simd_scalar_reference);

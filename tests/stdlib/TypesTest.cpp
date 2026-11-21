@@ -311,7 +311,12 @@ static void test_types_alignment() {
     // Plain types have no over alignment
     TEST_EQUALS(alignof(v2_f32), alignof(f32));
     TEST_EQUALS(alignof(v3_f32), alignof(f32));
-    TEST_EQUALS(alignof(v4_f64), alignof(f64));
+    #if defined(__AVX2__)
+        // Contains __m256d (s_16) -> 32 byte aligned
+        TEST_EQUALS(alignof(v4_f64), 32);
+    #else
+        TEST_EQUALS(alignof(v4_f64), alignof(f64));
+    #endif
 
     // The matrix can be used as 4x4 float array or as 4 rows of 4 floats
     v16_f32 matrix = {};

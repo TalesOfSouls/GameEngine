@@ -215,7 +215,7 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
                 af_16 = _mm512_cvtepi32_ps(a_16);
                 b_16 = _mm512_load_ps(b);
                 result_16 = _mm512_mul_ps(af_16, b_16);
-                resulti_16 = _mm512_cvtps_epi32(result_16);
+                resulti_16 = _mm512_cvttps_epi32(result_16);
                 _mm512_store_epi32(result, resulti_16);
 
                 a += steps;
@@ -241,7 +241,7 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
                 af_8 = _mm256_cvtepi32_ps(a_8);
                 b_8 = _mm256_load_ps(b);
                 result_8 = _mm256_mul_ps(af_8, b_8);
-                resulti_8 = _mm256_cvtps_epi32(result_8);
+                resulti_8 = _mm256_cvttps_epi32(result_8);
                 _mm256_store_si256((__m256i *) result, resulti_8);
 
                 a += steps;
@@ -267,7 +267,7 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
                 af_4 = _mm_cvtepi32_ps(a_4);
                 b_4 = _mm_load_ps(b);
                 result_4 = _mm_mul_ps(af_4, b_4);
-                resulti_4 = _mm_cvtps_epi32(result_4);
+                resulti_4 = _mm_cvttps_epi32(result_4);
                 _mm_store_si128((__m128i *) result, resulti_4);
 
                 a += steps;
@@ -306,7 +306,7 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps = 8
                 a_16 = _mm512_load_epi32(a);
                 af_16 = _mm512_cvtepi32_ps(a_16);
                 result_16 = _mm512_mul_ps(af_16, b_16);
-                resulti_16 = _mm512_cvtps_epi32(result_16);
+                resulti_16 = _mm512_cvttps_epi32(result_16);
                 _mm512_store_epi32(result, resulti_16);
 
                 a += steps;
@@ -330,7 +330,7 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps = 8
                 a_8 = _mm256_load_si256((__m256i *) a);
                 af_8 = _mm256_cvtepi32_ps(a_8);
                 result_8 = _mm256_mul_ps(af_8, b_8);
-                resulti_8 = _mm256_cvtps_epi32(result_8);
+                resulti_8 = _mm256_cvttps_epi32(result_8);
                 _mm256_store_si256((__m256i *) result, resulti_8);
 
                 a += steps;
@@ -354,7 +354,7 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps = 8
                 a_4 = _mm_load_si128((__m128i *) a);
                 af_4 = _mm_cvtepi32_ps(a_4);
                 result_4 = _mm_mul_ps(af_4, b_4);
-                resulti_4 = _mm_cvtps_epi32(result_4);
+                resulti_4 = _mm_cvttps_epi32(result_4);
                 _mm_store_si128((__m128i *) result, resulti_4);
 
                 a += steps;
@@ -640,7 +640,7 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
                 af_16 = _mm512_cvtepi32_ps(a_16);
                 b_16 = _mm512_load_ps(b);
                 result_16 = _mm512_add_ps(af_16, b_16);
-                resulti_16 = _mm512_cvtps_epi32(result_16);
+                resulti_16 = _mm512_cvttps_epi32(result_16);
                 _mm512_store_epi32(result, resulti_16);
 
                 a += steps;
@@ -666,7 +666,7 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
                 af_8 = _mm256_cvtepi32_ps(a_8);
                 b_8 = _mm256_load_ps(b);
                 result_8 = _mm256_add_ps(af_8, b_8);
-                resulti_8 = _mm256_cvtps_epi32(result_8);
+                resulti_8 = _mm256_cvttps_epi32(result_8);
                 _mm256_store_si256((__m256i *) result, resulti_8);
 
                 a += steps;
@@ -692,7 +692,7 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
                 af_4 = _mm_cvtepi32_ps(a_4);
                 b_4 = _mm_load_ps(b);
                 result_4 = _mm_add_ps(af_4, b_4);
-                resulti_4 = _mm_cvtps_epi32(result_4);
+                resulti_4 = _mm_cvttps_epi32(result_4);
                 _mm_store_si128((__m128i *) result, resulti_4);
 
                 a += steps;

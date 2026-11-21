@@ -36,13 +36,19 @@ elif [ "$1" = "-d" ]; then
     DEBUG_DATA="-g"
 fi
 
+# -m64 only exists for x86 (gcc on aarch64 rejects it)
+ARCH_FLAGS=""
+if [ "$(uname -m)" = "x86_64" ]; then
+    ARCH_FLAGS="-m64"
+fi
+
 source ./check_cpu_features.sh
 
 # Detect CPU features, TESTS_CPU_FEATURES overrides the detection (e.g. the CI uses fixed flags)
 CPU_FEATURES=${TESTS_CPU_FEATURES:-$(check_cpu_features)}
 
 # Additional compiler arguments, e.g. the CI: TESTS_EXTRA_ARGS="-DTEST_QOI=0"
-g++ $BUILD_FLAGS -std=c++23 -m64 \
+g++ $BUILD_FLAGS -std=c++23 $ARCH_FLAGS \
     -DUNICODE -D_UNICODE -D__linux__ \
     -Wno-unused-result \
     -fsanitize=address \

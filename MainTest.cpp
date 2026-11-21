@@ -76,7 +76,10 @@
 #include "tests/stdlib/ThrdHashMapTTest.cpp"
 #include "tests/stdlib/FixedFloatTest.cpp"
 #include "tests/stdlib/OctreeTest.cpp"
-#include "tests/stdlib/SimdTest.cpp"
+// The simd_* functions only exist for x86 (stdlib/Simd.h only includes arm_neon.h on ARM)
+#ifndef __aarch64__
+    #include "tests/stdlib/SimdTest.cpp"
+#endif
 
 // Object
 #include "tests/object/ModelTest.cpp"
@@ -161,7 +164,9 @@ int main() {
     StdlibThrdHashMapTTest();
     StdlibFixedFloatTest();
     StdlibOctreeTest();
-    StdlibSimdTest();
+    #ifndef __aarch64__
+        StdlibSimdTest();
+    #endif
 
     // Object
     ObjectModelTest();

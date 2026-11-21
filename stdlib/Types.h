@@ -7,6 +7,12 @@
 #ifndef COMS_TYPES_H
 #define COMS_TYPES_H
 
+// MSVC on ARM64 defines _M_ARM64 but not __aarch64__ (gcc/clang define __aarch64__)
+// cOMS only checks __aarch64__ -> map it once here (the first cOMS header that checks the architecture)
+#if defined(_M_ARM64) && !defined(__aarch64__)
+    #define __aarch64__ 1
+#endif
+
 #include <stddef.h>
 
 #ifdef __aarch64__

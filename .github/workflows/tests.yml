@@ -1,9 +1,14 @@
-# Builds and runs the test suite (MainTest.cpp) on Windows (MSVC) and Linux (g++), debug + release
+# Builds and runs the test suite (MainTest.cpp), debug + release:
+#      Windows (MSVC):  x64, x64 with SSE4.2 + AVX2 (the SIMD level of the application builds), arm64
+#      Linux (g++):     x64 (SSE4.2 + AVX2), arm64
 #
 # The test scripts work from their own directory (independent of the checkout directory name) and
 # return the result of the tests as exit code -> a failed test or build fails the job
 #
 # QoiTest is disabled (TEST_QOI=0): it needs stb_image.h of the private EngineDependencies repository
+#
+# The arm64 jobs are experimental (continue-on-error) until the ARM port works: their results are shown
+# but don't fail the workflow
 
 name: Tests
 
@@ -19,46 +24,73 @@ permissions:
 
 jobs:
   windows:
-    name: Windows (${{ matrix.build }})
-    runs-on: windows-latest
+    name: Windows ${{ matrix.config.name }} (${{ matrix.build }})
+    runs-on: ${{ matrix.config.runner }}
+    continue-on-error: ${{ matrix.config.experimental }}
 
     strategy:
       fail-fast: false
       matrix:
         build: [ debug, release ]
+        config:
+          - name: x64
+            runner: windows-latest
+            arch: x64
+            args: /D TEST_QOI=0
+            experimental: false
+          - name: x64 SSE4.2 + AVX2
+            runner: windows-latest
+            arch: x64
+            args: /D TEST_QOI=0 /D __SSE4_2__ /D __AVX2__ /arch:AVX2
+            experimental: false
+          - name: arm64
+            runner: windows-11-arm
+            arch: arm64
+            args: /D TEST_QOI=0
+            experimental: true
 
     env:
-      TESTS_EXTRA_ARGS: /D TEST_QOI=0
+      TESTS_EXTRA_ARGS: ${{ matrix.config.args }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       # cl.exe + environment (sets DevEnvDir + Platform, tests.bat then skips its own vcvars64.bat call)
-      - name: Set up MSVC (x64)
+      - name: Set up MSVC (${{ matrix.config.arch }})
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
         with:
-          arch: x64
+          arch: ${{ matrix.config.arch }}
 
       - name: Build and run tests
         shell: cmd
         run: tests.bat ${{ matrix.build == 'release' && '-r' || '-d' }}
 
   linux:
-    name: Linux (${{ matrix.build }})
-    runs-on: ubuntu-latest
+    name: Linux ${{ matrix.config.name }} (${{ matrix.build }})
+    runs-on: ${{ matrix.config.runner }}
+    continue-on-error: ${{ matrix.config.experimental }}
 
     strategy:
       fail-fast: false
       matrix:
         build: [ debug, release ]
+        config:
+          # Same SIMD level as the application builds (SSE4.2 + AVX2), never AVX-512
+          # (the runner cpu may support AVX-512, check_cpu_features.sh would enable it)
+          - name: x64
+            runner: ubuntu-latest
+            cpu: -msse4.2 -mavx -mavx2 -mfma -D__SSE4_2__ -D__AVX__ -D__AVX2__ -D__FMA__
+            experimental: false
+          # Baseline ARMv8 (NEON is always part of aarch64)
+          - name: arm64
+            runner: ubuntu-24.04-arm
+            cpu: -march=armv8-a
+            experimental: true
 
     env:
       TESTS_EXTRA_ARGS: -DTEST_QOI=0
-
-      # Same SIMD level as the application builds (SSE4.2 + AVX2), never AVX-512
-      # (the runner cpu may support AVX-512, check_cpu_features.sh would enable it)
-      TESTS_CPU_FEATURES: -msse4.2 -mavx -mavx2 -mfma -D__SSE4_2__ -D__AVX__ -D__AVX2__ -D__FMA__
+      TESTS_CPU_FEATURES: ${{ matrix.config.cpu }}
 
     steps:
       - name: Checkout repository
