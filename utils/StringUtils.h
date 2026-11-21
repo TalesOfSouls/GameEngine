@@ -453,18 +453,21 @@ int32 utf8_to_wchar(const char* in, wchar_t* out, int32 length)
             codepoint |= (c & 0x3F);
             ++in;
 
-            // Convert to UTF-16 surrogate pair
-            if (out_pos + 2 >= length) {
-                // Not enough space
-                return 0;
+            // 16 bit wchar_t (win32, UTF-16): surrogate pair
+            // 32 bit wchar_t (linux, UTF-32): the codepoint itself (below)
+            IF_CONSTEXPR(sizeof(wchar_t) == 2) {
+                if (out_pos + 2 >= length) {
+                    // Not enough space
+                    return 0;
+                }
+
+                codepoint -= 0x10000;
+
+                out[out_pos++] = (wchar_t)(0xD800 + (codepoint >> 10));
+                out[out_pos++] = (wchar_t)(0xDC00 + (codepoint & 0x3FF));
+
+                continue;
             }
-
-            codepoint -= 0x10000;
-
-            out[out_pos++] = (wchar_t)(0xD800 + (codepoint >> 10));
-            out[out_pos++] = (wchar_t)(0xDC00 + (codepoint & 0x3FF));
-
-            continue;
         } else {
             // invalid/unsupported sequence
             return 0;
@@ -1873,119 +1876,21 @@ int32 str_to_eol(const char* str) NO_EXCEPT
 /**
  * Moves str to the first occurrence of delim or to the \0 if delim doesn't exist
  *
- * Every char is only checked once:
- *      1. char by char until the pointer is aligned (stops early if found)
- *      2. one size_t word at a time
- *      3. the position inside of the matching word is calculated from the match mask (no re-scan)
- *
- * Reading the whole aligned word after the \0 is safe since an aligned word can't cross a page boundary
+ * The word-wise scans are done by str_find/str_length (strchr/strlen, @see stdlib/stdlib_internal.h)
  */
 inline
 void str_move_to(const char** str, char delim) NO_EXCEPT
 {
-    const char* s = *str;
-
-    // Unaligned prefix
-    while ((uintptr_t) s % sizeof(size_t) != 0) {
-        if (*s == '\0' || *s == delim) {
-            *str = s;
-            return;
-        }
-
-        ++s;
-    }
-
-    CONSTEXPR size_t ones = (size_t) -1 / 0xFF;
-    CONSTEXPR size_t highs = ones * 0x80;
-    const size_t delim_mask = ones * (byte) delim;
-
-    const size_t* wptr = (const size_t *) s;
-    size_t match;
-
-    while (true) {
-        const size_t v = *wptr;
-        const size_t x = v ^ delim_mask;
-
-        match = ((v - ones) & ~v & highs) | ((x - ones) & ~x & highs);
-        if (match) {
-            break;
-        }
-
-        ++wptr;
-    }
-
-    #if OMS_LITTLE_ENDIAN
-        *str = (const char *) wptr + (compiler_find_first_bit_r2l((uint64) match) >> 3);
-    #else
-        s = (const char *) wptr;
-        while (*s != '\0' && *s != delim) {
-            ++s;
-        }
-
-        *str = s;
-    #endif
+    const char* const found = str_find(*str, delim);
+    *str = found ? found : *str + str_length(*str);
 }
 
+// The word-wise scans are done by str_find/str_length (strchr/strlen, @see stdlib/stdlib_internal.h)
 inline
 void str_move_to(const wchar_t** str, wchar_t delim) NO_EXCEPT
 {
-    const wchar_t* s = *str;
-
-    // A misaligned wchar_t pointer can never become size_t aligned -> simple scan
-    if ((uintptr_t) s % sizeof(wchar_t) != 0) {
-        while (*s != L'\0' && *s != delim) {
-            ++s;
-        }
-
-        *str = s;
-        return;
-    }
-
-    // Unaligned prefix
-    while ((uintptr_t) s % sizeof(size_t) != 0) {
-        if (*s == L'\0' || *s == delim) {
-            *str = s;
-            return;
-        }
-
-        ++s;
-    }
-
-    // 0x0001000100010001 (2 byte wchar_t) or 0x0000000100000001 (4 byte wchar_t)
-    CONSTEXPR size_t ones = sizeof(wchar_t) == 2
-        ? (size_t) -1 / 0xFFFF
-        : (size_t) -1 / 0xFFFFFFFF;
-    CONSTEXPR size_t highs = ones << (sizeof(wchar_t) * 8 - 1);
-    const size_t delim_mask = ones * (sizeof(wchar_t) == 2
-        ? (size_t) (uint16) delim
-        : (size_t) (uint32) delim
-    );
-
-    const size_t* wptr = (const size_t *) s;
-    size_t match;
-
-    while (true) {
-        const size_t v = *wptr;
-        const size_t x = v ^ delim_mask;
-
-        match = ((v - ones) & ~v & highs) | ((x - ones) & ~x & highs);
-        if (match) {
-            break;
-        }
-
-        ++wptr;
-    }
-
-    #if OMS_LITTLE_ENDIAN
-        *str = (const wchar_t *) wptr + (compiler_find_first_bit_r2l((uint64) match) / (sizeof(wchar_t) * 8));
-    #else
-        s = (const wchar_t *) wptr;
-        while (*s != L'\0' && *s != delim) {
-            ++s;
-        }
-
-        *str = s;
-    #endif
+    const wchar_t* const found = str_find(*str, delim);
+    *str = found ? found : *str + str_length(*str);
 }
 
 // Negative pos counts backwards

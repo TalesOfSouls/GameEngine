@@ -60,9 +60,11 @@ uint64 hashmap_word_mix(uint64 h, uint64 w) NO_EXCEPT
  *
  * Faster than strlen for short keys since it has no call overhead and no alignment prologue.
  * Only aligned 16 byte blocks are loaded -> a load never crosses a page boundary,
- * the bytes before/after the string in the same block are read but ignored
+ * the bytes before/after the string in the same block are read but ignored (-> NO_SANITIZE_ADDRESS)
+ *
+ * inline instead of FORCE_INLINE: gcc can't always_inline a no_sanitize_address function into a sanitized caller
  */
-FORCE_INLINE
+inline NO_SANITIZE_ADDRESS
 int32 hashmap_str_length(const char* str) NO_EXCEPT
 {
     #ifdef __aarch64__

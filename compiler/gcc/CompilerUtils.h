@@ -53,16 +53,17 @@
 #define SECTION_START(name) __start_##name
 #define SECTION_END(name)   __stop_##name
 
+// Bit positions are independent of the byte order (same as compiler/msvc/CompilerUtils.h):
+//      r2l = index of the lowest set bit (_BitScanForward)
+//      l2r = index of the highest set bit (_BitScanReverse)
+// The mask must not be 0 (the builtins are undefined for 0)
+
 FORCE_INLINE
 int32 compiler_find_first_bit_r2l(uint64 mask) NO_EXCEPT
 {
     ASSERT_STRICT(mask);
 
-    #ifdef __LITTLE_ENDIAN__
-        return 63 - __builtin_clzll(mask);
-    #else
-        return __builtin_ctzll(mask);
-    #endif
+    return __builtin_ctzll(mask);
 }
 
 FORCE_INLINE
@@ -70,11 +71,7 @@ int32 compiler_find_first_bit_r2l(uint32 mask) NO_EXCEPT
 {
     ASSERT_STRICT(mask);
 
-    #ifdef __LITTLE_ENDIAN__
-        return __builtin_ctz(mask);
-    #else
-        return 31 - __builtin_clz(mask);
-    #endif
+    return __builtin_ctz(mask);
 }
 
 FORCE_INLINE
@@ -82,11 +79,7 @@ int32 compiler_find_first_bit_l2r(uint64 mask) NO_EXCEPT
 {
     ASSERT_STRICT(mask);
 
-    #ifdef __LITTLE_ENDIAN__
-        return 63 - __builtin_clzll(mask);
-    #else
-        return __builtin_ctzll(mask);
-    #endif
+    return 63 - __builtin_clzll(mask);
 }
 
 FORCE_INLINE
@@ -94,11 +87,7 @@ int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT
 {
     ASSERT_STRICT(mask);
 
-    #ifdef __LITTLE_ENDIAN__
-        return __builtin_ctz(mask);
-    #else
-        return 31 - __builtin_clz(mask);
-    #endif
+    return 31 - __builtin_clz(mask);
 }
 
 #define compiler_is_bit_set_r2l(num, pos) ((bool) ((num) & (1 << (pos))))
