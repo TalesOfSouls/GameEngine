@@ -149,7 +149,8 @@ static void test_file_utils_write_read() {
 
     // Line count (number of newlines)
     const FileHandle fp = file_read_handle(path);
-    TEST_NOT_EQUALS(fp, INVALID_HANDLE_VALUE);
+    // file_read_handle() returns 0/NULL on failure (win32 + linux)
+    TEST_TRUE(fp);
     TEST_EQUALS(file_count_lines(fp), 4);
     file_close_handle(fp);
 

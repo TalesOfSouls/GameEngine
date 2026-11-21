@@ -7,8 +7,9 @@
 #ifndef COMS_PLATFORM_LINUX_THREADING_THREAD_DEFINES_H
 #define COMS_PLATFORM_LINUX_THREADING_THREAD_DEFINES_H
 
-// #include <pthread.h>
-// #include <unistd.h>
+// pthreads is only used to create/join the threads (@see Thread.h), the synchronization primitives are futex based
+// Threads created with a raw clone() aren't valid threads for glibc (no thread local storage, errno, malloc arenas, ...)
+#include <pthread.h>
 
 #include "../../../stdlib/Stdlib.h"
 #include "../../../thread/Atomic.h"
@@ -36,10 +37,26 @@ struct coms_pthread_rwlock_t {
     bool exclusive{false};
 };
 
+// Shared by the thread handle (coms_pthread_t) and the thread itself, freed by the last of both (refs)
+struct ComsThreadState {
+    ThreadJobFunc routine;
+    void* arg;
+
+    // OS thread id (gettid), set by the thread itself
+    atomic<int32> tid;
+
+    // 1 while the routine runs (coms_pthread_running)
+    atomic<int32> running;
+
+    // Owners: the thread + the handle (until join/detach)
+    atomic<int32> refs;
+};
+
 struct coms_pthread_t {
+    // OS thread id (same as thread_current_id() inside of the thread), same as win32
     int32 id;
-    int h;
-    void* stack;
+    pthread_t h;
+    ComsThreadState* state;
 };
 
 inline int futex_wait(atomic<int32>* futex, int32 val)

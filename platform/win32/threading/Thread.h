@@ -75,7 +75,7 @@ bool coms_pthreads_running(const coms_pthread_t* threads, int count, BufferMemor
     BUFFER_STACK_MEMORY(mem, (byte **) &h_temp, count * sizeof(HANDLE), alignof(HANDLE));
 
     for (int i = 0; i < count; ++i) {
-        h_temp[i] = threads->h;
+        h_temp[i] = threads[i].h;
     }
 
     DWORD result = WaitForMultipleObjects(count, h_temp, false, 0);

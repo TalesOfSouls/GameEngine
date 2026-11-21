@@ -11,6 +11,9 @@
 #include "../../stdlib/ThrdHashMapT.cpp"
 #include "../../utils/StringUtils.h"
 
+// Platform independent threads (coms_pthread_create/join)
+#include "../../thread/Thread.h"
+
 /**
  * ThrdHashMapT tests
  *
@@ -336,7 +339,7 @@ struct ThrdHashMapThreadParam {
     int32 verified;
 };
 
-static DWORD WINAPI thrd_hashmap_insert_job(void* data) {
+static THREAD_RETURN thrd_hashmap_insert_job(void* data) {
     ThrdHashMapThreadParam* param = (ThrdHashMapThreadParam *) data;
 
     char key[32];
@@ -359,20 +362,22 @@ static void test_thrd_hashmap_multithreaded() {
     enum { THREAD_COUNT = 2, KEYS_PER_THREAD = 128 };
 
     ThrdHashMapThreadParam params[THREAD_COUNT] = {};
-    HANDLE threads[THREAD_COUNT] = {};
+    coms_pthread_t threads[THREAD_COUNT] = {};
+    bool created[THREAD_COUNT] = {};
 
     for (int32 i = 0; i < THREAD_COUNT; ++i) {
         params[i].map = &hm;
         params[i].thread_id = i;
         params[i].key_count = KEYS_PER_THREAD;
 
-        threads[i] = CreateThread(NULL, 0, thrd_hashmap_insert_job, &params[i], 0, NULL);
-        TEST_NOT_EQUALS(threads[i], NULL);
+        created[i] = coms_pthread_create(&threads[i], NULL, thrd_hashmap_insert_job, &params[i]) != -1;
+        TEST_TRUE(created[i]);
     }
 
     for (int32 i = 0; i < THREAD_COUNT; ++i) {
-        TEST_EQUALS(WaitForSingleObject(threads[i], 30000), WAIT_OBJECT_0);
-        CloseHandle(threads[i]);
+        if (created[i]) {
+            TEST_EQUALS(coms_pthread_join(threads[i], NULL), 0);
+        }
     }
 
     char key[32];

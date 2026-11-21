@@ -261,6 +261,9 @@ enum GeneralInputState : byte {
     #include <dinput.h>
 
     typedef HANDLE InputHandle;
+#else
+    // @todo Linux input (evdev/libinput), a pointer like the win32 HANDLE (NULL = no device)
+    typedef void* InputHandle;
 #endif
 
 struct KBMDevice {

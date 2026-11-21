@@ -10,11 +10,10 @@
 #include <sched.h>
 #include <unistd.h>
 #include <signal.h>
-#include <sys/wait.h>
+#include <pthread.h>
 #include <linux/futex.h>
 #include <sys/syscall.h>
 #include <sys/resource.h>
-#include <sched.h>
 
 #include "../../../stdlib/Stdlib.h"
 #include "../../../compiler/CompilerUtils.h"
@@ -23,15 +22,23 @@
 #include "Atomic.h"
 #include "../../../log/PerformanceProfiler.h"
 
-// @bug The thread parameter is ignored, the affinity of the calling thread is set (sched_setaffinity(0, ...))
+// Only in the signature of coms_pthreads_running() (same signature as win32, the memory isn't needed on Linux)
+struct BufferMemory;
+
+// mask = bit per cpu (same as win32 SetThreadAffinityMask)
 inline
-void coms_thread_affinity_set(MAYBE_UNUSED coms_pthread_t* thread, int64 mask) NO_EXCEPT
+void coms_thread_affinity_set(coms_pthread_t* const thread, int64 mask) NO_EXCEPT
 {
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
-    CPU_SET(mask, &cpuset);
 
-    sched_setaffinity(0, sizeof(cpuset), &cpuset);
+    for (int32 cpu = 0; cpu < 64; ++cpu) {
+        if ((uint64) mask & (1ULL << cpu)) {
+            CPU_SET(cpu, &cpuset);
+        }
+    }
+
+    pthread_setaffinity_np(thread->h, sizeof(cpuset), &cpuset);
 }
 
 /**
@@ -48,6 +55,44 @@ void coms_thread_priority_background() NO_EXCEPT
     setpriority(PRIO_PROCESS, (id_t) syscall(SYS_gettid), 5);
 }
 
+// Stack size of the threads (same as the win32 default)
+#define COMS_THREAD_STACK_SIZE (1 * MEGABYTE)
+
+// The last owner (thread or handle) frees the state
+static inline
+void coms_thread_state_release(ComsThreadState* state) NO_EXCEPT
+{
+    if (state->refs.fetch_sub(1, memory_order_acq_rel) == 1) {
+        platform_aligned_free((void **) &state);
+    }
+}
+
+// pthread entry point: the routines have the cOMS signature (THREAD_RETURN routine(void*))
+static
+void* coms_pthread_start(void* data) NO_EXCEPT
+{
+    ComsThreadState* const state = (ComsThreadState *) data;
+
+    // coms_pthread_create() waits for the id
+    state->tid.store((int32) syscall(SYS_gettid), memory_order_release);
+    futex_wake(&state->tid, 1);
+
+    const THREAD_RETURN result = state->routine(state->arg);
+
+    state->running.store(0, memory_order_release);
+    coms_thread_state_release(state);
+
+    return (void *) (intptr_t) result;
+}
+
+/**
+ * Creates a thread
+ *
+ * The thread is created with pthreads, a raw clone() thread isn't a valid thread for glibc
+ * (thread local storage, errno, malloc arenas, ... are only set up by pthread_create)
+ *
+ * @return int32 OS thread id (same as thread_current_id() inside of the thread), -1 on failure
+ */
 inline
 int32 coms_pthread_create(coms_pthread_t* __restrict thread, void*, ThreadJobFunc start_routine, void* __restrict arg) NO_EXCEPT
 {
@@ -55,46 +100,102 @@ int32 coms_pthread_create(coms_pthread_t* __restrict thread, void*, ThreadJobFun
     ASSERT_TRUE(thread);
     ASSERT_TRUE(start_routine);
 
-    const uint64 stack_size = 1 * MEGABYTE;
-    thread->stack = (byte *) platform_alloc_aligned(stack_size, stack_size, ASSUMED_CACHE_LINE_SIZE);
+    thread->id = -1;
+    thread->state = NULL;
 
-    int32 flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM;
-
-    // The + stack_size is required since the stack is used "downwards"
-    thread->h = clone((int32 (*)(void*))start_routine, (void *) ((uintptr_t) thread->stack + stack_size), flags, arg);
-    if (thread->h == -1) {
+    ComsThreadState* const state = (ComsThreadState *) platform_alloc_aligned(
+        sizeof(ComsThreadState), sizeof(ComsThreadState), ASSUMED_CACHE_LINE_SIZE
+    );
+    if (!state) {
         LOG_1("Thread creation failed");
         return -1;
     }
 
-    thread->id = (int32) thread->h;
+    state->routine = start_routine;
+    state->arg = arg;
+    state->tid.store(0, memory_order_relaxed);
+    state->running.store(1, memory_order_relaxed);
+    state->refs.store(2, memory_order_relaxed);
+
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, COMS_THREAD_STACK_SIZE);
+
+    const int32 error = pthread_create(&thread->h, &attr, coms_pthread_start, state);
+    pthread_attr_destroy(&attr);
+
+    if (error) {
+        ComsThreadState* unused = state;
+        platform_aligned_free((void **) &unused);
+        LOG_1("Thread creation failed");
+
+        return -1;
+    }
+
+    // The OS thread id is only known inside of the thread (the thread keeps running, the state is still owned by the handle)
+    int32 tid;
+    while (!(tid = state->tid.load(memory_order_acquire))) {
+        futex_wait(&state->tid, 0);
+    }
+
+    thread->state = state;
+    thread->id = tid;
     THREAD_LOG_CREATE(thread->id);
 
     return thread->id;
 }
 
 FORCE_INLINE
-int32 coms_pthread_join(coms_pthread_t thread, void** retval) NO_EXCEPT
+int32 coms_pthread_join(coms_pthread_t& thread, void** retval) NO_EXCEPT
 {
-    THREAD_LOG_DELETE((int32) thread.h);
+    void* result = NULL;
+    const int32 error = pthread_join(thread.h, &result);
 
-    // @bug Threads created with CLONE_THREAD can't be waited for with waitid (it fails immediately)
-    //      -> the stack below is released while the thread may still run. Linux threads should use pthreads.
-    int32 res = syscall(SYS_waitid, P_PID, (id_t) thread.h, retval, WEXITED, NULL) == -1
-        ? 1
-        : 0;
+    if (retval) {
+        *retval = result;
+    }
 
-    platform_aligned_free((void **) &thread.stack);
+    if (thread.state) {
+        coms_thread_state_release(thread.state);
+        thread.state = NULL;
+    }
+
     THREAD_LOG_DELETE(thread.id);
 
-    return res;
+    return error ? 1 : 0;
 }
 
 FORCE_INLINE
-int32 coms_pthread_detach(MAYBE_UNUSED coms_pthread_t thread) NO_EXCEPT
+int32 coms_pthread_detach(coms_pthread_t& thread) NO_EXCEPT
 {
-    // In Linux, threads are automatically detached when they exit.
-    return 0;
+    const int32 error = pthread_detach(thread.h);
+
+    // The thread frees the state when it ends
+    if (thread.state) {
+        coms_thread_state_release(thread.state);
+        thread.state = NULL;
+    }
+
+    return error ? 1 : 0;
+}
+
+FORCE_INLINE
+bool coms_pthread_running(const coms_pthread_t& thread) NO_EXCEPT
+{
+    return thread.state && thread.state->running.load(memory_order_acquire);
+}
+
+// All threads are still running (same as win32)
+FORCE_INLINE
+bool coms_pthreads_running(const coms_pthread_t* threads, int count, BufferMemory*) NO_EXCEPT
+{
+    for (int i = 0; i < count; ++i) {
+        if (!coms_pthread_running(threads[i])) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 FORCE_INLINE
