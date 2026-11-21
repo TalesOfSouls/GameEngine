@@ -45,7 +45,12 @@ fi
 source ./check_cpu_features.sh
 
 # Detect CPU features, TESTS_CPU_FEATURES overrides the detection (e.g. the CI uses fixed flags)
-CPU_FEATURES=${TESTS_CPU_FEATURES:-$(check_cpu_features)}
+#      unset/empty = detect, "none" = no SIMD flags (scalar code paths), anything else = these flags
+if [ "$TESTS_CPU_FEATURES" = "none" ]; then
+    CPU_FEATURES=""
+else
+    CPU_FEATURES=${TESTS_CPU_FEATURES:-$(check_cpu_features)}
+fi
 
 # Additional compiler arguments, e.g. the CI: TESTS_EXTRA_ARGS="-DTEST_QOI=0"
 g++ $BUILD_FLAGS -std=c++23 $ARCH_FLAGS \

@@ -1,6 +1,6 @@
 # Builds and runs the test suite (MainTest.cpp), debug + release:
 #      Windows (MSVC):  x64, x64 with SSE4.2 + AVX2 (the SIMD level of the application builds), arm64
-#      Linux (g++):     x64 (SSE4.2 + AVX2), arm64
+#      Linux (g++):     x64, x64 with SSE4.2 + AVX2, arm64
 #
 # The test scripts work from their own directory (independent of the checkout directory name) and
 # return the result of the tests as exit code -> a failed test or build fails the job
@@ -76,9 +76,14 @@ jobs:
       matrix:
         build: [ debug, release ]
         config:
+          # No SIMD flags: the scalar code paths (same as Windows x64)
+          - name: x64
+            runner: ubuntu-latest
+            cpu: none
+            experimental: false
           # Same SIMD level as the application builds (SSE4.2 + AVX2), never AVX-512
           # (the runner cpu may support AVX-512, check_cpu_features.sh would enable it)
-          - name: x64
+          - name: x64 SSE4.2 + AVX2
             runner: ubuntu-latest
             cpu: -msse4.2 -mavx -mavx2 -mfma -D__SSE4_2__ -D__AVX__ -D__AVX2__ -D__FMA__
             experimental: false

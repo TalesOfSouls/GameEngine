@@ -18,13 +18,8 @@
     #include <x86gprintrin.h>
 #endif
 
-#ifdef _MSC_VER
-    #define intrin_sqrt_f32(a) _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss((a))))
-    #define intrin_sqrt_f64(a) _mm_cvtsd_f64(_mm_sqrt_sd(_mm_set_sd(0.0), _mm_set_sd((a))))
-#else
-    #define intrin_sqrt_f32(a) ({ float res; asm volatile("sqrtss %0, %1" : "=x"(res) : "x"(a)); res; })
-    #define intrin_sqrt_f64(a) ({ double res; asm volatile("sqrtsd %0, %1" : "=x" (res) : "x" (a)); res; })
-#endif
+#define intrin_sqrt_f32(a) _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss((a))))
+#define intrin_sqrt_f64(a) _mm_cvtsd_f64(_mm_sqrt_sd(_mm_set_sd(0.0), _mm_set_sd((a))))
 
 // WARNING: Don't use if precision is important
 #define intrin_rsqrt_f32(a) _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss((a))))
