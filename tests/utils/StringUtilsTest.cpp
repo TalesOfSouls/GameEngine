@@ -962,8 +962,14 @@ static void test_utf8_and_wchar_conversions()
     TEST_EQUALS(utf8_to_wchar("abc", utf8_to_wide, 2), 2);
     TEST_TRUE(wcscmp(utf8_to_wide, L"a") == 0);
 
+    // Buffer of 2: the surrogate pair + \0 doesn't fit (16 bit wchar_t), the codepoint + \0 does (32 bit wchar_t)
     memset(utf8_to_wide, 0, sizeof(utf8_to_wide));
-    TEST_EQUALS(utf8_to_wchar("\xF0\x9F\x98\x80", utf8_to_wide, 2), 0);
+    if constexpr (sizeof(wchar_t) == 2) {
+        TEST_EQUALS(utf8_to_wchar("\xF0\x9F\x98\x80", utf8_to_wide, 2), 0);
+    } else {
+        TEST_EQUALS(utf8_to_wchar("\xF0\x9F\x98\x80", utf8_to_wide, 2), 2);
+        TEST_EQUALS(utf8_to_wide[0], 0x1F600);
+    }
 
     memset(utf8_to_wide, 0, sizeof(utf8_to_wide));
     TEST_EQUALS(utf8_to_wchar("\xFF", utf8_to_wide, 16), 0);
