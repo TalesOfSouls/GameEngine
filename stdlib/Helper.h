@@ -153,9 +153,9 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
     #define BYTES_MERGE_4_L2R(arr) (((arr)[0] << 24) | ((arr)[1] << 16) | ((arr)[2] << 8) | (arr)[3])
     #define BYTES_MERGE_8_L2R(arr) (((uint64_t)(arr)[0] << 56) | ((uint64_t)(arr)[1] << 48) | ((uint64_t)(arr)[2] << 40) | ((uint64_t)(arr)[3] << 32) | ((uint64_t)(arr)[4] << 24) | ((uint64_t)(arr)[5] << 16) | ((uint64_t)(arr)[6] << 8)  | ((uint64_t)(arr)[7]))
 #else
-    #define BYTES_MERGE_2_L2R(arr) (*(const uint16_t *)(arr))
-    #define BYTES_MERGE_4_L2R(arr) (*(const uint32_t *)(arr))
-    #define BYTES_MERGE_8_L2R(arr) (*(const uint64_t *)(arr))
+    #define BYTES_MERGE_2_L2R(arr) compiler_load_unaligned<uint16_t>(arr)
+    #define BYTES_MERGE_4_L2R(arr) compiler_load_unaligned<uint32_t>(arr)
+    #define BYTES_MERGE_8_L2R(arr) compiler_load_unaligned<uint64_t>(arr)
 #endif
 
 // The R2L version is basically the same as: OMS_FLAG_ and OMS_BIT_ defined in Types
@@ -183,9 +183,9 @@ CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
 // Merges an array of bytes as an int value (16bit, 32bit, 64bit)
 // The implementation is endian aware
 #if OMS_LITTLE_ENDIAN
-    #define BYTES_MERGE_2_R2L(arr) (*(const uint16_t *)(arr))
-    #define BYTES_MERGE_4_R2L(arr) (*(const uint32_t *)(arr))
-    #define BYTES_MERGE_8_R2L(arr) (*(const uint64_t *)(arr))
+    #define BYTES_MERGE_2_R2L(arr) compiler_load_unaligned<uint16_t>(arr)
+    #define BYTES_MERGE_4_R2L(arr) compiler_load_unaligned<uint32_t>(arr)
+    #define BYTES_MERGE_8_R2L(arr) compiler_load_unaligned<uint64_t>(arr)
 #else
     #define BYTES_MERGE_2_R2L(arr) (((arr)[1] << 8) | (arr)[0])
     #define BYTES_MERGE_4_R2L(arr) (((arr)[3] << 24) | ((arr)[2] << 16) | ((arr)[1] << 8) | (arr)[0])

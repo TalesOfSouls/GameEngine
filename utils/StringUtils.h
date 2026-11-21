@@ -1086,63 +1086,21 @@ int64 hex_to_int(const char* hex) NO_EXCEPT
     return result;
 }
 
+// Non-overlapping occurrences, an empty substr is never counted
+// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
 inline
 size_t str_count(const char* __restrict str, const char* __restrict substr) NO_EXCEPT
 {
-    size_t count = 0;
     const size_t substr_len = str_length(substr);
+    if (!substr_len) {
+        return 0;
+    }
 
+    size_t count = 0;
     const char* s = str;
-    const char first = substr[0];
-
-    // Align pointer for word-wise scanning
-    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != '\0') {
-        if (*s == first) {
-            // Compare remaining substring
-            size_t i = 1;
-            while (i < substr_len && s[i] != '\0' && s[i] == substr[i]) {
-                ++i;
-            }
-
-            if (i == substr_len) {
-                ++count;
-                s += substr_len;
-                continue;
-            }
-        }
-
-        ++s;
-    }
-
-    const size_t* wptr = (const size_t *) s;
-
-    while (true) {
-        const size_t v = *wptr;
-        if (OMS_HAS_ZERO(v) || OMS_HAS_CHAR(v, first)) {
-            break; // null byte or first char found
-        }
-
-        ++wptr;
-    }
-
-    s = (const char *) wptr;
-
-    // Fallback to byte-by-byte scanning for matches
-    while (*s != '\0') {
-        if (*s == first) {
-            size_t i = 1;
-            while (i < substr_len && s[i] != '\0' && s[i] == substr[i]) {
-                ++i;
-            }
-
-            if (i == substr_len) {
-                ++count;
-                s += substr_len;
-                continue;
-            }
-        }
-
-        ++s;
+    while ((s = str_find(s, substr)) != NULL) {
+        ++count;
+        s += substr_len;
     }
 
     return count;
@@ -1246,97 +1204,34 @@ void str_line_append(
     text[*length] = '\0';
 }
 
+// Copies src until delim or the end (both excl.), dest is null terminated
+// @return int32 Copied characters
+// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
 inline
 int32 str_copy_until(char* __restrict dest, const char* __restrict src, char delim) NO_EXCEPT
 {
-    const char* s = src;
-    char* d = dest;
+    const char* const end = str_find(src, delim);
+    const size_t length = end ? (size_t) (end - src) : str_length(src);
 
-    if (*s == '\0' || *s == delim) {
-        *d = '\0';
+    memcpy(dest, src, length);
+    dest[length] = '\0';
 
-        return 0;
-    }
-
-    // Align pointer for size_t access
-    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != '\0' && *s != delim) {
-        *d++ = *s++;
-    }
-
-    const size_t delim_mask = ((size_t) - 1 / 0xFF) * delim;
-    const size_t* wptr = (const size_t *) s;
-
-    while (true) {
-        const size_t v = *wptr;
-
-        // Detect either null or delimiter
-        if (OMS_HAS_ZERO(v) || OMS_HAS_ZERO(v ^ delim_mask)) {
-            const char* cp = (const char *) wptr;
-            for (size_t i = 0; i < sizeof(size_t); ++i) {
-                if (cp[i] == '\0' || cp[i] == delim) {
-                    const size_t len = cp + i - src;
-                    for (size_t j = 0; j < len; ++j) {
-                        dest[j] = src[j];
-                    }
-
-                    dest[len] = '\0';
-
-                    return (int32) len;
-                }
-            }
-        }
-
-        ++wptr;
-    }
+    return (int32) length;
 }
 
+// Copies src until delim or the end (both excl.), dest is null terminated
+// @return int32 Copied characters
+// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
 inline
 int32 str_copy_until(wchar_t* __restrict dest, const wchar_t* __restrict src, wchar_t delim) NO_EXCEPT
 {
-    const wchar_t* s = src;
-    wchar_t* d = dest;
+    const wchar_t* const end = str_find(src, delim);
+    const size_t length = end ? (size_t) (end - src) : str_length(src);
 
-    if (*s == L'\0' || *s == delim) {
-        *d = L'\0';
+    memcpy(dest, src, length * sizeof(wchar_t));
+    dest[length] = L'\0';
 
-        return 0;
-    }
-
-    // Align pointer for size_t access
-    while ((uintptr_t)s % sizeof(size_t) != 0 && *s != L'\0' && *s != delim) {
-        *d++ = *s++;
-    }
-
-    const size_t wchar_t_bits = sizeof(wchar_t) * 8;
-    size_t delim_mask = 0;
-    for (size_t i = 0; i < (sizeof(size_t) >> div_pow2(sizeof(wchar_t))); ++i) {
-        delim_mask |= (size_t)delim << (i * wchar_t_bits);
-    }
-
-    const size_t* wptr = (const size_t *) s;
-
-    while (true) {
-        const size_t v = *wptr;
-
-        // Detect either null or delimiter
-        if (OMS_HAS_ZERO_WCHAR(v) || OMS_HAS_ZERO_WCHAR(v ^ delim_mask)) {
-            const wchar_t* cp = (const wchar_t *) wptr;
-            for (size_t i = 0; i < (sizeof(size_t) >> div_pow2(sizeof(wchar_t))); ++i) {
-                if (cp[i] == L'\0' || cp[i] == delim) {
-                    const size_t len = cp + i - src;
-                    for (size_t j = 0; j < len; ++j) {
-                        dest[j] = src[j];
-                    }
-
-                    dest[len] = L'\0';
-
-                    return (int32) len;
-                }
-            }
-        }
-
-        ++wptr;
-    }
+    return (int32) length;
 }
 
 template <typename T>
@@ -1360,55 +1255,20 @@ inline void str_copy_until(T* __restrict dest, const T* __restrict src, const T*
     *dest = end;
 }
 
+// Copies src until delim or the end (both excl.), dest is null terminated
+// src is moved to the delimiter or the null terminator
+// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
 inline
 void str_copy_move_until(char* __restrict dest, const char* __restrict* __restrict src, char delim) NO_EXCEPT
 {
-    const char* s = *src;
-    char* d = dest;
+    const char* const s = *src;
+    const char* const end = str_find(s, delim);
+    const size_t length = end ? (size_t) (end - s) : str_length(s);
 
-    // Copy unaligned prefix
-    while ((uintptr_t)s % sizeof(size_t) != 0) {
-        const char c = *s++;
-        if (c == '\0' || c == delim) {
-            *d = '\0';
-            *src = s - 1; // leave src at delimiter or null
+    memcpy(dest, s, length);
+    dest[length] = '\0';
 
-            return;
-        }
-
-        *d++ = c;
-    }
-
-    const size_t delim_mask = ((size_t) - 1 / 0xFF) * delim;
-    const size_t* wptr = (const size_t *) s;
-    size_t* dptr = (size_t *) d;
-
-    while (true) {
-        const size_t v = *wptr;
-
-        // Check for delimiter or null byte
-        if (OMS_HAS_ZERO(v) || OMS_HAS_ZERO(v ^ delim_mask)) {
-            break;
-        }
-
-        *dptr++ = v;
-        ++wptr;
-    }
-
-    // Copy remaining bytes byte-by-byte
-    s = (const char *) wptr;
-    d = (char *) dptr;
-    while (true) {
-        const char c = *s++;
-        if (c == '\0' || c == delim) {
-            break;
-        }
-
-        *d++ = c;
-    }
-
-    *d = '\0';
-    *src = s - 1;
+    *src = s + length;
 }
 
 inline
@@ -1539,6 +1399,7 @@ int32 str_concat_new(
     return src1_length + src2_length;
 }
 
+// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
 inline void
 str_concat_new(
     char* __restrict dst,
@@ -1547,41 +1408,19 @@ str_concat_new(
     const char* src3
 ) NO_EXCEPT
 {
-    const char* sources[3] = { src1, src2, src3 };
+    const char* const sources[3] = { src1, src2, src3 };
 
-    for (int s = 0; s < 3; ++s) {
-        const char* src = sources[s];
-
-        // Align src pointer
-        while ((uintptr_t)src % sizeof(size_t) != 0 && *src != '\0') {
-            *dst++ = *src++;
-        }
-
-        const size_t* wptr = (const size_t *) src;
-        size_t* dptr = (size_t *)dst;
-
-        while (true) {
-            const size_t v = *wptr;
-            if (OMS_HAS_ZERO(v)) {
-                break;
-            }
-
-            *dptr++ = v;
-            ++wptr;
-        }
-
-        // Copy remaining bytes byte-by-byte
-        src = (const char *) wptr;
-        dst = (char *) dptr;
-        while (*src != '\0') {
-            *dst++ = *src++;
-        }
+    for (int32 i = 0; i < 3; ++i) {
+        const size_t length = str_length(sources[i]);
+        memcpy(dst, sources[i], length);
+        dst += length;
     }
 
     *dst = '\0';
 }
 
 
+// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
 inline
 void str_concat_new(wchar_t* __restrict dst,
     const wchar_t* __restrict src1,
@@ -1589,38 +1428,12 @@ void str_concat_new(wchar_t* __restrict dst,
     const wchar_t* __restrict src3
 ) NO_EXCEPT
 {
-    static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
+    const wchar_t* const sources[3] = { src1, src2, src3 };
 
-    const wchar_t* sources[3] = { src1, src2, src3 };
-
-    for (int s = 0; s < 3; ++s) {
-        const wchar_t* src = sources[s];
-
-        // Align src pointer to size_t boundary
-        while ((uintptr_t)src % sizeof(size_t) != 0 && *src != L'\0') {
-            *dst++ = *src++;
-        }
-
-        const size_t* wptr = (const size_t*) src;
-        size_t* dptr = (size_t*) dst;
-
-        while (true) {
-            const size_t v = *wptr;
-
-            if (OMS_HAS_ZERO_WCHAR(v)) {
-                break;
-            }
-
-            *dptr++ = v;
-            ++wptr;
-        }
-
-        // Copy remaining wchar_t's one by one
-        src = (const wchar_t*) wptr;
-        dst = (wchar_t*) dptr;
-        while (*src != L'\0') {
-            *dst++ = *src++;
-        }
+    for (int32 i = 0; i < 3; ++i) {
+        const size_t length = str_length(sources[i]);
+        memcpy(dst, sources[i], length * sizeof(wchar_t));
+        dst += length;
     }
 
     *dst = L'\0';
@@ -1764,57 +1577,11 @@ char* strtok(char* str, const char* __restrict delim, char** key) NO_EXCEPT
     return result;
 }
 
-inline CONSTEXPR
+// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
+inline
 bool str_contains(const char* __restrict haystack, const char* __restrict needle) NO_EXCEPT
 {
-    const char first = needle[0];
-    const char* ptr = haystack;
-
-    while (*ptr != '\0') {
-        // Align pointer for size_t access
-        while ((uintptr_t) ptr % sizeof(size_t) != 0 && *ptr != '\0') {
-            if (*ptr == first) {
-                break;
-            }
-
-            ++ptr;
-        }
-
-        if (*ptr == '\0') {
-            break;
-        }
-
-        // Word-wise scanning
-        const size_t* wptr = (const size_t *) ptr;
-        while (true) {
-            const size_t v = *wptr;
-            // Stop at the first word that contains the first needle character or the end of the string
-            if (OMS_HAS_CHAR(v, first) || OMS_HAS_ZERO(v)) {
-                break;
-            }
-
-            ++wptr;
-        }
-
-        ptr = (const char *) wptr;
-
-        // Fallback byte-by-byte compare for needle
-        const char* p1 = ptr;
-        const char* p2 = needle;
-
-        while (*p1 != '\0' && *p2 != '\0' && *p1 == *p2) {
-            ++p1;
-            ++p2;
-        }
-
-        if (*p2 == '\0') {
-            return true;
-        }
-
-        ++ptr;
-    }
-
-    return false;
+    return str_find(haystack, needle) != NULL;
 }
 
 inline CONSTEXPR
@@ -2095,43 +1862,12 @@ bool is_whitespace(char str) NO_EXCEPT
     return str == ' ' || str == '\t';
 }
 
+// Length until the first line break (\n or \r) or the end of the string
+// The scan is done by strcspn
 inline
 int32 str_to_eol(const char* str) NO_EXCEPT
 {
-    const char* ptr = str;
-
-    if (*ptr == '\0') return 0;
-
-    // Process unaligned bytes first
-    while ((uintptr_t) ptr % sizeof(size_t) != 0 && *ptr != '\0') {
-        if (*ptr == '\n' || *ptr == '\r') {
-            return (int32) (ptr - str);
-        }
-
-        ++ptr;
-    }
-
-    // Word-wise scanning
-    const size_t* wptr = (const size_t *) ptr;
-
-    const size_t nl_mask = ((size_t) -1 / 0xFF) * '\n';
-    const size_t cr_mask = ((size_t) -1 / 0xFF) * '\r';
-
-    while (true) {
-        const size_t v = *wptr;
-
-        if (OMS_HAS_ZERO(v) || OMS_HAS_ZERO(v ^ nl_mask) || OMS_HAS_ZERO(v ^ cr_mask)) {
-            // Fallback to byte-by-byte inside this word
-            const char* cp = (const char *) wptr;
-            for (size_t i = 0; i < sizeof(size_t); ++i) {
-                if (cp[i] == '\n' || cp[i] == '\r' || cp[i] == '\0') {
-                    return (int32) (cp + i - str);
-                }
-            }
-        }
-
-        ++wptr;
-    }
+    return (int32) strcspn(str, "\r\n");
 }
 
 /**

@@ -232,7 +232,7 @@ int __internal_memcmp(const void* a, const void* b, size_t len)
 }
 
 inline CONSTEXPR
-size_t __internal_strlen(const char* const str)
+NO_SANITIZE_ADDRESS size_t __internal_strlen(const char* const str)
 {
     const char* ptr = str;
 
@@ -263,7 +263,7 @@ size_t __internal_strlen(const char* const str)
 }
 
 inline CONSTEXPR
-size_t __internal_wcslen(const wchar_t* const str)
+NO_SANITIZE_ADDRESS size_t __internal_wcslen(const wchar_t* const str)
 {
     const wchar_t* ptr = str;
 
@@ -294,7 +294,7 @@ size_t __internal_wcslen(const wchar_t* const str)
 }
 
 inline
-const char* __internal_strcpy(char* __restrict dest, const char* __restrict src)
+NO_SANITIZE_ADDRESS const char* __internal_strcpy(char* __restrict dest, const char* __restrict src)
 {
     const char* start = dest;
 
@@ -317,7 +317,8 @@ const char* __internal_strcpy(char* __restrict dest, const char* __restrict src)
             break; // null byte found
         }
 
-        *dptr++ = v;
+        // dest may be unaligned (only src is aligned)
+        compiler_store_unaligned(dptr++, v);
         wptr++;
     }
 
@@ -336,7 +337,7 @@ const char* __internal_strcpy(char* __restrict dest, const char* __restrict src)
 }
 
 inline
-const wchar_t* __internal_wcscpy(
+NO_SANITIZE_ADDRESS const wchar_t* __internal_wcscpy(
     wchar_t* __restrict dest,
     const wchar_t* __restrict src
 )
@@ -363,7 +364,8 @@ const wchar_t* __internal_wcscpy(
             break;
         }
 
-        *dptr++ = v;
+        // dest may be unaligned (only src is aligned)
+        compiler_store_unaligned(dptr++, v);
         ++wptr;
     }
 
@@ -396,7 +398,7 @@ __internal_wcscat(wchar_t* __restrict dst, const wchar_t* __restrict src)
 }
 
 inline
-char* __internal_strstr(const char* __restrict haystack, const char* __restrict needle)
+NO_SANITIZE_ADDRESS char* __internal_strstr(const char* __restrict haystack, const char* __restrict needle)
 {
     // An empty needle matches at the start (same as the C standard)
     if (needle[0] == '\0') {
@@ -422,21 +424,25 @@ char* __internal_strstr(const char* __restrict haystack, const char* __restrict 
         }
 
         // Word-wise scanning
-        const size_t* wptr = (const size_t *) ptr;
-        const size_t first_mask = ((size_t) -1 / 0xFF) * first;
+        // Only from an aligned position: the alignment loop also stops at the first needle character
+        // (a misaligned word read is undefined behavior and can cross into the next page)
+        if ((uintptr_t) ptr % sizeof(size_t) == 0) {
+            const size_t* wptr = (const size_t *) ptr;
+            const size_t first_mask = ((size_t) -1 / 0xFF) * first;
 
-        while (true) {
-            const size_t v = *wptr;
-            if (((v - ((size_t) - 1 / 0xFF)) & ~v & (((size_t) - 1 / 0xFF) * 0x80))
-                || (((v ^ first_mask) - ((size_t) - 1 / 0xFF)) & ~(v ^ first_mask) & (((size_t) - 1 / 0xFF) * 0x80))
-            ) {
-                break;
+            while (true) {
+                const size_t v = *wptr;
+                if (((v - ((size_t) - 1 / 0xFF)) & ~v & (((size_t) - 1 / 0xFF) * 0x80))
+                    || (((v ^ first_mask) - ((size_t) - 1 / 0xFF)) & ~(v ^ first_mask) & (((size_t) - 1 / 0xFF) * 0x80))
+                ) {
+                    break;
+                }
+
+                ++wptr;
             }
 
-            ++wptr;
+            ptr = (const char *) wptr;
         }
-
-        ptr = (const char *) wptr;
 
         const char* p1 = ptr;
         size_t i = 0;
@@ -454,7 +460,7 @@ char* __internal_strstr(const char* __restrict haystack, const char* __restrict 
     return NULL;
 }
 
-char* __internal_strchr(const char* str, char needle) NO_EXCEPT
+NO_SANITIZE_ADDRESS char* __internal_strchr(const char* str, char needle) NO_EXCEPT
 {
     const byte target = (byte) needle;
     const size_t mask = ((size_t)-1 / 0xFF) * target;
@@ -498,7 +504,7 @@ char* __internal_strchr(const char* str, char needle) NO_EXCEPT
 }
 
 inline
-wchar_t* __internal_wcsstr(
+NO_SANITIZE_ADDRESS wchar_t* __internal_wcsstr(
     const wchar_t* __restrict haystack,
     const wchar_t* __restrict needle
 )
@@ -535,17 +541,21 @@ wchar_t* __internal_wcsstr(
         }
 
         // Word-wise scan
-        const size_t* wptr = (const size_t*)ptr;
+        // Only from an aligned position: the alignment loop also stops at the first needle character
+        // (a misaligned word read is undefined behavior and can cross into the next page)
+        if ((uintptr_t) ptr % S == 0) {
+            const size_t* wptr = (const size_t*)ptr;
 
-        while (true) {
-            const size_t v = *wptr;
-            if (OMS_HAS_ZERO_WCHAR(v) || OMS_HAS_ZERO_WCHAR(v ^ first_mask)) {
-                break;
+            while (true) {
+                const size_t v = *wptr;
+                if (OMS_HAS_ZERO_WCHAR(v) || OMS_HAS_ZERO_WCHAR(v ^ first_mask)) {
+                    break;
+                }
+                ++wptr;
             }
-            ++wptr;
-        }
 
-        ptr = (const wchar_t*)wptr;
+            ptr = (const wchar_t*)wptr;
+        }
         for (size_t i = 0; i < N; ++i) {
             if (ptr[i] == L'\0') {
                 return NULL;
@@ -573,7 +583,7 @@ wchar_t* __internal_wcsstr(
 }
 
 inline
-wchar_t* __internal_wcschr(const wchar_t* str, wchar_t needle) NO_EXCEPT
+NO_SANITIZE_ADDRESS wchar_t* __internal_wcschr(const wchar_t* str, wchar_t needle) NO_EXCEPT
 {
     // Align to word boundary
     while ((uintptr_t) str % sizeof(size_t) != 0) {
@@ -623,7 +633,7 @@ wchar_t* __internal_wcschr(const wchar_t* str, wchar_t needle) NO_EXCEPT
 // Same as strncpy: copies at most n characters, the rest of dest is filled with '\0'
 // dest is NOT terminated if src has n or more characters
 inline
-char* __internal_strncpy(char* __restrict dest, const char* __restrict src, size_t n) NO_EXCEPT
+NO_SANITIZE_ADDRESS char* __internal_strncpy(char* __restrict dest, const char* __restrict src, size_t n) NO_EXCEPT
 {
     char* const start = dest;
 
@@ -650,7 +660,8 @@ char* __internal_strncpy(char* __restrict dest, const char* __restrict src, size
             break;
         }
 
-        *dptr++ = v;
+        // dest may be unaligned (only src is aligned)
+        compiler_store_unaligned(dptr++, v);
         ++wptr;
         n -= sizeof(size_t);
     }
@@ -675,7 +686,7 @@ char* __internal_strncpy(char* __restrict dest, const char* __restrict src, size
 // Same as wcsncpy: copies at most n characters, the rest of dest is filled with L'\0'
 // dest is NOT terminated if src has n or more characters
 inline
-wchar_t* __internal_wcsncpy(wchar_t* __restrict dest, const wchar_t* __restrict src, size_t n) NO_EXCEPT
+NO_SANITIZE_ADDRESS wchar_t* __internal_wcsncpy(wchar_t* __restrict dest, const wchar_t* __restrict src, size_t n) NO_EXCEPT
 {
     wchar_t* const start = dest;
 
@@ -702,7 +713,8 @@ wchar_t* __internal_wcsncpy(wchar_t* __restrict dest, const wchar_t* __restrict 
             break;
         }
 
-        *dptr++ = v;
+        // dest may be unaligned (only src is aligned)
+        compiler_store_unaligned(dptr++, v);
         ++wptr;
         n -= sizeof(size_t) / sizeof(wchar_t);
     }
@@ -726,7 +738,7 @@ wchar_t* __internal_wcsncpy(wchar_t* __restrict dest, const wchar_t* __restrict 
 
 // The comparison is word-wise if both strings have the same alignment offset (e.g. both aligned)
 inline
-int32 __internal_strcmp(const char* str1, const char* str2) NO_EXCEPT
+NO_SANITIZE_ADDRESS int32 __internal_strcmp(const char* str1, const char* str2) NO_EXCEPT
 {
     if ((((uintptr_t) str1 ^ (uintptr_t) str2) & (sizeof(size_t) - 1)) == 0) {
         // Align both pointers
@@ -781,7 +793,7 @@ int32 __internal_wcscmp(const wchar_t* str1, const wchar_t* str2) NO_EXCEPT
 
 // The comparison is word-wise if both strings have the same alignment offset (e.g. both aligned)
 inline
-int32 __internal_strncmp(const char* str1, const char* str2, size_t n) NO_EXCEPT
+NO_SANITIZE_ADDRESS int32 __internal_strncmp(const char* str1, const char* str2, size_t n) NO_EXCEPT
 {
     if ((((uintptr_t) str1 ^ (uintptr_t) str2) & (sizeof(size_t) - 1)) == 0) {
         // Align both pointers

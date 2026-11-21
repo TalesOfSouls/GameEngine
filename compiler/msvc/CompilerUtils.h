@@ -31,6 +31,11 @@
 #define FORCE_INLINE __forceinline
 #define FORCE_FLATTEN [[msvc::flatten]]
 
+// Excludes a function from AddressSanitizer checks (/fsanitize=address)
+// Only for intended reads beyond an object that can't fault, e.g. word-wise string scans
+// (aligned word reads never cross into the next page, the bytes behind the terminator are ignored)
+#define NO_SANITIZE_ADDRESS __declspec(no_sanitize_address)
+
 #define compiler_debug_print(message) OutputDebugStringA((message))
 
 #define compiler_popcount_32(data) __popcnt((data))
@@ -253,6 +258,26 @@ void compiler_memcpy_aligned_8(
     #else
         __movsq((unsigned long long*) dst, (const unsigned long long*) src, size >> 3);
     #endif
+}
+
+// Stores a word at any address (a direct store through a misaligned size_t* is undefined behavior)
+// Compiles to a single store
+FORCE_INLINE
+void compiler_store_unaligned(void* const dst, size_t value) NO_EXCEPT
+{
+    memcpy(dst, &value, sizeof(value));
+}
+
+// Loads a value from any address (a load through a misaligned pointer is undefined behavior)
+// Compiles to a single load
+template <typename T>
+FORCE_INLINE
+T compiler_load_unaligned(const void* const src) NO_EXCEPT
+{
+    T value;
+    memcpy(&value, src, sizeof(value));
+
+    return value;
 }
 
 FORCE_INLINE HOT_CODE

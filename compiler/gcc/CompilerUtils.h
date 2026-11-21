@@ -28,6 +28,11 @@
 #define FORCE_INLINE __attribute__((always_inline)) inline
 #define FORCE_FLATTEN __attribute__((flatten))
 
+// Excludes a function from AddressSanitizer checks
+// Only for intended reads beyond an object that can't fault, e.g. word-wise string scans
+// (aligned word reads never cross into the next page, the bytes behind the terminator are ignored)
+#define NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
+
 #include <unistd.h>
 #define compiler_debug_print(message) ({ const char* message_temp = message; while (*message_temp) { write(STDOUT_FILENO, (message_temp++), 1); } })
 
@@ -138,6 +143,26 @@ void compiler_memcpy_aligned_8(
 )
 {
     __builtin_memcpy(dst, src, size);
+}
+
+// Stores a word at any address (a direct store through a misaligned size_t* is undefined behavior)
+// Compiles to a single store
+FORCE_INLINE
+void compiler_store_unaligned(void* const dst, size_t value) NO_EXCEPT
+{
+    __builtin_memcpy(dst, &value, sizeof(value));
+}
+
+// Loads a value from any address (a load through a misaligned pointer is undefined behavior)
+// Compiles to a single load
+template <typename T>
+FORCE_INLINE
+T compiler_load_unaligned(const void* const src) NO_EXCEPT
+{
+    T value;
+    __builtin_memcpy(&value, src, sizeof(value));
+
+    return value;
 }
 
 // 8 byte alignment required and size needs to be multiple of 8

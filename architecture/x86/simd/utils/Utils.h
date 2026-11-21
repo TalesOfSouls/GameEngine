@@ -69,7 +69,11 @@ bool is_empty(const byte* region, uint64 size, int32 steps = 8)
         #endif
         case 1: {
             while (region + 4 <= end) {
-                if (*((const uint32_t *) region) != 0) {
+                // region may be unaligned (steps 1 = no alignment), a misaligned uint32_t* read is undefined behavior
+                // memcpy compiles to a single load
+                uint32_t value;
+                memcpy(&value, region, sizeof(value));
+                if (value != 0) {
                     return false;
                 }
 
