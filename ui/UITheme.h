@@ -21,7 +21,7 @@
  *
  * The text format is the ui document syntax:
  *
- *      version 2
+ *      version 7
  *
  *      // Comment (only full line comments)
  *      @theme                          <- assets of the theme (hex asset ids, missing = not defined)

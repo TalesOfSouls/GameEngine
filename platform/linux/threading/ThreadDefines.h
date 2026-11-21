@@ -69,7 +69,8 @@ inline int futex_wake(atomic<int32>* futex, int n)
 }
 
 #define mutex_init(a, b) ((void)0)
-#define mutex_destroy(a, b) ((void)0)
+// Same signature as win32 (ThreadHelper.cpp): mutex_destroy(mutex)
+#define mutex_destroy(a) ((void)0)
 
 #define mutex_lock(mtx)                                                     \
 do {                                                                        \

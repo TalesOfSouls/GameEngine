@@ -4,7 +4,7 @@
 #include "../../system/Allocator.h"
 
 static const char UI_THEME_TEST_TXT[] =
-    "version 2\n"
+    "version 7\n"
     "\n"
     "// Type default\n"
     "@button\n"
@@ -67,7 +67,7 @@ static void test_theme_from_txt() {
 // Assets of the theme ("@theme" block, hex asset ids)
 static void test_theme_assets() {
     static const char txt[] =
-        "version 2\n"
+        "version 7\n"
         "@theme\n"
         "    font: 04000000\n"
         "    atlas: 0x0400000A\n"
@@ -76,7 +76,7 @@ static void test_theme_assets() {
         "    font_size: 20\n";
 
     static const char invalid_txt[] =
-        "version 2\n"
+        "version 7\n"
         "@theme\n"
         "    font: xyz\n"
         "    atlas: 123456789\n";

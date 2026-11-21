@@ -13,12 +13,12 @@
 #include "../localization/Language.cpp"
 
 /**
- * Theme file (.themetxt), version 2
+ * Theme file (.themetxt), version 7 (UI_THEME_VERSION)
  *
  * A theme is a list of named styles. A style is a set of element properties
  * that is applied to elements, it can also style the parts of an element ($title of a window, ...).
  *
- *      version 2
+ *      version 7
  *
  *      // Type default: applied to every element of this type (before the element styles)
  *      @button

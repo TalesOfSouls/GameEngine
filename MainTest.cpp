@@ -87,7 +87,10 @@
     #include "tests/ui/UIThemeTest.cpp"
     #include "tests/ui/UITextTest.cpp"
     #include "tests/asset/AssetArchiveTest.cpp"
-    #include "tests/system/DRMTest.cpp"
+    // The DRM is only implemented for Windows (platform/win32/DRM.h)
+    #if _WIN32
+        #include "tests/system/DRMTest.cpp"
+    #endif
     #include "tests/system/FileUtilsTest.cpp"
 
     #if TEST_QOI
@@ -170,7 +173,9 @@ int main() {
         UIUIThemeTest();
         UIUITextTest();
         AssetArchiveTest();
-        DRMTest();
+        #if _WIN32
+            DRMTest();
+        #endif
         SystemFileUtilsTest();
 
         #if TEST_QOI
