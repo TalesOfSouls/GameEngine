@@ -190,12 +190,10 @@ void mesh_from_file_txt(
                 } break;
             case 5: {
                     // 'o'
-                    char text[100];
-                    int32 i = 0;
+                    // @todo The name isn't used yet -> skipped (the previous copy into an unchecked char[100] could overflow)
                     while (*pos != '\0' && *pos != ' ') {
-                        text[i++] = *pos++;
+                        ++pos;
                     }
-                    text[i] = '\0';
 
                     ++object_index;
                 } break;
@@ -264,12 +262,10 @@ void mesh_from_file_txt(
                 } break;
             case 8: {
                     // 'g'
-                    char text[100];
-                    int32 i = 0;
+                    // @todo The name isn't used yet -> skipped (the previous copy into an unchecked char[100] could overflow)
                     while (*pos != '\0' && *pos != ' ') {
-                        text[i++] = *pos++;
+                        ++pos;
                     }
-                    text[i] = '\0';
 
                     ++group_index;
                 } break;
@@ -281,48 +277,38 @@ void mesh_from_file_txt(
                 } break;
             case 10: {
                     // 'mtllib'
-                    char text[100];
-                    int32 i = 0;
+                    // @todo The name isn't used yet -> skipped (the previous copy into an unchecked char[100] could overflow)
                     while (*pos != '\0' && *pos != ' ') {
-                        text[i++] = *pos++;
+                        ++pos;
                     }
-                    text[i] = '\0';
                 } break;
             case 11: {
                     // 'hitlib'
-                    char text[100];
-                    int32 i = 0;
+                    // @todo The name isn't used yet -> skipped (the previous copy into an unchecked char[100] could overflow)
                     while (*pos != '\0' && *pos != ' ') {
-                        text[i++] = *pos++;
+                        ++pos;
                     }
-                    text[i] = '\0';
                 } break;
             case 12: {
                     // 'anilib'
-                    char text[100];
-                    int32 i = 0;
+                    // @todo The name isn't used yet -> skipped (the previous copy into an unchecked char[100] could overflow)
                     while (*pos != '\0' && *pos != ' ') {
-                        text[i++] = *pos++;
+                        ++pos;
                     }
-                    text[i] = '\0';
                 } break;
             case 13: {
                     // 'usemtl'
-                    char text[100];
-                    int32 i = 0;
+                    // @todo The name isn't used yet -> skipped (the previous copy into an unchecked char[100] could overflow)
                     while (*pos != '\0' && *pos != ' ') {
-                        text[i++] = *pos++;
+                        ++pos;
                     }
-                    text[i] = '\0';
                 } break;
             case 14: {
                     // 'usehit'
-                    char text[100];
-                    int32 i = 0;
+                    // @todo The name isn't used yet -> skipped (the previous copy into an unchecked char[100] could overflow)
                     while (*pos != '\0' && *pos != ' ') {
-                        text[i++] = *pos++;
+                        ++pos;
                     }
-                    text[i] = '\0';
                 } break;
             default: {
                 UNREACHABLE();
