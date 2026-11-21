@@ -829,7 +829,7 @@ bool input_has_active_keys(InputKey* const __restrict active_keys) NO_EXCEPT {
  * Counts the keys/buttons that went down this tick (e.g. for the actions per minute)
  *
  * Held keys and OS key repeats are not counted (they are HELD after the first tick),
- * mouse movement and the mouse wheel are no presses (@see input_raw_handle)
+ * mouse movement and the mouse wheel are no presses
  *
  * @param const InputKey* active_keys Active keys of an input state
  *
@@ -858,7 +858,7 @@ void input_controller_axes_default(Input* const input) NO_EXCEPT
 
 /**
  * Current value of a controller axis (-128 - 127), 0 if it is inside the deadzone or not mapped
- * The axes are active keys with absolute values (@see input_set_controller_state)
+ * The axes are active keys with absolute values
  *
  * @param uint32 button ControllerButton (e.g. Input::controller_axes[0])
  */
@@ -965,7 +965,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
 
     // Only a real change of the controller state is an input change (INPUT_STATE_GENERAL_INPUT_CHANGE)
     // The controllers are polled every tick and the latest report is re-applied even if nothing changed,
-    // marking every poll as a change made the ui re-cache every tick while a controller was connected (@see editor_ui_update)
+    // marking every poll as a change made the ui re-cache every tick while a controller was connected
     bool changed = false;
 
     // Check active keys that might need to be set to inactive

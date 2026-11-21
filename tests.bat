@@ -2,6 +2,10 @@
 set "start_time=%TIME%"
 cls
 
+REM Everything is relative to the repository root (= directory of this script, independent of its name)
+REM The tests also run from there (test data paths like "tests/object/model")
+pushd "%~dp0"
+
 set "EXE_NAME=MainTest"
 set "DESTINATION_DIR=..\build\cOMS"
 
@@ -12,15 +16,17 @@ set "DEFAULT_COMPILER_ARGS=/Oi /MT /nologo /Gm- /GR- /EHsc /W4 /wd4201 /wd4706 /
 
 if not defined DevEnvDir (call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat")
 
+REM vcvars64.bat may change the working directory
+cd /d "%~dp0"
+
 if "%Platform%" neq "x64" (
     echo ERROR: Platform is not "x64" - previous bat call failed.
+    popd
     exit /b 1
 )
 
-cd "%DESTINATION_DIR%"
-del *.pdb > NUL 2> NUL
-del *.idb > NUL 2> NUL
-cd ..\..\cOMS
+del "%DESTINATION_DIR%\*.pdb" > NUL 2> NUL
+del "%DESTINATION_DIR%\*.idb" > NUL 2> NUL
 
 REM Use /showIncludes for include debugging
 
@@ -43,9 +49,11 @@ if "%1"=="-d" (
     set "DEBUG_DATA=/Fd"%DESTINATION_DIR%\%EXE_NAME%.pdb" /Fm"%DESTINATION_DIR%\%EXE_NAME%.map""
 )
 
+REM Additional compiler arguments, e.g. the CI: set "TESTS_EXTRA_ARGS=/D TEST_QOI=0"
+
 REM Compile each .cpp file into an executable
 cl ^
-    %BUILD_FLAGS% %DEFAULT_COMPILER_ARGS% ^
+    %BUILD_FLAGS% %DEFAULT_COMPILER_ARGS% %TESTS_EXTRA_ARGS% ^
     /Fo"%DESTINATION_DIR%/" /Fe"%DESTINATION_DIR%\MainTest.exe" %DEBUG_DATA% ^
     MainTest.cpp ^
     /link /INCREMENTAL:no ^
@@ -55,10 +63,13 @@ cl ^
 REM Check if the compilation was successful
 if errorlevel 1 (
     echo Compilation failed for MainTest.cpp
+    popd
+    exit /b 1
 )
 
-REM Run the compiled executable
+REM Run the compiled executable, its exit code is the result of this script (1 = failed tests)
 "%DESTINATION_DIR%\MainTest.exe"
+set "TEST_RESULT=%errorlevel%"
 
 REM Calculate runtime
 set end_time=%time%
@@ -78,3 +89,6 @@ if 1%ms% lss 100 set ms=0%ms%
 
 set /a totalsecs = %hours%*3600 + %mins%*60 + %secs%
 echo Test (incl. build) time %hours%:%mins%:%secs%.%ms% (%totalsecs%.%ms%s total)
+
+popd
+exit /b %TEST_RESULT%

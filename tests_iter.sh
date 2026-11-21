@@ -1,6 +1,13 @@
 #!/bin/bash
 
-clear
+# No terminal (e.g. CI) -> nothing to clear
+if [ -t 1 ]; then
+    clear
+fi
+
+# Everything is relative to the repository root (= directory of this script, independent of its name)
+# The tests also run from there (test data paths like "tests/object/model")
+cd "$(dirname "$0")" || exit 1
 
 EXE_NAME="tests"
 DESTINATION_DIR="../build/tests"
@@ -35,7 +42,8 @@ source ./check_cpu_features.sh
 CPU_FEATURES=$(check_cpu_features)
 
 # Find all *Test.cpp files in the ./ directory and subdirectories
-find ./ -name "*Test.cpp" | while read -r test_file; do
+# Process substitution instead of a pipe: a piped loop runs in a subshell, its "exit 1" wouldn't end the script
+while read -r test_file; do
     # Get the base name of the file without extension
     basename=$(basename "$test_file" .cpp)
 
@@ -67,4 +75,4 @@ find ./ -name "*Test.cpp" | while read -r test_file; do
         echo "Test $basename failed"
         exit 1
     fi
-done
+done < <(find ./ -name "*Test.cpp")

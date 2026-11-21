@@ -1,0 +1,68 @@
+# Builds and runs the test suite (MainTest.cpp) on Windows (MSVC) and Linux (g++), debug + release
+#
+# The test scripts work from their own directory (independent of the checkout directory name) and
+# return the result of the tests as exit code -> a failed test or build fails the job
+#
+# QoiTest is disabled (TEST_QOI=0): it needs stb_image.h of the private EngineDependencies repository
+
+name: Tests
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows (${{ matrix.build }})
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [ debug, release ]
+
+    env:
+      TESTS_EXTRA_ARGS: /D TEST_QOI=0
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # cl.exe + environment (sets DevEnvDir + Platform, tests.bat then skips its own vcvars64.bat call)
+      - name: Set up MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        with:
+          arch: x64
+
+      - name: Build and run tests
+        shell: cmd
+        run: tests.bat ${{ matrix.build == 'release' && '-r' || '-d' }}
+
+  linux:
+    name: Linux (${{ matrix.build }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [ debug, release ]
+
+    env:
+      TESTS_EXTRA_ARGS: -DTEST_QOI=0
+
+      # Same SIMD level as the application builds (SSE4.2 + AVX2), never AVX-512
+      # (the runner cpu may support AVX-512, check_cpu_features.sh would enable it)
+      TESTS_CPU_FEATURES: -msse4.2 -mavx -mavx2 -mfma -D__SSE4_2__ -D__AVX__ -D__AVX2__ -D__FMA__
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build and run tests
+        run: bash test.sh ${{ matrix.build == 'release' && '-r' || '-d' }}

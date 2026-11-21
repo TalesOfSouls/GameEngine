@@ -32,7 +32,6 @@
  *          offset_x        added to the pen position before the quad (left side bearing)
  *          offset_y        bottom of the quad above the BOTTOM of the line box (y-up), not above the baseline
  *          advance_x       gap after the quad: the pen moves by offset_x + width + advance_x
- *                          (@see vertex_text_create in gpuapi/RenderUtils.h)
  *          uv_x/uv_y       top left corner in atlas pixels (y-down), the loader normalizes them
  *                          uv_start = (x / image_width, y / image_height)
  *                          uv_end   = uv_start + (width / image_width, height / image_height)

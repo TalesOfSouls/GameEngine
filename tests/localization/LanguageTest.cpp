@@ -59,15 +59,15 @@ static void test_language_from_txt() {
 
     // Cached lookup
     SimpleString<const char> cache = {};
-    TEST_TRUE(language_get_string_cached(&lang, &cache, "status_prefix").str == language_get(&lang, "status_prefix"));
+    TEST_TRUE(language_get_string(&lang, &cache, "status_prefix").str == language_get(&lang, "status_prefix"));
     TEST_EQUALS(cache.length, 8);
 
     // The cache is used -> the key doesn't matter anymore
-    TEST_TRUE(language_get_string_cached(&lang, &cache, "menu_quit").str == language_get(&lang, "status_prefix"));
+    TEST_TRUE(language_get_string(&lang, &cache, "menu_quit").str == language_get(&lang, "status_prefix"));
 
     // Binary layout (@see Language.h)
     TEST_EQUALS(sizeof(LanguageSlot), 16);
-    TEST_EQUALS(((const LanguageHeader *) lang.data)->version, LANGUAGE_BINARY_VERSION);
+    TEST_EQUALS(((const LanguageHeader *) lang.data)->version, LANGUAGE_VERSION);
 
     // Too small
     Language too_small = {};
@@ -131,7 +131,7 @@ static void test_language_key() {
     TEST_EQUALS(language_get_string(&lang, language_key("status_prefix")).length, 8);
 
     const char* cache = NULL;
-    TEST_TRUE(language_get_cached(&lang, &cache, language_key("format")) == language_get(&lang, "format"));
+    TEST_TRUE(language_get(&lang, &cache, language_key("format")) == language_get(&lang, "format"));
     TEST_TRUE(cache == language_get(&lang, "format"));
 
     platform_aligned_free((void **) &lang.data);

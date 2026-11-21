@@ -8,6 +8,12 @@
 // VoxelWorldMap still uses the removed HashMap (asset/entity refactor), not testable yet
 #define TEST_VOXEL 0
 
+// QoiTest compares with stb_image.h of the private EngineDependencies repository (../EngineDependencies)
+// The CI doesn't have it -> the CI builds with /D TEST_QOI=0 (-DTEST_QOI=0)
+#ifndef TEST_QOI
+    #define TEST_QOI 1
+#endif
+
 #include "stdlib/Stdlib.h"
 #include "utils/RandomUtils.h"
 
@@ -83,7 +89,10 @@
     #include "tests/asset/AssetArchiveTest.cpp"
     #include "tests/system/DRMTest.cpp"
     #include "tests/system/FileUtilsTest.cpp"
-    #include "tests/image/QoiTest.cpp"
+
+    #if TEST_QOI
+        #include "tests/image/QoiTest.cpp"
+    #endif
 #endif
 
 #if TEST_VOXEL
@@ -163,7 +172,10 @@ int main() {
         AssetArchiveTest();
         DRMTest();
         SystemFileUtilsTest();
-        QoiTest();
+
+        #if TEST_QOI
+            QoiTest();
+        #endif
     #endif
 
     #if TEST_VOXEL

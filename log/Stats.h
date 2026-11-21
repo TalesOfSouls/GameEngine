@@ -111,19 +111,6 @@ struct StatCounterHistory {
 static StatCounterHistory* _stats_counter = NULL;
 
 /**
- * Checks if a stat is collected
- *
- * @param bool debug Debug stat (STATS_*_DEBUG), these can be switched off with is_active
- *
- * @return bool
- */
-FORCE_INLINE
-bool stats_is_collecting(bool debug) NO_EXCEPT
-{
-    return _stats_counter && (!debug || _stats_counter->is_active.load(memory_order_relaxed));
-}
-
-/**
  * Sessions are for manual time frames
  * e.g. the programmer would like to log stats during a manually chose start and end time, likely across frames
  */
@@ -169,26 +156,29 @@ void stats_snapshot() NO_EXCEPT
 /**
  * Sets a counter variable
  *
- * User stats (debug = false) also store the value in persistent_stats (= latest value)
+ * User stats (debug_only = false) also store the value in persistent_stats (= latest value)
  * The history slot alone isn't enough to show the value to users: the slots advance with the application's
  * snapshot frequency (e.g. every rendered frame), the current slot is incomplete and other code may set the value
  * at a different frequency (e.g. the update thread)
  *
  * @param int32 id      Stats id
  * @param int64 value   New value
- * @param bool  debug   Debug stat (@see stats_is_collecting)
+ * @param bool  debug_only  Should only log in debug
  *
  * @return void
  */
 inline HOT_CODE
-void stats_set(int32 id, int64 value = 1, bool debug = false) NO_EXCEPT
+void stats_set(int32 id, int64 value = 1, bool debug_only = false) NO_EXCEPT
 {
-    if (!stats_is_collecting(debug)) {
+    if (!_stats_counter) {
         return;
     }
 
-    if (!debug) {
+    // User stats are always collected, debug stats only while active
+    if (!debug_only) {
         _stats_counter->persistent_stats[id].store(value, memory_order_relaxed);
+    } else if (!_stats_counter->is_active.load(memory_order_relaxed)) {
+        return;
     }
 
     atomic_set_relaxed(
@@ -207,24 +197,27 @@ void stats_set(int32 id, int64 value = 1, bool debug = false) NO_EXCEPT
 /**
  * Increments a counter variable
  *
- * User stats (debug = false) also keep a running total in persistent_stats,
- * users are shown rates calculated from it (e.g. bytes per second, @see stats_set why the slots aren't enough)
+ * User stats (debug_only = false) also keep a running total in persistent_stats,
+ * users are shown rates calculated from it (e.g. bytes per second)
  *
  * @param int32 id      Stats id
  * @param int64 by      Change amount
- * @param bool  debug   Debug stat (@see stats_is_collecting)
+ * @param bool  debug_only  Should only log in debug
  *
  * @return void
  */
 inline HOT_CODE
-void stats_increment(int32 id, int64 by = 1, bool debug = false) NO_EXCEPT
+void stats_increment(int32 id, int64 by = 1, bool debug_only = false) NO_EXCEPT
 {
-    if (!stats_is_collecting(debug)) {
+    if (!_stats_counter) {
         return;
     }
 
-    if (!debug) {
+    // User stats are always collected, debug stats only while active
+    if (!debug_only) {
         _stats_counter->persistent_stats[id].fetch_add(by, memory_order_relaxed);
+    } else if (!_stats_counter->is_active.load(memory_order_relaxed)) {
+        return;
     }
 
     atomic_add_relaxed(
@@ -243,23 +236,26 @@ void stats_increment(int32 id, int64 by = 1, bool debug = false) NO_EXCEPT
 /**
  * Decrements a counter variable
  *
- * User stats (debug = false) also keep a running total in persistent_stats (@see stats_increment)
+ * User stats (debug_only = false) also keep a running total in persistent_stats (@see stats_increment)
  *
  * @param int32 id      Stats id
  * @param int64 by      Change amount
- * @param bool  debug   Debug stat (@see stats_is_collecting)
+ * @param bool  debug_only  Should only log in debug
  *
  * @return void
  */
 inline HOT_CODE
-void stats_decrement(int32 id, int64 by = 1, bool debug = false) NO_EXCEPT
+void stats_decrement(int32 id, int64 by = 1, bool debug_only = false) NO_EXCEPT
 {
-    if (!stats_is_collecting(debug)) {
+    if (!_stats_counter) {
         return;
     }
 
-    if (!debug) {
+    // User stats are always collected, debug stats only while active
+    if (!debug_only) {
         _stats_counter->persistent_stats[id].fetch_sub(by, memory_order_relaxed);
+    } else if (!_stats_counter->is_active.load(memory_order_relaxed)) {
+        return;
     }
 
     atomic_sub_relaxed(
@@ -280,13 +276,14 @@ void stats_decrement(int32 id, int64 by = 1, bool debug = false) NO_EXCEPT
  *
  * @param int32 id  Stats id
  * @param int64 by  Change amount
+ * @param bool  debug_only  Should only log in debug
  *
  * @return void
  */
 inline HOT_CODE
-void stats_increment_persistent(int32 id, int64 by = 1, bool debug = false) NO_EXCEPT
+void stats_increment_persistent(int32 id, int64 by = 1, bool debug_only = false) NO_EXCEPT
 {
-    if (!stats_is_collecting(debug)) {
+    if (!_stats_counter || (debug_only && !_stats_counter->is_active.load(memory_order_relaxed))) {
         return;
     }
 
@@ -298,13 +295,14 @@ void stats_increment_persistent(int32 id, int64 by = 1, bool debug = false) NO_E
  *
  * @param int32 id  Stats id
  * @param int64 by  Change amount
+ * @param bool  debug_only  Should only log in debug
  *
  * @return void
  */
 inline HOT_CODE
-void stats_decrement_persistent(int32 id, int64 by = 1, bool debug = false) NO_EXCEPT
+void stats_decrement_persistent(int32 id, int64 by = 1, bool debug_only = false) NO_EXCEPT
 {
-    if (!stats_is_collecting(debug)) {
+    if (!_stats_counter || (debug_only && !_stats_counter->is_active.load(memory_order_relaxed))) {
         return;
     }
 
@@ -316,18 +314,22 @@ void stats_decrement_persistent(int32 id, int64 by = 1, bool debug = false) NO_E
  *
  * @param int32 id      Stats id
  * @param int64 value   Max value
+ * @param bool  debug_only  Should only log in debug
  *
  * @return void
  */
 inline HOT_CODE
-void stats_max_persistent(int32 id, int64 value, bool debug = false) NO_EXCEPT
+void stats_max_persistent(int32 id, int64 value, bool debug_only = false) NO_EXCEPT
 {
-    if (!stats_is_collecting(debug)) {
+    if (!_stats_counter || (debug_only && !_stats_counter->is_active.load(memory_order_relaxed))) {
         return;
     }
 
-    const int64 old = _stats_counter->persistent_stats[id].load();
-    _stats_counter->persistent_stats[id].store(OMS_MAX(old, value), memory_order_relaxed);
+    // Several threads may report the same stat -> only replace the value it was compared with
+    // A failed exchange loads the current value into old
+    atomic<int64>* const stat = &_stats_counter->persistent_stats[id];
+    int64 old = stat->load(memory_order_relaxed);
+    while (value > old && !stat->compare_exchange_weak(old, value, memory_order_relaxed)) {}
 }
 
 /**
@@ -335,18 +337,21 @@ void stats_max_persistent(int32 id, int64 value, bool debug = false) NO_EXCEPT
  *
  * @param int32 id      Stats id
  * @param int64 value   Min value
+ * @param bool  debug_only  Should only log in debug
  *
  * @return void
  */
 inline HOT_CODE
-void stats_min_persistent(int32 id, int64 value, bool debug = false) NO_EXCEPT
+void stats_min_persistent(int32 id, int64 value, bool debug_only = false) NO_EXCEPT
 {
-    if (!stats_is_collecting(debug)) {
+    if (!_stats_counter || (debug_only && !_stats_counter->is_active.load(memory_order_relaxed))) {
         return;
     }
 
-    const int64 old = _stats_counter->persistent_stats[id].load();
-    _stats_counter->persistent_stats[id].store(OMS_MIN(old, value), memory_order_relaxed);
+    // @see stats_max_persistent
+    atomic<int64>* const stat = &_stats_counter->persistent_stats[id];
+    int64 old = stat->load(memory_order_relaxed);
+    while (value < old && !stat->compare_exchange_weak(old, value, memory_order_relaxed)) {}
 }
 
 /**
@@ -354,13 +359,14 @@ void stats_min_persistent(int32 id, int64 value, bool debug = false) NO_EXCEPT
  *
  * @param int32 id      Stats id
  * @param int64 value   New value
+ * @param bool  debug_only  Should only log in debug
  *
  * @return void
  */
 inline HOT_CODE
-void stats_counter_persistent(int32 id, int64 value, bool debug = false) NO_EXCEPT
+void stats_counter_persistent(int32 id, int64 value, bool debug_only = false) NO_EXCEPT
 {
-    if (!stats_is_collecting(debug)) {
+    if (!_stats_counter || (debug_only && !_stats_counter->is_active.load(memory_order_relaxed))) {
         return;
     }
 
@@ -372,13 +378,14 @@ void stats_counter_persistent(int32 id, int64 value, bool debug = false) NO_EXCE
  *
  * @param int32 id      Stats id
  * @param int64 value   New value
+ * @param bool  debug_only  Should only log in debug
  *
  * @return void
  */
 inline HOT_CODE
-void stats_max(int32 id, int64 value, bool debug = false) NO_EXCEPT
+void stats_max(int32 id, int64 value, bool debug_only = false) NO_EXCEPT
 {
-    if (!stats_is_collecting(debug)) {
+    if (!_stats_counter || (debug_only && !_stats_counter->is_active.load(memory_order_relaxed))) {
         return;
     }
 
@@ -401,13 +408,14 @@ void stats_max(int32 id, int64 value, bool debug = false) NO_EXCEPT
  *
  * @param int32 id      Stats id
  * @param int64 value   New value
+ * @param bool  debug_only  Should only log in debug
  *
  * @return void
  */
 inline HOT_CODE
-void stats_min(int32 id, int64 value, bool debug = false) NO_EXCEPT
+void stats_min(int32 id, int64 value, bool debug_only = false) NO_EXCEPT
 {
-    if (!stats_is_collecting(debug)) {
+    if (!_stats_counter || (debug_only && !_stats_counter->is_active.load(memory_order_relaxed))) {
         return;
     }
 
@@ -534,6 +542,23 @@ void stats_log_to_file() NO_EXCEPT
 
     #define STATS_MAX_PERSISTENT_DEBUG(a, b) ((void) 0)
     #define STATS_MIN_PERSISTENT_DEBUG(a, b) ((void) 0)
+
+    #define STATS_SET(a, b) ((void) 0)
+    #define STATS_INCREMENT(a) ((void) 0)
+    #define STATS_INCREMENT_BY(a, b) ((void) 0)
+    #define STATS_DECREMENT(a) ((void) 0)
+    #define STATS_DECREMENT_BY(a, b) ((void) 0)
+    #define STATS_MAX(a, b) ((void) 0)
+    #define STATS_MIN(a, b) ((void) 0)
+
+    // Persistent stats, not per frame or tick
+    #define STATS_INCREMENT_PERSISTENT(a) ((void) 0)
+    #define STATS_INCREMENT_BY_PERSISTENT(a, b) ((void) 0)
+    #define STATS_DECREMENT_PERSISTENT(a) ((void) 0)
+    #define STATS_DECREMENT_BY_PERSISTENT(a, b) ((void) 0)
+    #define STATS_COUNTER_PERSISTENT(a, b) ((void) 0)
+    #define STATS_MAX_PERSISTENT(a, b) ((void) 0)
+    #define STATS_MIN_PERSISTENT(a, b) ((void) 0)
 
     #define STATS_SNAPSHOT() ((void) 0)
     #define STATS_SESSION_START() ((void) 0)

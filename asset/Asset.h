@@ -20,7 +20,7 @@ enum AssetMemoryState : byte {
     ASSET_MEMORY_STATE_VRAM_GC = 1 << 3,
 
     // The ram data was reloaded (hot reload), the vram data is still the old version
-    // The owner of the gpu data has to upload it again (@see asset_archive_asset_reload)
+    // The owner of the gpu data has to upload it again (e.g. data on filesystem changed)
     ASSET_MEMORY_STATE_VRAM_OUTDATED = 1 << 4,
 };
 

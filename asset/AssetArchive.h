@@ -141,7 +141,7 @@ struct AssetArchive {
     // Not created in debug/internal builds, the mapping would prevent rebuilding the file (hot reload)
     MMFHandle mmf;
 
-    // Hot reload (@see asset_archive_reload)
+    // Required for hot reload (e.g. asset changed on filesystem)
     // Absolute path + modification time of the file when it was loaded
     wchar_t path[PATH_MAX_LENGTH];
     uint64 last_modified;

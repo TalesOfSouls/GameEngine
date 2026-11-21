@@ -9,6 +9,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "../platform/win32/Window.h"
+#include "Display.h"
 
 struct WindowState {
     // The client usable content may have different dimensions than the window (size without borders etc.)
@@ -60,6 +61,9 @@ struct Window {
     byte state_flag;
 
     byte dpi;
+
+    // Display mode state (fullscreen resolution change, @see Display.cpp)
+    DisplayState display;
 
     const char* name;
 

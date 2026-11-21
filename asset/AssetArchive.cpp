@@ -234,7 +234,7 @@ void asset_archive_close(AssetArchive* const archive) {
         archive->fd_async = NULL;
     }
 
-    // Not created in debug/internal builds (@see asset_archive_load)
+    // Not created in debug/internal builds because we need asset reloading for those
     if (archive->mmf) {
         file_mmf_close(archive->mmf);
         archive->mmf = NULL;
@@ -252,7 +252,7 @@ void asset_archive_load(
 
     LOG_1("[INFO] Load AssetArchive");
 
-    // Hot reload (@see asset_archive_reload)
+    // Hot reload
     str_copy(archive->path, path, (int32) OMS_MIN(str_length(path), (size_t) (PATH_MAX_LENGTH - 1)));
     archive->last_modified = file_last_modified(path);
 
@@ -654,9 +654,6 @@ Asset* const asset_archive_asset_load(
  * already loaded are decoded again into their existing memory. Everything that references
  * the asset memory stays valid (e.g. font->glyphs, the texture of an atlas).
  *
- * WARNING: Nothing may read the archive or the assets during the reload
- *          (e.g. the application stops all threads before, @see assets_reload.h in the editor)
- *
  * Restrictions (-> restart required)
  *      - the amount of assets/dependencies and the type of every asset must stay the same
  *      - a reloaded asset must fit into the memory of the loaded version
@@ -690,7 +687,7 @@ bool asset_archive_has_changed(const AssetArchive* const archive) NO_EXCEPT
  * Loads the header of the rebuilt archive file and opens the file again
  *
  * All or nothing: if anything fails the archive stays as it is.
- * The assets themselves are not reloaded (@see asset_archive_asset_reload)
+ * The assets themselves are not reloaded
  *
  * @param AssetArchive* archive Archive
  * @param BufferMemory* mem     Temporary memory
@@ -864,7 +861,7 @@ AssetArchiveReloadResult asset_archive_reload(
  *      TextureAtlas:   texture, the coordinates are inverted like cmd_texture_atlas_load() does
  * Assets with gpu data in vram are marked with ASSET_MEMORY_STATE_VRAM_OUTDATED.
  *
- * WARNING: The header of the archive must be reloaded before (@see asset_archive_reload)
+ * WARNING: The header of the archive must be reloaded before
  *
  * @param const AssetArchive* archive      Archive of the asset
  * @param Asset*              asset        Loaded asset (official_id is the asset id)
@@ -950,7 +947,7 @@ AssetArchiveReloadResult asset_archive_asset_reload(
             byte gpu_data[offsetof(Texture, image)];
             memcpy(gpu_data, texture, sizeof(gpu_data));
 
-            // The texture keeps its orientation (@see cmd_texture_load_sync)
+            // The texture keeps its orientation
             const byte orientation = texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP;
 
             // Images are decoded into a Texture (> Image) -> exact check of the pixel memory

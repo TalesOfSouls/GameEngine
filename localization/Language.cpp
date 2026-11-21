@@ -180,7 +180,7 @@ SimpleString<const char> language_get_string(const Language* const lang, const c
  * @return const char* NULL if the key doesn't exist
  */
 FORCE_INLINE
-const char* language_get_cached(const Language* const lang, const char** const cache, const LanguageKey& key) NO_EXCEPT
+const char* language_get(const Language* const lang, const char** const cache, const LanguageKey& key) NO_EXCEPT
 {
     if (!*cache) {
         *cache = language_get(lang, key);
@@ -190,7 +190,7 @@ const char* language_get_cached(const Language* const lang, const char** const c
 }
 
 FORCE_INLINE
-const char* language_get_cached(const Language* const lang, const char** const cache, const char* const key) NO_EXCEPT
+const char* language_get(const Language* const lang, const char** const cache, const char* const key) NO_EXCEPT
 {
     if (!*cache) {
         *cache = language_get(lang, key);
@@ -200,7 +200,7 @@ const char* language_get_cached(const Language* const lang, const char** const c
 }
 
 /**
- * language_get_string with a caller owned cache (@see language_get_cached)
+ * language_get_string with a caller owned cache
  * The cache MUST be reset (= {0, 0, NULL}) if the language is (re-)loaded
  *
  * @param SimpleString<const char>* cache Cached string (str == NULL = not looked up yet)
@@ -208,7 +208,7 @@ const char* language_get_cached(const Language* const lang, const char** const c
  * @return SimpleString<const char> {0, 0, NULL} if the key doesn't exist
  */
 FORCE_INLINE
-SimpleString<const char> language_get_string_cached(
+SimpleString<const char> language_get_string(
     const Language* const lang,
     SimpleString<const char>* const cache,
     const LanguageKey& key
@@ -222,7 +222,7 @@ SimpleString<const char> language_get_string_cached(
 }
 
 FORCE_INLINE
-SimpleString<const char> language_get_string_cached(
+SimpleString<const char> language_get_string(
     const Language* const lang,
     SimpleString<const char>* const cache,
     const char* const key
@@ -435,7 +435,7 @@ int32 language_from_txt(
         LOG_1("[WARNING] Language file version %d is not supported", {DATA_TYPE_INT32, &version});
     }
 
-    header->version = LANGUAGE_BINARY_VERSION;
+    header->version = LANGUAGE_VERSION;
     header->count = count;
     header->slot_count = slot_count;
     header->size = (int32) ALIGN_UP((int32) ((byte *) out - lang->data), (int32) sizeof(size_t));
@@ -489,7 +489,7 @@ int32 language_from_data(
     LOG_3("[INFO] Load language");
 
     const LanguageHeader* const header = (const LanguageHeader *) data;
-    if (header->version != LANGUAGE_BINARY_VERSION || header->size < (int32) sizeof(LanguageHeader)) {
+    if (header->version != LANGUAGE_VERSION || header->size < (int32) sizeof(LanguageHeader)) {
         LOG_1("[WARNING] Incompatible language version %d", {DATA_TYPE_INT32, (int32 *) &header->version});
         return -1;
     }

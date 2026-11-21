@@ -402,7 +402,7 @@ void theme_from_file_txt(
 /**
  * Binary representation:
  *
- * 00 01 02 03 = version (UI_THEME_BINARY_VERSION)
+ * 00 01 02 03 = version (UI_THEME_VERSION)
  * .. .. .. .. = hash map
  * .. .. .. .. = size of the document data
  * .. .. .. .. = document data (UIThemeData, text, nodes, properties, language)
@@ -414,7 +414,7 @@ int32 theme_to_data(
 {
     byte* out = data;
 
-    out = write_le(out, (int32) UI_THEME_BINARY_VERSION);
+    out = write_le(out, (int32) UI_THEME_VERSION);
     out += hashmap_dump(&theme->hash_map, out);
 
     // The document data (incl. the language) is position independent (offsets relative to theme->data)
@@ -447,7 +447,7 @@ int32 theme_from_data(
     int32 version;
     in = read_le(in, &version);
 
-    if (version != UI_THEME_BINARY_VERSION) {
+    if (version != UI_THEME_VERSION) {
         LOG_1("[WARNING] Incompatible theme version %d", {DATA_TYPE_INT32, &version});
 
         return -1;

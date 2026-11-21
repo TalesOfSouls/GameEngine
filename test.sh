@@ -1,7 +1,15 @@
 #!/bin/bash
 
 start_time=$(date +%s.%N)
-clear
+
+# No terminal (e.g. CI) -> nothing to clear
+if [ -t 1 ]; then
+    clear
+fi
+
+# Everything is relative to the repository root (= directory of this script, independent of its name)
+# The tests also run from there (test data paths like "tests/object/model")
+cd "$(dirname "$0")" || exit 1
 
 EXE_NAME="tests"
 DESTINATION_DIR="../build/tests"
@@ -30,20 +38,19 @@ fi
 
 source ./check_cpu_features.sh
 
-# Detect CPU features
-CPU_FEATURES=$(check_cpu_features)
+# Detect CPU features, TESTS_CPU_FEATURES overrides the detection (e.g. the CI uses fixed flags)
+CPU_FEATURES=${TESTS_CPU_FEATURES:-$(check_cpu_features)}
 
-# Compile the test program
-cd "$DESTINATION_DIR" || exit 1
-
+# Additional compiler arguments, e.g. the CI: TESTS_EXTRA_ARGS="-DTEST_QOI=0"
 g++ $BUILD_FLAGS -std=c++23 -m64 \
     -DUNICODE -D_UNICODE -D__linux__ \
     -Wno-unused-result \
     -fsanitize=address \
     -fsanitize=undefined \
     ${CPU_FEATURES} \
-    -o MainTest \
-    ../../cOMS/MainTest.cpp \
+    ${TESTS_EXTRA_ARGS} \
+    -o "$DESTINATION_DIR/MainTest" \
+    MainTest.cpp \
     $DEBUG_DATA
 
 # Check if the compilation was successful
@@ -52,8 +59,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Run the compiled executable
-./MainTest
+# Run the compiled executable, its exit code is the result of this script (1 = failed tests)
+"$DESTINATION_DIR/MainTest"
+test_result=$?
 
 # Calculate runtime
 end_time=$(date +%s.%N)
@@ -67,3 +75,5 @@ seconds=$(echo "$remaining % 60" | bc)
 # Format the output
 printf "Test (incl. build) time %02d:%02d:%05.2f (%.2fs total)\n" \
     $hours $minutes $seconds $elapsed_time
+
+exit $test_result

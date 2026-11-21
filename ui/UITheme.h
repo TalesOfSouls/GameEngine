@@ -11,14 +11,7 @@
 #include "../object/TextureAtlas.h"
 
 // Version 2: text format
-#define UI_THEME_VERSION 2
-
-// Version of the binary format
-// 3: + language
-// 4: + font/atlas asset ids
-// 6: language slots store the value length (LANGUAGE_BINARY_VERSION 3)
-// 7: new string hash of the style hash map
-#define UI_THEME_BINARY_VERSION 7
+#define UI_THEME_VERSION 7
 
 // Asset id of a theme asset that is not defined (0 is a valid asset id)
 #define UI_THEME_ASSET_NONE (-1)
@@ -59,11 +52,11 @@
  * fallback). The language is stored inside the binary theme if it was loaded
  * before theme_to_data().
  *
- * BINARY FORMAT: .themebin, version UI_THEME_BINARY_VERSION
+ * BINARY FORMAT: .themebin, version UI_THEME_VERSION
  * Also the payload of an ASSET_TYPE_THEME asset.
  *
  *      offset      size        type        field
- *      0           4           int32       version (UI_THEME_BINARY_VERSION)
+ *      0           4           int32       version (UI_THEME_VERSION)
  *      4           12          -           hash map header
  *      16          S           byte[S]     hash map slots (+ free bitmap)
  *      16 + S      4           int32       document_size = D

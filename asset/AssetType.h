@@ -19,7 +19,7 @@ enum AssetType : byte {
     ASSET_TYPE_THEME,
     ASSET_TYPE_IMAGE,
 
-    // Model file: model + materials/animations/particles (@see object/Model.h)
+    // Model file: model + materials/animations/particles
     ASSET_TYPE_MODEL,
 
     ASSET_TYPE_SIZE

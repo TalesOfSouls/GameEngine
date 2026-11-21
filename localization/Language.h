@@ -5,11 +5,7 @@
 #include "../stdlib/Stdlib.h"
 
 // Version of the text format (.langtxt)
-#define LANGUAGE_VERSION 2
-
-// Version of the binary format (@see language_to_data)
-// 3: LanguageSlot stores the length of the value
-#define LANGUAGE_BINARY_VERSION 3
+#define LANGUAGE_VERSION 3
 
 #define LANGUAGE_DEFAULT_CODE L"en_US"
 
@@ -30,7 +26,7 @@
  *
  * Patterns like %n/%s are not interpreted here, they are just part of the string.
  *
- * BINARY FORMAT: .langbin / ASSET_TYPE_LANGUAGE payload, version LANGUAGE_BINARY_VERSION
+ * BINARY FORMAT: .langbin / ASSET_TYPE_LANGUAGE payload, version LANGUAGE_VERSION
  *
  * The file is exactly the memory footprint, so it can be used in place without copying or parsing:
  *
@@ -44,7 +40,7 @@
  *
  * LanguageHeader (16 bytes)
  *
- *      0   4   int32   version         LANGUAGE_BINARY_VERSION
+ *      0   4   int32   version         LANGUAGE_VERSION
  *      4   4   int32   count           amount of strings
  *      8   4   int32   slot_count      power of 2, >= 2 * count
  *      12  4   int32   size            total size incl. this header

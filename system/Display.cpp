@@ -60,13 +60,14 @@ int32 display_resolution_closest(int32 width, int32 height) NO_EXCEPT
 /**
  * Restores the desktop resolution of a monitor whose resolution was changed by the fullscreen mode
  *
- * @param DisplayState* display Display state
+ * @param Window* window Window (Window::display)
  *
  * @return void
  */
 static inline
-void display_exclusive_end(DisplayState* const display) NO_EXCEPT
+void display_exclusive_end(Window* const window) NO_EXCEPT
 {
+    DisplayState* const display = &window->display;
     if (!display->exclusive) {
         return;
     }
@@ -84,8 +85,7 @@ void display_exclusive_end(DisplayState* const display) NO_EXCEPT
  *
  * Must be called on the thread of the window (the window messages of SetWindowPos are sent synchronously)
  *
- * @param Window*       window          Window
- * @param DisplayState* display         Display state
+ * @param Window*       window          Window (the fullscreen state is stored in Window::display)
  * @param DisplayMode   mode            Display mode
  * @param int32         monitor_index   Index of the monitor (same order as display_info_get), -1 = primary
  * @param int32         width           Client width (windowed) or monitor resolution (fullscreen), 0 = monitor width
@@ -96,7 +96,6 @@ void display_exclusive_end(DisplayState* const display) NO_EXCEPT
 static inline
 void display_apply(
     Window* const window,
-    DisplayState* const display,
     DisplayMode mode,
     int32 monitor_index,
     int32 width, int32 height
@@ -127,8 +126,9 @@ void display_apply(
     window_unmaximize(window);
 
     // The old fullscreen resolution is always reverted first (other monitor, resolution or mode)
-    display_exclusive_end(display);
+    display_exclusive_end(window);
 
+    DisplayState* const display = &window->display;
     switch (mode) {
         case DISPLAY_MODE_FULLSCREEN: {
             if (display_resolution_set(monitor.name, width, height)) {
@@ -171,15 +171,15 @@ void display_apply(
  * Fullscreen mode: restores the desktop resolution if the window loses the focus (+ minimizes the window)
  * and changes the resolution again if it gets the focus back
  *
- * @param Window*       window  Window
- * @param DisplayState* display Display state
+ * @param Window*       window  Window (Window::display)
  * @param bool          focused The window has the focus
  *
  * @return void
  */
 static inline
-void display_focus_update(Window* const window, DisplayState* const display, bool focused) NO_EXCEPT
+void display_focus_update(Window* const window, bool focused) NO_EXCEPT
 {
+    DisplayState* const display = &window->display;
     if (!display->exclusive) {
         return;
     }
