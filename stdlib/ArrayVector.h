@@ -184,7 +184,7 @@ void array_vector_remove_value(ArrayVector<T>* vec, T value) NO_EXCEPT
 
         // Move elements after the found element forward
         if (i < vec->count - 1) {
-            memcpy(vec->elements + i, vec->elements + i + 1, sizeof(T) * (vec->count - i - 1));
+            memmove(vec->elements + i, vec->elements + i + 1, sizeof(T) * (vec->count - i - 1));
         }
 
         --vec->count;
@@ -197,7 +197,7 @@ void array_vector_remove_index(ArrayVector<T>* vec, int32 index) NO_EXCEPT
 {
     // Move elements after the found element forward
     if (index < vec->count - 1) {
-        memcpy(vec->elements + index, vec->elements + index + 1, sizeof(T) * (vec->count - index - 1));
+        memmove(vec->elements + index, vec->elements + index + 1, sizeof(T) * (vec->count - index - 1));
     }
 
     --vec->count;
