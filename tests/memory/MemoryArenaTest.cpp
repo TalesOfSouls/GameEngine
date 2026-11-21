@@ -155,7 +155,7 @@ static void test_mem_arena_stats() {
 
 static void test_mem_arena_alignment() {
     const int32 alignments[] = {8, 16, 32, 64};
-    MemoryArena* arenas[ARRAY_COUNT(alignments)] = {0};
+    MemoryArena* arenas[ARRAY_COUNT(alignments)] = {};
 
     for (uint32 i = 0; i < ARRAY_COUNT(alignments); ++i) {
         arenas[i] = mem_arena_alloc(1024, 1024, alignments[i]);

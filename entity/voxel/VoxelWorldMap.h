@@ -65,21 +65,21 @@ void voxel_chunk_mesh_build(HashMap* const map, VoxelChunk* const chunk) NO_EXCE
         int32 u = (axis + 1) % 3;
         int32 v = (axis + 2) % 3;
 
-        v3_int32 du = {0};
+        v3_int32 du = {};
         du.vec[axis] = 1;
 
-        v3_int32 dv = {0};
+        v3_int32 dv = {};
         dv.vec[v] = 1;
 
-        v3_int32 duu = {0};
+        v3_int32 duu = {};
         duu.vec[u] = 1;
 
         for (int32 d = -1; d < VOXEL_CHUNK_SIZE; ++d) {
             // Fill mask with faces between slices d and d + 1 along the axis
             for (int32 j = 0; j < VOXEL_CHUNK_SIZE; ++j) {
                 for (int32 i = 0; i < VOXEL_CHUNK_SIZE; ++i) {
-                    v3_int32 coordA = {0};
-                    v3_int32 coordB = {0};
+                    v3_int32 coordA = {};
+                    v3_int32 coordB = {};
 
                     // set u and v components
                     coordA.vec[u] = i;
@@ -158,11 +158,11 @@ void voxel_chunk_mesh_build(HashMap* const map, VoxelChunk* const chunk) NO_EXCE
                     // Build a quad covering [i..i+width-1] x [j..j+height-1] at boundary d
                     // Determine face normal: axis direction * (+1 or -1).
                     // If B (d) is solid -> normal points +axis. If A (d-1) is solid -> normal points -axis.
-                    v3_byte normal_int = {0};
+                    v3_byte normal_int = {};
 
                     bool front = false;
                     if (d >= 0) {
-                        v3_int32 coordB = {0};
+                        v3_int32 coordB = {};
                         coordB.vec[u] = i;
                         coordB.vec[v] = j;
                         coordB.vec[axis] = d;

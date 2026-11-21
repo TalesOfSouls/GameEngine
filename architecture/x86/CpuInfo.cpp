@@ -14,7 +14,7 @@
 
 uint64 cpu_info_features() {
     uint64 feature_bitfield = 0;
-    uint32 cpu_info[4] = {0};
+    uint32 cpu_info[4] = {};
 
     compiler_cpuid(cpu_info, 0x00000001);
     uint32 ecx = (uint32) cpu_info[2];

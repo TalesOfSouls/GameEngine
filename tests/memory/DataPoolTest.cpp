@@ -28,7 +28,7 @@ static void test_data_pool_bitmap_words() {
 }
 
 static void test_data_pool_alloc() {
-    DataPool pool = {0};
+    DataPool pool = {};
     pool_alloc(&pool, 8, 16);
 
     TEST_NOT_EQUALS(pool.memory, NULL);
@@ -59,10 +59,10 @@ static void test_data_pool_alloc() {
 }
 
 static void test_data_pool_init_buffer() {
-    BufferMemory buffer = {0};
+    BufferMemory buffer = {};
     buffer_alloc(&buffer, 2048, 2048);
 
-    DataPool pool = {0};
+    DataPool pool = {};
     pool_init(&pool, &buffer, 8, 16);
 
     TEST_NOT_EQUALS(pool.memory, NULL);
@@ -83,9 +83,9 @@ static void test_data_pool_init_buffer() {
 }
 
 static void test_data_pool_init_byte() {
-    alignas(64) byte raw[1024] = {0};
+    alignas(64) byte raw[1024] = {};
 
-    DataPool pool = {0};
+    DataPool pool = {};
     pool_init(&pool, raw, 4, 16);
 
     TEST_NOT_EQUALS(pool.memory, NULL);
@@ -94,19 +94,19 @@ static void test_data_pool_init_byte() {
     TEST_EQUALS(pool.chunk_size, 16);
 
     // An unaligned chunk size is aligned up by pool_init
-    DataPool aligned = {0};
+    DataPool aligned = {};
     pool_init(&aligned, raw, 4, 10);
     TEST_EQUALS(aligned.chunk_size, 16);
 
     // The memory starts at the requested alignment
-    DataPool offset = {0};
+    DataPool offset = {};
     pool_init(&offset, raw + 1, 4, 16);
     TEST_EQUALS((uintptr_t) offset.memory % offset.alignment, 0);
     TEST_EQUALS(offset.memory, raw + 8);
 }
 
 static void test_data_pool_reserve() {
-    DataPool pool = {0};
+    DataPool pool = {};
     pool_alloc(&pool, 8, 16);
 
     // Elements are reserved in ascending order
@@ -134,7 +134,7 @@ static void test_data_pool_reserve() {
 }
 
 static void test_data_pool_element_get() {
-    DataPool pool = {0};
+    DataPool pool = {};
     pool_alloc(&pool, 8, 16);
 
     pool_reserve(&pool, 3);
@@ -161,7 +161,7 @@ static void test_data_pool_element_get() {
 }
 
 static void test_data_pool_release() {
-    DataPool pool = {0};
+    DataPool pool = {};
     pool_alloc(&pool, 8, 16);
 
     pool_reserve(&pool, 2);
@@ -187,7 +187,7 @@ static void test_data_pool_release() {
 }
 
 static void test_data_pool_reserve_unused() {
-    DataPool pool = {0};
+    DataPool pool = {};
     pool_alloc(&pool, 8, 16);
 
     // Finds the first element that is not marked as used and marks it
@@ -208,7 +208,7 @@ static void test_data_pool_reserve_unused() {
 }
 
 static void test_data_pool_memory_get() {
-    DataPool pool = {0};
+    DataPool pool = {};
     pool_alloc(&pool, 8, 16);
 
     byte* two = pool_memory_get(&pool, 2);
@@ -231,7 +231,7 @@ static void test_data_pool_memory_get() {
 }
 
 static void test_data_pool_defragment() {
-    DataPool pool = {0};
+    DataPool pool = {};
     pool_alloc(&pool, 8, 16);
 
     // Reserve the first four chunks and hand out element 0 by pointer
@@ -282,13 +282,13 @@ static void test_data_pool_defragment() {
 }
 
 static void test_data_pool_round_trip() {
-    DataPool pool = {0};
+    DataPool pool = {};
     pool_alloc(&pool, 8, sizeof(DataPoolElement));
 
     // The pool handles it's own chunk size, write through the returned pointers
     const DataPoolElement reference[] = {{1, 10}, {2, 20}, {3, 30}};
 
-    DataPoolElement* elements[3] = {0};
+    DataPoolElement* elements[3] = {};
     for (int32 i = 0; i < 3; ++i) {
         elements[i] = (DataPoolElement *) pool_memory_get_one(&pool);
         TEST_NOT_EQUALS(elements[i], NULL);

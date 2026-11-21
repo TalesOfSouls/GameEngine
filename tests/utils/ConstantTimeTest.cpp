@@ -73,7 +73,7 @@ static void test_constant_time_memzero()
     TEST_EQUALS(data[6], 0xAA);
     TEST_EQUALS(data[7], 0xAA);
 
-    const byte zeroes[5] = {0};
+    const byte zeroes[5] = {};
     TEST_MEMORY_EQUALS(data + 1, zeroes, 5);
 
     byte untouched[2] = {0xAA, 0xBB};
@@ -83,7 +83,7 @@ static void test_constant_time_memzero()
 
     byte full[4] = {0xFF, 0xFF, 0xFF, 0xFF};
     ct_memzero(full, sizeof(full));
-    const byte full_zeroes[4] = {0};
+    const byte full_zeroes[4] = {};
     TEST_MEMORY_EQUALS(full, full_zeroes, sizeof(full));
 }
 

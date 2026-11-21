@@ -226,7 +226,7 @@
     #define MAYBE_UNUSED
 
     // This is stupid but CONSTEXPR variables in c++17 must be initialized
-    #define INITIALIZER ={0}
+    #define INITIALIZER ={}
 
     // In c++17 we have to simulate a pseudo variable use since maybe_unused doesn't exist
     // Otherwise the compiler will complain about a unused variable

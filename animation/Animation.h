@@ -15,7 +15,7 @@
 #include "AnimationEaseType.h"
 
 FORCE_INLINE
-f32 lerp(f32 a, f32 b, f32 t) NO_EXCEPT
+f32 lerp_fast(f32 a, f32 b, f32 t) NO_EXCEPT
 {
     // FMA version (less stable but faster)
     return t * (b - a) + a;
@@ -267,12 +267,19 @@ f32 anim_ease_out_bounce(f32 t) NO_EXCEPT
     if (t < 1.0f / d1) {
         return n1 * t * t;
     } else if (t < 2.0f / d1) {
-        return n1 * (t -= 1.5f / d1) * t + 0.75f;
+        // Separate statements: "(t -= x) * t" modifies and reads t without a sequence point (undefined behavior)
+        t -= 1.5f / d1;
+
+        return n1 * t * t + 0.75f;
     } else if (t < 2.5f / d1) {
-        return n1 * (t -= 2.25f / d1) * t + 0.9375f;
+        t -= 2.25f / d1;
+
+        return n1 * t * t + 0.9375f;
     }
 
-    return n1 * (t -= 2.625f / d1) * t + 0.984375f;
+    t -= 2.625f / d1;
+
+    return n1 * t * t + 0.984375f;
 }
 
 FORCE_INLINE

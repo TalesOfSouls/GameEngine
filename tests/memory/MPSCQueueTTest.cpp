@@ -17,7 +17,7 @@ struct MPSCQueueElement {
 };
 
 static void test_mpsc_queue_alloc() {
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 8);
 
     TEST_NOT_EQUALS(queue.memory, NULL);
@@ -42,8 +42,8 @@ static void test_mpsc_queue_alloc() {
 
 static void test_mpsc_queue_init_buffer() {
     // The slot ready flags live in the same buffer as the elements
-    alignas(64) byte raw[512] = {0};
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    alignas(64) byte raw[512] = {};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_init(&queue, raw, 4);
 
     TEST_EQUALS(queue.memory, (MPSCQueueElement *) raw);
@@ -56,10 +56,10 @@ static void test_mpsc_queue_init_buffer() {
     TEST_FALSE(queue_is_empty(&queue));
 
     // BufferMemory variant carves the memory out of the buffer
-    BufferMemory buffer = {0};
+    BufferMemory buffer = {};
     buffer_alloc(&buffer, 1024, 1024);
 
-    MPSCQueueT<MPSCQueueElement> second = {0};
+    MPSCQueueT<MPSCQueueElement> second = {};
     queue_init(&second, &buffer, 4);
 
     TEST_NOT_EQUALS(second.memory, NULL);
@@ -71,11 +71,11 @@ static void test_mpsc_queue_init_buffer() {
 }
 
 static void test_mpsc_queue_enqueue_dequeue() {
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // Empty queue
-    MPSCQueueElement out = {0};
+    MPSCQueueElement out = {};
     TEST_FALSE(queue_dequeue(&queue, &out));
     TEST_EQUALS(queue_dequeue_keep(&queue), NULL);
 
@@ -109,7 +109,7 @@ static void test_mpsc_queue_enqueue_dequeue() {
 }
 
 static void test_mpsc_queue_full() {
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // One slot stays empty -> 3 of 4 slots are usable
@@ -126,7 +126,7 @@ static void test_mpsc_queue_full() {
     TEST_EQUALS(queue_reserve_slot(&queue), NULL);
 
     // Consuming a slot reopens it
-    MPSCQueueElement out = {0};
+    MPSCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 0);
     TEST_TRUE(queue_has_space(&queue));
@@ -138,14 +138,14 @@ static void test_mpsc_queue_full() {
 }
 
 static void test_mpsc_queue_wrap() {
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     for (int32 i = 0; i < 10; ++i) {
         const MPSCQueueElement element = {i, i * 10};
         TEST_NOT_EQUALS(queue_enqueue(&queue, element), NULL);
 
-        MPSCQueueElement out = {0};
+        MPSCQueueElement out = {};
         TEST_TRUE(queue_dequeue(&queue, &out));
         TEST_EQUALS(out.id, i);
         TEST_EQUALS(out.value, i * 10);
@@ -159,7 +159,7 @@ static void test_mpsc_queue_wrap() {
 }
 
 static void test_mpsc_queue_publish() {
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // A claimed but unpublished slot is not visible to the consumer
@@ -186,7 +186,7 @@ static void test_mpsc_queue_publish() {
 }
 
 static void test_mpsc_queue_dequeue_keep() {
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     const MPSCQueueElement a = {1, 10};
@@ -203,7 +203,7 @@ static void test_mpsc_queue_dequeue_keep() {
     // The start variant returns the same slot as keep
     TEST_EQUALS(queue_dequeue_start(&queue), kept);
 
-    MPSCQueueElement out = {0};
+    MPSCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 1);
 
@@ -218,7 +218,7 @@ static void test_mpsc_queue_dequeue_keep() {
 }
 
 static void test_mpsc_queue_wait() {
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // The waiting variants only block while the queue is full/empty
@@ -234,7 +234,7 @@ static void test_mpsc_queue_wait() {
     slot->value = 80;
     queue_enqueue_end(&queue, slot);
 
-    MPSCQueueElement out = {0};
+    MPSCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 7);
     TEST_TRUE(queue_dequeue(&queue, &out));
@@ -245,7 +245,7 @@ static void test_mpsc_queue_wait() {
 }
 
 static void test_mpsc_queue_round_trip() {
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_alloc(&queue, 8, 8);
 
     int32 produced = 0;
@@ -258,7 +258,7 @@ static void test_mpsc_queue_round_trip() {
             ++produced;
         }
 
-        MPSCQueueElement out = {0};
+        MPSCQueueElement out = {};
         if (queue_dequeue(&queue, &out)) {
             TEST_EQUALS(out.id, consumed);
             TEST_EQUALS(out.value, consumed * 3);
@@ -274,7 +274,7 @@ static void test_mpsc_queue_round_trip() {
 }
 
 static void test_mpsc_queue_multi_producer_order() {
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_alloc(&queue, 8, 8);
 
     // Two producers claim slots one after another, the consumer sees the claim order
@@ -287,7 +287,7 @@ static void test_mpsc_queue_multi_producer_order() {
     TEST_NOT_EQUALS(queue_enqueue(&queue, b), NULL);
     TEST_NOT_EQUALS(queue_enqueue(&queue, c), NULL);
 
-    MPSCQueueElement out = {0};
+    MPSCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 1);
 
@@ -308,7 +308,7 @@ static void test_mpsc_queue_multi_producer_order() {
 static void test_mpsc_queue_arena() {
     MemoryArena* root = mem_arena_alloc(8192, 8192);
 
-    MPSCQueueT<MPSCQueueElement> queue = {0};
+    MPSCQueueT<MPSCQueueElement> queue = {};
     queue_alloc(&queue, root, 4, 4);
 
     TEST_NOT_EQUALS(queue.memory, NULL);
@@ -319,7 +319,7 @@ static void test_mpsc_queue_arena() {
     const MPSCQueueElement element = {1, 10};
     TEST_NOT_EQUALS(queue_enqueue(&queue, element), NULL);
 
-    MPSCQueueElement out = {0};
+    MPSCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 1);
 

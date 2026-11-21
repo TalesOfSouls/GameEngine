@@ -202,14 +202,14 @@ void sha256_final(Sha256Context* const ctx, byte* const digest) NO_EXCEPT
     index = (size_t) (ctx->count & (SHA256_BLOCK_SIZE - 1));
 
     if (index > 56) {
-        const byte zeros[SHA256_BLOCK_SIZE] = {0};
+        const byte zeros[SHA256_BLOCK_SIZE] = {};
         sha256_update(ctx, zeros, SHA256_BLOCK_SIZE - index);
 
         index = 0;
     }
 
     // Pad up to the length field
-    const byte zeros[SHA256_BLOCK_SIZE] = {0};
+    const byte zeros[SHA256_BLOCK_SIZE] = {};
     sha256_update(ctx, zeros, 56 - index);
 
     byte length_bytes[8];

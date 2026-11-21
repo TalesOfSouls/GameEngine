@@ -59,7 +59,7 @@ void backpack_move_item(Backpack* backpack, uint32 from, uint32 to)
         return;
     }
 
-    Item temp_item = {0};
+    Item temp_item = {};
     memcpy(&temp_item, backpack->items + to, sizeof(Item));
     int32 temp_quantity = backpack->quantities[to];
 

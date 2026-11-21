@@ -120,7 +120,7 @@ bool image_header_png_generate(const FileBody* src_data, Image* image)
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some asignment/copy overhead
-    Png src = {0};
+    Png src = {};
     generate_default_png_references(src_data, &src);
 
     // @todo Support color_type == 3

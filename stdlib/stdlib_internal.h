@@ -456,7 +456,7 @@ char* __internal_strstr(const char* __restrict haystack, const char* __restrict 
 
 char* __internal_strchr(const char* str, char needle) NO_EXCEPT
 {
-    const byte target = (const byte) needle;
+    const byte target = (byte) needle;
     const size_t mask = ((size_t)-1 / 0xFF) * target;
 
     // Align to word boundary

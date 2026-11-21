@@ -67,7 +67,7 @@ bool drm_debug_object_present() NO_EXCEPT
 
 bool drm_is_being_debugged() NO_EXCEPT
 {
-    PROCESS_BASIC_INFORMATION pbi = {0};
+    PROCESS_BASIC_INFORMATION pbi = {};
     ULONG ret_length = 0;
 
     const NTSTATUS status = NtQueryInformationProcess(
@@ -89,7 +89,7 @@ bool drm_is_being_debugged() NO_EXCEPT
 
 bool drm_has_hardware_breakpoints() NO_EXCEPT
 {
-    CONTEXT ctx = {0};
+    CONTEXT ctx = {};
     ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
     if (!GetThreadContext(GetCurrentThread(), &ctx)) {
         return false;

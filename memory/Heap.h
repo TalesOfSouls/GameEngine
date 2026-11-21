@@ -28,7 +28,7 @@ void heap_alloc(
     uint64 capacity, uint64 max_capacity,
     int32 (*compare)(const void*, const void*)
 ) {
-    ASSERT_TRUE(element_size * capacity);
+    ASSERT_TRUE(element_size && capacity);
 
     // +1 element for the swap helper memory
     heap->elements = (byte *) platform_alloc_aligned(
@@ -70,7 +70,7 @@ void heap_init(
     uint64 capacity,
     int32 (*compare)(const void*, const void*)
 ) {
-    ASSERT_TRUE(element_size * capacity);
+    ASSERT_TRUE(element_size && capacity);
 
     // +1 element for the swap helper memory
     heap->elements = memory_get(buf, element_size * capacity + element_size, sizeof(size_t));

@@ -74,10 +74,10 @@ static void test_asset_archive() {
     /////////////////////////////////////////////////
     // 2. Load the archive file
     /////////////////////////////////////////////////
-    BufferMemory mem = {0};
+    BufferMemory mem = {};
     buffer_alloc(&mem, 64 * KILOBYTE, 64 * KILOBYTE);
 
-    AssetArchive archive = {0};
+    AssetArchive archive = {};
     archive.data = (byte *) memory_get(&mem, 16 * KILOBYTE, alignof(size_t));
     archive.data_size = 16 * KILOBYTE;
 
@@ -106,7 +106,7 @@ static void test_asset_archive() {
     TEST_EQUALS(element->dependency_count, 0);
 
     // The payloads are stored unmodified
-    FileBody loaded_file = {0};
+    FileBody loaded_file = {};
     loaded_file.content = (byte *) memory_get(&mem, archive_size + 1, alignof(size_t));
     file_read(archive_path, &loaded_file, 0, &mem);
 

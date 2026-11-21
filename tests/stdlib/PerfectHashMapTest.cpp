@@ -35,7 +35,7 @@ static const TestPerfectHashFunction TEST_PERFECT_HASH_FUNCTIONS[] = {
     hash_ejb_seeded
 };
 
-static const char* test_perfect_map_key_pointers[TEST_PERFECT_MAP_MAX_KEYS] = {0};
+static const char* test_perfect_map_key_pointers[TEST_PERFECT_MAP_MAX_KEYS] = {};
 
 static void test_perfect_map_fill_keys(char keys[][TEST_PERFECT_MAP_KEY_BUFFER], int32 count, const char* prefix) {
     for (int32 i = 0; i < count; ++i) {
@@ -106,7 +106,7 @@ static void test_perfect_hashmap_key_tail() {
 }
 
 static void test_perfect_hashmap_alloc_size() {
-    PerfectHashMap hm = {0};
+    PerfectHashMap hm = {};
     perfect_hashmap_alloc(&hm, 32, sizeof(PerfectHashEntryInt32));
 
     TEST_EQUALS(hm.map_count, 32);
@@ -135,7 +135,7 @@ static void test_perfect_hashmap_prepare_int32() {
     const int32 key_count = 16;
     test_perfect_map_fill_keys(keys, key_count, "asset");
 
-    PerfectHashMap hm = {0};
+    PerfectHashMap hm = {};
     PerfectHashMap* prepared = test_perfect_map_prepare(
         &hm, TEST_PERFECT_MAP_TABLE_SIZE, sizeof(PerfectHashEntryInt32),
         test_perfect_map_keys(keys, key_count), key_count, &ring
@@ -196,14 +196,14 @@ static void test_perfect_hashmap_insert_types() {
     test_perfect_map_fill_keys(keys, key_count, "type");
     const char** key_pointers = test_perfect_map_keys(keys, key_count);
 
-    int32 payload[key_count] = {0};
+    int32 payload[key_count] = {};
     for (int32 i = 0; i < key_count; ++i) {
         payload[i] = i * 7;
     }
 
     // int64
     {
-        PerfectHashMap hm = {0};
+        PerfectHashMap hm = {};
         TEST_NOT_EQUALS(test_perfect_map_prepare(&hm, 64, sizeof(PerfectHashEntryInt64), key_pointers, key_count, &ring), NULL);
 
         for (int32 i = 0; i < key_count; ++i) {
@@ -224,7 +224,7 @@ static void test_perfect_hashmap_insert_types() {
 
     // int32 + int32
     {
-        PerfectHashMap hm = {0};
+        PerfectHashMap hm = {};
         TEST_NOT_EQUALS(test_perfect_map_prepare(&hm, 64, sizeof(PerfectHashEntryInt32Int32), key_pointers, key_count, &ring), NULL);
 
         for (int32 i = 0; i < key_count; ++i) {
@@ -243,7 +243,7 @@ static void test_perfect_hashmap_insert_types() {
 
     // uintptr_t
     {
-        PerfectHashMap hm = {0};
+        PerfectHashMap hm = {};
         TEST_NOT_EQUALS(test_perfect_map_prepare(&hm, 64, sizeof(PerfectHashEntryUIntPtr), key_pointers, key_count, &ring), NULL);
 
         for (int32 i = 0; i < key_count; ++i) {
@@ -262,7 +262,7 @@ static void test_perfect_hashmap_insert_types() {
 
     // void*
     {
-        PerfectHashMap hm = {0};
+        PerfectHashMap hm = {};
         TEST_NOT_EQUALS(test_perfect_map_prepare(&hm, 64, sizeof(PerfectHashEntryVoidP), key_pointers, key_count, &ring), NULL);
 
         for (int32 i = 0; i < key_count; ++i) {
@@ -279,7 +279,7 @@ static void test_perfect_hashmap_insert_types() {
 
     // f32
     {
-        PerfectHashMap hm = {0};
+        PerfectHashMap hm = {};
         TEST_NOT_EQUALS(test_perfect_map_prepare(&hm, 64, sizeof(PerfectHashEntryFloat), key_pointers, key_count, &ring), NULL);
 
         for (int32 i = 0; i < key_count; ++i) {
@@ -295,7 +295,7 @@ static void test_perfect_hashmap_insert_types() {
 
     // const char*
     {
-        PerfectHashMap hm = {0};
+        PerfectHashMap hm = {};
         TEST_NOT_EQUALS(test_perfect_map_prepare(&hm, 64, sizeof(PerfectHashEntryStr), key_pointers, key_count, &ring), NULL);
 
         char values[key_count][32] = {{0}};
@@ -322,7 +322,7 @@ static void test_perfect_hashmap_delete() {
     const int32 key_count = 8;
     test_perfect_map_fill_keys(keys, key_count, "del");
 
-    PerfectHashMap hm = {0};
+    PerfectHashMap hm = {};
     TEST_NOT_EQUALS(
         test_perfect_map_prepare(&hm, 64, sizeof(PerfectHashEntryInt32), test_perfect_map_keys(keys, key_count), key_count, &ring),
         NULL
@@ -375,7 +375,7 @@ static void test_perfect_hashmap_long_keys() {
     strcpy(keys[2], "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
     strcpy(keys[3], "xyz_0123456789ABCDEFGHIJKLMNOPQRSTUV");
 
-    PerfectHashMap hm = {0};
+    PerfectHashMap hm = {};
     TEST_NOT_EQUALS(
         test_perfect_map_prepare(&hm, 64, sizeof(PerfectHashEntryInt32), test_perfect_map_keys(keys, key_count), key_count, &ring),
         NULL
@@ -417,7 +417,7 @@ static void test_perfect_hashmap_prepare_failure() {
     const int32 key_count = 8;
     test_perfect_map_fill_keys(keys, key_count, "fail");
 
-    PerfectHashMap hm = {0};
+    PerfectHashMap hm = {};
     perfect_hashmap_alloc(&hm, 4, sizeof(PerfectHashEntryInt32));
 
     // ASSERT_THROW() crashes a debug build on purpose
@@ -437,7 +437,7 @@ static void test_perfect_hashmap_dump_load() {
     const int32 key_count = 12;
     test_perfect_map_fill_keys(keys, key_count, "dump");
 
-    PerfectHashMap hm = {0};
+    PerfectHashMap hm = {};
     TEST_NOT_EQUALS(
         test_perfect_map_prepare(&hm, 128, sizeof(PerfectHashEntryInt32), test_perfect_map_keys(keys, key_count), key_count, &ring),
         NULL
@@ -447,7 +447,7 @@ static void test_perfect_hashmap_dump_load() {
         perfect_hashmap_insert(&hm, keys[i], i * 11);
     }
 
-    byte dump_buffer[8192] = {0};
+    byte dump_buffer[8192] = {};
     const int64 dump_size = perfect_hashmap_dump(&hm, dump_buffer);
 
     // 4 * int32 header (map_count, hash_seed, hash function index, entry_size) + entries
@@ -455,8 +455,8 @@ static void test_perfect_hashmap_dump_load() {
     TEST_TRUE(dump_size <= (int64) sizeof(dump_buffer));
 
     // Load into a second, separately initialized instance
-    byte load_buffer[8192] = {0};
-    PerfectHashMap loaded = {0};
+    byte load_buffer[8192] = {};
+    PerfectHashMap loaded = {};
     perfect_hashmap_init(&loaded, hm.map_count, hm.entry_size, load_buffer);
 
     TEST_EQUALS(loaded.hash_entries, load_buffer);
@@ -491,13 +491,13 @@ static void test_perfect_hashmap_ref() {
     test_perfect_map_fill_keys(keys, key_count, "blob");
 
     // The ref map stores offset + size in the entry and the data in a separate area
-    PerfectHashMapRef ref = {0};
+    PerfectHashMapRef ref = {};
     TEST_NOT_EQUALS(
         test_perfect_map_prepare(&ref.hm, 64, sizeof(PerfectHashEntryInt32Int32), test_perfect_map_keys(keys, key_count), key_count, &ring),
         NULL
     );
 
-    byte data_area[512] = {0};
+    byte data_area[512] = {};
     ref.data = data_area;
     ref.data_pos = 0;
     ref.data_size = (int32) sizeof(data_area);
@@ -536,14 +536,14 @@ static void test_perfect_hashmap_from_hashmap() {
     ring_alloc(&ring, 1024 * 1024, 1024 * 1024);
 
     // Source hash map
-    HashMapT<HashEntryStrT<int32>> source = {0};
+    HashMapT<HashEntryStrT<int32>> source = {};
     hashmap_alloc(&source, 8, 8);
 
     hashmap_insert(&source, "alpha", 11);
     hashmap_insert(&source, "beta", 22);
     hashmap_insert(&source, "gamma", 33);
 
-    PerfectHashMap phm = {0};
+    PerfectHashMap phm = {};
     perfect_hashmap_alloc(&phm, 32, sizeof(PerfectHashEntryInt32));
 
     TEST_TRUE(perfect_hashmap_from_hashmap(&phm, &source, TEST_PERFECT_MAP_SEED_TRIES, &ring));
@@ -566,7 +566,7 @@ static void test_perfect_hashmap_from_hashmap() {
 
 static void test_perfect_hashmap_hash_functions() {
     // Every function of the table has to be deterministic
-    for (int32 i = 0; i < ARRAY_COUNT(TEST_PERFECT_HASH_FUNCTIONS); ++i) {
+    for (int32 i = 0; i < (int32) ARRAY_COUNT(TEST_PERFECT_HASH_FUNCTIONS); ++i) {
         const TestPerfectHashFunction function = TEST_PERFECT_HASH_FUNCTIONS[i];
 
         const uint64 first = function("key_0", 1234);
@@ -586,7 +586,7 @@ static void test_perfect_hashmap_hash_functions() {
 }
 
 static void test_perfect_hashmap_hash_seed() {
-    for (int32 i = 0; i < ARRAY_COUNT(TEST_PERFECT_HASH_FUNCTIONS); ++i) {
+    for (int32 i = 0; i < (int32) ARRAY_COUNT(TEST_PERFECT_HASH_FUNCTIONS); ++i) {
         const TestPerfectHashFunction function = TEST_PERFECT_HASH_FUNCTIONS[i];
 
         const uint64 seed_a = function("key_1", 1);
@@ -614,7 +614,7 @@ static void test_perfect_hashmap_prepare_search() {
     int32 found_seed = 0;
     int32 used_tries = 0;
 
-    for (int32 function_index = 0; function_index < ARRAY_COUNT(TEST_PERFECT_HASH_FUNCTIONS) && found_function < 0; ++function_index) {
+    for (int32 function_index = 0; function_index < (int32) ARRAY_COUNT(TEST_PERFECT_HASH_FUNCTIONS) && found_function < 0; ++function_index) {
         const TestPerfectHashFunction function = TEST_PERFECT_HASH_FUNCTIONS[function_index];
 
         for (int32 attempt = 0; attempt < 1000; ++attempt) {

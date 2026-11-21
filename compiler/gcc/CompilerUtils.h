@@ -150,6 +150,24 @@ void compiler_memset_aligned_8(void* dst, int value, size_t size) {
 #define SWAP_ENDIAN_32(val) __builtin_bswap32((val))
 #define SWAP_ENDIAN_64(val) __builtin_bswap64((val))
 
+// Same as compiler/msvc/CompilerUtils.h
+// __BYTE_ORDER__ is predefined by gcc/clang -> independent of the include order (OMS_LITTLE_ENDIAN is defined in Defines.h)
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    #define SWAP_ENDIAN_LITTLE_16(val) (val)
+    #define SWAP_ENDIAN_LITTLE_32(val) (val)
+    #define SWAP_ENDIAN_LITTLE_64(val) (val)
+    #define SWAP_ENDIAN_BIG_16(val) SWAP_ENDIAN_16(val)
+    #define SWAP_ENDIAN_BIG_32(val) SWAP_ENDIAN_32(val)
+    #define SWAP_ENDIAN_BIG_64(val) SWAP_ENDIAN_64(val)
+#else
+    #define SWAP_ENDIAN_LITTLE_16(val) SWAP_ENDIAN_16(val)
+    #define SWAP_ENDIAN_LITTLE_32(val) SWAP_ENDIAN_32(val)
+    #define SWAP_ENDIAN_LITTLE_64(val) SWAP_ENDIAN_64(val)
+    #define SWAP_ENDIAN_BIG_16(val) (val)
+    #define SWAP_ENDIAN_BIG_32(val) (val)
+    #define SWAP_ENDIAN_BIG_64(val) (val)
+#endif
+
 #define SINCOSF(x, s, c) sincosf(x, &s, &c)
 #define SINCOS(x, s, c) sincos(x, &s, &c)
 

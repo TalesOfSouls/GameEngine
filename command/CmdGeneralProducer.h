@@ -22,7 +22,7 @@ void thrd_cmd_insert(ThrdChunkMemoryT<AppCommand>* const __restrict cb, const Ap
 inline
 void thrd_cmd_insert(ThrdChunkMemoryT<AppCommand>* const cb, AppCommandFunction const func) NO_EXCEPT
 {
-    AppCommand cmd = {0};
+    AppCommand cmd = {};
     cmd.type = CMD_FUNC_RUN;
     cmd.func_body.func = func;
 

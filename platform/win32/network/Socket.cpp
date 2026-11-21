@@ -117,7 +117,7 @@ bool network_has_ipv6_address() NO_EXCEPT
         return false;
     }
 
-    IP_ADAPTER_ADDRESSES addresses[16384 / sizeof(IP_ADAPTER_ADDRESSES)] = {0};
+    IP_ADAPTER_ADDRESSES addresses[16384 / sizeof(IP_ADAPTER_ADDRESSES)] = {};
     unsigned long size = sizeof(addresses);
 
     if (IPHLPAPI_GetAdaptersAddresses(AF_UNSPEC, 0, NULL, addresses, &size) != ERROR_SUCCESS) {

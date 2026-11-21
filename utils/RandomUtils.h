@@ -183,10 +183,10 @@ void random_string(const char* allowed_chars, uint32 allowed_length, char* out, 
     const uint32 mask = allowed_length - 1;
 
     size_t i = 0;
-    while (i < out_length) {
+    while (i < (size_t) out_length) {
         const uint64 rand_val = rand_fast_64();
 
-        for (int32 j = 0; j < 8 && i < out_length; ++j, ++i) {
+        for (int32 j = 0; j < 8 && i < (size_t) out_length; ++j, ++i) {
             out[i] = allowed_chars[((rand_val >> (8 * j)) & 0xFF) & mask];
         }
     }

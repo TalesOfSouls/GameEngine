@@ -120,7 +120,7 @@ struct VoxelChunk {
 FORCE_INLINE
 VoxelChunk voxel_chunk_create(int32 x, int32 y, int32 z) NO_EXCEPT
 {
-    VoxelChunk chunk = {0};
+    VoxelChunk chunk = {};
     chunk.coord = {x, y, z};
     chunk.bounds.min = {x * VOXEL_CHUNK_SIZE, y * VOXEL_CHUNK_SIZE, z * VOXEL_CHUNK_SIZE};
     chunk.bounds.max = {(x + 1) * VOXEL_CHUNK_SIZE, (y + 1) * VOXEL_CHUNK_SIZE, (z + 1) * VOXEL_CHUNK_SIZE};

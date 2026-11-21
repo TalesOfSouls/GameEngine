@@ -600,7 +600,7 @@ void set_pixel_format(HDC const hdc, int32 multisampling = 0) NO_EXCEPT
     }
 
     if(!extended_pick) {
-        PIXELFORMATDESCRIPTOR desired_pixel_format = {0};
+        PIXELFORMATDESCRIPTOR desired_pixel_format = {};
         desired_pixel_format.nSize = sizeof(desired_pixel_format);
         desired_pixel_format.nVersion = 1;
         desired_pixel_format.dwFlags = PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER;

@@ -112,7 +112,7 @@ int64 huffman_code_build(Huffman* hf, HuffmanNode* root, char* code, int32 lengt
 
 void huffman_init(Huffman* hf, const byte* in) NO_EXCEPT
 {
-    int32 frequency[256] = {0};
+    int32 frequency[256] = {};
     int32 buffer_position = 0;
     char temp_code[16];
 

@@ -174,7 +174,7 @@ static inline v4_uint32 soft_sample_texture_nearest_sse(
     alignas(16) int32 offs[4];
     _mm_store_si128((__m128i *) offs, byte_offset);
 
-    v4_uint32 px = {0};
+    v4_uint32 px = {};
     for (int32 lane = 0; lane < 4; ++lane) {
         if (!(final_mask & (1 << lane))) {
             continue;
@@ -340,15 +340,15 @@ void soft_rasterize(
     // Check if the triangle uses texture or solid color
     const bool textured = (v0.sampler > 0 || v1.sampler > 0 || v2.sampler > 0);
 
-    v4_byte color1 = {0};
-    v4_byte color2 = {0};
-    v4_byte color3 = {0};
+    v4_byte color1 = {};
+    v4_byte color2 = {};
+    v4_byte color3 = {};
 
     #ifdef __SSE4_2__
-        __m128 u0_v = {0}, u1_v = {0}, u2_v = {0}, v0_v = {0}, v1_v = {0}, v2_v = {0};
-        __m128 c1r_v = {0}, c1g_v = {0}, c1b_v = {0}, c1a_v = {0};
-        __m128 c2r_v = {0}, c2g_v = {0}, c2b_v = {0}, c2a_v = {0};
-        __m128 c3r_v = {0}, c3g_v = {0}, c3b_v = {0}, c3a_v = {0};
+        __m128 u0_v = {}, u1_v = {}, u2_v = {}, v0_v = {}, v1_v = {}, v2_v = {};
+        __m128 c1r_v = {}, c1g_v = {}, c1b_v = {}, c1a_v = {};
+        __m128 c2r_v = {}, c2g_v = {}, c2b_v = {}, c2a_v = {};
+        __m128 c3r_v = {}, c3g_v = {}, c3b_v = {}, c3a_v = {};
         __m128 zero_v = _mm_setzero_ps();
     #endif
 
@@ -658,9 +658,9 @@ void soft_rasterize_msaa(
     // Check if the triangle uses texture or solid color
     bool textured = (v0.sampler > 0 || v1.sampler > 0 || v2.sampler > 0);
 
-    v4_byte color1 = {0};
-    v4_byte color2 = {0};
-    v4_byte color3 = {0};
+    v4_byte color1 = {};
+    v4_byte color2 = {};
+    v4_byte color3 = {};
     if(!textured){
         color1.val = v0.color;
         color2.val = v1.color;

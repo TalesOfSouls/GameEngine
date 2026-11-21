@@ -2,7 +2,7 @@
 #include "../../memory/BufferMemory.cpp"
 
 static void test_buffer_alloc() {
-    BufferMemory mem = {0};
+    BufferMemory mem = {};
     buffer_alloc(&mem, 50, 50);
 
     TEST_TRUE(memcmp(mem.memory, mem.memory + 1, 49) == 0);
@@ -18,8 +18,8 @@ static void test_buffer_alloc() {
 static void test_buffer_init() {
     // The buffer is aligned inside of the provided memory -> needs slack for the alignment
     // The caller has to provide zeroed memory
-    byte buffer[256] = {0};
-    BufferMemory mem = {0};
+    byte buffer[256] = {};
+    BufferMemory mem = {};
     buffer_init(&mem, buffer, 100);
 
     TEST_EQUALS(mem.size, 100);
@@ -40,7 +40,7 @@ static void test_buffer_init() {
 }
 
 static void test_buffer_memory_get() {
-    BufferMemory mem = {0};
+    BufferMemory mem = {};
     buffer_alloc(&mem, 50, 50);
 
     TEST_EQUALS(memory_get(&mem, 20), mem.memory);
@@ -50,7 +50,7 @@ static void test_buffer_memory_get() {
 }
 
 static void test_buffer_memory_get_alignment() {
-    BufferMemory mem = {0};
+    BufferMemory mem = {};
     buffer_alloc(&mem, 64, 64);
 
     // 3 bytes with an alignment of 8 -> head is moved to the next multiple of 8
@@ -64,7 +64,7 @@ static void test_buffer_memory_get_alignment() {
 }
 
 static void test_buffer_memory_get_temp() {
-    BufferMemory mem = {0};
+    BufferMemory mem = {};
     buffer_alloc(&mem, 64, 64);
 
     TEST_EQUALS(memory_get_temp(&mem, 16), mem.memory);
@@ -78,7 +78,7 @@ static void test_buffer_memory_get_temp() {
 }
 
 static void test_buffer_rewind() {
-    BufferMemory mem = {0};
+    BufferMemory mem = {};
     buffer_alloc(&mem, 64, 64);
 
     byte* const old_head = mem.head;
@@ -94,7 +94,7 @@ static void test_buffer_rewind() {
 }
 
 static void test_buffer_reset() {
-    BufferMemory mem = {0};
+    BufferMemory mem = {};
     buffer_alloc(&mem, 50, 50);
 
     memory_get(&mem, 20);
@@ -107,7 +107,7 @@ static void test_buffer_reset() {
 }
 
 static void test_buffer_stack_memory() {
-    BufferMemory mem = {0};
+    BufferMemory mem = {};
     buffer_alloc(&mem, 128, 128);
 
     byte* a = NULL;
@@ -134,7 +134,7 @@ static void test_buffer_stack_memory() {
 }
 
 static void test_buffer_dump_load() {
-    BufferMemory mem = {0};
+    BufferMemory mem = {};
     buffer_alloc(&mem, 64, 64);
 
     byte* const data = memory_get(&mem, 12);
@@ -143,7 +143,7 @@ static void test_buffer_dump_load() {
     byte out[256];
     const int64 dump_size = buffer_dump(&mem, out);
 
-    BufferMemory mem2 = {0};
+    BufferMemory mem2 = {};
     buffer_alloc(&mem2, 64, 64);
     const int64 load_size = buffer_load(&mem2, out);
 

@@ -14,7 +14,7 @@
 uint32 lzp_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
 {
     byte buf[9];
-    byte table[1 << 16] = {0};
+    byte table[1 << 16] = {};
 
     uint16 hash = 0;
     int32 i;
@@ -58,7 +58,7 @@ uint32 lzp_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
 uint32 lzp_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
 {
     byte buf[8];
-    byte table[1 << 16] = {0};
+    byte table[1 << 16] = {};
 
     uint16 hash = 0;
     int32 i;
@@ -129,7 +129,7 @@ int32 lzp_find_longest_match(
 
 uint32 lzp3_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
 {
-    char window[4096] = {0};
+    char window[4096] = {};
     int32 window_start = 0;
 
     int32 out_size = 0;
@@ -171,7 +171,7 @@ uint32 lzp3_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
 
 uint32 lzp3_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
 {
-    char window[4096] = {0};
+    char window[4096] = {};
     int32 window_start = 0;
 
     int32 out_size = 0;

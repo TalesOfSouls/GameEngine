@@ -15,7 +15,7 @@ struct SPSCQueueElement {
 };
 
 static void test_spsc_queue_alloc() {
-    SPSCQueueT<SPSCQueueElement> queue = {0};
+    SPSCQueueT<SPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 8);
 
     TEST_NOT_EQUALS(queue.memory, NULL);
@@ -35,8 +35,8 @@ static void test_spsc_queue_alloc() {
 
 static void test_spsc_queue_init_buffer() {
     // Byte buffer variant
-    alignas(64) byte raw[256] = {0};
-    SPSCQueueT<SPSCQueueElement> queue = {0};
+    alignas(64) byte raw[256] = {};
+    SPSCQueueT<SPSCQueueElement> queue = {};
     queue_init(&queue, raw, 4);
 
     TEST_EQUALS(queue.memory, (SPSCQueueElement *) raw);
@@ -48,10 +48,10 @@ static void test_spsc_queue_init_buffer() {
     TEST_FALSE(queue_is_empty(&queue));
 
     // BufferMemory variant carves the memory out of the buffer
-    BufferMemory buffer = {0};
+    BufferMemory buffer = {};
     buffer_alloc(&buffer, 512, 512);
 
-    SPSCQueueT<SPSCQueueElement> second = {0};
+    SPSCQueueT<SPSCQueueElement> second = {};
     queue_init(&second, &buffer, 4);
 
     TEST_NOT_EQUALS(second.memory, NULL);
@@ -66,11 +66,11 @@ static void test_spsc_queue_init_buffer() {
 }
 
 static void test_spsc_queue_enqueue_dequeue() {
-    SPSCQueueT<SPSCQueueElement> queue = {0};
+    SPSCQueueT<SPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // Empty queue can't be dequeued
-    SPSCQueueElement out = {0};
+    SPSCQueueElement out = {};
     TEST_FALSE(queue_dequeue(&queue, &out));
 
     const SPSCQueueElement a = {1, 10};
@@ -104,7 +104,7 @@ static void test_spsc_queue_enqueue_dequeue() {
 }
 
 static void test_spsc_queue_full() {
-    SPSCQueueT<SPSCQueueElement> queue = {0};
+    SPSCQueueT<SPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // The ring keeps one slot free -> 3 of 4 slots are usable
@@ -122,7 +122,7 @@ static void test_spsc_queue_full() {
     TEST_EQUALS(queue.head.load(memory_order_relaxed), queue.memory + 3);
 
     // Dequeueing reopens a slot
-    SPSCQueueElement out = {0};
+    SPSCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 0);
     TEST_TRUE(queue_has_space(&queue));
@@ -135,7 +135,7 @@ static void test_spsc_queue_full() {
 }
 
 static void test_spsc_queue_wrap() {
-    SPSCQueueT<SPSCQueueElement> queue = {0};
+    SPSCQueueT<SPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // The head/tail pointers are guaranteed to wrap around multiple times
@@ -143,7 +143,7 @@ static void test_spsc_queue_wrap() {
         const SPSCQueueElement element = {i, i * 10};
         TEST_NOT_EQUALS(queue_enqueue(&queue, element), NULL);
 
-        SPSCQueueElement out = {0};
+        SPSCQueueElement out = {};
         TEST_TRUE(queue_dequeue(&queue, &out));
         TEST_EQUALS(out.id, i);
         TEST_EQUALS(out.value, i * 10);
@@ -159,7 +159,7 @@ static void test_spsc_queue_wrap() {
 }
 
 static void test_spsc_queue_start_end() {
-    SPSCQueueT<SPSCQueueElement> queue = {0};
+    SPSCQueueT<SPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // Producer side: reserve, write in place, publish
@@ -185,7 +185,7 @@ static void test_spsc_queue_start_end() {
 }
 
 static void test_spsc_queue_dequeue_keep() {
-    SPSCQueueT<SPSCQueueElement> queue = {0};
+    SPSCQueueT<SPSCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     const SPSCQueueElement a = {1, 10};
@@ -202,7 +202,7 @@ static void test_spsc_queue_dequeue_keep() {
     // A second keep returns the same element
     TEST_EQUALS(queue_dequeue_keep(&queue), kept);
 
-    SPSCQueueElement out = {0};
+    SPSCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 1);
 
@@ -216,7 +216,7 @@ static void test_spsc_queue_dequeue_keep() {
 }
 
 static void test_spsc_queue_capacity_one() {
-    SPSCQueueT<SPSCQueueElement> queue = {0};
+    SPSCQueueT<SPSCQueueElement> queue = {};
     queue_alloc(&queue, 1, 1);
 
     // A ring with one slot can't distinguish empty from full -> no element fits
@@ -226,14 +226,14 @@ static void test_spsc_queue_capacity_one() {
     const SPSCQueueElement element = {1, 10};
     TEST_EQUALS(queue_enqueue(&queue, element), NULL);
 
-    SPSCQueueElement out = {0};
+    SPSCQueueElement out = {};
     TEST_FALSE(queue_dequeue(&queue, &out));
 
     queue_free(&queue);
 }
 
 static void test_spsc_queue_round_trip() {
-    SPSCQueueT<SPSCQueueElement> queue = {0};
+    SPSCQueueT<SPSCQueueElement> queue = {};
     queue_alloc(&queue, 8, 8);
 
     // Producer and consumer interleaved, verifies the fifo invariant over many wraps
@@ -247,7 +247,7 @@ static void test_spsc_queue_round_trip() {
             ++produced;
         }
 
-        SPSCQueueElement out = {0};
+        SPSCQueueElement out = {};
         if (queue_dequeue(&queue, &out)) {
             TEST_EQUALS(out.id, consumed);
             TEST_EQUALS(out.value, consumed * 3);
@@ -265,7 +265,7 @@ static void test_spsc_queue_round_trip() {
 static void test_spsc_queue_arena() {
     MemoryArena* root = mem_arena_alloc(8192, 8192);
 
-    SPSCQueueT<SPSCQueueElement> queue = {0};
+    SPSCQueueT<SPSCQueueElement> queue = {};
     queue_alloc(&queue, root, 4, 4);
 
     TEST_NOT_EQUALS(queue.memory, NULL);
@@ -286,7 +286,7 @@ static void test_spsc_queue_arena() {
     TEST_NOT_EQUALS(queue_enqueue(&queue, a), NULL);
     TEST_NOT_EQUALS(queue_enqueue(&queue, b), NULL);
 
-    SPSCQueueElement out = {0};
+    SPSCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 1);
     TEST_TRUE(queue_dequeue(&queue, &out));

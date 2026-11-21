@@ -43,7 +43,7 @@ void image_header_from_file(Image* __restrict image, const char* __restrict path
 inline
 void image_from_file(Image* __restrict image, const char* __restrict path, RingMemory* const __restrict ring) NO_EXCEPT
 {
-    FileBody file = {0};
+    FileBody file = {};
     file_read(path, &file, ring);
 
     if (str_ends_with(path, ".png")) {

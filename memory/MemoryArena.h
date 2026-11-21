@@ -143,7 +143,7 @@ void mem_arena_remove(
 
 inline
 MemoryArenaStats mem_arena_stats(MemoryArena* mem) {
-    MemoryArenaStats stats = {0};
+    MemoryArenaStats stats = {};
 
     while (mem) {
         stats.reserved_size += mem->header->reserved_size;

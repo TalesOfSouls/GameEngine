@@ -41,7 +41,7 @@ UILayout* cmd_layout_load_sync(
     PROFILE_DEBUG(PROFILE_CMD_LAYOUT_LOAD_SYNC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Load layout");
 
-    FileBody layout_file = {0};
+    FileBody layout_file = {};
     BUFFER_STACK_MEMORY_START(mem);
     file_read(layout_path, &layout_file, mem);
 
@@ -161,7 +161,7 @@ UITheme* cmd_theme_load_sync(
     PROFILE_DEBUG(PROFILE_CMD_THEME_LOAD_SYNC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
     LOG_1("[INFO] Load theme");
 
-    FileBody theme_file = {0};
+    FileBody theme_file = {};
     BUFFER_STACK_MEMORY_START(mem);
     file_read(theme_path, &theme_file, mem);
 

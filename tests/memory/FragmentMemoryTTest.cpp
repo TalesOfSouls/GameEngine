@@ -14,7 +14,7 @@ struct FragmentTElement {
 };
 
 static void test_fragment_t_alloc() {
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, 8, 16);
 
     TEST_NOT_EQUALS(fragment.memory, NULL);
@@ -46,7 +46,7 @@ static void test_fragment_t_alloc() {
 }
 
 static void test_fragment_t_memory_get() {
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, 8, 8);
 
     // Elements are handed out from the back to the front
@@ -66,10 +66,10 @@ static void test_fragment_t_memory_get() {
 }
 
 static void test_fragment_t_get_empty() {
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, 4, 4);
 
-    FragmentTElement* elements[4] = {0};
+    FragmentTElement* elements[4] = {};
     for (int32 i = 0; i < 4; ++i) {
         elements[i] = fragment_memory_get(&fragment);
         TEST_NOT_EQUALS(elements[i], NULL);
@@ -86,7 +86,7 @@ static void test_fragment_t_get_empty() {
 }
 
 static void test_fragment_t_release() {
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, 4, 4);
 
     FragmentTElement* a = fragment_memory_get(&fragment);
@@ -112,10 +112,10 @@ static void test_fragment_t_release() {
 }
 
 static void test_fragment_t_round_trip() {
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, 5, 5);
 
-    FragmentTElement* elements[5] = {0};
+    FragmentTElement* elements[5] = {};
     for (int32 i = 0; i < 5; ++i) {
         elements[i] = fragment_memory_get(&fragment);
         TEST_NOT_EQUALS(elements[i], NULL);
@@ -146,10 +146,10 @@ static void test_fragment_t_round_trip() {
 }
 
 static void test_fragment_t_release_order() {
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, 6, 6);
 
-    FragmentTElement* first_pass[6] = {0};
+    FragmentTElement* first_pass[6] = {};
     for (int32 i = 0; i < 6; ++i) {
         first_pass[i] = fragment_memory_get(&fragment);
     }
@@ -169,7 +169,7 @@ static void test_fragment_t_release_order() {
 }
 
 static void test_fragment_t_free() {
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, 6, 12);
 
     TEST_NOT_EQUALS(fragment.memory, NULL);
@@ -190,7 +190,7 @@ struct FragmentTBigElement {
 
 static void test_fragment_t_alignment() {
     // The start alignment is the requested alignment, the element size is sizeof(T)
-    FragmentMemoryT<FragmentTBigElement> fragment = {0};
+    FragmentMemoryT<FragmentTBigElement> fragment = {};
     fragment_alloc(&fragment, 4, 8, 16);
 
     TEST_EQUALS(sizeof(FragmentTBigElement), 12);
@@ -220,7 +220,7 @@ static void test_fragment_t_alignment() {
 }
 
 static void test_fragment_t_independent_elements() {
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, 4, 4);
 
     FragmentTElement* a = fragment_memory_get(&fragment);
@@ -247,7 +247,7 @@ static void test_fragment_t_independent_elements() {
 static void test_fragment_t_free_array_no_overlap() {
     // The free index array must live behind the element memory, a wrong offset
     // (element pointer arithmetic instead of bytes) would let elements overwrite it
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, 4, 4);
 
     int32 free_before[4];
@@ -275,7 +275,7 @@ static void test_fragment_t_free_array_no_overlap() {
 
 static void test_fragment_t_capacity_boundary() {
     // A single element pool
-    FragmentMemoryT<FragmentTElement> single = {0};
+    FragmentMemoryT<FragmentTElement> single = {};
     fragment_alloc(&single, 1, 4);
 
     TEST_EQUALS(single.capacity, 1);
@@ -293,7 +293,7 @@ static void test_fragment_t_capacity_boundary() {
     fragment_free(&single);
 
     // The capacity, not the max capacity, defines the available elements
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, 2, 16);
 
     TEST_EQUALS(fragment.capacity, 2);
@@ -309,7 +309,7 @@ static void test_fragment_t_capacity_boundary() {
 static void test_fragment_t_arena() {
     MemoryArena* root = mem_arena_alloc(8192, 8192);
 
-    FragmentMemoryT<FragmentTElement> fragment = {0};
+    FragmentMemoryT<FragmentTElement> fragment = {};
     fragment_alloc(&fragment, root, 8, 8);
 
     TEST_NOT_EQUALS(fragment.memory, NULL);

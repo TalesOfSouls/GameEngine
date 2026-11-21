@@ -25,7 +25,7 @@ static void fragment_arena_release_root(MemoryArena* root) {
 }
 
 static void test_fragment_alloc() {
-    FragmentMemory fragment = {0};
+    FragmentMemory fragment = {};
     fragment_alloc(&fragment, 10, 20, 16);
 
     TEST_NOT_EQUALS(fragment.memory, NULL);
@@ -76,7 +76,7 @@ static void test_fragment_size() {
 }
 
 static void test_fragment_memory_get() {
-    FragmentMemory fragment = {0};
+    FragmentMemory fragment = {};
     fragment_alloc(&fragment, 10, 10, 16);
 
     // Chunks are handed out from the back to the front
@@ -97,10 +97,10 @@ static void test_fragment_memory_get() {
 }
 
 static void test_fragment_memory_get_empty() {
-    FragmentMemory fragment = {0};
+    FragmentMemory fragment = {};
     fragment_alloc(&fragment, 4, 4, 8);
 
-    byte* chunks[4] = {0};
+    byte* chunks[4] = {};
     for (int32 i = 0; i < 4; ++i) {
         chunks[i] = fragment_memory_get(&fragment);
         TEST_NOT_EQUALS(chunks[i], NULL);
@@ -117,7 +117,7 @@ static void test_fragment_memory_get_empty() {
 }
 
 static void test_fragment_release_memory() {
-    FragmentMemory fragment = {0};
+    FragmentMemory fragment = {};
     fragment_alloc(&fragment, 4, 4, 16);
 
     byte* a = fragment_memory_get(&fragment);
@@ -144,10 +144,10 @@ static void test_fragment_release_memory() {
 }
 
 static void test_fragment_round_trip() {
-    FragmentMemory fragment = {0};
+    FragmentMemory fragment = {};
     fragment_alloc(&fragment, 5, 5, 16);
 
-    byte* chunks[5] = {0};
+    byte* chunks[5] = {};
     for (int32 i = 0; i < 5; ++i) {
         chunks[i] = fragment_memory_get(&fragment);
         memset(chunks[i], i + 1, fragment.chunk_size);
@@ -183,10 +183,10 @@ static void test_fragment_round_trip() {
 }
 
 static void test_fragment_reuse_all() {
-    FragmentMemory fragment = {0};
+    FragmentMemory fragment = {};
     fragment_alloc(&fragment, 8, 8, 8);
 
-    byte* first_pass[8] = {0};
+    byte* first_pass[8] = {};
     for (int32 i = 0; i < 8; ++i) {
         first_pass[i] = fragment_memory_get(&fragment);
     }
@@ -196,7 +196,7 @@ static void test_fragment_reuse_all() {
         fragment_release_memory(&fragment, first_pass[i]);
     }
 
-    byte* second_pass[8] = {0};
+    byte* second_pass[8] = {};
     for (int32 i = 0; i < 8; ++i) {
         second_pass[i] = fragment_memory_get(&fragment);
     }
@@ -210,7 +210,7 @@ static void test_fragment_reuse_all() {
 }
 
 static void test_fragment_free() {
-    FragmentMemory fragment = {0};
+    FragmentMemory fragment = {};
     fragment_alloc(&fragment, 6, 6, 12, 4);
 
     TEST_NOT_EQUALS(fragment.memory, NULL);
@@ -228,7 +228,7 @@ static void test_fragment_free() {
 
 static void test_fragment_alignment() {
     // An element size that is not a multiple of the alignment is rounded up
-    FragmentMemory fragment = {0};
+    FragmentMemory fragment = {};
     fragment_alloc(&fragment, 4, 4, 14, 8);
 
     TEST_EQUALS(fragment.chunk_size, 16);
@@ -256,7 +256,7 @@ static void test_fragment_alignment() {
 static void test_fragment_arena() {
     MemoryArena* root = mem_arena_alloc(8192, 8192);
 
-    FragmentMemory fragment = {0};
+    FragmentMemory fragment = {};
     fragment_alloc(&fragment, root, 8, 8, 16);
 
     TEST_NOT_EQUALS(fragment.memory, NULL);

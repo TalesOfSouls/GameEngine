@@ -650,7 +650,7 @@ int64 chunk_load(ThrdChunkMemoryT<T>* const buf, const byte* data) NO_EXCEPT
         + sizeof(size_t) * ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(buf->capacity)
         + sizeof(size_t);
 
-    memcpy(buf->memory, data, size);
+    memcpy((void *) buf->memory, data, size);
     data += size;
 
     buf->free = (atomic<size_t> *) (((uintptr_t) buf->memory) + free_offset);

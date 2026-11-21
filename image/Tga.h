@@ -71,7 +71,7 @@ void generate_default_tga_references(const FileBody* file, Tga* tga) NO_EXCEPT
 
 void image_header_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
-    Tga src = {0};
+    Tga src = {};
     generate_default_tga_references(src_data, &src);
 
     image->width = src.header.width;
@@ -87,7 +87,7 @@ void image_header_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 
 void image_tga_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
-    Tga src = {0};
+    Tga src = {};
     generate_default_tga_references(src_data, &src);
 
     image->width = src.header.width;

@@ -5,14 +5,14 @@
 
 static void test_utf8_encode()
 {
-    char out[5] = {0};
+    char out[5] = {};
     TEST_EQUALS(utf8_encode(659, out), 2);
     TEST_EQUALS(utf8_encode(67857, out), 4);
 }
 
 static void test_utf8_decode()
 {
-    char in[5] = {0};
+    char in[5] = {};
     uint32 codepoint;
 
     *((uint16 *) in) = SWAP_ENDIAN_BIG((uint16) 0xCA93);
@@ -23,7 +23,7 @@ static void test_utf8_decode()
     TEST_EQUALS(utf8_decode(in, &codepoint), 4);
     TEST_EQUALS(codepoint, 67857);
 
-    char out[5] = {0};
+    char out[5] = {};
     TEST_EQUALS(utf8_decode(codepoint, out), 4);
     TEST_TRUE(strcmp(out, in) == 0);
 }

@@ -95,7 +95,7 @@ int32 utf8_encode(uint32 codepoint, char* out) NO_EXCEPT
 CONSTEXPR inline
 int32 utf8_decode(const char* __restrict in, uint32* __restrict codepoint) NO_EXCEPT
 {
-    const byte ch = (const byte) *in;
+    const byte ch = (byte) *in;
 
     if (ch <= 0x7F) {
         // 1-byte sequence (ASCII)
@@ -237,7 +237,7 @@ int32 utf8_strlen(const char* in) NO_EXCEPT
 inline
 void string_to_utf8(const uint32* __restrict in, char* __restrict out) NO_EXCEPT
 {
-    char buffer[5] = {0};
+    char buffer[5] = {};
     while (*in) {
         const int32 len = utf8_encode(*in++, buffer);
         for (int32 i = 0; i < len; ++i) {

@@ -440,7 +440,7 @@ bool model_read_ease(ModelParser* p, AnimationEaseType* out) NO_EXCEPT
         return model_error(p, "Expected ease type");
     }
 
-    for (int32 i = 0; i < ARRAY_COUNT(MODEL_EASE_NAMES); ++i) {
+    for (int32 i = 0; i < (int32) ARRAY_COUNT(MODEL_EASE_NAMES); ++i) {
         if (model_token_equals(&tok, MODEL_EASE_NAMES[i].name)) {
             *out = MODEL_EASE_NAMES[i].type;
 

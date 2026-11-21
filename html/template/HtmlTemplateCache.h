@@ -81,8 +81,8 @@ void html_template_build(const FileBody* in, FileBody* out) {
     // Now add AST to cache
     HtmlTemplateToken current_token = html_template_token_next((const char**) &minified_start, HTML_TEMPLATE_CONTEXT_FLAG_HTML);
 
-    HtmlTemplateContextStack context_stack = {0};
-    HtmlTemplateContext initial_context = {0};
+    HtmlTemplateContextStack context_stack = {};
+    HtmlTemplateContext initial_context = {};
     pushContext(&context_stack, initial_context);
 
     // @todo Instead of doing this, we want to use the cache.memory
@@ -121,7 +121,7 @@ void html_template_build_iter(const char* path, va_list args) {
     char full_path[PATH_MAX_LENGTH];
     relative_to_absolute(path, full_path);
 
-    FileBody in = {0};
+    FileBody in = {};
     file_read(full_path, &in, ring);
 
     FileBody out = {
@@ -141,7 +141,7 @@ void html_template_cache_iter(const char* path, va_list args) {
     char full_path[PATH_MAX_LENGTH];
     relative_to_absolute(path, full_path);
 
-    FileBody file = {0};
+    FileBody file = {};
     file_read(full_path, &file, ring);
     html_template_cache_load(cache, path, (const char *) file.content);
 }
@@ -153,7 +153,7 @@ void raw_file_cache_iter(const char* path, va_list args) {
     char full_path[PATH_MAX_LENGTH];
     relative_to_absolute(path, full_path);
 
-    FileBody file = {0};
+    FileBody file = {};
     file_read(full_path, &file, ring);
 
     perfect_hashmap_insert(cache, path, file.content, file.size);

@@ -1462,7 +1462,7 @@ uint64 file_last_modified(const char* path) NO_EXCEPT
 
     FileHandle fp = FindFirstFileA(path, (LPWIN32_FIND_DATAA) &find_data);
 
-    FILETIME modified = {0};
+    FILETIME modified = {};
     if(fp != INVALID_HANDLE_VALUE) {
         modified = find_data.ftLastWriteTime;
         FindClose(fp);
@@ -1482,7 +1482,7 @@ uint64 file_last_modified(const wchar_t* path) NO_EXCEPT
 
     FileHandle fp = FindFirstFileW(path, &find_data);
 
-    FILETIME modified = {0};
+    FILETIME modified = {};
     if (fp != INVALID_HANDLE_VALUE) {
         modified = find_data.ftLastWriteTime;
         FindClose(fp);

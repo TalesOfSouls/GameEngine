@@ -16,7 +16,7 @@ static int32 heap_compare_int(const void* a, const void* b) {
 }
 
 static void test_heap_alloc() {
-    Heap heap = {0};
+    Heap heap = {};
     heap_alloc(&heap, sizeof(int32), 10, 20, heap_compare_int);
 
     TEST_NOT_EQUALS(heap.elements, NULL);
@@ -35,7 +35,7 @@ static void test_heap_alloc() {
 }
 
 static void test_heap_free() {
-    Heap heap = {0};
+    Heap heap = {};
     heap_alloc(&heap, sizeof(int64), 4, 8, heap_compare_int);
     TEST_NOT_EQUALS(heap.elements, NULL);
 
@@ -53,7 +53,7 @@ static void test_heap_free() {
 }
 
 static void test_heap_push_peek() {
-    Heap heap = {0};
+    Heap heap = {};
     heap_alloc(&heap, sizeof(int32), 8, 8, heap_compare_int);
 
     const int32 value = 42;
@@ -66,7 +66,7 @@ static void test_heap_push_peek() {
 }
 
 static void test_heap_push_pop_order() {
-    Heap heap = {0};
+    Heap heap = {};
     heap_alloc(&heap, sizeof(int32), 16, 16, heap_compare_int);
 
     const int32 values[] = {3, 1, 4, 1, 5, 9, 2, 6};
@@ -92,7 +92,7 @@ static void test_heap_push_pop_order() {
 }
 
 static void test_heap_push_capacity() {
-    Heap heap = {0};
+    Heap heap = {};
     heap_alloc(&heap, sizeof(int32), 4, 8, heap_compare_int);
 
     const int32 values[] = {10, 20, 30, 40, 50};
@@ -119,7 +119,7 @@ static void test_heap_push_capacity() {
 }
 
 static void test_heap_pop_empty() {
-    Heap heap = {0};
+    Heap heap = {};
     heap_alloc(&heap, sizeof(int32), 4, 4, heap_compare_int);
 
     int32 out = -1;
@@ -131,7 +131,7 @@ static void test_heap_pop_empty() {
 }
 
 static void test_heap_push_pop_mixed() {
-    Heap heap = {0};
+    Heap heap = {};
     heap_alloc(&heap, sizeof(int32), 8, 8, heap_compare_int);
 
     const int32 a[] = {7, 2, 9};
@@ -178,7 +178,7 @@ static void test_heap_swap() {
     // Swapping a block with itself must not change anything
     // (the scratch buffer has to be as big as the swapped block)
     int32 block[4] = {3, 4, 5, 6};
-    int32 block_helper[4] = {0};
+    int32 block_helper[4] = {};
     heap_swap(block, block, sizeof(block), block_helper);
     TEST_EQUALS(block[0], 3);
     TEST_EQUALS(block[1], 4);
@@ -187,10 +187,10 @@ static void test_heap_swap() {
 }
 
 static void test_heap_init() {
-    BufferMemory buffer = {0};
+    BufferMemory buffer = {};
     buffer_alloc(&buffer, 1024, 1024);
 
-    Heap heap = {0};
+    Heap heap = {};
     heap_init(&heap, &buffer, sizeof(int32), 8, heap_compare_int);
 
     TEST_NOT_EQUALS(heap.elements, NULL);
@@ -226,7 +226,7 @@ static void test_heap_init() {
 }
 
 static void test_heap_peek() {
-    Heap heap = {0};
+    Heap heap = {};
     heap_alloc(&heap, sizeof(int32), 8, 8, heap_compare_int);
 
     const int32 values[] = {5, 30, 20};
@@ -246,7 +246,7 @@ static void test_heap_peek() {
 }
 
 static void test_heap_duplicates() {
-    Heap heap = {0};
+    Heap heap = {};
     heap_alloc(&heap, sizeof(int32), 8, 8, heap_compare_int);
 
     const int32 values[] = {7, 7, 7, 3, 3};

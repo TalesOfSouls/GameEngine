@@ -55,7 +55,7 @@ static int _test_profiling_loops = 1000;
         }
     #endif
 
-    static LARGE_INTEGER _test_performance_frequency = {0};
+    static LARGE_INTEGER _test_performance_frequency = {};
 #else
     #define test_timestamp_counter() __builtin_readcyclecounter()
 #endif
@@ -94,7 +94,7 @@ void test_print_stack_trace(CONTEXT* context)
     // Initialize symbols
     SymInitialize(process, NULL, TRUE);
 
-    STACKFRAME64 stack_frame = {0};
+    STACKFRAME64 stack_frame = {};
     DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
 
     // Initialize stack frame for x64

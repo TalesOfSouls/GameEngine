@@ -21,7 +21,7 @@ void audio_from_file(
     RingMemory* const __restrict ring
 ) NO_EXCEPT
 {
-    FileBody file = {0};
+    FileBody file = {};
     file_read(path, &file, ring);
 
     ASSERT_TRUE(file.size);

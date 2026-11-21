@@ -23,8 +23,8 @@ struct HelperMemberTest {
 };
 
 static void test_helper_array_and_member_count() {
-    int32 ints[7] = {0};
-    const char chars[13] = {0};
+    int32 ints[7] = {};
+    const char chars[13] = {};
     f64 matrix[3][4] = {{0}};
 
     TEST_EQUALS(ARRAY_COUNT(ints), 7);
@@ -329,7 +329,7 @@ static void test_helper_endian() {
 }
 
 static void test_helper_read_write_le() {
-    byte buffer[64] = {0};
+    byte buffer[64] = {};
     byte* write = buffer;
 
     write = write_le(write, (uint16) 0x1234);
@@ -371,7 +371,7 @@ static void test_helper_read_write_le() {
     TEST_EQUALS_WITH_DELTA(f64_value, -2.5, 0.0000001);
 
     // Round trip of negative and float values
-    byte roundtrip[16] = {0};
+    byte roundtrip[16] = {};
     write = write_le(roundtrip, -12345.5);
     read = read_le(roundtrip, &f64_value);
     TEST_EQUALS((long long) (write - roundtrip), 8);
@@ -379,7 +379,7 @@ static void test_helper_read_write_le() {
     TEST_EQUALS_WITH_DELTA(f64_value, -12345.5, 0.0000001);
 
     // Unaligned buffers have to work as well (the helpers memcpy internally)
-    byte unaligned[16] = {0};
+    byte unaligned[16] = {};
     write = write_le(unaligned + 1, (uint32) 0xCAFEBABE);
     uint32 v32 = 0;
     read_le(unaligned + 1, &v32);
@@ -397,12 +397,12 @@ static void test_helper_bit_iterate() {
     OMS_BITARRAY_SET(bits, (uint32) word_bits);
     OMS_BITARRAY_SET(bits, 100);
 
-    uint32 found[8] = {0};
+    uint32 found[8] = {};
     int32 found_count = 0;
     uint32 bit_id = 0;
 
     bit_iterate_start(bits, 101, bit_id) {
-        if (found_count < ARRAY_COUNT(found)) {
+        if (found_count < (int32) ARRAY_COUNT(found)) {
             found[found_count] = bit_id;
         }
         ++found_count;
@@ -426,7 +426,7 @@ static void test_helper_bit_iterate() {
 
     // bit_iterate_continue_n skips n bits (produces 0 and 2 here)
     // WARNING: bit_iterate_continue_n hard codes the iterator variable name `_bit_id`
-    size_t skip_bits[1] = {0};
+    size_t skip_bits[1] = {};
     OMS_BITARRAY_SET(skip_bits, 0);
     OMS_BITARRAY_SET(skip_bits, 1);
     OMS_BITARRAY_SET(skip_bits, 2);

@@ -25,7 +25,7 @@ typedef ThrdHashMapT<ThrdHashEntryT<int32, int32>> ThrdIntMap;
 static void test_thrd_hashmap_bucket_count() {
     const int32 capacities[] = {1, 2, 8, 16, 100, 1000, 65535};
 
-    for (int32 i = 0; i < ARRAY_COUNT(capacities); ++i) {
+    for (int32 i = 0; i < (int32) ARRAY_COUNT(capacities); ++i) {
         const int32 bucket_count = hashmap_bucket_count(capacities[i]);
 
         // Power of 2
@@ -46,7 +46,7 @@ static void test_thrd_hashmap_bucket_count() {
 }
 
 static void test_thrd_hashmap_alloc() {
-    ThrdStrMap hm = {0};
+    ThrdStrMap hm = {};
     hashmap_alloc(&hm, 8, 8);
 
     TEST_EQUALS(hm.buf.capacity, 8);
@@ -71,7 +71,7 @@ static void test_thrd_hashmap_alloc() {
 }
 
 static void test_thrd_hashmap_insert_get() {
-    ThrdStrMap hm = {0};
+    ThrdStrMap hm = {};
     hashmap_alloc(&hm, 8, 8);
 
     ThrdHashEntryStrT<int32>* entry = hashmap_insert(&hm, "test1", 1);
@@ -109,7 +109,7 @@ static void test_thrd_hashmap_insert_get() {
 }
 
 static void test_thrd_hashmap_duplicate() {
-    ThrdStrMap hm = {0};
+    ThrdStrMap hm = {};
     hashmap_alloc(&hm, 8, 8);
 
     // The map doesn't check for duplicates: the newest entry is the chain head
@@ -129,7 +129,7 @@ static void test_thrd_hashmap_duplicate() {
 }
 
 static void test_thrd_hashmap_remove() {
-    ThrdStrMap hm = {0};
+    ThrdStrMap hm = {};
     hashmap_alloc(&hm, 8, 8);
 
     hashmap_insert(&hm, "test1", 1);
@@ -165,7 +165,7 @@ static void test_thrd_hashmap_remove() {
 }
 
 static void test_thrd_hashmap_reserve() {
-    ThrdStrMap hm = {0};
+    ThrdStrMap hm = {};
     hashmap_alloc(&hm, 8, 8);
 
     ThrdHashEntryStrT<int32>* reserved = hashmap_reserve(&hm, "reserved");
@@ -197,7 +197,7 @@ static void test_thrd_hashmap_reserve() {
 }
 
 static void test_thrd_hashmap_full() {
-    ThrdStrMap hm = {0};
+    ThrdStrMap hm = {};
     hashmap_alloc(&hm, 4, 4);
 
     char key[32];
@@ -228,7 +228,7 @@ static void test_thrd_hashmap_full() {
 }
 
 static void test_thrd_hashmap_int_key() {
-    ThrdIntMap hm = {0};
+    ThrdIntMap hm = {};
     hashmap_alloc(&hm, 16, 16);
 
     for (int32 i = 0; i < 16; ++i) {
@@ -261,7 +261,7 @@ static void test_thrd_hashmap_int_key() {
 }
 
 static void test_thrd_hashmap_long_key() {
-    ThrdStrMap hm = {0};
+    ThrdStrMap hm = {};
     hashmap_alloc(&hm, 8, 8);
 
     // Only the last HASH_MAP_MAX_KEY_LENGTH - 1 characters are stored/hashed
@@ -284,7 +284,7 @@ static void test_thrd_hashmap_long_key() {
 }
 
 static void test_thrd_hashmap_dump_load() {
-    ThrdStrMap dump_map = {0};
+    ThrdStrMap dump_map = {};
     hashmap_alloc(&dump_map, 8, 8);
 
     hashmap_insert(&dump_map, "test1", 1);
@@ -292,7 +292,7 @@ static void test_thrd_hashmap_dump_load() {
     hashmap_insert(&dump_map, "test3", 3);
     hashmap_remove(&dump_map, "test2");
 
-    byte buffer[2048] = {0};
+    byte buffer[2048] = {};
     const int64 dump_size = hashmap_dump(&dump_map, buffer);
     TEST_GREATER_THAN(dump_size, 0);
     TEST_TRUE(dump_size <= (int64) sizeof(buffer));
@@ -300,8 +300,8 @@ static void test_thrd_hashmap_dump_load() {
     // The required size for hashmap_init has to fit in the same buffer layout
     TEST_TRUE(hashmap_required_size<ThrdHashEntryStrT<int32>>(8) <= sizeof(buffer));
 
-    byte memory[2048] = {0};
-    ThrdStrMap load_map = {0};
+    byte memory[2048] = {};
+    ThrdStrMap load_map = {};
     hashmap_init(&load_map, 8, memory, sizeof(size_t));
 
     TEST_EQUALS(load_map.buf.capacity, 8);
@@ -353,13 +353,13 @@ static DWORD WINAPI thrd_hashmap_insert_job(void* data) {
 }
 
 static void test_thrd_hashmap_multithreaded() {
-    ThrdStrMap hm = {0};
+    ThrdStrMap hm = {};
     hashmap_alloc(&hm, 256, 256);
 
     enum { THREAD_COUNT = 2, KEYS_PER_THREAD = 128 };
 
-    ThrdHashMapThreadParam params[THREAD_COUNT] = {0};
-    HANDLE threads[THREAD_COUNT] = {0};
+    ThrdHashMapThreadParam params[THREAD_COUNT] = {};
+    HANDLE threads[THREAD_COUNT] = {};
 
     for (int32 i = 0; i < THREAD_COUNT; ++i) {
         params[i].map = &hm;

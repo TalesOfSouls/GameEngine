@@ -85,7 +85,7 @@ static void test_types_bits_union() {
 }
 
 static void test_types_v2() {
-    v2_int8 v2i8 = {0};
+    v2_int8 v2i8 = {};
     v2i8.x = 1;
     v2i8.y = 2;
     TEST_EQUALS(v2i8.x, 1);
@@ -106,21 +106,21 @@ static void test_types_v2() {
         TEST_EQUALS(v2i8.val, (3 << 8) + 4);
     #endif
 
-    v2_int16 v2i16 = {0};
+    v2_int16 v2i16 = {};
     v2i16.width = 1000;
     v2i16.height = 2000;
     TEST_EQUALS(v2i16.x, 1000);
     TEST_EQUALS(v2i16.y, 2000);
     TEST_EQUALS(sizeof(v2_int16), 4);
 
-    v2_uint16 v2u16 = {0};
+    v2_uint16 v2u16 = {};
     v2u16.x = 65535;
     v2u16.y = 1;
     TEST_EQUALS(v2u16.vec[0], 65535);
     TEST_EQUALS(v2u16.vec[1], 1);
     TEST_EQUALS(v2u16.val, (int64) (65535 + (1 << 16)));
 
-    v2_int32 v2i32 = {0};
+    v2_int32 v2i32 = {};
     v2i32.min = -5;
     v2i32.max = 5;
     v2i32.x = 7;
@@ -129,20 +129,20 @@ static void test_types_v2() {
     TEST_EQUALS(v2i32.vec[1], 5);
     TEST_EQUALS(sizeof(v2_int32), 8);
 
-    v2_uint32 v2u32 = {0};
+    v2_uint32 v2u32 = {};
     v2u32.x = 42;
     v2u32.y = 43;
     TEST_EQUALS(v2u32.width, 42);
     TEST_EQUALS(v2u32.height, 43);
 
-    v2_f32 v2f = {0};
+    v2_f32 v2f = {};
     v2f.x = 1.5f;
     v2f.y = -2.5f;
     TEST_EQUALS_WITH_DELTA(v2f.width, 1.5f, 0.000001);
     TEST_EQUALS_WITH_DELTA(v2f.height, -2.5f, 0.000001);
     TEST_EQUALS(sizeof(v2_f32), 8);
 
-    v2_f64 v2d = {0};
+    v2_f64 v2d = {};
     v2d.x = 1.5;
     v2d.y = -2.5;
     TEST_EQUALS_WITH_DELTA(v2d.vec[0], 1.5, 0.0000001);
@@ -151,7 +151,7 @@ static void test_types_v2() {
 }
 
 static void test_types_v3_v4() {
-    v3_int8 v3i8 = {0};
+    v3_int8 v3i8 = {};
     v3i8.x = 1;
     v3i8.y = 2;
     v3i8.z = 3;
@@ -161,7 +161,7 @@ static void test_types_v3_v4() {
     TEST_EQUALS(v3i8.vec[2], 3);
     TEST_EQUALS(sizeof(v3_int8), 3);
 
-    v3_byte v3b = {0};
+    v3_byte v3b = {};
     v3b.x = 10;
     v3b.y = 20;
     v3b.z = 30;
@@ -170,7 +170,7 @@ static void test_types_v3_v4() {
     TEST_EQUALS(v3b.vec[2], 30);
     TEST_EQUALS(sizeof(v3_byte), 3);
 
-    v4_int8 v4i8 = {0};
+    v4_int8 v4i8 = {};
     v4i8.x = 1;
     v4i8.y = 2;
     v4i8.z = 3;
@@ -183,7 +183,7 @@ static void test_types_v3_v4() {
         TEST_EQUALS(v4i8.val, 0x01020304);
     #endif
 
-    v4_byte v4b = {0};
+    v4_byte v4b = {};
     v4b.r = 0xA1;
     v4b.g = 0xA2;
     v4b.b = 0xA3;
@@ -191,7 +191,7 @@ static void test_types_v3_v4() {
     TEST_EQUALS(v4b.vec[3], 0xA4);
     TEST_EQUALS(sizeof(v4_uint8), 4);
 
-    v4_int16 v4i16 = {0};
+    v4_int16 v4i16 = {};
     v4i16.x = 1;
     v4i16.y = 2;
     v4i16.z = 3;
@@ -200,7 +200,7 @@ static void test_types_v3_v4() {
     TEST_EQUALS(v4i16.height, 4);
     TEST_EQUALS(sizeof(v4_int16), 8);
 
-    v4_uint16 v4u16 = {0};
+    v4_uint16 v4u16 = {};
     v4u16.x = 65535;
     v4u16.y = 1;
     v4u16.width = 2;
@@ -209,7 +209,7 @@ static void test_types_v3_v4() {
     TEST_EQUALS(v4u16.vec[2], 2);
     TEST_EQUALS(sizeof(v4_uint16), 8);
 
-    v3_int32 v3i32 = {0};
+    v3_int32 v3i32 = {};
     v3i32.r = 11;
     v3i32.g = 22;
     v3i32.b = 33;
@@ -218,13 +218,13 @@ static void test_types_v3_v4() {
     TEST_EQUALS(v3i32.vec[2], 33);
     TEST_EQUALS(sizeof(v3_int32), 12);
 
-    v3_uint32 v3u32 = {0};
+    v3_uint32 v3u32 = {};
     v3u32.x = 1;
     v3u32.y = 2;
     v3u32.z = 3;
     TEST_EQUALS(v3u32.vec[2], 3);
 
-    v4_int32 v4i32 = {0};
+    v4_int32 v4i32 = {};
     v4i32.x = 1;
     v4i32.y = 2;
     v4i32.z = 3;
@@ -235,13 +235,13 @@ static void test_types_v3_v4() {
     TEST_EQUALS(v4i32.vec[3], 4);
     TEST_EQUALS(sizeof(v4_int32), 16);
 
-    v4_uint32 v4u32 = {0};
+    v4_uint32 v4u32 = {};
     v4u32.x = 0xFFFFFFFF;
     v4u32.w = 1;
     TEST_EQUALS(v4u32.vec[0], 0xFFFFFFFF);
     TEST_EQUALS(v4u32.height, 1);
 
-    v3_f32 v3f = {0};
+    v3_f32 v3f = {};
     v3f.pitch = 1.0f;
     v3f.yaw = 2.0f;
     v3f.roll = 3.0f;
@@ -250,7 +250,7 @@ static void test_types_v3_v4() {
     TEST_EQUALS_WITH_DELTA(v3f.z, 3.0f, 0.000001);
     TEST_EQUALS(sizeof(v3_f32), 12);
 
-    v3_f64 v3d = {0};
+    v3_f64 v3d = {};
     v3d.u = 1.0;
     v3d.v = 2.0;
     v3d.w = 3.0;
@@ -258,7 +258,7 @@ static void test_types_v3_v4() {
     TEST_EQUALS_WITH_DELTA(v3d.vec[2], 3.0, 0.0000001);
     TEST_EQUALS(sizeof(v3_f64), 24);
 
-    v4_f32 v4f = {0};
+    v4_f32 v4f = {};
     v4f.x = 1.0f;
     v4f.y = 2.0f;
     v4f.z = 3.0f;
@@ -272,7 +272,7 @@ static void test_types_v3_v4() {
     TEST_EQUALS(sizeof(v4_f32), 16);
     TEST_EQUALS(sizeof(quaternion), 16);
 
-    v4_f64 v4d = {0};
+    v4_f64 v4d = {};
     v4d.x = 1.0;
     v4d.y = 2.0;
     v4d.z = 3.0;
@@ -281,18 +281,18 @@ static void test_types_v3_v4() {
     TEST_EQUALS_WITH_DELTA(v4d.y2, 4.0, 0.0000001);
     TEST_EQUALS(sizeof(v4_f64), 32);
 
-    v2_int64 v2i64 = {0};
+    v2_int64 v2i64 = {};
     v2i64.x = -1;
     v2i64.y = 1;
     TEST_EQUALS(sizeof(v2_int64), 16);
     TEST_EQUALS(v2i64.vec[0], -1);
 
-    v3_int64 v3i64 = {0};
+    v3_int64 v3i64 = {};
     v3i64.z = 5;
     TEST_EQUALS(v3i64.vec[2], 5);
     TEST_EQUALS(sizeof(v3_int64), 24);
 
-    v4_int64 v4i64 = {0};
+    v4_int64 v4i64 = {};
     v4i64.w = 7;
     TEST_EQUALS(v4i64.vec[3], 7);
     TEST_EQUALS(sizeof(v4_int64), 32);
@@ -314,7 +314,7 @@ static void test_types_alignment() {
     TEST_EQUALS(alignof(v4_f64), alignof(f64));
 
     // The matrix can be used as 4x4 float array or as 4 rows of 4 floats
-    v16_f32 matrix = {0};
+    v16_f32 matrix = {};
     matrix.vec[0] = 1.0f;
     matrix.vec[5] = 2.0f;
     matrix.vec[10] = 3.0f;

@@ -12,7 +12,8 @@
 
 #include "../../../stdlib/Stdlib.h"
 
-#ifdef __linux__
+// SVML (_mm_sin_ps, ...) is provided by MSVC (and the Intel compiler), not by gcc/clang -> scalar fallback
+#ifndef _MSC_VER
     #include <math.h>
 
     inline __m512i _mm512_div_epi32(__m512i a, __m512i b) {

@@ -319,7 +319,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
 ) {
     DXGI_FORMAT texture_format = gpuapi_texture_format(texture->image.image_settings);
 
-    D3D12_RESOURCE_DESC texture_info = {0};
+    D3D12_RESOURCE_DESC texture_info = {};
     texture_info.MipLevels = 1;
     texture_info.Format = texture_format;
     texture_info.Width = texture->image.width;
@@ -350,7 +350,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
         LOG_1("DirectX12 CreateCommittedResource: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_THROW();
 
-        return {0};
+        return {};
     }
 
     const D3D12_RESOURCE_DESC destination_info = (*texture_resource)->GetDesc();
@@ -399,7 +399,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
         LOG_1("DirectX12 CreateCommittedResource: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_THROW();
 
-        return {0};
+        return {};
     }
 
     int32 pixel_size = image_pixel_size_from_type(texture->image.image_settings);
@@ -435,7 +435,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
         LOG_1("DirectX12 texture resource setup");
         ASSERT_THROW();
 
-        return {0};
+        return {};
     }
 
     byte* data;
@@ -444,7 +444,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
         LOG_1("DirectX12 Map: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_THROW();
 
-        return {0};
+        return {};
     }
 
     for (uint32 i = 0; i < number_of_resources; ++i) {
@@ -499,7 +499,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
     };
     command_buffer->ResourceBarrier(1, &barrier);
 
-    D3D12_SHADER_RESOURCE_VIEW_DESC srv_info = {0};
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_info = {};
     srv_info.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srv_info.Format = texture_info.Format;
     srv_info.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -566,7 +566,7 @@ void gpuapi_vertex_buffer_create(
     // Copy the triangle data to the vertex buffer
     uint8* vertex_data_begin;
     // We do not intend to read from this resource on the CPU
-    D3D12_RANGE read_range = {0};
+    D3D12_RANGE read_range = {};
     if (FAILED(hr = (*vertex_buffer)->Map(0, &read_range, (void **) &vertex_data_begin))) {
         LOG_1("DirectX12 Map: %d", {DATA_TYPE_INT32, &hr});
         ASSERT_THROW();
@@ -593,7 +593,7 @@ void gpuapi_vertex_buffer_update(
     uint64 size = vertex_count * vertex_size - offset;
 
     uint8* vertex_data_begin;
-    D3D12_RANGE read_range = {0};
+    D3D12_RANGE read_range = {};
     D3D12_RANGE write_range = { offset, offset + size };
 
     HRESULT hr;
@@ -652,7 +652,7 @@ void gpuapi_uniform_buffers_create(
         NULL,
         IID_PPV_ARGS(uniform_buffer));
 
-    D3D12_RANGE read_range = {0};
+    D3D12_RANGE read_range = {};
 
     uint8* data_begin;
     (*uniform_buffer)->Map(0, &read_range, (void **) &data_begin);
@@ -666,7 +666,7 @@ void gpuapi_uniform_buffer_update(
     uint32 buffer_size
 )
 {
-    D3D12_RANGE read_range = {0};
+    D3D12_RANGE read_range = {};
     uint8* data_begin = NULL;
     uniform_buffer->Map(0, &read_range, (void **) &data_begin);
 

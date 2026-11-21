@@ -170,7 +170,7 @@ static void test_general_hash_distribution() {
     TEST_GREATER_THAN(unique, 990);
 
     // 1000 * 16 bit range -> the buckets should be reasonably filled
-    int32 buckets[16] = {0};
+    int32 buckets[16] = {};
     for (int32 i = 0; i < 1000; ++i) {
         ++buckets[hashes[i] & 15];
     }

@@ -286,7 +286,7 @@ void asset_archive_load(
         archive->mmf = file_mmf_handle(archive->fd_async);
     #endif
 
-    FileBody file = {0};
+    FileBody file = {};
 
     // We only want to read the header at first
     file.size = sizeof(AssetArchiveHeader)
@@ -434,7 +434,7 @@ bool asset_archive_load_begin(
         );
     }
 
-    ASSERT_TRUE(asset_memory_requirement <= asset->ram_size);
+    ASSERT_TRUE(asset_memory_requirement <= (size_t) asset->ram_size);
 
     asset->data_size = element->uncompressed;
     asset->state |= ASSET_MEMORY_STATE_IN_RAM;
@@ -589,7 +589,7 @@ void asset_archive_load_finish(
  * Deeper dependencies are handled recursively (with the same prefetching).
  */
 // @bug I'm afraid that loading the same asset twice could result in circumstances where it gets added twice
-Asset* const asset_archive_asset_load(
+Asset* asset_archive_asset_load(
     const AssetArchive* const archive,
     int32 id,
     AssetManagementSystem* const ams,
@@ -732,7 +732,7 @@ AssetArchiveReloadResult asset_archive_reload(
             break;
         }
 
-        FileBody file = {0};
+        FileBody file = {};
         file.content = memory_get(mem, HEADER_BASE_SIZE + 1, alignof(size_t));
         file_read(fd, &file, 0, HEADER_BASE_SIZE);
         if (!file.content || file.size != HEADER_BASE_SIZE) {

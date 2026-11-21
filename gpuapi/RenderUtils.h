@@ -492,9 +492,11 @@ v2_f32 vertex_text_create(
  * 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
  *
  * The glyphs array is temporary memory (memory_get_temp) of mem
+ *
+ * @param int32 length Max. length of the text in bytes (stops earlier at \0, e.g. Utf8String isn't \0 terminated)
  */
 int32 text_to_glyphs(
-    FontSystem* const __restrict font, const char* const __restrict text,
+    FontSystem* const __restrict font, const char* const __restrict text, int32 length,
     int16* const __restrict glyphs
 ) NO_EXCEPT
 {
@@ -503,7 +505,7 @@ int32 text_to_glyphs(
     int32 count = 0;
 
     int32 i = 0;
-    while (text[i] != '\0') {
+    while (i < length && text[i] != '\0') {
         uint32 codepoint;
         const int32 byte_len = utf8_decode(text + i, &codepoint);
 
@@ -564,7 +566,7 @@ v2_f32 vertex_text_create(
 
     const int32 byte_count = (int32) str_length(text);
     int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
-    int32 glyph_count = text_to_glyphs(font, text, glyphs);
+    int32 glyph_count = text_to_glyphs(font, text, byte_count, glyphs);
 
     return vertex_text_create(
         vertices, indices, zindex,
@@ -590,7 +592,7 @@ v2_f32 vertex_text_create(
     // 0x7FFF = offset, 0x8000 = either base (= 0) or extended (= 1)
     const int32 byte_count = text.length;
     int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
-    int32 glyph_count = text_to_glyphs(font, text, glyphs);
+    int32 glyph_count = text_to_glyphs(font, text.str, byte_count, glyphs);
 
     return vertex_text_create(
         vertices, indices, zindex,

@@ -178,7 +178,7 @@ bool octnode_remove_recursive(OctNode* const node) NO_EXCEPT
         return false;
     }
 
-    for (int i = 0; i < ARRAY_COUNT(node->child); ++i) {
+    for (int32 i = 0; i < (int32) ARRAY_COUNT(node->child); ++i) {
         if (node->child[i] && node->child[i]->has_data) {
             octnode_remove_recursive(node->child[i]);
         }

@@ -8,7 +8,7 @@ struct QueueTestElement {
 };
 
 static void test_queue_alloc() {
-    Queue mem = {0};
+    Queue mem = {};
     queue_alloc(&mem, 10, 10, 20);
 
     // Every element is aligned according to the default alignment -> size >= constructor size
@@ -24,7 +24,7 @@ static void test_queue_alloc() {
 }
 
 static void test_queue_empty() {
-    Queue queue = {0};
+    Queue queue = {};
     queue_alloc(&queue, 8, 8, sizeof(QueueTestElement));
 
     TEST_TRUE(queue_is_empty(&queue));
@@ -32,21 +32,21 @@ static void test_queue_empty() {
     TEST_TRUE(queue_has_space(&queue));
     TEST_TRUE(queue_capacity(&queue) >= 9);
 
-    QueueTestElement element = {0};
+    QueueTestElement element = {};
     TEST_FALSE(queue_dequeue(&queue, (byte *) &element));
 
     queue_free(&queue);
 }
 
 static void test_queue_enqueue_dequeue() {
-    Queue queue = {0};
+    Queue queue = {};
     queue_alloc(&queue, 8, 8, sizeof(QueueTestElement));
 
     QueueTestElement in = {1, 100};
     TEST_EQUALS(queue_enqueue(&queue, (const byte *) &in), queue.memory);
     TEST_FALSE(queue_is_empty(&queue));
 
-    QueueTestElement out = {0};
+    QueueTestElement out = {};
     TEST_TRUE(queue_dequeue(&queue, (byte *) &out));
     TEST_EQUALS(out.id, 1);
     TEST_EQUALS(out.value, 100);
@@ -59,7 +59,7 @@ static void test_queue_enqueue_dequeue() {
 }
 
 static void test_queue_fifo_order() {
-    Queue queue = {0};
+    Queue queue = {};
     queue_alloc(&queue, 8, 8, sizeof(QueueTestElement));
 
     for (int32 i = 0; i < 5; ++i) {
@@ -68,7 +68,7 @@ static void test_queue_fifo_order() {
     }
 
     for (int32 i = 0; i < 5; ++i) {
-        QueueTestElement out = {0};
+        QueueTestElement out = {};
         TEST_TRUE(queue_dequeue(&queue, (byte *) &out));
         TEST_EQUALS(out.id, i);
         TEST_EQUALS(out.value, i * 10);
@@ -80,7 +80,7 @@ static void test_queue_fifo_order() {
 }
 
 static void test_queue_full() {
-    Queue queue = {0};
+    Queue queue = {};
     queue_alloc(&queue, 8, 8, sizeof(QueueTestElement));
 
     // One slot always stays empty
@@ -98,7 +98,7 @@ static void test_queue_full() {
     QueueTestElement in = {999, 999};
     TEST_EQUALS(queue_enqueue_safe(&queue, (const byte *) &in), NULL);
 
-    QueueTestElement out = {0};
+    QueueTestElement out = {};
     TEST_TRUE(queue_dequeue(&queue, (byte *) &out));
     TEST_EQUALS(out.id, 0);
     TEST_TRUE(queue_has_space(&queue));
@@ -108,7 +108,7 @@ static void test_queue_full() {
 
 // The head/tail pointers have to wrap around at the end of the buffer
 static void test_queue_wrapping() {
-    Queue queue = {0};
+    Queue queue = {};
     queue_alloc(&queue, 8, 8, sizeof(QueueTestElement));
 
     const uint64 capacity = queue_capacity(&queue);
@@ -120,7 +120,7 @@ static void test_queue_wrapping() {
     }
 
     for (uint64 i = 0; i < capacity - 2; ++i) {
-        QueueTestElement out = {0};
+        QueueTestElement out = {};
         TEST_TRUE(queue_dequeue(&queue, (byte *) &out));
         TEST_EQUALS(out.id, (int32) i);
     }
@@ -132,7 +132,7 @@ static void test_queue_wrapping() {
     }
 
     for (int32 i = 0; i < 4; ++i) {
-        QueueTestElement out = {0};
+        QueueTestElement out = {};
         TEST_TRUE(queue_dequeue(&queue, (byte *) &out));
         TEST_EQUALS(out.id, 100 + i);
     }
@@ -143,7 +143,7 @@ static void test_queue_wrapping() {
 }
 
 static void test_queue_enqueue_unique() {
-    Queue queue = {0};
+    Queue queue = {};
     queue_alloc(&queue, 8, 8, sizeof(QueueTestElement));
 
     QueueTestElement in = {1, 1};
@@ -152,7 +152,7 @@ static void test_queue_enqueue_unique() {
 
     TEST_TRUE(queue_dequeue_keep(&queue) != NULL);
 
-    QueueTestElement out = {0};
+    QueueTestElement out = {};
     TEST_TRUE(queue_dequeue(&queue, (byte *) &out));
     TEST_EQUALS(out.id, 1);
 
@@ -163,7 +163,7 @@ static void test_queue_enqueue_unique() {
 }
 
 static void test_queue_dequeue_keep() {
-    Queue queue = {0};
+    Queue queue = {};
     queue_alloc(&queue, 8, 8, sizeof(QueueTestElement));
 
     TEST_EQUALS(queue_dequeue_keep(&queue), NULL);
@@ -184,7 +184,7 @@ static void test_queue_dequeue_keep() {
 }
 
 static void test_queue_set_empty() {
-    Queue queue = {0};
+    Queue queue = {};
     queue_alloc(&queue, 8, 8, sizeof(QueueTestElement));
 
     QueueTestElement in = {1, 1};
@@ -199,7 +199,7 @@ static void test_queue_set_empty() {
 
 static void test_queue_init() {
     byte buffer[1024];
-    Queue queue = {0};
+    Queue queue = {};
     queue_init(&queue, buffer, 8, sizeof(QueueTestElement));
 
     // The caller provides memory for exactly element_count slots, one stays empty
@@ -220,7 +220,7 @@ static void test_queue_init() {
 }
 
 static void test_queue_typed() {
-    QueueT<QueueTestElement> queue = {0};
+    QueueT<QueueTestElement> queue = {};
     queue_alloc(&queue, 8, 8, sizeof(size_t));
 
     TEST_TRUE(queue_is_empty(&queue));
@@ -232,7 +232,7 @@ static void test_queue_typed() {
     }
 
     for (int32 i = 0; i < 5; ++i) {
-        QueueTestElement out = {0};
+        QueueTestElement out = {};
         TEST_TRUE(queue_dequeue(&queue, &out));
         TEST_EQUALS(out.id, i);
         TEST_EQUALS(out.value, i * 2);
@@ -245,7 +245,7 @@ static void test_queue_typed() {
 
 #if PERFORMANCE_TEST
 static void _my_queue(MAYBE_UNUSED volatile void* val) {
-    Queue queue = {0};
+    Queue queue = {};
     queue_alloc(&queue, 999, 999, sizeof(size_t));
 
     // First insert 333 elements
@@ -274,7 +274,7 @@ static void _my_queue(MAYBE_UNUSED volatile void* val) {
 }
 
 static void _my_queuet(MAYBE_UNUSED volatile void* val) {
-    QueueT<size_t> queue = {0};
+    QueueT<size_t> queue = {};
     queue_alloc(&queue, 999, 999, 8);
 
     // First insert 333 elements

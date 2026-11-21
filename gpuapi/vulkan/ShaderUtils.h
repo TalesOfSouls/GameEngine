@@ -316,7 +316,7 @@ VkPipeline gpuapi_pipeline_make(
         VK_FALSE, // .primitiveRestartEnable =
     };
 
-    VkPipelineViewportStateCreateInfo viewport_state = {0};
+    VkPipelineViewportStateCreateInfo viewport_state = {};
     viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewport_state.viewportCount = 1;
     viewport_state.scissorCount = 1;
@@ -338,7 +338,7 @@ VkPipeline gpuapi_pipeline_make(
         1.0f, // .lineWidth =
     };
 
-    VkPipelineMultisampleStateCreateInfo multisampling = {0};
+    VkPipelineMultisampleStateCreateInfo multisampling = {};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
@@ -445,7 +445,7 @@ void gpuapi_descriptor_set_layout_create(
     VkDevice device,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorSetLayoutBinding* bindings, int32 binding_length
 ) {
-    VkDescriptorSetLayoutCreateInfo layout_info = {0};
+    VkDescriptorSetLayoutCreateInfo layout_info = {};
     layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layout_info.bindingCount = binding_length;
     layout_info.pBindings = bindings;

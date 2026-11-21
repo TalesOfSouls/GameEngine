@@ -18,7 +18,7 @@ void thrd_cmd_audio_play(
     int32 asset_id
 ) NO_EXCEPT
 {
-    AppCommand cmd = {0};
+    AppCommand cmd = {};
     cmd.type = CMD_AUDIO_PLAY;
     cmd.audio_body.asset.asset_id = asset_id;
 

@@ -54,13 +54,13 @@ bool file_write_secure(const C* const path, const FileBody* const file, T* const
 
     file_write(temp_path, file);
 
-    byte mem_hash[20] = {0};
+    byte mem_hash[20] = {};
     sha1_hash(file->content, file->size, mem_hash);
 
-    FileBody temp_file = {0};
+    FileBody temp_file = {};
     file_read(temp_path, &temp_file, mem);
 
-    byte temp_hash[20]= {0};
+    byte temp_hash[20]= {};
     sha1_hash(temp_file.content, temp_file.size, temp_hash);
 
     if (memcmp(mem_hash, temp_hash, sizeof(temp_hash)) == 0) {

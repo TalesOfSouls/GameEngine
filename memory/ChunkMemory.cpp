@@ -394,7 +394,7 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
             consecutive_free_bits = 0;
 
             continue;
-        } else if (free_index * (sizeof(size_t) * 8) + bit_index + elements - consecutive_free_bits > capacity) UNLIKELY {
+        } else if (free_index * (sizeof(size_t) * 8) + bit_index + elements - consecutive_free_bits > (size_t) capacity) UNLIKELY {
             // Go to beginning after overflow
             i += capacity - (free_index * (sizeof(size_t) * 8) + bit_index);
             consecutive_free_bits = 0;
@@ -447,7 +447,7 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
             }
         } while (!IS_BIT_SET_R2L(state[free_index], bit_index)
             && consecutive_free_bits != elements
-            && free_index * (sizeof(size_t) * 8) + bit_index + elements - consecutive_free_bits <= capacity
+            && free_index * (sizeof(size_t) * 8) + bit_index + elements - consecutive_free_bits <= (size_t) capacity
             && i <= capacity
         );
 

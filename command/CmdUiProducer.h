@@ -31,7 +31,7 @@ void thrd_cmd_ui_load(
     const wchar_t* const language_code = NULL
 ) NO_EXCEPT
 {
-    AppCommand cmd = {0};
+    AppCommand cmd = {};
     cmd.type = CMD_UI_LOAD;
     cmd.callback = callback;
 

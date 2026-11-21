@@ -2,7 +2,7 @@
 #include "../../memory/RingMemory.cpp"
 
 static void test_ring_alloc() {
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_alloc(&mem, 50, 50);
 
     TEST_TRUE(memcmp(mem.memory, mem.memory + 1, 49) == 0);
@@ -17,7 +17,7 @@ static void test_ring_alloc() {
 
 static void test_ring_init() {
     byte buffer[128];
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_init(&mem, buffer, 100);
 
     TEST_EQUALS(mem.size, 104); // ALIGN_UP(100, sizeof(size_t))
@@ -32,7 +32,7 @@ static void test_ring_init() {
 }
 
 static void test_ring_memory_get() {
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_alloc(&mem, 50, 50);
 
     TEST_EQUALS(memory_get(&mem, 20), mem.memory);
@@ -42,7 +42,7 @@ static void test_ring_memory_get() {
 }
 
 static void test_ring_calculate_position() {
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_alloc(&mem, 50, 50);
 
     memory_get(&mem, 20);
@@ -52,7 +52,7 @@ static void test_ring_calculate_position() {
 }
 
 static void test_ring_reset() {
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_alloc(&mem, 50, 50);
 
     memory_get(&mem, 20);
@@ -65,7 +65,7 @@ static void test_ring_reset() {
 }
 
 static void test_ring_memory_get_nomove() {
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_alloc(&mem, 50, 50);
 
     TEST_EQUALS(ring_memory_get_nomove(&mem, 20), mem.memory);
@@ -75,7 +75,7 @@ static void test_ring_memory_get_nomove() {
 }
 
 static void test_ring_move_pointer() {
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_alloc(&mem, 50, 50);
 
     ring_move_pointer(&mem, &mem.head, 20);
@@ -85,7 +85,7 @@ static void test_ring_move_pointer() {
 }
 
 static void test_ring_move_pointer_wrapping() {
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_alloc(&mem, 50, 50);
 
     // 3 * 24 = 72 > 64 -> the pointer has to wrap around
@@ -100,7 +100,7 @@ static void test_ring_move_pointer_wrapping() {
 }
 
 static void test_ring_get_element() {
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_alloc(&mem, 50, 50);
 
     mem.memory[0] = 125;
@@ -113,7 +113,7 @@ static void test_ring_get_element() {
 }
 
 static void test_ring_commit_safe() {
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_alloc(&mem, 50, 50);
 
     memory_get(&mem, 24, 1);
@@ -131,7 +131,7 @@ static void test_ring_commit_safe() {
 }
 
 static void test_ring_dump() {
-    RingMemory mem = {0};
+    RingMemory mem = {};
     ring_alloc(&mem, 50, 50);
 
     memory_get(&mem, 20);

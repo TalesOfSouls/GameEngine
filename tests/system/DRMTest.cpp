@@ -90,7 +90,7 @@ static void test_drm_process_scan() {
     decoded_patterns[0].length = drm_patterns[0].length;
 
     const int64 self_process_id = process_id_get();
-    DRMProcessInfo process_info = {0};
+    DRMProcessInfo process_info = {};
     process_info.pid = (uint32) self_process_id;
 
     RingMemory ring;

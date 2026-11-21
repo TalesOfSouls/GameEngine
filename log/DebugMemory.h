@@ -116,7 +116,7 @@ void debug_memory_init(uintptr_t start, size_t size) NO_EXCEPT
     }
 
     // @performance Can we get rid of this calloc?
-    DebugMemory* const new_stats = (DebugMemory *) calloc(sizeof(DebugMemory), ASSUMED_CACHE_LINE_SIZE);
+    DebugMemory* const new_stats = (DebugMemory *) calloc(1, sizeof(DebugMemory));
     if (!new_stats) {
         return;
     }
@@ -263,7 +263,7 @@ void debug_memory_free(uintptr_t start) NO_EXCEPT
         return;
     }
 
-    for (int i = 0; i < ARRAY_COUNT(mem->persistent_action); ++i) {
+    for (int32 i = 0; i < (int32) ARRAY_COUNT(mem->persistent_action); ++i) {
         DebugMemoryRange* const dmr = &mem->persistent_action[i];
         if (dmr->start == start - mem->start) {
             dmr->size = 0;

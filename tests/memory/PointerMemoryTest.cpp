@@ -13,7 +13,7 @@ struct PointerTestElement {
 };
 
 static void test_pointer_memory_get_alignment() {
-    alignas(64) byte buffer[256] = {0};
+    alignas(64) byte buffer[256] = {};
 
     // Intentionally misaligned start
     byte* data = buffer + 1;
@@ -35,7 +35,7 @@ static void test_pointer_memory_get_alignment() {
 }
 
 static void test_pointer_memory_get_sequential() {
-    alignas(64) byte buffer[256] = {0};
+    alignas(64) byte buffer[256] = {};
     byte* data = buffer;
 
     byte* a = memory_get(&data, 16);
@@ -63,7 +63,7 @@ static void test_pointer_memory_get_sequential() {
 }
 
 static void test_pointer_memory_get_temp() {
-    alignas(64) byte buffer[128] = {0};
+    alignas(64) byte buffer[128] = {};
     byte* data = buffer + 3;
 
     byte* temp1 = memory_get_temp(&data, 16);
@@ -83,7 +83,7 @@ static void test_pointer_memory_get_temp() {
 }
 
 static void test_pointer_memory_resize() {
-    alignas(64) byte buffer[64] = {0};
+    alignas(64) byte buffer[64] = {};
     byte* data = buffer;
 
     // The pointer memory can't resize, it always reports failure
@@ -98,7 +98,7 @@ static void test_pointer_memory_resize() {
 
 static void test_pointer_memory_alignment_variants() {
     const int32 alignments[] = {1, 2, 4, 8, 16, 32, 64};
-    alignas(64) byte buffer[256] = {0};
+    alignas(64) byte buffer[256] = {};
 
     for (uint32 i = 0; i < ARRAY_COUNT(alignments); ++i) {
         byte* data = buffer + 1;
@@ -116,7 +116,7 @@ static void test_pointer_memory_alignment_variants() {
 }
 
 static void test_pointer_memory_const_overloads() {
-    alignas(64) byte buffer[64] = {0};
+    alignas(64) byte buffer[64] = {};
 
     // The value based overloads have no state, size is only there for the API symmetry
     TEST_EQUALS(memory_get(buffer + 5, 100), buffer + 8);
@@ -130,7 +130,7 @@ static void test_pointer_memory_const_overloads() {
 }
 
 static void test_pointer_memory_zero_size() {
-    alignas(64) byte buffer[64] = {0};
+    alignas(64) byte buffer[64] = {};
     byte* data = buffer + 1;
 
     // A zero sized request only aligns the pointer
@@ -144,7 +144,7 @@ static void test_pointer_memory_zero_size() {
 }
 
 static void test_pointer_memory_round_trip() {
-    alignas(64) byte buffer[256] = {0};
+    alignas(64) byte buffer[256] = {};
     byte* data = buffer;
 
     const PointerTestElement reference = {77, 2.5f};

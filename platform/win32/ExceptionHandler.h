@@ -69,7 +69,7 @@ void log_stack_trace(CONTEXT* context) NO_EXCEPT
     // Set symbol options to load line numbers and undecorated names
     DBGHELP_SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
-    STACKFRAME64 stack_frame = {0};
+    STACKFRAME64 stack_frame = {};
     DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
 
     // Initialize stack frame for x64
@@ -145,7 +145,7 @@ void print_stack_trace(CONTEXT* context) NO_EXCEPT
 
     DBGHELP_SymInitialize(process, NULL, TRUE);
 
-    STACKFRAME64 stack_frame = {0};
+    STACKFRAME64 stack_frame = {};
     DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
 
     // Initialize stack frame for x64

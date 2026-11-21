@@ -129,7 +129,7 @@ int32 network_info_get(NetworkInfo* info) {
     struct stat st;
     int32 i = 0;
 
-    FileBody file = {0};
+    FileBody file = {};
 
     for (i = 0; i < 4; ++i) {
         int_to_str(i, path + sizeof("/sys/class/net/eth") - 1);

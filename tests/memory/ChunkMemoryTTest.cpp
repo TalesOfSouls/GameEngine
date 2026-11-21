@@ -7,7 +7,7 @@ struct ChunkTestElement {
 };
 
 static void test_chunk_t_alloc() {
-    ChunkMemoryT<ChunkTestElement> mem = {0};
+    ChunkMemoryT<ChunkTestElement> mem = {};
     chunk_alloc(&mem, 10, 10);
 
     TEST_EQUALS(mem.capacity, 10);
@@ -34,7 +34,7 @@ static void test_chunk_t_size() {
 }
 
 static void test_chunk_t_element_get() {
-    ChunkMemoryT<ChunkTestElement> mem = {0};
+    ChunkMemoryT<ChunkTestElement> mem = {};
     chunk_alloc(&mem, 10, 10);
 
     TEST_EQUALS(chunk_element_get(&mem, 2), &mem.memory[2]);
@@ -47,7 +47,7 @@ static void test_chunk_t_element_get() {
 }
 
 static void test_chunk_t_reserve() {
-    ChunkMemoryT<ChunkTestElement> mem = {0};
+    ChunkMemoryT<ChunkTestElement> mem = {};
     chunk_alloc(&mem, 10, 10);
 
     TEST_EQUALS(chunk_reserve_one(&mem), 0);
@@ -64,7 +64,7 @@ static void test_chunk_t_reserve() {
 }
 
 static void test_chunk_t_free_element() {
-    ChunkMemoryT<ChunkTestElement> mem = {0};
+    ChunkMemoryT<ChunkTestElement> mem = {};
     chunk_alloc(&mem, 10, 10);
 
     chunk_reserve_one(&mem);
@@ -91,7 +91,7 @@ static void test_chunk_t_free_element() {
 }
 
 static void test_chunk_t_element_insert() {
-    ChunkMemoryT<ChunkTestElement> mem = {0};
+    ChunkMemoryT<ChunkTestElement> mem = {};
     chunk_alloc(&mem, 10, 10);
 
     const ChunkTestElement a = {1, 10};
@@ -112,7 +112,7 @@ static void test_chunk_t_element_insert() {
 }
 
 static void test_chunk_t_memory_get() {
-    ChunkMemoryT<ChunkTestElement> mem = {0};
+    ChunkMemoryT<ChunkTestElement> mem = {};
     chunk_alloc(&mem, 10, 10);
 
     // One element
@@ -133,7 +133,7 @@ static void test_chunk_t_memory_get() {
 }
 
 static void test_chunk_t_iterate() {
-    ChunkMemoryT<ChunkTestElement> mem = {0};
+    ChunkMemoryT<ChunkTestElement> mem = {};
     chunk_alloc(&mem, 10, 10);
 
     for (int32 i = 0; i < 10; ++i) {
@@ -160,7 +160,7 @@ static void test_chunk_t_iterate() {
 }
 
 static void test_chunk_t_dump_load() {
-    ChunkMemoryT<ChunkTestElement> mem = {0};
+    ChunkMemoryT<ChunkTestElement> mem = {};
     chunk_alloc(&mem, 10, 10);
 
     mem.memory[0].id = 5;
@@ -170,7 +170,7 @@ static void test_chunk_t_dump_load() {
     byte out[1024];
     const int64 dump_size = chunk_dump(&mem, out);
 
-    ChunkMemoryT<ChunkTestElement> mem2 = {0};
+    ChunkMemoryT<ChunkTestElement> mem2 = {};
     chunk_alloc(&mem2, 10, 10);
 
     const int64 load_size = chunk_load(&mem2, out);

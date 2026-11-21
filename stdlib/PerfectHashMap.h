@@ -111,7 +111,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, i
     int32* indices = (int32 *) memory_get(ring, hm->map_count * sizeof(int32), 4);
     bool is_unique = false;
 
-    for (int i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
+    for (int32 i = 0; i < (int32) ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
         int32 seed = 0;
         int32 c = 0;
 
@@ -153,7 +153,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* __restri
     int32* const indices = (int32 *) memory_get(ring, hm->map_count * sizeof(int32), sizeof(size_t));
     bool is_unique = false;
 
-    for (int i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
+    for (int32 i = 0; i < (int32) ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
         int32 seed = 0;
         int32 c = 0;
 
@@ -432,7 +432,7 @@ int64 perfect_hashmap_dump(const PerfectHashMap* hm, byte* data)
     *((int32 *) data) = SWAP_ENDIAN_LITTLE(hm->hash_seed);
     data += sizeof(hm->hash_seed);
 
-    for (int i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
+    for (int32 i = 0; i < (int32) ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
         if (hm->hash_function == PERFECT_HASH_FUNCTIONS[i]) {
             *((int32 *) data) = SWAP_ENDIAN_LITTLE((uint64) i);
             data += sizeof(i);

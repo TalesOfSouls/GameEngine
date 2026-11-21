@@ -73,7 +73,7 @@ void change_viewport(
     int32 offset_x = 0, int32 offset_y = 0
 )
 {
-    VkViewport viewport = {0};
+    VkViewport viewport = {};
     viewport.x = (f32) offset_x;
     viewport.y = (f32) offset_y;
     viewport.width = width;
@@ -82,7 +82,7 @@ void change_viewport(
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-    VkRect2D scissor = {0};
+    VkRect2D scissor = {};
     scissor.offset = {offset_x, offset_y};
     scissor.extent = swapchain_extent;
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
@@ -163,7 +163,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
 void gpuapi_debug_messenger_setup(VkInstance instance, VkDebugUtilsMessengerEXT* debug_messenger)
 {
     // @question Why do I need this twice (see other definition)
-    VkDebugUtilsMessengerCreateInfoEXT create_info = {0};
+    VkDebugUtilsMessengerCreateInfoEXT create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
     create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
@@ -204,7 +204,7 @@ void vulkan_instance_create(
         return;
     }
 
-    VkApplicationInfo app_info = {0};
+    VkApplicationInfo app_info = {};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     app_info.pApplicationName = "";
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -212,7 +212,7 @@ void vulkan_instance_create(
     app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     app_info.apiVersion = VK_API_VERSION_1_0;
 
-    VkInstanceCreateInfo create_info = {0};
+    VkInstanceCreateInfo create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &app_info;
     //create_info.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
@@ -224,7 +224,7 @@ void vulkan_instance_create(
         create_info.ppEnabledLayerNames = validation_layers;
 
         // @question Why do I need this twice (see other definition)
-        VkDebugUtilsMessengerCreateInfoEXT debug_create_info = {0};
+        VkDebugUtilsMessengerCreateInfoEXT debug_create_info = {};
         debug_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         debug_create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
         debug_create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
@@ -246,7 +246,7 @@ void vulkan_surface_create(VkInstance instance, VkSurfaceKHR* const surface, Win
     WindowPlatform* platform_window = (WindowPlatform *) window->platform_window;
 
     #if _WIN32
-        VkWin32SurfaceCreateInfoKHR surface_create_info = {0};
+        VkWin32SurfaceCreateInfoKHR surface_create_info = {};
         surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
         surface_create_info.hwnd = platform_window->hwnd;
         surface_create_info.hinstance = platform_window->hInstance;
@@ -445,10 +445,10 @@ void gpuapi_create_logical_device(
     }
 
     // @todo how to make device specific?
-    VkPhysicalDeviceFeatures device_features = {0};
+    VkPhysicalDeviceFeatures device_features = {};
     device_features.samplerAnisotropy = VK_TRUE;
 
-    VkDeviceCreateInfo create_info = {0};
+    VkDeviceCreateInfo create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     create_info.queueCreateInfoCount = queue_create_info_count;
     create_info.pQueueCreateInfos = queue_create_infos;
@@ -523,7 +523,7 @@ void gpuapi_swapchain_create(
         image_count = swap_chain_support.capabilities.maxImageCount;
     }
 
-    VkSwapchainCreateInfoKHR create_info = {0};
+    VkSwapchainCreateInfoKHR create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create_info.surface = surface;
     create_info.minImageCount = image_count;
@@ -600,7 +600,7 @@ void vulkan_image_views_create(
 ) {
     VkResult result;
     for (size_t i = 0; i < swapchain_image_count; ++i) {
-        VkImageViewCreateInfo create_info = {0};
+        VkImageViewCreateInfo create_info = {};
         create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         create_info.image = swapchain_images[i];
         create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -625,7 +625,7 @@ void vulkan_image_views_create(
 void vulkan_render_pass_create(
     VkDevice device, VkRenderPass* render_pass, VkFormat swapchain_image_format
 ) {
-    VkAttachmentDescription color_attachment = {0};
+    VkAttachmentDescription color_attachment = {};
     color_attachment.format = swapchain_image_format;
     color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
     color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -635,16 +635,16 @@ void vulkan_render_pass_create(
     color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    VkAttachmentReference color_attachment_ref = {0};
+    VkAttachmentReference color_attachment_ref = {};
     color_attachment_ref.attachment = 0;
     color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkSubpassDescription subpass = {0};
+    VkSubpassDescription subpass = {};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &color_attachment_ref;
 
-    VkSubpassDependency dependency = {0};
+    VkSubpassDependency dependency = {};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -652,7 +652,7 @@ void vulkan_render_pass_create(
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-    VkRenderPassCreateInfo render_pass_info = {0};
+    VkRenderPassCreateInfo render_pass_info = {};
     render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     render_pass_info.attachmentCount = 1;
     render_pass_info.pAttachments = &color_attachment;
@@ -681,7 +681,7 @@ void vulkan_framebuffer_create(
             swapchain_image_views[i]
         };
 
-        VkFramebufferCreateInfo framebuffer_info = {0};
+        VkFramebufferCreateInfo framebuffer_info = {};
         framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebuffer_info.renderPass = render_pass;
         framebuffer_info.attachmentCount = 1;
@@ -703,7 +703,7 @@ void vulkan_command_pool_create(
 ) {
     VulkanQueueFamilyIndices queue_family_indices = vulkan_find_queue_families(physical_device, surface, mem);
 
-    VkCommandPoolCreateInfo pool_info = {0};
+    VkCommandPoolCreateInfo pool_info = {};
     pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     pool_info.queueFamilyIndex = queue_family_indices.graphics_family;
@@ -717,7 +717,7 @@ void vulkan_command_pool_create(
 
 void gpuapi_command_buffer_create(VkDevice device, VkCommandPool command_pool, VkCommandBuffer* command_buffers, uint32 command_buffer_count)
 {
-    VkCommandBufferAllocateInfo alloc_info = {0};
+    VkCommandBufferAllocateInfo alloc_info = {};
     alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     alloc_info.commandPool = command_pool;
     alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -737,10 +737,10 @@ void vulkan_sync_objects_create(
     VkFence* fences
 )
 {
-    VkSemaphoreCreateInfo semaphore_info = {0};
+    VkSemaphoreCreateInfo semaphore_info = {};
     semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    VkFenceCreateInfo fence_info = {0};
+    VkFenceCreateInfo fence_info = {};
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
@@ -777,7 +777,7 @@ void vulkan_buffer_create(
 ) {
     ASSERT_TRUE(size > 0);
 
-    VkBufferCreateInfo buffer_info = {0};
+    VkBufferCreateInfo buffer_info = {};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     buffer_info.size = size;
     buffer_info.usage = usage;
@@ -789,7 +789,7 @@ void vulkan_buffer_create(
     VkMemoryRequirements mem_requirements;
     vkGetBufferMemoryRequirements(device, buffer, &mem_requirements);
 
-    VkMemoryAllocateInfo alloc_info = {0};
+    VkMemoryAllocateInfo alloc_info = {};
     alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     alloc_info.allocationSize = mem_requirements.size;
     alloc_info.memoryTypeIndex = vulkan_find_memory_type(physical_device, mem_requirements.memoryTypeBits, properties);
@@ -806,7 +806,7 @@ void vulkan_command_buffer_reset(VkCommandBuffer command_buffer) {
 inline
 void vulkan_single_commands_begin(VkCommandBuffer command_buffer)
 {
-    VkCommandBufferBeginInfo begin_info = {0};
+    VkCommandBufferBeginInfo begin_info = {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
@@ -818,7 +818,7 @@ void vulkan_single_commands_end(VkQueue queue, VkCommandBuffer command_buffer)
 {
     ASSERT_GPU_API_CALL(vkEndCommandBuffer(command_buffer));
 
-    VkSubmitInfo submitInfo = {0};
+    VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &command_buffer;
@@ -834,7 +834,7 @@ void vulkan_single_commands_free(VkDevice device, VkCommandPool command_pool, Vk
 }
 
 void vulkan_transition_image_layout(VkCommandBuffer command_buffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout) {
-    VkImageMemoryBarrier barrier = {0};
+    VkImageMemoryBarrier barrier = {};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.oldLayout = oldLayout;
     barrier.newLayout = newLayout;
@@ -918,7 +918,7 @@ void gpuapi_texture_to_gpu(
     VkFormat textureFormat = gpuapi_texture_format(texture->image.image_settings);
 
     // Create the Vulkan image
-    VkImageCreateInfo image_info = {0};
+    VkImageCreateInfo image_info = {};
     image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     image_info.imageType = VK_IMAGE_TYPE_2D;
     image_info.format = textureFormat;
@@ -939,7 +939,7 @@ void gpuapi_texture_to_gpu(
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(device, *texture_image, &memRequirements);
 
-    VkMemoryAllocateInfo allocInfo = {0};
+    VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = vulkan_find_memory_type(physical_device, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -971,7 +971,7 @@ void gpuapi_texture_to_gpu(
     // Copy data from the staging buffer to the image
     vulkan_command_buffer_reset(command_buffer);
     vulkan_single_commands_begin(command_buffer);
-    VkBufferImageCopy region = {0};
+    VkBufferImageCopy region = {};
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     region.imageSubresource.mipLevel = 0;
     region.imageSubresource.baseArrayLayer = 0;
@@ -994,7 +994,7 @@ void gpuapi_texture_to_gpu(
     vkFreeMemory(device, staging_buffer_memory, NULL);
 
     // Create an image view
-    VkImageViewCreateInfo view_info = {0};
+    VkImageViewCreateInfo view_info = {};
     view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     view_info.image = *texture_image;
     view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -1008,10 +1008,10 @@ void gpuapi_texture_to_gpu(
     ASSERT_GPU_API_CALL(vkCreateImageView(device, &view_info, NULL, texture_image_view));
 
     // Create a sampler
-    VkPhysicalDeviceProperties properties = {0};
+    VkPhysicalDeviceProperties properties = {};
     vkGetPhysicalDeviceProperties(physical_device, &properties);
 
-    VkSamplerCreateInfo sampler_info = {0};
+    VkSamplerCreateInfo sampler_info = {};
     sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     sampler_info.magFilter = VK_FILTER_LINEAR;
     sampler_info.minFilter = VK_FILTER_LINEAR;
@@ -1058,7 +1058,7 @@ void gpuapi_vertex_buffer_update(
     gpuapi_command_buffer_create(device, command_pool, &command_buffer, 1);
     vulkan_single_commands_begin(command_buffer);
 
-    VkBufferCopy copy_region = {0};
+    VkBufferCopy copy_region = {};
     copy_region.srcOffset = offset;
     copy_region.dstOffset = offset;
     copy_region.size = buffer_size - offset;
@@ -1111,7 +1111,7 @@ void gpuapi_vertex_buffer_create(
     gpuapi_command_buffer_create(device, command_pool, &command_buffer, 1);
     vulkan_single_commands_begin(command_buffer);
 
-    VkBufferCopy copy_region = {0};
+    VkBufferCopy copy_region = {};
     copy_region.size = buffer_size;
     vkCmdCopyBuffer(command_buffer, staging_buffer, *vertex_buffer, 1, &copy_region);
     vulkan_single_commands_end(queue, command_buffer);
@@ -1158,7 +1158,7 @@ void vulkan_index_buffer_create(
     gpuapi_command_buffer_create(device, command_pool, &command_buffer, 1);
     vulkan_single_commands_begin(command_buffer);
 
-    VkBufferCopy copy_region = {0};
+    VkBufferCopy copy_region = {};
     copy_region.size = buffer_size;
     vkCmdCopyBuffer(command_buffer, staging_buffer, index_buffer, 1, &copy_region);
     vulkan_single_commands_end(queue, command_buffer);

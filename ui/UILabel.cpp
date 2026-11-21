@@ -359,7 +359,7 @@ void ui_label_cache(
     // The byte length is an upper bound of the codepoint count (cheaper than utf8_strlen())
     const int32 byte_count = (int32) str_length(text);
     int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
-    int32 glyph_count = text_to_glyphs(font, text, glyphs);
+    int32 glyph_count = text_to_glyphs(font, text, byte_count, glyphs);
     const v2_f32 text_dim = text_calculate_dimensions(font, glyphs, glyph_count, scale);
 
     ui_dimension_calculate(layout, &label->core, text_dim);

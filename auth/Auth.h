@@ -65,8 +65,8 @@ int get_access_token(
         return 0;
     }
 
-    char post[MAX_AUTH_POST_LENGTH] = {0};
-    char response[MAX_AUTH_RESPONSE_LENGTH] = {0};
+    char post[MAX_AUTH_POST_LENGTH] = {};
+    char response[MAX_AUTH_RESPONSE_LENGTH] = {};
     uint32 http_code = 0;
 
     sprintf_fast(

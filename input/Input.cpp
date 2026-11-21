@@ -1340,7 +1340,7 @@ bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f3
 inline
 uint32 input_get_typed_character(InputState* state, uint64 time, uint64 dt) NO_EXCEPT
 {
-    byte keyboard_state[256] = {0};
+    byte keyboard_state[256] = {};
     for (int32 key_state = 0; key_state < ARRAY_COUNT(state->active_keys); ++key_state) {
         if (state->active_keys[key_state].scan_code == 0
             || state->active_keys[key_state].key_state == KEY_PRESS_TYPE_RELEASED
@@ -1392,7 +1392,7 @@ void input_hotkeys_handle(const Input* const input, void* data, int32 input_id =
 {
     PROFILE_DEBUG(PROFILE_INPUT_HANDLE);
 
-    const InputEvent* input_events[MAX_KEY_PRESSES] = {0};
+    const InputEvent* input_events[MAX_KEY_PRESSES] = {};
     int32 input_event_count = 0;
 
     // Identify possible input events

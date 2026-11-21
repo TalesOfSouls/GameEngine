@@ -3,7 +3,7 @@
 #include "../../stdlib/ArrayVector.h"
 
 static void test_array_vector_alloc() {
-    ArrayVector<int32> vec = {0};
+    ArrayVector<int32> vec = {};
     array_vector_alloc(&vec, 10, 20);
 
     TEST_EQUALS(vec.capacity, 10);
@@ -19,11 +19,11 @@ static void test_array_vector_alloc() {
 
 static void test_array_vector_init() {
     // +64 for the alignment of the buffer memory start
-    byte buffer[1024 + 64] = {0};
-    BufferMemory mem = {0};
+    byte buffer[1024 + 64] = {};
+    BufferMemory mem = {};
     buffer_init(&mem, buffer, 1024);
 
-    ArrayVector<int32> vec = {0};
+    ArrayVector<int32> vec = {};
     array_vector_init(&vec, &mem, 10);
 
     TEST_EQUALS(vec.capacity, 10);
@@ -51,7 +51,7 @@ static void test_array_vector_fixed() {
 }
 
 static void test_array_vector_insert() {
-    ArrayVector<int32> vec = {0};
+    ArrayVector<int32> vec = {};
     array_vector_alloc(&vec, 10, 10);
 
     array_vector_insert(&vec, 1);
@@ -74,7 +74,7 @@ static void test_array_vector_insert() {
 }
 
 static void test_array_vector_insert_safe() {
-    ArrayVector<int32> vec = {0};
+    ArrayVector<int32> vec = {};
     array_vector_alloc(&vec, 2, 2);
 
     TEST_TRUE(array_vector_insert_safe(&vec, 1));
@@ -98,7 +98,7 @@ static void test_array_vector_insert_safe() {
 }
 
 static void test_array_vector_reserve() {
-    ArrayVector<int32> vec = {0};
+    ArrayVector<int32> vec = {};
     array_vector_alloc(&vec, 10, 10);
 
     int32& a = array_vector_reserve_one(&vec);
@@ -118,7 +118,7 @@ static void test_array_vector_reserve() {
 }
 
 static void test_array_vector_has_value() {
-    ArrayVector<int32> vec = {0};
+    ArrayVector<int32> vec = {};
     array_vector_alloc(&vec, 10, 10);
 
     const int32 values[] = {1, 2, 3, 4};
@@ -132,7 +132,7 @@ static void test_array_vector_has_value() {
 }
 
 static void test_array_vector_remove_value() {
-    ArrayVector<int32> vec = {0};
+    ArrayVector<int32> vec = {};
     array_vector_alloc(&vec, 10, 10);
 
     const int32 values[] = {1, 2, 3, 2, 5};
@@ -150,7 +150,7 @@ static void test_array_vector_remove_value() {
 }
 
 static void test_array_vector_remove_index() {
-    ArrayVector<int32> vec = {0};
+    ArrayVector<int32> vec = {};
     array_vector_alloc(&vec, 10, 10);
 
     const int32 values[] = {1, 2, 3, 4};
@@ -171,7 +171,7 @@ static void test_array_vector_remove_index() {
 }
 
 static void test_array_vector_iterate() {
-    ArrayVector<int32> vec = {0};
+    ArrayVector<int32> vec = {};
     array_vector_alloc(&vec, 10, 10);
 
     const int32 values[] = {1, 2, 3, 4, 5};

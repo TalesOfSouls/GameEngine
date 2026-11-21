@@ -555,7 +555,7 @@ inline
 bool input_text_add(InputState* const __restrict state, const InputKey* const __restrict key) NO_EXCEPT
 {
     // Modifier state (e.g. shift, alt gr) for the character conversion
-    byte keyboard_state[256] = {0};
+    byte keyboard_state[256] = {};
     for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
         const InputKey* const active = &state->active_keys[i];
         if ((active->scan_code & INPUT_KEYBOARD_PREFIX)

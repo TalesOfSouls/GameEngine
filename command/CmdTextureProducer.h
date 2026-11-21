@@ -18,7 +18,7 @@ void thrd_cmd_texture_load(
     int32 asset_id
 ) NO_EXCEPT
 {
-    AppCommand cmd = {0};
+    AppCommand cmd = {};
     cmd.type = CMD_TEXTURE_LOAD;
     cmd.texture_body.asset.asset_id = asset_id;
 
@@ -31,7 +31,7 @@ void thrd_cmd_texture_atlas_load(
     int32 asset_id
 ) NO_EXCEPT
 {
-    AppCommand cmd = {0};
+    AppCommand cmd = {};
     cmd.type = CMD_TEXTURE_ATLAS_LOAD;
     cmd.texture_body.asset.asset_id = asset_id;
 

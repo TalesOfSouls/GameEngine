@@ -30,8 +30,8 @@ static v3_int32 octree_test_v3(int32 x, int32 y, int32 z) {
 }
 
 static void test_octree_create() {
-    OctNode nodes[8] = {0};
-    Octree tree = {0};
+    OctNode nodes[8] = {};
+    Octree tree = {};
     tree.root = &nodes[0];
     tree.last = &nodes[0];
 
@@ -172,8 +172,8 @@ static void test_octree_child_anchor() {
 }
 
 static void test_octree_node_create() {
-    OctNode nodes[8] = {0};
-    Octree tree = {0};
+    OctNode nodes[8] = {};
+    Octree tree = {};
     tree.root = &nodes[0];
     tree.last = &nodes[0];
 
@@ -198,8 +198,8 @@ static void test_octree_node_create() {
 }
 
 static void test_octree_insert() {
-    OctNode nodes[8] = {0};
-    Octree tree = {0};
+    OctNode nodes[8] = {};
+    Octree tree = {};
     tree.root = &nodes[0];
     tree.last = &nodes[0];
     tree.leaf_size = 4;
@@ -246,8 +246,8 @@ static void test_octree_insert() {
 }
 
 static void test_octree_remove() {
-    OctNode nodes[8] = {0};
-    Octree tree = {0};
+    OctNode nodes[8] = {};
+    Octree tree = {};
     tree.root = &nodes[0];
     tree.last = &nodes[5];
     tree.leaf_size = 4;
@@ -311,8 +311,8 @@ static void test_octree_remove() {
 }
 
 static void test_octree_remove_missing() {
-    OctNode nodes[4] = {0};
-    Octree tree = {0};
+    OctNode nodes[4] = {};
+    Octree tree = {};
     tree.root = &nodes[0];
     tree.last = &nodes[3];
 
@@ -335,7 +335,7 @@ static void test_octree_remove_missing() {
 }
 
 static void test_octree_has_data_recalculate() {
-    OctNode node = {0};
+    OctNode node = {};
 
     // No data, no children
     TEST_FALSE(octnode_has_data_recalculate(&node));
@@ -349,7 +349,7 @@ static void test_octree_has_data_recalculate() {
     node.data = NULL;
     TEST_FALSE(octnode_has_data_recalculate(&node));
 
-    OctNode child = {0};
+    OctNode child = {};
     child.has_data = true;
     node.child[3] = &child;
     TEST_TRUE(octnode_has_data_recalculate(&node));

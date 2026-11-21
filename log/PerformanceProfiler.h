@@ -309,7 +309,8 @@ struct PerformanceThreadProfiler {
 
         for (int32 i = 0; i < _perf_thread_history_count; ++i) {
             if (_perf_thread_history[i].thread_id.load() == this->_id) {
-                _perf_thread_history[i].tick.store((uint64) OMS_MAX(end_cycle - this->start_cycle, 0ULL));
+                // Unsigned: a max with 0 wouldn't catch end < start (the difference wraps around)
+                _perf_thread_history[i].tick.store(end_cycle > this->start_cycle ? end_cycle - this->start_cycle : 0);
 
                 return;
             }
@@ -449,7 +450,8 @@ struct PerformanceProfiler {
         }
 
         const uint64 end_cycle = intrin_timestamp_counter();
-        this->total_cycle = (int64) OMS_MAX(end_cycle - this->start_cycle, 0ULL);
+        // Unsigned: a max with 0 wouldn't catch end < start (the difference wraps around)
+        this->total_cycle = end_cycle > (uint64) this->start_cycle ? (int64) (end_cycle - (uint64) this->start_cycle) : 0;
         this->self_cycle += total_cycle;
 
         const int32 pos = _perf_stats->pos.load() * PROFILE_SIZE;
@@ -457,7 +459,7 @@ struct PerformanceProfiler {
         ++_perf_stats->perfs[pos + this->_id].counter;
 
         // Store result in global history (not thread history)
-        PerformanceProfileResult temp_perf = {0};
+        PerformanceProfileResult temp_perf = {};
         PerformanceProfileResult* const perf = (this->_flags & PROFILE_FLAG_STATELESS)
             ? &temp_perf
             : &_perf_stats->perfs[pos + this->_id];

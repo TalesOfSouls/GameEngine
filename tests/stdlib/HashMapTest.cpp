@@ -82,7 +82,7 @@ static void test_hashmap_hash_range() {
 }
 
 static void test_hashmap_alloc() {
-    HashMapT<HashEntryStrT<int32>> hm = {0};
+    HashMapT<HashEntryStrT<int32>> hm = {};
     hashmap_alloc(&hm, 3, 3);
 
     TEST_TRUE(hm.buf.capacity > 0);
@@ -96,7 +96,7 @@ static void test_hashmap_alloc() {
 }
 
 static void test_hashmap_insert_str() {
-    HashMapT<HashEntryStrT<int32>> hm = {0};
+    HashMapT<HashEntryStrT<int32>> hm = {};
     hashmap_alloc(&hm, 8, 8);
 
     HashEntryStrT<int32>* entry = hashmap_insert(&hm, "test1", 1);
@@ -132,7 +132,7 @@ static void test_hashmap_insert_str() {
 }
 
 static void test_hashmap_remove() {
-    HashMapT<HashEntryStrT<int32>> hm = {0};
+    HashMapT<HashEntryStrT<int32>> hm = {};
     hashmap_alloc(&hm, 8, 8);
 
     hashmap_insert(&hm, "test1", 1);
@@ -167,7 +167,7 @@ static void test_hashmap_remove() {
 }
 
 static void test_hashmap_reserve() {
-    HashMapT<HashEntryStrT<int32>> hm = {0};
+    HashMapT<HashEntryStrT<int32>> hm = {};
     hashmap_alloc(&hm, 8, 8);
 
     HashEntryStrT<int32>* entry = hashmap_reserve(&hm, "test1");
@@ -192,7 +192,7 @@ static void test_hashmap_reserve() {
 
 // Many entries -> collisions, chain walking and full capacity
 static void test_hashmap_many() {
-    HashMapT<HashEntryStrT<int32>> hm = {0};
+    HashMapT<HashEntryStrT<int32>> hm = {};
     hashmap_alloc(&hm, 256, 256);
 
     char key[32];
@@ -235,7 +235,7 @@ static void test_hashmap_many() {
 
 // Long keys are stored truncated (last HASH_MAP_MAX_KEY_LENGTH - 1 characters)
 static void test_hashmap_long_keys() {
-    HashMapT<HashEntryStrT<int32>> hm = {0};
+    HashMapT<HashEntryStrT<int32>> hm = {};
     hashmap_alloc(&hm, 8, 8);
 
     hashmap_insert(&hm, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", 1);
@@ -249,7 +249,7 @@ static void test_hashmap_long_keys() {
 }
 
 static void test_hashmap_str_equals() {
-    char stored[HASH_MAP_MAX_KEY_LENGTH] = {0};
+    char stored[HASH_MAP_MAX_KEY_LENGTH] = {};
     const char* const keys = "0123456789ABCDEFGHIJKLMNOP";
 
     // Every length uses a different compare path (byte loop, 2x 4 bytes, 8 byte words + overlapping tail)
@@ -277,7 +277,7 @@ static void test_hashmap_str_equals() {
 
 // Keys with known length (not \0 terminated) and SimpleString keys find the same entries as \0 terminated keys
 static void test_hashmap_length_keys() {
-    HashMapT<HashEntryStrT<int32>> hm = {0};
+    HashMapT<HashEntryStrT<int32>> hm = {};
     hashmap_alloc(&hm, 32, 32);
 
     // Every prefix of the string is a different key
@@ -319,7 +319,7 @@ static void test_hashmap_length_keys() {
 }
 
 static void test_hashmap_int_key() {
-    HashMapT<HashEntryT<int32, int32>> hm = {0};
+    HashMapT<HashEntryT<int32, int32>> hm = {};
     hashmap_alloc(&hm, 16, 16);
 
     for (int32 i = 0; i < 16; ++i) {
@@ -343,7 +343,7 @@ static void test_hashmap_int_key() {
 }
 
 static void test_hashmap_dump_load() {
-    HashMapT<HashEntryStrT<int32>> hm_dump = {0};
+    HashMapT<HashEntryStrT<int32>> hm_dump = {};
     hashmap_alloc(&hm_dump, 8, 8);
 
     hashmap_insert(&hm_dump, "test1", 1);
@@ -356,7 +356,7 @@ static void test_hashmap_dump_load() {
 
     const int64 dump_size = hashmap_dump(&hm_dump, out);
 
-    HashMapT<HashEntryStrT<int32>> hm_load = {0};
+    HashMapT<HashEntryStrT<int32>> hm_load = {};
     hashmap_alloc(&hm_load, 8, 8);
 
     const int64 load_size = hashmap_load(&hm_load, out);
@@ -452,7 +452,7 @@ static HashEntryStd* hashmap_test_get(HashMapStd* map, const char* key) {
 #define HASH_MAP_TEST_COUNT (1 << 9)
 
 static void _my_hashmap(MAYBE_UNUSED volatile void* val) {
-    HashMapT<HashEntryStrT<int32>> map = {0};
+    HashMapT<HashEntryStrT<int32>> map = {};
     hashmap_alloc(&map, HASH_MAP_MAX_COUNT, HASH_MAP_MAX_COUNT);
     char test_key[20];
 

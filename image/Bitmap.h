@@ -301,7 +301,7 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) NO
 
 void image_header_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
-    Bitmap src = {0};
+    Bitmap src = {};
     generate_default_bitmap_references(src_data, &src);
 
     image->width = src.dib_header.width;
@@ -318,7 +318,7 @@ void image_header_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 
 void image_bmp_generate(const FileBody* src_data, Image* image) NO_EXCEPT
 {
-    Bitmap src = {0};
+    Bitmap src = {};
     generate_default_bitmap_references(src_data, &src);
 
     image->width = src.dib_header.width;

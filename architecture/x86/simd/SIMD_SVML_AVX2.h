@@ -12,7 +12,8 @@
 
 #include "../../../stdlib/Stdlib.h"
 
-#ifdef __linux__
+// SVML (_mm_sin_ps, ...) is provided by MSVC (and the Intel compiler), not by gcc/clang -> scalar fallback
+#ifndef _MSC_VER
     #include <math.h>
     inline __m256i _mm256_div_epi32(__m256i a, __m256i b) {
         alignas(32) int32 a_array[8], b_array[8], result[8];

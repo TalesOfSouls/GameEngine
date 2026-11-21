@@ -2,8 +2,8 @@
 #include "../../../entity/voxel/VoxelWorldMap.h"
 
 static void test_voxel_world_map() {
-    VoxelWorld vw = {0};
-    v3_int32 pos = {0};
+    VoxelWorld vw = {};
+    v3_int32 pos = {};
 
     const int width = 10;
     const int depth = 25;

@@ -1678,7 +1678,7 @@ void layout_from_file_txt(
     const UILayoutTxtContext* ctx = NULL
 ) NO_EXCEPT
 {
-    FileBody file = {0};
+    FileBody file = {};
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
 

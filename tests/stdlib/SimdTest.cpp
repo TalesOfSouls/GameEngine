@@ -54,7 +54,7 @@ static void test_simd_f32_sum() {
     TEST_EQUALS_WITH_DELTA(simd_sum(data, 16, 16), simd_sum_unaligned(data, 16, 16), 0.0001);
 
     // All zero
-    alignas(32) f32 zeros[8] = {0};
+    alignas(32) f32 zeros[8] = {};
     TEST_EQUALS_WITH_DELTA(simd_sum(zeros, 8, 8), 0.0f, 0.0001);
 }
 
@@ -88,8 +88,8 @@ static void test_simd_i32_sum() {
 static void test_simd_f32_mult() {
     alignas(32) f32 a[16];
     alignas(32) f32 b[16];
-    alignas(32) f32 result[16] = {0};
-    alignas(32) f32 expected[16] = {0};
+    alignas(32) f32 result[16] = {};
+    alignas(32) f32 expected[16] = {};
 
     for (int32 i = 0; i < 16; ++i) {
         a[i] = (f32) (i + 1);
@@ -139,7 +139,7 @@ static void test_simd_f32_mult() {
 
 static void test_simd_f32_div() {
     alignas(32) f32 a[16];
-    alignas(32) f32 result[16] = {0};
+    alignas(32) f32 result[16] = {};
 
     for (int32 i = 0; i < 16; ++i) {
         a[i] = (f32) (i + 1) * 4.0f;
@@ -170,10 +170,10 @@ static void test_simd_f32_div() {
 static void test_simd_i32_add_mult_div() {
     alignas(32) int32 a[16];
     alignas(32) int32 b[16];
-    alignas(32) int32 add_result[16] = {0};
-    alignas(32) f32 mult_result[16] = {0};
-    alignas(32) int32 int_mult_result[16] = {0};
-    alignas(32) f32 div_result[16] = {0};
+    alignas(32) int32 add_result[16] = {};
+    alignas(32) f32 mult_result[16] = {};
+    alignas(32) int32 int_mult_result[16] = {};
+    alignas(32) f32 div_result[16] = {};
     alignas(32) f32 floats[16];
 
     for (int32 i = 0; i < 16; ++i) {
@@ -261,7 +261,7 @@ static void test_simd_equal() {
 
 static void test_simd_endian_swap() {
     const int32 int_values[4] = {0x11223344, 0x01020304, -1, 0x7F000001};
-    int32 int_result[4] = {0};
+    int32 int_result[4] = {};
 
     endian_swap(int_values, int_result, 4, 4);
     TEST_EQUALS((uint32) int_result[0], 0x44332211);
@@ -270,12 +270,12 @@ static void test_simd_endian_swap() {
     TEST_EQUALS((uint32) int_result[3], 0x0100007F);
 
     // Swapping twice returns the original values
-    int32 double_swap[4] = {0};
+    int32 double_swap[4] = {};
     endian_swap(int_result, double_swap, 4, 4);
     TEST_MEMORY_EQUALS(int_values, double_swap, sizeof(int_values));
 
     const uint32 uint_values[3] = {0xDEADBEEF, 0x00000001, 0x80000000};
-    uint32 uint_result[3] = {0};
+    uint32 uint_result[3] = {};
 
     endian_swap(uint_values, uint_result, 3, 4);
     TEST_EQUALS(uint_result[0], 0xEFBEADDE);
@@ -283,14 +283,14 @@ static void test_simd_endian_swap() {
     TEST_EQUALS(uint_result[2], 0x00000080);
 
     const uint16 u16_values[2] = {0x1234, 0xABCD};
-    uint16 u16_result[2] = {0};
+    uint16 u16_result[2] = {};
 
     endian_swap(u16_values, u16_result, 2, 2);
     TEST_EQUALS(u16_result[0], 0x3412);
     TEST_EQUALS(u16_result[1], 0xCDAB);
 
     const int16 i16_values[2] = {0x1234, -2};
-    int16 i16_result[2] = {0};
+    int16 i16_result[2] = {};
 
     endian_swap(i16_values, i16_result, 2, 2);
     TEST_EQUALS((uint16) i16_result[0], 0x3412);
@@ -298,7 +298,7 @@ static void test_simd_endian_swap() {
 
     // An element count that isn't a multiple of the step size still swaps everything
     const uint16 tail_values[5] = {0x0001, 0x0002, 0x0003, 0x0004, 0x0005};
-    uint16 tail_result[5] = {0};
+    uint16 tail_result[5] = {};
 
     endian_swap(tail_values, tail_result, 5, 2);
     TEST_EQUALS(tail_result[0], 0x0100);
@@ -308,8 +308,8 @@ static void test_simd_endian_swap() {
 
 static void test_simd_intrinsic_helpers() {
     // intrin_validate_steps has to report the alignment based step size
-    alignas(64) byte aligned_64[64] = {0};
-    byte unaligned[64] = {0};
+    alignas(64) byte aligned_64[64] = {};
+    byte unaligned[64] = {};
 
     TEST_EQUALS(intrin_validate_steps(aligned_64, 16), 16);
     TEST_EQUALS(intrin_validate_steps(aligned_64, 8), 8);
@@ -336,7 +336,7 @@ static void test_simd_scalar_reference() {
     // Bigger mixed data set compared against a plain scalar implementation
     alignas(32) f32 data[32];
     alignas(32) f32 factors[32];
-    alignas(32) f32 product[32] = {0};
+    alignas(32) f32 product[32] = {};
 
     f32 scalar_sum = 0.0f;
     for (int32 i = 0; i < 32; ++i) {

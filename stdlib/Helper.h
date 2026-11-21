@@ -41,8 +41,9 @@
 
 #define MEMORY_OFFSET(high, low) (size_t) ((uintptr_t) (high) - (uintptr_t) (low))
 
-#define ZERO_PTR(ptr) memset(ptr, 0, sizeof(*ptr))
-#define ZERO_STRUCT(str) memset(&str, 0, sizeof(str))
+// (void *): raw zeroing also for types gcc considers non-trivial (e.g. atomics), -Wclass-memaccess
+#define ZERO_PTR(ptr) memset((void *) (ptr), 0, sizeof(*(ptr)))
+#define ZERO_STRUCT(str) memset((void *) &(str), 0, sizeof(str))
 
 template <typename T, size_t N>
 CONSTEXPR int32_t array_count_helper(const T (&)[N]) {
@@ -221,7 +222,7 @@ static inline To bitcast(From src)
         u.src = src;
         return u.dst;
     } else {
-        To dst = {0};
+        To dst = {};
         memcpy(&dst, &src, sizeof(From) > sizeof(To) ? sizeof(To) : sizeof(From));
 
         return dst;

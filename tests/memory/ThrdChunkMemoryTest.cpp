@@ -24,7 +24,7 @@ static void test_thrd_chunk_size() {
 }
 
 static void test_thrd_chunk_alloc() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 16, 16);
 
     TEST_NOT_EQUALS(mem.memory, NULL);
@@ -60,9 +60,9 @@ static void test_thrd_chunk_alloc() {
 
 static void test_thrd_chunk_init() {
     // chunk_init doesn't zero the bitmaps, the caller has to provide clean memory
-    alignas(64) byte raw[256] = {0};
+    alignas(64) byte raw[256] = {};
 
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_init(&mem, raw, 4, 16);
 
     TEST_EQUALS(mem.memory, raw);
@@ -73,18 +73,18 @@ static void test_thrd_chunk_init() {
     TEST_TRUE(chunk_is_free(&mem, 3));
 
     // The element size is aligned up by chunk_init
-    ThrdChunkMemory aligned = {0};
+    ThrdChunkMemory aligned = {};
     chunk_init(&aligned, raw, 4, 10);
     TEST_EQUALS(aligned.chunk_size, 16);
 
     // The memory starts at the requested alignment
-    ThrdChunkMemory offset = {0};
+    ThrdChunkMemory offset = {};
     chunk_init(&offset, raw + 1, 4, 16);
     TEST_EQUALS(offset.memory, raw + 8);
 }
 
 static void test_thrd_chunk_element_get() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 8, 16);
 
     TEST_EQUALS(chunk_element_get(&mem, 0), mem.memory);
@@ -99,7 +99,7 @@ static void test_thrd_chunk_element_get() {
 }
 
 static void test_thrd_chunk_reserve_one() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 8, 16);
 
     // Elements are reserved in ascending order
@@ -117,7 +117,7 @@ static void test_thrd_chunk_reserve_one() {
 }
 
 static void test_thrd_chunk_reserve_range() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 8, 16);
 
     // A contiguous range in a fresh buffer starts at the first element
@@ -140,7 +140,7 @@ static void test_thrd_chunk_reserve_range() {
 }
 
 static void test_thrd_chunk_reserve_boundary() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 8, 16);
 
     // The whole buffer can be reserved at once
@@ -166,7 +166,7 @@ static void test_thrd_chunk_reserve_boundary() {
 
 static void test_thrd_chunk_multi_word() {
     // 65 elements need two bitmap words
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 65, 65, 8);
 
     int32 last = -1;
@@ -205,7 +205,7 @@ static void test_thrd_chunk_multi_word() {
 }
 
 static void test_thrd_chunk_free_element() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 8, 16);
 
     TEST_EQUALS(chunk_reserve(&mem, 3), 0);
@@ -235,7 +235,7 @@ static void test_thrd_chunk_free_element() {
 }
 
 static void test_thrd_chunk_free_elements() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 8, 16);
 
     TEST_EQUALS(chunk_reserve(&mem, 4), 0);
@@ -255,7 +255,7 @@ static void test_thrd_chunk_free_elements() {
 }
 
 static void test_thrd_chunk_completeness() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 8, 16);
 
     chunk_reserve(&mem, 3);
@@ -285,7 +285,7 @@ static void test_thrd_chunk_completeness() {
 }
 
 static void test_thrd_chunk_element_count() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 8, 16);
 
     TEST_EQUALS(chunk_element_count(&mem, 0), 0);
@@ -299,7 +299,7 @@ static void test_thrd_chunk_element_count() {
 }
 
 static void test_thrd_chunk_memory_get() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 8, 16);
 
     // One element request returns the first free chunk
@@ -325,7 +325,7 @@ static void test_thrd_chunk_memory_get() {
 }
 
 static void test_thrd_chunk_dump_load() {
-    ThrdChunkMemory src = {0};
+    ThrdChunkMemory src = {};
     chunk_alloc(&src, 8, 8, 16);
 
     // Reserve some elements and write a recognizable pattern
@@ -334,7 +334,7 @@ static void test_thrd_chunk_dump_load() {
         memset(chunk_element_get(&src, i), i + 1, src.chunk_size);
     }
 
-    byte out[1024] = {0};
+    byte out[1024] = {};
     const int64 dump_size = chunk_dump(&src, out);
 
     // header (capacity, size, chunk_size, last_pos, free_offset) + element memory + bitmaps
@@ -342,7 +342,7 @@ static void test_thrd_chunk_dump_load() {
         + 8 * 16 + sizeof(size_t) * 1 + sizeof(size_t);
     TEST_EQUALS(dump_size, expected_size);
 
-    ThrdChunkMemory dst = {0};
+    ThrdChunkMemory dst = {};
     chunk_alloc(&dst, 8, 8, 16);
 
     const int64 load_size = chunk_load(&dst, out);
@@ -369,7 +369,7 @@ static void test_thrd_chunk_dump_load() {
 }
 
 static void test_thrd_chunk_iterate() {
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, 8, 8, 16);
 
     chunk_reserve(&mem, 4);
@@ -397,7 +397,7 @@ static void test_thrd_chunk_iterate() {
 static void test_thrd_chunk_arena() {
     MemoryArena* root = mem_arena_alloc(8192, 8192);
 
-    ThrdChunkMemory mem = {0};
+    ThrdChunkMemory mem = {};
     chunk_alloc(&mem, root, 8, 8, 16);
 
     TEST_NOT_EQUALS(mem.memory, NULL);

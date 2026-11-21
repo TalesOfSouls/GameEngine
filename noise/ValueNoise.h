@@ -56,11 +56,11 @@ float value_noise_2d(float* grid, float x, float y, int rows, int cols) {
     float v11 = grid[y1 * rows + x1];
 
     // Interpolate along x direction
-    float v0 = lerp(v00, v10, tx);
-    float v1 = lerp(v01, v11, tx);
+    float v0 = lerp_fast(v00, v10, tx);
+    float v1 = lerp_fast(v01, v11, tx);
 
     // Interpolate along y direction and return the final noise value
-    return lerp(v0, v1, ty);
+    return lerp_fast(v0, v1, ty);
 }
 
 float value_noise_3d(float* grid, float x, float y, float z, int rows, int cols, int depth) {
@@ -95,17 +95,17 @@ float value_noise_3d(float* grid, float x, float y, float z, int rows, int cols,
     float v111 = grid[(y1 * rows + x1) * cols + z1];
 
     // Interpolate along x direction
-    float v00 = lerp(v000, v100, tx);
-    float v10 = lerp(v010, v110, tx);
-    float v01 = lerp(v001, v101, tx);
-    float v11 = lerp(v011, v111, tx);
+    float v00 = lerp_fast(v000, v100, tx);
+    float v10 = lerp_fast(v010, v110, tx);
+    float v01 = lerp_fast(v001, v101, tx);
+    float v11 = lerp_fast(v011, v111, tx);
 
     // Interpolate along y direction
-    float v0 = lerp(v00, v10, ty);
-    float v1 = lerp(v01, v11, ty);
+    float v0 = lerp_fast(v00, v10, ty);
+    float v1 = lerp_fast(v01, v11, ty);
 
     // Interpolate along z direction and return the final noise value
-    return lerp(v0, v1, tz);
+    return lerp_fast(v0, v1, tz);
 }
 
 #endif

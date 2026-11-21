@@ -566,7 +566,7 @@ HBITMAP CreateBitmapFromRGBA(
     int32 width, int32 height
 ) NO_EXCEPT
 {
-    BITMAPINFO bmi = {0};
+    BITMAPINFO bmi = {};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bmi.bmiHeader.biWidth = width;
     bmi.bmiHeader.biHeight = height;

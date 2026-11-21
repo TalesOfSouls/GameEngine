@@ -18,7 +18,7 @@ struct MPMCQueueElement {
 };
 
 static void test_mpmc_queue_alloc() {
-    MPMCQueueT<MPMCQueueElement> queue = {0};
+    MPMCQueueT<MPMCQueueElement> queue = {};
     queue_alloc(&queue, 8, 8);
 
     TEST_NOT_EQUALS(queue.memory, NULL);
@@ -42,8 +42,8 @@ static void test_mpmc_queue_alloc() {
 
 static void test_mpmc_queue_init_buffer() {
     // The sequence array follows the element memory
-    alignas(64) byte raw[512] = {0};
-    MPMCQueueT<MPMCQueueElement> queue = {0};
+    alignas(64) byte raw[512] = {};
+    MPMCQueueT<MPMCQueueElement> queue = {};
     queue_init(&queue, raw, 8);
 
     TEST_EQUALS(queue.memory, (MPMCQueueElement *) raw);
@@ -56,10 +56,10 @@ static void test_mpmc_queue_init_buffer() {
     TEST_FALSE(queue_is_empty(&queue));
 
     // BufferMemory variant carves the memory out of the buffer
-    BufferMemory buffer = {0};
+    BufferMemory buffer = {};
     buffer_alloc(&buffer, 2048, 2048);
 
-    MPMCQueueT<MPMCQueueElement> second = {0};
+    MPMCQueueT<MPMCQueueElement> second = {};
     queue_init(&second, &buffer, 8);
 
     TEST_NOT_EQUALS(second.memory, NULL);
@@ -71,11 +71,11 @@ static void test_mpmc_queue_init_buffer() {
 }
 
 static void test_mpmc_queue_enqueue_dequeue() {
-    MPMCQueueT<MPMCQueueElement> queue = {0};
+    MPMCQueueT<MPMCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // Empty queue
-    MPMCQueueElement out = {0};
+    MPMCQueueElement out = {};
     TEST_FALSE(queue_dequeue(&queue, &out));
     TEST_EQUALS(queue_dequeue_start(&queue), NULL);
 
@@ -110,7 +110,7 @@ static void test_mpmc_queue_enqueue_dequeue() {
 }
 
 static void test_mpmc_queue_full() {
-    MPMCQueueT<MPMCQueueElement> queue = {0};
+    MPMCQueueT<MPMCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // The whole ring is usable, no slot is sacrificed
@@ -127,7 +127,7 @@ static void test_mpmc_queue_full() {
     TEST_EQUALS(queue_enqueue_start(&queue), NULL);
 
     // Emptying the ring makes it writable again
-    MPMCQueueElement out = {0};
+    MPMCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 0);
     TEST_FALSE(queue_is_full(&queue));
@@ -139,14 +139,14 @@ static void test_mpmc_queue_full() {
 }
 
 static void test_mpmc_queue_wrap() {
-    MPMCQueueT<MPMCQueueElement> queue = {0};
+    MPMCQueueT<MPMCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     for (int32 i = 0; i < 10; ++i) {
         const MPMCQueueElement element = {i, i * 10};
         TEST_TRUE(queue_enqueue(&queue, element));
 
-        MPMCQueueElement out = {0};
+        MPMCQueueElement out = {};
         TEST_TRUE(queue_dequeue(&queue, &out));
         TEST_EQUALS(out.id, i);
         TEST_EQUALS(out.value, i * 10);
@@ -163,7 +163,7 @@ static void test_mpmc_queue_wrap() {
     TEST_TRUE(queue_enqueue(&queue, b));
     TEST_TRUE(queue_enqueue(&queue, c));
 
-    MPMCQueueElement out = {0};
+    MPMCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 1);
 
@@ -179,7 +179,7 @@ static void test_mpmc_queue_wrap() {
 }
 
 static void test_mpmc_queue_start_end() {
-    MPMCQueueT<MPMCQueueElement> queue = {0};
+    MPMCQueueT<MPMCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // Producer side: claim a slot, write in place, publish
@@ -210,7 +210,7 @@ static void test_mpmc_queue_start_end() {
 }
 
 static void test_mpmc_queue_reuse_slot() {
-    MPMCQueueT<MPMCQueueElement> queue = {0};
+    MPMCQueueT<MPMCQueueElement> queue = {};
     queue_alloc(&queue, 2, 2);
 
     // Fill, drain and fill again: the same slots are reused with a higher sequence
@@ -222,7 +222,7 @@ static void test_mpmc_queue_reuse_slot() {
         TEST_TRUE(queue_enqueue(&queue, b));
         TEST_TRUE(queue_is_full(&queue));
 
-        MPMCQueueElement out = {0};
+        MPMCQueueElement out = {};
         TEST_TRUE(queue_dequeue(&queue, &out));
         TEST_EQUALS(out.id, lap * 2);
         TEST_TRUE(queue_dequeue(&queue, &out));
@@ -239,7 +239,7 @@ static void test_mpmc_queue_reuse_slot() {
 }
 
 static void test_mpmc_queue_round_trip() {
-    MPMCQueueT<MPMCQueueElement> queue = {0};
+    MPMCQueueT<MPMCQueueElement> queue = {};
     queue_alloc(&queue, 8, 8);
 
     int32 produced = 0;
@@ -252,7 +252,7 @@ static void test_mpmc_queue_round_trip() {
             ++produced;
         }
 
-        MPMCQueueElement out = {0};
+        MPMCQueueElement out = {};
         if (queue_dequeue(&queue, &out)) {
             TEST_EQUALS(out.id, consumed);
             TEST_EQUALS(out.value, consumed * 3);
@@ -268,13 +268,13 @@ static void test_mpmc_queue_round_trip() {
 }
 
 static void test_mpmc_queue_wait() {
-    MPMCQueueT<MPMCQueueElement> queue = {0};
+    MPMCQueueT<MPMCQueueElement> queue = {};
     queue_alloc(&queue, 4, 4);
 
     // The waiting variants only block while the queue is full/empty
     const MPMCQueueElement a = {1, 10};
     queue_enqueue_wait(&queue, a);
-    MPMCQueueElement out = {0};
+    MPMCQueueElement out = {};
     queue_dequeue_wait(&queue, &out);
     TEST_EQUALS(out.id, 1);
     TEST_TRUE(queue_is_empty(&queue));
@@ -298,7 +298,7 @@ static void test_mpmc_queue_wait() {
 static void test_mpmc_queue_arena() {
     MemoryArena* root = mem_arena_alloc(8192, 8192);
 
-    MPMCQueueT<MPMCQueueElement> queue = {0};
+    MPMCQueueT<MPMCQueueElement> queue = {};
     queue_alloc(&queue, root, 8, 8);
 
     TEST_NOT_EQUALS(queue.memory, NULL);
@@ -309,7 +309,7 @@ static void test_mpmc_queue_arena() {
     const MPMCQueueElement element = {1, 10};
     TEST_TRUE(queue_enqueue(&queue, element));
 
-    MPMCQueueElement out = {0};
+    MPMCQueueElement out = {};
     TEST_TRUE(queue_dequeue(&queue, &out));
     TEST_EQUALS(out.id, 1);
 

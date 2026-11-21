@@ -208,7 +208,7 @@ static void test_bits_count() {
 
 // Bit stream (MSB first, @see BitWalk)
 static void test_bits_walk() {
-    byte data[4] = {0};
+    byte data[4] = {};
     BitWalk stream = {data, 0};
 
     bits_walk(&stream, 3);

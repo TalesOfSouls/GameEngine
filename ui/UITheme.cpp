@@ -352,7 +352,7 @@ bool ui_theme_language_load(
         language_code = LANGUAGE_DEFAULT_CODE;
     }
 
-    FileBody file = {0};
+    FileBody file = {};
     file_read(path, &file, mem);
     if (!file.content) {
         return false;
@@ -392,7 +392,7 @@ void theme_from_file_txt(
     RingMemory* const ring
 ) NO_EXCEPT
 {
-    FileBody file = {0};
+    FileBody file = {};
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
 

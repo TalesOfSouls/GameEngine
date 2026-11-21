@@ -29,7 +29,7 @@ void ams_create(AssetManagementSystem* const ams, BufferMemory* const buf, int32
     );
 
     //memset(ams->asset_components, 0, asset_component_count * sizeof(AssetComponent));
-    memset(ams->asset_components, 0, ALIGN_UP(asset_component_count * sizeof(AssetComponent), alignof(AssetComponent)));
+    memset((void *) ams->asset_components, 0, ALIGN_UP(asset_component_count * sizeof(AssetComponent), alignof(AssetComponent)));
 }
 
 // Different AMS components can have different chunk sizes
@@ -398,6 +398,7 @@ Asset* ams_asset_reserve(
     Asset asset = {
         SMN(official_id) 0,
         SMN(ram_size) ac->asset_memory.chunk_size * elements,
+        SMN(data_size) 0,
         SMN(vram_size) 0,
         SMN(last_access) 0,
         SMN(chunk_count) elements,
@@ -405,7 +406,8 @@ Asset* ams_asset_reserve(
         SMN(state) 0,
         SMN(is_persistent) false,
         SMN(reference_count) 0,
-        SMN(self) asset_data
+        SMN(self) asset_data,
+        SMN(references) {}
     };
 
     ac->vram_size.fetch_add(asset.vram_size);

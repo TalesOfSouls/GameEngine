@@ -200,7 +200,7 @@ uint32 qoa_encode_frame(const int16* sample_data, int32 channels, uint32 frame_s
 {
     byte* start = bytes;
 
-	int32 prev_scalefactor[QOA_MAX_CHANNELS] = {0};
+	int32 prev_scalefactor[QOA_MAX_CHANNELS] = {};
 
 	// Write the frame header
     *((uint32 *) bytes) = SWAP_ENDIAN_LITTLE(frame_samples);

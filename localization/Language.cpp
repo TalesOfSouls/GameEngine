@@ -467,7 +467,7 @@ int32 language_from_file_txt(
         return -1;
     }
 
-    FileBody file = {0};
+    FileBody file = {};
     file_read(path, &file, mem);
     if (!file.content) {
         return -1;

@@ -538,7 +538,7 @@ void cpu_info_get(CpuInfo* const info) {
     info->core_count = (uint16) sys_info.dwNumberOfProcessors;
     info->page_size = (uint16) sys_info.dwPageSize;
 
-    int32 cpuInfo[4] = {0};
+    int32 cpuInfo[4] = {};
     __cpuid(cpuInfo, 0);
 
     memset(info->vendor, 0, sizeof(info->vendor));
@@ -585,7 +585,7 @@ void os_info_get(OSInfo* const info) {
     info->vendor[15] = '\0';
     info->name[63] = '\0';
 
-    OSVERSIONINFOEXW version_info = {0};
+    OSVERSIONINFOEXW version_info = {};
     version_info.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEXW);
 
     RtlGetVersion(&version_info);
@@ -814,7 +814,7 @@ int32 gpu_info_get(GpuInfo*const  info, int32 limit = 3) {
 inline
 int32 display_info_get(DisplayInfo* const info, int32 limit = 4) {
     DISPLAY_DEVICEW device;
-    DEVMODEW mode = {0};
+    DEVMODEW mode = {};
 
     device.cb = sizeof(DISPLAY_DEVICEW);
 

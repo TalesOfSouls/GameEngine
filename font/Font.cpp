@@ -159,7 +159,7 @@ void font_optimize_order(Font* const font, byte* buf) NO_EXCEPT
 
     int success = 0;
     uint32 codepoint;
-    while (codepoint = *to_validate++) {
+    while ((codepoint = *to_validate++)) {
         const int16 perfect_glyph_pos = (int16) (codepoint - font->glyphs[0].codepoint);
         const int16 limit = OMS_MIN(perfect_glyph_pos, (int16) (font->glyph_count - 1));
 
@@ -170,7 +170,7 @@ void font_optimize_order(Font* const font, byte* buf) NO_EXCEPT
         );
     }
 
-    if (success >= (sizeof(to_validate) - 1) / 2) {
+    if (success >= (int32) ((sizeof(to_validate) - 1) / 2)) {
         font->order_type = FONT_GLYPH_ORDER_TYPE_NORMAL;
         return;
     }
@@ -201,7 +201,7 @@ void font_from_file_txt(
     RingMemory* const ring
 ) NO_EXCEPT
 {
-    FileBody file = {0};
+    FileBody file = {};
     file_read(path, &file, ring);
     ASSERT_TRUE(file.size);
 

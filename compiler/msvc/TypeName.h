@@ -24,7 +24,7 @@ CONSTEXPR auto GetRawTypeName() {
 
     // Create a struct that holds the string in a CONSTEXPR-friendly way
     struct Result {
-        char str[128] = {0};
+        char str[128] = {};
 
         CONSTEXPR Result() {
             for (size_t i = 0; i < length && i < 127; ++i) {
