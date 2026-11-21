@@ -153,6 +153,14 @@ struct UIInteraction {
     // The UI uses the pointer (pointer is over the UI, pressing a UI element or dragging)
     // -> the game should ignore the pointer input
     bool pointer_captured;
+
+    // Hit test of the last ui_input_pointer() call (element offsets, 0 = none)
+    // Reused while the pointer didn't move and the layout didn't change (not dirty + same UILayout::hit_epoch)
+    v2_f32 hit_pointer;
+    uint32 hit_epoch;
+    int32 hit_element;
+    int32 hit_action;
+    bool hit_valid;
 };
 
 // Modified for every scene
@@ -254,6 +262,10 @@ struct UILayout {
 
     // Counts the ui_cache() calls, the cache data of an element is only valid for the last call
     uint32 cache_frame;
+
+    // Incremented by every ui_cache() incl. the in-place patch (which keeps cache_frame)
+    // Every change of the layout marks it dirty until the next ui_cache() -> not dirty + same epoch = unchanged layout
+    uint32 hit_epoch;
 
     // A simple hash created from values that affect all elements (e.g. font, font scale),
     // if they change everything is re-generated

@@ -74,47 +74,47 @@ int32 ui_element_type_size(UIElementType e) NO_EXCEPT
 // WARNING: The order matters since we only compare the prefix (e.g. textarea before text)
 int32 ui_element_type_to_id(const char* str) NO_EXCEPT
 {
-    if (strncmp("button", str, sizeof("button") - 1) == 0) {
+    if (str_compare("button", str, sizeof("button") - 1) == 0) {
         return UI_ELEMENT_TYPE_BUTTON;
-    } else if (strncmp("optionlist", str, sizeof("optionlist") - 1) == 0) {
+    } else if (str_compare("optionlist", str, sizeof("optionlist") - 1) == 0) {
         return UI_ELEMENT_TYPE_OPTION_LIST;
-    } else if (strncmp("colorpicker", str, sizeof("colorpicker") - 1) == 0) {
+    } else if (str_compare("colorpicker", str, sizeof("colorpicker") - 1) == 0) {
         return UI_ELEMENT_TYPE_COLOR_PICKER;
-    } else if (strncmp("colorpanel", str, sizeof("colorpanel") - 1) == 0) {
+    } else if (str_compare("colorpanel", str, sizeof("colorpanel") - 1) == 0) {
         return UI_ELEMENT_TYPE_COLOR_PANEL;
-    } else if (strncmp("select", str, sizeof("select") - 1) == 0) {
+    } else if (str_compare("select", str, sizeof("select") - 1) == 0) {
         return UI_ELEMENT_TYPE_SELECT;
-    } else if (strncmp("input", str, sizeof("input") - 1) == 0) {
+    } else if (str_compare("input", str, sizeof("input") - 1) == 0) {
         return UI_ELEMENT_TYPE_INPUT;
-    } else if (strncmp("textarea", str, sizeof("textarea") - 1) == 0) {
+    } else if (str_compare("textarea", str, sizeof("textarea") - 1) == 0) {
         return UI_ELEMENT_TYPE_TEXTAREA;
-    } else if (strncmp("image", str, sizeof("image") - 1) == 0) {
+    } else if (str_compare("image", str, sizeof("image") - 1) == 0) {
         return UI_ELEMENT_TYPE_IMAGE;
-    } else if (strncmp("label", str, sizeof("label") - 1) == 0) {
+    } else if (str_compare("label", str, sizeof("label") - 1) == 0) {
         return UI_ELEMENT_TYPE_LABEL;
-    } else if (strncmp("text", str, sizeof("text") - 1) == 0) {
+    } else if (str_compare("text", str, sizeof("text") - 1) == 0) {
         return UI_ELEMENT_TYPE_TEXT;
-    } else if (strncmp("link", str, sizeof("link") - 1) == 0) {
+    } else if (str_compare("link", str, sizeof("link") - 1) == 0) {
         return UI_ELEMENT_TYPE_LINK;
-    } else if (strncmp("table", str, sizeof("table") - 1) == 0) {
+    } else if (str_compare("table", str, sizeof("table") - 1) == 0) {
         return UI_ELEMENT_TYPE_TABLE;
-    } else if (strncmp("window", str, sizeof("window") - 1) == 0) {
+    } else if (str_compare("window", str, sizeof("window") - 1) == 0) {
         return UI_ELEMENT_TYPE_VIEW_WINDOW;
-    } else if (strncmp("panel", str, sizeof("panel") - 1) == 0) {
+    } else if (str_compare("panel", str, sizeof("panel") - 1) == 0) {
         return UI_ELEMENT_TYPE_VIEW_PANEL;
-    } else if (strncmp("tab", str, sizeof("tab") - 1) == 0) {
+    } else if (str_compare("tab", str, sizeof("tab") - 1) == 0) {
         return UI_ELEMENT_TYPE_VIEW_TAB;
-    } else if (strncmp("cursor", str, sizeof("cursor") - 1) == 0) {
+    } else if (str_compare("cursor", str, sizeof("cursor") - 1) == 0) {
         return UI_ELEMENT_TYPE_CURSOR;
-    } else if (strncmp("custom", str, sizeof("custom") - 1) == 0) {
+    } else if (str_compare("custom", str, sizeof("custom") - 1) == 0) {
         return UI_ELEMENT_TYPE_CUSTOM;
-    } else if (strncmp("manual", str, sizeof("manual") - 1) == 0) {
+    } else if (str_compare("manual", str, sizeof("manual") - 1) == 0) {
         return UI_ELEMENT_TYPE_MANUAL;
-    } else if (strncmp("checkbox", str, sizeof("checkbox") - 1) == 0) {
+    } else if (str_compare("checkbox", str, sizeof("checkbox") - 1) == 0) {
         return UI_ELEMENT_TYPE_CHECKBOX;
-    } else if (strncmp("radio", str, sizeof("radio") - 1) == 0) {
+    } else if (str_compare("radio", str, sizeof("radio") - 1) == 0) {
         return UI_ELEMENT_TYPE_RADIO;
-    } else if (strncmp("slider", str, sizeof("slider") - 1) == 0) {
+    } else if (str_compare("slider", str, sizeof("slider") - 1) == 0) {
         return UI_ELEMENT_TYPE_SLIDER;
     }
 

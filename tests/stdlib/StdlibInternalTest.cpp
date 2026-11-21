@@ -157,58 +157,213 @@ static void test_stdlib_internal_strchr() {
     TEST_EQUALS(strcmp(__internal_strchr(str, 'j'), "j"), 0);
     TEST_EQUALS(strcmp(__internal_strchr(str, '\0'), ""), 0);
     TEST_EQUALS(__internal_strchr(str, 'z'), NULL);
+
+    // Every alignment, every position of the needle (alignment part, words, tail) + not found
+    alignas(size_t) char storage[64];
+    const char* const text = "0123456789ABCDEFGHIJKLMNOP";
+
+    int32 mismatches = 0;
+    for (int32 offset = 0; offset < 8; ++offset) {
+        char* const s = storage + offset;
+        strcpy(s, text);
+
+        for (const char* c = text; ; ++c) {
+            mismatches += __internal_strchr(s, *c) != strchr(s, *c);
+            if (*c == '\0') {
+                break;
+            }
+        }
+
+        mismatches += __internal_strchr(s, 'z') != strchr(s, 'z');
+    }
+
+    TEST_EQUALS(mismatches, 0);
+}
+
+static void test_stdlib_internal_wcschr() {
+    alignas(size_t) wchar_t storage[32];
+    const wchar_t* const text = L"hello world";
+
+    int32 mismatches = 0;
+    for (int32 offset = 0; offset < 4; ++offset) {
+        wchar_t* const s = storage + offset;
+        wcscpy(s, text);
+
+        for (const wchar_t* c = text; ; ++c) {
+            mismatches += __internal_wcschr(s, *c) != wcschr(s, *c);
+            if (*c == L'\0') {
+                break;
+            }
+        }
+
+        mismatches += __internal_wcschr(s, L'z') != wcschr(s, L'z');
+        mismatches += __internal_wcschr(s, (wchar_t) 0x6F00) != wcschr(s, (wchar_t) 0x6F00);
+    }
+
+    TEST_EQUALS(mismatches, 0);
+}
+
+static void test_stdlib_internal_wcsstr() {
+    const wchar_t* const haystack = L"The quick brown fox jumps over the lazy dog";
+
+    TEST_TRUE(__internal_wcsstr(haystack, L"brown") == wcsstr(haystack, L"brown"));
+    TEST_TRUE(__internal_wcsstr(haystack, L"The") == haystack);
+    TEST_TRUE(__internal_wcsstr(haystack, L"dog") == wcsstr(haystack, L"dog"));
+    TEST_TRUE(__internal_wcsstr(haystack, L"") == haystack);
+    TEST_TRUE(__internal_wcsstr(haystack, L"cat") == NULL);
+}
+
+static int32 test_sign(int32 value)
+{
+    return (value > 0) - (value < 0);
+}
+
+static void test_stdlib_internal_strcpy() {
+    // Every source alignment and length (terminator inside of the alignment part, the words and the tail)
+    alignas(size_t) char src_storage[64];
+    const char* const text = "0123456789ABCDEFGHIJKLMNOP";
+    const int32 text_length = (int32) strlen(text);
+
+    int32 mismatches = 0;
+    for (int32 offset = 0; offset < 8; ++offset) {
+        for (int32 length = 0; length <= text_length; ++length) {
+            char* const src = src_storage + offset;
+            memcpy(src, text, length);
+            src[length] = '\0';
+
+            char expected[48];
+            char buffer[48];
+            memset(expected, 'X', sizeof(expected));
+            memset(buffer, 'X', sizeof(buffer));
+
+            strcpy(expected, src);
+            mismatches += __internal_strcpy(buffer, src) != buffer;
+            mismatches += memcmp(expected, buffer, sizeof(buffer)) != 0;
+        }
+    }
+
+    TEST_EQUALS(mismatches, 0);
+
+    alignas(size_t) wchar_t wsrc_storage[32];
+    const wchar_t* const wtext = L"hello world";
+    const int32 wtext_length = (int32) wcslen(wtext);
+
+    int32 wmismatches = 0;
+    for (int32 offset = 0; offset < 4; ++offset) {
+        for (int32 length = 0; length <= wtext_length; ++length) {
+            wchar_t* const wsrc = wsrc_storage + offset;
+            memcpy(wsrc, wtext, length * sizeof(wchar_t));
+            wsrc[length] = L'\0';
+
+            wchar_t expected[20];
+            wchar_t buffer[20];
+            memset(expected, 0x7F, sizeof(expected));
+            memset(buffer, 0x7F, sizeof(buffer));
+
+            wcscpy(expected, wsrc);
+            wmismatches += __internal_wcscpy(buffer, wsrc) != buffer;
+            wmismatches += memcmp(expected, buffer, sizeof(buffer)) != 0;
+        }
+    }
+
+    TEST_EQUALS(wmismatches, 0);
 }
 
 static void test_stdlib_internal_strncpy() {
-    char buffer[32];
+    // Every source alignment, n below/at/above the string length (incl. the '\0' padding of the C library)
+    alignas(size_t) char src_storage[64];
+    const char* const text = "0123456789ABCDEFGHIJKLMNOP";
+    const int32 text_length = (int32) strlen(text);
 
-    memset(buffer, 'X', sizeof(buffer));
-    __internal_strncpy(buffer, "hello", 8);
-    TEST_EQUALS(strcmp(buffer, "hello"), 0);
+    int32 mismatches = 0;
+    for (int32 offset = 0; offset < 8; ++offset) {
+        char* const src = src_storage + offset;
+        strcpy(src, text);
 
-    // Truncation always keeps a terminator
-    memset(buffer, 'X', sizeof(buffer));
-    __internal_strncpy(buffer, "hello", 4);
-    TEST_EQUALS(strcmp(buffer, "hel"), 0);
-    TEST_EQUALS(buffer[3], '\0');
+        for (size_t n = 0; n <= (size_t) text_length + 6; ++n) {
+            char expected[48];
+            char buffer[48];
+            memset(expected, 'X', sizeof(expected));
+            memset(buffer, 'X', sizeof(buffer));
 
-    // Source shorter than length
-    memset(buffer, 'X', sizeof(buffer));
-    __internal_strncpy(buffer, "ab", 16);
-    TEST_EQUALS(strcmp(buffer, "ab"), 0);
+            strncpy(expected, src, n);
+            mismatches += __internal_strncpy(buffer, src, n) != buffer;
+            mismatches += memcmp(expected, buffer, sizeof(buffer)) != 0;
+        }
+    }
 
-    // Long source
-    memset(buffer, 'X', sizeof(buffer));
-    __internal_strncpy(buffer, "0123456789ABCDEFGHIJKLMNOP", 31);
-    TEST_EQUALS(strlen(buffer), 26);
-    TEST_EQUALS(strcmp(buffer, "0123456789ABCDEFGHIJKLMNOP"), 0);
+    TEST_EQUALS(mismatches, 0);
 
     // wchar version
-    wchar_t wbuffer[16];
-    __internal_wcsncpy(wbuffer, L"hello", 16);
-    TEST_EQUALS(wcscmp(wbuffer, L"hello"), 0);
+    alignas(size_t) wchar_t wsrc_storage[32];
+    const wchar_t* const wtext = L"hello world";
 
-    __internal_wcsncpy(wbuffer, L"hello", 3);
-    TEST_EQUALS(wcscmp(wbuffer, L"he"), 0);
+    int32 wmismatches = 0;
+    for (int32 offset = 0; offset < 4; ++offset) {
+        wchar_t* const wsrc = wsrc_storage + offset;
+        wcscpy(wsrc, wtext);
+
+        for (size_t n = 0; n <= 16; ++n) {
+            wchar_t expected[20];
+            wchar_t buffer[20];
+            memset(expected, 0x7F, sizeof(expected));
+            memset(buffer, 0x7F, sizeof(buffer));
+
+            wcsncpy(expected, wsrc, n);
+            wmismatches += __internal_wcsncpy(buffer, wsrc, n) != buffer;
+            wmismatches += memcmp(expected, buffer, sizeof(buffer)) != 0;
+        }
+    }
+
+    TEST_EQUALS(wmismatches, 0);
 }
 
 static void test_stdlib_internal_strcmp() {
-    TEST_EQUALS(__internal_strcmp("", ""), 0);
-    TEST_EQUALS(__internal_strcmp("abc", "abc"), 0);
-    TEST_EQUALS(__internal_strcmp("abc", "abd") < 0, true);
-    TEST_EQUALS(__internal_strcmp("abd", "abc") > 0, true);
-    TEST_EQUALS(__internal_strcmp("abc", "abcd") < 0, true);
-    TEST_EQUALS(__internal_strcmp("abcd", "abc") > 0, true);
+    // Every alignment combination (same offset = word-wise path, different offset = byte path)
+    // with differences before, inside and after the first word + prefixes of each other
+    alignas(size_t) char a_storage[64];
+    alignas(size_t) char b_storage[64];
 
-    TEST_EQUALS(__internal_strncmp("abc", "abc", 3), 0);
-    TEST_EQUALS(__internal_strncmp("abcX", "abcY", 3), 0);
-    TEST_EQUALS(__internal_strncmp("abcX", "abcY", 4) < 0, true);
-    TEST_EQUALS(__internal_strncmp("abc", "abd", 8) < 0, true);
-    TEST_EQUALS(__internal_strncmp("abc", "abc", 0), 0);
+    const char* const texts[] = {
+        "", "a", "abc", "abcdefg", "abcdefgh", "abcdefghijklmnopqrstuvwxyz",
+        "abcdefghijklmnopqrstuvwxyZ", "abcdefghXjklmnop", "abcdefghijklmnopq", "\xFF" "bc"
+    };
+    const int32 text_count = ARRAY_COUNT(texts);
+
+    int32 mismatches = 0;
+    int32 n_mismatches = 0;
+    for (int32 off_a = 0; off_a < 8; ++off_a) {
+        for (int32 off_b = 0; off_b < 8; ++off_b) {
+            for (int32 i = 0; i < text_count; ++i) {
+                for (int32 j = 0; j < text_count; ++j) {
+                    char* const a = a_storage + off_a;
+                    char* const b = b_storage + off_b;
+                    strcpy(a, texts[i]);
+                    strcpy(b, texts[j]);
+
+                    mismatches += test_sign(__internal_strcmp(a, b)) != test_sign(strcmp(a, b));
+
+                    for (size_t n = 0; n < 30; ++n) {
+                        n_mismatches += test_sign(__internal_strncmp(a, b, n)) != test_sign(strncmp(a, b, n));
+                    }
+                }
+            }
+        }
+    }
+
+    TEST_EQUALS(mismatches, 0);
+    TEST_EQUALS(n_mismatches, 0);
 
     TEST_EQUALS(__internal_wcscmp(L"", L""), 0);
     TEST_EQUALS(__internal_wcscmp(L"abc", L"abc"), 0);
     TEST_EQUALS(__internal_wcscmp(L"abc", L"abd") < 0, true);
+    TEST_EQUALS(__internal_wcscmp(L"abd", L"abc") > 0, true);
+    TEST_EQUALS(__internal_wcscmp(L"ab", L"abc") < 0, true);
+
+    TEST_EQUALS(__internal_wcsncmp(L"abcX", L"abcY", 3), 0);
+    TEST_EQUALS(__internal_wcsncmp(L"abcX", L"abcY", 4) < 0, true);
+    TEST_EQUALS(__internal_wcsncmp(L"ab", L"abc", 8) < 0, true);
+    TEST_EQUALS(__internal_wcsncmp(L"a", L"b", 0), 0);
 }
 
 static void test_stdlib_internal_case() {
@@ -274,6 +429,9 @@ int main() {
     TEST_RUN(test_stdlib_internal_strlen);
     TEST_RUN(test_stdlib_internal_strstr);
     TEST_RUN(test_stdlib_internal_strchr);
+    TEST_RUN(test_stdlib_internal_wcschr);
+    TEST_RUN(test_stdlib_internal_wcsstr);
+    TEST_RUN(test_stdlib_internal_strcpy);
     TEST_RUN(test_stdlib_internal_strncpy);
     TEST_RUN(test_stdlib_internal_strcmp);
     TEST_RUN(test_stdlib_internal_case);

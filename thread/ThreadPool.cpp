@@ -26,7 +26,8 @@ void thread_pool_notify_one(ThreadPool* const pool) NO_EXCEPT
 static inline
 void thread_pool_execute(ThreadPool* const pool, ThreadPoolJob* const job) NO_EXCEPT
 {
-    ++pool->working_cnt;
+    const int32 running = ++pool->working_cnt;
+    STATS_MAX_DEBUG(DEBUG_COUNTER_THREAD_POOL_RUNNING, running);
 
     if (job->state_external) {
         job->state_external->store(POOL_WORKER_STATE_RUNNING, memory_order_relaxed);
@@ -373,6 +374,8 @@ void thread_pool_add_work_end(ThreadPool* const pool, ThreadPoolJob* const job) 
     }
 
     queue_enqueue_end(&pool->work_queue, job);
+    STATS_MAX_DEBUG(DEBUG_COUNTER_THREAD_POOL_QUEUED, queue_count(&pool->work_queue));
+
     thread_pool_notify_one(pool);
 }
 

@@ -34,7 +34,7 @@ inline
 void str_output(const char* __restrict str, ...) NO_EXCEPT
 {
     char buffer[1024];
-    if (strchr(str, '%')) {
+    if (str_find(str, '%')) {
         #if defined(NO_STDLIB) && NO_STDLIB
             // Without the standard library we cannot format a va_list
         #else
@@ -49,9 +49,9 @@ void str_output(const char* __restrict str, ...) NO_EXCEPT
 
     #ifdef _WIN32
         HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-        WriteFile(hStdout, str, (DWORD) strlen(str), NULL, NULL);
+        WriteFile(hStdout, str, (DWORD) str_length(str), NULL, NULL);
     #else
-        write(STDOUT_FILENO, str, strlen(str));
+        write(STDOUT_FILENO, str, str_length(str));
     #endif
 }
 

@@ -234,26 +234,26 @@ void font_from_file_txt(
             ++pos;
         }
 
-        if (strncmp(block_name, "texture", sizeof("texture") - 1) == 0) {
+        if (str_compare(block_name, "texture", sizeof("texture") - 1) == 0) {
             while (!is_eol(pos)) {
                 *texture_pos++ = *pos++;
             }
 
             *texture_pos++ = '\0';
             ++header_completed;
-        } else if (strncmp(block_name, "font_size", sizeof("font_size") - 1) == 0) {
+        } else if (str_compare(block_name, "font_size", sizeof("font_size") - 1) == 0) {
             font->size = str_to_float(pos, &pos);
             ++header_completed;
-        } else if (strncmp(block_name, "line_height", sizeof("line_height") - 1) == 0) {
+        } else if (str_compare(block_name, "line_height", sizeof("line_height") - 1) == 0) {
             font->line_height = str_to_float(pos, &pos);
             ++header_completed;
-        } else if (strncmp(block_name, "image_width", sizeof("image_width") - 1) == 0) {
+        } else if (str_compare(block_name, "image_width", sizeof("image_width") - 1) == 0) {
             image_width = (int32) str_to_int(pos, &pos);
             ++header_completed;
-        } else if (strncmp(block_name, "image_height", sizeof("image_height") - 1) == 0) {
+        } else if (str_compare(block_name, "image_height", sizeof("image_height") - 1) == 0) {
             image_height = (int32) str_to_int(pos, &pos);
             ++header_completed;
-        } else if (strncmp(block_name, "glyph_count", sizeof("glyph_count") - 1) == 0) {
+        } else if (str_compare(block_name, "glyph_count", sizeof("glyph_count") - 1) == 0) {
             font->glyph_count = (uint16) str_to_int(pos, &pos);
             ++header_completed;
         }

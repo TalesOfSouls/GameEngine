@@ -169,9 +169,23 @@ auto vec2_cross(const T* const a, const T* const b) NO_EXCEPT -> decltype(a->x)
 
 template<typename T>
 FORCE_INLINE
+auto vec2_cross(const T* const a, const T* const b, const T* const c) NO_EXCEPT -> decltype(a->x)
+{
+    return (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
+}
+
+template<typename T>
+FORCE_INLINE
 auto vec2_cross(T a, T b) NO_EXCEPT -> decltype(a.x)
 {
     return a.x * b.y - a.y * b.x;
+}
+
+template<typename T>
+FORCE_INLINE
+auto vec2_cross(T a, T b, T c) NO_EXCEPT -> decltype(a.x)
+{
+    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
 template<typename T>

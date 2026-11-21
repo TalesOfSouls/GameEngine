@@ -26,6 +26,7 @@
 
     #define strstr __builtin_strstr
     #define strchr __builtin_strchr
+    #define wcschr __builtin_wcschr
     #define wcsstr __builtin_wcsstr
 
     #define strncpy __builtin_strncpy
@@ -61,7 +62,8 @@
     #define wcscat __internal_wcscat
 
     #define strstr __internal_strstr
-    #define strchar __internal_strchar
+    #define strchr __internal_strchr
+    #define wcschr __internal_wcschr
     #define wcsstr __internal_wcsstr
 
     #define strncpy __internal_strncpy

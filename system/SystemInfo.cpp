@@ -54,7 +54,7 @@ void hardware_id_normalize(char* const value) NO_EXCEPT
         *dst = '\0';
     }
 
-    size_t length = strlen(value);
+    size_t length = str_length(value);
     while (length && (value[length - 1] == ' ' || value[length - 1] == '\t'
         || value[length - 1] == '\r' || value[length - 1] == '\n')
     ) {
@@ -132,8 +132,8 @@ void hardware_id_gpu_add(HardwareId* const id, const char* const value) NO_EXCEP
     }
 
     char normalized[128];
-    const size_t length = strlen(value) < sizeof(normalized) - 1
-        ? strlen(value)
+    const size_t length = str_length(value) < sizeof(normalized) - 1
+        ? str_length(value)
         : sizeof(normalized) - 1;
 
     for (size_t i = 0; i < length; ++i) {
@@ -148,12 +148,12 @@ void hardware_id_gpu_add(HardwareId* const id, const char* const value) NO_EXCEP
     }
 
     for (uint8 i = 0; i < id->gpu_id_count; ++i) {
-        if (strcmp(id->gpu_id[i], normalized) == 0) {
+        if (str_compare(id->gpu_id[i], normalized) == 0) {
             return;
         }
     }
 
-    memcpy(id->gpu_id[id->gpu_id_count], normalized, strlen(normalized) + 1);
+    memcpy(id->gpu_id[id->gpu_id_count], normalized, str_length(normalized) + 1);
     ++id->gpu_id_count;
 }
 
@@ -165,7 +165,7 @@ void hardware_id_gpu_sort(HardwareId* const id) NO_EXCEPT
 
     for (uint8 i = 0; i < id->gpu_id_count; ++i) {
         for (uint8 j = (uint8) (i + 1); j < id->gpu_id_count; ++j) {
-            if (strcmp(id->gpu_id[i], id->gpu_id[j]) > 0) {
+            if (str_compare(id->gpu_id[i], id->gpu_id[j]) > 0) {
                 char temp[128];
                 memcpy(temp, id->gpu_id[i], sizeof(temp));
                 memcpy(id->gpu_id[i], id->gpu_id[j], sizeof(temp));

@@ -8,6 +8,7 @@
 #define COMS_AUTH_AUTH_TOKEN_H
 
 #include "../stdlib/Stdlib.h"
+#include "../utils/StringUtils.h"
 #include "../encoding/Hex.h"
 #include "../hash/Hmac.h"
 #include "../utils/ConstantTime.h"
@@ -375,7 +376,7 @@ bool auth_token_from_hex(
     AuthToken* const __restrict token
 ) NO_EXCEPT
 {
-    if (!hex || !token || strlen(hex) != AUTH_TOKEN_HEX_LENGTH) {
+    if (!hex || !token || str_length(hex) != AUTH_TOKEN_HEX_LENGTH) {
         return false;
     }
 

@@ -110,7 +110,7 @@ Session* session_manager_create(SessionManager *manager) {
 Session* session_manager_get(SessionManager *manager, const char *session_id) {
     // First check memory
     for (size_t i = 0; i < manager->count; i++) {
-        if (strcmp(manager->sessions[i].id, session_id) == 0) {
+        if (str_compare(manager->sessions[i].id, session_id) == 0) {
             manager->sessions[i].last_used = time(NULL);
             return &manager->sessions[i];
         }
@@ -163,7 +163,7 @@ Session* session_manager_get(SessionManager *manager, const char *session_id) {
 void session_manager_delete(SessionManager *manager, const char *session_id) {
     // Delete from memory
     for (size_t i = 0; i < manager->count; i++) {
-        if (strcmp(manager->sessions[i].id, session_id) == 0) {
+        if (str_compare(manager->sessions[i].id, session_id) == 0) {
             if (i != manager->count - 1) {
                 memmove(&manager->sessions[i],
                         &manager->sessions[i + 1],
@@ -205,9 +205,9 @@ void session_manager_cleanup(SessionManager *manager) {
         if (dir) {
             struct dirent *entry;
             while ((entry = readdir(dir)) != NULL) {
-                if (strlen(entry->d_name) == SESSION_ID_LENGTH) {
+                if (str_length(entry->d_name) == SESSION_ID_LENGTH) {
                     char path[PATH_MAX_LENGTH];
-                    snprintf(path, sizeof(path), "%s/%s", manager->storage_path, entry->d_name);
+                    sprintf_fast(path, sizeof(path), "%s/%s", manager->storage_path, entry->d_name);
 
                     struct stat st;
                     if (stat(path, &st) == 0) {
@@ -237,7 +237,7 @@ void session_id_generate(char* id) {
 
 static void save_session_to_disk(SessionManager *manager, const Session *session) {
     char path[PATH_MAX_LENGTH];
-    snprintf(path, sizeof(path), "%s/%s", manager->storage_path, session->id);
+    sprintf_fast(path, sizeof(path), "%s/%s", manager->storage_path, session->id);
 
     FILE *file = fopen(path, "wb");
     if (!file) return;
@@ -254,7 +254,7 @@ static void save_session_to_disk(SessionManager *manager, const Session *session
 
 static bool load_session_from_disk(SessionManager *manager, Session *session, const char *session_id) {
     char path[PATH_MAX_LENGTH];
-    snprintf(path, sizeof(path), "%s/%s", manager->storage_path, session_id);
+    sprintf_fast(path, sizeof(path), "%s/%s", manager->storage_path, session_id);
 
     FILE *file = fopen(path, "rb");
     if (!file) return false;
@@ -267,7 +267,7 @@ static bool load_session_from_disk(SessionManager *manager, Session *session, co
 
 static void delete_session_from_disk(SessionManager *manager, const char *session_id) {
     char path[PATH_MAX_LENGTH];
-    snprintf(path, sizeof(path), "%s/%s", manager->storage_path, session_id);
+    sprintf_fast(path, sizeof(path), "%s/%s", manager->storage_path, session_id);
     unlink(path);
 }
 

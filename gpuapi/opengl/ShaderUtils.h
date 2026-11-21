@@ -677,20 +677,20 @@ static inline bool gpuapi_is_var_name(char c) NO_EXCEPT
 // Returns layout(location = N) of uniform name
 static int32 gpuapi_uniform_location(const char* __restrict src, const char* __restrict name) NO_EXCEPT
 {
-    size_t name_len = strlen(name);
+    size_t name_len = str_length(name);
 
-    for (const char* u = strstr(src, "uniform"); u; u = strstr(u + 7, "uniform")) {
+    for (const char* u = str_find(src, "uniform"); u; u = str_find(u + 7, "uniform")) {
         if ((u > src && gpuapi_is_var_name(u[-1])) || gpuapi_is_var_name(u[7])) {
             continue;
         }
 
-        const char* end = strchr(u, ';');
+        const char* end = str_find(u, ';');
         if (!end) {
             break;
         }
 
         bool found = false;
-        for (const char* p = strstr(u + 7, name); p && p < end; p = strstr(p + 1, name)) {
+        for (const char* p = str_find(u + 7, name); p && p < end; p = str_find(p + 1, name)) {
             if (!gpuapi_is_var_name(p[-1])
                 && !gpuapi_is_var_name(p[name_len])
             ) {
@@ -708,14 +708,14 @@ static int32 gpuapi_uniform_location(const char* __restrict src, const char* __r
             --start;
         }
 
-        const char* loc = strstr(start, "location");
+        const char* loc = str_find(start, "location");
         if (!loc || loc > u) {
             return -1;
         }
 
-        loc = strchr(loc, '=');
+        loc = str_find(loc, '=');
 
-        return loc ? atoi(loc + 1) : -1;
+        return loc ? (int32) str_to_int(str_skip_empty(loc + 1)) : -1;
     }
 
     return -1;

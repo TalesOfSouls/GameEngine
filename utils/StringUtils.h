@@ -34,6 +34,30 @@ wchar_t* str_right(const wchar_t* str, wchar_t c) NO_EXCEPT
     return (wchar_t *) wcsrchr(str, c);
 }
 
+FORCE_INLINE
+char* str_find(const char* str, char c) NO_EXCEPT
+{
+    return (char *) strchr(str, c);
+}
+
+FORCE_INLINE
+wchar_t* str_find(const wchar_t* str, wchar_t c) NO_EXCEPT
+{
+    return (wchar_t *) wcschr(str, c);
+}
+
+FORCE_INLINE
+char* str_find(const char* haystack, const char* needle) NO_EXCEPT
+{
+    return (char *) strstr(haystack, needle);
+}
+
+FORCE_INLINE
+wchar_t* str_find(const wchar_t* haystack, const wchar_t* needle) NO_EXCEPT
+{
+    return (wchar_t *) wcsstr(haystack, needle);
+}
+
 inline
 int32 utf8_encode(uint32 codepoint, char* out) NO_EXCEPT
 {
@@ -1066,7 +1090,7 @@ inline
 size_t str_count(const char* __restrict str, const char* __restrict substr) NO_EXCEPT
 {
     size_t count = 0;
-    const size_t substr_len = strlen(substr);
+    const size_t substr_len = str_length(substr);
 
     const char* s = str;
     const char first = substr[0];
@@ -1136,47 +1160,10 @@ int32 is_eol(const char* str) NO_EXCEPT
     return 0;
 }
 
-// Similar to wcscpy but returns length instead of pointer to the beginning
-inline
-int32 str_copy(char* __restrict dest, const char* __restrict src) NO_EXCEPT
+FORCE_INLINE
+void str_copy(char* __restrict dest, const char* __restrict src) NO_EXCEPT
 {
-    const char* start = dest;
-
-    // Align src pointer
-    while ((uintptr_t)src % sizeof(size_t) != 0) {
-        const char c = *src++;
-        *dest++ = c;
-        if (c == '\0') {
-            // Same return value as the general case below (length incl. the terminator)
-            return (int32) (dest - start);
-        }
-    }
-
-    const size_t* wptr = (const size_t *) src;
-    size_t* dptr = (size_t *)dest;
-
-    while (true) {
-        const size_t v = *wptr;
-        if (OMS_HAS_ZERO(v)) {
-            break; // null byte found
-        }
-
-        *dptr++ = v;
-        wptr++;
-    }
-
-    // Copy remaining bytes
-    src = (const char *) wptr;
-    dest = (char *) dptr;
-    while (true) {
-        const char c = *src++;
-        *dest++ = c;
-        if (c == '\0') {
-            break;
-        }
-    }
-
-    return (int32) (dest - start);
+    strcpy(dest, src);
 }
 
 // WARNING: you have to make sure that src has at least length characters and dest can hold length characters
@@ -1190,50 +1177,34 @@ int32 str_copy(C* __restrict dest, const C* __restrict src, int32 length) NO_EXC
     return length;
 }
 
-// Similar to wcscpy but returns length instead of pointer to the beginning
-inline
-int32 str_copy(
-    wchar_t* __restrict dest,
-    const wchar_t* __restrict src
-) NO_EXCEPT
+FORCE_INLINE
+void str_copy(wchar_t* __restrict dest, const wchar_t* __restrict src) NO_EXCEPT
 {
-    const wchar_t* start = dest;
+    wcscpy(dest, src);
+}
 
-    // Align src pointer
-    while ((uintptr_t)src % sizeof(size_t) != 0) {
-        const wchar_t c = *src++;
-        *dest++ = c;
-        if (c == L'\0') {
-            return -1;
-        }
-    }
+FORCE_INLINE
+int32 str_compare(const char* str1, const char* str2) NO_EXCEPT
+{
+    return strcmp(str1, str2);
+}
 
-    const size_t* wptr = (const size_t*)src;
-    size_t* dptr = (size_t*)dest;
+FORCE_INLINE
+int32 str_compare(const char* str1, const char* str2, size_t n) NO_EXCEPT
+{
+    return strncmp(str1, str2, n);
+}
 
-    // Bulk copy size_t blocks
-    while (true) {
-        const size_t v = *wptr;
-        if (OMS_HAS_ZERO_WCHAR(v)) {
-            break;
-        }
+FORCE_INLINE
+int32 str_compare(const wchar_t* str1, const wchar_t* str2) NO_EXCEPT
+{
+    return wcscmp(str1, str2);
+}
 
-        *dptr++ = v;
-        ++wptr;
-    }
-
-    // Copy remaining bytes
-    src = (const wchar_t*)wptr;
-    dest = (wchar_t*)dptr;
-    while (true) {
-        const wchar_t c = *src++;
-        *dest++ = c;
-        if (c == L'\0') {
-            break;
-        }
-    }
-
-    return (int32)(dest - start);
+FORCE_INLINE
+int32 str_compare(const wchar_t* str1, const wchar_t* str2, size_t n) NO_EXCEPT
+{
+    return wcsncmp(str1, str2, n);
 }
 
 template <typename C>
@@ -1263,7 +1234,7 @@ void str_line_append(
         text[(*length)++] = '\n';
     }
 
-    const int32 line_length = min_branched((int32) strlen(line), capacity - 1 - *length);
+    const int32 line_length = min_branched((int32) str_length(line), capacity - 1 - *length);
     if (line_length <= 0) {
         text[*length] = '\0';
 
@@ -1371,7 +1342,7 @@ int32 str_copy_until(wchar_t* __restrict dest, const wchar_t* __restrict src, wc
 template <typename T>
 inline void str_copy_until(T* __restrict dest, const T* __restrict src, const T* __restrict delim) NO_EXCEPT
 {
-    const size_t len = strlen(delim);
+    const size_t len = str_length(delim);
 
     const T end = (T) 0;
 
@@ -1443,7 +1414,7 @@ void str_copy_move_until(char* __restrict dest, const char* __restrict* __restri
 inline
 void str_copy_move_until(char* __restrict dest, const char* __restrict* __restrict src, const char* __restrict delim) NO_EXCEPT
 {
-    const size_t len = strlen(delim);
+    const size_t len = str_length(delim);
 
     while (**src != '\0') {
         for (size_t i = 0; i < len; ++i) {
@@ -1707,14 +1678,14 @@ void strcat(
     int64 data
 ) NO_EXCEPT
 {
-    const size_t dst_len = strlen(dst);
+    const size_t dst_len = str_length(dst);
     int_to_str(data, dst + dst_len);
 }
 
 inline void
 str_concat_new(char* __restrict dst, const char* __restrict src, int64 data) NO_EXCEPT
 {
-    const size_t src_len = strlen(src);
+    const size_t src_len = str_length(src);
     memcpy(dst, src, src_len);
 
     int_to_str(data, dst + src_len);
@@ -1723,8 +1694,8 @@ str_concat_new(char* __restrict dst, const char* __restrict src, int64 data) NO_
 inline
 void str_insert(char* __restrict dst, size_t insert_pos, const char* __restrict src) NO_EXCEPT
 {
-    const size_t src_length = strlen(src);
-    const size_t dst_length = strlen(dst);
+    const size_t src_length = str_length(src);
+    const size_t dst_length = str_length(dst);
 
     /* This is UB
     memcpy(dst + insert_pos + src_length, dst + insert_pos, dst_length - insert_pos + 1);
@@ -1738,8 +1709,8 @@ void str_insert(char* __restrict dst, size_t insert_pos, const char* __restrict 
 inline
 void str_insert(wchar_t* __restrict dst, size_t insert_pos, const wchar_t* __restrict src) NO_EXCEPT
 {
-    const size_t src_length = wcslen(src);
-    const size_t dst_length = wcslen(dst);
+    const size_t src_length = str_length(src);
+    const size_t dst_length = str_length(dst);
 
     memmove(dst + insert_pos + src_length, dst + insert_pos, (dst_length - insert_pos + 1) * sizeof(wchar_t));
     memcpy(dst + insert_pos, src, src_length * sizeof(wchar_t));
@@ -1764,7 +1735,7 @@ int32 str_insert(
 inline
 void str_remove(char* __restrict dst, size_t remove_pos, size_t remove_length) NO_EXCEPT
 {
-    const size_t src_length = strlen(dst);
+    const size_t src_length = str_length(dst);
     memmove(dst + remove_pos, dst + remove_pos + remove_length, src_length - (remove_pos + remove_length) + 1);
 }
 
@@ -2007,12 +1978,12 @@ bool str_starts_with(const char* const __restrict str, const char* const __restr
         return false;
     }
 
-    const size_t prefix_len = strlen(prefix);
+    const size_t prefix_len = str_length(prefix);
     if (prefix_len == 0) {
         return true;
     }
 
-    return strncmp(str, prefix, prefix_len) == 0;
+    return str_compare(str, prefix, prefix_len) == 0;
 }
 
 inline CONSTEXPR
@@ -2022,12 +1993,12 @@ bool str_starts_with(const wchar_t* const __restrict str, const wchar_t* const _
         return false;
     }
 
-    const size_t prefix_len = wcslen(prefix);
+    const size_t prefix_len = str_length(prefix);
     if (prefix_len == 0) {
         return true;
     }
 
-    return wcsncmp(str, prefix, prefix_len) == 0;
+    return str_compare(str, prefix, prefix_len) == 0;
 }
 
 inline CONSTEXPR
@@ -2037,14 +2008,14 @@ bool str_ends_with(const char* const __restrict str, const char* __restrict suff
         return false;
     }
 
-    const size_t str_len = strlen(str);
-    const size_t suffix_len = strlen(suffix);
+    const size_t str_len = str_length(str);
+    const size_t suffix_len = str_length(suffix);
 
     if (suffix_len > str_len) {
         return false;
     }
 
-    return strncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
+    return str_compare(str + str_len - suffix_len, suffix, suffix_len) == 0;
 }
 
 inline CONSTEXPR
@@ -2054,14 +2025,14 @@ bool str_ends_with(const wchar_t* __restrict str, const wchar_t* __restrict suff
         return false;
     }
 
-    const size_t str_len = wcslen(str);
-    const size_t suffix_len = wcslen(suffix);
+    const size_t str_len = str_length(str);
+    const size_t suffix_len = str_length(suffix);
 
     if (suffix_len > str_len) {
         return false;
     }
 
-    return wcsncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
+    return str_compare(str + str_len - suffix_len, suffix, suffix_len) == 0;
 }
 
 // WARNING: result needs to have the correct length
@@ -2071,18 +2042,18 @@ void str_replace(const char* __restrict str, const char* __restrict search, cons
         return;
     }
 
-    const size_t search_len = strlen(search);
-    const size_t replace_len = strlen(replace);
+    const size_t search_len = str_length(search);
+    const size_t replace_len = str_length(replace);
 
     if (search_len == 0) {
-        strcpy(result, str);
+        str_copy(result, str);
         return;
     }
 
     const char* current = str;
     char* result_ptr = result;
 
-    while (*current && (current = strstr(current, search))) {
+    while (*current && (current = str_find(current, search))) {
         const size_t bytes_to_copy = current - str;
         memcpy(result_ptr, str, bytes_to_copy);
         result_ptr += bytes_to_copy;
@@ -2094,7 +2065,7 @@ void str_replace(const char* __restrict str, const char* __restrict search, cons
         str = current;
     }
 
-    strcpy(result_ptr, str);
+    str_copy(result_ptr, str);
 }
 
 /*
@@ -2287,7 +2258,7 @@ void str_move_to_pos(const char** str, int32 pos) NO_EXCEPT
 {
     *str += pos >= 0
         ? pos
-        : OMS_MAX(((int32) strlen(*str) + pos), 0);
+        : OMS_MAX(((int32) str_length(*str) + pos), 0);
 }
 
 // Negative pos counts backwards
@@ -2297,7 +2268,7 @@ const char* str_move_to_pos(const char* str, int32 pos) NO_EXCEPT
     return str + (
         pos >= 0
             ? pos
-            : OMS_MAX(((int32) strlen(str) + pos), 0)
+            : OMS_MAX(((int32) str_length(str) + pos), 0)
         );
 }
 
@@ -2521,7 +2492,7 @@ void str_pad_right(const char* __restrict input, char* __restrict output, char p
 inline
 void str_pad_left(const char* __restrict input, char* __restrict output, char pad, size_t len) NO_EXCEPT
 {
-    const size_t input_len = strlen(input);
+    const size_t input_len = str_length(input);
     if (input_len >= len) {
         // No space for padding, the input is truncated
         memcpy(output, input, len);
@@ -2911,12 +2882,15 @@ int32 sprintf_fast(T* __restrict buffer, int32 buffer_length, const T* __restric
                         break;
                     }
 
+                    // The string is cut at the buffer end (length already contains the '\0')
+                    const int32 remaining = buffer_length - length;
                     if (data_length > 0) {
+                        data_length = data_length < remaining ? data_length : remaining;
                         memcpy(buffer, str, sizeof(T) * data_length);
                         buffer += data_length;
                         offset += data_length;
                     } else {
-                        while (*str) {
+                        while (*str && offset < remaining) {
                             *buffer++ = *str++;
                             ++offset;
                         }

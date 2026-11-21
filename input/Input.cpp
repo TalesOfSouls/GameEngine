@@ -306,27 +306,40 @@ bool input_kbm_handle_remove(KBMDevice* const device, InputHandle handle) NO_EXC
     return false;
 }
 
+// Both hotkey mappings (Input::input_mappings)
+static FORCE_INLINE CONSTEXPR
+size_t input_mapping_memory_size(uint8 count) NO_EXCEPT
+{
+    return count * sizeof(Hotkey) * 2;
+}
+
+// Hotkey mappings + hotkey index (one block, the index follows the mappings)
 static FORCE_INLINE CONSTEXPR
 size_t input_memory_size(uint8 count) NO_EXCEPT
 {
-    return count * sizeof(Hotkey) * 2;
+    return input_mapping_memory_size(count) + count * sizeof(HotkeyIndexEntry) * 2;
 }
 
 // count = count of possible hotkeys
 inline
 void input_init(Input* const input, uint8 count, BufferMemory* const buf) NO_EXCEPT
 {
+    static_assert(alignof(HotkeyIndexEntry) <= alignof(Hotkey) && sizeof(Hotkey) % alignof(HotkeyIndexEntry) == 0);
+
     input->hotkey_count = count;
 
-    const size_t hotkey_size = input_memory_size(input->hotkey_count);
+    const size_t size = input_memory_size(input->hotkey_count);
 
-    input->input_mappings[0] = (Hotkey *) memory_get(buf, hotkey_size, alignof(Hotkey));
+    input->input_mappings[0] = (Hotkey *) memory_get(buf, size, alignof(Hotkey));
     input->input_mappings[1] = input->input_mappings[0] + input->hotkey_count;
+    input->hotkey_index = (HotkeyIndexEntry *) (input->input_mappings[1] + input->hotkey_count);
+    input->hotkey_index_count = 0;
+    input->hotkey_index_dirty = true;
 
-    // This clears both mappings[0] and mappings[1]
-    memset(input->input_mappings[0], 0, hotkey_size);
+    // This clears both mappings[0] and mappings[1] + the index
+    memset(input->input_mappings[0], 0, size);
 
-    DEBUG_MEMORY_SUBREGION((uintptr_t) input->input_mappings[0], hotkey_size);
+    DEBUG_MEMORY_SUBREGION((uintptr_t) input->input_mappings[0], size);
 }
 
 // Resets the mapping
@@ -335,8 +348,9 @@ FORCE_INLINE
 void input_mapping_reset(Input* const input) NO_EXCEPT
 {
     // This clears both mappings[0] and mappings[1]
-    memset(input->input_mappings[0], 0, input_memory_size(input->hotkey_count));
+    memset(input->input_mappings[0], 0, input_mapping_memory_size(input->hotkey_count));
     memset(&input->state, 0, sizeof(input->state));
+    input->hotkey_index_dirty = true;
 }
 
 /**
@@ -1036,6 +1050,78 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     }
 }
 
+/**
+ * Hash of the hotkey mappings (DEBUG_STRICT check of the hotkey index)
+ *
+ * @param const Input* input Input
+ *
+ * @return uint64
+ */
+static inline
+uint64 input_hotkey_mapping_hash(const Input* const input) NO_EXCEPT
+{
+    // FNV-1a
+    const byte* const data = (const byte *) input->input_mappings[0];
+    const size_t size = input_mapping_memory_size(input->hotkey_count);
+
+    uint64 hash = 0xCBF29CE484222325ULL;
+    for (size_t i = 0; i < size; ++i) {
+        hash = (hash ^ data[i]) * 0x100000001B3ULL;
+    }
+
+    return hash;
+}
+
+/**
+ * Builds the hotkey index (Input::hotkey_index) from the hotkey mappings
+ *
+ * Every hotkey of both mappings with at least one key is added once, under its first key.
+ * Sorted by the key, equal keys keep the hotkey + mapping order.
+ *
+ * @param Input* input Input
+ *
+ * @return void
+ */
+static
+void input_hotkey_index_build(Input* const input) NO_EXCEPT
+{
+    HotkeyIndexEntry* const index = input->hotkey_index;
+    int32 count = 0;
+
+    for (int32 hotkey = 1; hotkey <= input->hotkey_count; ++hotkey) {
+        for (int32 m = 0; m < 2; ++m) {
+            const Hotkey* const key = &input->input_mappings[m][hotkey - 1];
+
+            int16 first = 0;
+            for (int32 i = 0; i < MAX_HOTKEY_COMBINATION; ++i) {
+                if (key->scan_codes[i]) {
+                    first = key->scan_codes[i];
+                    break;
+                }
+            }
+
+            if (!first) {
+                continue;
+            }
+
+            // Insertion sort (stable -> hotkey + mapping order within the same key)
+            // Only happens when the hotkeys change
+            int32 j = count - 1;
+            while (j >= 0 && index[j].scan_code > first) {
+                index[j + 1] = index[j];
+                --j;
+            }
+
+            index[j + 1] = { first, (uint8) hotkey, (uint8) m };
+            ++count;
+        }
+    }
+
+    input->hotkey_index_count = (int16) count;
+    input->hotkey_index_dirty = false;
+    input->hotkey_index_hash = input_hotkey_mapping_hash(input);
+}
+
 HOT_CODE
 int32 input_hotkey_state_update(Input* const input, uint64 /* time */ = 0) NO_EXCEPT
 {
@@ -1071,49 +1157,118 @@ int32 input_hotkey_state_update(Input* const input, uint64 /* time */ = 0) NO_EX
 
     int32 active_hotkeys = 0;
 
+    if (input->hotkey_index_dirty) UNLIKELY {
+        input_hotkey_index_build(input);
+    }
+
+    #if defined(DEBUG_STRICT) && DEBUG_STRICT
+        // A mapping change without setting hotkey_index_dirty -> the index is outdated
+        ASSERT_TRUE(input->hotkey_index_hash == input_hotkey_mapping_hash(input));
+    #endif
+
     // Priority (one key can only trigger one non-held hotkey):
     //      1. hotkeys of the current context before general hotkeys (context = 0)
     //          e.g. tab = next ui element while the ui is focused, otherwise tab = tab target
     //      2. hotkeys with more keys before hotkeys with less keys
     //          e.g. shift + tab = previous ui element, NOT tab = next ui element
-    for (int32 pass = 0; pass < 2 * MAX_HOTKEY_COMBINATION; ++pass) {
-        const bool context_pass = pass < MAX_HOTKEY_COMBINATION;
-        const int32 key_count = MAX_HOTKEY_COMBINATION - (pass % MAX_HOTKEY_COMBINATION);
+    //      3. lower hotkey id, then the first mapping (the second mapping is only an alternative)
+    //
+    // A hotkey can only be active if all of its keys are active
+    // -> only the hotkeys whose first key is an active key are candidates (usually a handful)
+    // Candidate = sort key: priority (3 bits) | hotkey (8 bits) | mapping (1 bit)
+    uint32 candidates[2 * 256];
+    int32 candidate_count = 0;
 
-        for (int16 hotkey_idx = 1; hotkey_idx <= input->hotkey_count; ++hotkey_idx) {
-            if (active_hotkeys >= MAX_KEY_PRESSES) UNLIKELY {
-                break;
-            }
+    const HotkeyIndexEntry* const index = input->hotkey_index;
+    const int32 index_count = input->hotkey_index_count;
 
-            for (int32 m = 0; m < 2; ++m) {
-                const Hotkey* const mapping = input->input_mappings[m];
-                const Hotkey* const key = &mapping[hotkey_idx - 1];
+    for (int32 k = 0; k < MAX_KEY_PRESSES; ++k) {
+        const int16 code = (int16) state->active_keys[k].scan_code;
+        if (!code) {
+            continue;
+        }
 
-                // context = 0 -> general hotkey (always active, second pass)
-                // context != 0 -> context hotkey, only active if the input is in one of its contexts (first pass)
-                const byte context = key->context;
-                if ((context != 0) != context_pass
-                    || (context && !(context & input->context))
-                    || hotkey_key_count(key) != key_count
-                ) {
-                    continue;
-                }
-
-                if (!hotkey_keys_are_active(state->active_keys, mapping, hotkey_idx, exclude_flags)) {
-                    continue;
-                }
-
-                if (!hotkey_keys_already_processed(state->active_keys, mapping, hotkey_idx)
-                    && !hotkey_is_active(state->active_hotkeys, hotkey_idx)
-                ) {
-                    state->active_hotkeys[active_hotkeys++] = hotkey_idx;
-                    hotkey_set_processed(state->active_keys, mapping, hotkey_idx);
-                }
-
-                // The second mapping is only an alternative
+        // The same key in two slots (e.g. released + pressed again) only adds its hotkeys once
+        bool duplicate = false;
+        for (int32 j = 0; j < k; ++j) {
+            if ((int16) state->active_keys[j].scan_code == code) {
+                duplicate = true;
                 break;
             }
         }
+
+        if (duplicate) {
+            continue;
+        }
+
+        // Lower bound of the key in the index
+        int32 lo = 0;
+        int32 hi = index_count;
+        while (lo < hi) {
+            const int32 mid = (lo + hi) >> 1;
+            if (index[mid].scan_code < code) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+
+        for (int32 i = lo; i < index_count && index[i].scan_code == code; ++i) {
+            const HotkeyIndexEntry* const entry = &index[i];
+            const Hotkey* const key = &input->input_mappings[entry->mapping][entry->hotkey - 1];
+
+            // context != 0 -> context hotkey, only active if the input is in one of its contexts
+            if (key->context && !(key->context & input->context)) {
+                continue;
+            }
+
+            const uint32 priority = (key->context ? 0 : MAX_HOTKEY_COMBINATION)
+                + (uint32) (MAX_HOTKEY_COMBINATION - hotkey_key_count(key));
+
+            candidates[candidate_count++] = (priority << 9) | ((uint32) entry->hotkey << 1) | entry->mapping;
+        }
+    }
+
+    // Insertion sort, usually only a few candidates
+    for (int32 i = 1; i < candidate_count; ++i) {
+        const uint32 value = candidates[i];
+        int32 j = i - 1;
+        while (j >= 0 && candidates[j] > value) {
+            candidates[j + 1] = candidates[j];
+            --j;
+        }
+
+        candidates[j + 1] = value;
+    }
+
+    // Hotkey + priority of the last active candidate (the second mapping is only an alternative)
+    uint32 last_active = 0xFFFFFFFF;
+
+    for (int32 i = 0; i < candidate_count; ++i) {
+        if (active_hotkeys >= MAX_KEY_PRESSES) UNLIKELY {
+            break;
+        }
+
+        const uint32 candidate = candidates[i];
+        if ((candidate >> 1) == last_active) {
+            continue;
+        }
+
+        const uint16 hotkey_idx = (uint16) ((candidate >> 1) & 0xFF);
+        const Hotkey* const mapping = input->input_mappings[candidate & 1];
+
+        if (!hotkey_keys_are_active(state->active_keys, mapping, hotkey_idx, exclude_flags)) {
+            continue;
+        }
+
+        if (!hotkey_keys_already_processed(state->active_keys, mapping, hotkey_idx)
+            && !hotkey_is_active(state->active_hotkeys, hotkey_idx)
+        ) {
+            state->active_hotkeys[active_hotkeys++] = hotkey_idx;
+            hotkey_set_processed(state->active_keys, mapping, hotkey_idx);
+        }
+
+        last_active = candidate >> 1;
     }
 
     // WARNING: Released keys are NOT removed here, they stay visible for the rest of the tick (e.g. ui click handling)
@@ -1269,7 +1424,7 @@ void input_hotkeys_handle(const Input* const input, void* data, int32 input_id =
             || j >= input_event_count
         ) {
             input_events[input_event_count++] = active_event;
-            active_event->callback(data, input_id);
+            active_event->callback(data, input_id, active_hotkey);
         }
     }
 }

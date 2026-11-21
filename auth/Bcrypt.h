@@ -8,6 +8,7 @@
 #define COMS_AUTH_BCRYPT_H
 
 #include "../stdlib/Stdlib.h"
+#include "../utils/StringUtils.h"
 #include "../encryption/Blowfish.h"
 #include "../utils/ConstantTime.h"
 
@@ -194,7 +195,7 @@ int32 bcrypt_base64_decode(
 inline
 bool bcrypt_parse_hash(const char* const __restrict hash, BcryptHash* const __restrict parsed) NO_EXCEPT
 {
-    if (!hash || !parsed || strlen(hash) != COMS_BCRYPT_HASH_LENGTH) {
+    if (!hash || !parsed || str_length(hash) != COMS_BCRYPT_HASH_LENGTH) {
         return false;
     }
 
@@ -450,7 +451,7 @@ bool bcrypt_verify(
 inline
 bool bcrypt_verify(const char* const __restrict password, const char* const __restrict hash) NO_EXCEPT
 {
-    return bcrypt_verify(password, (int32) strlen(password), hash);
+    return bcrypt_verify(password, (int32) str_length(password), hash);
 }
 
 /**

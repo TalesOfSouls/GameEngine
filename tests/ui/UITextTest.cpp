@@ -12,8 +12,21 @@
  * Every function that changes the text must keep the stored length identical to strlen().
  */
 
+// Minimal font: only the "not found" glyph (index 0), every text function requires a font
+static Glyph ui_text_test_glyph = {};
+static FontSystem ui_text_test_font = {};
+
 static void ui_text_test_alloc(UILayout* const layout) {
     ZERO_PTR(layout);
+
+    ui_text_test_font.base.glyphs = &ui_text_test_glyph;
+    ui_text_test_font.base.glyph_count = 1;
+    ui_text_test_font.base.order_type = FONT_GLYPH_ORDER_TYPE_NORMAL;
+    ui_text_test_font.base.size = 1.0f;
+    ui_text_test_font.base.line_height = 1.0f;
+    ui_text_test_font.base.scale = 1.0f;
+    layout->font = &ui_text_test_font;
+
     buffer_alloc(&layout->ui_element_buffer, 1 * MEGABYTE, 1 * MEGABYTE, 64);
     layout->data_size = 1 * MEGABYTE;
     layout->data = (byte *) platform_alloc_aligned(layout->data_size, layout->data_size, 64);
@@ -90,10 +103,8 @@ static void test_ui_string_reserve() {
     TEST_EQUALS(ui_string_length(&layout, offset), 3);
     TEST_UI_STRING(&layout, offset, "abc");
 
-    // No text
+    // No text (ui_string_get() requires a text)
     TEST_EQUALS(ui_string_length(&layout, 0), 0);
-    TEST_EQUALS(ui_string_get(&layout, 0).length, 0);
-    TEST_EQUALS(strcmp(ui_string_get(&layout, 0).str, ""), 0);
 
     // wchar_t texts use the same header (length in characters)
     const int32 wide = ui_string_reserve(&layout, CHAR_TYPE_WCHAR, 8);
@@ -140,8 +151,8 @@ static void test_ui_label_text_length() {
     TEST_TRUE(ui_label_set_text(&layout, label, "This text needs even more memory", 32));
     TEST_UI_STRING(&layout, label->content, "This text needs even more memory");
 
-    // NULL = empty
-    TEST_TRUE(ui_label_set_text(&layout, label, NULL, 0));
+    // Empty
+    TEST_TRUE(ui_label_set_text(&layout, label, "", 0));
     TEST_UI_STRING(&layout, label->content, "");
 
     // Pattern
@@ -154,16 +165,8 @@ static void test_ui_label_text_length() {
     // Label without reserved memory
     UILabel* const empty = ui_label_create(&layout, CHAR_TYPE_CHAR);
     TEST_EQUALS(empty->content, 0);
-    TEST_EQUALS(ui_string_get(&layout, empty->content).length, 0);
-    TEST_FALSE(ui_label_set_text_fixed(&layout, empty, "ignored"));
     TEST_TRUE(ui_label_set_text(&layout, empty, "Now it has text", 15));
     TEST_UI_STRING(&layout, empty->content, "Now it has text");
-
-    // NULL for a label without memory reserves an empty text
-    UILabel* const empty2 = ui_label_create(&layout, CHAR_TYPE_CHAR);
-    TEST_FALSE(ui_label_set_text(&layout, empty2, NULL, 0));
-    TEST_TRUE(empty2->content != 0);
-    TEST_UI_STRING(&layout, empty2->content, "");
 
     ui_text_test_free(&layout);
 }

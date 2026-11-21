@@ -39,7 +39,6 @@ static void test_language_from_txt() {
     // Missing keys
     TEST_EQUALS(language_get(&lang, "missing"), NULL);
     TEST_EQUALS(language_get(&lang, "menu"), NULL);
-    TEST_EQUALS(language_get(NULL, "menu_quit"), NULL);
 
     // Strings incl. their length (stored in the slot -> no strlen)
     const char* const length_keys[] = {"menu_quit", "status_prefix", "indented", "multi_line", "empty", "format"};
@@ -57,7 +56,6 @@ static void test_language_from_txt() {
 
     TEST_EQUALS(language_get_string(&lang, "missing").str, NULL);
     TEST_EQUALS(language_get_string(&lang, "missing").length, 0);
-    TEST_EQUALS(language_get_string(NULL, "menu_quit").str, NULL);
 
     // Cached lookup
     SimpleString<const char> cache = {};

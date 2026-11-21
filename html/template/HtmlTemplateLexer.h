@@ -134,25 +134,25 @@ HtmlTemplateToken html_template_token_next(const char** input, HtmlTemplateConte
             ++token.length;
         }
 
-        if (strcmp(token.value, "if") == 0) {
+        if (str_compare(token.value, "if") == 0) {
             token.type = TOKEN_IF;
-        } else if (strcmp(token.value, "endif") == 0) {
+        } else if (str_compare(token.value, "endif") == 0) {
             token.type = TOKEN_ENDIF;
-        } else if (strcmp(token.value, "elseif") == 0) {
+        } else if (str_compare(token.value, "elseif") == 0) {
             token.type = TOKEN_ELSEIF;
-        } else if (strcmp(token.value, "else") == 0) {
+        } else if (str_compare(token.value, "else") == 0) {
             token.type = TOKEN_ELSE;
-        } else if (strcmp(token.value, "for") == 0) {
+        } else if (str_compare(token.value, "for") == 0) {
             token.type = TOKEN_FOR;
-        } else if (strcmp(token.value, "endfor") == 0) {
+        } else if (str_compare(token.value, "endfor") == 0) {
             token.type = TOKEN_ENDFOR;
-        } else if (strcmp(token.value, "while") == 0) {
+        } else if (str_compare(token.value, "while") == 0) {
             token.type = TOKEN_WHILE;
-        } else if (strcmp(token.value, "endwhile") == 0) {
+        } else if (str_compare(token.value, "endwhile") == 0) {
             token.type = TOKEN_ENDWHILE;
-        } else if (strcmp(token.value, "foreach") == 0) {
+        } else if (str_compare(token.value, "foreach") == 0) {
             token.type = TOKEN_FOREACH;
-        } else if (strcmp(token.value, "endforeach") == 0) {
+        } else if (str_compare(token.value, "endforeach") == 0) {
             token.type = TOKEN_ENDFOREACH;
         } else {
             token.type = TOKEN_IDENTIFIER;

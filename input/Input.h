@@ -69,10 +69,14 @@ enum InputMouseAction : uint8 {
 };
 
 /**
- * @param void* data General data to pass to the event function
- * @param int32 input_id Input state that triggered this callback
+ * Called by input_hotkeys_handle() for every active hotkey of a tick
+ * (hotkeys with KEY_PRESS_TYPE_HELD every tick while their keys are down)
+ *
+ * @param void*  data     General data to pass to the event function
+ * @param int32  input_id Input state that triggered this callback
+ * @param uint16 hotkey   Hotkey that triggered this callback (one callback can serve several hotkeys)
  */
-typedef void (*InputCallback)(void* data, int32 input_id);
+typedef void (*InputCallback)(void* data, int32 input_id, uint16 hotkey);
 
 enum InputEventFlag : uint8 {
     INPUT_EVENT_FLAG_NONE = 0,
@@ -135,6 +139,19 @@ struct Hotkey {
     //               WARNING: A context bit the application never sets = the hotkey never fires
     // @type InputContext
     byte context;
+};
+
+// Entry of the hotkey lookup (Input::hotkey_index): a hotkey of a mapping, found by the first key of the hotkey
+// A hotkey can only be active if all of its keys are active -> only hotkeys whose first key is active are candidates
+struct HotkeyIndexEntry {
+    // First non-zero Hotkey::scan_codes entry
+    int16 scan_code;
+
+    // Hotkey (1-indexed like the hotkey enums)
+    uint8 hotkey;
+
+    // Index into Input::input_mappings
+    uint8 mapping;
 };
 
 enum InputKeyFlag : byte {
@@ -362,6 +379,17 @@ struct Input {
     // This allows to use controller + keyboard or alternative hotkey mapping but not both at the same time
     // This trade off seems fine since both situations are edge cases
     Hotkey* input_mappings[2];
+
+    // Hotkeys of both mappings sorted by HotkeyIndexEntry::scan_code (max. 2 * hotkey_count entries)
+    // Built from input_mappings by input_hotkey_state_update() if hotkey_index_dirty is set
+    // WARNING: Set hotkey_index_dirty after changing input_mappings directly (e.g. hotkey_bind(), input_add_hotkey())
+    HotkeyIndexEntry* hotkey_index;
+    int16 hotkey_index_count;
+    bool hotkey_index_dirty;
+
+    // Hash of input_mappings when the index was built, only checked in DEBUG_STRICT (detects a missing hotkey_index_dirty)
+    // Always part of the struct -> the same layout for every build type
+    uint64 hotkey_index_hash;
 
     // This contains a full list off REFERENCES to hotkey events
     // The length of this array is the exact amount of possible hotkeys

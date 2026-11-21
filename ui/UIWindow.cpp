@@ -65,7 +65,7 @@ void ui_window_set_title(UILayout* const layout, UIWindow* const window, const c
         : NULL;
 
     if (label) {
-        ui_label_set_text(layout, label, text, (int32) strlen(text));
+        ui_label_set_text(layout, label, text, (int32) str_length(text));
     }
 }
 

@@ -66,7 +66,7 @@ inline
 void db_unprepare_psql(void* con, const char* name) {
     char dealloc[64];
     memcpy(dealloc, "DEALLOCATE ", sizeof("DEALLOCATE ") - 1);
-    strcat(dealloc + sizeof("DEALLOCATE ") - 1, name);
+    str_copy(dealloc + sizeof("DEALLOCATE ") - 1, name);
 
     PGresult *del_res = PQexec((PGconn *) con, dealloc);
     PQclear(del_res);
@@ -82,7 +82,7 @@ void db_unprepare_psql(void* con, const char** name, uint8 length) {
         dealloc[offset] = ' ';
         ++offset;
         strcat(dealloc + offset, name);
-        offset += strlen(name);
+        offset += str_length(name);
         ++name;
     }
 
@@ -195,7 +195,7 @@ void* db_execute_prepared(
             case DB_PARAM_TEXT: {
                 const int32 data_length = sizeof(char *);
                 values[i] = (char *) params[i].text_val;
-                lengths[i] = (int32) strlen(params[i].text_val)
+                lengths[i] = (int32) str_length(params[i].text_val)
                 formats[i] = 0;
             } break;
             default:

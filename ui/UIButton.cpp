@@ -31,7 +31,7 @@ UIButton* ui_button_create(
         // The label is a child element -> allocated directly after the button (pre-order)
         UILabel* const label = ui_label_create(layout, CHAR_TYPE_CHAR, 0, 0, &button->core);
         label->core.dimension.align_anchor = UI_ANCHOR_ALIGN_CENTER;
-        ui_label_set_text(layout, label, text, (int32) strlen(text));
+        ui_label_set_text(layout, label, text, (int32) str_length(text));
 
         button->label = ui_element_offset(layout, label);
     }

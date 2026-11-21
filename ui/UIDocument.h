@@ -208,7 +208,7 @@ int32 ui_document_parse(
         // Version line
         // Only before the first node/property (the counts include the reserved empty entry)
         if (doc->node_count == 1 && doc->property_count == 1 && !doc->version
-            && word_end - word_start == 7 && strncmp(text + word_start, "version", 7) == 0
+            && word_end - word_start == 7 && str_compare(text + word_start, "version", 7) == 0
             && i < line_end && text[i] != ':'
         ) {
             int32 version_start = word_end;
@@ -327,9 +327,9 @@ int32 ui_document_parse(
 FORCE_INLINE
 bool ui_document_equals(const UIDocument* const doc, UIDocumentString str, const char* const literal) NO_EXCEPT
 {
-    const int32 length = (int32) strlen(literal);
+    const int32 length = (int32) str_length(literal);
 
-    return str.length == length && strncmp(doc->text + str.offset, literal, length) == 0;
+    return str.length == length && str_compare(doc->text + str.offset, literal, length) == 0;
 }
 
 /**

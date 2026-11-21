@@ -27,7 +27,7 @@ bool library_load(Library* lib)
     // In debug mode, we create a copy at runtime, so we can recompile & reload it
     #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
         char src[PATH_MAX_LENGTH];
-        size_t dst_len = strlen(dst);
+        size_t dst_len = str_length(dst);
 
         memcpy(src, dst, dst_len + 1);
         str_insert(dst, dst_len - (sizeof(".so") - 1), "_temp");

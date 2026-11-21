@@ -96,12 +96,7 @@ const LanguageSlot* language_slot_find(const Language* const lang, const Languag
 static inline
 const LanguageSlot* language_slot_find(const Language* const lang, const char* const key) NO_EXCEPT
 {
-    if (!key) {
-        ASSERT_TRUE(false);
-        return NULL;
-    }
-
-    return language_slot_find(lang, language_key(key, (int32) strlen(key)));
+    return language_slot_find(lang, language_key(key, (int32) str_length(key)));
 }
 
 // String of a slot incl. its length ({0, 0, NULL} if there is no slot)
@@ -140,6 +135,23 @@ const char* language_get(const Language* const lang, const char* const key) NO_E
     const LanguageSlot* const slot = language_slot_find(lang, key);
 
     return slot ? (const char *) (lang->data + slot->value) : NULL;
+}
+
+FORCE_INLINE
+const char* language_alt_get(const Language* const lang, const LanguageKey& key, const char* const alt) NO_EXCEPT
+{
+    const LanguageSlot* const slot = language_slot_find(lang, key);
+
+    return slot ? (const char *) (lang->data + slot->value) : alt;
+}
+
+// Same as above for \0 terminated keys (prefer language_key("...") for string literals)
+FORCE_INLINE
+const char* language_alt_get(const Language* const lang, const char* const key, const char* const alt) NO_EXCEPT
+{
+    const LanguageSlot* const slot = language_slot_find(lang, key);
+
+    return slot ? (const char *) (lang->data + slot->value) : alt;
 }
 
 /**
@@ -339,7 +351,7 @@ int32 language_from_txt(
         }
 
         if (colon >= line_end) {
-            if (!count && line_end - line_start > 8 && strncmp(text + line_start, "version ", 8) == 0) {
+            if (!count && line_end - line_start > 8 && str_compare(text + line_start, "version ", 8) == 0) {
                 version = (int32) str_to_int(text + line_start + 8);
             } else {
                 LOG_1("[WARNING] Language: invalid line %d", {DATA_TYPE_INT32, &line_number});
@@ -409,7 +421,7 @@ int32 language_from_txt(
                 break;
             }
 
-            if (slot->hash == hash && strcmp((const char *) (lang->data + slot->key), key) == 0) {
+            if (slot->hash == hash && str_compare((const char *) (lang->data + slot->key), key) == 0) {
                 LOG_1("[WARNING] Language: duplicate key %s in line %d", {DATA_TYPE_CHAR_STR, (void *) key}, {DATA_TYPE_INT32, &line_number});
                 slot->value = (int32) ((byte *) value - lang->data);
                 slot->value_length = value_length;

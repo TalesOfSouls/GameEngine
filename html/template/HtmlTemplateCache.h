@@ -16,7 +16,7 @@
 
 bool html_template_in_control_structure(const char* str, const char** controls, int32 control_length) {
     for (int32 i = 0; i < control_length; ++i) {
-        if (strcmp(controls[i], str) == 0) {
+        if (str_compare(controls[i], str) == 0) {
             return true;
         }
     }

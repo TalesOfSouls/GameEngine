@@ -151,7 +151,7 @@ FORCE_INLINE
 bool ui_table_cell_copy(UILayout* const layout, const UITable* const table, int32 offset, const char* const text) NO_EXCEPT
 {
     return text
-        ? ui_table_cell_copy(layout, table, offset, text, (int32) strlen(text))
+        ? ui_table_cell_copy(layout, table, offset, text, (int32) str_length(text))
         : ui_table_cell_copy(layout, table, offset, "", 0);
 }
 

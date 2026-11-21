@@ -393,7 +393,7 @@ void log(
         return;
     }
 
-    ASSERT_TRUE(format.length + strlen(file) + strlen(function) + 50 < MAX_LOG_LENGTH);
+    ASSERT_TRUE(format.length + str_length(file) + str_length(function) + 50 < MAX_LOG_LENGTH);
 
     LogMessage* const msg = (LogMessage *) log_memory_get();
     msg->file = file;
@@ -417,7 +417,7 @@ void log(
         }
 
         // msg->message is always < message_size <= sizeof(temp_format)
-        strcpy(temp_format, msg->message);
+        str_copy(temp_format, msg->message);
 
         switch (data.data[i].type) {
             case DATA_TYPE_VOID: {

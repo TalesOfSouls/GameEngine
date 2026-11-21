@@ -429,24 +429,22 @@ static void test_str_copy_and_copy_until()
     alignas(size_t) char aligned_src[64] = "hello";
     char dest[64] = {};
 
-    // Aligned copy returns the length including the terminator
-    TEST_EQUALS(str_copy(dest, aligned_src), 6);
+    str_copy(dest, aligned_src);
     TEST_TRUE(strcmp(dest, "hello") == 0);
 
     alignas(size_t) char unaligned_storage[64] = {};
     memcpy(unaligned_storage + 1, "0123456789012345678", 20);
 
     char long_dest[64] = {};
-    TEST_EQUALS(str_copy(long_dest, unaligned_storage + 1), 20);
+    str_copy(long_dest, unaligned_storage + 1);
     TEST_TRUE(memcmp(long_dest, "0123456789012345678", 20) == 0);
 
-    // Short unaligned source: the terminator is hit while aligning, the return value
-    // is the same as for every other copy (length including the terminator)
+    // Short unaligned source: the terminator is hit while aligning
     alignas(size_t) char short_storage[64] = {};
     memcpy(short_storage + 1, "hello", 6);
 
     char short_dest[16] = {};
-    TEST_EQUALS(str_copy(short_dest, short_storage + 1), 6);
+    str_copy(short_dest, short_storage + 1);
     TEST_TRUE(strcmp(short_dest, "hello") == 0);
 
     char length_src[16] = "abcdef";
@@ -456,7 +454,7 @@ static void test_str_copy_and_copy_until()
 
     alignas(size_t) wchar_t wide_src[32] = L"hello";
     wchar_t wide_dest[32] = {};
-    TEST_EQUALS(str_copy(wide_dest, wide_src), 6);
+    str_copy(wide_dest, wide_src);
     TEST_TRUE(wcscmp(wide_dest, L"hello") == 0);
 
     alignas(size_t) wchar_t wide_short_storage[32] = {};
@@ -464,7 +462,7 @@ static void test_str_copy_and_copy_until()
     wcscpy(wide_short_src, L"hi");
 
     wchar_t wide_short_dest[32] = {};
-    TEST_EQUALS(str_copy(wide_short_dest, wide_short_src), -1);
+    str_copy(wide_short_dest, wide_short_src);
     TEST_TRUE(wcscmp(wide_short_dest, L"hi") == 0);
 
     // str_copy_until stops at the first delimiter or terminator

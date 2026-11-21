@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "../../EngineDependencies/curl/include/curl/curl.h"
+#include "../utils/StringUtils.h"
 
 #define MAX_AUTH_POST_LENGTH 1024
 #define MAX_AUTH_RESPONSE_LENGTH 1024
@@ -29,10 +30,10 @@
 size_t write_function(char* data, size_t size, size_t count, void* arg)
 {
     char* dst = (char *)arg;
-    size_t length = strlen(dst);
+    size_t length = str_length(dst);
 
     // Ensure we do not exceed the buffer length
-    size_t available_space = OMS_MIN(MAX_AUTH_RESPONSE_LENGTH, strlen(dst));
+    size_t available_space = OMS_MIN(MAX_AUTH_RESPONSE_LENGTH, str_length(dst));
     if (available_space > 0) {
         strncat(dst, data, available_space - 1);
     }
@@ -68,7 +69,7 @@ int get_access_token(
     char response[MAX_AUTH_RESPONSE_LENGTH] = {0};
     uint32 http_code = 0;
 
-    snprintf(
+    sprintf_fast(
         post,
         MAX_AUTH_POST_LENGTH,
         "username=%s&identity_token=%s",
@@ -90,7 +91,7 @@ int get_access_token(
     curl_easy_cleanup(curl);
 
     if (code == CURLE_OK && http_code == 200) {
-        strncpy(access_token, response, strlen(response));
+        str_copy(access_token, response);
 
         return 1;
     }

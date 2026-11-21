@@ -43,7 +43,7 @@ UICheckbox* ui_checkbox_create(
         UILabel* const label = ui_label_create(layout, CHAR_TYPE_CHAR, 0, 0, &checkbox->core);
         label->core.dimension.align_anchor = UI_ANCHOR_ALIGN_LEFT_CENTER;
         label->core.dimension.pos_raw = {UI_CHECKBOX_BOX_SIZE + UI_CHECKBOX_LABEL_GAP, 0.0f};
-        ui_label_set_text(layout, label, text, (int32) strlen(text));
+        ui_label_set_text(layout, label, text, (int32) str_length(text));
 
         checkbox->label = ui_element_offset(layout, label);
     }

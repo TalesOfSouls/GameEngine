@@ -98,7 +98,7 @@ void http_header_value_set(
         }
     }
 
-    size_t value_length = strlen(value);
+    size_t value_length = str_length(value);
     int32 header_content_offset = resp->header_available_count * sizeof(HttpHeaderElement);
 
     if (element) {
@@ -288,10 +288,16 @@ void http_response_send(const SocketConnection* __restrict socket, HttpResponse*
     header_ref = header;
 
     // First line
-    header_ref += str_copy(header_ref, http_protocol_text(response->protocol));
+    const char* const protocol_text = http_protocol_text(response->protocol);
+    const int32 protocol_length = (int32) str_length(protocol_text);
+    str_copy(header_ref, protocol_text, protocol_length);
+    header_ref += protocol_length;
     *header_ref++ = ' ';
 
-    header_ref += str_copy(header_ref, http_status_text(response->status_code));
+    const char* const status_text = http_status_text(response->status_code);
+    const int32 status_length = (int32) str_length(status_text);
+    str_copy(header_ref, status_text, status_length);
+    header_ref += status_length;
     *header_ref++ = '\r';
     *header_ref++ = '\n';
 
@@ -305,7 +311,10 @@ void http_response_send(const SocketConnection* __restrict socket, HttpResponse*
     for (int32 i = 0; i < response->header_used_count; ++i) {
         const HttpHeaderElement* element = &elements[i];
 
-        header_ref += str_copy(header_ref, http_header_key_text(element->key));
+        const char* const key_text = http_header_key_text(element->key);
+        const int32 key_length = (int32) str_length(key_text);
+        str_copy(header_ref, key_text, key_length);
+        header_ref += key_length;
         *header_ref++ = ' ';
 
         memcpy(header_ref, (const char *) elements + element->value_offset, element->value_length);
@@ -352,7 +361,7 @@ void http_response_body_add(HttpResponse** response, const char* __restrict body
     HttpResponse* resp = *response;
     char* response_body = (char *) (resp + 1);
 
-    length = (length == 0) ? strlen(body) : length;
+    length = (length == 0) ? str_length(body) : length;
 
     // Resize if needed
     if (resp->body_used_size + length > resp->size * mem->chunk_size - sizeof(HttpResponse)) {

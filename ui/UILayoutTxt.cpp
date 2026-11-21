@@ -128,7 +128,7 @@ int32 ui_txt_word(const char** const pos, char* const out, int32 out_size, const
     ui_txt_skip_space(pos);
 
     int32 length = 0;
-    while (**pos && **pos != ' ' && **pos != '\t' && !strchr(stop, **pos)) {
+    while (**pos && **pos != ' ' && **pos != '\t' && !str_find(stop, **pos)) {
         if (length < out_size - 1) {
             out[length++] = **pos;
         }
@@ -203,7 +203,7 @@ bool ui_txt_color(const char* value, uint32* const out) NO_EXCEPT
 {
     ui_txt_skip_space(&value);
 
-    if (strncmp(value, "none", 4) == 0 || strncmp(value, "transparent", 11) == 0) {
+    if (str_compare(value, "none", 4) == 0 || str_compare(value, "transparent", 11) == 0) {
         *out = 0;
 
         return true;
@@ -251,9 +251,9 @@ bool ui_txt_bool(const char* value) NO_EXCEPT
 {
     ui_txt_skip_space(&value);
 
-    return strncmp(value, "true", 4) == 0
-        || strncmp(value, "yes", 3) == 0
-        || strncmp(value, "on", 2) == 0
+    return str_compare(value, "true", 4) == 0
+        || str_compare(value, "yes", 3) == 0
+        || str_compare(value, "on", 2) == 0
         || *value == '1';
 }
 
@@ -308,12 +308,12 @@ int32 ui_txt_list(char* value, SimpleString<const char>* const entries, int32 ma
 static inline
 int32 ui_txt_name_id(const UINameId* const names, int32 count, const char* const name) NO_EXCEPT
 {
-    if (strcmp(name, "none") == 0) {
+    if (str_compare(name, "none") == 0) {
         return 0;
     }
 
     for (int32 i = 0; i < count; ++i) {
-        if (strcmp(names[i].name, name) == 0) {
+        if (str_compare(names[i].name, name) == 0) {
             return names[i].id;
         }
     }
@@ -458,15 +458,15 @@ byte ui_txt_anchor_point(const char** const pos, bool align) NO_EXCEPT
 
     char word[16];
     while (ui_txt_word(pos, word, sizeof(word), "/")) {
-        if (strcmp(word, "left") == 0) {
+        if (str_compare(word, "left") == 0) {
             h = 0;
-        } else if (strcmp(word, "right") == 0) {
+        } else if (str_compare(word, "right") == 0) {
             h = 2;
-        } else if (strcmp(word, "top") == 0) {
+        } else if (str_compare(word, "top") == 0) {
             v = 2;
-        } else if (strcmp(word, "bottom") == 0) {
+        } else if (str_compare(word, "bottom") == 0) {
             v = 0;
-        } else if (strcmp(word, "center") == 0) {
+        } else if (str_compare(word, "center") == 0) {
             center = true;
         }
     }
@@ -858,26 +858,26 @@ bool ui_txt_field_set(
 static inline
 bool ui_txt_is_create_key(const char* const type, const char* const key) NO_EXCEPT
 {
-    if (strcmp(key, "style") == 0) {
+    if (str_compare(key, "style") == 0) {
         return true;
     }
 
-    if (strcmp(type, "panel") == 0) {
-        return strcmp(key, "scroll") == 0 || strcmp(key, "popup") == 0;
-    } else if (strcmp(type, "input") == 0 || strcmp(type, "textarea") == 0) {
-        return strcmp(key, "max_length") == 0;
-    } else if (strcmp(type, "select") == 0) {
-        return strcmp(key, "options") == 0 || strcmp(key, "search") == 0 || strcmp(key, "multi") == 0;
-    } else if (strcmp(type, "tab") == 0) {
-        return strcmp(key, "tabs") == 0 || strcmp(key, "orientation") == 0;
-    } else if (strcmp(type, "table") == 0) {
-        return strcmp(key, "columns") == 0 || strcmp(key, "row_capacity") == 0 || strcmp(key, "cell_capacity") == 0;
-    } else if (strcmp(type, "colorpicker") == 0) {
-        return strcmp(key, "type") == 0;
-    } else if (strcmp(type, "tooltip") == 0) {
-        return strcmp(key, "font_size") == 0;
-    } else if (strcmp(type, "button") == 0 || strcmp(type, "checkbox") == 0 || strcmp(type, "radio") == 0) {
-        return strcmp(key, "text") == 0;
+    if (str_compare(type, "panel") == 0) {
+        return str_compare(key, "scroll") == 0 || str_compare(key, "popup") == 0;
+    } else if (str_compare(type, "input") == 0 || str_compare(type, "textarea") == 0) {
+        return str_compare(key, "max_length") == 0;
+    } else if (str_compare(type, "select") == 0) {
+        return str_compare(key, "options") == 0 || str_compare(key, "search") == 0 || str_compare(key, "multi") == 0;
+    } else if (str_compare(type, "tab") == 0) {
+        return str_compare(key, "tabs") == 0 || str_compare(key, "orientation") == 0;
+    } else if (str_compare(type, "table") == 0) {
+        return str_compare(key, "columns") == 0 || str_compare(key, "row_capacity") == 0 || str_compare(key, "cell_capacity") == 0;
+    } else if (str_compare(type, "colorpicker") == 0) {
+        return str_compare(key, "type") == 0;
+    } else if (str_compare(type, "tooltip") == 0) {
+        return str_compare(key, "font_size") == 0;
+    } else if (str_compare(type, "button") == 0 || str_compare(type, "checkbox") == 0 || str_compare(type, "radio") == 0) {
+        return str_compare(key, "text") == 0;
     }
 
     return false;
@@ -923,7 +923,7 @@ bool ui_txt_property_apply(
     UIAttributeDimension* const dim = &element->dimension;
 
     // Core properties
-    if (strcmp(key, "pos") == 0 || strcmp(key, "size") == 0) {
+    if (str_compare(key, "pos") == 0 || str_compare(key, "size") == 0) {
         const bool is_pos = key[0] == 'p';
 
         const char* pos = value;
@@ -946,21 +946,21 @@ bool ui_txt_property_apply(
         }
 
         return true;
-    } else if (strcmp(key, "anchor") == 0) {
+    } else if (str_compare(key, "anchor") == 0) {
         dim->align_anchor = ui_txt_anchor(value);
 
         return true;
-    } else if (strcmp(key, "flags") == 0) {
+    } else if (str_compare(key, "flags") == 0) {
         element->flags = ui_txt_flags(value, element->flags);
 
         return true;
-    } else if (strcmp(key, "hidden") == 0) {
+    } else if (str_compare(key, "hidden") == 0) {
         element->state = ui_txt_bool(value)
             ? (byte) (element->state | UI_STATE_HIDDEN)
             : (byte) (element->state & ~UI_STATE_HIDDEN);
 
         return true;
-    } else if (strcmp(key, "update") == 0 || strcmp(key, "render") == 0) {
+    } else if (str_compare(key, "update") == 0 || str_compare(key, "render") == 0) {
         const bool is_update = key[0] == 'u';
         const int32 id = is_update
             ? ui_txt_name_id(ctx->update_functions, ctx->update_function_count, value)
@@ -985,7 +985,7 @@ bool ui_txt_property_apply(
     int32 field_count;
     const UITxtField* const fields = ui_txt_fields(element->type, &field_count);
     for (int32 i = 0; i < field_count; ++i) {
-        if (strcmp(fields[i].name, key) == 0) {
+        if (str_compare(fields[i].name, key) == 0) {
             return ui_txt_field_set(ctx, element, &fields[i], value);
         }
     }
@@ -994,15 +994,15 @@ bool ui_txt_property_apply(
     switch (element->type) {
         case UI_ELEMENT_TYPE_LABEL: {
             UILabel* const label = (UILabel *) element;
-            if (strcmp(key, "text") == 0) {
+            if (str_compare(key, "text") == 0) {
                 ui_label_set_text(layout, label, value, value_length);
 
                 return true;
-            } else if (strcmp(key, "pattern") == 0) {
+            } else if (str_compare(key, "pattern") == 0) {
                 ui_label_set_pattern(layout, label, value, value_length);
 
                 return true;
-            } else if (strcmp(key, "capacity") == 0) {
+            } else if (str_compare(key, "capacity") == 0) {
                 ui_txt_label_reserve(layout, label, (int32) str_to_int(value));
 
                 return true;
@@ -1012,7 +1012,7 @@ bool ui_txt_property_apply(
         case UI_ELEMENT_TYPE_CHECKBOX:
         case UI_ELEMENT_TYPE_RADIO: {
             // The text is the child label (created together with the element)
-            if (strcmp(key, "text") == 0) {
+            if (str_compare(key, "text") == 0) {
                 const int32 label = element->type == UI_ELEMENT_TYPE_BUTTON
                     ? ((UIButton *) element)->label
                     : ((UICheckbox *) element)->label;
@@ -1028,11 +1028,11 @@ bool ui_txt_property_apply(
         } break;
         case UI_ELEMENT_TYPE_VIEW_WINDOW: {
             UIWindow* const window = (UIWindow *) element;
-            if (strcmp(key, "title") == 0) {
+            if (str_compare(key, "title") == 0) {
                 ui_window_set_title(layout, window, value);
 
                 return true;
-            } else if (strcmp(key, "resizable") == 0) {
+            } else if (str_compare(key, "resizable") == 0) {
                 const char* pos = value;
                 v2_f32 min_dim = {160.0f, 100.0f};
                 ui_txt_number(&pos, &min_dim.x);
@@ -1044,7 +1044,7 @@ bool ui_txt_property_apply(
         } break;
         case UI_ELEMENT_TYPE_VIEW_PANEL: {
             UIPanel* const panel = (UIPanel *) element;
-            if (strcmp(key, "close_on_click") == 0) {
+            if (str_compare(key, "close_on_click") == 0) {
                 panel->panel_flags = ui_txt_bool(value)
                     ? (byte) (panel->panel_flags | UI_PANEL_FLAG_CLOSE_ON_CLICK)
                     : (byte) (panel->panel_flags & ~UI_PANEL_FLAG_CLOSE_ON_CLICK);
@@ -1055,18 +1055,18 @@ bool ui_txt_property_apply(
         case UI_ELEMENT_TYPE_INPUT:
         case UI_ELEMENT_TYPE_TEXTAREA: {
             UIInput* const input = (UIInput *) element;
-            if (strcmp(key, "text") == 0) {
+            if (str_compare(key, "text") == 0) {
                 ui_input_set_text(layout, input, value, value_length);
 
                 return true;
-            } else if (strcmp(key, "placeholder") == 0) {
+            } else if (str_compare(key, "placeholder") == 0) {
                 ui_input_set_placeholder(layout, input, value, value_length);
 
                 return true;
             }
         } break;
         case UI_ELEMENT_TYPE_SELECT: {
-            if (strcmp(key, "selected") == 0) {
+            if (str_compare(key, "selected") == 0) {
                 // Single select: index, multi select: list of indices
                 const char* pos = value;
                 f32 index = 0.0f;
@@ -1078,7 +1078,7 @@ bool ui_txt_property_apply(
             }
         } break;
         case UI_ELEMENT_TYPE_VIEW_TAB: {
-            if (strcmp(key, "active") == 0) {
+            if (str_compare(key, "active") == 0) {
                 ui_tab_set_active(layout, (UITab *) element, (int32) str_to_int(value));
 
                 return true;
@@ -1086,7 +1086,7 @@ bool ui_txt_property_apply(
         } break;
         case UI_ELEMENT_TYPE_TABLE: {
             UITable* const table = (UITable *) element;
-            if (strcmp(key, "widths") == 0) {
+            if (str_compare(key, "widths") == 0) {
                 const char* pos = value;
                 f32 width = 0.0f;
                 for (int32 c = 0; c < table->column_count && ui_txt_number(&pos, &width); ++c) {
@@ -1094,7 +1094,7 @@ bool ui_txt_property_apply(
                 }
 
                 return true;
-            } else if (strcmp(key, "row") == 0 || strcmp(key, "footer") == 0) {
+            } else if (str_compare(key, "row") == 0 || str_compare(key, "footer") == 0) {
                 SimpleString<const char> cells[UI_TXT_LIST_MAX] = {};
                 const int32 count = ui_txt_list(value, cells, (int32) ARRAY_COUNT(cells));
                 for (int32 c = count; c < table->column_count && c < UI_TXT_LIST_MAX; ++c) {
@@ -1111,7 +1111,7 @@ bool ui_txt_property_apply(
             }
         } break;
         case UI_ELEMENT_TYPE_COLOR_PICKER: {
-            if (strcmp(key, "color") == 0) {
+            if (str_compare(key, "color") == 0) {
                 uint32 color = 0;
                 if (!ui_txt_color(value, &color)) {
                     return false;
@@ -1161,38 +1161,38 @@ UICore* ui_txt_part(UILayout* const layout, UICore* const element, const char* c
     switch (element->type) {
         case UI_ELEMENT_TYPE_VIEW_WINDOW: {
             const UIWindow* const window = (const UIWindow *) element;
-            if (strcmp(part, "title") == 0) {
+            if (str_compare(part, "title") == 0) {
                 return window->title ? ui_element_get(layout, window->title) : NULL;
-            } else if (strcmp(part, "title_label") == 0) {
+            } else if (str_compare(part, "title_label") == 0) {
                 return window->title_label ? ui_element_get(layout, window->title_label) : NULL;
-            } else if (strcmp(part, "close") == 0) {
+            } else if (str_compare(part, "close") == 0) {
                 return window->button_close ? ui_element_get(layout, window->button_close) : NULL;
-            } else if (strcmp(part, "resize_grip") == 0) {
+            } else if (str_compare(part, "resize_grip") == 0) {
                 return window->resize_grip ? ui_element_get(layout, window->resize_grip) : NULL;
             }
         } break;
         case UI_ELEMENT_TYPE_BUTTON: {
             const UIButton* const button = (const UIButton *) element;
-            if (strcmp(part, "label") == 0) {
+            if (str_compare(part, "label") == 0) {
                 return button->label ? ui_element_get(layout, button->label) : NULL;
             }
         } break;
         case UI_ELEMENT_TYPE_CHECKBOX:
         case UI_ELEMENT_TYPE_RADIO: {
             const UICheckbox* const checkbox = (const UICheckbox *) element;
-            if (strcmp(part, "label") == 0) {
+            if (str_compare(part, "label") == 0) {
                 return checkbox->label ? ui_element_get(layout, checkbox->label) : NULL;
             }
         } break;
         case UI_ELEMENT_TYPE_VIEW_PANEL: {
             UIPanel* const panel = (UIPanel *) element;
-            if (strcmp(part, "content") == 0) {
+            if (str_compare(part, "content") == 0) {
                 return ui_panel_content(layout, panel);
             }
         } break;
         case UI_ELEMENT_TYPE_VIEW_TAB: {
             const UITab* const tab = (const UITab *) element;
-            if (strcmp(part, "page") == 0 && index >= 0 && index < tab->tab_count) {
+            if (str_compare(part, "page") == 0 && index >= 0 && index < tab->tab_count) {
                 return &ui_tab_page(layout, tab, index)->core;
             }
         } break;
@@ -1303,7 +1303,7 @@ void ui_txt_node_apply(
         const UIDocumentProperty* const property = &doc->properties[i];
         ui_document_copy(doc, property->key, key, sizeof(key));
 
-        if (strcmp(key, "style") == 0 || (*type && ui_txt_is_create_key(type, key))) {
+        if (str_compare(key, "style") == 0 || (*type && ui_txt_is_create_key(type, key))) {
             continue;
         }
 
@@ -1391,7 +1391,7 @@ int32 ui_txt_element_type(const char* const type) NO_EXCEPT
     };
 
     // "none" would be 0 = UI_ELEMENT_TYPE_BUTTON
-    return strcmp(type, "none") == 0
+    return str_compare(type, "none") == 0
         ? -1
         : ui_txt_name_id(TYPE_NAMES, (int32) ARRAY_COUNT(TYPE_NAMES), type);
 }
@@ -1435,12 +1435,12 @@ UICore* ui_txt_element_create(
             // The text memory is reserved directly after the label
             int32 pattern_length = 0;
             if (ui_txt_value_get(ctx, doc, node, "pattern", value, UI_TXT_VALUE_LENGTH)) {
-                pattern_length = (int32) strlen(value) + 1;
+                pattern_length = (int32) str_length(value) + 1;
             }
 
             int32 content_length = 0;
             if (ui_txt_value_get(ctx, doc, node, "text", value, UI_TXT_VALUE_LENGTH)) {
-                content_length = (int32) strlen(value) + 1;
+                content_length = (int32) str_length(value) + 1;
             }
 
             if (ui_txt_value_get(ctx, doc, node, "capacity", value, UI_TXT_VALUE_LENGTH)) {
@@ -1463,7 +1463,7 @@ UICore* ui_txt_element_create(
             element = &ui_window_create(layout, parent)->core;
         } break;
         case UI_ELEMENT_TYPE_VIEW_PANEL: {
-            if (strcmp(type, "tooltip") == 0) {
+            if (str_compare(type, "tooltip") == 0) {
                 f32 font_size = UI_DEFAULT_FONT_SIZE;
                 if (ui_txt_value_get(ctx, doc, node, "font_size", value, UI_TXT_VALUE_LENGTH)) {
                     const char* pos = value;
@@ -1477,8 +1477,8 @@ UICore* ui_txt_element_create(
                 element = &ui_popup_create(layout)->core;
             } else if (ui_txt_value_get(ctx, doc, node, "scroll", value, UI_TXT_VALUE_LENGTH)) {
                 byte flags = 0;
-                flags |= strchr(value, 'x') ? UI_PANEL_FLAG_SCROLL_X : 0;
-                flags |= strchr(value, 'y') ? UI_PANEL_FLAG_SCROLL_Y : 0;
+                flags |= str_find(value, 'x') ? UI_PANEL_FLAG_SCROLL_X : 0;
+                flags |= str_find(value, 'y') ? UI_PANEL_FLAG_SCROLL_Y : 0;
 
                 element = &ui_scroll_panel_create(layout, flags, parent)->core;
             } else {
@@ -1543,7 +1543,7 @@ UICore* ui_txt_element_create(
             char orientation[16];
             const UITabOrientation tab_orientation =
                 ui_txt_value_get(ctx, doc, node, "orientation", orientation, sizeof(orientation))
-                    && strcmp(orientation, "vertical") == 0
+                    && str_compare(orientation, "vertical") == 0
                 ? UI_TAB_ORIENTATION_VERTICAL
                 : UI_TAB_ORIENTATION_HORIZONTAL;
 
@@ -1575,7 +1575,7 @@ UICore* ui_txt_element_create(
             char picker_type[16];
             const UIColorPickerType type_id =
                 ui_txt_value_get(ctx, doc, node, "type", picker_type, sizeof(picker_type))
-                    && strcmp(picker_type, "palette") == 0
+                    && str_compare(picker_type, "palette") == 0
                 ? UI_COLOR_PICKER_TYPE_PALETTE
                 : UI_COLOR_PICKER_TYPE_GRADIENT;
 

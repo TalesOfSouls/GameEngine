@@ -55,7 +55,7 @@ int32 symbol_table_size = 0;
 
 HtmlTemplateValue html_template_variable_get(const char* name, HtmlTemplateContextStack*) {
     for (int32 i = 0; i < symbol_table_size; i++) {
-        if (strcmp(symbol_table[i].name, name) == 0) {
+        if (str_compare(symbol_table[i].name, name) == 0) {
             HtmlTemplateValue result;
             switch (symbol_table[i].type) {
                 case VAR_BOOL: {
@@ -89,7 +89,7 @@ HtmlTemplateValue html_template_variable_get(const char* name, HtmlTemplateConte
 
 void html_template_variable_set(const char* name, HtmlTemplateValue value, HtmlTemplateContextStack*) {
     for (int32 i = 0; i < symbol_table_size; i++) {
-        if (strcmp(symbol_table[i].name, name) == 0) {
+        if (str_compare(symbol_table[i].name, name) == 0) {
             switch (value.type) {
                 case VALUE_BOOL: {
                     symbol_table[i].type = VAR_BOOL;
@@ -173,13 +173,13 @@ HtmlTemplateValue html_template_expression_eval(HtmlTemplateASTNode* node, HtmlT
             HtmlTemplateValue rightValue = html_template_expression_eval(node->right, context_stack);
             if (leftValue.type == VALUE_INTEGER64 && rightValue.type == VALUE_INTEGER64) {
                 result.type = VALUE_INTEGER64;
-                if (strcmp(node->ptrValue, "+") == 0) {
+                if (str_compare(node->ptrValue, "+") == 0) {
                     result.int64Value = leftValue.int64Value + rightValue.int64Value;
-                } else if (strcmp(node->ptrValue, "-") == 0) {
+                } else if (str_compare(node->ptrValue, "-") == 0) {
                     result.int64Value = leftValue.int64Value - rightValue.int64Value;
-                } else if (strcmp(node->ptrValue, "*") == 0) {
+                } else if (str_compare(node->ptrValue, "*") == 0) {
                     result.int64Value = leftValue.int64Value * rightValue.int64Value;
-                } else if (strcmp(node->ptrValue, "/") == 0) {
+                } else if (str_compare(node->ptrValue, "/") == 0) {
                     result.int64Value = leftValue.int64Value / rightValue.int64Value;
                 } else {
                     exit(1);
@@ -191,13 +191,13 @@ HtmlTemplateValue html_template_expression_eval(HtmlTemplateASTNode* node, HtmlT
                 result.type = VALUE_FLOAT64;
                 double left = (leftValue.type == VALUE_FLOAT64) ? leftValue.f64Value : (f64)leftValue.int64Value;
                 f64 right = (rightValue.type == VALUE_FLOAT64) ? rightValue.f64Value : (f64)rightValue.int64Value;
-                if (strcmp(node->ptrValue, "+") == 0) {
+                if (str_compare(node->ptrValue, "+") == 0) {
                     result.f64Value = left + right;
-                } else if (strcmp(node->ptrValue, "-") == 0) {
+                } else if (str_compare(node->ptrValue, "-") == 0) {
                     result.f64Value = left - right;
-                } else if (strcmp(node->ptrValue, "*") == 0) {
+                } else if (str_compare(node->ptrValue, "*") == 0) {
                     result.f64Value = left * right;
-                } else if (strcmp(node->ptrValue, "/") == 0) {
+                } else if (str_compare(node->ptrValue, "/") == 0) {
                     result.f64Value = left / right;
                 } else {
                     exit(1);
@@ -222,17 +222,17 @@ bool html_template_condition_eval(HtmlTemplateASTNode *node, HtmlTemplateContext
 
         if (leftValue.type == VALUE_INTEGER64 && rightValue.type == VALUE_INTEGER64) {
             // Integer comparison
-            if (strcmp(node->ptrValue, ">") == 0) {
+            if (str_compare(node->ptrValue, ">") == 0) {
                 return leftValue.int64Value > rightValue.int64Value;
-            } else if (strcmp(node->ptrValue, "<") == 0) {
+            } else if (str_compare(node->ptrValue, "<") == 0) {
                 return leftValue.int64Value < rightValue.int64Value;
-            } else if (strcmp(node->ptrValue, "==") == 0) {
+            } else if (str_compare(node->ptrValue, "==") == 0) {
                 return leftValue.int64Value == rightValue.int64Value;
-            } else if (strcmp(node->ptrValue, "!=") == 0) {
+            } else if (str_compare(node->ptrValue, "!=") == 0) {
                 return leftValue.int64Value != rightValue.int64Value;
-            } else if (strcmp(node->ptrValue, ">=") == 0) {
+            } else if (str_compare(node->ptrValue, ">=") == 0) {
                 return leftValue.int64Value >= rightValue.int64Value;
-            } else if (strcmp(node->ptrValue, "<=") == 0) {
+            } else if (str_compare(node->ptrValue, "<=") == 0) {
                 return leftValue.int64Value <= rightValue.int64Value;
             } else {
                 exit(1);
@@ -241,17 +241,17 @@ bool html_template_condition_eval(HtmlTemplateASTNode *node, HtmlTemplateContext
             // Promote to double for comparison
             f64 left = (leftValue.type == VALUE_FLOAT64) ? leftValue.f64Value : (f64)leftValue.int64Value;
             f64 right = (rightValue.type == VALUE_FLOAT64) ? rightValue.f64Value : (f64)rightValue.int64Value;
-            if (strcmp(node->ptrValue, ">") == 0) {
+            if (str_compare(node->ptrValue, ">") == 0) {
                 return left > right;
-            } else if (strcmp(node->ptrValue, "<") == 0) {
+            } else if (str_compare(node->ptrValue, "<") == 0) {
                 return left < right;
-            } else if (strcmp(node->ptrValue, "==") == 0) {
+            } else if (str_compare(node->ptrValue, "==") == 0) {
                 return left == right;
-            } else if (strcmp(node->ptrValue, "!=") == 0) {
+            } else if (str_compare(node->ptrValue, "!=") == 0) {
                 return left != right;
-            } else if (strcmp(node->ptrValue, ">=") == 0) {
+            } else if (str_compare(node->ptrValue, ">=") == 0) {
                 return left >= right;
-            } else if (strcmp(node->ptrValue, "<=") == 0) {
+            } else if (str_compare(node->ptrValue, "<=") == 0) {
                 return left <= right;
             } else {
                 exit(1);

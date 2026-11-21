@@ -107,7 +107,7 @@ void http_header_value_set(
         }
     }
 
-    value_length = value_length == 0 ? strlen(value) : value_length;
+    value_length = value_length == 0 ? str_length(value) : value_length;
     int32 header_content_offset = req->header_available_count * sizeof(HttpHeaderElement);
 
     if (element) {
@@ -336,13 +336,13 @@ void http_header_parse(HttpRequest** http_request, const char* request, ThrdChun
     str_skip_empty(&request);
 
     // Parse request type
-    if (strcmp(request, "GET") == 0) {
+    if (str_compare(request, "GET") == 0) {
         http_req->method = HTTP_METHOD_GET;
-    } else if (strcmp(request, "POST") == 0) {
+    } else if (str_compare(request, "POST") == 0) {
         http_req->method = HTTP_METHOD_POST;
-    } else if (strcmp(request, "PUT") == 0) {
+    } else if (str_compare(request, "PUT") == 0) {
         http_req->method = HTTP_METHOD_PUT;
-    } else if (strcmp(request, "DELETE") == 0) {
+    } else if (str_compare(request, "DELETE") == 0) {
         http_req->method = HTTP_METHOD_DELETE;
     } else {
         // Additional request types are possible BUT we don't support them in our internal framework
@@ -378,7 +378,7 @@ void http_header_parse(HttpRequest** http_request, const char* request, ThrdChun
 
     // Parse protocol
     str_move_past(&request, ' ');
-    if (strncmp(request, "HTTP/", sizeof("HTTP/") - 1) != 0) {
+    if (str_compare(request, "HTTP/", sizeof("HTTP/") - 1) != 0) {
         LOG_1("[ERROR] Invalid HTTP header, no protocol defined");
         ASSERT_THROW();
 
@@ -420,13 +420,14 @@ void parse_multipart_data(const char *body, const char *boundary) {
         exit(EXIT_FAILURE);
     }
 
-    char *part = strtok(buffer, boundary);
+    char* part_key;
+    char *part = strtok(buffer, boundary, &part_key);
     while (part) {
         // Skip leading and trailing newlines
         while (*part == '\r' || *part == '\n') part++;
 
         // Parse part headers and content
-        char* headers_end = strstr(part, "\r\n\r\n");
+        char* headers_end = str_find(part, "\r\n\r\n");
         if (headers_end) {
             *headers_end = '\0'; // Terminate headers
             char *content = headers_end + 4; // Skip "\r\n\r\n"
@@ -435,7 +436,7 @@ void parse_multipart_data(const char *body, const char *boundary) {
             printf("Part Content:\n%s\n", content);
         }
 
-        part = strtok(NULL, boundary);
+        part = strtok(NULL, boundary, &part_key);
     }
 
     free(buffer);
@@ -466,8 +467,8 @@ int main() {
 
     // Parse multipart data if Content-Type is multipart/form-data
     for (int i = 0; i < request.header_count; i++) {
-        if (strstr(request.headers[i], "Content-Type: multipart/form-data")) {
-            const char *boundary_start = strstr(request.headers[i], "boundary=");
+        if (str_contains(request.headers[i], "Content-Type: multipart/form-data")) {
+            const char *boundary_start = str_find(request.headers[i], "boundary=");
             if (boundary_start) {
                 char boundary[128];
                 sscanf(boundary_start, "boundary=%127s", boundary);

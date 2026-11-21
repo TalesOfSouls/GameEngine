@@ -103,7 +103,7 @@ int32 vulkan_check_validation_layer_support(
         bool layer_found = false;
 
         for (uint32 j = 0; j < layer_count; ++j) {
-            if (strcmp(validation_layers[i], available_layers[j].layerName) == 0) {
+            if (str_compare(validation_layers[i], available_layers[j].layerName) == 0) {
                 layer_found = true;
                 break;
             }
@@ -132,7 +132,7 @@ int32 vulkan_check_extension_support(
         bool layer_found = false;
 
         for (uint32 j = 0; j < ext_count; ++j) {
-            if (strcmp(extensions[i], available_extensions[j].extensionName) == 0) {
+            if (str_compare(extensions[i], available_extensions[j].extensionName) == 0) {
                 layer_found = true;
                 break;
             }
@@ -153,7 +153,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
     if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         || (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     ) {
-        LOG_1(simple_string_init((char *) debug_callback_data->pMessage, (int32) strlen(debug_callback_data->pMessage)));
+        LOG_1(simple_string_init((char *) debug_callback_data->pMessage, (int32) str_length(debug_callback_data->pMessage)));
         ASSERT_THROW();
     }
 
@@ -272,7 +272,7 @@ bool vulkan_device_supports_extensions(VkPhysicalDevice device, const char** dev
     for (uint32 i = 0; i < device_extension_count; ++i) {
         bool found = false;
         for (uint32 j = 0; j < extension_count; ++j) {
-            if (strcmp(device_extensions[i], available_extensions[j].extensionName) == 0) {
+            if (str_compare(device_extensions[i], available_extensions[j].extensionName) == 0) {
                 found = true;
                 break;
             }

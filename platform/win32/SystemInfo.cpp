@@ -1125,7 +1125,7 @@ void hardware_id_copy(
         ++src;
     }
 
-    size_t length = strlen(src);
+    size_t length = str_length(src);
     while (length && (src[length - 1] == ' ' || src[length - 1] == '\t'
         || src[length - 1] == '\r' || src[length - 1] == '\n')
     ) {
@@ -1425,18 +1425,18 @@ bool hardware_id_gpu_canonicalize(
     out[0] = '\0';
 
     const char* start = pnp_id;
-    if (strncmp(start, "PCI\\", 4) == 0) {
+    if (str_compare(start, "PCI\\", 4) == 0) {
         start += 4;
     }
 
-    if (strncmp(start, "VEN_", 4) != 0) {
+    if (str_compare(start, "VEN_", 4) != 0) {
         return false;
     }
 
-    const char* const rev = strstr(start, "&REV_");
+    const char* const rev = str_find(start, "&REV_");
     const size_t length = rev
         ? (size_t) (rev - start)
-        : strlen(start);
+        : str_length(start);
 
     if (!length || length >= out_size) {
         return false;
@@ -1498,7 +1498,7 @@ bool hardware_id_contains_ci(const char* const value, const char* const needle) 
         return false;
     }
 
-    const size_t needle_length = strlen(needle);
+    const size_t needle_length = str_length(needle);
 
     for (const char* cursor = value; *cursor; ++cursor) {
         size_t i = 0;

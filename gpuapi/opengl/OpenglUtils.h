@@ -40,7 +40,7 @@ void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei
 
     if (type == GL_DEBUG_TYPE_PUSH_GROUP) {
         if (marker_depth < (int32) ARRAY_COUNT(markers)) {
-            const int32 len = OMS_MIN((int32) (length < 0 ? strlen(message) : length), (int32) sizeof(markers[0]) - 1);
+            const int32 len = OMS_MIN((int32) (length < 0 ? str_length(message) : length), (int32) sizeof(markers[0]) - 1);
             memcpy(markers[marker_depth], message, len);
             markers[marker_depth][len] = '\0';
         }
@@ -61,7 +61,7 @@ void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei
         return;
     }
 
-    LOG_1(simple_string_init((char *) message, (int32) strlen(message)));
+    LOG_1(simple_string_init((char *) message, (int32) str_length(message)));
 
     if (marker_depth > 0) {
         const char* const marker = markers[OMS_MIN(marker_depth, (int32) ARRAY_COUNT(markers)) - 1];

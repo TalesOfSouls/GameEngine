@@ -262,7 +262,7 @@ uint64 ui_cache_hash_str(uint64 hash, const char* const str) NO_EXCEPT
     // 0x9E3779B97F4A7C15 = 2^64 = golden ratio
     // Any value with well mixed bits works, it only has to make NULL different from ""
     return str
-        ? hash_murmur3_64(str, strlen(str) + 1, hash)
+        ? hash_murmur3_64(str, str_length(str) + 1, hash)
         : hash ^ 0x9E3779B97F4A7C15ULL;
 }
 
@@ -833,6 +833,7 @@ bool ui_cache_in_place(
     layout->cache_elements_generated = regenerated_count;
     layout->cache_elements_reused = visited - regenerated_count;
     layout->dirty = 0;
+    ++layout->hit_epoch;
 
     return true;
 }
@@ -1079,6 +1080,7 @@ void ui_cache(
 
     // A needed re-cache (e.g. scrollbars appeared) should converge immediately
     layout->dirty = needs_recache ? (byte) (UI_LAYOUT_DIRTY | UI_LAYOUT_DIRTY_INTERACTION) : (byte) 0;
+    ++layout->hit_epoch;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1958,8 +1960,28 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
         result |= UI_INPUT_RESULT_CHANGED;
     }
 
+    // The hit test walks the whole layout -> reused while the pointer + layout are unchanged
+    // Every layout change marks it dirty (before this call: was_dirty, during this call: drag/resize/scroll/values),
+    // ui_cache() clears the flag and increments hit_epoch
     UICore* hit;
-    UICore* const action = ui_element_at_position(layout, x, y, &hit);
+    UICore* action;
+    if (interaction->hit_valid
+        && !interaction_scope.was_dirty
+        && !layout->dirty
+        && interaction->hit_epoch == layout->hit_epoch
+        && interaction->hit_pointer.x == x && interaction->hit_pointer.y == y
+    ) {
+        hit = interaction->hit_element ? ui_element_get(layout, interaction->hit_element) : NULL;
+        action = interaction->hit_action ? ui_element_get(layout, interaction->hit_action) : NULL;
+    } else {
+        action = ui_element_at_position(layout, x, y, &hit);
+
+        interaction->hit_valid = true;
+        interaction->hit_epoch = layout->hit_epoch;
+        interaction->hit_pointer = {x, y};
+        interaction->hit_element = hit ? ui_element_offset(layout, hit) : 0;
+        interaction->hit_action = action ? ui_element_offset(layout, action) : 0;
+    }
 
     // 2. Popup
     // It is on top of everything -> the hit test already prefers it
@@ -2975,7 +2997,7 @@ byte ui_input_code(void* app, UILayout* const layout, uint32 code) NO_EXCEPT
     if (ui_input_handle_code(app, layout, input, code)) {
         result |= UI_INPUT_RESULT_CHANGED;
 
-        if (track_text && strcmp(before, text) != 0) {
+        if (track_text && str_compare(before, text) != 0) {
             ui_input_owner_changed(app, layout, input);
         }
     }
@@ -3042,71 +3064,21 @@ bool ui_input_wants_navigation(const UILayout* const layout) NO_EXCEPT
 }
 
 /**
- * Scroll amount of a ui scroll hotkey in wheel notches
- *      - mouse wheel: one key for both directions, the sign of its value is the direction
- *      - analog controller key (e.g. stick): continuous scrolling while held, the sign is the direction
- *      - digital key (e.g. d-pad, keyboard): one notch per press
- *
- * @param int16* code Output: key that created the value (to detect if both directions use the same key)
- */
-static inline
-f32 ui_hotkey_scroll(const Input* const input, uint16 hotkey, int16* const code) NO_EXCEPT
-{
-    *code = 0;
-    const byte state = input_hotkey_key_state(input, hotkey);
-    if (!state) {
-        return 0.0f;
-    }
-
-    const int16 value = input_hotkey_value(input, hotkey, code);
-    if (*code == (INPUT_MOUSE_PREFIX | INPUT_MOUSE_BUTTON_WHEEL)
-        || *code == (INPUT_MOUSE_PREFIX | INPUT_MOUSE_BUTTON_HWHEEL)
-    ) {
-        // 120 = one notch (WHEEL_DELTA), positive = away from the user
-        return (f32) value / 120.0f;
-    }
-
-    if ((*code & INPUT_CONTROLLER_PREFIX) && (value > 1 || value < -1)) {
-        // Full deflection = 1/4 notch per tick
-        return -(f32) value / 127.0f * 0.25f;
-    }
-
-    return (state & KEY_PRESS_TYPE_PRESSED) ? 1.0f : 0.0f;
-}
-
-static inline
-f32 ui_hotkey_axis(const Input* const input, uint16 hotkey_positive, uint16 hotkey_negative) NO_EXCEPT
-{
-    int16 code_positive;
-    int16 code_negative;
-    const f32 positive = ui_hotkey_scroll(input, hotkey_positive, &code_positive);
-    const f32 negative = ui_hotkey_scroll(input, hotkey_negative, &code_negative);
-
-    // Same signed key for both directions (e.g. mouse wheel) -> only count it once
-    if (code_positive && code_positive == code_negative) {
-        return positive;
-    }
-
-    return positive - (negative < 0.0f ? -negative : negative);
-}
-
-/**
  * Passes the input of all input devices to the ui
- * Everything is based on (user defined) hotkeys -> works for keyboard + mouse and controllers
- *      pointer:    position of the input that moved last (mouse or virtual cursor like game_cursor_movement_hotkey())
- *                  buttons = EDITOR_HOTKEY_POINTER_PRIMARY_UI / EDITOR_HOTKEY_POINTER_SECONDARY_UI
- *                  wheel = EDITOR_HOTKEY_SCROLL_UP_UI / EDITOR_HOTKEY_SCROLL_DOWN_UI
- *      navigation: EDITOR_HOTKEY_NEXT_UI, ...
- *      text:       keyboard text while a text element is edited
+ * The application converts its input (e.g. hotkeys) into one UIInputFrame per input state every tick
+ *      pointer:    position of the input that moved last (mouse or virtual cursor, UIInputFrame::cursor_movement)
+ *                  buttons + scroll of that input (UIInputFrame::primary/secondary/scroll)
+ *      navigation: see ui_input_navigation()
  *
- * @param v2_f32* pointer_position Output: pointer position in ui coordinates (e.g. to open a context menu there)
+ * @param const UIInputFrame* frames            Ui input per input state (same order as states)
+ * @param v2_f32*             pointer_position  Output: pointer position in ui coordinates (e.g. to open a context menu there)
  *
  * @return byte UIInputResult flags of the pointer input (e.g. UI_INPUT_RESULT_CONTEXT = right click on an element)
  */
 byte ui_input(
     Input* const states, int32 state_count,
+    const UIInputFrame* const frames,
     uint64 timestamp,
-    const uint16* const navigation_to_hotkey,
     void* const app,
     UILayout* const ui_layout,
     v2_f32* const pointer_position
@@ -3121,12 +3093,7 @@ byte ui_input(
     for (int32 i = 0; i < state_count; ++i) {
         const Input* const input_state = &states[i];
         if ((input_state->state.dx[0] || input_state->state.dy[0])
-            && (input_state->mouse.handle[0]
-                || hotkey_is_active(
-                    input_state->state.active_hotkeys,
-                    navigation_to_hotkey[UI_NAVIGATION_CURSOR_MOVEMENT1]
-                )
-            )
+            && (input_state->mouse.handle[0] || frames[i].cursor_movement)
         ) {
             _ui_pointer_input = i;
             break;
@@ -3138,7 +3105,8 @@ byte ui_input(
         _ui_pointer_input = kbm ? (int32) (kbm - states) : 0;
     }
 
-    Input* const pointer_input = &states[_ui_pointer_input];
+    const Input* const pointer_input = &states[_ui_pointer_input];
+    const UIInputFrame* const frame = &frames[_ui_pointer_input];
     const v2_f32 position = ui_window_to_ui_position(
         ui_layout,
         (f32) pointer_input->state.x[0],
@@ -3147,28 +3115,13 @@ byte ui_input(
 
     // Released keys stay visible until the next tick / input_frame_begin() is called
     // -> a press + release within one tick (fast click) is PRESSED | RELEASED
-    const byte primary = input_hotkey_key_state(
-        pointer_input,
-        navigation_to_hotkey[UI_NAVIGATION_POINTER_PRIMARY_UI]
-    );
-
     const UIPointerInput pointer = {
         position.x, position.y,
-        input_hotkey_is_down(
-            pointer_input,
-            navigation_to_hotkey[UI_NAVIGATION_POINTER_PRIMARY_UI]
-        ),
-        (primary & KEY_PRESS_TYPE_RELEASED) != 0,
-        (input_hotkey_key_state(
-            pointer_input,
-            navigation_to_hotkey[UI_NAVIGATION_POINTER_SECONDARY_UI]
-        ) & KEY_PRESS_TYPE_PRESSED) != 0,
+        ui_input_frame_down(frame->primary),
+        (frame->primary & KEY_PRESS_TYPE_RELEASED) != 0,
+        (frame->secondary & KEY_PRESS_TYPE_PRESSED) != 0,
         0.0f,
-        ui_hotkey_axis(
-            pointer_input,
-            navigation_to_hotkey[UI_NAVIGATION_SCROLL_UP_UI],
-            navigation_to_hotkey[UI_NAVIGATION_SCROLL_DOWN_UI]
-        ),
+        frame->scroll,
         timestamp
     };
 
@@ -3183,16 +3136,15 @@ byte ui_input(
  * Text + focus actions of all inputs (keyboard, controller, ...)
  *
  * The text is only filled while a text element is edited (the keyboard keys don't trigger hotkeys then).
- * The focus actions come from the hotkeys of navigation_to_hotkey (UI_NAVIGATION_NEXT ... UI_NAVIGATION_CANCEL),
- * 0 = the action has no hotkey.
+ * The focus actions are the navigation bits of the frames (UI_NAVIGATION_NEXT ... UI_NAVIGATION_CANCEL).
  *
- * @param const uint16* navigation_to_hotkey Hotkey per UINavigation
+ * @param const UIInputFrame* frames Ui input per input state (same order as states)
  *
  * @return void
  */
 void ui_input_navigation(
     Input* const states, int32 state_count,
-    const uint16* const navigation_to_hotkey,
+    const UIInputFrame* const frames,
     void* const app,
     UILayout* const ui_layout
 ) NO_EXCEPT
@@ -3202,12 +3154,13 @@ void ui_input_navigation(
 
         ui_input_text(app, ui_layout, input_state->state.text, input_state->state.text_count);
 
-        for (int32 navigation = UI_NAVIGATION_NEXT; navigation <= UI_NAVIGATION_CANCEL; ++navigation) {
-            if (navigation_to_hotkey[navigation]
-                && hotkey_is_active(input_state->state.active_hotkeys, navigation_to_hotkey[navigation])
-            ) {
-                ui_input_navigate(app, ui_layout, (UINavigation) navigation);
-            }
+        // Lowest bit first = the order of UINavigation
+        uint32 navigation = frames[i].navigation;
+        while (navigation) {
+            const int32 action = compiler_find_first_bit_r2l(navigation);
+            navigation &= navigation - 1;
+
+            ui_input_navigate(app, ui_layout, (UINavigation) action);
         }
     }
 }

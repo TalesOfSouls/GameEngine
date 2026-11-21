@@ -657,7 +657,7 @@ bool gl_has_extension(const char* name) NO_EXCEPT
 
     for (int i = 0; i < n; ++i) {
         const char* e = (const char*) glGetStringi(GL_EXTENSIONS, i);
-        if (strcmp(e, name) == 0) {
+        if (str_compare(e, name) == 0) {
             return true;
         }
     }

@@ -277,7 +277,7 @@ bool regex_simplified_validate(const char* pattern, const char* text) {
 
     // Check anchors
     if (starts_with && ends_with) {
-        return result.matched && (result.length == strlen(text));
+        return result.matched && (result.length == str_length(text));
     } else if (starts_with) {
         return result.matched && (result.length > 0);
     } else if (ends_with) {

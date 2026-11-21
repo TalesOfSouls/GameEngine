@@ -303,7 +303,8 @@ const char* __internal_strcpy(char* __restrict dest, const char* __restrict src)
         const char c = *src++;
         *dest++ = c;
         if (c == '\0') {
-            return NULL;
+            // Same as the C library: always dest
+            return start;
         }
     }
 
@@ -347,7 +348,8 @@ const wchar_t* __internal_wcscpy(
         const wchar_t c = *src++;
         *dest++ = c;
         if (c == L'\0') {
-            return NULL;
+            // Same as the C library: always dest
+            return start;
         }
     }
 
@@ -501,13 +503,14 @@ wchar_t* __internal_wcsstr(
     const wchar_t* __restrict needle
 )
 {
+    // An empty needle matches at the start (same as the C standard)
+    if (needle[0] == L'\0') {
+        return (wchar_t *) haystack;
+    }
+
     const wchar_t first = needle[0];
     const size_t needle_len = __internal_wcslen(needle);
     const wchar_t* ptr = haystack;
-
-    if (needle_len == 0) {
-        return NULL;
-    }
 
     constexpr size_t W = sizeof(wchar_t);
     constexpr size_t S = sizeof(size_t);
@@ -569,26 +572,79 @@ wchar_t* __internal_wcsstr(
     return NULL;
 }
 
-inline CONSTEXPR
-void __internal_strncpy(char* __restrict dest, const char* __restrict src, int32 length) NO_EXCEPT
+inline
+wchar_t* __internal_wcschr(const wchar_t* str, wchar_t needle) NO_EXCEPT
 {
-    int32 copied = 0;
+    // Align to word boundary
+    while ((uintptr_t) str % sizeof(size_t) != 0) {
+        if (*str == needle) {
+            return (wchar_t *) str;
+        }
 
-    // Align src pointer to size_t boundary
-    while ((uintptr_t)src % sizeof(size_t) != 0 && copied < length - 1) {
+        if (*str == L'\0') {
+            return NULL;
+        }
+
+        ++str;
+    }
+
+    constexpr size_t N = sizeof(size_t) / sizeof(wchar_t);
+
+    // needle in every wchar_t of the word (masked: wchar_t can be signed)
+    const size_t target = (size_t) needle & ((((size_t) 1) << (8 * sizeof(wchar_t))) - 1);
+    size_t mask = 0;
+    for (size_t i = 0; i < N; ++i) {
+        mask |= target << (i * 8 * sizeof(wchar_t));
+    }
+
+    const size_t* wptr = (const size_t *) str;
+    while (true) {
+        const size_t v = *wptr;
+
+        // Check for zero or needle character
+        if (OMS_HAS_ZERO_WCHAR(v ^ mask) || OMS_HAS_ZERO_WCHAR(v)) {
+            const wchar_t* p = (const wchar_t *) wptr;
+
+            for (size_t i = 0; i < N; ++i) {
+                if (p[i] == needle) {
+                    return (wchar_t *) (p + i);
+                }
+
+                if (p[i] == L'\0') {
+                    return NULL;
+                }
+            }
+        }
+
+        ++wptr;
+    }
+}
+
+// Same as strncpy: copies at most n characters, the rest of dest is filled with '\0'
+// dest is NOT terminated if src has n or more characters
+inline
+char* __internal_strncpy(char* __restrict dest, const char* __restrict src, size_t n) NO_EXCEPT
+{
+    char* const start = dest;
+
+    // Align src pointer
+    while (n > 0 && (uintptr_t) src % sizeof(size_t) != 0) {
         const char c = *src++;
         *dest++ = c;
-        ++copied;
+        --n;
 
         if (c == '\0') {
-            return;
+            __internal_memset(dest, 0, n);
+
+            return start;
         }
     }
 
     const size_t* wptr = (const size_t *) src;
     size_t* dptr = (size_t *) dest;
 
-    while (copied + (int32) sizeof(size_t) < length) {
+    // Whole words as long as the word has no terminator and fits
+    while (n >= sizeof(size_t)) {
         const size_t v = *wptr;
         if (OMS_HAS_ZERO(v)) {
             break;
@@ -596,50 +652,51 @@ void __internal_strncpy(char* __restrict dest, const char* __restrict src, int32
 
         *dptr++ = v;
         ++wptr;
-        copied += sizeof(size_t);
+        n -= sizeof(size_t);
     }
 
-    // Copy remaining bytes one by one
+    // Copy remaining bytes
     src = (const char *) wptr;
     dest = (char *) dptr;
-    while (copied < length - 1) {
+    while (n > 0) {
         const char c = *src++;
         *dest++ = c;
-        ++copied;
+        --n;
 
         if (c == '\0') {
+            __internal_memset(dest, 0, n);
             break;
         }
     }
 
-    *dest = '\0';
+    return start;
 }
 
-inline CONSTEXPR
-void __internal_wcsncpy(
-    wchar_t* __restrict dest,
-    const wchar_t* __restrict src,
-    int32 length
-) NO_EXCEPT
+// Same as wcsncpy: copies at most n characters, the rest of dest is filled with L'\0'
+// dest is NOT terminated if src has n or more characters
+inline
+wchar_t* __internal_wcsncpy(wchar_t* __restrict dest, const wchar_t* __restrict src, size_t n) NO_EXCEPT
 {
-    int32 copied = 0;
+    wchar_t* const start = dest;
 
-    // Align src pointer to size_t boundary
-    while ((uintptr_t)src % sizeof(size_t) != 0 && copied < length - 1) {
+    // Align src pointer
+    while (n > 0 && (uintptr_t) src % sizeof(size_t) != 0) {
         const wchar_t c = *src++;
         *dest++ = c;
-        ++copied;
+        --n;
 
         if (c == L'\0') {
-            return;
+            __internal_memset(dest, 0, n * sizeof(wchar_t));
+
+            return start;
         }
     }
 
-    const size_t* wptr = (const size_t*)src;
-    size_t* dptr = (size_t*)dest;
+    const size_t* wptr = (const size_t *) src;
+    size_t* dptr = (size_t *) dest;
 
-    // Bulk copy size_t blocks
-    while (copied + (int32) sizeof(size_t) / sizeof(wchar_t) < length) {
+    // Whole words as long as the word has no terminator and fits
+    while (n >= sizeof(size_t) / sizeof(wchar_t)) {
         const size_t v = *wptr;
         if (OMS_HAS_ZERO_WCHAR(v)) {
             break;
@@ -647,32 +704,57 @@ void __internal_wcsncpy(
 
         *dptr++ = v;
         ++wptr;
-
-        copied += sizeof(size_t) / sizeof(wchar_t);
+        n -= sizeof(size_t) / sizeof(wchar_t);
     }
 
-    // Tail copy wchar_t-by-wchar_t
-    src = (const wchar_t*)wptr;
-    dest = (wchar_t*)dptr;
-
-    while (copied < length - 1) {
+    // Copy remaining characters
+    src = (const wchar_t *) wptr;
+    dest = (wchar_t *) dptr;
+    while (n > 0) {
         const wchar_t c = *src++;
         *dest++ = c;
-        ++copied;
+        --n;
 
         if (c == L'\0') {
+            __internal_memset(dest, 0, n * sizeof(wchar_t));
             break;
         }
     }
 
-    *dest = L'\0';
+    return start;
 }
 
-inline CONSTEXPR
+// The comparison is word-wise if both strings have the same alignment offset (e.g. both aligned)
+inline
 int32 __internal_strcmp(const char* str1, const char* str2) NO_EXCEPT
 {
-    byte c1 INITIALIZER;
-    byte c2 INITIALIZER;
+    if ((((uintptr_t) str1 ^ (uintptr_t) str2) & (sizeof(size_t) - 1)) == 0) {
+        // Align both pointers
+        while ((uintptr_t) str1 % sizeof(size_t) != 0) {
+            const byte c1 = (byte) *str1;
+            const byte c2 = (byte) *str2;
+            if (c1 != c2 || c1 == '\0') {
+                return c1 - c2;
+            }
+
+            ++str1;
+            ++str2;
+        }
+
+        // Skip equal words without terminator (aligned reads never cross into the next page)
+        const size_t* w1 = (const size_t *) str1;
+        const size_t* w2 = (const size_t *) str2;
+        while (*w1 == *w2 && !OMS_HAS_ZERO(*w1)) {
+            ++w1;
+            ++w2;
+        }
+
+        str1 = (const char *) w1;
+        str2 = (const char *) w2;
+    }
+
+    byte c1;
+    byte c2;
 
     do {
         c1 = (byte) *str1++;
@@ -693,63 +775,68 @@ int32 __internal_wcscmp(const wchar_t* str1, const wchar_t* str2) NO_EXCEPT
         c2 = *str2++;
     } while (c1 == c2 && c1 != L'\0');
 
-    return c1 - c2;
+    // wchar_t is 16 bit unsigned (win32) or 32 bit signed (linux) -> no subtraction
+    return (c1 > c2) - (c1 < c2);
 }
 
-CONSTEXPR
+// The comparison is word-wise if both strings have the same alignment offset (e.g. both aligned)
+inline
 int32 __internal_strncmp(const char* str1, const char* str2, size_t n) NO_EXCEPT
 {
-    byte c1 = '\0';
-    byte c2 = '\0';
-
-    if (n >= 4) {
-        size_t n4 = n >> 2;
-
-        do {
-            c1 = (byte) *str1++;
-            c2 = (byte) *str2++;
-
-            if (c1 == '\0' || c1 != c2) {
+    if ((((uintptr_t) str1 ^ (uintptr_t) str2) & (sizeof(size_t) - 1)) == 0) {
+        // Align both pointers
+        while (n > 0 && (uintptr_t) str1 % sizeof(size_t) != 0) {
+            const byte c1 = (byte) *str1;
+            const byte c2 = (byte) *str2;
+            if (c1 != c2 || c1 == '\0') {
                 return c1 - c2;
             }
 
-            c1 = (byte) *str1++;
-            c2 = (byte) *str2++;
+            ++str1;
+            ++str2;
+            --n;
+        }
 
-            if (c1 == '\0' || c1 != c2) {
-                return c1 - c2;
-            }
+        // Skip equal words without terminator that are completely inside of n
+        const size_t* w1 = (const size_t *) str1;
+        const size_t* w2 = (const size_t *) str2;
+        while (n >= sizeof(size_t) && *w1 == *w2 && !OMS_HAS_ZERO(*w1)) {
+            ++w1;
+            ++w2;
+            n -= sizeof(size_t);
+        }
 
-            c1 = (byte) *str1++;
-            c2 = (byte) *str2++;
-
-            if (c1 == '\0' || c1 != c2) {
-                return c1 - c2;
-            }
-
-            c1 = (byte) *str1++;
-            c2 = (byte) *str2++;
-
-            if (c1 == '\0' || c1 != c2) {
-                return c1 - c2;
-            }
-        } while (--n4 > 0);
-
-        n &= 3;
+        str1 = (const char *) w1;
+        str2 = (const char *) w2;
     }
 
     while (n > 0) {
-        c1 = (byte) *str1++;
-        c2 = (byte) *str2++;
-
-        if (c1 == '\0' || c1 != c2) {
+        const byte c1 = (byte) *str1++;
+        const byte c2 = (byte) *str2++;
+        if (c1 != c2 || c1 == '\0') {
             return c1 - c2;
         }
 
         --n;
     }
 
-    return c1 - c2;
+    return 0;
+}
+
+inline CONSTEXPR
+int32 __internal_wcsncmp(const wchar_t* str1, const wchar_t* str2, size_t n) NO_EXCEPT
+{
+    while (n > 0) {
+        const wchar_t c1 = *str1++;
+        const wchar_t c2 = *str2++;
+        if (c1 != c2 || c1 == L'\0') {
+            return (c1 > c2) - (c1 < c2);
+        }
+
+        --n;
+    }
+
+    return 0;
 }
 
 static CONSTEXPR const unsigned char TO_LOWER_TABLE[256] = {

@@ -135,6 +135,20 @@ bool queue_is_full(const MPMCQueueT<T>* const queue) NO_EXCEPT
         - queue->tail.load(memory_order_acquire)) >= (size_t) queue->capacity;
 }
 
+// Number of queued elements (claimed by producers, not yet claimed by consumers)
+// Best-effort only (e.g. statistics), producers/consumers can change it at any time
+template <typename T>
+FORCE_INLINE
+int32 queue_count(const MPMCQueueT<T>* const queue) NO_EXCEPT
+{
+    // tail first: the head is read later and can only be larger -> no negative count
+    const size_t tail = queue->tail.load(memory_order_acquire);
+    const size_t head = queue->head.load(memory_order_acquire);
+    const size_t count = head - tail;
+
+    return (int32) (count > (size_t) queue->capacity ? (size_t) queue->capacity : count);
+}
+
 template <typename T>
 inline
 T* queue_enqueue_start(MPMCQueueT<T>* const queue) NO_EXCEPT

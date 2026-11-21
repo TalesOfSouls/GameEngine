@@ -106,7 +106,7 @@ SimpleString<const char> ui_string_get(const UILayout* const layout, int32 offse
 
     // Somebody changed the characters without updating the length
     ASSERT_TRUE(str.str[str.length] == '\0');
-    ASSERT_STRICT((int32) strlen(str.str) == str.length);
+    ASSERT_STRICT((int32) str_length(str.str) == str.length);
 
     return str;
 }
@@ -239,7 +239,7 @@ bool ui_label_set_text_fixed(UILayout* const layout, UILabel* const label, const
 
     // The text is cut if it doesn't fit
     char* const content = (char *) (layout->ui_element_buffer.memory + label->content);
-    const int32 length = min_branched((int32) strlen(text), ui_string_max_length(layout, label->content));
+    const int32 length = min_branched((int32) str_length(text), ui_string_max_length(layout, label->content));
 
     if (memcmp(content, text, length) == 0 && content[length] == '\0') {
         return false;
@@ -357,7 +357,7 @@ void ui_label_cache(
     // The text dimension is needed before the vertices are created (element size + alignment inside of the element)
     // -> the glyphs are created here and passed to vertex_text_create (no second conversion)
     // The byte length is an upper bound of the codepoint count (cheaper than utf8_strlen())
-    const int32 byte_count = (int32) strlen(text);
+    const int32 byte_count = (int32) str_length(text);
     int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
     int32 glyph_count = text_to_glyphs(font, text, glyphs);
     const v2_f32 text_dim = text_calculate_dimensions(font, glyphs, glyph_count, scale);

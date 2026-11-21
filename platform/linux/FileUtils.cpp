@@ -439,13 +439,12 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
         }
 
         char full_path[PATH_MAX_LENGTH];
-        // @performance This is bad, we are internally moving two times too often to the end of full_path
-        //      Maybe make str_copy return the length, same as append?
-        str_copy(full_path, base_path);
-        if (!str_ends_with(base_path, "/")) {
-            strcat(full_path, "/");
+        int32 full_length = (int32) str_length(base_path);
+        str_copy(full_path, base_path, full_length);
+        if (!full_length || full_path[full_length - 1] != '/') {
+            full_path[full_length++] = '/';
         }
-        strcat(full_path, entry->d_name);
+        str_copy(full_path + full_length, entry->d_name);
 
         char full_file_path[PATH_MAX_LENGTH];
         relative_to_absolute(full_path, full_file_path);
@@ -677,14 +676,14 @@ int32 directory_list_subdirectories(const char* path, char* names, int32 name_si
         }
 
         char entry_path[PATH_MAX_LENGTH];
-        snprintf(entry_path, sizeof(entry_path), "%s/%s", abs_path, entry->d_name);
+        sprintf_fast(entry_path, sizeof(entry_path), "%s/%s", abs_path, entry->d_name);
 
         struct stat st;
         if (stat(entry_path, &st) != 0 || !S_ISDIR(st.st_mode)) {
             continue;
         }
 
-        const size_t name_length = strlen(entry->d_name);
+        const size_t name_length = str_length(entry->d_name);
         if ((int32) name_length >= name_size) {
             continue;
         }

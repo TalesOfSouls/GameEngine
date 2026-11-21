@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include "../stdlib/Stdlib.h"
+#include "../utils/StringUtils.h"
 
 // Don't load them and immediatley use them.
 // This way a cheater could easily find the location of the patterns and change them.
@@ -15,7 +16,7 @@
 #define XOR_KEY_LEN   3  // Must match the number of elements in XOR_KEY
 
 void xor_to_hex(const char *input, const unsigned char *key, size_t key_len) {
-    size_t input_len = strlen(input);
+    size_t input_len = str_length(input);
     for (size_t i = 0; i < input_len; ++i) {
         unsigned char result = input[i] ^ key[i % key_len];
         printf("0x%02X, ", result);

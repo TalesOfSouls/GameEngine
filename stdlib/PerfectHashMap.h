@@ -33,7 +33,7 @@ const PerfectHashFunction PERFECT_HASH_FUNCTIONS[] = {
 FORCE_INLINE
 const char* perfect_hashmap_key_tail(const char* key) NO_EXCEPT
 {
-    const int32 length = (int32) strlen(key);
+    const int32 length = (int32) str_length(key);
     if (length <= PERFECT_HASH_MAP_MAX_KEY_LENGTH - 1) {
         return key;
     }
@@ -391,7 +391,7 @@ PerfectHashEntry* perfect_hashmap_entry_get(const PerfectHashMap* __restrict hm,
 
     key = perfect_hashmap_key_tail(key);
 
-    return strcmp(entry->key, key) == 0 ? entry : NULL;
+    return str_compare(entry->key, key) == 0 ? entry : NULL;
 }
 
 inline
@@ -402,7 +402,7 @@ byte* perfect_hashmap_get_value(const PerfectHashMapRef* hmr, const char* key) N
 
     key = perfect_hashmap_key_tail(key);
 
-    return strcmp(entry->key, key) == 0 ? hmr->data + entry->value : NULL;
+    return str_compare(entry->key, key) == 0 ? hmr->data + entry->value : NULL;
 }
 
 inline
@@ -413,7 +413,7 @@ void perfect_hashmap_delete_entry(PerfectHashMap* __restrict hm, const char* __r
 
     key = perfect_hashmap_key_tail(key);
 
-    if (strcmp(entry->key, key) != 0) {
+    if (str_compare(entry->key, key) != 0) {
         return;
     }
 

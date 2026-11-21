@@ -232,7 +232,7 @@ static inline
 void exception_file_write(HANDLE file, const char* const text) NO_EXCEPT
 {
     DWORD written;
-    WriteFile(file, text, (DWORD) strlen(text), &written, NULL);
+    WriteFile(file, text, (DWORD) str_length(text), &written, NULL);
 }
 
 static inline

@@ -52,7 +52,7 @@ uint32 system_stack_usage()
 
         char line[512];
         while (fgets(line, sizeof(line), f)) {
-            if (strstr(line, "[stack]")) {
+            if (str_contains(line, "[stack]")) {
                 unsigned long start = 0;
                 if (sscanf(line, "%lx-", &start) == 2) {
                     stack_base = (uintptr_t) start;
@@ -82,7 +82,7 @@ uint64 system_app_memory_usage()
     char* internal_pos = NULL;
 
     while (file_read_line(fp, line, sizeof(line), internal_buffer, &internal_buffer_size, &internal_pos)) {
-        if (strncmp(line, "Private_Dirty:", sizeof("Private_Dirty:") - 1) == 0) {
+        if (str_compare(line, "Private_Dirty:", sizeof("Private_Dirty:") - 1) == 0) {
             uint64 private_dirty;
             if (sscanf(line, "Private_Dirty: %lu kB", &private_dirty) == 1) {
                 total_size += private_dirty * 1024;  // Convert from kB to bytes
@@ -171,15 +171,15 @@ void cpu_info_get(CpuInfo* info) {
     char* internal_pos = NULL;
 
     while (file_read_line(fp, line, sizeof(line), internal_buffer, &internal_buffer_size, &internal_pos)) {
-        if (strncmp(line, "vendor_id", sizeof("vendor_id") - 1) == 0) {
+        if (str_compare(line, "vendor_id", sizeof("vendor_id") - 1) == 0) {
             sscanf(line, "vendor_id : %s", info->vendor);
-        } else if (strncmp(line, "model", sizeof("model") - 1) == 0) {
+        } else if (str_compare(line, "model", sizeof("model") - 1) == 0) {
             sscanf(line, "model : %hhd", &info->model);
-        } else if (strncmp(line, "cpu MHz", sizeof("cpu MHz") - 1) == 0) {
+        } else if (str_compare(line, "cpu MHz", sizeof("cpu MHz") - 1) == 0) {
             sscanf(line, "cpu MHz : %d", &info->mhz);
-        } else if (strncmp(line, "cpu cores", sizeof("cpu cores") - 1) == 0) {
+        } else if (str_compare(line, "cpu cores", sizeof("cpu cores") - 1) == 0) {
             sscanf(line, "cpu cores : %hd", &info->core_count);
-        } else if (strncmp(line, "model name", sizeof("model name") - 1) == 0) {
+        } else if (str_compare(line, "model name", sizeof("model name") - 1) == 0) {
             sscanf(line, "model name : %63[^\n]", info->brand);
         }
     }
@@ -264,10 +264,10 @@ RamChannelType ram_channel_info() {
     }
 
     while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-        if (strstr(buffer, "ChannelA") || strstr(buffer, "ChannelB")) {
+        if (str_contains(buffer, "ChannelA") || str_contains(buffer, "ChannelB")) {
             ++ram_module_count;
             dual_channel_capable = 1;
-        } else if (strstr(buffer, "Channel")) {
+        } else if (str_contains(buffer, "Channel")) {
             ++ram_module_count;
         }
     }
@@ -297,7 +297,8 @@ uint32 gpu_info_get(GpuInfo* info) {
         if (count >= 2) break;
 
         // Assuming that the first part of the line contains the name of the GPU
-        char* gpu_name = strtok(line, ":");
+        char* gpu_key;
+        char* gpu_name = strtok(line, ":", &gpu_key);
         if (gpu_name) {
             sprintf_fast(info[count].name, sizeof(info[count].name), "%s", gpu_name);
         }
@@ -323,7 +324,7 @@ uint32 display_info_get(DisplayInfo* info) {
     uint32 count = 0;
 
     while (fgets(line, sizeof(line), fp)) {
-        if (str_find(line, "connected") >= 0) {
+        if (str_find(line, "connected")) {
             // Example: "HDMI-1 connected 1920x1080+0+0 60.00*+"
             char name[64];
             uint32 width, height, hz;
@@ -332,7 +333,7 @@ uint32 display_info_get(DisplayInfo* info) {
                 info[count].width = width;
                 info[count].height = height;
                 info[count].hz = hz;
-                info[count].is_primary = str_find(line, "primary") >= 0;
+                info[count].is_primary = str_find(line, "primary") != NULL;
                 ++count;
             }
         }
@@ -398,7 +399,7 @@ static inline bool hardware_id_contains_ci(const char* value, const char* needle
         return false;
     }
 
-    const size_t needle_length = strlen(needle);
+    const size_t needle_length = str_length(needle);
     for (const char* cursor = value; *cursor; ++cursor) {
         size_t i = 0;
         while (i < needle_length && cursor[i]
@@ -435,7 +436,7 @@ static inline void hardware_id_trim(char* const value) NO_EXCEPT
         *dst = '\0';
     }
 
-    size_t length = strlen(value);
+    size_t length = str_length(value);
     while (length && (value[length - 1] == ' ' || value[length - 1] == '\t'
         || value[length - 1] == '\r' || value[length - 1] == '\n')
     ) {
@@ -574,7 +575,7 @@ static inline void hardware_id_gpu_collect(HardwareId* const id) NO_EXCEPT
         }
 
         // 0x03xxxx = display controller (VGA, XGA, 3D, other)
-        if (strncmp(pci_class, "0x03", 4) != 0) {
+        if (str_compare(pci_class, "0x03", 4) != 0) {
             continue;
         }
 
@@ -590,8 +591,8 @@ static inline void hardware_id_gpu_collect(HardwareId* const id) NO_EXCEPT
             continue;
         }
 
-        const char* const pci_id = strstr(uevent, "PCI_ID=");
-        const char* const subsystem_id = strstr(uevent, "PCI_SUBSYS_ID=");
+        const char* const pci_id = str_find(uevent, "PCI_ID=");
+        const char* const subsystem_id = str_find(uevent, "PCI_SUBSYS_ID=");
         if (!pci_id || !subsystem_id) {
             continue;
         }

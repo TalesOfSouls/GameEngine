@@ -325,16 +325,16 @@ bool ui_theme_language_load(
     // @performance this can be optimized heavily
     for (;;) {
         // + "lang/" + "/" + ".langtxt" + \0
-        if (wcslen(theme_path) + wcslen(language_code) + 15 > PATH_MAX_LENGTH) {
+        if (str_length(theme_path) + str_length(language_code) + 15 > PATH_MAX_LENGTH) {
             return false;
         }
 
-        wcscpy(path, theme_path);
+        str_copy(path, theme_path);
         wchar_t* pos = str_right(path, L'.');
         if (pos) {
             *pos = L'\0';
         }
-        str_insert(path, wcslen(path), L".langtxt");
+        str_insert(path, str_length(path), L".langtxt");
         pos = str_right(path, L'/');
         const size_t dir_end = pos ? (size_t) (pos - path) + 1 : 0;
         str_insert(path, dir_end, L"/");
@@ -345,7 +345,7 @@ bool ui_theme_language_load(
             break;
         }
 
-        if (wcscmp(language_code, LANGUAGE_DEFAULT_CODE) == 0) {
+        if (str_compare(language_code, LANGUAGE_DEFAULT_CODE) == 0) {
             return false;
         }
 

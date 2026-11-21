@@ -562,7 +562,7 @@ v2_f32 vertex_text_create(
         return {0.0f, 0.0f};
     }
 
-    const int32 byte_count = (int32) strlen(text);
+    const int32 byte_count = (int32) str_length(text);
     int16* const glyphs = (int16*) memory_get_temp(mem, (byte_count + 1) * sizeof(int16), alignof(uintptr_t));
     int32 glyph_count = text_to_glyphs(font, text, glyphs);
 

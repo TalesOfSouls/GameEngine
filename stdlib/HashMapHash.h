@@ -9,6 +9,7 @@
 
 #include "Stdlib.h"
 #include "HashMapT.h"
+#include "../utils/StringUtils.h"
 
 /**
  * Hash helpers shared by HashMapT and ThrdHashMapT
@@ -65,7 +66,7 @@ FORCE_INLINE
 int32 hashmap_str_length(const char* str) NO_EXCEPT
 {
     #ifdef __aarch64__
-        return (int32) strlen(str);
+        return (int32) str_length(str);
     #else
         const char* block = (const char *) ((uintptr_t) str & ~(uintptr_t) 15);
         const __m128i zero = _mm_setzero_si128();

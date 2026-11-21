@@ -37,7 +37,7 @@ static inline
 int32 settings_name_length(const char* const line) NO_EXCEPT
 {
     int32 length = 0;
-    while (line[length] && !strchr(SETTINGS_NAME_END, line[length])) {
+    while (line[length] && !str_find(SETTINGS_NAME_END, line[length])) {
         ++length;
     }
 
@@ -50,8 +50,9 @@ char* settings_save_name(
     char* __restrict out
 ) NO_EXCEPT
 {
-    out += str_copy(out, match->name);
-    --out;
+    const int32 name_length = (int32) str_length(match->name);
+    str_copy(out, match->name, name_length);
+    out += name_length;
 
     switch (match->type) {
         case DATA_TYPE_BOOL_ARRAY: FALLTHROUGH;
@@ -330,7 +331,7 @@ char* settings_save_existing_line(
     // Trailing comment ("//" after a whitespace), not for strings (e.g. urls)
     const char* comment = NULL;
     if (setting->type != DATA_TYPE_CHAR && setting->type != DATA_TYPE_CHAR_STR && setting->type != DATA_TYPE_WCHAR_STR) {
-        comment = (pos[0] == '/' && pos[1] == '/') ? pos : strstr(pos, " //");
+        comment = (pos[0] == '/' && pos[1] == '/') ? pos : str_find(pos, " //");
     }
 
     const bool has_value = *pos && pos != comment;
@@ -395,14 +396,14 @@ char* settings_save_existing_line(
 inline
 bool settings_file_contains(const char* __restrict in, const char* __restrict name) NO_EXCEPT
 {
-    const int32 name_length = (int32) strlen(name);
+    const int32 name_length = (int32) str_length(name);
 
     while (*in) {
         while (*in == ' ' || *in == '\t') {
             ++in;
         }
 
-        if (settings_name_length(in) == name_length && strncmp(in, name, name_length) == 0) {
+        if (settings_name_length(in) == name_length && str_compare(in, name, name_length) == 0) {
             return true;
         }
 
@@ -474,7 +475,7 @@ size_t settings_save(
         bool found = false;
         for (int32 i = 0; i < match_count; ++i) {
             if (name_length > 0
-                && strncmp(line, match[i].name, name_length) == 0
+                && str_compare(line, match[i].name, name_length) == 0
                 && match[i].name[name_length] == '\0'
             ) {
                 out = settings_save_existing_line(settings_data, match, i, line, name_length, out);
@@ -931,7 +932,7 @@ void settings_load(
 
         for (int32 i = 0; i < match_count; ++i) {
             // Exact match (a name may be the prefix of another name)
-            if (strncmp(name, match[i].name, name_length) == 0 && match[i].name[name_length] == '\0') {
+            if (str_compare(name, match[i].name, name_length) == 0 && match[i].name[name_length] == '\0') {
                 data = settings_load_value(settings, data, match, i);
 
                 break;

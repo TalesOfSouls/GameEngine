@@ -38,11 +38,11 @@ void thrd_cmd_ui_load(
     cmd.layout_body.app = app;
     cmd.layout_body.ams = ams;
 
-    wcscpy(cmd.layout_body.layout_path, layout_path);
-    wcscpy(cmd.layout_body.theme_path, theme_path);
+    str_copy(cmd.layout_body.layout_path, layout_path);
+    str_copy(cmd.layout_body.theme_path, theme_path);
 
     if (language_code) {
-        wcsncpy(cmd.layout_body.language, language_code, ARRAY_COUNT(cmd.layout_body.language) - 1);
+        str_copy(cmd.layout_body.language, language_code, OMS_MIN((int32) str_length(language_code), (int32) ARRAY_COUNT(cmd.layout_body.language) - 1));
     }
 
     cmd.layout_body.general_theme = general_theme;

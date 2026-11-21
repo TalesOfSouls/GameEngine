@@ -38,7 +38,7 @@ UICore* ui_element_get(const UILayout* const layout, const char* name, int32 len
 FORCE_INLINE
 UICore* ui_element_get(const UILayout* const layout, const char* name) NO_EXCEPT
 {
-    return ui_element_get(layout, name, (int32) strlen(name));
+    return ui_element_get(layout, name, (int32) str_length(name));
 }
 
 /**

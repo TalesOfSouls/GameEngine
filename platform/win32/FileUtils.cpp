@@ -981,8 +981,8 @@ inline bool directory_copy(
     }
 
     do {
-        if (wcscmp(ffd.cFileName, L".") == 0
-            || wcscmp(ffd.cFileName, L"..") == 0
+        if (str_compare(ffd.cFileName, L".") == 0
+            || str_compare(ffd.cFileName, L"..") == 0
         ) {
             continue;
         }
@@ -1386,7 +1386,7 @@ file_append(FileHandle fp, const char* file) NO_EXCEPT
     }
 
     DWORD written;
-    const DWORD length = (DWORD) strlen(file);
+    const DWORD length = (DWORD) str_length(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
         ASSERT_THROW();
         return false;
@@ -1569,7 +1569,7 @@ void iterate_directory(
 
     WIN32_FIND_DATAA find_file_data;
     char search_path[PATH_MAX_LENGTH];
-    snprintf(search_path, PATH_MAX_LENGTH, "%s/*", base_path);
+    sprintf_fast(search_path, PATH_MAX_LENGTH, "%s/*", base_path);
 
     HANDLE hFind = FindFirstFileA((LPCSTR) search_path, &find_file_data);
     if (hFind == INVALID_HANDLE_VALUE) {
@@ -1589,13 +1589,12 @@ void iterate_directory(
         }
 
         char full_path[PATH_MAX_LENGTH];
-        // @performance This is bad, we are internally moving two times too often to the end of full_path
-        //      Maybe make str_copy return the length, same as append?
-        strcpy(full_path, base_path);
-        if (!str_ends_with(base_path, "/")) {
-            strcat(full_path, "/");
+        int32 full_length = (int32) str_length(base_path);
+        str_copy(full_path, base_path, full_length);
+        if (!full_length || full_path[full_length - 1] != '/') {
+            full_path[full_length++] = '/';
         }
-        strcat(full_path, (const char *) find_file_data.cFileName);
+        str_copy(full_path + full_length, (const char *) find_file_data.cFileName);
 
         if (find_file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
             iterate_directory(full_path, file_ending, handler, args);
@@ -1775,7 +1774,7 @@ inline
 int32 directory_list_subdirectories(const char* path, char* names, int32 name_size, int32 count) NO_EXCEPT
 {
     char search_path[PATH_MAX_LENGTH];
-    snprintf(search_path, PATH_MAX_LENGTH, "%s/*", path);
+    sprintf_fast(search_path, PATH_MAX_LENGTH, "%s/*", path);
 
     WIN32_FIND_DATAA find_data;
     HANDLE find = FindFirstFileA(search_path, &find_data);
@@ -1789,7 +1788,7 @@ int32 directory_list_subdirectories(const char* path, char* names, int32 name_si
             continue;
         }
 
-        const size_t name_length = strlen(find_data.cFileName);
+        const size_t name_length = str_length(find_data.cFileName);
         if ((int32) name_length >= name_size) {
             continue;
         }

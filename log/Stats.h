@@ -31,6 +31,10 @@
         // How many threads are active, not just initialized
         DEBUG_COUNTER_THREAD_ACTIVE,
 
+        // Thread pool: max. queued jobs / max. running jobs during a stats slot (logged by the thread pool)
+        DEBUG_COUNTER_THREAD_POOL_QUEUED,
+        DEBUG_COUNTER_THREAD_POOL_RUNNING,
+
         DEBUG_COUNTER_GPU_UPLOAD,
         // Draw calls: counted with STATS_INCREMENT_PERSISTENT_DEBUG at every draw call (render thread),
         // the render loop moves the total of a frame into the history (0 = no frame finished in that slot)
@@ -166,9 +170,9 @@ void stats_snapshot() NO_EXCEPT
  * Sets a counter variable
  *
  * User stats (debug = false) also store the value in persistent_stats (= latest value)
- * The history slot alone isn't enough to show the value to users: the slots belong to the update ticks
- * which can be much faster than the code that sets the value (e.g. the fps of the render loop)
- * -> the slot is already overwritten before it is shown
+ * The history slot alone isn't enough to show the value to users: the slots advance with the application's
+ * snapshot frequency (e.g. every rendered frame), the current slot is incomplete and other code may set the value
+ * at a different frequency (e.g. the update thread)
  *
  * @param int32 id      Stats id
  * @param int64 value   New value
