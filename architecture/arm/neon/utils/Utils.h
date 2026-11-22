@@ -13,7 +13,8 @@
 // @question When do we want to use neon and when do we want to use sve?
 // Only allowed for data >= 64 bits
 bool is_empty(const uint8* region, uint64 size, int32 steps = 8) {
-    if (*((uint64 *) region) != 0) {
+    // region has no alignment requirement -> unaligned load (a load through a misaligned pointer is undefined behavior)
+    if (compiler_load_unaligned<uint64>(region) != 0) {
         return false;
     }
 
@@ -80,7 +81,7 @@ bool is_empty(const uint8* region, uint64 size, int32 steps = 8) {
         }
         case 1: {
             while (region + 4 <= end) {
-                if (*((const uint32 *) region) != 0) {
+                if (compiler_load_unaligned<uint32>(region) != 0) {
                     return false;
                 }
 

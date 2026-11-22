@@ -104,14 +104,16 @@
  * For this reason we need types that are universal.
  * And who knows, maybe we will get to 128 bits as default integer sizes.
  */
-#if !defined(_WIN64) && !__x86_64__ && !__ppc64__
-    #define OMS_UINT_MAX 0xFFFFFFFFU
-    #define OMS_UINT_ONE 1U
+// 64 bit: Windows x64/ARM64 (_WIN64), x86_64, AArch64 (Linux doesn't define _WIN64 -> needs its own check), ppc64
+// + any other 64 bit target of gcc/clang (pointer size)
+#if defined(_WIN64) || defined(__x86_64__) || defined(__aarch64__) || defined(_M_ARM64) || defined(__ppc64__)     || (defined(__SIZEOF_POINTER__) && __SIZEOF_POINTER__ == 8)
+    #define OMS_UINT_MAX 0xFFFFFFFFFFFFFFFFULL
+    #define OMS_UINT_ONE 1ULL
 
     #define ENV_64 1
 #else
-    #define OMS_UINT_MAX 0xFFFFFFFFFFFFFFFFULL
-    #define OMS_UINT_ONE 1ULL
+    #define OMS_UINT_MAX 0xFFFFFFFFU
+    #define OMS_UINT_ONE 1U
 
     #define ENV_32 1
 #endif
