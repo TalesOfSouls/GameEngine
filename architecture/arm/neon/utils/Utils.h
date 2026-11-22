@@ -11,76 +11,64 @@
 #include <arm_neon.h>
 
 // @question When do we want to use neon and when do we want to use sve?
-// Only allowed for data >= 64 bits
-bool is_empty(const uint8* region, uint64 size, int32 steps = 8) {
-    // region has no alignment requirement -> unaligned load (a load through a misaligned pointer is undefined behavior)
-    if (compiler_load_unaligned<uint64>(region) != 0) {
+// Same structure as the x86 version (architecture/x86/simd/utils/Utils.h):
+// the larger blocks fall through to the smaller ones -> every size is checked completely
+// (vld1q has no alignment requirement, the steps only select the block size)
+bool is_empty(const uint8* region, uint64 size, int32 steps = 8) NO_EXCEPT
+{
+    if (size == 0) {
+        return true;
+    }
+
+    // Quick check of first byte (never reads behind the region, size can be < 8)
+    if (*region != 0) {
         return false;
     }
 
-    const uint8* end = region + size;
+    const uint8* const end = region + size;
     steps = intrin_validate_steps(region, steps);
 
     switch (steps) {
         case 16: {
             while (region + 64 <= end) {
-                uint8x16_t chunk1 = vld1q_u8(region);
-                uint8x16_t chunk2 = vld1q_u8(region + 16);
-                uint8x16_t chunk3 = vld1q_u8(region + 32);
-                uint8x16_t chunk4 = vld1q_u8(region + 48);
+                const uint8x16_t combined = vorrq_u8(
+                    vorrq_u8(vld1q_u8(region), vld1q_u8(region + 16)),
+                    vorrq_u8(vld1q_u8(region + 32), vld1q_u8(region + 48))
+                );
 
-                uint8x16_t zero = vdupq_n_u8(0);
-                uint8x16_t result1 = vceqq_u8(chunk1, zero);
-                uint8x16_t result2 = vceqq_u8(chunk2, zero);
-                uint8x16_t result3 = vceqq_u8(chunk3, zero);
-                uint8x16_t result4 = vceqq_u8(chunk4, zero);
-
-                uint8x16_t combined = vandq_u8(vandq_u8(result1, result2), vandq_u8(result3, result4));
-
-                if (vminvq_u8(combined) != 0xFF) {
+                if (vmaxvq_u8(combined) != 0) {
                     return false;
                 }
 
                 region += 64;
             }
-            break;
         }
+        FALLTHROUGH;
         case 8: {
             while (region + 32 <= end) {
-                uint8x16_t chunk1 = vld1q_u8(region);
-                uint8x16_t chunk2 = vld1q_u8(region + 16);
+                const uint8x16_t combined = vorrq_u8(vld1q_u8(region), vld1q_u8(region + 16));
 
-                uint8x16_t zero = vdupq_n_u8(0);
-                uint8x16_t result1 = vceqq_u8(chunk1, zero);
-                uint8x16_t result2 = vceqq_u8(chunk2, zero);
-
-                uint8x16_t combined = vandq_u8(result1, result2);
-
-                if (vminvq_u8(combined) != 0xFF) {
+                if (vmaxvq_u8(combined) != 0) {
                     return false;
                 }
 
                 region += 32;
             }
-            break;
         }
+        FALLTHROUGH;
         case 4: {
             while (region + 16 <= end) {
-                uint8x16_t chunk = vld1q_u8(region);
-
-                uint8x16_t zero = vdupq_n_u8(0);
-                uint8x16_t result = vceqq_u8(chunk, zero);
-
-                if (vminvq_u8(result) != 0xFF) {
+                if (vmaxvq_u8(vld1q_u8(region)) != 0) {
                     return false;
                 }
 
                 region += 16;
             }
-            break;
         }
+        FALLTHROUGH;
         case 1: {
             while (region + 4 <= end) {
+                // region may be unaligned, a load through a misaligned pointer is undefined behavior
                 if (compiler_load_unaligned<uint32>(region) != 0) {
                     return false;
                 }
@@ -93,8 +81,7 @@ bool is_empty(const uint8* region, uint64 size, int32 steps = 8) {
                     return false;
                 }
             }
-            break;
-        }
+        } break;
         default:
             UNREACHABLE();
     }

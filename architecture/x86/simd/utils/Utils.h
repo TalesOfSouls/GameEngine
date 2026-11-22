@@ -12,6 +12,10 @@
 // Only allowed for data >= 64 bits
 bool is_empty(const byte* region, uint64 size, int32 steps = 8)
 {
+    if (size == 0) {
+        return true;
+    }
+
     // Quick check of first byte
     if (*region != 0) {
         return false;
