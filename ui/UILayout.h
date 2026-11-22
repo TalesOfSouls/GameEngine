@@ -14,8 +14,10 @@
 #define UI_LAYOUT_VERSION 10
 
 /**
- * BINARY FORMAT: .layoutbin, version UI_LAYOUT_VERSION
+ * SNAPSHOT FORMAT (runtime state of the created elements), version UI_LAYOUT_VERSION
  * Written by layout_to_data(), read by layout_from_data().
+ * NOT the .layoutbin file format: that is the parsed layout document + the data buffers (@see UILayoutBin.h),
+ * the snapshot already contains the theme styles + language strings and replaces the whole layout.
  *
  *      offset      size    type        field
  *      0           4       int32       version (UI_LAYOUT_VERSION)
@@ -248,6 +250,7 @@ struct UILayout {
 
     // This is where we actually store the elements
     // It has to use an arbitrary buffer size per element since the element size is not uniform
+    // This also hold custom data for elements (e.g. UI hotbars)
     BufferMemory ui_element_buffer;
 
     // Output of the last ui_cache() (vertices + indices of all visible elements)

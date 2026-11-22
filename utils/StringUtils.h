@@ -2633,6 +2633,431 @@ int32 sprintf_fast(T* __restrict buffer, int32 buffer_length, const T* __restric
     return length - 1;
 }
 
+/**
+ * Typed sprintf_fast alternative
+ *
+ * Every argument carries its own type -> no format specifiers, no va_arg, no type mismatch possible.
+ * The placeholder is "{}", every other character is copied as is (no escaping, pass "{}" as string argument if needed).
+ *
+ *      char buffer[128];
+ *      sprintf_fmt(buffer, sizeof(buffer), "Player {} has {} points. Active: {}", {name, 150, true});
+ *      sprintf_fmt(buffer, sizeof(buffer), "Data {} took {}", {fmt_hex(data, 16), fmt_f64(ms, 2)});
+ *
+ *      // Runtime format strings (e.g. localization)
+ *      sprintf_fmt(buffer, sizeof(buffer), fmt_runtime(lang_str), {name, 150});
+ *      sprintf_fmt(buffer, sizeof(buffer), lang_str, ARRAY_COUNT(args), args);
+ *
+ * With C++20 the format string is parsed at compile time:
+ *      - The placeholder count must match the argument count (compile error otherwise)
+ *      - The literal segment lengths are precomputed -> no format parsing at runtime,
+ *        the argument loop is unrolled and the type switch is resolved at compile time
+ *
+ * The output is truncated to buffer_size - 1 characters and always \0 terminated
+ * @return int32 Length of the output
+ */
+enum FormatArgType : uint8 {
+    FORMAT_ARG_I32,
+    FORMAT_ARG_U32,
+    FORMAT_ARG_I64,
+    FORMAT_ARG_U64,
+    FORMAT_ARG_F64,
+    FORMAT_ARG_BOOL,
+    FORMAT_ARG_CHAR,
+    FORMAT_ARG_STR,         // length = -1 -> \0 terminated
+    FORMAT_ARG_HEX,         // length = byte count, -1 -> \0 terminated
+    FORMAT_ARG_THOUSANDS,   // int64 with ',' as thousands separator
+    FORMAT_ARG_TIME,        // seconds as hh:mm:ss
+};
+
+struct FormatArg {
+    union {
+        int64 i64;
+        uint64 u64;
+        f64 f;
+        const char* str;
+        const byte* bytes;
+    };
+
+    // str/hex: length, f64: precision
+    int32 length;
+    FormatArgType type;
+
+    FormatArg() NO_EXCEPT : u64(0), length(0), type(FORMAT_ARG_STR) {}
+
+    // The native types are used instead of int32/int64 since int64 is long on linux but long long on windows
+    FormatArg(signed int v) NO_EXCEPT : i64(v), length(0), type(FORMAT_ARG_I32) {}
+    FormatArg(unsigned int v) NO_EXCEPT : u64(v), length(0), type(FORMAT_ARG_U32) {}
+    FormatArg(signed long v) NO_EXCEPT : i64(v), length(0), type(sizeof(long) == 8 ? FORMAT_ARG_I64 : FORMAT_ARG_I32) {}
+    FormatArg(unsigned long v) NO_EXCEPT : u64(v), length(0), type(sizeof(long) == 8 ? FORMAT_ARG_U64 : FORMAT_ARG_U32) {}
+    FormatArg(signed long long v) NO_EXCEPT : i64(v), length(0), type(FORMAT_ARG_I64) {}
+    FormatArg(unsigned long long v) NO_EXCEPT : u64(v), length(0), type(FORMAT_ARG_U64) {}
+    FormatArg(f32 v) NO_EXCEPT : f(v), length(5), type(FORMAT_ARG_F64) {}
+    FormatArg(f64 v) NO_EXCEPT : f(v), length(5), type(FORMAT_ARG_F64) {}
+    FormatArg(bool v) NO_EXCEPT : u64(v), length(0), type(FORMAT_ARG_BOOL) {}
+    FormatArg(char v) NO_EXCEPT : i64(v), length(0), type(FORMAT_ARG_CHAR) {}
+    FormatArg(const char* v) NO_EXCEPT : str(v), length(-1), type(FORMAT_ARG_STR) {}
+
+    // Any other pointer would silently convert to bool -> compile error instead (use fmt_hex for bytes)
+    template <typename P>
+    FormatArg(const P*) = delete;
+};
+
+FORCE_INLINE
+FormatArg fmt_str(const char* str, int32 length) NO_EXCEPT
+{
+    FormatArg arg(str);
+    arg.length = length;
+
+    return arg;
+}
+
+FORCE_INLINE
+FormatArg fmt_f64(f64 value, int32 precision) NO_EXCEPT
+{
+    ASSERT_TRUE(precision >= 0 && precision < 6);
+
+    FormatArg arg(value);
+    arg.length = precision;
+
+    return arg;
+}
+
+FORCE_INLINE
+FormatArg fmt_hex(const void* data, int32 length = -1) NO_EXCEPT
+{
+    FormatArg arg;
+    arg.bytes = (const byte *) data;
+    arg.length = length;
+    arg.type = FORMAT_ARG_HEX;
+
+    return arg;
+}
+
+FORCE_INLINE
+FormatArg fmt_thousands(int64 value) NO_EXCEPT
+{
+    FormatArg arg(value);
+    arg.type = FORMAT_ARG_THOUSANDS;
+
+    return arg;
+}
+
+FORCE_INLINE
+FormatArg fmt_time(int64 seconds) NO_EXCEPT
+{
+    FormatArg arg(seconds);
+    arg.type = FORMAT_ARG_TIME;
+
+    return arg;
+}
+
+// Short copies are the common case (literal segments, numbers) -> overlapping fixed size copies instead of a memcpy call
+// If length is a compile time constant (precomputed segments) this becomes a few mov instructions
+FORCE_INLINE
+void format_copy(char* __restrict dst, const char* __restrict src, int32 length) NO_EXCEPT
+{
+    if (length >= 16) {
+        while (length > 16) {
+            memcpy(dst, src, 16);
+            dst += 16;
+            src += 16;
+            length -= 16;
+        }
+
+        memcpy(dst + length - 16, src + length - 16, 16);
+    } else if (length >= 8) {
+        memcpy(dst, src, 8);
+        memcpy(dst + length - 8, src + length - 8, 8);
+    } else if (length >= 4) {
+        memcpy(dst, src, 4);
+        memcpy(dst + length - 4, src + length - 4, 4);
+    } else if (length > 0) {
+        dst[0] = src[0];
+        dst[length / 2] = src[length / 2];
+        dst[length - 1] = src[length - 1];
+    }
+}
+
+// Writes a single argument, end is the slot reserved for the '\0'
+FORCE_INLINE
+char* format_arg_write(char* __restrict buffer, const char* end, const FormatArg* __restrict arg) NO_EXCEPT
+{
+    // The largest fixed size output (int64 with thousands separator + '\0') is 26 characters
+    // If enough space is left we write directly into the buffer, otherwise into temp + truncated copy
+    char temp[32];
+    char* out = end - buffer >= 26 ? buffer : temp;
+    int32 length;
+
+    switch (arg->type) {
+        case FORMAT_ARG_STR: {
+            const char* str = arg->str;
+            if (!str) UNLIKELY {
+                return buffer;
+            }
+
+            if (arg->length >= 0) {
+                const int32 remaining = (int32) (end - buffer);
+                length = arg->length < remaining ? arg->length : remaining;
+                format_copy(buffer, str, length);
+
+                return buffer + length;
+            }
+
+            while (*str && buffer < end) {
+                *buffer++ = *str++;
+            }
+
+            return buffer;
+        }
+        case FORMAT_ARG_HEX: {
+            const byte* data = arg->bytes;
+            if (!data) UNLIKELY {
+                return buffer;
+            }
+
+            const int32 remaining = (int32) (end - buffer) / 2;
+            if (arg->length >= 0) {
+                length = arg->length < remaining ? arg->length : remaining;
+                bytes_to_hex(data, length, buffer);
+
+                return buffer + length * 2;
+            }
+
+            for (int32 i = 0; data[i] && i < remaining; ++i) {
+                byte_to_hex(data[i], buffer);
+                buffer += 2;
+            }
+
+            return buffer;
+        }
+        case FORMAT_ARG_I32: {
+            length = int_to_str((int32) arg->i64, out);
+        } break;
+        case FORMAT_ARG_U32: {
+            length = int_to_str((uint32) arg->u64, out);
+        } break;
+        case FORMAT_ARG_I64: {
+            length = int_to_str(arg->i64, out);
+        } break;
+        case FORMAT_ARG_U64: {
+            length = int_to_str(arg->u64, out);
+        } break;
+        case FORMAT_ARG_F64: {
+            length = float_to_str(arg->f, out, arg->length);
+        } break;
+        case FORMAT_ARG_BOOL: {
+            if (arg->u64) {
+                memcpy(out, "true", 4);
+                length = 4;
+            } else {
+                memcpy(out, "false", 5);
+                length = 5;
+            }
+        } break;
+        case FORMAT_ARG_CHAR: {
+            out[0] = (char) arg->i64;
+            length = 1;
+        } break;
+        case FORMAT_ARG_THOUSANDS: {
+            length = int_to_str(arg->i64, out, ',');
+        } break;
+        case FORMAT_ARG_TIME: {
+            format_time_hh_mm_ss(out, (uint64) arg->i64);
+            length = 8;
+        } break;
+        default:
+            UNREACHABLE();
+    }
+
+    if (out == temp) UNLIKELY {
+        const int32 remaining = (int32) (end - buffer);
+        length = length < remaining ? length : remaining;
+        format_copy(buffer, temp, length);
+    }
+
+    return buffer + length;
+}
+
+// Runtime format string version, placeholders without argument are output as "{}"
+inline
+int32 sprintf_fmt(
+    char* __restrict buffer, int32 buffer_size,
+    const char* __restrict format,
+    int32 argc, const FormatArg* __restrict args
+) NO_EXCEPT
+{
+    if (buffer_size <= 0) UNLIKELY {
+        return 0;
+    }
+
+    const char* const start = buffer;
+    const char* const end = buffer + buffer_size - 1;
+    int32 arg_index = 0;
+
+    while (true) {
+        // Find the next placeholder, the literal run in between is copied at once
+        // A strchr based search is slower for typical (short) format strings
+        const char* pos = format;
+        while (*pos && (pos[0] != '{' || pos[1] != '}')) {
+            ++pos;
+        }
+
+        const int32 remaining = (int32) (end - buffer);
+        int32 length = (int32) (pos - format);
+        if (length > remaining) UNLIKELY {
+            length = remaining;
+        }
+
+        format_copy(buffer, format, length);
+        buffer += length;
+
+        if (!*pos) {
+            // Only checkable if the output wasn't truncated
+            ASSERT_TRUE(arg_index == argc || buffer == end);
+            break;
+        }
+
+        if (arg_index < argc) LIKELY {
+            buffer = format_arg_write(buffer, end, &args[arg_index++]);
+        } else {
+            // Placeholder without argument
+            ASSERT_TRUE(false);
+            length = end - buffer < 2 ? (int32) (end - buffer) : 2;
+            format_copy(buffer, pos, length);
+            buffer += length;
+        }
+
+        format = pos + 2;
+    }
+
+    *buffer = '\0';
+
+    return (int32) (buffer - start);
+}
+
+struct FormatRuntime {
+    const char* str;
+};
+
+// Marks a format string as only known at runtime (no compile time parsing/checks)
+FORCE_INLINE
+FormatRuntime fmt_runtime(const char* format) NO_EXCEPT
+{
+    FormatRuntime runtime = { format };
+    return runtime;
+}
+
+#if defined(__cpp_consteval) && CPP_VERSION >= 20
+    // Not constexpr on purpose -> calling it at compile time results in a compile error
+    inline void format_error_placeholder_count_doesnt_match_argument_count() NO_EXCEPT {}
+    inline void format_error_literal_too_long() NO_EXCEPT {}
+#endif
+
+template <int32 N>
+struct FormatString {
+    const char* str;
+
+    // Literal length before every placeholder + the trailing literal
+    // Only filled if the format was parsed at compile time
+    uint16 segments[N + 1];
+    bool precomputed;
+
+    FormatString(FormatRuntime format) NO_EXCEPT : str(format.str), segments(), precomputed(false) {}
+
+    #if defined(__cpp_consteval) && CPP_VERSION >= 20
+        consteval FormatString(const char* format) NO_EXCEPT : str(format), segments(), precomputed(true)
+        {
+            int32 count = 0;
+            int32 segment = 0;
+
+            while (*format) {
+                if (format[0] == '{' && format[1] == '}') {
+                    if (count >= N) {
+                        format_error_placeholder_count_doesnt_match_argument_count();
+                    }
+
+                    segments[count++] = (uint16) segment;
+                    segment = 0;
+                    format += 2;
+                } else {
+                    if (++segment > 0xFFFF) {
+                        format_error_literal_too_long();
+                    }
+
+                    ++format;
+                }
+            }
+
+            if (count != N) {
+                format_error_placeholder_count_doesnt_match_argument_count();
+            }
+
+            segments[N] = (uint16) segment;
+        }
+    #else
+        FormatString(const char* format) NO_EXCEPT : str(format), segments(), precomputed(false) {}
+    #endif
+};
+
+// Prevents the deduction of N from the format string (N comes from the argument array)
+template <typename T>
+struct FormatNoDeduce {
+    typedef T type;
+};
+
+// Unrolls the argument loop at compile time -> segment lengths and argument types become constants
+template <int32 I, int32 N>
+struct FormatUnroll {
+    static FORCE_INLINE
+    char* write(char* __restrict buffer, const char* end, const char* str, const uint16* segments, const FormatArg* args) NO_EXCEPT
+    {
+        const int32 remaining = (int32) (end - buffer);
+        const int32 length = segments[I] < remaining ? segments[I] : remaining;
+
+        format_copy(buffer, str, length);
+        buffer = format_arg_write(buffer + length, end, &args[I]);
+
+        return FormatUnroll<I + 1, N>::write(buffer, end, str + segments[I] + 2, segments, args);
+    }
+};
+
+template <int32 N>
+struct FormatUnroll<N, N> {
+    static FORCE_INLINE
+    char* write(char* __restrict buffer, const char* end, const char* str, const uint16* segments, const FormatArg*) NO_EXCEPT
+    {
+        const int32 remaining = (int32) (end - buffer);
+        const int32 length = segments[N] < remaining ? segments[N] : remaining;
+
+        format_copy(buffer, str, length);
+
+        return buffer + length;
+    }
+};
+
+template <int32 N>
+FORCE_INLINE
+int32 sprintf_fmt(
+    char* __restrict buffer, int32 buffer_size,
+    typename FormatNoDeduce<FormatString<N>>::type format,
+    const FormatArg (&args)[N]
+) NO_EXCEPT
+{
+    if (!format.precomputed) {
+        return sprintf_fmt(buffer, buffer_size, format.str, N, args);
+    }
+
+    if (buffer_size <= 0) UNLIKELY {
+        return 0;
+    }
+
+    const char* const start = buffer;
+    buffer = FormatUnroll<0, N>::write(buffer, buffer + buffer_size - 1, format.str, format.segments, args);
+    *buffer = '\0';
+
+    return (int32) (buffer - start);
+}
+
 // There are situations where you only want to replace a certain amount of %
 void sprintf_fast_iter(char* __restrict buffer, const char* __restrict format, ...) NO_EXCEPT
 {

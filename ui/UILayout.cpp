@@ -26,6 +26,7 @@
 #include "UITab.cpp"
 #include "UITable.cpp"
 #include "UIColorPicker.cpp"
+#include "UIData.cpp"
 
 // Max. amount of named elements (if the hash map wasn't initialized by loading a binary layout)
 #define UI_LAYOUT_DEFAULT_ELEMENT_COUNT 512
@@ -200,5 +201,8 @@ int32 layout_from_data(
 
 // Creating elements from layout text files (.layouttxt)
 #include "UILayoutTxt.cpp"
+
+// Binary layout files (.layoutbin: parsed layout + data buffers)
+#include "UILayoutBin.h"
 
 #endif

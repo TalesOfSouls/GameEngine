@@ -878,6 +878,8 @@ bool ui_txt_is_create_key(const char* const type, const char* const key) NO_EXCE
         return str_compare(key, "font_size") == 0;
     } else if (str_compare(type, "button") == 0 || str_compare(type, "checkbox") == 0 || str_compare(type, "radio") == 0) {
         return str_compare(key, "text") == 0;
+    } else if (str_compare(type, "data") == 0) {
+        return str_compare(key, "size") == 0 || str_compare(key, "version") == 0;
     }
 
     return false;
@@ -1388,6 +1390,7 @@ int32 ui_txt_element_type(const char* const type) NO_EXCEPT
         {"tab", UI_ELEMENT_TYPE_VIEW_TAB},
         {"table", UI_ELEMENT_TYPE_TABLE},
         {"colorpicker", UI_ELEMENT_TYPE_COLOR_PICKER},
+        {"data", UI_ELEMENT_TYPE_DATA},
     };
 
     // "none" would be 0 = UI_ELEMENT_TYPE_BUTTON
@@ -1581,6 +1584,26 @@ UICore* ui_txt_element_create(
 
             element = &ui_color_picker_create(layout, type_id, parent)->core;
         } break;
+        case UI_ELEMENT_TYPE_DATA: {
+            // Only the memory is reserved, the content is defined by the application (@see UIData.h)
+            char number[16];
+            const int32 size = ui_txt_value_get(ctx, doc, node, "size", number, sizeof(number))
+                ? (int32) str_to_int(number)
+                : 0;
+
+            const int32 version = ui_txt_value_get(ctx, doc, node, "version", number, sizeof(number))
+                ? (int32) str_to_int(number)
+                : 0;
+
+            if (!node->name.length) {
+                LOG_1("[WARNING] UI layout: data without name in line %d (can't be saved)", {DATA_TYPE_INT32, (int32 *) &node->line});
+            }
+
+            element = &ui_data_create(
+                layout, doc->text + node->name.offset, node->name.length,
+                OMS_MAX(size, 0), version, ctx->data_file, parent
+            )->core;
+        } break;
         default:
             UNREACHABLE();
     }
@@ -1613,6 +1636,47 @@ UICore* ui_txt_element_create(
 }
 
 /**
+ * Creates the elements of a parsed layout (text file or binary layout @see UILayoutBin.h)
+ *
+ * @param UICore* parent The elements are added to this element (NULL = root), the root must already exist
+ *
+ * @return int32 Amount of created top level elements, -1 on error
+ */
+int32 ui_layout_from_document(
+    UILayout* const __restrict layout,
+    const UIDocument* const __restrict doc,
+    const UILayoutTxtContext* const __restrict ctx,
+    UICore* parent = NULL
+) NO_EXCEPT
+{
+    if (!layout->ui_root) {
+        LOG_1("[ERROR] UI layout: the root has to be created first");
+
+        return -1;
+    }
+
+    if (doc->version != UI_LAYOUT_TXT_VERSION) {
+        LOG_1("[WARNING] UI layout: file version %d is not supported", {DATA_TYPE_INT32, (void *) &doc->version});
+    }
+
+    int32 count = 0;
+    for (int32 i = doc->first_node; i; i = doc->nodes[i].next_sibling) {
+        const UIDocumentNode* const node = &doc->nodes[i];
+        if (node->kind != UI_DOCUMENT_NODE_BLOCK) {
+            continue;
+        }
+
+        if (ui_txt_element_create(ctx, layout, doc, node, parent)) {
+            ++count;
+        }
+    }
+
+    layout->dirty |= UI_LAYOUT_DIRTY;
+
+    return count;
+}
+
+/**
  * Creates the elements of a layout file
  *
  * @param UICore*       parent  The elements are added to this element (NULL = root), the root must already exist
@@ -1632,36 +1696,13 @@ int32 ui_layout_from_txt(
 
     LOG_1("[INFO] UI create layout from text");
 
-    if (!layout->ui_root) {
-        LOG_1("[ERROR] UI layout: the root has to be created first");
-
-        return -1;
-    }
-
     const int32 line_count = ui_document_line_count(text, length);
     byte* const memory = memory_get(mem, ui_document_memory_size(line_count), sizeof(size_t));
 
     UIDocument doc;
     ui_document_parse(&doc, text, length, memory);
 
-    if (doc.version != UI_LAYOUT_TXT_VERSION) {
-        LOG_1("[WARNING] UI layout: file version %d is not supported", {DATA_TYPE_INT32, &doc.version});
-    }
-
-    int32 count = 0;
-    for (int32 i = doc.first_node; i; i = doc.nodes[i].next_sibling) {
-        if (doc.nodes[i].kind != UI_DOCUMENT_NODE_BLOCK) {
-            continue;
-        }
-
-        if (ui_txt_element_create(ctx, layout, &doc, &doc.nodes[i], parent)) {
-            ++count;
-        }
-    }
-
-    layout->dirty |= UI_LAYOUT_DIRTY;
-
-    return count;
+    return ui_layout_from_document(layout, &doc, ctx, parent);
 }
 
 /**

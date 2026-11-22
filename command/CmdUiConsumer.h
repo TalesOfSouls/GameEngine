@@ -30,7 +30,9 @@
 #endif
 
 /**
- * Loads a binary layout
+ * Loads a layout snapshot (layout_to_data: the created elements incl. styles + strings, replaces the whole layout)
+ * NOT a .layoutbin file (that is the parsed layout document @see UILayoutBin.h, the application creates its
+ * elements with ui_layout_from_document)
  */
 inline
 UILayout* cmd_layout_load_sync(
@@ -229,6 +231,11 @@ UILayout* cmd_ui_load_sync(
         layout->font = theme->font;
     }
 
+    // Only the theme (the application creates the elements of its layout files itself)
+    if (!layout_path || !layout_path[0]) {
+        return layout;
+    }
+
     return cmd_layout_load_sync(mem, layout, layout_path);
 }
 
@@ -249,8 +256,12 @@ UILayout* cmd_ui_load(
 
     // @question Do we really want to do the relative_to_absolute here,
     //          or closer to where it is used?
+    // Empty = only the theme is loaded
     wchar_t layout_path[PATH_MAX_LENGTH];
-    relative_to_absolute(cmd->layout_body.layout_path, layout_path);
+    layout_path[0] = L'\0';
+    if (cmd->layout_body.layout_path[0]) {
+        relative_to_absolute(cmd->layout_body.layout_path, layout_path);
+    }
 
     wchar_t theme_path[PATH_MAX_LENGTH];
     relative_to_absolute(cmd->layout_body.theme_path, theme_path);

@@ -281,6 +281,184 @@ static void test_layout_to_from_data() {
     platform_aligned_free((void **) &layout_load.data);
 }
 
+// Data elements (binary user data) as children of the element they belong to
+static const char UI_LAYOUT_TEST_DATA_TXT[] =
+    "version 2\n"
+    "panel test_bar\n"
+    "    size: 100 20\n"
+    "    data test_slots\n"
+    "        size: 12\n"
+    "        version: 1\n"
+    "    data test_state\n"
+    "        size: 8\n"
+    "        version: 3\n"
+    "    label test_bar_label\n"
+    "        text: Bar\n";
+
+// A newer version of the original: the structure of test_slots changed (new version), test_state is unchanged
+static const char UI_LAYOUT_TEST_DATA_NEW_TXT[] =
+    "version 2\n"
+    "panel test_bar\n"
+    "    data test_slots\n"
+    "        size: 16\n"
+    "        version: 2\n"
+    "    data test_state\n"
+    "        size: 8\n"
+    "        version: 3\n";
+
+struct UILayoutTestState {
+    int32 a;
+    f32 b;
+};
+
+static void test_layout_bin() {
+    UITheme theme = {};
+    theme.data_size = 1 * MEGABYTE;
+    theme.data = (byte *) platform_alloc_aligned(theme.data_size, theme.data_size, 64);
+    ui_theme_from_txt(&theme, UI_LAYOUT_TEST_THEME, (int32) sizeof(UI_LAYOUT_TEST_THEME) - 1);
+
+    BufferMemory mem;
+    buffer_alloc(&mem, 4 * MEGABYTE, 4 * MEGABYTE, 64);
+
+    // Elements + data elements in one file
+    char text[sizeof(UI_LAYOUT_TEST_TXT) + sizeof(UI_LAYOUT_TEST_DATA_TXT)];
+    const int32 text_length = sprintf_fast(text, (int32) sizeof(text), "%s%s", UI_LAYOUT_TEST_TXT, UI_LAYOUT_TEST_DATA_TXT + 10);
+
+    UIDocument doc;
+    byte* doc_memory = memory_get(&mem, ui_document_memory_size(ui_document_line_count(text, text_length)), sizeof(size_t));
+    ui_document_parse(&doc, text, text_length, doc_memory);
+
+    UILayout layout_txt;
+    ui_layout_test_init(&layout_txt);
+
+    UILayoutTxtContext ctx = {};
+    ctx.themes[ctx.theme_count++] = &theme;
+    ctx.data_file = ui_data_file_create(&layout_txt, L"test.layoutbin");
+    TEST_EQUALS(ui_layout_from_document(&layout_txt, &doc, &ctx), 3);
+
+    // Data element: child of the bar, hidden, zeroed, no user data
+    UIData* slots = ui_data_get(&layout_txt, "test_slots", 12, 1);
+    TEST_NOT_EQUALS(slots, NULL);
+    TEST_EQUALS(ui_element_parent(&layout_txt, &slots->core), ui_element_get(&layout_txt, "test_bar"));
+    TEST_TRUE(slots->core.state & UI_STATE_HIDDEN);
+    TEST_FALSE(slots->data_flags & UI_DATA_FLAG_LOADED);
+    TEST_EQUALS(((const uint16 *) ui_data_values(&layout_txt, slots))[3], 0);
+    TEST_EQUALS(str_compare(ui_data_file(&layout_txt, slots), L"test.layoutbin"), 0);
+
+    // Another structure than the application expects = not found
+    TEST_EQUALS(ui_data_get(&layout_txt, "test_slots", 16, 1), NULL);
+    TEST_EQUALS(ui_data_get(&layout_txt, "test_slots", 12, 2), NULL);
+
+    // The elements after the data elements are created normally
+    TEST_NOT_EQUALS(ui_element_get(&layout_txt, "test_bar_label"), NULL);
+
+    // Without user data the data section is empty (the defaults are written by the application)
+    const uint64 hash = ui_layout_bin_source_hash(text, text_length);
+    TEST_EQUALS(ui_layout_bin_data_size(&layout_txt, ctx.data_file), 4);
+
+    // The application writes + changes the content
+    const uint16 user_slots[6] = { 3, 43, 3, 73, 33, 62 };
+    memcpy(ui_data_values(&layout_txt, slots), user_slots, sizeof(user_slots));
+    ui_data_changed(slots);
+    TEST_TRUE(slots->data_flags & UI_DATA_FLAG_LOADED);
+    TEST_TRUE(slots->data_flags & UI_DATA_FLAG_DIRTY);
+
+    UIData* const state = ui_data_get(&layout_txt, "test_state", (int32) sizeof(UILayoutTestState), 3);
+    TEST_NOT_EQUALS(state, NULL);
+    const UILayoutTestState user_state = { -7, 2.5f };
+    memcpy(ui_data_values(&layout_txt, state), &user_state, sizeof(user_state));
+    ui_data_changed(state);
+
+    const int32 capacity = ui_layout_bin_size(&doc, &layout_txt, ctx.data_file) + 1024;
+    byte* bin = (byte *) platform_alloc_aligned(capacity, capacity, 64);
+    const int32 bin_size = ui_layout_bin_write(&doc, hash, &layout_txt, ctx.data_file, bin, capacity);
+    TEST_TRUE(bin_size > 0);
+
+    UILayoutBinHeader header;
+    TEST_TRUE(ui_layout_bin_header_read(bin, bin_size, &header));
+    TEST_EQUALS(header.source_hash, hash);
+    TEST_EQUALS(header.node_count, doc.node_count);
+
+    // The pool only contains the referenced strings (no comments, no indentation)
+    TEST_TRUE(header.pool_size < text_length);
+
+    UIDocument bin_doc;
+    byte* bin_doc_memory = memory_get(&mem, ui_layout_bin_document_memory_size(&header), sizeof(size_t));
+    TEST_TRUE(ui_layout_bin_document_read(bin, &header, &bin_doc, bin_doc_memory));
+
+    // Same elements as from the text
+    UILayout layout_bin;
+    ui_layout_test_init(&layout_bin);
+    UILayoutTxtContext bin_ctx = ctx;
+    bin_ctx.data_file = ui_data_file_create(&layout_bin, L"test.layoutbin");
+    TEST_EQUALS(ui_layout_from_document(&layout_bin, &bin_doc, &bin_ctx), 3);
+    TEST_EQUALS(bin_ctx.data_file, ctx.data_file);
+
+    const int64 used_txt = layout_txt.ui_element_buffer.head - layout_txt.ui_element_buffer.memory;
+    TEST_EQUALS(layout_bin.ui_element_buffer.head - layout_bin.ui_element_buffer.memory, used_txt);
+
+    const UIWindow* const window = (const UIWindow *) ui_element_get(&layout_bin, "test_window");
+    TEST_NOT_EQUALS(window, NULL);
+    TEST_EQUALS(window->background_color, 0x262626FFU);
+
+    // The user data of the data section
+    TEST_EQUALS(ui_layout_bin_data_read(bin, bin_size, &header, &layout_bin, bin_ctx.data_file), 2);
+    UIData* bin_slots = ui_data_get(&layout_bin, "test_slots", 12, 1);
+    TEST_TRUE(bin_slots->data_flags & UI_DATA_FLAG_LOADED);
+    TEST_FALSE(bin_slots->data_flags & UI_DATA_FLAG_DIRTY);
+    TEST_EQUALS(memcmp(ui_data_values(&layout_bin, bin_slots), user_slots, sizeof(user_slots)), 0);
+
+    UILayoutTestState loaded_state;
+    memcpy(&loaded_state, ui_data_values(&layout_bin, ui_data_get(&layout_bin, "test_state", (int32) sizeof(UILayoutTestState), 3)), sizeof(loaded_state));
+    TEST_EQUALS(loaded_state.a, -7);
+    TEST_EQUALS_WITH_DELTA(loaded_state.b, 2.5f, 0.0001f);
+
+    // Another change -> only the data section is rewritten
+    ((uint16 *) ui_data_values(&layout_txt, slots))[1] = 44;
+    const int32 updated_size = ui_layout_bin_data_update(bin, bin_size, capacity, &layout_txt, ctx.data_file);
+    TEST_EQUALS(updated_size, bin_size);
+    TEST_TRUE(ui_layout_bin_header_read(bin, updated_size, &header));
+    TEST_EQUALS(ui_layout_bin_data_read(bin, updated_size, &header, &layout_bin, bin_ctx.data_file), 2);
+    TEST_EQUALS(((const uint16 *) ui_data_values(&layout_bin, bin_slots))[1], 44);
+
+    // New original: test_slots changed its structure -> the old bytes are not applied (zeroed, not loaded),
+    // test_state is unchanged -> its user data is carried over
+    UIDocument new_doc;
+    byte* new_doc_memory = memory_get(&mem, ui_document_memory_size(9), sizeof(size_t));
+    ui_document_parse(&new_doc, UI_LAYOUT_TEST_DATA_NEW_TXT, (int32) sizeof(UI_LAYOUT_TEST_DATA_NEW_TXT) - 1, new_doc_memory);
+
+    UILayout layout_new;
+    ui_layout_test_init(&layout_new);
+    UILayoutTxtContext new_ctx = ctx;
+    new_ctx.data_file = ui_data_file_create(&layout_new, L"test.layoutbin");
+    TEST_EQUALS(ui_layout_from_document(&layout_new, &new_doc, &new_ctx), 1);
+    TEST_EQUALS(ui_layout_bin_data_read(bin, updated_size, &header, &layout_new, new_ctx.data_file), 1);
+
+    const UIData* const new_slots = ui_data_get(&layout_new, "test_slots", 16, 2);
+    TEST_NOT_EQUALS(new_slots, NULL);
+    TEST_FALSE(new_slots->data_flags & UI_DATA_FLAG_LOADED);
+    TEST_EQUALS(((const uint16 *) ui_data_values(&layout_new, new_slots))[0], 0);
+
+    const UIData* const new_state = ui_data_get(&layout_new, "test_state", (int32) sizeof(UILayoutTestState), 3);
+    TEST_TRUE(new_state->data_flags & UI_DATA_FLAG_LOADED);
+    memcpy(&loaded_state, ui_data_values(&layout_new, new_state), sizeof(loaded_state));
+    TEST_EQUALS(loaded_state.a, -7);
+
+    // Not a binary layout / truncated
+    TEST_FALSE(ui_layout_bin_header_read((const byte *) text, text_length, &header));
+    TEST_FALSE(ui_layout_bin_header_read(bin, UI_LAYOUT_BIN_HEADER_SIZE + 8, &header));
+
+    platform_aligned_free((void **) &bin);
+    buffer_free(&mem);
+    buffer_free(&layout_txt.ui_element_buffer);
+    buffer_free(&layout_bin.ui_element_buffer);
+    buffer_free(&layout_new.ui_element_buffer);
+    platform_aligned_free((void **) &layout_txt.data);
+    platform_aligned_free((void **) &layout_bin.data);
+    platform_aligned_free((void **) &layout_new.data);
+    platform_aligned_free((void **) &theme.data);
+}
+
 #ifdef UBER_TEST
     #ifdef main
         #undef main
@@ -294,6 +472,7 @@ int main() {
     TEST_RUN(test_layout_from_txt);
     TEST_RUN(test_layout_language);
     TEST_RUN(test_layout_to_from_data);
+    TEST_RUN(test_layout_bin);
 
     TEST_FINALIZE();
 

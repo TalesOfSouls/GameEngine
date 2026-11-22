@@ -39,6 +39,9 @@ enum UIElementType : byte {
     // Gradient or palette area in the popup of a color picker
     UI_ELEMENT_TYPE_COLOR_PANEL,
 
+    // Named buffer of values (user data), never drawn @see UIData.h
+    UI_ELEMENT_TYPE_DATA,
+
     UI_ELEMENT_TYPE_SIZE,
 };
 

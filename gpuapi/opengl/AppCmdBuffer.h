@@ -34,6 +34,8 @@ void* cmd_shader_load(AppCmdBuffer*, AppCommand*) NO_EXCEPT
  * @param OpenglDescriptorSetLayoutBinding* bindings        Uniforms (explicit locations)
  * @param int32                             binding_count   Amount of uniforms
  * @param bool                              fatal           false = errors are not asserted (e.g. hot reload)
+ * @param const char*                       defines         Optional source inserted after the #version line of every stage
+ *                                                          (variants of one shader, @see gpuapi_shader_make), NULL = none
  *
  * @return bool false if a shader couldn't be loaded/compiled/linked (only if !fatal), pipeline->id is 0 then
  */
@@ -44,7 +46,8 @@ bool cmd_pipeline_load_sync(
     Pipeline* const __restrict pipeline,
     const int32* __restrict shader_ids,
     OpenglDescriptorSetLayoutBinding* __restrict bindings, int32 binding_count,
-    bool fatal = true
+    bool fatal = true,
+    const char* const __restrict defines = NULL
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_CMD_SHADER_LOAD_SYNC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -88,7 +91,8 @@ bool cmd_pipeline_load_sync(
         shader_assets_id[i] = gpuapi_shader_make(
             gpuapi_shader_type_index((ShaderType) (i + 1)),
             (char *) shader_assets[shader_count]->self,
-            fatal
+            fatal,
+            defines
         );
 
         success &= shader_assets_id[i] != 0;
@@ -138,6 +142,8 @@ bool cmd_pipeline_load_sync(
  * all uniforms exist, otherwise the current pipeline stays as it is.
  * The uniform values are not taken over (the caller has to set the uniforms that are only set once)
  *
+ * @param const char*                       defines         Optional source after the #version line (@see cmd_pipeline_load_sync)
+ *
  * @return bool true if the pipeline was replaced
  */
 template <typename T>
@@ -146,11 +152,12 @@ bool cmd_pipeline_reload_sync(
     T* const __restrict mem,
     Pipeline* const __restrict pipeline,
     const int32* __restrict shader_ids,
-    OpenglDescriptorSetLayoutBinding* __restrict bindings, int32 binding_count
+    OpenglDescriptorSetLayoutBinding* __restrict bindings, int32 binding_count,
+    const char* const __restrict defines = NULL
 ) NO_EXCEPT
 {
     Pipeline next = {};
-    if (!cmd_pipeline_load_sync(asset_archives, mem, &next, shader_ids, bindings, binding_count, false)) {
+    if (!cmd_pipeline_load_sync(asset_archives, mem, &next, shader_ids, bindings, binding_count, false, defines)) {
         return false;
     }
 

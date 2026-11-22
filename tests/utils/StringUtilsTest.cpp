@@ -261,6 +261,77 @@ static void test_sprintf_fast_performance() {
 }
 #endif
 
+static void test_sprintf_fmt()
+{
+    char buffer[128];
+
+    TEST_EQUALS(sprintf_fmt(buffer, sizeof(buffer), "Player {} has {} points. Active: {}", {"Player1", 150, true}), 43);
+    TEST_TRUE(strcmp(buffer, "Player Player1 has 150 points. Active: true") == 0);
+
+    sprintf_fmt(buffer, sizeof(buffer), "{}|{}|{}|{}|{}|{}", {
+        (int32) -42, (uint32) 4000000000U, (int64) -1234567890123LL, (uint64) 18446744073709551615ULL, 'Q', false
+    });
+    TEST_TRUE(strcmp(buffer, "-42|4000000000|-1234567890123|18446744073709551615|Q|false") == 0);
+
+    sprintf_fmt(buffer, sizeof(buffer), "{} {} {} {} {}", {
+        fmt_f64(1.25, 2), 1.5, fmt_thousands(1234567), fmt_time(3661), fmt_str("abcdef", 2)
+    });
+    TEST_TRUE(strcmp(buffer, "1.25 1.50000 1,234,567 01:01:01 ab") == 0);
+
+    const byte hex_data[] = { 0xDE, 0xAD, 0xBE, 0xEF };
+    sprintf_fmt(buffer, sizeof(buffer), "hex={}", {fmt_hex(hex_data, 4)});
+    TEST_TRUE(strcmp(buffer, "hex=DEADBEEF") == 0);
+
+    // Only "{}" is a placeholder
+    sprintf_fmt(buffer, sizeof(buffer), "{a} { } {}", {1});
+    TEST_TRUE(strcmp(buffer, "{a} { } 1") == 0);
+
+    // Truncation (always \0 terminated)
+    TEST_EQUALS(sprintf_fmt(buffer, 10, "Player {} has {} points", {"LongPlayerName", 150}), 9);
+    TEST_TRUE(strcmp(buffer, "Player Lo") == 0);
+
+    TEST_EQUALS(sprintf_fmt(buffer, 9, "num={}", {(int64) 123456789012LL}), 8);
+    TEST_TRUE(strcmp(buffer, "num=1234") == 0);
+
+    TEST_EQUALS(sprintf_fmt(buffer, 6, "ab{}", {fmt_hex(hex_data, 4)}), 4);
+    TEST_TRUE(strcmp(buffer, "abDE") == 0);
+
+    // Runtime format strings
+    const char* runtime_format = "rt {} and {}";
+    sprintf_fmt(buffer, sizeof(buffer), fmt_runtime(runtime_format), {1, "x"});
+    TEST_TRUE(strcmp(buffer, "rt 1 and x") == 0);
+
+    const FormatArg args[] = { 7, 8 };
+    TEST_EQUALS(sprintf_fmt(buffer, sizeof(buffer), runtime_format, ARRAY_COUNT(args), args), 10);
+    TEST_TRUE(strcmp(buffer, "rt 7 and 8") == 0);
+
+    TEST_EQUALS(sprintf_fmt(buffer, 5, runtime_format, ARRAY_COUNT(args), args), 4);
+    TEST_TRUE(strcmp(buffer, "rt 7") == 0);
+}
+
+#if PERFORMANCE_TEST
+static void _sprintf_fmt(volatile void* val) {
+    volatile bool* res = (volatile bool *) val;
+
+    char buffer[256];
+    sprintf_fmt(buffer, sizeof(buffer), "This {} is a {} with {} values", {1337, "test", 3.0});
+    *res |= (bool) (strcmp(buffer, "This 1337 is a test with 3.00000 values") == 0);
+}
+
+static void _sprintf_fast_bounded(volatile void* val) {
+    volatile bool* res = (volatile bool *) val;
+
+    char buffer[256];
+    sprintf_fast(buffer, sizeof(buffer), "This %d is a %s with %f values", 1337, "test", 3.0);
+    *res |= (bool) (strcmp(buffer, "This 1337 is a test with 3.00000 values") == 0);
+}
+
+static void test_sprintf_fmt_performance() {
+    COMPARE_FUNCTION_TEST_TIME(_sprintf_fmt, _sprintf_fast_bounded, 5.0);
+    COMPARE_FUNCTION_TEST_CYCLE(_sprintf_fmt, _sprintf_fast_bounded, 5.0);
+}
+#endif
+
 static void test_str_to_float()
 {
     TEST_EQUALS(str_to_float("1.000000"), 1.0f);
@@ -1121,6 +1192,7 @@ int main() {
     TEST_RUN(test_str_is_float);
     TEST_RUN(test_str_is_integer);
     TEST_RUN(test_sprintf_fast);
+    TEST_RUN(test_sprintf_fmt);
     TEST_RUN(test_str_is_alpha);
     TEST_RUN(test_str_is_num);
     TEST_RUN(test_str_is_alphanum);
@@ -1161,6 +1233,7 @@ int main() {
         TEST_RUN(test_str_length_performance);
         TEST_RUN(test_str_is_alphanum_performance);
         TEST_RUN(test_sprintf_fast_performance);
+        TEST_RUN(test_sprintf_fmt_performance);
     #endif
 
     TEST_FINALIZE();

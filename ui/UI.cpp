@@ -562,6 +562,9 @@ void ui_element_cache_element(
         case UI_ELEMENT_TYPE_COLOR_PANEL: {
             ui_color_panel_cache((UIColorPanel *) element, gpu_api_type, layout, zindex);
         } break;
+        case UI_ELEMENT_TYPE_DATA: {
+            // Never drawn (always hidden)
+        } break;
         case UI_ELEMENT_TYPE_TEXT:
         case UI_ELEMENT_TYPE_LINK:
         case UI_ELEMENT_TYPE_MANUAL: {

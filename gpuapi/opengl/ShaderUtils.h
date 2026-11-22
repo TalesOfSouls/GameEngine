@@ -352,17 +352,37 @@ int32 opengl_program_optimize(const char* __restrict input, char* __restrict out
 /**
  * Compiles a shader stage
  *
- * @param GLenum      type   Shader stage
- * @param const char* source Shader source
- * @param bool        fatal  false = a compile error is not an assert (e.g. hot reload), 0 is returned instead
+ * @param GLenum      type    Shader stage
+ * @param const char* source  Shader source
+ * @param bool        fatal   false = a compile error is not an assert (e.g. hot reload), 0 is returned instead
+ * @param const char* defines Optional source inserted after the #version line (e.g. "#define X\n"), NULL = none
+ *                            Variants of one shader file without copies of it
  *
  * @return GLuint Shader, 0 on failure if !fatal
  */
-GLuint gpuapi_shader_make(GLenum type, const char* source, bool fatal = true) NO_EXCEPT
+GLuint gpuapi_shader_make(GLenum type, const char* source, bool fatal = true, const char* defines = NULL) NO_EXCEPT
 {
     LOG_1("[INFO] Create shader %s", {DATA_TYPE_CHAR_STR, source});
     const GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, (GLchar **) &source, NULL);
+
+    if (defines && defines[0]) {
+        // #version must stay the first line: version line | defines | #line (the error messages keep the line numbers) | rest
+        const char* rest = source;
+        while (*rest && *rest != '\n') {
+            ++rest;
+        }
+
+        if (*rest == '\n') {
+            ++rest;
+        }
+
+        GLchar* parts[4] = { (GLchar *) source, (GLchar *) defines, (GLchar *) "\n#line 2\n", (GLchar *) rest };
+        GLint lengths[4] = { (GLint) (rest - source), -1, -1, -1 };
+        glShaderSource(shader, 4, parts, lengths);
+    } else {
+        glShaderSource(shader, 1, (GLchar **) &source, NULL);
+    }
+
     glCompileShader(shader);
 
     GLint status;

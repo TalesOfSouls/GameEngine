@@ -57,12 +57,15 @@
  *      5. child elements
  *
  * Element types: window, panel, label, button, image, cursor, custom, checkbox,
- * radio, slider, input, textarea, select, tab, table, colorpicker, tooltip.
+ * radio, slider, input, textarea, select, tab, table, colorpicker, tooltip, data.
  * The actual list of the properties per element type is the table at the
  * top of UILayoutTxt.cpp (all, label, button, ..., tooltip) - keep both in sync.
  *
- * BINARY FORMAT: .layoutbin, version UI_LAYOUT_VERSION
- * @see UILayout.h for the byte layout (layout_to_data / layout_from_data).
+ * Data elements (binary user data stored in the layout, e.g. the slots of a quick access bar):
+ *      "data <name>" with size (bytes) + version, never drawn, the content is defined by the application (@see UIData.h)
+ *
+ * BINARY FORMAT: .layoutbin = the parsed document + the data buffers (@see UILayoutBin.h)
+ * (layout_to_data / layout_from_data in UILayout.h are a runtime snapshot of the created elements, not this format)
  */
 
 // Name -> id, e.g. function names of the layout file -> UICore::update_func
@@ -101,6 +104,9 @@ struct UILayoutTxtContext {
 
     // Global strings of the application ("@@key"), NULL = none
     const Language* language_global;
+
+    // File the values of the data elements of this layout file are saved in (ui_data_file_create), 0 = not saved
+    int32 data_file;
 };
 
 #endif

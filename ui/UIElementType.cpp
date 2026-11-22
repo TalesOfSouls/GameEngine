@@ -4,6 +4,7 @@
 
 #include "../stdlib/Stdlib.h"
 #include "UIElementType.h"
+#include "UIData.h"
 #include "UIButton.h"
 #include "UISelect.h"
 #include "UIInput.h"
@@ -65,6 +66,8 @@ int32 ui_element_type_size(UIElementType e) NO_EXCEPT
             return sizeof(UIColorPicker);
         case UI_ELEMENT_TYPE_COLOR_PANEL:
             return sizeof(UIColorPanel);
+        case UI_ELEMENT_TYPE_DATA:
+            return sizeof(UIData);
         default: {
             UNREACHABLE();
         }
@@ -106,6 +109,8 @@ int32 ui_element_type_to_id(const char* str) NO_EXCEPT
         return UI_ELEMENT_TYPE_VIEW_TAB;
     } else if (str_compare("cursor", str, sizeof("cursor") - 1) == 0) {
         return UI_ELEMENT_TYPE_CURSOR;
+    } else if (str_compare("data", str, sizeof("data") - 1) == 0) {
+        return UI_ELEMENT_TYPE_DATA;
     } else if (str_compare("custom", str, sizeof("custom") - 1) == 0) {
         return UI_ELEMENT_TYPE_CUSTOM;
     } else if (str_compare("manual", str, sizeof("manual") - 1) == 0) {
