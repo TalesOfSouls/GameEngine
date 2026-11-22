@@ -162,7 +162,7 @@ FORCE_INLINE int16 atomic_fetch_sub_relaxed(int16* value, int16 operand) NO_EXCE
 FORCE_INLINE int32 atomic_fetch_add_relaxed(int32* value, int32 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAddNoFence((long *) value, operand); }
 FORCE_INLINE int32 atomic_fetch_sub_relaxed(int32* value, int32 operand) NO_EXCEPT
-{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAddNoFence((unsigned long *) value, -((long) operand)); }
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAddNoFence((long *) value, -((long) operand)); }
 FORCE_INLINE int64 atomic_fetch_add_relaxed(int64* value, int64 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedExchangeAddNoFence64((LONG64 *) value, (LONG64) operand); }
 FORCE_INLINE int64 atomic_fetch_sub_relaxed(int64* value, int64 operand) NO_EXCEPT
@@ -238,7 +238,7 @@ FORCE_INLINE uint16 atomic_fetch_sub_relaxed(uint16* value, uint16 operand) NO_E
 FORCE_INLINE uint32 atomic_fetch_add_relaxed(uint32* value, uint32 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAddNoFence((long *) value, operand); }
 FORCE_INLINE uint32 atomic_fetch_sub_relaxed(uint32* value, uint32 operand) NO_EXCEPT
-{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAddNoFence((unsigned long *) value, -((long) operand)); }
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAddNoFence((long *) value, -((long) operand)); }
 FORCE_INLINE uint64 atomic_fetch_add_relaxed(uint64* value, uint64 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (uint64) InterlockedExchangeAddNoFence64((LONG64 *) value, (LONG64) operand); }
 FORCE_INLINE uint64 atomic_fetch_sub_relaxed(uint64* value, uint64 operand) NO_EXCEPT
@@ -365,7 +365,7 @@ FORCE_INLINE int16 atomic_fetch_sub_acquire(int16* value, int16 operand) NO_EXCE
 FORCE_INLINE int32 atomic_fetch_add_acquire(int32* value, int32 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAddAcquire((long *) value, operand); }
 FORCE_INLINE int32 atomic_fetch_sub_acquire(int32* value, int32 operand) NO_EXCEPT
-{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAddAcquire((unsigned long *) value, -((long) operand)); }
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAddAcquire((long *) value, -((long) operand)); }
 FORCE_INLINE int64 atomic_fetch_add_acquire(int64* value, int64 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedExchangeAddAcquire64((LONG64 *) value, (LONG64) operand); }
 FORCE_INLINE int64 atomic_fetch_sub_acquire(int64* value, int64 operand) NO_EXCEPT
@@ -441,7 +441,7 @@ FORCE_INLINE uint16 atomic_fetch_sub_acquire(uint16* value, uint16 operand) NO_E
 FORCE_INLINE uint32 atomic_fetch_add_acquire(uint32* value, uint32 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAddAcquire((long *) value, operand); }
 FORCE_INLINE uint32 atomic_fetch_sub_acquire(uint32* value, uint32 operand) NO_EXCEPT
-{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAddAcquire((unsigned long *) value, -((long) operand)); }
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAddAcquire((long *) value, -((long) operand)); }
 FORCE_INLINE uint64 atomic_fetch_add_acquire(uint64* value, uint64 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (uint64) InterlockedExchangeAddAcquire64((LONG64 *) value, (LONG64) operand); }
 FORCE_INLINE uint64 atomic_fetch_sub_acquire(uint64* value, uint64 operand) NO_EXCEPT
@@ -582,7 +582,7 @@ FORCE_INLINE int16 atomic_fetch_sub_release(int16* value, int16 operand) NO_EXCE
 FORCE_INLINE int32 atomic_fetch_add_release(int32* value, int32 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAddRelease((long *) value, operand); }
 FORCE_INLINE int32 atomic_fetch_sub_release(int32* value, int32 operand) NO_EXCEPT
-{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAddRelease((unsigned long *) value, -((long) operand)); }
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAddRelease((long *) value, -((long) operand)); }
 FORCE_INLINE int64 atomic_fetch_add_release(int64* value, int64 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedExchangeAddRelease64((LONG64 *) value, (LONG64) operand); }
 FORCE_INLINE int64 atomic_fetch_sub_release(int64* value, int64 operand) NO_EXCEPT
@@ -666,7 +666,7 @@ FORCE_INLINE uint16 atomic_fetch_sub_release(uint16* value, uint16 operand) NO_E
 FORCE_INLINE uint32 atomic_fetch_add_release(uint32* value, uint32 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAddRelease((long *) value, operand); }
 FORCE_INLINE uint32 atomic_fetch_sub_release(uint32* value, uint32 operand) NO_EXCEPT
-{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAddRelease((unsigned long *) value, -((long) operand)); }
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAddRelease((long *) value, -((long) operand)); }
 FORCE_INLINE uint64 atomic_fetch_add_release(uint64* value, uint64 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (uint64) InterlockedExchangeAddRelease64((LONG64 *) value, (LONG64) operand); }
 FORCE_INLINE uint64 atomic_fetch_sub_release(uint64* value, uint64 operand) NO_EXCEPT
@@ -807,7 +807,7 @@ FORCE_INLINE int16 atomic_fetch_sub_acquire_release(int16* value, int16 operand)
 FORCE_INLINE int32 atomic_fetch_add_acquire_release(int32* value, int32 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAdd((long *) value, operand); }
 FORCE_INLINE int32 atomic_fetch_sub_acquire_release(int32* value, int32 operand) NO_EXCEPT
-{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAdd((unsigned long *) value, -((long) operand)); }
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (int32) InterlockedExchangeAdd((long *) value, -((long) operand)); }
 FORCE_INLINE int64 atomic_fetch_add_acquire_release(int64* value, int64 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (int64) InterlockedExchangeAdd64((LONG64 *) value, (LONG64) operand); }
 FORCE_INLINE int64 atomic_fetch_sub_acquire_release(int64* value, int64 operand) NO_EXCEPT
@@ -883,7 +883,7 @@ FORCE_INLINE uint16 atomic_fetch_sub_acquire_release(uint16* value, uint16 opera
 FORCE_INLINE uint32 atomic_fetch_add_acquire_release(uint32* value, uint32 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAdd((long *) value, operand); }
 FORCE_INLINE uint32 atomic_fetch_sub_acquire_release(uint32* value, uint32 operand) NO_EXCEPT
-{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAdd((unsigned long *) value, -((long) operand)); }
+{ ASSERT_STRICT(((uintptr_t) value % 4) == 0); return (uint32) InterlockedExchangeAdd((long *) value, -((long) operand)); }
 FORCE_INLINE uint64 atomic_fetch_add_acquire_release(uint64* value, uint64 operand) NO_EXCEPT
 { ASSERT_STRICT(((uintptr_t) value % 8) == 0); return (uint64) InterlockedExchangeAdd64((LONG64 *) value, (LONG64) operand); }
 FORCE_INLINE uint64 atomic_fetch_sub_acquire_release(uint64* value, uint64 operand) NO_EXCEPT

@@ -74,12 +74,13 @@ int32 qoi_encode(const Image* const image, byte* data) NO_EXCEPT
 				index[index_pos] = px;
 
 				if (px.a == px_prev.a) {
-					char vr = px.r - px_prev.r;
-					char vg = px.g - px_prev.g;
-					char vb = px.b - px_prev.b;
+					// int8, not char: char is unsigned on ARM (gcc/clang on Linux) -> the differences have to be signed
+					int8 vr = px.r - px_prev.r;
+					int8 vg = px.g - px_prev.g;
+					int8 vb = px.b - px_prev.b;
 
-					char vg_r = vr - vg;
-					char vg_b = vb - vg;
+					int8 vg_r = vr - vg;
+					int8 vg_b = vb - vg;
 
 					if (vr > -3 && vr < 2
 						&& vg > -3 && vg < 2

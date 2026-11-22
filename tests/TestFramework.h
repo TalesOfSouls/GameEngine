@@ -46,7 +46,8 @@ static int64_t _test_total_start;
         #ifdef _MSC_VER
             // MSVC has no gcc style inline assembly, same counter register
             #include <intrin.h>
-            #define test_timestamp_counter() ((uint64_t) _ReadStatusReg(ARM64_CNTVCT))
+            // 0x5F02 = ARM64_CNTVCT of winnt.h (windows.h may not be included yet)
+            #define test_timestamp_counter() ((uint64_t) _ReadStatusReg(0x5F02))
         #else
             #define test_timestamp_counter() ({ uint64_t cntvct; asm volatile("mrs %0, cntvct_el0" : "=r"(cntvct)); cntvct; })
         #endif

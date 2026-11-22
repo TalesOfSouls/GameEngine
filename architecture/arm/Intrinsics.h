@@ -88,12 +88,16 @@
     #define cpu_yield() asm volatile("yield")
 #endif
 
+// CNTVCT_EL0 for _ReadStatusReg = ARM64_CNTVCT = ARM64_SYSREG(3, 3, 14, 0, 2) of winnt.h
+// Own name: this header doesn't need windows.h + a later winnt.h would redefine ARM64_CNTVCT (warning C4005)
+#define COMS_ARM64_CNTVCT 0x5F02
+
 FORCE_INLINE
 uint64 intrin_timestamp_counter() NO_EXCEPT
 {
     // Virtual counter (readable from user mode, constant frequency)
     #ifdef _MSC_VER
-        return (uint64) _ReadStatusReg(ARM64_CNTVCT);
+        return (uint64) _ReadStatusReg(COMS_ARM64_CNTVCT);
     #else
         uint64 cntvct;
         asm volatile("mrs %0, cntvct_el0" : "=r"(cntvct));

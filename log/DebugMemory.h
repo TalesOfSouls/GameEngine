@@ -21,7 +21,8 @@
     #define DEBUG_MEMORY_RANGE_PERS_MAX 32
 #endif
 
-enum MemoryDebugType : char {
+// int8, not char: char is unsigned on ARM (gcc/clang on Linux) -> -1 would be out of range
+enum MemoryDebugType : int8 {
     MEMORY_DEBUG_TYPE_DELETE = -1,
     // We use the value of the enum for calculations later on
     // For that reason it is important that read has value 0 = no size change

@@ -307,7 +307,8 @@ void compiler_memcpy_aligned_4(
     #ifdef __aarch64__
         memcpy(dst, src, size);
     #else
-        __movsd((unsigned long*) dst, (const unsigned long*) src, size >> 3);
+        // __movsd copies 4 byte elements
+        __movsd((unsigned long*) dst, (const unsigned long*) src, size >> 2);
     #endif
 }
 
@@ -319,7 +320,7 @@ void compiler_memset_aligned_8(void* const dst, int value, size_t size) NO_EXCEP
     ASSERT_STRICT((((uintptr_t) dst) & 7) == 0);
 
     #ifdef __aarch64__
-        memset(dst, 0, size);
+        memset(dst, value, size);
     #else
         __stosq((unsigned __int64*) dst, (unsigned __int64) value, size >> 3);
     #endif
@@ -332,7 +333,7 @@ void compiler_memset_aligned_4(void* const dst, int value, size_t size) NO_EXCEP
     ASSERT_STRICT((((uintptr_t) dst) & 3) == 0);
 
     #ifdef __aarch64__
-        memset(dst, 0, size);
+        memset(dst, value, size);
     #else
         __stosd((unsigned long*) dst, (unsigned long) value, size >> 2);
     #endif

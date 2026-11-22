@@ -95,7 +95,24 @@ bool drm_has_hardware_breakpoints() NO_EXCEPT
         return false;
     }
 
-    return (ctx.Dr0 | ctx.Dr1 | ctx.Dr2 | ctx.Dr3) != 0;
+    #ifdef __aarch64__
+        // ARM64: breakpoint + watchpoint value registers (instead of the x86 debug registers Dr0 - Dr3)
+        for (int32 i = 0; i < ARM64_MAX_BREAKPOINTS; ++i) {
+            if (ctx.Bvr[i]) {
+                return true;
+            }
+        }
+
+        for (int32 i = 0; i < ARM64_MAX_WATCHPOINTS; ++i) {
+            if (ctx.Wvr[i]) {
+                return true;
+            }
+        }
+
+        return false;
+    #else
+        return (ctx.Dr0 | ctx.Dr1 | ctx.Dr2 | ctx.Dr3) != 0;
+    #endif
 }
 
 // Example: process_names = { "x64dbg.exe", "cheatengine-x86_64.exe", "ollydbg.exe" };
