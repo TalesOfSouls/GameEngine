@@ -438,7 +438,11 @@ int32 language_from_txt(
     header->version = LANGUAGE_VERSION;
     header->count = count;
     header->slot_count = slot_count;
-    header->size = (int32) ALIGN_UP((int32) ((byte *) out - lang->data), (int32) sizeof(size_t));
+    // The alignment padding is part of the data (e.g. written into .langbin files + asset archives)
+    // -> zeroed, otherwise the files contain random memory (capacity incl. sizeof(size_t) for the padding)
+    const int32 used = (int32) ((byte *) out - lang->data);
+    header->size = (int32) ALIGN_UP(used, (int32) sizeof(size_t));
+    memset(out, 0, header->size - used);
 
     lang->size = header->size;
     lang->count = count;

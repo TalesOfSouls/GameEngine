@@ -38,8 +38,14 @@
 
 #define compiler_debug_print(message) OutputDebugStringA((message))
 
-#define compiler_popcount_32(data) __popcnt((data))
-#define compiler_popcount_64(data) __popcnt64((data))
+#ifdef __aarch64__
+    // __popcnt is x86 only
+    #define compiler_popcount_32(data) _CountOneBits((data))
+    #define compiler_popcount_64(data) _CountOneBits64((data))
+#else
+    #define compiler_popcount_32(data) __popcnt((data))
+    #define compiler_popcount_64(data) __popcnt64((data))
+#endif
 
 #define compiler_prefetch(mem) __prefetch((mem))
 #define compiler_prefetch_l1(mem) __prefetch((mem))
@@ -97,7 +103,14 @@ int32 compiler_find_first_bit_l2r(uint32 mask) NO_EXCEPT
 FORCE_INLINE
 void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_EXCEPT
 {
-    __cpuidex((int32 *) cpu_info, function_id, level);
+    #ifdef __aarch64__
+        // No cpuid on ARM (@see architecture/arm/CpuInfo.cpp)
+        (void) function_id;
+        (void) level;
+        cpu_info[0] = cpu_info[1] = cpu_info[2] = cpu_info[3] = 0;
+    #else
+        __cpuidex((int32 *) cpu_info, function_id, level);
+    #endif
 }
 
 #define compiler_is_bit_set_r2l(num, pos) _bittest(num, pos)

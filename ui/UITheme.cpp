@@ -211,7 +211,9 @@ bool ui_theme_from_txt(UITheme* const __restrict theme, const char* __restrict t
         return false;
     }
 
-    memset(theme->data, 0, hashmap_bytes);
+    // Everything is zeroed, not only the hash map: the memory (incl. alignment gaps + unused nodes) is written into
+    // .themebin files + asset archives (theme_to_data), otherwise the files contain random memory
+    memset(theme->data, 0, total);
     hashmap_init(&theme->hash_map, capacity, theme->data, UI_THEME_HASHMAP_ALIGNMENT);
 
     char* const text_copy = (char *) (theme->data + text_offset);
@@ -279,6 +281,9 @@ bool ui_theme_language_from_txt(UITheme* const __restrict theme, const char* __r
     }
 
     const int32 offset = ALIGN_UP(theme->used_data_size, (int32) sizeof(size_t));
+
+    // The alignment gap is part of the binary theme -> zeroed
+    memset(theme->data + theme->used_data_size, 0, offset - theme->used_data_size);
 
     Language language = {};
     language.data = theme->data + offset;

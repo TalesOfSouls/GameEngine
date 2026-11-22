@@ -16,9 +16,19 @@
 #include <stddef.h>
 
 #ifdef __aarch64__
-    #include <arm_sve.h>
-    #include <arm_acle.h>
-    #include <arm_neon.h>
+    #ifdef _MSC_VER
+        // MSVC has no arm_acle.h/arm_sve.h: the ACLE intrinsics (__crc32*, __yield, __dmb, ...) are part of intrin.h
+        #include <intrin.h>
+        #include <arm_neon.h>
+    #else
+        // arm_sve.h only with SVE (baseline ARMv8 has no SVE, gcc rejects the SVE types without it)
+        #ifdef __ARM_FEATURE_SVE
+            #include <arm_sve.h>
+        #endif
+
+        #include <arm_acle.h>
+        #include <arm_neon.h>
+    #endif
 #else
     #if _WIN32
         #include <intrin.h>

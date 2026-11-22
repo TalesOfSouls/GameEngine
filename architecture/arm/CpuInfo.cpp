@@ -9,55 +9,186 @@
 
 #include "../../stdlib/Stdlib.h"
 #include "../CpuInfo.h"
-#include <arm_sve.h>
 
-uint64 cpu_info_features() {
-    uint64 feature_bitfield = 0;
+// ARM has no cpuid + the cache registers (ccsidr_el1, csselr_el1) are not readable from user mode
+// -> the operating system provides the cpu features + cache information
+//      Linux:   getauxval (features), /sys/devices/system/cpu/cpu0/cache (caches)
+//      Windows: IsProcessorFeaturePresent (features), GetLogicalProcessorInformation (caches)
+#if _WIN32
+    #include <windows.h>
 
-    uint64 hwcap = getauxval(AT_HWCAP);
-    uint64 hwcap2 = getauxval(AT_HWCAP2);
+    uint64 cpu_info_features() NO_EXCEPT
+    {
+        uint64 feature_bitfield = 0;
 
-    if (hwcap & HWCAP_ASIMD) feature_bitfield |= CPU_FEATURE_ASIMD_ARM;
-    if (hwcap & HWCAP_ATOMICS) feature_bitfield |= CPU_FEATURE_ATOMICS_ARM;
-    if (hwcap & HWCAP_PMULL) feature_bitfield |= CPU_FEATURE_PMULL_ARM;
-    if (hwcap2 & HWCAP2_SVEPMULL) feature_bitfield |= CPU_FEATURE_SVEPMULL_ARM;
-    if (hwcap & HWCAP_NEON) feature_bitfield |= CPU_FEATURE_NEON_ARM;
-    if (hwcap & HWCAP_SVE) feature_bitfield |= CPU_FEATURE_SVE_ARM;
-    if (hwcap2 & HWCAP2_SVE) feature_bitfield |= CPU_FEATURE_SVE2_ARM;
-    if (hwcap & HWCAP_AES) feature_bitfield |= CPU_FEATURE_AES_ARM;
-    if (hwcap & HWCAP_SHA1) feature_bitfield |= CPU_FEATURE_SHA1_ARM;
-    if (hwcap & HWCAP_SHA2) feature_bitfield |= CPU_FEATURE_SHA2_ARM;
-    if (hwcap & HWCAP_CRC32) feature_bitfield |= CPU_FEATURE_CRC32_ARM;
+        // NEON (= ASIMD) is part of every AArch64 cpu
+        feature_bitfield |= CPU_FEATURE_ASIMD_ARM | CPU_FEATURE_NEON_ARM;
 
-    return feature_bitfield;
-}
+        #ifdef PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE
+            if (IsProcessorFeaturePresent(PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE)) {
+                feature_bitfield |= CPU_FEATURE_AES_ARM | CPU_FEATURE_PMULL_ARM | CPU_FEATURE_SHA1_ARM | CPU_FEATURE_SHA2_ARM;
+            }
+        #endif
 
-void cpu_info_cache(int32 level, CpuCacheInfo* cache) {
-    uint32 ccsidr; // Cache Size ID Register
-    uint32 line_size, associativity, num_sets;
+        #ifdef PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE
+            if (IsProcessorFeaturePresent(PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE)) {
+                feature_bitfield |= CPU_FEATURE_CRC32_ARM;
+            }
+        #endif
 
-    cache->level = level;
-    cache->size = 0;
-    cache->ways = 0;
-    cache->partitions = 1; // Typically 1 on ARM
-    cache->sets = 0;
-    cache->line_size = 0;
+        #ifdef PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE
+            if (IsProcessorFeaturePresent(PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE)) {
+                feature_bitfield |= CPU_FEATURE_ATOMICS_ARM;
+            }
+        #endif
 
-    // Select cache level and type in CSSELR
-    uint32 csselr = level << 1; // Data or unified cache
-    asm volatile("msr csselr_el1, %0" : : "r" (csselr));
-    asm volatile("mrs %0, ccsidr_el1" : "=r" (ccsidr));
+        // Only in newer Windows SDKs
+        #ifdef PF_ARM_SVE_INSTRUCTIONS_AVAILABLE
+            if (IsProcessorFeaturePresent(PF_ARM_SVE_INSTRUCTIONS_AVAILABLE)) {
+                feature_bitfield |= CPU_FEATURE_SVE_ARM;
+            }
+        #endif
 
-    // Extract cache details from CCSIDR
-    line_size = (ccsidr & 0x7) + 4; // Line size in log2 words
-    associativity = ((ccsidr >> 3) & 0x3FF) + 1;
-    num_sets = ((ccsidr >> 13) & 0x7FFF) + 1;
+        #ifdef PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE
+            if (IsProcessorFeaturePresent(PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE)) {
+                feature_bitfield |= CPU_FEATURE_SVE2_ARM;
+            }
+        #endif
 
-    // Populate the cache structure
-    cache->line_size = 1 << line_size; // Convert to bytes
-    cache->ways = associativity;
-    cache->sets = num_sets;
-    cache->size = cache->ways * cache->sets * cache->line_size;
-}
+        return feature_bitfield;
+    }
+
+    /**
+     * @param byte level Cache index (same as the x86 version): 0 = L1 data, 1 = L1 instruction, 2 = L2, 3 = L3
+     */
+    void cpu_info_cache(byte level, CpuCacheInfo* cache) NO_EXCEPT
+    {
+        cache->level = level;
+        cache->size = 0;
+        cache->ways = 0;
+        cache->partitions = 1;
+        cache->sets = 0;
+        cache->line_size = 0;
+
+        const BYTE cache_level = level <= 1 ? 1 : (BYTE) level;
+        const PROCESSOR_CACHE_TYPE cache_type = level == 0
+            ? CacheData
+            : (level == 1 ? CacheInstruction : CacheUnified);
+
+        SYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer[256];
+        DWORD length = sizeof(buffer);
+        if (!GetLogicalProcessorInformation(buffer, &length)) {
+            return;
+        }
+
+        const DWORD count = length / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+        for (DWORD i = 0; i < count; ++i) {
+            if (buffer[i].Relationship != RelationCache) {
+                continue;
+            }
+
+            const CACHE_DESCRIPTOR* const desc = &buffer[i].Cache;
+            if (desc->Level != cache_level
+                || (desc->Type != cache_type && !(cache_type == CacheUnified && desc->Type == CacheData))
+            ) {
+                continue;
+            }
+
+            cache->size = desc->Size;
+            cache->ways = desc->Associativity;
+            cache->line_size = desc->LineSize;
+            cache->sets = desc->LineSize && desc->Associativity
+                ? desc->Size / (desc->LineSize * desc->Associativity)
+                : 0;
+
+            return;
+        }
+    }
+#else
+    #include <sys/auxv.h>
+    #include <asm/hwcap.h>
+
+    // SystemInfo.cpp includes this file before FileUtils.cpp
+    #include "../../utils/StringUtils.h"
+    #include "../../system/FileUtils.cpp"
+
+    uint64 cpu_info_features() NO_EXCEPT
+    {
+        uint64 feature_bitfield = 0;
+
+        const uint64 hwcap = getauxval(AT_HWCAP);
+        const uint64 hwcap2 = getauxval(AT_HWCAP2);
+
+        // On AArch64 NEON = ASIMD (HWCAP_NEON only exists on 32 bit ARM)
+        if (hwcap & HWCAP_ASIMD) feature_bitfield |= CPU_FEATURE_ASIMD_ARM | CPU_FEATURE_NEON_ARM;
+        if (hwcap & HWCAP_ATOMICS) feature_bitfield |= CPU_FEATURE_ATOMICS_ARM;
+        if (hwcap & HWCAP_PMULL) feature_bitfield |= CPU_FEATURE_PMULL_ARM;
+        if (hwcap & HWCAP_AES) feature_bitfield |= CPU_FEATURE_AES_ARM;
+        if (hwcap & HWCAP_SHA1) feature_bitfield |= CPU_FEATURE_SHA1_ARM;
+        if (hwcap & HWCAP_SHA2) feature_bitfield |= CPU_FEATURE_SHA2_ARM;
+        if (hwcap & HWCAP_CRC32) feature_bitfield |= CPU_FEATURE_CRC32_ARM;
+
+        #ifdef HWCAP_SVE
+            if (hwcap & HWCAP_SVE) feature_bitfield |= CPU_FEATURE_SVE_ARM;
+        #endif
+
+        #ifdef HWCAP2_SVE2
+            if (hwcap2 & HWCAP2_SVE2) feature_bitfield |= CPU_FEATURE_SVE2_ARM;
+        #endif
+
+        #ifdef HWCAP2_SVEPMULL
+            if (hwcap2 & HWCAP2_SVEPMULL) feature_bitfield |= CPU_FEATURE_SVEPMULL_ARM;
+        #endif
+
+        (void) hwcap2;
+
+        return feature_bitfield;
+    }
+
+    /**
+     * Reads a number of /sys/devices/system/cpu/cpu0/cache/index<level>/<name> (K + M suffix supported)
+     *
+     * @return uint32 0 if the file doesn't exist
+     */
+    static
+    uint32 cpu_info_cache_value(byte level, const char* name) NO_EXCEPT
+    {
+        char path[128];
+        sprintf_fast(path, sizeof(path), "/sys/devices/system/cpu/cpu0/cache/index%d/%s", (int32) level, name);
+
+        if (!file_exists(path)) {
+            return 0;
+        }
+
+        char buffer[32] = {};
+        FileBody file = {};
+        file.content = (byte *) buffer;
+        file.size = sizeof(buffer) - 1;
+        file_read(path, &file);
+
+        const char* pos = buffer;
+        uint32 value = (uint32) str_to_int(pos, &pos);
+        if (*pos == 'K') {
+            value *= 1024;
+        } else if (*pos == 'M') {
+            value *= 1024 * 1024;
+        }
+
+        return value;
+    }
+
+    /**
+     * @param byte level Cache index (same as the x86 version): 0 = L1 data, 1 = L1 instruction, 2 = L2, 3 = L3
+     */
+    void cpu_info_cache(byte level, CpuCacheInfo* cache) NO_EXCEPT
+    {
+        cache->level = level;
+        cache->partitions = 1;
+        cache->size = cpu_info_cache_value(level, "size");
+        cache->ways = (byte) cpu_info_cache_value(level, "ways_of_associativity");
+        cache->sets = cpu_info_cache_value(level, "number_of_sets");
+        cache->line_size = (uint16) cpu_info_cache_value(level, "coherency_line_size");
+    }
+#endif
 
 #endif

@@ -428,18 +428,46 @@ uint64 hash_ejb_seeded(const char* str, int32 seed) NO_EXCEPT
 	return (hash % PRIME2) ^ HASH_SEED_MIX(seed);;
 }
 
-inline
-uint32 intrin_hash(uint64 a, uint64 b = 0) NO_EXCEPT
-{
-    uint8 seed[16] = {
-        0xaa, 0x9b, 0xbd, 0xb8, 0xa1, 0x98, 0xac, 0x3f, 0x1f, 0x94, 0x07, 0xb3, 0x8c, 0x27, 0x93, 0x69,
-    };
+// 2 AES decryption rounds, the same result on x86 (AES-NI) + ARM (crypto extension)
+// Only available with the AES instructions (x86: aesni/-maes, ARM: msvc or gcc -march=...+aes)
+#if defined(__aarch64__)
+    #if defined(_MSC_VER) || defined(__ARM_FEATURE_AES)
+        inline
+        uint32 intrin_hash(uint64 a, uint64 b = 0) NO_EXCEPT
+        {
+            alignas(16) static const uint8 seed[16] = {
+                0xaa, 0x9b, 0xbd, 0xb8, 0xa1, 0x98, 0xac, 0x3f, 0x1f, 0x94, 0x07, 0xb3, 0x8c, 0x27, 0x93, 0x69,
+            };
 
-    __m128i hash = _mm_set_epi64x(a, b);
-    hash = _mm_aesdec_si128(hash, _mm_load_si128((__m128i *) seed));
-    hash = _mm_aesdec_si128(hash, _mm_load_si128((__m128i *) seed));
+            // Same lane order as _mm_set_epi64x(a, b): b = low 64 bits, a = high 64 bits
+            const uint64 lanes[2] = { b, a };
+            uint8x16_t hash = vreinterpretq_u8_u64(vld1q_u64(lanes));
+            const uint8x16_t key = vld1q_u8(seed);
+            const uint8x16_t zero = vdupq_n_u8(0);
 
-    return _mm_extract_epi32(hash, 0);
-}
+            // x86 aesdec = InvMixColumns(InvSubBytes(InvShiftRows(state))) ^ key
+            // ARM aesd   = InvSubBytes(InvShiftRows(state ^ key)), aesimc = InvMixColumns
+            hash = veorq_u8(vaesimcq_u8(vaesdq_u8(hash, zero)), key);
+            hash = veorq_u8(vaesimcq_u8(vaesdq_u8(hash, zero)), key);
+
+            return vgetq_lane_u32(vreinterpretq_u32_u8(hash), 0);
+        }
+    #endif
+#else
+    inline
+    uint32 intrin_hash(uint64 a, uint64 b = 0) NO_EXCEPT
+    {
+        // _mm_load_si128 requires 16 byte alignment
+        alignas(16) static const uint8 seed[16] = {
+            0xaa, 0x9b, 0xbd, 0xb8, 0xa1, 0x98, 0xac, 0x3f, 0x1f, 0x94, 0x07, 0xb3, 0x8c, 0x27, 0x93, 0x69,
+        };
+
+        __m128i hash = _mm_set_epi64x(a, b);
+        hash = _mm_aesdec_si128(hash, _mm_load_si128((const __m128i *) seed));
+        hash = _mm_aesdec_si128(hash, _mm_load_si128((const __m128i *) seed));
+
+        return _mm_extract_epi32(hash, 0);
+    }
+#endif
 
 #endif

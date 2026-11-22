@@ -216,12 +216,11 @@ void image_flip_vertical_neon(Image* const image)
             vst1q_u8(bottom + i, t);
         }
 
-        for (; i < stride; i += pixel_size) {
-            uint32* t = (uint32*)(top + i);
-            uint32* b = (uint32*)(bottom + i);
-            uint32 tmp = *t;
-            *t = *b;
-            *b = tmp;
+        // Byte wise: the pixel size can be 1 - 4 bytes (4 byte swaps would write behind the row for pixel_size < 4)
+        for (; i < stride; ++i) {
+            const byte tmp = top[i];
+            top[i] = bottom[i];
+            bottom[i] = tmp;
         }
     }
 }

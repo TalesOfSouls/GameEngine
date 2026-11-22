@@ -103,25 +103,36 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id) {
 }
 */
 
-inline
-void compiler_cpuid(uint32 cpu_info[4], int32 function_id) NO_EXCEPT
-{
-    asm volatile(
-        "cpuid"
-        : "=a" (cpu_info[0]), "=b" (cpu_info[1]), "=c" (cpu_info[2]), "=d" (cpu_info[3])
-        : "a" (function_id)
-    );
-}
+#ifdef __aarch64__
+    // No cpuid on ARM (@see architecture/arm/CpuInfo.cpp)
+    inline
+    void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_EXCEPT
+    {
+        (void) function_id;
+        (void) level;
+        cpu_info[0] = cpu_info[1] = cpu_info[2] = cpu_info[3] = 0;
+    }
+#else
+    inline
+    void compiler_cpuid(uint32 cpu_info[4], int32 function_id) NO_EXCEPT
+    {
+        asm volatile(
+            "cpuid"
+            : "=a" (cpu_info[0]), "=b" (cpu_info[1]), "=c" (cpu_info[2]), "=d" (cpu_info[3])
+            : "a" (function_id)
+        );
+    }
 
-inline
-void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) NO_EXCEPT
-{
-    asm volatile(
-        "cpuid"
-        : "=a" (cpu_info[0]), "=b" (cpu_info[1]), "=c" (cpu_info[2]), "=d" (cpu_info[3])
-        : "a" (function_id), "c" (level)
-    );
-}
+    inline
+    void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) NO_EXCEPT
+    {
+        asm volatile(
+            "cpuid"
+            : "=a" (cpu_info[0]), "=b" (cpu_info[1]), "=c" (cpu_info[2]), "=d" (cpu_info[3])
+            : "a" (function_id), "c" (level)
+        );
+    }
+#endif
 
 // 8 byte alignment required
 FORCE_INLINE

@@ -74,37 +74,32 @@ void base64_encode_simd(const byte* data, char* encoded_data, size_t data_length
     if (steps >= 4) {
         steps = 4;
 
-        const uint8x16_t base64_table = vld1q_u8((const byte*)BASE64_CHARS);
+        // 48 input bytes -> 64 characters per iteration
+        //      vld3q de-interleaves the bytes of the triples (in.val[0] = 1st byte of 16 triples, ...)
+        //      vqtbl4q looks up all 64 characters (4 * 16 byte table), vst4q interleaves the 4 characters again
+        uint8x16x4_t table;
+        table.val[0] = vld1q_u8((const uint8 *) BASE64_CHARS);
+        table.val[1] = vld1q_u8((const uint8 *) BASE64_CHARS + 16);
+        table.val[2] = vld1q_u8((const uint8 *) BASE64_CHARS + 32);
+        table.val[3] = vld1q_u8((const uint8 *) BASE64_CHARS + 48);
+
         const uint8x16_t mask_3F = vdupq_n_u8(0x3F);
 
-        for (; i + 11 < data_length; i += 12) {
-            uint8x16_t in = vld1q_u8(data + i);
+        for (; i + 48 <= data_length; i += 48) {
+            const uint8x16x3_t in = vld3q_u8(data + i);
 
-            uint32x4_t triple0 = vreinterpretq_u32_u8(vshrq_n_u8(in, 2));
-            uint32x4_t triple1 = vreinterpretq_u32_u8(vshrq_n_u8(vextq_u8(in, in, 1), 4));
-            uint32x4_t triple2 = vreinterpretq_u32_u8(vshrq_n_u8(vextq_u8(in, in, 2), 6));
+            const uint8x16_t idx0 = vshrq_n_u8(in.val[0], 2);
+            const uint8x16_t idx1 = vandq_u8(vorrq_u8(vshlq_n_u8(in.val[0], 4), vshrq_n_u8(in.val[1], 4)), mask_3F);
+            const uint8x16_t idx2 = vandq_u8(vorrq_u8(vshlq_n_u8(in.val[1], 2), vshrq_n_u8(in.val[2], 6)), mask_3F);
+            const uint8x16_t idx3 = vandq_u8(in.val[2], mask_3F);
 
-            uint32x4_t combined = vorrq_u32(
-                vshlq_n_u32(triple0, 16),
-                vorrq_u32(
-                    vshlq_n_u32(triple1, 8),
-                    triple2));
+            uint8x16x4_t out;
+            out.val[0] = vqtbl4q_u8(table, idx0);
+            out.val[1] = vqtbl4q_u8(table, idx1);
+            out.val[2] = vqtbl4q_u8(table, idx2);
+            out.val[3] = vqtbl4q_u8(table, idx3);
 
-            uint32x4_t idx0 = vandq_u32(vshrq_n_u32(combined, 18), 0x3F);
-            uint32x4_t idx1 = vandq_u32(vshrq_n_u32(combined, 12), 0x3F);
-            uint32x4_t idx2 = vandq_u32(vshrq_n_u32(combined, 6), 0x3F);
-            uint32x4_t idx3 = vandq_u32(combined, 0x3F);
-
-            uint8x16_t enc0 = vqtbl1q_u8(base64_table, vreinterpretq_u8_u32(idx0));
-            uint8x16_t enc1 = vqtbl1q_u8(base64_table, vreinterpretq_u8_u32(idx1));
-            uint8x16_t enc2 = vqtbl1q_u8(base64_table, vreinterpretq_u8_u32(idx2));
-            uint8x16_t enc3 = vqtbl1q_u8(base64_table, vreinterpretq_u8_u32(idx3));
-
-            uint8x16x2_t zip01 = vzipq_u8(enc0, enc1);
-            uint8x16x2_t zip23 = vzipq_u8(enc2, enc3);
-            uint8x16_t encoded = vcombine_u8(vget_low_u8(zip01.val[0]), vget_low_u8(zip23.val[0]));
-
-            vst1q_u8((uint8_t*)(encoded_data + (i/3*4)), encoded);
+            vst4q_u8((uint8 *) (encoded_data + (i / 3 * 4)), out);
         }
     }
     #endif
@@ -197,42 +192,32 @@ size_t base64_decode_simd(const char* encoded_data, byte* data, size_t encoded_l
     if (steps >= 4) {
         steps = 4;
 
-        const uint8x16_t mask_3F = vdupq_n_u8(0x3F);
-        const uint8x16_t shuffle_mask = {
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2
-        };
+        // 64 characters -> 48 bytes per iteration
+        //      vld4q de-interleaves the characters of the quads, the lookup table has 128 entries (ASCII):
+        //      vqtbl4q = entries 0 - 63, vqtbx4q = entries 64 - 127 (index - 64, keeps the first result if out of range)
+        uint8x16x4_t lookup_lo;
+        uint8x16x4_t lookup_hi;
+        for (int32 k = 0; k < 4; ++k) {
+            lookup_lo.val[k] = vld1q_u8((const uint8 *) BASE64_LOOKUP + 16 * k);
+            lookup_hi.val[k] = vld1q_u8((const uint8 *) BASE64_LOOKUP + 64 + 16 * k);
+        }
 
-        for (; i + 15 < complete_blocks * 4; i += 16, j += 12) {
+        const uint8x16_t offset_64 = vdupq_n_u8(64);
 
-            uint8x16_t in = vld1q_u8((const byte*)(encoded_data + i));
+        for (; i + 64 <= complete_blocks * 4; i += 64, j += 48) {
+            const uint8x16x4_t in = vld4q_u8((const uint8 *) (encoded_data + i));
 
-            byte chars[16];
-            vst1q_u8(chars, in);
+            const uint8x16_t s0 = vqtbx4q_u8(vqtbl4q_u8(lookup_lo, in.val[0]), lookup_hi, vsubq_u8(in.val[0], offset_64));
+            const uint8x16_t s1 = vqtbx4q_u8(vqtbl4q_u8(lookup_lo, in.val[1]), lookup_hi, vsubq_u8(in.val[1], offset_64));
+            const uint8x16_t s2 = vqtbx4q_u8(vqtbl4q_u8(lookup_lo, in.val[2]), lookup_hi, vsubq_u8(in.val[2], offset_64));
+            const uint8x16_t s3 = vqtbx4q_u8(vqtbl4q_u8(lookup_lo, in.val[3]), lookup_hi, vsubq_u8(in.val[3], offset_64));
 
-            uint32 sextets[4];
-            for (int k = 0; k < 4; ++k) {
-                sextets[k] =
-                    (BASE64_LOOKUP[chars[k*4 + 0]] << 18) |
-                    (BASE64_LOOKUP[chars[k*4 + 1]] << 12) |
-                    (BASE64_LOOKUP[chars[k*4 + 2]] << 6) |
-                    (BASE64_LOOKUP[chars[k*4 + 3]]);
-            }
+            uint8x16x3_t out;
+            out.val[0] = vorrq_u8(vshlq_n_u8(s0, 2), vshrq_n_u8(s1, 4));
+            out.val[1] = vorrq_u8(vshlq_n_u8(s1, 4), vshrq_n_u8(s2, 2));
+            out.val[2] = vorrq_u8(vshlq_n_u8(s2, 6), s3);
 
-            uint8x16_t bytes0 = vreinterpretq_u8_u32(vshrq_n_u32(vld1q_u32(sextets), 16));
-            uint8x16_t bytes1 = vreinterpretq_u8_u32(vshrq_n_u32(vld1q_u32(sextets), 8));
-            uint8x16_t bytes2 = vreinterpretq_u8_u32(vld1q_u32(sextets));
-
-            bytes0 = vandq_u8(bytes0, vdupq_n_u8(0xFF));
-            bytes1 = vandq_u8(bytes1, vdupq_n_u8(0xFF));
-            bytes2 = vandq_u8(bytes2, vdupq_n_u8(0xFF));
-
-
-            uint8x16_t packed = vqtbl1q_u8(vcombine_u8(
-                vget_low_u8(bytes0), vget_low_u8(bytes1)), shuffle_mask);
-
-            vst1q_u8(data + j, packed);
-
-            vst1_u8(data + j + 8, vget_low_u8(bytes2));
+            vst3q_u8(data + j, out);
         }
     }
     #endif

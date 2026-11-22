@@ -21,6 +21,7 @@
 #include "../../log/Log.h"
 #include "../ShaderType.h"
 #include "../GpuAttributeType.h"
+#include "../ShaderOptimize.h"
 
 #pragma comment(lib, "d3dcompiler.lib")
 
@@ -369,86 +370,11 @@ void gpuapi_attribute_info_create(GpuAttributeType type, D3D12_INPUT_ELEMENT_DES
     };
 }
 
-int32 directx_program_optimize(const char* input, char* output)
+// @see shader_program_optimize (ShaderOptimize.h)
+FORCE_INLINE
+int32 directx_program_optimize(const char* __restrict input, char* __restrict output) NO_EXCEPT
 {
-    const char* read_ptr = input;
-    char* write_ptr = output;
-    bool in_string = false;
-
-    while (*read_ptr) {
-        str_skip_empty(&read_ptr);
-
-        // Preprocessor directives (e.g. #define) must start a new line, even after ; { ( ,
-        if (write_ptr != output
-            && *(write_ptr - 1) != '\n'
-            && (*read_ptr == '#'
-                || (*(write_ptr - 1) != ';' && *(write_ptr - 1) != '{'
-                    && *(write_ptr - 1) != '('
-                    && *(write_ptr - 1) != ','
-                )
-            )
-        ) {
-            *write_ptr++ = '\n';
-        }
-
-        // Handle single-line comments (//)
-        if (*read_ptr == '/' && *(read_ptr + 1) == '/' && !in_string) {
-            str_move_to(&read_ptr, '\n');
-
-            continue;
-        }
-
-        // Handle multi-line comments (/* */)
-        if (*read_ptr == '/' && *(read_ptr + 1) == '*' && !in_string) {
-            // Go to end of comment
-            while (*read_ptr && (*read_ptr != '*' || *(read_ptr + 1) != '/')) {
-                ++read_ptr;
-            }
-
-            if (*read_ptr == '*' && *(read_ptr + 1) == '/') {
-                read_ptr += 2;
-            }
-
-            continue;
-        }
-
-        // Handle strings to avoid removing content within them
-        if (*read_ptr == '"') {
-            in_string = !in_string;
-        }
-
-        // Copy valid characters to write_ptr
-        while (*read_ptr && !is_eol(read_ptr) && *read_ptr != '"'
-            && !(*read_ptr == '/' && (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*'))
-        ) {
-            if (!in_string
-                && (*read_ptr == '*' || *read_ptr == '/' || *read_ptr == '=' || *read_ptr == '+' || *read_ptr == '-' || *read_ptr == '%'
-                    || *read_ptr == '(' || *read_ptr == ')'
-                    || *read_ptr == '{' || *read_ptr == '}'
-                    || *read_ptr == ',' || *read_ptr == '?' || *read_ptr == ':' || *read_ptr == ';'
-                    || *read_ptr == '&' || *read_ptr == '|'
-                    || *read_ptr == '>' || *read_ptr == '<'
-                )
-            ) {
-                if (is_whitespace(*(write_ptr - 1)) || *(write_ptr - 1) == '\n') {
-                    --write_ptr;
-                }
-
-                *write_ptr++ = *read_ptr++;
-
-                if (*read_ptr && is_whitespace(*read_ptr)) {
-                    ++read_ptr;
-                }
-            } else {
-                *write_ptr++ = *read_ptr++;
-            }
-        }
-    }
-
-    *write_ptr = '\0';
-
-    // -1 to remove \0 from length, same as strlen
-    return (int32) (write_ptr - output);
+    return shader_program_optimize(input, output);
 }
 
 #endif

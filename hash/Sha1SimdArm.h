@@ -7,7 +7,6 @@
 #ifndef COMS_HASH_SHA1_SIMD_ARM_H
 #define COMS_HASH_SHA1_SIMD_ARM_H
 
-#include <immintrin.h>
 #include "../stdlib/Stdlib.h"
 #include "Sha1Definitions.h"
 
@@ -117,6 +116,10 @@
             );
 
             vst1q_u32(&w[i], v_rot);
+
+            // w[i + 3] depends on w[i] (= w[(i + 3) - 3]) which was only calculated in this iteration
+            // -> the vector lane used the old (not yet calculated) value
+            w[i + 3] = SHA1_ROTL32(w[i] ^ w[i - 5] ^ w[i - 11] ^ w[i - 13], 1);
         }
 
         a = ctx->state[0];

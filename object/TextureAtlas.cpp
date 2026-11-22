@@ -248,8 +248,11 @@ void atlas_invert_coordinates(TextureAtlas* const atlas, MAYBE_UNUSED int32 step
         }
     #elif defined(__ARM_NEON)
         if (steps >= 4) {
-            const float32x4_t mul4 = {1.0f, -1.0f, 1.0f, -1.0f};
-            const float32x4_t add4 = {0.0f,  1.0f, 0.0f,  1.0f};
+            // No brace initialization of the vector types (msvc defines them as unions)
+            static const float mul4_values[4] = {1.0f, -1.0f, 1.0f, -1.0f};
+            static const float add4_values[4] = {0.0f,  1.0f, 0.0f,  1.0f};
+            const float32x4_t mul4 = vld1q_f32(mul4_values);
+            const float32x4_t add4 = vld1q_f32(add4_values);
             for (; i + 4 <= float_count; i += 4) {
                 float32x4_t v = vld1q_f32(data + i);
                 float32x4_t r = vfmaq_f32(add4, v, mul4); // add4 + v*mul4

@@ -14,13 +14,12 @@
     #include <unistd.h>
 #endif
 
-#ifdef __aarch64__
-    #ifdef __ARM_NEON
-        #include "../architecture/arm/neon/utils/Utils.h"
-    #else
-        #include "../architecture/arm/sve/utils/Utils.h"
-    #endif
+#if defined(__aarch64__) && defined(__ARM_FEATURE_SVE)
+    #include "../architecture/arm/sve/utils/Utils.h"
+#elif defined(__aarch64__) && defined(__ARM_NEON)
+    #include "../architecture/arm/neon/utils/Utils.h"
 #else
+    // Without any SIMD macros (e.g. msvc on ARM64 doesn't define __ARM_NEON) the x86 version is plain scalar code
     #include "../architecture/x86/simd/utils/Utils.h"
 #endif
 
