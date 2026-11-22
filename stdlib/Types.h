@@ -85,7 +85,8 @@ typedef union {
 } f64_bits;
 
 typedef unsigned char byte;
-typedef char sbyte;
+// signed char, not char: char is unsigned on ARM (gcc/clang on Linux)
+typedef signed char sbyte;
 
 typedef uintptr_t umm;
 typedef intptr_t smm;
