@@ -7,7 +7,7 @@
  * The octree is an intrusive structure: the caller provides the OctNode memory and the
  * tree only references the data. The tests therefore build the node storage manually.
  *
- * NOTE (@see report): octnode_insert() cannot be tested with an empty tree, the
+ * NOTE: octnode_insert() cannot be tested with an empty tree, the
  * `while (!node->is_leaf)` loop never terminates because freshly created nodes are
  * zero initialized (is_leaf == false) and nothing inside the loop ever sets is_leaf.
  * The insert test below therefore uses a pre-built child chain.
@@ -207,7 +207,7 @@ static void test_octree_insert() {
     const v3_int32 anchor = octree_test_v3(0, 0, 0);
     octree_create(&tree, anchor, 8);
 
-    // Build the root -> child -> leaf chain manually (@see note at the top)
+    // Build the root -> child -> leaf chain manually
     const v3_int32 root_center = aabb_center(tree.root->bounds);
     OctNode* child = octnode_child_create(&tree);
     child->bounds = octnode_child_aabb_compute(tree.root->bounds, root_center, 7);

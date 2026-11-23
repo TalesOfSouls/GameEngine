@@ -9,10 +9,10 @@
  * take their scalar (or single 128 bit) path - the tests always compare against a scalar
  * reference implementation and therefore work with every SIMD level.
  *
- * NOTE (@see report): simd_mult(const int32*, const int32*, int32*, ...) is NOT tested,
+ * NOTE: simd_mult(const int32*, const int32*, int32*, ...) is NOT tested,
  * its scalar loop increments the pointers before writing and therefore reads/writes one
  * element past the end of the arrays.
- * NOTE (@see report): the f32_8/i32_8 wrapper types of SIMD_*_AVX2.h are not reachable
+ * NOTE: the f32_8/i32_8 wrapper types of SIMD_*_AVX2.h are not reachable
  * through Simd.h because those headers reuse the include guard of their parent header.
  */
 

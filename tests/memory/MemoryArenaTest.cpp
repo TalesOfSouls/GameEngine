@@ -37,7 +37,7 @@ static void test_mem_arena_alloc() {
     // The default alignment is sizeof(void*)
     TEST_EQUALS((uintptr_t) mem->memory % sizeof(void *), 0);
 
-    // The header is the platform allocation header (@see platform_alloc_aligned)
+    // The header is the platform allocation header
     TEST_EQUALS(mem->header, (platform_alloc_header *) ((void **) mem->base)[-1]);
     TEST_TRUE(mem->header->committed_size >= 4096);
     TEST_TRUE(mem->header->reserved_size >= mem->header->committed_size);

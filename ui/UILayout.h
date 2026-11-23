@@ -10,6 +10,11 @@
 #include "../object/Vertex.h"
 #include "../gpuapi/GpuApiType.h"
 #include "UICore.h"
+#include "../object/TextureAtlas.h"
+#include "../localization/Language.h"
+#include "UIDocument.h"
+#include "UITheme.h"
+#include "UIData.h"
 
 #define UI_LAYOUT_VERSION 10
 
@@ -294,6 +299,184 @@ struct UILayout {
 
     // Action callbacks, e.g. UIButton::on_click (1-indexed)
     const UIActionFunc* on_actions;
+};
+
+////////////////////////////////////////////////////////////////
+// Text layout files (.layouttxt)
+////////////////////////////////////////////////////////////////
+
+// Version of the .layouttxt format
+#define UI_LAYOUT_TXT_VERSION 2
+
+/**
+ * TEXT FORMAT: .layouttxt, version UI_LAYOUT_TXT_VERSION
+ *
+ * Defines the element tree of a scene/hud. The syntax is the ui document syntax
+ *:
+ *
+ *      version 2
+ *
+ *      // Comment (only full line comments)
+ *      window test_window              <- "type [name]", the name is used by ui_element_get()
+ *          style: window_default       <- styles of the theme, applied before the own properties
+ *          anchor: top left
+ *          pos: 512 256
+ *          size: 560 480
+ *          title: Test window
+ *          $close                      <- part: fixed child created by the element itself
+ *              on_click: window_close
+ *
+ *          label status                <- child element (more indentation than the parent)
+ *              text: Status: -
+ *
+ *      indentation:  spaces, a tab counts as 4
+ *      block:        "type [name]"
+ *      property:     "key: value"
+ *      part:         "$part [argument]"
+ *
+ * Value syntax
+ *      numbers       12, -3.5, 50% (= relative to the parent for pos/size)
+ *      size          0 = content size, negative = parent size minus the value
+ *      colors        #RRGGBBAA or #RRGGBB
+ *      lists         "Option A | Option B | Option C"
+ *      text          \n new line, \t tab, \\ backslash, \@ literal @
+ *      strings       @key  = string of the language of this file (UILayoutTxtContext::language)
+ *                    @@key = global string of the application (UILayoutTxtContext::language_global)
+ *      flags         hitbox interactable movable resizable hoverable selectable ignore_hit always_on_top
+ *                    +flag / -flag add/remove, otherwise the flags are replaced
+ *      anchor        "<parent point> [/ <element point>]", points: left|center|right top|center|bottom,
+ *                    e.g. "top right" or "top right / top left"
+ *
+ * Order in which the properties are applied
+ *      1. create arguments (e.g. columns of a table)
+ *      2. type default styles of the themes ("@table")
+ *      3. styles listed in "style:" (in this order)
+ *      4. own properties and parts (file order)
+ *      5. child elements
+ *
+ * Element types: window, panel, label, button, image, cursor, custom, checkbox,
+ * radio, slider, input, textarea, select, tab, table, colorpicker, tooltip, data.
+ * The actual list of the properties per element type is the table at the
+ * top of the text parser in UILayout.cpp (all, label, button, ..., tooltip) - keep both in sync.
+ *
+ * Data elements (binary user data stored in the layout, e.g. the slots of a quick access bar):
+ *      "data <name>" with size (bytes) + version, never drawn, the content is defined by the application
+ *
+ * BINARY FORMAT: .layoutbin = the parsed document + the data buffers (@see BINARY FORMAT below)
+ * (layout_to_data / layout_from_data in UILayout.h are a runtime snapshot of the created elements, not this format)
+ */
+
+// Name -> id, e.g. function names of the layout file -> UICore::update_func
+struct UINameId {
+    const char* name;
+    int32 id;
+};
+
+/**
+ * Everything the layout file references by name
+ * Unknown names are reported (LOG) and ignored
+ */
+struct UILayoutTxtContext {
+    // Styles, later themes overwrite earlier themes (e.g. general theme, scene theme)
+    const UITheme* themes[4];
+    int32 theme_count;
+
+    // Images (image, border_image), the id is the atlas element
+    const TextureAtlas* atlas;
+    const UINameId* images;
+    int32 image_count;
+
+    // Functions, the id is the 1-based index into UILayout::update/render/on_actions
+    const UINameId* update_functions;
+    int32 update_function_count;
+
+    const UINameId* render_functions;
+    int32 render_function_count;
+
+    const UINameId* actions;
+    int32 action_count;
+
+    // Strings of the layout file ("@key"), NULL = no layout language
+    // Strings in a theme file use the language of the theme (UITheme::language)
+    const Language* language;
+
+    // Global strings of the application ("@@key"), NULL = none
+    const Language* language_global;
+
+    // File the values of the data elements of this layout file are saved in (ui_data_file_create), 0 = not saved
+    int32 data_file;
+};
+
+////////////////////////////////////////////////////////////////
+// Binary layout files (.layoutbin)
+////////////////////////////////////////////////////////////////
+
+/**
+ * BINARY FORMAT: .layoutbin, version UI_LAYOUT_BIN_VERSION
+ *
+ * The parsed layout document + the values of its data elements.
+ * The elements are created from the document exactly like from the text file (ui_layout_from_document):
+ * the styles of the theme + the strings of the language are applied when the elements are created,
+ * several layout files can still be added to one UILayout.
+ *
+ * Used for
+ *      1. The compiled layouts of a release (theme_builder: .layouttxt -> .layoutbin)
+ *      2. The user copy of a layout (e.g. user/themes/<theme>/<name>.layoutbin): the elements of the original
+ *         file + the values of its data elements changed by the user. Saving the user data only rewrites the
+ *         data section (ui_layout_bin_data_update).
+ *         The data elements are created zeroed, the data section is applied afterwards: by name, only if the
+ *         size + version still match (a changed structure never receives old bytes, UI_DATA_FLAG_LOADED stays 0
+ *         -> the application writes its defaults). Only data elements with user data are written.
+ *         source_hash = hash of the original file -> a changed original (e.g. an update) is detected,
+ *         the user copy is created again and the user data is carried over by name.
+ *
+ * All numbers are little endian, every field is written separately (no struct dumps -> independent of
+ * the struct layout of a build).
+ *
+ *      offset  size    type        field
+ *      0       4       uint32      magic UI_LAYOUT_BIN_MAGIC ("LDOC")
+ *      4       4       int32       version UI_LAYOUT_BIN_VERSION
+ *      8       8       uint64      source_hash (hash of the original file, 0 = unknown)
+ *      16      4       int32       document version (version line of the text file)
+ *      20      4       int32       node_count (incl. the reserved empty node 0)
+ *      24      4       int32       property_count (incl. the reserved empty property 0)
+ *      28      4       int32       pool_size (bytes of the string pool)
+ *      32      4       int32       first_node (first top level node)
+ *      36      4       int32       data_offset (byte offset of the data section)
+ *      40      N * 41  -           nodes (node 0 included)
+ *                                      byte kind, int32 type offset/length, int32 name offset/length,
+ *                                      int32 line, first_property, last_property, first_child, last_child, next_sibling
+ *              P * 24  -           properties (property 0 included)
+ *                                      int32 key offset/length, int32 value offset/length, int32 next, int32 line
+ *              S       char[S]     string pool (all strings of the nodes + properties, the offsets point into it)
+ *      data_offset                 data section (the data elements of the file with user data)
+ *              4       int32       element count
+ *                                  per element: char[UI_LAYOUT_BIN_DATA_NAME_LENGTH] name, int32 version,
+ *                                               int32 size, byte[size] content (as it is, the application defines it)
+ */
+#define UI_LAYOUT_BIN_MAGIC 0x434F444C // "LDOC"
+// 2: data elements with binary content (size + version) instead of typed values
+#define UI_LAYOUT_BIN_VERSION 2
+
+#define UI_LAYOUT_BIN_HEADER_SIZE 40
+#define UI_LAYOUT_BIN_NODE_SIZE 41
+#define UI_LAYOUT_BIN_PROPERTY_SIZE 24
+// Fixed size of the names in the data section (>= UI_DATA_NAME_LENGTH)
+#define UI_LAYOUT_BIN_DATA_NAME_LENGTH 32
+#define UI_LAYOUT_BIN_DATA_ENTRY_HEADER_SIZE (UI_LAYOUT_BIN_DATA_NAME_LENGTH + 4 + 4)
+
+static_assert(UI_LAYOUT_BIN_DATA_NAME_LENGTH >= UI_DATA_NAME_LENGTH, "The data names must fit into the data section");
+
+struct UILayoutBinHeader {
+    uint32 magic;
+    int32 version;
+    uint64 source_hash;
+    int32 doc_version;
+    int32 node_count;
+    int32 property_count;
+    int32 pool_size;
+    int32 first_node;
+    int32 data_offset;
 };
 
 #endif

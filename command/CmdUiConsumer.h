@@ -31,7 +31,7 @@
 
 /**
  * Loads a layout snapshot (layout_to_data: the created elements incl. styles + strings, replaces the whole layout)
- * NOT a .layoutbin file (that is the parsed layout document @see UILayoutBin.h, the application creates its
+ * NOT a .layoutbin file (that is the parsed layout document @see UILayout.h, the application creates its
  * elements with ui_layout_from_document)
  * @check what? this makes no sense why are there 2 binary formats. layout_to_data should create the binary data and layout_from_data should load that data
  */

@@ -5,7 +5,7 @@
 #include "../../hash/Sha1.h"
 #include "../../platform/win32/Process.h"
 
-// Data driven DRM tests (@see data/DRM.h)
+// Data driven DRM tests
 static void test_drm_encode_decode() {
     const byte plain[] = "MainTest";
     byte encrypted[sizeof(plain)];

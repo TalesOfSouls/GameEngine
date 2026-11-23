@@ -40,7 +40,7 @@ static void test_thrd_chunk_alloc() {
     TEST_EQUALS(mem.completeness, mem.free + 1);
 
     // The requested alignment is sizeof(size_t) for chunk_alloc
-    // (@see bug report: ThrdChunkMemory.alignment is never set by chunk_init)
+    // ThrdChunkMemory.alignment is never set by chunk_init
     TEST_EQUALS((uintptr_t) mem.memory % sizeof(size_t), 0);
 
     // All elements are free and none is complete

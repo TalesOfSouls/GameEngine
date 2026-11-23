@@ -6,7 +6,7 @@
  * Hash map tests
  *
  * The old HashMap (runtime entry size) was replaced by HashMapT<T> (compile time entry type),
- * so the tests use the entry types directly (@see HashMapT.h)
+ * so the tests use the entry types directly
  */
 
 static void test_hashmap_hash_mix() {

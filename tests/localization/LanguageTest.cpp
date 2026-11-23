@@ -65,7 +65,7 @@ static void test_language_from_txt() {
     // The cache is used -> the key doesn't matter anymore
     TEST_TRUE(language_get_string(&lang, &cache, "menu_quit").str == language_get(&lang, "status_prefix"));
 
-    // Binary layout (@see Language.h)
+    // Binary layout
     TEST_EQUALS(sizeof(LanguageSlot), 16);
     TEST_EQUALS(((const LanguageHeader *) lang.data)->version, LANGUAGE_VERSION);
 

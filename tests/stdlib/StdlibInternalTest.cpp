@@ -2,7 +2,7 @@
 #include "../../stdlib/stdlib_internal.h"
 
 /**
- * Tests for the stdlib replacement primitives (@see stdlib_internal.h)
+ * Tests for the stdlib replacement primitives
  *
  * They are used for NO_STDLIB builds, so they have to behave like the C library functions.
  */

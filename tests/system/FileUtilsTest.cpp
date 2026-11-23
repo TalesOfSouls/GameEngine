@@ -3,7 +3,7 @@
 #include "../../memory/BufferMemory.cpp"
 
 /**
- * File utility tests (@see system/FileUtils.cpp / platform/win32/FileUtils.cpp)
+ * File utility tests
  *
  * All files are created in a temporary directory next to the executable and are
  * removed again, so the test doesn't leave any files behind.
