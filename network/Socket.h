@@ -1,8 +1,6 @@
 /**
  * Platform independent socket types (socketid, SOCKET_INVALID)
  *
- * @see Socket.cpp for the functions
- *
  * @copyright Jingga
  * @license   OMS License 2.0
  * @link      https://jingga.app

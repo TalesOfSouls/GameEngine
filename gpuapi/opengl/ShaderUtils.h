@@ -267,7 +267,6 @@ void opengl_check_compile_errors(uint32 id, char* log) NO_EXCEPT
     }
 }
 
-// @see shader_program_optimize (ShaderOptimize.h)
 FORCE_INLINE
 int32 opengl_program_optimize(const char* __restrict input, char* __restrict output) NO_EXCEPT
 {

@@ -104,7 +104,7 @@ void compiler_cpuid(uint32 cpu_info[4], int32 function_id) {
 */
 
 #ifdef __aarch64__
-    // No cpuid on ARM (@see architecture/arm/CpuInfo.cpp)
+    // No cpuid on ARM
     inline
     void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_EXCEPT
     {

@@ -1585,7 +1585,7 @@ UICore* ui_txt_element_create(
             element = &ui_color_picker_create(layout, type_id, parent)->core;
         } break;
         case UI_ELEMENT_TYPE_DATA: {
-            // Only the memory is reserved, the content is defined by the application (@see UIData.h)
+            // Only the memory is reserved, the content is defined by the application
             char number[16];
             const int32 size = ui_txt_value_get(ctx, doc, node, "size", number, sizeof(number))
                 ? (int32) str_to_int(number)
@@ -1636,7 +1636,7 @@ UICore* ui_txt_element_create(
 }
 
 /**
- * Creates the elements of a parsed layout (text file or binary layout @see UILayoutBin.h)
+ * Creates the elements of a parsed layout (text file or binary layout)
  *
  * @param UICore* parent The elements are added to this element (NULL = root), the root must already exist
  *

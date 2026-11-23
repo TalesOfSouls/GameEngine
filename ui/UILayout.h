@@ -16,7 +16,7 @@
 /**
  * SNAPSHOT FORMAT (runtime state of the created elements), version UI_LAYOUT_VERSION
  * Written by layout_to_data(), read by layout_from_data().
- * NOT the .layoutbin file format: that is the parsed layout document + the data buffers (@see UILayoutBin.h),
+ * NOT the .layoutbin file format: that is the parsed layout document + the data buffers,
  * the snapshot already contains the theme styles + language strings and replaces the whole layout.
  *
  *      offset      size    type        field

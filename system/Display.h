@@ -5,8 +5,6 @@
  * The desktop resolution is restored when the window loses the focus (the window is minimized) and the fullscreen
  * resolution is set again when it gets the focus back.
  *
- * @see Display.cpp
- *
  * @copyright Jingga
  * @license   OMS License 2.0
  * @link      https://jingga.app
@@ -29,7 +27,6 @@ enum DisplayMode : byte {
 };
 
 // Common monitor resolutions, sorted by pixel count (e.g. resolution slider of the settings)
-// @see display_resolution_closest
 static const v2_int32 _display_resolutions[] = {
     {1280, 720},    // HD
     {1280, 800},    // WXGA 16:10

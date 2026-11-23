@@ -1090,7 +1090,7 @@ int64 hex_to_int(const char* hex) NO_EXCEPT
 }
 
 // Non-overlapping occurrences, an empty substr is never counted
-// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
+// The word-wise scans are done by str_find/str_length
 inline
 size_t str_count(const char* __restrict str, const char* __restrict substr) NO_EXCEPT
 {
@@ -1209,7 +1209,7 @@ void str_line_append(
 
 // Copies src until delim or the end (both excl.), dest is null terminated
 // @return int32 Copied characters
-// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
+// The word-wise scans are done by str_find/str_length
 inline
 int32 str_copy_until(char* __restrict dest, const char* __restrict src, char delim) NO_EXCEPT
 {
@@ -1224,7 +1224,7 @@ int32 str_copy_until(char* __restrict dest, const char* __restrict src, char del
 
 // Copies src until delim or the end (both excl.), dest is null terminated
 // @return int32 Copied characters
-// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
+// The word-wise scans are done by str_find/str_length
 inline
 int32 str_copy_until(wchar_t* __restrict dest, const wchar_t* __restrict src, wchar_t delim) NO_EXCEPT
 {
@@ -1260,7 +1260,7 @@ inline void str_copy_until(T* __restrict dest, const T* __restrict src, const T*
 
 // Copies src until delim or the end (both excl.), dest is null terminated
 // src is moved to the delimiter or the null terminator
-// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
+// The word-wise scans are done by str_find/str_length
 inline
 void str_copy_move_until(char* __restrict dest, const char* __restrict* __restrict src, char delim) NO_EXCEPT
 {
@@ -1402,7 +1402,7 @@ int32 str_concat_new(
     return src1_length + src2_length;
 }
 
-// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
+// The word-wise scans are done by str_find/str_length
 inline void
 str_concat_new(
     char* __restrict dst,
@@ -1423,7 +1423,7 @@ str_concat_new(
 }
 
 
-// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
+// The word-wise scans are done by str_find/str_length
 inline
 void str_concat_new(wchar_t* __restrict dst,
     const wchar_t* __restrict src1,
@@ -1580,7 +1580,7 @@ char* strtok(char* str, const char* __restrict delim, char** key) NO_EXCEPT
     return result;
 }
 
-// The word-wise scans are done by str_find/str_length (strchr/strstr/strlen, @see stdlib/stdlib_internal.h)
+// The word-wise scans are done by str_find/str_length
 inline
 bool str_contains(const char* __restrict haystack, const char* __restrict needle) NO_EXCEPT
 {
@@ -1876,7 +1876,7 @@ int32 str_to_eol(const char* str) NO_EXCEPT
 /**
  * Moves str to the first occurrence of delim or to the \0 if delim doesn't exist
  *
- * The word-wise scans are done by str_find/str_length (strchr/strlen, @see stdlib/stdlib_internal.h)
+ * The word-wise scans are done by str_find/str_length
  */
 inline
 void str_move_to(const char** str, char delim) NO_EXCEPT
@@ -1885,7 +1885,7 @@ void str_move_to(const char** str, char delim) NO_EXCEPT
     *str = found ? found : *str + str_length(*str);
 }
 
-// The word-wise scans are done by str_find/str_length (strchr/strlen, @see stdlib/stdlib_internal.h)
+// The word-wise scans are done by str_find/str_length
 inline
 void str_move_to(const wchar_t** str, wchar_t delim) NO_EXCEPT
 {

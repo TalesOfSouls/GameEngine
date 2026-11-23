@@ -9,10 +9,10 @@
  *              size: 12                    <- bytes
  *              version: 1                  <- version of the content (raise it when the structure changes)
  *
- * The content is opaque for the ui: the application defines the structure (e.g. a struct, its own byte order)
+ * The application defines the structure (e.g. a struct, its own byte order)
  * and writes the defaults (the buffer starts zeroed). The layout file only reserves the memory.
  *
- * Saved user data (the binary user copy of the layout @see UILayoutBin.h) is only applied if the size + version
+ * Saved user data (the binary user copy of the layout) is only applied if the size + version
  * still match -> a changed structure never receives old bytes, the application writes its defaults again
  * (or migrates the data itself). UI_DATA_FLAG_LOADED tells the application whether user data exists.
  *
@@ -38,7 +38,7 @@ enum UIDataFlag : byte {
     // The bytes are user data (applied from the user copy or changed by the application), not the zeroed defaults
     UI_DATA_FLAG_LOADED = 1 << 0,
 
-    // Changed since they were saved (@see ui_data_changed)
+    // Changed since they were saved
     UI_DATA_FLAG_DIRTY = 1 << 1,
 };
 
@@ -60,7 +60,7 @@ struct UIData {
     // Offset of the bytes in ui_element_buffer
     int32 values;
 
-    // Offset of the path of the file the bytes are saved in (wchar_t, @see ui_data_file_create), 0 = not saved
+    // Offset of the path of the file the bytes are saved in, 0 = not saved
     int32 file;
 };
 

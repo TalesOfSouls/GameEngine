@@ -62,7 +62,7 @@ struct Window {
 
     byte dpi;
 
-    // Display mode state (fullscreen resolution change, @see Display.cpp)
+    // Display mode state (fullscreen resolution change)
     DisplayState display;
 
     const char* name;

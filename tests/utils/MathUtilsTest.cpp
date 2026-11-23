@@ -3,7 +3,7 @@
 #include <math.h>
 
 /**
- * Tests for the math utilities (@see math_internal.h and MathUtils.h)
+ * Tests for the math utilities
  */
 
 static void test_min_max() {

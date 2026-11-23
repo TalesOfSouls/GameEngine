@@ -64,7 +64,7 @@ void queue_alloc(
     ASSERT_TRUE(max_count >= element_count);
     element_size = ALIGN_UP(element_size, alignment);
 
-    // +1 since one slot always stays empty (@see queue_has_space)
+    // +1 since one slot always stays empty
     ring_alloc((RingMemory *) queue, (element_count + 1) * element_size, (max_count + 1) * element_size, start_alignment);
     queue_slots_init(queue, element_size, alignment);
 }
@@ -82,7 +82,7 @@ void queue_alloc(
     ASSERT_TRUE(max_count >= element_count);
     element_size = ALIGN_UP(element_size, alignment);
 
-    // +1 since one slot always stays empty (@see queue_has_space)
+    // +1 since one slot always stays empty
     ring_alloc((RingMemory *) queue, mem, (element_count + 1) * element_size, (max_count + 1) * element_size, start_alignment);
     queue_slots_init(queue, element_size, alignment);
 }
@@ -99,7 +99,7 @@ void queue_init(
 {
     element_size = ALIGN_UP(element_size, alignment);
 
-    // +1 since one slot always stays empty (@see queue_has_space)
+    // +1 since one slot always stays empty
     ring_init((RingMemory *) queue, buf, (element_count + 1) * element_size, start_alignment);
     queue_slots_init(queue, element_size, alignment);
 }
@@ -338,7 +338,7 @@ bool thrd_queue_is_full(Queue* queue) NO_EXCEPT
     return !queue_has_space(queue);
 }
 
-// WARNING: Doesn't check if there is space (@see queue_enqueue_safe)
+// WARNING: Doesn't check if there is space
 inline
 byte* queue_enqueue(Queue* const __restrict queue, const byte* __restrict data) NO_EXCEPT
 {
@@ -440,7 +440,7 @@ void thrd_queue_enqueue_unique_wait(Queue* __restrict queue, const byte* __restr
     coms_pthread_cond_signal(&queue->cond);
 }
 
-// WARNING: Doesn't check if there is space (@see queue_enqueue_start_safe)
+// WARNING: Doesn't check if there is space
 FORCE_INLINE
 byte* queue_enqueue_start(Queue* const queue) NO_EXCEPT
 {
@@ -591,7 +591,7 @@ byte* queue_dequeue_keep(const Queue* const queue) NO_EXCEPT
     return queue->tail;
 }
 
-// WARNING: Doesn't check if the queue is empty (@see queue_dequeue_keep)
+// WARNING: Doesn't check if the queue is empty
 FORCE_INLINE
 byte* queue_dequeue_start(const Queue* const queue) NO_EXCEPT
 {

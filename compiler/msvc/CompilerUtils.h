@@ -104,7 +104,7 @@ FORCE_INLINE
 void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) NO_EXCEPT
 {
     #ifdef __aarch64__
-        // No cpuid on ARM (@see architecture/arm/CpuInfo.cpp)
+        // No cpuid on ARM
         (void) function_id;
         (void) level;
         cpu_info[0] = cpu_info[1] = cpu_info[2] = cpu_info[3] = 0;

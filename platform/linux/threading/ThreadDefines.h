@@ -7,7 +7,7 @@
 #ifndef COMS_PLATFORM_LINUX_THREADING_THREAD_DEFINES_H
 #define COMS_PLATFORM_LINUX_THREADING_THREAD_DEFINES_H
 
-// pthreads is only used to create/join the threads (@see Thread.h), the synchronization primitives are futex based
+// pthreads is only used to create/join the threads, the synchronization primitives are futex based
 // Threads created with a raw clone() aren't valid threads for glibc (no thread local storage, errno, malloc arenas, ...)
 #include <pthread.h>
 

@@ -88,7 +88,7 @@ char* settings_save_name(
 
 /**
  * Writes a float without unnecessary trailing zeros (e.g. "0.5", "1.0", "0.785398")
- * A value written this way is read back as the same value (@see str_to_float)
+ * A value written this way is read back as the same value
  */
 static inline
 char* settings_save_float(f64 value, char* __restrict out) NO_EXCEPT
@@ -300,7 +300,7 @@ bool settings_array_element(DataType type, DataType* const __restrict element_ty
  *      "name"              -> stays without value as long as the value is empty/0 (e.g. "not set" settings)
  *
  * @param const char*   line        Existing line (without line break)
- * @param int32         name_length Length of the name at the beginning of the line (@see settings_name_length)
+ * @param int32         name_length Length of the name at the beginning of the line
  */
 static inline
 char* settings_save_existing_line(
@@ -423,7 +423,7 @@ bool settings_file_contains(const char* __restrict in, const char* __restrict na
 /**
  * Creates a new settings file content based on an existing file
  * Comments, empty lines and unknown settings are kept, the values of known settings are replaced
- * Settings that are not in the old file are NOT added (@see settings_save_line)
+ * Settings that are not in the old file are NOT added
  *
  * @param const char* in Content of the existing file (NULL or "" = empty file)
  *

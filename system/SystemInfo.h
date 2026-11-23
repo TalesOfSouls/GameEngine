@@ -39,10 +39,10 @@ struct MainboardInfo {
  * personal data where required by law.
  */
 
-// Hardware (ban) id: 128 bit hash of the cross-platform hardware identifiers as hex, excl. \0 (@see system_hardware_id)
+// Hardware (ban) id: 128 bit hash of the cross-platform hardware identifiers as hex, excl. \0
 #define SYSTEM_HARDWARE_ID_LENGTH 32
 
-// The same id in the UUID format 8-4-4-4-12, excl. \0 (@see system_hardware_uuid)
+// The same id in the UUID format 8-4-4-4-12, excl. \0
 #define SYSTEM_HARDWARE_UUID_LENGTH (SYSTEM_HARDWARE_ID_LENGTH + 4)
 
 struct HardwareId {
@@ -83,7 +83,7 @@ struct DisplayInfo {
     bool is_primary;
 };
 
-// Desktop area of a monitor (@see display_monitor_get)
+// Desktop area of a monitor (created by display_monitor_get)
 struct DisplayMonitor {
     // Platform name of the monitor (e.g. \\.\DISPLAY1 on windows), same as DisplayInfo::name
     char name[48];

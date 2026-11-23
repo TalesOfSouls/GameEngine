@@ -12,8 +12,6 @@
  *
  * @param v2_f32 content_dim Natural size of the content (e.g. text or image size)
  *                           Used for every axis where dim_raw is 0 and the axis is not relative
- *
- * @see UIAlignment.h for the coordinate system
  */
 // @todo for more complex designs we would need padding, gutter, fill ratio per element
 static inline

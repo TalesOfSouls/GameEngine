@@ -491,7 +491,7 @@ int64 chunk_dump(const ThrdChunkMemoryT<T>* const buf, byte* data) NO_EXCEPT
  *
  * The range is claimed word by word with a compare exchange. If another thread takes
  * one of the elements in the meantime the partial claim is rolled back and the search
- * restarts. Single element reservations are lock free (@see chunk_reserve_one).
+ * restarts. Single element reservations are lock free.
  */
 template <typename T>
 inline

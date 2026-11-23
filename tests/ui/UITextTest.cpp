@@ -6,7 +6,7 @@
 #include "../../system/Allocator.h"
 
 /**
- * Tests for the texts with a stored length (@see ui_string_reserve)
+ * Tests for the texts with a stored length
  *
  * Labels and inputs store their text as C string with a SimpleStringInline header in front of it.
  * Every function that changes the text must keep the stored length identical to strlen().
@@ -48,7 +48,7 @@ static void ui_text_test_free(UILayout* const layout) {
     TEST_EQUALS(_str.length, (int32) strlen(_str.str));                                                 \
 } while (0)
 
-// Owner values of a table (@see ui_table_row_values, UITable::user_value)
+// Owner values of a table
 static void test_ui_table_row_values() {
     UILayout layout;
     ui_text_test_alloc(&layout);

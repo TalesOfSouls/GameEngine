@@ -29,6 +29,7 @@ uint32 hashmap_hash_mix(uint32 h) NO_EXCEPT
 }
 
 // Unaligned loads (memcpy compiles to a single mov)
+// @check why? don't we have helpers for those already?
 FORCE_INLINE
 uint64 hashmap_read64(const char* p) NO_EXCEPT
 {
@@ -114,7 +115,7 @@ void hashmap_str_key(const char** key, int32* length) NO_EXCEPT
  * Longer keys are loaded word by word, the last word overlaps with the previous one
  * The length is part of the seed -> overlapping loads can't create collisions between different lengths
  *
- * @param const char*   key     Stored key part (@see hashmap_str_key)
+ * @param const char*   key     Stored key part
  * @param int32         length  Length of the stored key part (without \0)
  */
 FORCE_INLINE
@@ -173,7 +174,7 @@ uint32 hashmap_str_hash(const char** key, int32* length) NO_EXCEPT
  * Compares 8 bytes at a time, the \0 check of the stored key rejects longer stored keys
  *
  * @param const char*   stored  Stored key of the entry
- * @param const char*   key     Stored key part (@see hashmap_str_key)
+ * @param const char*   key     Stored key part
  * @param int32         length  Length of the stored key part (without \0)
  */
 FORCE_INLINE

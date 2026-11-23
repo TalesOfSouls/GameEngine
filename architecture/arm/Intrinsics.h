@@ -44,8 +44,8 @@
     #define intrin_invalidate_cache() asm volatile("dc ivac, %0" : : "r"(address) : "memory")
 #endif
 
-// CRC-32C (Castagnoli) like the x86 version (_mm_crc32_*), NOT the CRC-32 of __crc32b/h/w/d (@see hash/Crc.h)
-// The crc instructions are optional in ARMv8.0 (gcc: -march=armv8-a+crc), Windows on ARM always has them
+// The crc instructions are optional in ARMv8.0 (gcc: -march=armv8-a+crc), 
+// Windows on ARM always has them
 #if defined(_MSC_VER) || defined(__ARM_FEATURE_CRC32)
     #define intrin_crc32_u8(crc, data) __crc32cb((uint32) (crc), (uint8) (data))
     #define intrin_crc32_u16(crc, data) __crc32ch((uint32) (crc), (uint16) (data))

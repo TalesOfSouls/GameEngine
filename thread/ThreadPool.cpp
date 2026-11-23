@@ -92,7 +92,7 @@ THREAD_RETURN thread_pool_worker(void* arg) NO_EXCEPT
     rand_setup();
 
     // The pool does background work (loading, generation, ...), the interactive threads of the application
-    // (update, render) must not stutter when the pool keeps all cores busy (@see coms_thread_priority_background)
+    // (update, render) must not stutter when the pool keeps all cores busy -> give lower priority
     coms_thread_priority_background();
 
     ThreadPoolJob job;

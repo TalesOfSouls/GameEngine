@@ -236,7 +236,7 @@ void stats_increment(int32 id, int64 by = 1, bool debug_only = false) NO_EXCEPT
 /**
  * Decrements a counter variable
  *
- * User stats (debug_only = false) also keep a running total in persistent_stats (@see stats_increment)
+ * User stats (debug_only = false) also keep a running total in persistent_stats
  *
  * @param int32 id      Stats id
  * @param int64 by      Change amount
@@ -348,7 +348,6 @@ void stats_min_persistent(int32 id, int64 value, bool debug_only = false) NO_EXC
         return;
     }
 
-    // @see stats_max_persistent
     atomic<int64>* const stat = &_stats_counter->persistent_stats[id];
     int64 old = stat->load(memory_order_relaxed);
     while (value < old && !stat->compare_exchange_weak(old, value, memory_order_relaxed)) {}

@@ -370,7 +370,6 @@ void gpuapi_attribute_info_create(GpuAttributeType type, D3D12_INPUT_ELEMENT_DES
     };
 }
 
-// @see shader_program_optimize (ShaderOptimize.h)
 FORCE_INLINE
 int32 directx_program_optimize(const char* __restrict input, char* __restrict output) NO_EXCEPT
 {

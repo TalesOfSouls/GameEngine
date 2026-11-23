@@ -413,7 +413,7 @@ void perfect_hashmap_delete_entry(PerfectHashMap* __restrict hm, const char* __r
 {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
 
-    // The key is the first member of every entry type (@see perfect_hashmap_entry_get)
+    // The key is the first member of every entry type
     char* const entry_key = (char *) (hm->hash_entries + hm->entry_size * index);
 
     key = perfect_hashmap_key_tail(key);

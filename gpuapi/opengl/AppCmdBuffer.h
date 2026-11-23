@@ -35,7 +35,7 @@ void* cmd_shader_load(AppCmdBuffer*, AppCommand*) NO_EXCEPT
  * @param int32                             binding_count   Amount of uniforms
  * @param bool                              fatal           false = errors are not asserted (e.g. hot reload)
  * @param const char*                       defines         Optional source inserted after the #version line of every stage
- *                                                          (variants of one shader, @see gpuapi_shader_make), NULL = none
+ *                                                          (variants of one shader), NULL = none
  *
  * @return bool false if a shader couldn't be loaded/compiled/linked (only if !fatal), pipeline->id is 0 then
  */
@@ -142,7 +142,7 @@ bool cmd_pipeline_load_sync(
  * all uniforms exist, otherwise the current pipeline stays as it is.
  * The uniform values are not taken over (the caller has to set the uniforms that are only set once)
  *
- * @param const char*                       defines         Optional source after the #version line (@see cmd_pipeline_load_sync)
+ * @param const char*                       defines         Optional source after the #version line
  *
  * @return bool true if the pipeline was replaced
  */

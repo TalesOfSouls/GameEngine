@@ -206,7 +206,7 @@ static void test_bits_count() {
     TEST_EQUALS(bits_count((uint64) 0x123456789ABCDEF0ULL, true), bits_count((uint64) 0x123456789ABCDEF0ULL));
 }
 
-// Bit stream (MSB first, @see BitWalk)
+// Bit stream (MSB first)
 static void test_bits_walk() {
     byte data[4] = {};
     BitWalk stream = {data, 0};
