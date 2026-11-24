@@ -37,7 +37,7 @@
  *
  * @return const wchar_t* buffer
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 const wchar_t* file_path_wide(wchar_t* __restrict buffer, const char* __restrict path) NO_EXCEPT
 {
     char_to_wchar(buffer, path, PATH_MAX_LENGTH);
@@ -78,7 +78,7 @@ static inline bool CreateDirectoryWrapper(const char* path, LPSECURITY_ATTRIBUTE
     return CreateDirectoryW(file_path_wide(wide, path), lpSecurityAttributes);
 }
 
-static inline bool MoveFileWrapper(const char* lpExistingFileName, const char* lpNewFileName) NO_EXCEPT
+static inline bool MoveFileWrapper(const char* __restrict lpExistingFileName, const char* __restrict lpNewFileName) NO_EXCEPT
 {
     wchar_t src[PATH_MAX_LENGTH];
     wchar_t dst[PATH_MAX_LENGTH];
@@ -86,7 +86,7 @@ static inline bool MoveFileWrapper(const char* lpExistingFileName, const char* l
     return MoveFileW(file_path_wide(src, lpExistingFileName), file_path_wide(dst, lpNewFileName));
 }
 
-static inline bool MoveFileExWrapper(const char* lpExistingFileName, const char* lpNewFileName, DWORD dwFlags) NO_EXCEPT
+static inline bool MoveFileExWrapper(const char* __restrict lpExistingFileName, const char* __restrict lpNewFileName, DWORD dwFlags) NO_EXCEPT
 {
     wchar_t src[PATH_MAX_LENGTH];
     wchar_t dst[PATH_MAX_LENGTH];
@@ -94,7 +94,7 @@ static inline bool MoveFileExWrapper(const char* lpExistingFileName, const char*
     return MoveFileExW(file_path_wide(src, lpExistingFileName), file_path_wide(dst, lpNewFileName), dwFlags);
 }
 
-static inline bool CopyFileWrapper(const char* lpExistingFileName, const char* lpNewFileName, BOOL bFailIfExists) NO_EXCEPT
+static inline bool CopyFileWrapper(const char* __restrict lpExistingFileName, const char* __restrict lpNewFileName, BOOL bFailIfExists) NO_EXCEPT
 {
     wchar_t src[PATH_MAX_LENGTH];
     wchar_t dst[PATH_MAX_LENGTH];
@@ -112,7 +112,7 @@ static inline bool DeleteFileWrapper(const char* lpFileName) NO_EXCEPT
 /**
  * FindFirstFileW() with a utf8 search pattern
  */
-static inline HANDLE FindFirstFileWrapper(const char* pattern, WIN32_FIND_DATAW* find_data) NO_EXCEPT
+static inline HANDLE FindFirstFileWrapper(const char* __restrict pattern, WIN32_FIND_DATAW* __restrict find_data) NO_EXCEPT
 {
     wchar_t wide[PATH_MAX_LENGTH];
 
@@ -798,7 +798,7 @@ inline
 bool file_read_line(
     FileHandle fp,
     char* __restrict line_buffer, size_t buffer_size,
-    char internal_buffer[512], ssize_t* __restrict internal_buffer_size, char** internal_pos
+    char internal_buffer[512], ssize_t* __restrict internal_buffer_size, char** __restrict internal_pos
 ) NO_EXCEPT
 {
     if (!(*internal_pos)) {
@@ -921,8 +921,8 @@ file_copy(const char* __restrict src, const char* __restrict dst) NO_EXCEPT
 }
 
 inline bool directory_copy(
-    const char* src,
-    const char* dst
+    const char* __restrict src,
+    const char* __restrict dst
 ) NO_EXCEPT
 {
     if (!directory_tree_create(dst)) {
@@ -1497,8 +1497,8 @@ uint64 directory_last_modified(const char* path, int32 max_depth = 8) NO_EXCEPT
 }
 
 void iterate_directory(
-    const char* base_path,
-    const char* file_ending,
+    const char* __restrict base_path,
+    const char* __restrict file_ending,
     void (*handler)(const char *, void *),
     ...
 ) NO_EXCEPT

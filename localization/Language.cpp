@@ -59,7 +59,7 @@ LanguageKey language_key(const char (&key)[N]) NO_EXCEPT
 }
 
 // Key that is only known at runtime but with a known length (e.g. parsed from a file)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 LanguageKey language_key(const char* const key, int32 length) NO_EXCEPT
 {
     return { language_hash(key, length), length, key };
@@ -94,14 +94,14 @@ const LanguageSlot* language_slot_find(const Language* const lang, const Languag
 
 // Same as above for \0 terminated keys (e.g. keys that are only known at runtime)
 static inline
-const LanguageSlot* language_slot_find(const Language* const lang, const char* const key) NO_EXCEPT
+const LanguageSlot* language_slot_find(const Language* const __restrict lang, const char* const __restrict key) NO_EXCEPT
 {
     return language_slot_find(lang, language_key(key, (int32) str_length(key)));
 }
 
 // String of a slot incl. its length ({0, 0, NULL} if there is no slot)
 FORCE_INLINE
-SimpleString<const char> language_slot_string(const Language* const lang, const LanguageSlot* const slot) NO_EXCEPT
+SimpleString<const char> language_slot_string(const Language* const __restrict lang, const LanguageSlot* const __restrict slot) NO_EXCEPT
 {
     if (!slot) {
         SimpleString<const char> empty = { 0, 0, NULL };
@@ -130,7 +130,7 @@ const char* language_get(const Language* const lang, const LanguageKey& key) NO_
 
 // Same as above for \0 terminated keys (prefer language_key("...") for string literals)
 FORCE_INLINE
-const char* language_get(const Language* const lang, const char* const key) NO_EXCEPT
+const char* language_get(const Language* const __restrict lang, const char* const __restrict key) NO_EXCEPT
 {
     const LanguageSlot* const slot = language_slot_find(lang, key);
 
@@ -138,7 +138,7 @@ const char* language_get(const Language* const lang, const char* const key) NO_E
 }
 
 FORCE_INLINE
-const char* language_alt_get(const Language* const lang, const LanguageKey& key, const char* const alt) NO_EXCEPT
+const char* language_alt_get(const Language* const __restrict lang, const LanguageKey& key, const char* const __restrict alt) NO_EXCEPT
 {
     const LanguageSlot* const slot = language_slot_find(lang, key);
 
@@ -147,7 +147,7 @@ const char* language_alt_get(const Language* const lang, const LanguageKey& key,
 
 // Same as above for \0 terminated keys (prefer language_key("...") for string literals)
 FORCE_INLINE
-const char* language_alt_get(const Language* const lang, const char* const key, const char* const alt) NO_EXCEPT
+const char* language_alt_get(const Language* const __restrict lang, const char* const __restrict key, const char* const __restrict alt) NO_EXCEPT
 {
     const LanguageSlot* const slot = language_slot_find(lang, key);
 
@@ -166,7 +166,7 @@ SimpleString<const char> language_get_string(const Language* const lang, const L
 }
 
 FORCE_INLINE
-SimpleString<const char> language_get_string(const Language* const lang, const char* const key) NO_EXCEPT
+SimpleString<const char> language_get_string(const Language* const __restrict lang, const char* const __restrict key) NO_EXCEPT
 {
     return language_slot_string(lang, language_slot_find(lang, key));
 }
@@ -179,8 +179,8 @@ SimpleString<const char> language_get_string(const Language* const lang, const c
  *
  * @return const char* NULL if the key doesn't exist
  */
-FORCE_INLINE
-const char* language_get(const Language* const lang, const char** const cache, const LanguageKey& key) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+const char* language_get(const Language* const __restrict lang, const char** const __restrict cache, const LanguageKey& key) NO_EXCEPT
 {
     if (!*cache) {
         *cache = language_get(lang, key);
@@ -189,8 +189,8 @@ const char* language_get(const Language* const lang, const char** const cache, c
     return *cache;
 }
 
-FORCE_INLINE
-const char* language_get(const Language* const lang, const char** const cache, const char* const key) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+const char* language_get(const Language* const __restrict lang, const char** const __restrict cache, const char* const __restrict key) NO_EXCEPT
 {
     if (!*cache) {
         *cache = language_get(lang, key);
@@ -207,10 +207,10 @@ const char* language_get(const Language* const lang, const char** const cache, c
  *
  * @return SimpleString<const char> {0, 0, NULL} if the key doesn't exist
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 SimpleString<const char> language_get_string(
-    const Language* const lang,
-    SimpleString<const char>* const cache,
+    const Language* const __restrict lang,
+    SimpleString<const char>* const __restrict cache,
     const LanguageKey& key
 ) NO_EXCEPT
 {
@@ -221,11 +221,11 @@ SimpleString<const char> language_get_string(
     return *cache;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 SimpleString<const char> language_get_string(
-    const Language* const lang,
-    SimpleString<const char>* const cache,
-    const char* const key
+    const Language* const __restrict lang,
+    SimpleString<const char>* const __restrict cache,
+    const char* const __restrict key
 ) NO_EXCEPT
 {
     if (!cache->str) {
@@ -235,7 +235,7 @@ SimpleString<const char> language_get_string(
     return *cache;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 language_slot_count(int32 count) NO_EXCEPT
 {
     int32 slot_count = 8;
@@ -249,7 +249,7 @@ int32 language_slot_count(int32 count) NO_EXCEPT
 /**
  * Upper bound of the memory size for a language text
  */
-inline
+CONSTEXPR inline
 int32 language_txt_memory_size(const char* const text, int32 length) NO_EXCEPT
 {
     int32 lines = 1;

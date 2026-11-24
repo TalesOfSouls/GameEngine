@@ -236,7 +236,7 @@ int32 hid_controller_add(
  *
  * @return int32 Input index (-1 = not a connected hid controller)
  */
-inline
+CONSTEXPR inline
 int32 hid_controller_find_by_path(
     const Input* const __restrict states, int32 count,
     const wchar_t* const __restrict path

@@ -94,7 +94,7 @@ struct ModelEmitterState {
     uint32 active;
 };
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 model_align_instance(uint32 offset, uint32 alignment) NO_EXCEPT
 {
     return (offset + alignment - 1) & ~(alignment - 1);

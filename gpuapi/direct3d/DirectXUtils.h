@@ -98,7 +98,7 @@ int32 max_directx_version()
 inline
 void change_viewport(
     f32 width, f32 height,
-    ID3D12GraphicsCommandList* command_buffer, D3D12_VIEWPORT* viewport, D3D12_RECT* scissor_rect
+    ID3D12GraphicsCommandList* __restrict command_buffer, D3D12_VIEWPORT* __restrict viewport, D3D12_RECT* __restrict scissor_rect
 )
 {
     viewport->Width = width;
@@ -113,8 +113,8 @@ void change_viewport(
 
 // Returns frame index
 int32 wait_for_previous_frame(
-    FramesInFlightContainer* frames_in_flight,
-    ID3D12CommandQueue* graphics_queue, IDXGISwapChain3* swapchain
+    FramesInFlightContainer* __restrict frames_in_flight,
+    ID3D12CommandQueue* __restrict graphics_queue, IDXGISwapChain3* __restrict swapchain
 )
 {
     // @todo WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
@@ -192,7 +192,7 @@ void gpuapi_debug_messenger_setup(ID3D12Device* device)
 }
 
 inline
-void gpuapi_pick_physical_device(IDXGIFactory6* instance, IDXGIAdapter1** physical_device, bool requestHighPerformanceAdapter = true)
+void gpuapi_pick_physical_device(IDXGIFactory6* __restrict instance, IDXGIAdapter1** __restrict physical_device, bool requestHighPerformanceAdapter = true)
 {
     IDXGIAdapter1* adapter = NULL;
     IDXGIFactory6* factory6 = NULL;
@@ -246,7 +246,7 @@ void gpuapi_pick_physical_device(IDXGIFactory6* instance, IDXGIAdapter1** physic
 }
 
 inline
-void gpuapi_create_logical_device(IDXGIAdapter1* physical_device, ID3D12Device** device)
+void gpuapi_create_logical_device(IDXGIAdapter1* __restrict physical_device, ID3D12Device** __restrict device)
 {
     HRESULT hr;
     if (FAILED(hr = D3D12CreateDevice(physical_device, D3D_FEATURE_LEVEL_11_0, IID_PPVOID(device)))) {
@@ -257,10 +257,10 @@ void gpuapi_create_logical_device(IDXGIAdapter1* physical_device, ID3D12Device**
 
 inline
 void gpuapi_command_buffer_create(
-    ID3D12Device* device,
-    ID3D12CommandAllocator* command_pool,
-    ID3D12PipelineState* pipeline,
-    ID3D12GraphicsCommandList** command_buffer
+    ID3D12Device* __restrict device,
+    ID3D12CommandAllocator* __restrict command_pool,
+    ID3D12PipelineState* __restrict pipeline,
+    ID3D12GraphicsCommandList** __restrict command_buffer
 )
 {
     HRESULT hr;
@@ -274,7 +274,7 @@ void gpuapi_command_buffer_create(
     };
 }
 
-static
+CONSTEXPR static
 DXGI_FORMAT gpuapi_texture_format(byte settings)
 {
     if ((settings & IMAGE_SETTING_CHANNEL_4_SIZE)) {
@@ -514,9 +514,9 @@ D3D12_CPU_DESCRIPTOR_HANDLE gpuapi_texture_to_gpu(
 }
 
 void gpuapi_vertex_buffer_create(
-    ID3D12Device* device,
-    D3D12_VERTEX_BUFFER_VIEW* vertex_buffer_view,
-    ID3D12Resource** vertex_buffer,
+    ID3D12Device* __restrict device,
+    D3D12_VERTEX_BUFFER_VIEW* __restrict vertex_buffer_view,
+    ID3D12Resource** __restrict vertex_buffer,
     const void* __restrict vertices, uint32 vertex_size, uint32 vertex_count
 )
 {
@@ -583,7 +583,7 @@ void gpuapi_vertex_buffer_create(
 
 // @question vertex_count is a count where offset is bytes, this seems inconsistent
 void gpuapi_vertex_buffer_update(
-    ID3D12Resource* vertex_buffer,
+    ID3D12Resource* __restrict vertex_buffer,
     const void* __restrict vertices,
     uint32 vertex_size,
     uint32 vertex_count,
@@ -611,8 +611,8 @@ void gpuapi_vertex_buffer_update(
 
 // In directx this is actually called a constant buffer
 void gpuapi_uniform_buffers_create(
-    ID3D12Device* device,
-    ID3D12Resource** uniform_buffer,
+    ID3D12Device* __restrict device,
+    ID3D12Resource** __restrict uniform_buffer,
     const void* __restrict data, uint32 buffer_size
 )
 {
@@ -661,7 +661,7 @@ void gpuapi_uniform_buffers_create(
 }
 
 void gpuapi_uniform_buffer_update(
-    ID3D12Resource* uniform_buffer,
+    ID3D12Resource* __restrict uniform_buffer,
     const void* __restrict data,
     uint32 buffer_size
 )

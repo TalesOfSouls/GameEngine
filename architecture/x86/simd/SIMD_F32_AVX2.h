@@ -342,7 +342,7 @@ inline bool all_false(f32_8 a)
 }
 
 inline
-void simd_cmp_le(const __m256* a, f32 b, bool* result, int32 size)
+void simd_cmp_le(const __m256* __restrict a, f32 b, bool* __restrict result, int32 size)
 {
     __m256 b_8 = _mm256_set1_ps(b);
 
@@ -392,7 +392,7 @@ f32_8 simd_acos(f32_8 a)
 }
 
 inline
-void simd_div(const f32* a, f32 b, __m256* result, int32 size)
+void simd_div(const f32* __restrict a, f32 b, __m256* __restrict result, int32 size)
 {
     int32 i = 0;
     int32 j = 0;

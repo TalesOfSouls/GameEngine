@@ -142,7 +142,7 @@ static const GUID INPUT_GUID_DEVINTERFACE_HID = {
     { 0x88, 0xCB, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30 }
 };
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 bool input_controller_api_uses_xinput(byte controller_api) NO_EXCEPT
 {
     return (controller_api == CONTROLLER_INPUT_TYPE_HID || controller_api == CONTROLLER_INPUT_TYPE_XINPUT)

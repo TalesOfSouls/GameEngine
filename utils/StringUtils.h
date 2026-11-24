@@ -47,18 +47,18 @@ wchar_t* str_find(const wchar_t* str, wchar_t c) NO_EXCEPT
 }
 
 FORCE_INLINE
-char* str_find(const char* haystack, const char* needle) NO_EXCEPT
+char* str_find(const char* __restrict haystack, const char* __restrict needle) NO_EXCEPT
 {
     return (char *) strstr(haystack, needle);
 }
 
 FORCE_INLINE
-wchar_t* str_find(const wchar_t* haystack, const wchar_t* needle) NO_EXCEPT
+wchar_t* str_find(const wchar_t* __restrict haystack, const wchar_t* __restrict needle) NO_EXCEPT
 {
     return (wchar_t *) wcsstr(haystack, needle);
 }
 
-inline
+CONSTEXPR inline
 int32 utf8_encode(uint32 codepoint, char* out) NO_EXCEPT
 {
     if (codepoint <= 0x7F) {
@@ -122,7 +122,7 @@ int32 utf8_decode(const char* __restrict in, uint32* __restrict codepoint) NO_EX
     return 0;
 }
 
-inline
+CONSTEXPR inline
 int32 utf8_decode(const uint32 codepoint, char* out) NO_EXCEPT
 {
     if (codepoint <= 0x7F) {
@@ -165,7 +165,7 @@ int32 utf8_decode(const uint32 codepoint, char* out) NO_EXCEPT
  *
  * @return int32 Byte offset of the start of the previous character, 0 at the beginning of the text
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 utf8_prev(const char* const text, int32 pos) NO_EXCEPT
 {
     if (pos <= 0) {
@@ -190,7 +190,7 @@ int32 utf8_prev(const char* const text, int32 pos) NO_EXCEPT
  *
  * @return int32 Byte offset of the start of the next character, length at the end of the text
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 utf8_next(const char* const text, int32 pos, int32 length) NO_EXCEPT
 {
     if (pos >= length) {
@@ -205,7 +205,7 @@ int32 utf8_next(const char* const text, int32 pos, int32 length) NO_EXCEPT
     return pos;
 }
 
-inline
+CONSTEXPR inline
 int32 utf8_strlen(const char* in) NO_EXCEPT
 {
     int32 length = 0;
@@ -234,7 +234,7 @@ int32 utf8_strlen(const char* in) NO_EXCEPT
     return length;
 }
 
-inline
+CONSTEXPR inline
 void string_to_utf8(const uint32* __restrict in, char* __restrict out) NO_EXCEPT
 {
     char buffer[5] = {};
@@ -246,7 +246,7 @@ void string_to_utf8(const uint32* __restrict in, char* __restrict out) NO_EXCEPT
     }
 }
 
-inline
+CONSTEXPR inline
 int32 utf8_get_char_at(const char* in, int32 index) NO_EXCEPT
 {
     int32 i = 0;
@@ -413,8 +413,8 @@ int32 wchar_to_char(
     return i;
 }
 
-inline
-int32 utf8_to_wchar(const char* in, wchar_t* out, int32 length)
+CONSTEXPR inline
+int32 utf8_to_wchar(const char* __restrict in, wchar_t* __restrict out, int32 length)
 {
     int32 out_pos = 0;
 
@@ -618,7 +618,7 @@ bool str_is_integer(const char* str) NO_EXCEPT
 }
 
 inline
-int64 str_to_int(const char* str, const char** pos = NULL) NO_EXCEPT
+int64 str_to_int(const char* __restrict str, const char** __restrict pos = NULL) NO_EXCEPT
 {
     int64 sign = 1;
     if (*str == '-') {
@@ -647,7 +647,7 @@ int64 str_to_int(char* str, char** pos = NULL) NO_EXCEPT
     return str_to_int((const char*) str, (const char**) pos);
 }
 
-inline
+CONSTEXPR inline
 int32 int_length(int64 number) NO_EXCEPT
 {
     if (number == 0) {
@@ -780,7 +780,7 @@ int32 int_to_str(uint64 number, T str[21]) NO_EXCEPT
 }
 
 template <typename T>
-inline int32 int_to_str(int64 number, T str[26], T thousands) NO_EXCEPT
+CONSTEXPR inline int32 int_to_str(int64 number, T str[26], T thousands) NO_EXCEPT
 {
     if (number == 0) {
         *str++ = T('0');
@@ -973,7 +973,7 @@ static CONSTEXPR const bool HEX_LOOKUP_TABLE[256] = {
     false, false, false, false, false, false, false, false  // 248-255
 };
 
-inline
+CONSTEXPR inline
 bool str_is_hex_color(const char* str) NO_EXCEPT
 {
     if (str[0] != '#') {
@@ -1009,7 +1009,7 @@ inline void byte_to_hex(byte data, T* out)
 }
 
 template <typename T>
-inline void bytes_to_hex(const byte* data, size_t len, T* out)
+inline void bytes_to_hex(const byte* __restrict data, size_t len, T* __restrict out)
 {
     static const T hex[] = {
         T('0'), T('1'), T('2'), T('3'),
@@ -1155,25 +1155,25 @@ void str_copy(wchar_t* __restrict dest, const wchar_t* __restrict src) NO_EXCEPT
 }
 
 FORCE_INLINE
-int32 str_compare(const char* str1, const char* str2) NO_EXCEPT
+int32 str_compare(const char* __restrict str1, const char* __restrict str2) NO_EXCEPT
 {
     return strcmp(str1, str2);
 }
 
 FORCE_INLINE
-int32 str_compare(const char* str1, const char* str2, size_t n) NO_EXCEPT
+int32 str_compare(const char* __restrict str1, const char* __restrict str2, size_t n) NO_EXCEPT
 {
     return strncmp(str1, str2, n);
 }
 
 FORCE_INLINE
-int32 str_compare(const wchar_t* str1, const wchar_t* str2) NO_EXCEPT
+int32 str_compare(const wchar_t* __restrict str1, const wchar_t* __restrict str2) NO_EXCEPT
 {
     return wcscmp(str1, str2);
 }
 
 FORCE_INLINE
-int32 str_compare(const wchar_t* str1, const wchar_t* str2, size_t n) NO_EXCEPT
+int32 str_compare(const wchar_t* __restrict str1, const wchar_t* __restrict str2, size_t n) NO_EXCEPT
 {
     return wcsncmp(str1, str2, n);
 }
@@ -1195,10 +1195,10 @@ int32 str_append(
 // @question Do we even need this or could we just use str_append
 inline
 void str_line_append(
-    char* const text,
-    int32* const length,
+    char* const __restrict text,
+    int32* const __restrict length,
     int32 capacity,
-    const char* const line
+    const char* const __restrict line
 ) NO_EXCEPT
 {
     if (*length > 0 && *length < capacity - 1) {
@@ -1304,7 +1304,7 @@ void str_copy_move_until(char* __restrict dest, const char* __restrict* __restri
     *dest = '\0';
 }
 
-inline
+CONSTEXPR inline
 int32 str_copy_to_eol(const char* __restrict src, char* __restrict dst) NO_EXCEPT
 {
     int32 offset = 0;
@@ -1318,7 +1318,7 @@ int32 str_copy_to_eol(const char* __restrict src, char* __restrict dst) NO_EXCEP
     return offset;
 }
 
-inline
+CONSTEXPR inline
 int32 str_copy_to_eol(const char* __restrict src, char* __restrict dst, size_t length) NO_EXCEPT
 {
     int32 offset = 0;
@@ -1333,7 +1333,7 @@ int32 str_copy_to_eol(const char* __restrict src, char* __restrict dst, size_t l
     return offset;
 }
 
-inline
+CONSTEXPR inline
 int32 str_copy_to_empty(const char* __restrict src, char* __restrict dst) NO_EXCEPT
 {
     int32 offset = 0;
@@ -1347,7 +1347,7 @@ int32 str_copy_to_empty(const char* __restrict src, char* __restrict dst) NO_EXC
     return offset;
 }
 
-inline
+CONSTEXPR inline
 int32 str_copy_to_empty(const char* __restrict src, char* __restrict dst, size_t length) NO_EXCEPT
 {
     int32 offset = 0;
@@ -1363,7 +1363,7 @@ int32 str_copy_to_empty(const char* __restrict src, char* __restrict dst, size_t
 }
 
 inline
-char* strsep(const char** sp, const char* sep) NO_EXCEPT
+char* strsep(const char** __restrict sp, const char* __restrict sep) NO_EXCEPT
 {
     char* p, *s;
 
@@ -1400,9 +1400,9 @@ str_concat_new(
 template <typename C>
 inline
 int32 str_concat_new(
-    C* dst,
-    const C* src1, int32 src1_length,
-    const C* src2, int32 src2_length
+    C* __restrict dst,
+    const C* __restrict src1, int32 src1_length,
+    const C* __restrict src2, int32 src2_length
 ) NO_EXCEPT
 {
     memcpy(dst, src1, sizeof(C) * src1_length);
@@ -1418,7 +1418,7 @@ str_concat_new(
     char* __restrict dst,
     const char* __restrict src1,
     const char* __restrict src2,
-    const char* src3
+    const char* __restrict src3
 ) NO_EXCEPT
 {
     const char* const sources[3] = { src1, src2, src3 };
@@ -1566,7 +1566,7 @@ void str_remove(char* __restrict dst, size_t remove_pos, size_t remove_length) N
 }
 
 inline
-char* strtok(char* str, const char* __restrict delim, char** key) NO_EXCEPT
+char* strtok(char* __restrict str, const char* __restrict delim, char** __restrict key) NO_EXCEPT
 {
     char* result;
     if (str == NULL) {
@@ -1687,8 +1687,8 @@ bool byte_contains(
     return false;
 }
 
-inline
-int32 str_compare_caseless(const char* str1, const char* str2) NO_EXCEPT
+CONSTEXPR inline
+int32 str_compare_caseless(const char* __restrict str1, const char* __restrict str2) NO_EXCEPT
 {
     byte c1, c2;
 
@@ -1700,7 +1700,7 @@ int32 str_compare_caseless(const char* str1, const char* str2) NO_EXCEPT
     return c1 - c2;
 }
 
-int32 str_compare_caseless(const char* str1, const char* str2, size_t n) NO_EXCEPT
+CONSTEXPR int32 str_compare_caseless(const char* __restrict str1, const char* __restrict str2, size_t n) NO_EXCEPT
 {
     byte c1 = '\0';
     byte c2 = '\0';
@@ -1947,13 +1947,13 @@ void str_move_past_alpha_num(const char** str) NO_EXCEPT
     }
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool str_is_comment(const char* str) NO_EXCEPT
 {
     return (*str == '/' && str[1] == '/') || (*str == '/' && str[1] == '*');
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void str_skip(const char** str, char delim) NO_EXCEPT
 {
     while (**str && **str == delim)  {
@@ -1961,7 +1961,7 @@ void str_skip(const char** str, char delim) NO_EXCEPT
     }
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void str_skip_whitespace(const char** str) NO_EXCEPT
 {
     while (**str && (**str == ' ' || **str == '\t'))  {
@@ -1969,25 +1969,25 @@ void str_skip_whitespace(const char** str) NO_EXCEPT
     }
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool str_is_space(const char str) NO_EXCEPT
 {
     return str == ' ' || str == '\t' || str == '\r';
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool str_is_empty(const char str) NO_EXCEPT
 {
     return str == ' ' || str == '\t' || str == '\n' || str == '\r';
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool str_is_eol(const char str) NO_EXCEPT
 {
     return str == '\n' || str == '\r';
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void str_skip_empty(const char** str) NO_EXCEPT
 {
     while (**str == ' ' || **str == '\t' || **str == '\n' || **str == '\r')  {
@@ -2015,7 +2015,7 @@ char* str_skip_empty(const char* str) NO_EXCEPT
     return (char *) str;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void str_skip_eol(const char** str) NO_EXCEPT
 {
     while (**str == '\n' || **str == '\r')  {
@@ -2033,7 +2033,7 @@ char* str_skip_eol(const char* str) NO_EXCEPT
     return (char *) str;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void str_skip_non_empty(const char** str) NO_EXCEPT
 {
     while (**str != ' ' && **str != '\t' && **str != '\n' && **str != '\0')  {
@@ -2051,7 +2051,7 @@ char* str_skip_non_empty(const char* str) NO_EXCEPT
     return (char *) str;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void str_skip_line(const char** str) {
     while (**str != '\0' && **str != '\n') { ++(*str); };
 
@@ -2071,7 +2071,7 @@ char* str_skip_line(const char* str) {
     return (char *) str;
 }
 
-inline
+CONSTEXPR inline
 void str_skip_list(const char** __restrict str, const char* __restrict delim, int32 len) NO_EXCEPT
 {
     bool run = true;
@@ -2090,7 +2090,7 @@ void str_skip_list(const char** __restrict str, const char* __restrict delim, in
 }
 
 // Moves str to the first char that is part of delim (or to the \0)
-inline
+CONSTEXPR inline
 void str_move_to(const char** __restrict str, const char* __restrict delim) NO_EXCEPT
 {
     // Single delimiter -> word scan
@@ -2159,7 +2159,7 @@ void str_pad_left(const char* __restrict input, char* __restrict output, char pa
 }
 
 inline
-f32 str_to_float(const char* str, const char** pos = NULL) NO_EXCEPT
+f32 str_to_float(const char* __restrict str, const char** __restrict pos = NULL) NO_EXCEPT
 {
     const char *p = str;
     f32 result = 0.0f;
@@ -2273,7 +2273,7 @@ int32 float_to_str(f64 value, T* buffer, int32 precision = 5) NO_EXCEPT
 }
 
 template <typename T>
-inline
+CONSTEXPR inline
 void format_time_hh_mm_ss_ms(T time_str[13], int32 hours, int32 minutes, int32 secs, int32 ms) NO_EXCEPT
 {
     time_str[0] = T('0' + (hours / 10));
@@ -2304,7 +2304,7 @@ void format_time_hh_mm_ss_ms(T time_str[13], uint64 ms) NO_EXCEPT
 }
 
 template <typename T>
-void format_time_hh_mm_ss(T time_str[9], int32 hours, int32 minutes, int32 secs) NO_EXCEPT
+CONSTEXPR void format_time_hh_mm_ss(T time_str[9], int32 hours, int32 minutes, int32 secs) NO_EXCEPT
 {
     time_str[0] = T('0' + (hours / 10));
     time_str[1] = T('0' + (hours % 10));
@@ -2329,7 +2329,7 @@ void format_time_hh_mm_ss(T time_str[9], uint64 seconds) NO_EXCEPT
 }
 
 template <typename T>
-inline
+CONSTEXPR inline
 void format_time_hh_mm(T time_str[6], int32 hours, int32 minutes) NO_EXCEPT
 {
     time_str[0] = T('0' + (hours / 10));
@@ -2341,7 +2341,7 @@ void format_time_hh_mm(T time_str[6], int32 hours, int32 minutes) NO_EXCEPT
 }
 
 template <typename T>
-inline
+CONSTEXPR inline
 void format_time_hh_mm(T time_str[6], uint64 seconds) NO_EXCEPT
 {
     const int32 hours = (seconds / 3600) % 24;
@@ -2950,7 +2950,7 @@ struct FormatRuntime {
 };
 
 // Marks a format string as only known at runtime (no compile time parsing/checks)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 FormatRuntime fmt_runtime(const char* format) NO_EXCEPT
 {
     FormatRuntime runtime = { format };
@@ -3285,7 +3285,7 @@ int32 sprintf_fast_iter(char* __restrict buffer, int32 buffer_size, const char* 
     return (int32) (buffer - start);
 }
 
-bool sscanf_fast(const char *input, const char *format, ...) NO_EXCEPT
+bool sscanf_fast(const char* __restrict input, const char* __restrict format, ...) NO_EXCEPT
 {
     str_skip_whitespace(&format);
     str_skip_whitespace(&input);

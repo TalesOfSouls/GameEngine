@@ -11,8 +11,8 @@
 #include "../utils/StringUtils.h"
 
 // max out length = length * 2 + 1
-inline
-uint64 rle_encode(const char* in, size_t length, char* out) NO_EXCEPT
+CONSTEXPR inline
+uint64 rle_encode(const char* __restrict in, size_t length, char* __restrict out) NO_EXCEPT
 {
     uint64 count;
     uint64 j = 0;
@@ -34,8 +34,8 @@ uint64 rle_encode(const char* in, size_t length, char* out) NO_EXCEPT
     return j;
 }
 
-inline
-uint64 rle_decode(const char* in, size_t length, char* out) NO_EXCEPT
+CONSTEXPR inline
+uint64 rle_decode(const char* __restrict in, size_t length, char* __restrict out) NO_EXCEPT
 {
     uint64 j = 0;
 

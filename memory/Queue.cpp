@@ -26,7 +26,7 @@
  * and head/tail always point to a valid slot (they wrap immediately when they reach queue->end)
  */
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint64 queue_capacity(const Queue* const queue) NO_EXCEPT
 {
     return (uint64) (queue->end - queue->memory) / queue->element_size;
@@ -43,7 +43,7 @@ void queue_slots_init(Queue* const queue, uint32 element_size, uint32 alignment)
 }
 
 // Moves a slot pointer to the next slot
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void queue_advance(const Queue* const queue, byte** const pos) NO_EXCEPT
 {
     *pos += queue->element_size;
@@ -296,7 +296,7 @@ bool thrd_memory_resize(Queue* const queue, size_t new_capacity) NO_EXCEPT
     return memory_resize(queue, new_capacity);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool queue_is_empty(const Queue* const queue) NO_EXCEPT
 {
     return queue->head == queue->tail;
@@ -316,7 +316,7 @@ void queue_set_empty(Queue* const queue) NO_EXCEPT
 }
 
 // Checks if one more element can be enqueued (the slot after head must not be the tail)
-static inline
+CONSTEXPR static inline
 bool queue_has_space(const Queue* const queue) NO_EXCEPT
 {
     byte* next = queue->head;
@@ -325,7 +325,7 @@ bool queue_has_space(const Queue* const queue) NO_EXCEPT
     return next != queue->tail;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool queue_is_full(const Queue* const queue) NO_EXCEPT
 {
     return !queue_has_space(queue);
@@ -581,7 +581,7 @@ bool thrd_queue_dequeue(Queue* __restrict queue, byte* __restrict data) NO_EXCEP
     return result;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 byte* queue_dequeue_keep(const Queue* const queue) NO_EXCEPT
 {
     if (queue->head == queue->tail) {
@@ -592,7 +592,7 @@ byte* queue_dequeue_keep(const Queue* const queue) NO_EXCEPT
 }
 
 // WARNING: Doesn't check if the queue is empty
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 byte* queue_dequeue_start(const Queue* const queue) NO_EXCEPT
 {
     return queue->tail;

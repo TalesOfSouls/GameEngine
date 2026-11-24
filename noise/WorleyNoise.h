@@ -29,11 +29,11 @@ void generate_feature_points_3d(v3_f32* points, int feature_points, int rows, in
     }
 }
 
-float distance_squared_2d(float x1, float y1, float x2, float y2) {
+CONSTEXPR float distance_squared_2d(float x1, float y1, float x2, float y2) {
     return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
 }
 
-float distance_squared_3d(float x1, float y1, float z1, float x2, float y2, float z2) {
+CONSTEXPR float distance_squared_3d(float x1, float y1, float z1, float x2, float y2, float z2) {
     return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) + (z2 - z1) * (z2 - z1);
 }
 

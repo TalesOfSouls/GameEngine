@@ -51,15 +51,15 @@ struct DRMSignature {
 static const uint8 XOR_KEY_BYTES[] = { 0x5A, 0x2B, 0x13 };
 
 CONSTEXPR inline
-void drm_encode(const byte* src, byte* dst, size_t len) NO_EXCEPT
+void drm_encode(const byte* __restrict src, byte* __restrict dst, size_t len) NO_EXCEPT
 {
     for (size_t i = 0; i < len; ++i) {
         dst[i] = src[i] ^ XOR_KEY_BYTES[i % ARRAY_COUNT(XOR_KEY_BYTES)];
     }
 }
 
-static inline
-size_t drm_decode(byte* output, const byte* encrypted, size_t len) NO_EXCEPT
+CONSTEXPR static inline
+size_t drm_decode(byte* __restrict output, const byte* __restrict encrypted, size_t len) NO_EXCEPT
 {
     for (size_t i = 0; i < len; ++i) {
         output[i] = encrypted[i] ^ XOR_KEY_BYTES[i % ARRAY_COUNT(XOR_KEY_BYTES)];
@@ -143,7 +143,7 @@ static byte _drm_decoded_bytes[DRM_DECODED_BYTES];
 static DRMDecodedSignature _drm_decoded_sigs[DRM_PATTERN_COUNT];
 static size_t _drm_decoded_max_len = 0;
 
-void drm_decode_all() NO_EXCEPT
+CONSTEXPR void drm_decode_all() NO_EXCEPT
 {
     size_t off = 0;
     for (size_t p = 0; p < DRM_PATTERN_COUNT; ++p) {

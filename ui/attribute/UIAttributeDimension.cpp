@@ -127,14 +127,14 @@ void ui_dimension_calculate(
 /**
  * The calculated rect in the format the vertex functions expect (x, y = top left, width, height)
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 v4_f32 ui_dimension_rect(const UIAttributeDimension* const dim) NO_EXCEPT
 {
     return {dim->pos.x, dim->pos.y, dim->dim.x, dim->dim.y};
 }
 
 // @performance I am not sure if I like this. Maybe do some nasty trick by casting dim->pos to v4_f32
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_dimension_contains(const UIAttributeDimension* const dim, f32 x, f32 y) NO_EXCEPT
 {
     return x >= dim->pos.x && x < dim->pos.x + dim->dim.x

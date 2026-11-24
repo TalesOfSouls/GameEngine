@@ -252,7 +252,7 @@ MatchResult regex_match_pattern(SimplifiedRegexParser *parser, const char *text)
     return result;
 }
 
-bool regex_simplified_validate(const char* pattern, const char* text) {
+bool regex_simplified_validate(const char* __restrict pattern, const char* __restrict text) {
     SimplifiedRegexParser parser = {pattern, 0};
     bool starts_with = false;
     bool ends_with = false;

@@ -29,7 +29,7 @@ size_t thrd_chunk_size(size_t type_size, int max_capacity) NO_EXCEPT
 }
 
 // The chunk size is aligned up, otherwise a chunk could start at an unaligned address
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 size_t thrd_chunk_size_element(int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     return ALIGN_UP((size_t) element_size, (size_t) alignment);
@@ -207,7 +207,7 @@ int32 chunk_find_first_zero_bit(size_t word) NO_EXCEPT
     return compiler_find_first_bit_r2l(inverted);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 size_t chunk_range_mask(int32 bit_offset, int32 bit_count) NO_EXCEPT
 {
     return (((OMS_UINT_ONE << bit_count) - 1) << bit_offset);
@@ -277,7 +277,7 @@ bool chunk_try_claim_range(atomic<size_t>* free_words, int32 element, int32 elem
 /**
  * Used to calculate how many chunks we need to reserve size
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 chunk_element_count(const ThrdChunkMemory* const buf, size_t size) {
     return (int32) ((size + buf->chunk_size - 1) / buf->chunk_size);
 }

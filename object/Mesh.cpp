@@ -468,7 +468,7 @@ int32 mesh_from_data(
 
 // @bug this is wrong, since it is the max size
 // We would have to check the vertex format to calculate the actual size
-int32 mesh_data_size(const Mesh* mesh)
+CONSTEXPR int32 mesh_data_size(const Mesh* mesh)
 {
     return sizeof(int32)
         + sizeof(mesh->vertex_type)

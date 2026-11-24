@@ -144,7 +144,7 @@ UICore* ui_panel_content(const UILayout* const layout, UIPanel* const panel) NO_
  * @return v4_f32 x, y = top left, width, height
  */
 inline
-v4_f32 ui_panel_viewport(const UIPanel* const panel, bool* const has_x = NULL, bool* const has_y = NULL) NO_EXCEPT
+v4_f32 ui_panel_viewport(const UIPanel* const __restrict panel, bool* const __restrict has_x = NULL, bool* const __restrict has_y = NULL) NO_EXCEPT
 {
     const UIAttributeDimension* const dim = &panel->core.dimension;
 
@@ -182,7 +182,7 @@ v4_f32 ui_panel_viewport(const UIPanel* const panel, bool* const has_x = NULL, b
  * @return bool false if the panel doesn't have a scrollbar in this axis
  */
 inline
-bool ui_panel_scroll_info(const UIPanel* const panel, UIScrollAxis axis, UIScrollInfo* const info) NO_EXCEPT
+bool ui_panel_scroll_info(const UIPanel* const __restrict panel, UIScrollAxis axis, UIScrollInfo* const __restrict info) NO_EXCEPT
 {
     if (!(panel->panel_flags & UI_PANEL_FLAG_SCROLL)) {
         return false;
@@ -243,7 +243,7 @@ bool ui_panel_scroll_set(UILayout* const layout, UIPanel* const panel, UIScrollA
  * The children MUST already be calculated (called after the subtree was cached)
  */
 inline
-v2_f32 ui_panel_content_extent(const UILayout* const layout, const UIPanel* const panel) NO_EXCEPT
+v2_f32 ui_panel_content_extent(const UILayout* const __restrict layout, const UIPanel* const __restrict panel) NO_EXCEPT
 {
     const UICore* const content = ui_element_get(layout, panel->content);
     const v2_f32 origin = content->dimension.pos;

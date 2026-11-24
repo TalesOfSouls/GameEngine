@@ -59,7 +59,7 @@ void blowfish_init_state(BlowfishContext* const ctx) NO_EXCEPT
  *
  * @return uint32 Transformed word
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 blowfish_f(const BlowfishContext* const __restrict ctx, uint32 x) NO_EXCEPT
 {
     return ((ctx->s[0][(x >> 24) & 0xFF] + ctx->s[1][(x >> 16) & 0xFF])
@@ -73,8 +73,8 @@ uint32 blowfish_f(const BlowfishContext* const __restrict ctx, uint32 x) NO_EXCE
  * @param uint32*                l   Left word
  * @param uint32*                r   Right word
  */
-inline
-void blowfish_encipher(const BlowfishContext* const __restrict ctx, uint32* const l, uint32* const r) NO_EXCEPT
+CONSTEXPR inline
+void blowfish_encipher(const BlowfishContext* const __restrict ctx, uint32* const __restrict l, uint32* const __restrict r) NO_EXCEPT
 {
     uint32 xl = *l ^ ctx->p[0];
     uint32 xr = *r;
@@ -98,8 +98,8 @@ void blowfish_encipher(const BlowfishContext* const __restrict ctx, uint32* cons
  * @param uint32*                l   Left word
  * @param uint32*                r   Right word
  */
-inline
-void blowfish_decipher(const BlowfishContext* const __restrict ctx, uint32* const l, uint32* const r) NO_EXCEPT
+CONSTEXPR inline
+void blowfish_decipher(const BlowfishContext* const __restrict ctx, uint32* const __restrict l, uint32* const __restrict r) NO_EXCEPT
 {
     uint32 a = *r;
     uint32 b = *l ^ ctx->p[17];
@@ -128,7 +128,7 @@ void blowfish_decipher(const BlowfishContext* const __restrict ctx, uint32* cons
  *
  * @return uint32 Next word (big endian)
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 blowfish_stream2word(
     const byte* const __restrict data,
     int32 length,

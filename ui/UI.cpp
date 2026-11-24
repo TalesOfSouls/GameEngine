@@ -57,8 +57,8 @@
 static int32 _ui_pointer_input = 0;
 
 // Is the element and all of its parents visible?
-static inline
-bool ui_element_is_visible(const UILayout* const layout, const UICore* element) NO_EXCEPT
+CONSTEXPR static inline
+bool ui_element_is_visible(const UILayout* const __restrict layout, const UICore* __restrict element) NO_EXCEPT
 {
     while (element) {
         if (element->state & UI_STATE_HIDDEN) {
@@ -1231,7 +1231,7 @@ UICore* ui_scrollbar_at(
 /**
  * Converts window coordinates (y-down, origin top left) to ui coordinates (y-up, origin bottom left)
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 v2_f32 ui_window_to_ui_position(const UILayout* const layout, f32 x, f32 y) NO_EXCEPT
 {
     return {
@@ -1502,7 +1502,7 @@ void ui_element_action(void* app, UILayout* const layout, UICore* const element,
     }
 }
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 bool ui_element_is_text_input(const UICore* const element) NO_EXCEPT
 {
     return element->type == UI_ELEMENT_TYPE_INPUT || element->type == UI_ELEMENT_TYPE_TEXTAREA;
@@ -1541,8 +1541,8 @@ bool ui_input_set_editing(UILayout* const layout, int32 offset) NO_EXCEPT
     return true;
 }
 
-static FORCE_INLINE
-bool ui_select_is_open(const UILayout* const layout, const UISelect* const select) NO_EXCEPT
+CONSTEXPR static FORCE_INLINE
+bool ui_select_is_open(const UILayout* const __restrict layout, const UISelect* const __restrict select) NO_EXCEPT
 {
     return select->popup && layout->interaction.popup == select->popup;
 }
@@ -2257,7 +2257,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
 // and its ui navigation context while ui_input_wants_navigation() is true.
 
 // Does a ui element have the input focus? (text element being edited or element focused by navigation)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_input_has_focus(const UILayout* const layout) NO_EXCEPT
 {
     return layout->interaction.editing != 0 || layout->interaction.nav_focus != 0;
@@ -2728,7 +2728,7 @@ void ui_input_owner_changed(void* app, UILayout* const layout, UIInput* const in
  * Keyboard code -> ui action
  * (tab = next, shift + tab = previous, enter/space = confirm, escape = cancel, arrows, home/end = first/last)
  */
-static inline
+CONSTEXPR static inline
 UINavigation ui_navigation_from_code(uint32 code) NO_EXCEPT
 {
     switch (code & ~((uint32) INPUT_TEXT_MOD_MASK)) {
@@ -3060,7 +3060,7 @@ byte ui_input_navigate(void* app, UILayout* const layout, UINavigation navigatio
  * The ui wants the navigation input (the application should enable HOTKEY_CONTEXT_UI)
  * e.g. an element has the focus or a popup is open
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_input_wants_navigation(const UILayout* const layout) NO_EXCEPT
 {
     return ui_input_has_focus(layout) || layout->interaction.popup != 0;

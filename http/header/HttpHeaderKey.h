@@ -150,7 +150,7 @@ enum HttpHeaderKey : byte {
     HTTP_HEADER_KEY_ORIGINAL_HOST,
 };
 
-const char* http_header_key_text(HttpHeaderKey header_key) {
+CONSTEXPR const char* http_header_key_text(HttpHeaderKey header_key) {
     switch (header_key) {
         case HTTP_HEADER_KEY_HOST:
             return "Host";
@@ -399,7 +399,7 @@ const char* http_header_key_text(HttpHeaderKey header_key) {
     }
 }
 
-HttpHeaderKey http_header_key_text(const char* header) {
+CONSTEXPR HttpHeaderKey http_header_key_text(const char* header) {
     if (str_compare_caseless(header, "Host:") == 0) {
         return HTTP_HEADER_KEY_HOST;
     } else if (str_compare_caseless(header, "User-Agent:") == 0) {

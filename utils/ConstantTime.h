@@ -125,7 +125,7 @@ uint32 ct_select(uint32 mask, uint32 a, uint32 b) NO_EXCEPT
  *
  * @return uint32 Selection mask
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 ct_mask(bool value) NO_EXCEPT
 {
     return (uint32) -(int32) value;

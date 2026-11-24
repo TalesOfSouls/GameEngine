@@ -45,7 +45,7 @@ static const uint32 crc_table[256] =
     0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D,
 };
 
-inline
+CONSTEXPR inline
 void crc32_table_fill(uint32* table) NO_EXCEPT
 {
     uint8 index = 0;
@@ -61,7 +61,7 @@ void crc32_table_fill(uint32* table) NO_EXCEPT
     } while(++index);
 }
 
-inline
+CONSTEXPR inline
 uint32 crc32_software_u8_table(const uint8* data, uint32 length) NO_EXCEPT
 {
 	uint32 crc = 0xFFFFFFFF;
@@ -74,7 +74,7 @@ uint32 crc32_software_u8_table(const uint8* data, uint32 length) NO_EXCEPT
 	return (crc ^ 0xFFFFFFFF);
 }
 
-inline
+CONSTEXPR inline
 uint32 crc32_software_u8(const byte* data, size_t length) NO_EXCEPT
 {
     uint32 crc = 0xFFFFFFFF;

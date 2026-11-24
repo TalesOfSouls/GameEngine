@@ -125,7 +125,7 @@ void asset_archive_header_load(
     }
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 const AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int32 id) NO_EXCEPT
 {
     return &archive->header.asset_element[id];

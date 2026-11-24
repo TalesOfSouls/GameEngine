@@ -22,7 +22,7 @@
  * @return void
  */
 static inline
-void gpu_info_string_set(char* const dest, int32 size, const char* const src) NO_EXCEPT
+void gpu_info_string_set(char* const __restrict dest, int32 size, const char* const __restrict src) NO_EXCEPT
 {
     if (!dest || size <= 0) {
         return;
@@ -161,7 +161,7 @@ void gpuapi_info_get(GpuInfo* info) {
     ASSERT_GPU_API();
 }
 
-void gpu_info_render(char* buf, const GpuInfo* const info) NO_EXCEPT
+void gpu_info_render(char* __restrict buf, const GpuInfo* const __restrict info) NO_EXCEPT
 {
     sprintf_fast(
         buf,

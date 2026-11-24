@@ -245,7 +245,7 @@ static CONSTEXPR const uint16 _vk_to_sc_table[256] = {
     /* 0xFE VK_OEM_CLEAR */ 0,
 };
 
-int32 raw_input_to_scan_code(USHORT make_code, USHORT flags)
+CONSTEXPR int32 raw_input_to_scan_code(USHORT make_code, USHORT flags)
 {
     int32 sc = make_code;
 

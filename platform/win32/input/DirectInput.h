@@ -12,7 +12,7 @@
 #include "../../../input/ControllerInput.h"
 #include "../../../stdlib/Stdlib.h"
 
-BOOL CALLBACK EnumJoysticksCallback(const DIDEVICEINSTANCE* instance, void* pDevicePtr)
+BOOL CALLBACK EnumJoysticksCallback(const DIDEVICEINSTANCE* __restrict instance, void* __restrict pDevicePtr)
 {
     LPDIRECTINPUT8 pDirectInput = (LPDIRECTINPUT8)pDevicePtr;
     LPDIRECTINPUTDEVICE8* pDIDevice = (LPDIRECTINPUTDEVICE8*)pDevicePtr;

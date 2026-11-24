@@ -17,7 +17,7 @@ void font_init(Font* const font, byte* data, int count) NO_EXCEPT
     font->scale = 1.0f;
 }
 
-static inline
+CONSTEXPR static inline
 const Glyph* font_glyph_find_binary(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     const uint32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
@@ -46,7 +46,7 @@ const Glyph* font_glyph_find_binary(const Font* const font, uint32 codepoint) NO
     return NULL;
 }
 
-static inline
+CONSTEXPR static inline
 const Glyph* font_glyph_find_eytzinger(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     uint32 k = 0;
@@ -64,7 +64,7 @@ const Glyph* font_glyph_find_eytzinger(const Font* const font, uint32 codepoint)
     return NULL;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 const Glyph* font_glyph_find(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     return font->order_type == FONT_GLYPH_ORDER_TYPE_NORMAL
@@ -73,7 +73,7 @@ const Glyph* font_glyph_find(const Font* const font, uint32 codepoint) NO_EXCEPT
 }
 
 // @question Consider to change to uint16, we use int16 to check valid values as > 0 but we could change that.
-static inline
+CONSTEXPR static inline
 int16 font_glyph_index_find_binary(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     const int16 perfect_glyph_pos = (int16) (codepoint - font->glyphs[0].codepoint);
@@ -102,7 +102,7 @@ int16 font_glyph_index_find_binary(const Font* const font, uint32 codepoint) NO_
     return -1;
 }
 
-static inline
+CONSTEXPR static inline
 int16 font_glyph_index_find_eytzinger(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     int16 k = 0;
@@ -120,7 +120,7 @@ int16 font_glyph_index_find_eytzinger(const Font* const font, uint32 codepoint) 
     return -1;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int16 font_glyph_index_find(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     if (font->glyph_count == 0) {
@@ -133,7 +133,7 @@ int16 font_glyph_index_find(const Font* const font, uint32 codepoint) NO_EXCEPT
 }
 
 static inline
-uint32 font_glyph_eytzinger_build(Glyph* dst, const Glyph* src, uint32 n, uint32 i, uint32 k) NO_EXCEPT
+uint32 font_glyph_eytzinger_build(Glyph* __restrict dst, const Glyph* __restrict src, uint32 n, uint32 i, uint32 k) NO_EXCEPT
 {
     if (k < n) {
         i = font_glyph_eytzinger_build(dst, src, n, i, 2 * k + 1);
@@ -145,7 +145,7 @@ uint32 font_glyph_eytzinger_build(Glyph* dst, const Glyph* src, uint32 n, uint32
 }
 
 inline
-void font_glyphs_to_eytzinger(Glyph* glyphs, uint32 glyph_count, Glyph* tmp) NO_EXCEPT
+void font_glyphs_to_eytzinger(Glyph* __restrict glyphs, uint32 glyph_count, Glyph* __restrict tmp) NO_EXCEPT
 {
     memcpy(tmp, glyphs, sizeof(Glyph) * glyph_count);
     font_glyph_eytzinger_build(glyphs, tmp, glyph_count, 0, 0);
@@ -302,7 +302,7 @@ void font_from_file_txt(
     }
 }
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 int32 font_data_size(const Font* const font) NO_EXCEPT
 {
     return font->glyph_count * sizeof(Glyph)
@@ -401,7 +401,7 @@ int32 font_to_data(
     return size;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 font_line_height(const Font* const font, f32 size) NO_EXCEPT
 {
     size *= font->scale;

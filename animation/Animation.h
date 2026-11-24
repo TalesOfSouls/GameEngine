@@ -14,19 +14,19 @@
 
 #include "AnimationEaseType.h"
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 smoothstep(f32 t) NO_EXCEPT
 {
     return t * t * (3 - 2 * t);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_discrete(f32 t) NO_EXCEPT
 {
     return t >= 1.0f ? 1.0f : 0.0f;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_linear(f32 t) NO_EXCEPT
 {
     return t;
@@ -50,13 +50,13 @@ f32 anim_ease_in_out_sine(f32 t) NO_EXCEPT
     return -(cosf(OMS_PI_F32 * t) - 1) / 2.0f;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_in_quad(f32 t) NO_EXCEPT
 {
     return t * t;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_out_quad(f32 t) NO_EXCEPT
 {
     return 1.0f - (1.0f - t) * (1.0f - t);
@@ -70,7 +70,7 @@ f32 anim_ease_in_out_quad(f32 t) NO_EXCEPT
         : 1.0f - powf(-2 * t + 2, 2) / 2.0f;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_in_cubic(f32 t) NO_EXCEPT
 {
     return t * t * t;
@@ -90,7 +90,7 @@ f32 anim_ease_in_out_cubic(f32 t) NO_EXCEPT
         : 1.0f - powf(-2 * t + 2, 3) / 2.0f;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_in_quart(f32 t) NO_EXCEPT
 {
     return t * t * t * t;
@@ -102,7 +102,7 @@ f32 anim_ease_out_quart(f32 t) NO_EXCEPT
     return 1.0f - powf(1.0f - t, 4);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_in_perlin(f32 t) NO_EXCEPT
 {
     return t * t * t * (t * (t * 6 - 15) + 10);
@@ -116,7 +116,7 @@ f32 anim_ease_in_out_quart(f32 t) NO_EXCEPT
         : 1.0f - powf(-2 * t + 2, 4) / 2.0f;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_in_quint(f32 t) NO_EXCEPT
 {
     return t * t * t * t * t;
@@ -184,7 +184,7 @@ f32 anim_ease_in_out_circ(f32 t) NO_EXCEPT
         : (intrin_sqrt_f32(1.0f - powf(-2 * t + 2, 2)) + 1) / 2.0f;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_in_back(f32 t) NO_EXCEPT
 {
     const f32 c1 = 1.70158f;
@@ -251,7 +251,7 @@ f32 anim_ease_in_out_elastic(f32 t) NO_EXCEPT
     return (powf(2, -20 * t + 10) * sinf((20 * t - 11.125f) * c5)) / 2.0f + 1.0f;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_out_bounce(f32 t) NO_EXCEPT
 {
     const f32 n1 = 7.5625f;
@@ -275,13 +275,13 @@ f32 anim_ease_out_bounce(f32 t) NO_EXCEPT
     return n1 * t * t + 0.984375f;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_in_bounce(f32 t) NO_EXCEPT
 {
     return 1.0f - anim_ease_out_bounce(1.0f - t);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 anim_ease_in_out_bounce(f32 t) NO_EXCEPT
 {
     return t < 0.5f

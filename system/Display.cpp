@@ -25,7 +25,7 @@
  *
  * @return v4_int32
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 v4_int32 display_monitor_rect(const DisplayMonitor* const monitor) NO_EXCEPT
 {
     return { monitor->x, monitor->y, monitor->width, monitor->height };

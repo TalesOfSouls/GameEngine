@@ -90,13 +90,13 @@ UISelect* ui_select_create(
 
 // Option text incl. length, {0, 0, NULL} if the index is invalid
 FORCE_INLINE
-SimpleString<const char> ui_select_option_string(const UILayout* const layout, const UISelect* const select, int32 index) NO_EXCEPT
+SimpleString<const char> ui_select_option_string(const UILayout* const __restrict layout, const UISelect* const __restrict select, int32 index) NO_EXCEPT
 {
     ASSERT_TRUE(index >= 0 && index < select->option_count && select->options);
     return ui_string_list_get(layout, select->options, select->option_count, index);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 ui_select_row_height(const UISelect* const select) NO_EXCEPT
 {
     return select->core.dimension.dim.y > 0.0f
@@ -106,7 +106,7 @@ f32 ui_select_row_height(const UISelect* const select) NO_EXCEPT
 
 // Search text ("" = no search)
 inline
-const char* ui_select_search_text(const UILayout* const layout, const UISelect* const select) NO_EXCEPT
+const char* ui_select_search_text(const UILayout* const __restrict layout, const UISelect* const __restrict select) NO_EXCEPT
 {
     return select->search
         ? ui_input_get_text(layout, (const UIInput *) ui_element_get(layout, select->search))
@@ -114,8 +114,8 @@ const char* ui_select_search_text(const UILayout* const layout, const UISelect* 
 }
 
 // Case insensitive (ascii) "contains"
-static inline
-bool ui_text_contains_case_insensitive(const char* text, const char* const search) NO_EXCEPT
+CONSTEXPR static inline
+bool ui_text_contains_case_insensitive(const char* __restrict text, const char* const __restrict search) NO_EXCEPT
 {
     if (!*search) {
         return true;
@@ -150,7 +150,7 @@ bool ui_text_contains_case_insensitive(const char* text, const char* const searc
  * @return int32 option index or -1
  */
 inline
-int32 ui_select_filtered_option(const UILayout* const layout, const UISelect* const select, int32 row) NO_EXCEPT
+int32 ui_select_filtered_option(const UILayout* const __restrict layout, const UISelect* const __restrict select, int32 row) NO_EXCEPT
 {
     if (row < 0 || !select->options) {
         return -1;
@@ -167,7 +167,7 @@ int32 ui_select_filtered_option(const UILayout* const layout, const UISelect* co
 }
 
 inline
-int32 ui_select_filtered_count(const UILayout* const layout, const UISelect* const select) NO_EXCEPT
+int32 ui_select_filtered_count(const UILayout* const __restrict layout, const UISelect* const __restrict select) NO_EXCEPT
 {
     if (!select->options) {
         return 0;
@@ -186,8 +186,8 @@ int32 ui_select_filtered_count(const UILayout* const layout, const UISelect* con
     return count;
 }
 
-inline
-bool ui_select_is_checked(const UILayout* const layout, const UISelect* const select, int32 index) NO_EXCEPT
+CONSTEXPR inline
+bool ui_select_is_checked(const UILayout* const __restrict layout, const UISelect* const __restrict select, int32 index) NO_EXCEPT
 {
     if (index < 0 || index >= select->option_count) {
         return false;
@@ -293,7 +293,7 @@ SimpleString<const char> ui_select_display_text(
  * Size of the popup (search field + visible rows)
  */
 inline
-v2_f32 ui_select_popup_size(const UILayout* const layout, const UISelect* const select) NO_EXCEPT
+v2_f32 ui_select_popup_size(const UILayout* const __restrict layout, const UISelect* const __restrict select) NO_EXCEPT
 {
     const f32 row_height = ui_select_row_height(select);
     const int32 rows = oms_clamp(ui_select_filtered_count(layout, select), 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
@@ -352,7 +352,7 @@ bool ui_option_list_scroll_set(UILayout* const layout, UIOptionList* const list,
  * @return int32 Row (index in the filtered list) at the position or -1
  */
 inline
-int32 ui_option_list_row_at(const UILayout* const layout, const UIOptionList* const list, f32 x, f32 y) NO_EXCEPT
+int32 ui_option_list_row_at(const UILayout* const __restrict layout, const UIOptionList* const __restrict list, f32 x, f32 y) NO_EXCEPT
 {
     if (!ui_dimension_contains(&list->core.dimension, x, y)) {
         return -1;

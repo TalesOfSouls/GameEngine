@@ -39,20 +39,20 @@ enum UIColorPanelArea : byte {
 // Color helpers
 ////////////////////////////////////////////////////////////////
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 uint32 ui_color_rgba(uint32 r, uint32 g, uint32 b, uint32 a) NO_EXCEPT
 {
     return (r << 24) | (g << 16) | (b << 8) | a;
 }
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 uint32 ui_color_channel(uint32 color, int32 channel) NO_EXCEPT
 {
     return (color >> (24 - 8 * channel)) & 0xFF;
 }
 
 // h, s, v, a = 0.0 - 1.0
-inline
+CONSTEXPR inline
 uint32 ui_color_from_hsv(f32 h, f32 s, f32 v, f32 a = 1.0f) NO_EXCEPT
 {
     h = (h - (f32) (int32) h) * 6.0f;
@@ -111,8 +111,8 @@ uint32 ui_color_from_hsv(f32 h, f32 s, f32 v, f32 a = 1.0f) NO_EXCEPT
 /**
  * @param f32* hue Is only changed if the color has a hue (not grey)
  */
-inline
-void ui_color_to_hsv(uint32 color, f32* const hue, f32* const saturation, f32* const value) NO_EXCEPT
+CONSTEXPR inline
+void ui_color_to_hsv(uint32 color, f32* const __restrict hue, f32* const __restrict saturation, f32* const __restrict value) NO_EXCEPT
 {
     const f32 r = (f32) ui_color_channel(color, 0) / 255.0f;
     const f32 g = (f32) ui_color_channel(color, 1) / 255.0f;
@@ -170,7 +170,7 @@ static const uint32 UI_COLOR_PALETTE_ANSI[] = {
 };
 
 // Amount of grid cells of the palette
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 ui_color_picker_cell_count(const UIColorPicker* const picker) NO_EXCEPT
 {
     return picker->palette ? picker->palette_count : (int32) ARRAY_COUNT(UI_COLOR_PALETTE_ANSI);
@@ -178,7 +178,7 @@ int32 ui_color_picker_cell_count(const UIColorPicker* const picker) NO_EXCEPT
 
 // Color of a grid cell (0 = empty cell or outside of the palette)
 FORCE_INLINE
-uint32 ui_color_picker_cell_color(const UILayout* const layout, const UIColorPicker* const picker, int32 cell) NO_EXCEPT
+uint32 ui_color_picker_cell_color(const UILayout* const __restrict layout, const UIColorPicker* const __restrict picker, int32 cell) NO_EXCEPT
 {
     if (cell < 0 || cell >= ui_color_picker_cell_count(picker)) {
         return 0;
@@ -388,7 +388,7 @@ UIColorPicker* ui_color_picker_create(
 ////////////////////////////////////////////////////////////////
 
 // Rects of the gradient areas (x, y = top left)
-inline
+CONSTEXPR inline
 v4_f32 ui_color_panel_area_rect(const UIColorPanel* const panel, UIColorPanelArea area) NO_EXCEPT
 {
     const UIAttributeDimension* const dim = &panel->core.dimension;
@@ -417,7 +417,7 @@ v4_f32 ui_color_panel_area_rect(const UIColorPanel* const panel, UIColorPanelAre
  * @return int32 Grid cell at the position or -1
  */
 inline
-int32 ui_color_panel_cell_at(const UILayout* const layout, const UIColorPanel* const panel, f32 x, f32 y) NO_EXCEPT
+int32 ui_color_panel_cell_at(const UILayout* const __restrict layout, const UIColorPanel* const __restrict panel, f32 x, f32 y) NO_EXCEPT
 {
     const UIColorPicker* const picker = (UIColorPicker *) ui_element_get(layout, panel->picker);
     if (picker->picker_type != UI_COLOR_PICKER_TYPE_PALETTE

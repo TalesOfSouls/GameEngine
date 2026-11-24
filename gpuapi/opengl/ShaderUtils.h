@@ -41,7 +41,7 @@ struct OpenglVertexInputAttributeDescription {
     bool normalized;
 };
 
-inline
+CONSTEXPR inline
 int32 gpuapi_shader_type_index(ShaderType type) NO_EXCEPT
 {
     switch (type) {
@@ -267,7 +267,7 @@ void opengl_check_compile_errors(uint32 id, char* log) NO_EXCEPT
     }
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 opengl_program_optimize(const char* __restrict input, char* __restrict output) NO_EXCEPT
 {
     return shader_program_optimize(input, output);
@@ -284,7 +284,7 @@ int32 opengl_program_optimize(const char* __restrict input, char* __restrict out
  *
  * @return GLuint Shader, 0 on failure if !fatal
  */
-GLuint gpuapi_shader_make(GLenum type, const char* source, bool fatal = true, const char* defines = NULL) NO_EXCEPT
+GLuint gpuapi_shader_make(GLenum type, const char* __restrict source, bool fatal = true, const char* __restrict defines = NULL) NO_EXCEPT
 {
     LOG_1("[INFO] Create shader %s", {DATA_TYPE_CHAR_STR, source});
     const GLuint shader = glCreateShader(type);
@@ -610,7 +610,7 @@ void gpuapi_descriptor_set_layout_create(
 }
 
 // Checks if a character is a valid var name character
-static inline bool gpuapi_is_var_name(char c) NO_EXCEPT
+CONSTEXPR static inline bool gpuapi_is_var_name(char c) NO_EXCEPT
 {
     return (c >= 'a' && c <= 'z')
         || (c >= 'A' && c <= 'Z')

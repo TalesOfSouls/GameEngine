@@ -22,8 +22,8 @@ struct SoftwareDescriptorSetLayoutBinding {
 
 template <typename T>
 inline T* soft_layout_find(
-    T* layouts, int32 length,
-    const char* name
+    T* __restrict layouts, int32 length,
+    const char* __restrict name
 )
 {
     for (int32 i = 0; i < length; ++i) {

@@ -54,7 +54,7 @@ CONSTEXPR T oms_remap(T x, T in_min, T in_max, T out_min, T out_max) NO_EXCEPT {
 }
 
 // Abs
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int8 __internal_abs(int8 a) NO_EXCEPT
 {
     const uint8 ua = (uint8)a;
@@ -62,7 +62,7 @@ int8 __internal_abs(int8 a) NO_EXCEPT
     return (int8)((ua ^ mask) - mask);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int16 __internal_abs(int16 a) NO_EXCEPT
 {
     const uint16 ua = (uint16)a;
@@ -70,7 +70,7 @@ int16 __internal_abs(int16 a) NO_EXCEPT
     return (int16)((ua ^ mask) - mask);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 __internal_abs(int32 a) NO_EXCEPT
 {
     const uint32 ua = (uint32)a;
@@ -78,7 +78,7 @@ int32 __internal_abs(int32 a) NO_EXCEPT
     return (int32)((ua ^ mask) - mask);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int64 __internal_abs(int64 a) NO_EXCEPT
 {
     const uint64 ua = (uint64)a;
@@ -189,7 +189,7 @@ F __internal_floor(F x) NO_EXCEPT
 // This is required because -7 / 3 = -2 with normal int division, but we want -3
 // However, 7 / 3 = 2 is what we would expect
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 T floor_div(T a, T b) NO_EXCEPT
 {
     const T q = a / b;
@@ -217,7 +217,7 @@ f32 normalize_rad(f32 angle) NO_EXCEPT
 }
 
 // 0 / 360
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 normalize_deg(f32 angle) NO_EXCEPT
 {
     return angle - 360.0f * __internal_floor(angle / 360.0f);
@@ -247,7 +247,7 @@ f32 cos_approx(f32 x) NO_EXCEPT
 }
 
 inline
-void sincos_approx(f32 x, f32* s, f32* c) NO_EXCEPT
+void sincos_approx(f32 x, f32* __restrict s, f32* __restrict c) NO_EXCEPT
 {
     const f32 B = 4.0f / OMS_PI_F32;
     const f32 C = -4.0f / (OMS_PI_F32 * OMS_PI_F32);
@@ -282,7 +282,7 @@ f32 tan_approx(f32 x) NO_EXCEPT
     return sin_approx(x) / cos_approx(x);
 }
 
-inline
+CONSTEXPR inline
 f32 asin_approx(f32 x) NO_EXCEPT
 {
     // Undefined for |x| > 1
@@ -298,14 +298,14 @@ f32 asin_approx(f32 x) NO_EXCEPT
     return result;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 acos_approx(f32 x) NO_EXCEPT
 {
     // π/2 - asin_approx(x)
     return OMS_PI_OVER_TWO_F32 - asin_approx(x);
 }
 
-inline
+CONSTEXPR inline
 f32 atan_approx(f32 x) NO_EXCEPT
 {
     if (x > 1.0f) {
@@ -344,7 +344,7 @@ f32 sqrt_approx(f32 a) NO_EXCEPT
     return x;
 }
 
-inline
+CONSTEXPR inline
 f32 exp_approx(f32 x) NO_EXCEPT
 {
     // Range reduction: e^x = e^(x / n)^n
@@ -368,7 +368,7 @@ f32 exp_approx(f32 x) NO_EXCEPT
     return final_result;
 }
 
-inline
+CONSTEXPR inline
 f32 log_approx(f32 x) NO_EXCEPT
 {
     ASSERT_TRUE(x > 0);
@@ -399,7 +399,7 @@ f32 log_approx(f32 x) NO_EXCEPT
     return ln_m + (f32)e * 0.6931471805599453f;
 }
 
-inline
+CONSTEXPR inline
 f32 pow_approx(f32 a, f32 b) NO_EXCEPT
 {
     if (a == 0.0f) {
@@ -439,7 +439,7 @@ f64 tan_approx(f64 x) NO_EXCEPT
     return sin_approx(x) / cos_approx(x);
 }
 
-inline
+CONSTEXPR inline
 f64 asin_approx(f64 x) NO_EXCEPT
 {
     // Undefined for |x| > 1
@@ -455,14 +455,14 @@ f64 asin_approx(f64 x) NO_EXCEPT
     return result;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f64 acos_approx(f64 x) NO_EXCEPT
 {
     // π/2 - asin_approx(x)
     return OMS_PI_OVER_TWO_F64 - asin_approx(x);
 }
 
-inline
+CONSTEXPR inline
 f64 atan_approx(f64 x) NO_EXCEPT
 {
     if (x > 1.0) {
@@ -501,7 +501,7 @@ f64 sqrt_approx(f64 a) NO_EXCEPT
     return x;
 }
 
-inline
+CONSTEXPR inline
 f64 exp_approx(f64 x) NO_EXCEPT
 {
     // Range reduction: e^x = e^(x / n)^n
@@ -525,7 +525,7 @@ f64 exp_approx(f64 x) NO_EXCEPT
     return final_result;
 }
 
-inline
+CONSTEXPR inline
 f64 log_approx(f64 x) NO_EXCEPT
 {
     ASSERT_TRUE(x > 0);
@@ -556,7 +556,7 @@ f64 log_approx(f64 x) NO_EXCEPT
     return ln_m + (f64)e * 0.6931471805599453;
 }
 
-inline
+CONSTEXPR inline
 f64 pow_approx(f64 a, f64 b) NO_EXCEPT
 {
     if (a == 0.0) {

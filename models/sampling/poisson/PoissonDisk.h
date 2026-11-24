@@ -13,7 +13,7 @@
 #include "../../../memory/RingMemory.cpp"
 
 // Calculates the amount of max points to generate
-size_t poisson_disk_bridson_cap(f64 width, f64 height, f64 r)
+CONSTEXPR size_t poisson_disk_bridson_cap(f64 width, f64 height, f64 r)
 {
     const f64 area = width * height;
     const f64 approx_num = area / (OMS_PI_F32 * r * r);

@@ -80,7 +80,7 @@ v2_int16 input_controller_find_by_handle(Input* input, int count, InputHandle ha
 }
 
 // Is any device connected to the input?
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool input_state_is_connected(const Input* const input) NO_EXCEPT
 {
     return input->keyboard.handle[0] || input->mouse.handle[0] || input->controller.connection_type;
@@ -106,7 +106,7 @@ void input_state_connection_update(Input* const input) NO_EXCEPT
  * Inputs in between may be disconnected, they don't have any active keys -> handling them is cheap
  * This keeps the input index stable (e.g. player 2 stays player 2 even if player 1 disconnects)
  */
-inline
+CONSTEXPR inline
 int32 input_active_state_count(const Input* const states, int32 count) NO_EXCEPT
 {
     for (int32 i = count - 1; i >= 0; --i) {
@@ -119,7 +119,7 @@ int32 input_active_state_count(const Input* const states, int32 count) NO_EXCEPT
 }
 
 // Check if the input has a specific input device set
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool input_device_slot_is_free(const Input* const input, InputDeviceKind kind) NO_EXCEPT
 {
     switch (kind) {
@@ -148,11 +148,11 @@ bool input_device_slot_is_free(const Input* const input, InputDeviceKind kind) N
  *
  * @return int32 Input index (-1 = no input available)
  */
-inline
+CONSTEXPR inline
 int32 input_state_assign(
-    const Input* const states, int32 count,
+    const Input* const __restrict states, int32 count,
     InputDeviceKind kind,
-    const byte* const preferred_types = NULL
+    const byte* const __restrict preferred_types = NULL
 ) NO_EXCEPT
 {
     const byte type = kind == INPUT_DEVICE_KIND_CONTROLLER
@@ -190,7 +190,7 @@ int32 input_state_assign(
 }
 
 // Finds a controller by its device id (also disconnected ones -> reconnect)
-inline
+CONSTEXPR inline
 int32 input_controller_find_by_device_id(const Input* const states, int32 count, uint64 device_id) NO_EXCEPT
 {
     if (!device_id) {
@@ -405,7 +405,7 @@ void input_frame_begin(Input* const input) NO_EXCEPT
 }
 
 // @param exclude_flags Keys with any of these InputKeyFlag are ignored (e.g. text keys while typing)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool input_action_exists(
     const InputKey* const active_keys, int16 key,
     byte press_type = KEY_PRESS_TYPE_PRESSED, byte exclude_flags = 0
@@ -423,7 +423,7 @@ bool input_action_exists(
     return false;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool input_action_processed(const InputKey* const active_keys, int16 key) NO_EXCEPT
 {
     for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
@@ -438,7 +438,7 @@ bool input_action_processed(const InputKey* const active_keys, int16 key) NO_EXC
 }
 
 // Active key slot of a key (NULL = not active)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 const InputKey* input_key_find(const InputKey* const active_keys, int16 key) NO_EXCEPT
 {
     for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
@@ -450,28 +450,28 @@ const InputKey* input_key_find(const InputKey* const active_keys, int16 key) NO_
     return NULL;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool input_is_down(const InputKey* const active_keys, int16 key) NO_EXCEPT
 {
     const InputKey* const input_key = input_key_find(active_keys, key);
     return input_key && !(input_key->key_state & KEY_PRESS_TYPE_RELEASED);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool input_is_pressed(const InputKey* const active_keys, int16 key) NO_EXCEPT
 {
     const InputKey* const input_key = input_key_find(active_keys, key);
     return input_key && (input_key->key_state & KEY_PRESS_TYPE_PRESSED);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool input_is_held(const InputKey* const active_keys, int16 key) NO_EXCEPT
 {
     const InputKey* const input_key = input_key_find(active_keys, key);
     return input_key && (input_key->key_state & KEY_PRESS_TYPE_HELD);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool input_is_released(const InputKey* const active_keys, int16 key) NO_EXCEPT
 {
     const InputKey* const input_key = input_key_find(active_keys, key);
@@ -479,7 +479,7 @@ bool input_is_released(const InputKey* const active_keys, int16 key) NO_EXCEPT
 }
 
 // Value of an active key (e.g. mouse wheel movement, stick value), 0 = key not active
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int16 input_key_value(const InputKey* const active_keys, int16 key) NO_EXCEPT
 {
     for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
@@ -491,7 +491,7 @@ int16 input_key_value(const InputKey* const active_keys, int16 key) NO_EXCEPT
     return 0;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool inputs_are_down(
     const InputKey* const active_keys,
     int16 key0, int16 key1 = 0, int16 key2 = 0, int16 key3 = 0, int16 key4 = 0
@@ -545,7 +545,7 @@ input_add_hotkey(
     memcpy(&mapping[hotkey], key, sizeof(*key));
 }
 
-FORCE_INLINE HOT_CODE
+CONSTEXPR FORCE_INLINE HOT_CODE
 bool hotkey_is_active(const uint16* const active_hotkeys, uint16 hotkey) NO_EXCEPT
 {
     for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
@@ -557,7 +557,7 @@ bool hotkey_is_active(const uint16* const active_hotkeys, uint16 hotkey) NO_EXCE
     return false;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 hotkey_key_count(const Hotkey* const key) NO_EXCEPT
 {
     return (key->scan_codes[0] != 0) + (key->scan_codes[1] != 0) + (key->scan_codes[2] != 0);
@@ -574,7 +574,7 @@ int32 hotkey_key_count(const Hotkey* const key) NO_EXCEPT
  *           RELEASED = all keys are active and at least one went up this tick
  *           0        = not active
  */
-inline
+CONSTEXPR inline
 byte input_hotkey_key_state(const Input* const input, uint16 hotkey) NO_EXCEPT
 {
     ASSERT_TRUE(hotkey && hotkey <= input->hotkey_count);
@@ -620,7 +620,7 @@ byte input_hotkey_key_state(const Input* const input, uint16 hotkey) NO_EXCEPT
 }
 
 // Hotkey keys are currently down (pressed or held)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool input_hotkey_is_down(const Input* const input, uint16 hotkey) NO_EXCEPT
 {
     const byte state = input_hotkey_key_state(input, hotkey);
@@ -632,7 +632,7 @@ bool input_hotkey_is_down(const Input* const input, uint16 hotkey) NO_EXCEPT
  *
  * @return int16 0 if the hotkey is not active
  */
-inline
+CONSTEXPR inline
 int16 input_hotkey_value(const Input* const input, uint16 hotkey, int16* const scan_code = NULL) NO_EXCEPT
 {
     ASSERT_TRUE(hotkey && hotkey <= input->hotkey_count);
@@ -706,7 +706,7 @@ bool hotkey_keys_are_active(
     return has_keys && any_in_state;
 }
 
-inline HOT_CODE
+CONSTEXPR inline HOT_CODE
 bool hotkey_keys_already_processed(
     const InputKey* const __restrict active_keys,
     const Hotkey* const __restrict mapping,
@@ -835,7 +835,7 @@ bool input_has_active_keys(InputKey* const __restrict active_keys) NO_EXCEPT {
  *
  * @return int32
  */
-inline
+CONSTEXPR inline
 int32 input_pressed_count(const InputKey* const __restrict active_keys) NO_EXCEPT
 {
     int32 count = 0;
@@ -862,7 +862,7 @@ void input_controller_axes_default(Input* const input) NO_EXCEPT
  *
  * @param uint32 button ControllerButton (e.g. Input::controller_axes[0])
  */
-inline
+CONSTEXPR inline
 int32 input_controller_axis_value(const Input* const input, uint32 button) NO_EXCEPT
 {
     if (button >= CONTROLLER_BUTTON_SIZE) {
@@ -1277,7 +1277,7 @@ int32 input_hotkey_state_update(Input* const input, uint64 /* time */ = 0) NO_EX
     return active_hotkeys;
 }
 
-inline
+CONSTEXPR inline
 bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32 dt = 0.0f) NO_EXCEPT
 {
     for (int i = 0; i < ARRAY_COUNT(state->active_keys); ++i) {
@@ -1289,7 +1289,7 @@ bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32
     return false;
 }
 
-bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f32 dt = 0.0f) NO_EXCEPT
+CONSTEXPR bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f32 dt = 0.0f) NO_EXCEPT
 {
     bool is_longpress = false;
     for (int i = 0; i < ARRAY_COUNT(input->state.active_hotkeys); ++i) {
@@ -1441,8 +1441,8 @@ void input_hotkeys_handle(const Input* const input, void* data, int32 input_id =
  *
  * @return bool
  */
-inline
-bool hotkey_keys_equal(const int16* const a, const int16* const b) NO_EXCEPT
+CONSTEXPR inline
+bool hotkey_keys_equal(const int16* const __restrict a, const int16* const __restrict b) NO_EXCEPT
 {
     for (int32 i = 0; i < MAX_HOTKEY_COMBINATION; ++i) {
         int32 count_a = 0;
@@ -1469,7 +1469,7 @@ bool hotkey_keys_equal(const int16* const a, const int16* const b) NO_EXCEPT
  *
  * @return bool
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool hotkey_contexts_collide(byte a, byte b) NO_EXCEPT
 {
     return !a || !b || a == b;
@@ -1486,7 +1486,7 @@ bool hotkey_contexts_collide(byte a, byte b) NO_EXCEPT
  * @return void
  */
 inline
-void hotkey_bind(Hotkey* const mapping, int32 count, int32 index, const int16* const keys) NO_EXCEPT
+void hotkey_bind(Hotkey* const __restrict mapping, int32 count, int32 index, const int16* const __restrict keys) NO_EXCEPT
 {
     Hotkey* const target = &mapping[index];
 
@@ -1515,7 +1515,7 @@ void hotkey_bind(Hotkey* const mapping, int32 count, int32 index, const int16* c
  *
  * @return bool
  */
-inline
+CONSTEXPR inline
 bool input_key_is_modifier(int16 key) NO_EXCEPT
 {
     if (!((uint16) key & INPUT_KEYBOARD_PREFIX)) {
@@ -1538,7 +1538,7 @@ bool input_key_is_modifier(int16 key) NO_EXCEPT
  *
  * @return bool
  */
-inline
+CONSTEXPR inline
 bool input_key_is_bindable(int16 key) NO_EXCEPT
 {
     const uint32 code = (uint16) key;
@@ -1587,9 +1587,9 @@ enum InputKeyCaptureResult : byte {
  */
 inline
 InputKeyCaptureResult input_key_combination_capture(
-    const InputKey* const active_keys,
-    int16* const modifier,
-    int16* const keys
+    const InputKey* const __restrict active_keys,
+    int16* const __restrict modifier,
+    int16* const __restrict keys
 ) NO_EXCEPT
 {
     memset(keys, 0, sizeof(int16) * MAX_HOTKEY_COMBINATION);

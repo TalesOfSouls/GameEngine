@@ -158,7 +158,7 @@ void array_vector_reset(ArrayVector<T>* const vec) NO_EXCEPT
 }
 
 template<typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool array_vector_has_value(const ArrayVector<T>* const vec, T value) NO_EXCEPT
 {
     for (int i = 0; i < vec->count; ++i) {

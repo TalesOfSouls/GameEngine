@@ -67,7 +67,7 @@ struct HttpResponse {
 };
 
 inline
-void http_response_grow(HttpResponse* __restrict* response, int32 count, ThreadedChunkMemory* mem)
+void http_response_grow(HttpResponse* __restrict* response, int32 count, ThreadedChunkMemory* __restrict mem)
 {
     HttpResponse* resp = *response;
 
@@ -83,7 +83,7 @@ void http_header_value_set(
     HttpResponse* __restrict* response,
     HttpHeaderKey key,
     const char* __restrict value,
-    ThreadedChunkMemory* mem
+    ThreadedChunkMemory* __restrict mem
 ) {
     HttpResponse* resp = *response;
     char* body_ptr = ((char *) (resp + 1)) + resp->body_offset;
@@ -273,7 +273,7 @@ const HttpHeaderElement* http_header_element_get(const HttpResponse* response, H
 }
 
 inline
-const char* http_header_value_get(const HttpResponse* response, const HttpHeaderElement* header_element)
+const char* http_header_value_get(const HttpResponse* __restrict response, const HttpHeaderElement* __restrict header_element)
 {
     return ((const char *) (response + 1)) + header_element->value_offset;
 }
@@ -356,7 +356,7 @@ void http_response_send(const SocketConnection* __restrict socket, HttpResponse*
     }
 }
 
-void http_response_body_add(HttpResponse** response, const char* __restrict body, size_t length, ThreadedChunkMemory* mem)
+void http_response_body_add(HttpResponse** __restrict response, const char* __restrict body, size_t length, ThreadedChunkMemory* __restrict mem)
 {
     HttpResponse* resp = *response;
     char* response_body = (char *) (resp + 1);

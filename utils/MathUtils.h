@@ -12,7 +12,7 @@
 // WARNING: Don't use any of these functions yet. They are too imprecise and too slow
 //          Compilers use internal intrinsics based on input value at compile time to use the fastest possible solutions
 
-inline
+CONSTEXPR inline
 f64 factorial(int32 n) NO_EXCEPT
 {
     f64 result = 1.0;

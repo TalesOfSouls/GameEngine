@@ -92,7 +92,7 @@ struct AuthToken {
  * @param const AuthToken* token Token
  * @param byte*            out   Output buffer (AUTH_TOKEN_PAYLOAD_SIZE bytes)
  */
-inline
+CONSTEXPR inline
 void auth_token_serialize_payload(const AuthToken* const __restrict token, byte* const __restrict out) NO_EXCEPT
 {
     out[0] = token->version;
@@ -268,7 +268,7 @@ bool auth_token_verify(
  *
  * @return bool True if the token can be used at the given time
  */
-inline
+CONSTEXPR inline
 bool auth_token_is_valid(const AuthToken* const __restrict token, uint64 now) NO_EXCEPT
 {
     if (!token || token->version != AUTH_TOKEN_VERSION || token->session_id == 0) {

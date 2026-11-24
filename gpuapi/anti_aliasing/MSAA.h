@@ -20,7 +20,7 @@ static const v2_f32 MSAA_OFFSETS_8[8] = {
     {0.4375f, 0.8125f}, {0.6875f, 0.3125f}, {0.1875f, 0.0625f}, {0.9375f, 0.5625f}
 };
 
-static inline const v2_f32* get_msaa_offsets(int32 steps) {
+CONSTEXPR static inline const v2_f32* get_msaa_offsets(int32 steps) {
     switch (steps) {
         case 2:
             return MSAA_OFFSETS_2;

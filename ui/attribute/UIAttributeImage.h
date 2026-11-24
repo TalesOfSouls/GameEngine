@@ -32,7 +32,7 @@ struct UIAttributeImage {
     uint16 uv[4];
 };
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint16 ui_uv_encode(f32 value) NO_EXCEPT
 {
     value = value < 0.0f ? 0.0f : (value > 1.0f ? 1.0f : value);
@@ -40,7 +40,7 @@ uint16 ui_uv_encode(f32 value) NO_EXCEPT
     return (uint16) (value * 65535.0f + 0.5f);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f32 ui_uv_decode(uint16 value) NO_EXCEPT
 {
     return (f32) value * (1.0f / 65535.0f);

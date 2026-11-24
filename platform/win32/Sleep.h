@@ -79,7 +79,7 @@ uint64 current_timer_resolution_us() NO_EXCEPT
 }
 
 // Converts us -> QPC ticks without overflow
-static inline
+CONSTEXPR static inline
 LONGLONG us_to_qpc_ticks(uint64 us) NO_EXCEPT
 {
     const LONGLONG f = _performance_frequency.QuadPart;

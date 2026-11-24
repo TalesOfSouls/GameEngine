@@ -37,7 +37,7 @@ void vertex_degenerate_create(
     array_vector_reserve_one(vertices) = {{x, y, zindex}, -1, {}, 0};
 }
 
-static inline
+CONSTEXPR static inline
 void adjust_aligned_position(
     f32* const __restrict x, f32* const __restrict y,
     f32 width, f32 height,
@@ -287,9 +287,9 @@ void vertex_arc_create(
     }
 }
 
-static
+CONSTEXPR static
 v2_f32 text_calculate_dimensions(
-    const FontSystem* const __restrict font, const int16* const glyphs, int32 length, f32 scale
+    const FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length, f32 scale
 ) NO_EXCEPT
 {
     const f32 line_height = font->base.line_height * scale;
@@ -319,9 +319,9 @@ v2_f32 text_calculate_dimensions(
     return { oms_max(x, offset_x), y };
 }
 
-static
+CONSTEXPR static
 f32 text_calculate_dimensions_width(
-    const FontSystem* const __restrict font, const int16* const glyphs, int32 length, f32 scale
+    const FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length, f32 scale
 ) NO_EXCEPT
 {
     f32 x = 0;
@@ -347,9 +347,9 @@ f32 text_calculate_dimensions_width(
     return oms_max(x, offset_x);
 }
 
-static
+CONSTEXPR static
 f32 text_calculate_dimensions_height(
-    const FontSystem* const __restrict font, const int16* const glyphs, int32 length, f32 line_height_scaled
+    const FontSystem* const __restrict font, const int16* const __restrict glyphs, int32 length, f32 line_height_scaled
 ) NO_EXCEPT
 {
     f32 y = line_height_scaled;

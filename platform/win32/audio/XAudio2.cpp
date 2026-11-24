@@ -224,7 +224,7 @@ void xaudio2_free(XAudio2Setting* __restrict api_setting) NO_EXCEPT
  * We always fill exactly one chunk (= latency) as long as there is a free buffer
  */
 inline
-uint32 xaudio2_buffer_fillable(const AudioSetting*, const XAudio2Setting* __restrict api_setting) NO_EXCEPT
+uint32 xaudio2_buffer_fillable(const AudioSetting* __restrict, const XAudio2Setting* __restrict api_setting) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_AUDIO_BUFFER_FILLABLE);
     if (!api_setting->source_voice) {

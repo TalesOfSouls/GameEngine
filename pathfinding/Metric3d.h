@@ -75,7 +75,7 @@ f32 angular_separation_3d(v3_f32 a, v3_f32 b) {
 }
 
 // Hamming distance for arrays
-int32 hamming(int32* a, int32* b, int32 size) {
+CONSTEXPR int32 hamming(int32* __restrict a, int32* __restrict b, int32 size) {
     int32 dist = 0;
 
     for (int32 i = 0; i < size; ++i) {

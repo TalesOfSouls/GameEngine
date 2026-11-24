@@ -120,7 +120,7 @@ void soft_clear_depth(SoftwareRenderer* const renderer, uint32 x, uint32 y, uint
     }
 }
 
-static inline
+CONSTEXPR static inline
 v4_byte soft_sample_texture_nearest(const Texture* texture, f32 u, f32 v) NO_EXCEPT
 {
     const int32 tw = texture->image.width;
@@ -242,7 +242,7 @@ v4_byte soft_sample_texture_bilinear(const Texture* texture, f32 u, f32 v) NO_EX
     };
 }
 
-static inline
+CONSTEXPR static inline
 v2_f32 soft_ndc_to_screen(
     f32 ndc_x, f32 ndc_y,
     v2_uint16 dimension
@@ -256,13 +256,13 @@ v2_f32 soft_ndc_to_screen(
     };
 }
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 f32 soft_edge(v2_f32 a, v2_f32 b, v2_f32 c) NO_EXCEPT
 {
     return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
 }
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 v2_f32 soft_edge_coeff(v2_f32 a, v2_f32 b) NO_EXCEPT
 {
     return {b.y - a.y, b.x - a.x};

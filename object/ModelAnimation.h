@@ -37,7 +37,7 @@ struct ModelAnimationLayer {
 };
 
 // Returns the number of channels that found a matching bone
-uint32 model_animation_bind(
+CONSTEXPR uint32 model_animation_bind(
     const ModelFile* anim_file,
     const ModelAnimation* anim,
     const ModelFile* skel_file,
@@ -68,7 +68,7 @@ void model_pose_from_bind(const ModelFile* skel_file, const ModelSkeleton* skele
 }
 
 static inline
-void model_quaternion_nlerp(const f32* a, const f32* b, f32 t, f32* out) NO_EXCEPT
+void model_quaternion_nlerp(const f32* __restrict a, const f32* __restrict b, f32 t, f32* __restrict out) NO_EXCEPT
 {
     // shortest path
     const f32 dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
@@ -197,7 +197,7 @@ void model_animation_sample(
 }
 
 // out = a * (1 - t) + b * t, e.g. walk -> run transition
-void model_pose_blend(const ModelTransform* a, const ModelTransform* b, f32 t, uint32 count, ModelTransform* out) NO_EXCEPT
+void model_pose_blend(const ModelTransform* __restrict a, const ModelTransform* __restrict b, f32 t, uint32 count, ModelTransform* __restrict out) NO_EXCEPT
 {
     for (uint32 i = 0; i < count; ++i) {
         for (int32 j = 0; j < 3; ++j) {
@@ -212,11 +212,11 @@ void model_pose_blend(const ModelTransform* a, const ModelTransform* b, f32 t, u
 // Collects the events in the time range (from, to]. Handles loop wrap around.
 // Returns the number of events written to out (max. out_size)
 uint32 model_animation_collect_events(
-    const ModelFile* anim_file,
-    const ModelAnimation* anim,
+    const ModelFile* __restrict anim_file,
+    const ModelAnimation* __restrict anim,
     f32 from,
     f32 to,
-    const ModelEvent** out,
+    const ModelEvent** __restrict out,
     uint32 out_size
 ) NO_EXCEPT
 {
@@ -248,8 +248,8 @@ uint32 model_animation_collect_events(
 // Matrices (column major 4x4, f32[16])
 /////////////////////////////////////////////////////////////
 
-static inline
-void model_mat4_from_transform(const ModelTransform* t, f32* m) NO_EXCEPT
+CONSTEXPR static inline
+void model_mat4_from_transform(const ModelTransform* __restrict t, f32* __restrict m) NO_EXCEPT
 {
     const f32 x = t->rotation.x;
     const f32 y = t->rotation.y;
@@ -278,7 +278,7 @@ void model_mat4_from_transform(const ModelTransform* t, f32* m) NO_EXCEPT
 }
 
 // out = a * b (out must not alias a or b)
-static inline
+CONSTEXPR static inline
 void model_mat4_mul(const f32* a, const f32* b, f32* out) NO_EXCEPT
 {
     for (int32 col = 0; col < 4; ++col) {
@@ -292,8 +292,8 @@ void model_mat4_mul(const f32* a, const f32* b, f32* out) NO_EXCEPT
 }
 
 // Inverse of an affine matrix (rotation * scale + translation)
-static inline
-void model_mat4_inverse_affine(const f32* m, f32* out) NO_EXCEPT
+CONSTEXPR static inline
+void model_mat4_inverse_affine(const f32* __restrict m, f32* __restrict out) NO_EXCEPT
 {
     const f32 a = m[0], b = m[4], c = m[8];
     const f32 d = m[1], e = m[5], f = m[9];
@@ -324,7 +324,7 @@ void model_mat4_inverse_affine(const f32* m, f32* out) NO_EXCEPT
 
 // Local pose -> model space matrices (out = bone_count * 16 floats)
 // Works in a single loop since parents are always defined before their children
-void model_pose_to_model_space(const ModelFile* skel_file, const ModelSkeleton* skeleton, const ModelTransform* pose, f32* out) NO_EXCEPT
+CONSTEXPR void model_pose_to_model_space(const ModelFile* skel_file, const ModelSkeleton* skeleton, const ModelTransform* pose, f32* out) NO_EXCEPT
 {
     const ModelBone* bones = model_skeleton_bones(skel_file, skeleton);
 
@@ -340,7 +340,7 @@ void model_pose_to_model_space(const ModelFile* skel_file, const ModelSkeleton* 
 }
 
 // Inverse bind matrices (out = bone_count * 16 floats), only needs to be calculated once per skeleton
-void model_skeleton_inverse_bind(const ModelFile* skel_file, const ModelSkeleton* skeleton, f32* out, f32* temp) NO_EXCEPT
+CONSTEXPR void model_skeleton_inverse_bind(const ModelFile* skel_file, const ModelSkeleton* skeleton, f32* out, f32* temp) NO_EXCEPT
 {
     const ModelBone* bones = model_skeleton_bones(skel_file, skeleton);
 
@@ -361,7 +361,7 @@ void model_skeleton_inverse_bind(const ModelFile* skel_file, const ModelSkeleton
 
 // Final skinning matrices for the gpu: model_space * inverse_bind
 // model_space is overwritten with the result
-void model_skin_matrices(const ModelSkeleton* skeleton, const f32* inverse_bind, f32* model_space) NO_EXCEPT
+void model_skin_matrices(const ModelSkeleton* __restrict skeleton, const f32* __restrict inverse_bind, f32* __restrict model_space) NO_EXCEPT
 {
     f32 temp[16];
     for (uint32 i = 0; i < skeleton->bone_count; ++i) {

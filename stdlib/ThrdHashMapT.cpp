@@ -25,7 +25,7 @@
  */
 
 template <typename V>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 hashmap_entry_hash(const ThrdHashEntryStrT<V>* const entry) NO_EXCEPT
 {
     return entry->hash;
@@ -39,7 +39,7 @@ uint32 hashmap_entry_hash(const ThrdHashEntryT<K, V>* const entry) NO_EXCEPT
 }
 
 // Power of 2 bucket count with a max load factor of 0.8
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 hashmap_bucket_count(int32 capacity) NO_EXCEPT
 {
     int32 count = 16;
@@ -61,7 +61,7 @@ atomic<uint16>* hashmap_bucket(const ThrdHashMapT<T>* const hm, uint32 hash) NO_
  * Memory required by hashmap_init(hm, count, byte* buf, alignment)
  */
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 size_t hashmap_required_size(int32 count, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     const size_t array_count = ceil_div_pow2<(int32) (sizeof(size_t) * 8)>(count);
@@ -176,7 +176,7 @@ void hashmap_free(ThrdHashMapT<T>* const hm, MemoryArena* mem) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int64 hashmap_size(const ThrdHashMapT<T>* const hm) NO_EXCEPT
 {
     return hm->buf.capacity * sizeof(T) + hm->bucket_count * sizeof(uint16);
@@ -253,7 +253,7 @@ bool hashmap_unlink(ThrdHashMapT<T>* const hm, uint32 hash, int32 element) NO_EX
  */
 template <typename T>
 FORCE_INLINE
-T* hashmap_str_find(const ThrdHashMapT<T>* const __restrict hm, const char* key, int32 length, uint32 hash) NO_EXCEPT
+T* hashmap_str_find(const ThrdHashMapT<T>* const __restrict hm, const char* __restrict key, int32 length, uint32 hash) NO_EXCEPT
 {
     uint16 next = hashmap_bucket(hm, hash)->load(memory_order_acquire);
 
@@ -482,7 +482,7 @@ T* hashmap_get_reserve(ThrdHashMapT<T>* const __restrict hm, SimpleString<C> key
  */
 template <typename T>
 inline
-T* hashmap_entry_get(const ThrdHashMapT<T>* const __restrict hm, const char* key, int32 length) NO_EXCEPT
+T* hashmap_entry_get(const ThrdHashMapT<T>* const __restrict hm, const char* __restrict key, int32 length) NO_EXCEPT
 {
     hashmap_str_key(&key, &length);
 
@@ -496,7 +496,7 @@ T* hashmap_entry_get(const ThrdHashMapT<T>* const __restrict hm, const char* key
 
 template <typename T>
 FORCE_INLINE
-T* hashmap_entry_get(const ThrdHashMapT<T>* const __restrict hm, const char* key) NO_EXCEPT
+T* hashmap_entry_get(const ThrdHashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
     return hashmap_entry_get(hm, key, hashmap_str_length(key));
 }
@@ -514,7 +514,7 @@ T* hashmap_entry_get(ThrdHashMapT<T>* const hm, SimpleString<C> key) NO_EXCEPT
  */
 template <typename T>
 inline
-T* hashmap_entry_get_any(const ThrdHashMapT<T>* const __restrict hm, const char* key, int32 length) NO_EXCEPT
+T* hashmap_entry_get_any(const ThrdHashMapT<T>* const __restrict hm, const char* __restrict key, int32 length) NO_EXCEPT
 {
     hashmap_str_key(&key, &length);
 
@@ -523,7 +523,7 @@ T* hashmap_entry_get_any(const ThrdHashMapT<T>* const __restrict hm, const char*
 
 template <typename T>
 FORCE_INLINE
-T* hashmap_entry_get_any(const ThrdHashMapT<T>* const __restrict hm, const char* key) NO_EXCEPT
+T* hashmap_entry_get_any(const ThrdHashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
     return hashmap_entry_get_any(hm, key, hashmap_str_length(key));
 }

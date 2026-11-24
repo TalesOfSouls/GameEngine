@@ -49,7 +49,7 @@ static const uint32 MODEL_VERTEX_ATTRIBUTE_SIZE[MODEL_VERTEX_ATTRIBUTE_COUNT] = 
     12, 12, 16, 8, 8, 4, 24
 };
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 model_vertex_stride(uint32 layout) NO_EXCEPT
 {
     uint32 stride = 0;
@@ -63,7 +63,7 @@ uint32 model_vertex_stride(uint32 layout) NO_EXCEPT
 }
 
 // Byte offset of an attribute inside of a vertex, -1 if the layout doesn't contain the attribute
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 model_vertex_offset(uint32 layout, ModelVertexAttribute attribute) NO_EXCEPT
 {
     if (!(layout & attribute)) {
@@ -548,7 +548,7 @@ struct ModelFile {
 /////////////////////////////////////////////////////////////
 
 // FNV-1a 32 bit. 0 is reserved for "no name"
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 model_hash(const char* str, int32 length) NO_EXCEPT
 {
     uint32 hash = 2166136261u;
@@ -560,7 +560,7 @@ uint32 model_hash(const char* str, int32 length) NO_EXCEPT
     return hash ? hash : 1;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 model_hash(const char* str) NO_EXCEPT
 {
     int32 length = 0;
@@ -575,39 +575,39 @@ uint32 model_hash(const char* str) NO_EXCEPT
 // Lookup helpers
 /////////////////////////////////////////////////////////////
 
-FORCE_INLINE
-const ModelBone* model_skeleton_bones(const ModelFile* file, const ModelSkeleton* skeleton) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+const ModelBone* model_skeleton_bones(const ModelFile* __restrict file, const ModelSkeleton* __restrict skeleton) NO_EXCEPT
 {
     return file->bones + skeleton->bone_offset;
 }
 
-FORCE_INLINE
-const ModelChannel* model_animation_channels(const ModelFile* file, const ModelAnimation* anim) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+const ModelChannel* model_animation_channels(const ModelFile* __restrict file, const ModelAnimation* __restrict anim) NO_EXCEPT
 {
     return file->channels + anim->channel_offset;
 }
 
-FORCE_INLINE
-const ModelEvent* model_animation_events(const ModelFile* file, const ModelAnimation* anim) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+const ModelEvent* model_animation_events(const ModelFile* __restrict file, const ModelAnimation* __restrict anim) NO_EXCEPT
 {
     return file->events + anim->event_offset;
 }
 
-FORCE_INLINE
-const ModelShape* model_hitbox_shapes(const ModelFile* file, const ModelHitbox* hitbox) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+const ModelShape* model_hitbox_shapes(const ModelFile* __restrict file, const ModelHitbox* __restrict hitbox) NO_EXCEPT
 {
     return file->shapes + hitbox->shape_offset;
 }
 
-FORCE_INLINE
-const char* model_asset_path(const ModelFile* file, const ModelAsset* asset) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+const char* model_asset_path(const ModelFile* __restrict file, const ModelAsset* __restrict asset) NO_EXCEPT
 {
     return file->strings + asset->path_offset;
 }
 
 // Bone index inside of the skeleton, MODEL_INVALID_BONE if not found
-inline
-uint16 model_skeleton_find_bone(const ModelFile* file, const ModelSkeleton* skeleton, uint32 name) NO_EXCEPT
+CONSTEXPR inline
+uint16 model_skeleton_find_bone(const ModelFile* __restrict file, const ModelSkeleton* __restrict skeleton, uint32 name) NO_EXCEPT
 {
     const ModelBone* bones = model_skeleton_bones(file, skeleton);
     for (uint32 i = 0; i < skeleton->bone_count; ++i) {
@@ -619,7 +619,7 @@ uint16 model_skeleton_find_bone(const ModelFile* file, const ModelSkeleton* skel
     return MODEL_INVALID_BONE;
 }
 
-inline
+CONSTEXPR inline
 const ModelStateField* model_find_state_field(const ModelFile* file, uint32 name) NO_EXCEPT
 {
     for (uint32 i = 0; i < file->state_field_count; ++i) {
@@ -679,7 +679,7 @@ struct ModelBinaryHeader {
  *
  * @return uint64
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint64 model_data_size(const ModelFile* file) NO_EXCEPT
 {
     return MODEL_BINARY_DATA_OFFSET + file->data_size;

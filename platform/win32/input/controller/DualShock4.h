@@ -16,9 +16,9 @@
 
 inline
 void input_map_dualshock4(
-    ControllerInput* controller,
+    ControllerInput* __restrict controller,
     InputConnectionType connection_type,
-    const byte* data
+    const byte* __restrict data
 ) NO_EXCEPT
 {
     // The report id decides the layout, not the connection type:

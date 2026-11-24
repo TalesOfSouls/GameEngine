@@ -143,7 +143,7 @@ bool queue_has_space(const MPSCQueueT<T>* const queue) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool queue_is_full(const MPSCQueueT<T>* const queue) NO_EXCEPT
 {
     return !queue_has_space(queue);

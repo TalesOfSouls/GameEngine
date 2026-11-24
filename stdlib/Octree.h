@@ -64,7 +64,7 @@ OctNode* octnode_child_create(Octree* const tree) NO_EXCEPT
     return node;
 }
 
-static inline
+CONSTEXPR static inline
 int32 octree_child_index_from_coord(const v3_int32& anchor, const v3_int32& coord) NO_EXCEPT
 {
     // We'll decide which side of the anchor the chunk lies on in each axis
@@ -84,7 +84,7 @@ int32 octree_child_index_from_coord(const v3_int32& anchor, const v3_int32& coor
     return index;
 }
 
-static inline
+CONSTEXPR static inline
 AABB_int32 octnode_child_aabb_compute(
     const AABB_int32& parent,
     const v3_int32& parent_center,
@@ -117,7 +117,7 @@ AABB_int32 octnode_child_aabb_compute(
     return out;
 }
 
-static inline
+CONSTEXPR static inline
 v3_int32 octnode_child_anchor_compute(
     const v3_int32& parent_min,
     const v3_int32& center,
@@ -190,7 +190,7 @@ bool octnode_remove_recursive(OctNode* const node) NO_EXCEPT
     return true;
 }
 
-static inline
+CONSTEXPR static inline
 bool octnode_has_data_recalculate(const OctNode* const node) NO_EXCEPT
 {
     if (node->data) {

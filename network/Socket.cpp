@@ -46,7 +46,7 @@ bool network_ipv6_is_usable() NO_EXCEPT
  * @return socketid SOCKET_INVALID on failure
  */
 static inline
-socketid socket_udp_resolve(const char* const host, uint16 port, addrinfo** const result) NO_EXCEPT
+socketid socket_udp_resolve(const char* const __restrict host, uint16 port, addrinfo** const __restrict result) NO_EXCEPT
 {
     char port_text[21];
     int_to_str((int64) port, port_text);
@@ -82,10 +82,10 @@ socketid socket_udp_resolve(const char* const host, uint16 port, addrinfo** cons
  */
 inline
 socketid socket_udp_open(
-    const char* const host,
+    const char* const __restrict host,
     uint16 port,
-    sockaddr_storage* const address,
-    int32* const address_length
+    sockaddr_storage* const __restrict address,
+    int32* const __restrict address_length
 ) NO_EXCEPT
 {
     addrinfo* result;

@@ -168,14 +168,14 @@ uint32 xinput_controllers_scan(
 }
 
 // Thumb stick (-32768 - 32767) -> -128 - 127
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int8 xinput_stick_value(SHORT value) NO_EXCEPT
 {
     return (int8) (value >> 8);
 }
 
 // Y axis is inverted compared to the other controllers (up = negative, same as the mouse/window coordinates)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int8 xinput_stick_value_inverted(SHORT value) NO_EXCEPT
 {
     // ~value = -value - 1 -> -32768 becomes 32767 (no overflow)

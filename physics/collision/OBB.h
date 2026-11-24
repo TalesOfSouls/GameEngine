@@ -14,7 +14,7 @@ typedef struct {
 } AABB1D;
 
 // Project all 3D OBBs onto a single axis (x-axis)
-void compute_aabb_x_primitives(const OBB* obbs, int32 n, AABB1D* arr) {
+void compute_aabb_x_primitives(const OBB* __restrict obbs, int32 n, AABB1D* __restrict arr) {
     for (int32 i = 0; i < n; ++i) {
         const OBB* o = &obbs[i];
 
@@ -31,7 +31,7 @@ void compute_aabb_x_primitives(const OBB* obbs, int32 n, AABB1D* arr) {
 typedef struct { int32 a, b; } AABBPair;
 
 // Generate potential intersecting pairs
-AABBPair* generate_aabb_pairs(const AABB1D* arr, int32 n, int* out_count) {
+AABBPair* generate_aabb_pairs(const AABB1D* __restrict arr, int32 n, int* __restrict out_count) {
     AABBPair* list = malloc(n * 16 * sizeof(AABBPair)); // rough guess
     int32 cnt = 0;
     for (int32 i = 0; i < n; ++i) {
@@ -46,7 +46,7 @@ AABBPair* generate_aabb_pairs(const AABB1D* arr, int32 n, int* out_count) {
 }
 
 
-bool obb_overlap(const OBB *A, const OBB *B)
+bool obb_overlap(const OBB* __restrict A, const OBB* __restrict B)
 {
     v3_f32 T;
     vec3_sub(&T, &B->center, &A->center);
@@ -395,7 +395,7 @@ void task_worker_broad_avx512(void* _t) {
 }
 #endif
 
-int32 cmp_minx(const void* a, const void* b) {
+int32 cmp_minx(const void* __restrict a, const void* __restrict b) {
     return ((AABB1D *)a)->minx < ((AABB1D *)b)->minx ? -1 : 1;
 }
 

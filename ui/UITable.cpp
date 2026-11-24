@@ -17,14 +17,14 @@
 
 // n-th string of a static string list, "" if the list doesn't exist
 FORCE_INLINE
-const char* ui_table_string(const UILayout* const layout, const UITable* const table, int32 offset, int32 column) NO_EXCEPT
+const char* ui_table_string(const UILayout* const __restrict layout, const UITable* const __restrict table, int32 offset, int32 column) NO_EXCEPT
 {
     return ui_string_list_get(layout, offset, table->column_count, column).str;
 }
 
 // Cell string of a row block (static: string list, dynamic: fixed size cells)
 inline
-const char* ui_table_row_string(const UILayout* const layout, const UITable* const table, int32 offset, int32 column) NO_EXCEPT
+const char* ui_table_row_string(const UILayout* const __restrict layout, const UITable* const __restrict table, int32 offset, int32 column) NO_EXCEPT
 {
     if (table->cell_capacity) {
         return (const char *) (layout->ui_element_buffer.memory + offset + column * table->cell_capacity);
@@ -120,7 +120,7 @@ void ui_table_set_column_width(UILayout* const layout, UITable* const table, int
 
 // Offset of a fixed size cell of a dynamic table (row = row_capacity -> footer)
 FORCE_INLINE
-int32 ui_table_cell_offset(const UILayout* const layout, const UITable* const table, int32 row, int32 column) NO_EXCEPT
+int32 ui_table_cell_offset(const UILayout* const __restrict layout, const UITable* const __restrict table, int32 row, int32 column) NO_EXCEPT
 {
     const int32* const rows = (const int32 *) (layout->ui_element_buffer.memory + table->rows);
 
@@ -349,7 +349,7 @@ void ui_table_set_footer(UILayout* const layout, UITable* const table, const Sim
 }
 
 inline
-const char* ui_table_cell(const UILayout* const layout, const UITable* const table, int32 row, int32 column) NO_EXCEPT
+const char* ui_table_cell(const UILayout* const __restrict layout, const UITable* const __restrict table, int32 row, int32 column) NO_EXCEPT
 {
     ASSERT_TRUE(
         row >= 0
@@ -363,7 +363,7 @@ const char* ui_table_cell(const UILayout* const layout, const UITable* const tab
 }
 
 // Scrollable body (between header and footer), x, y = top left
-inline
+CONSTEXPR inline
 v4_f32 ui_table_body_rect(const UITable* const table) NO_EXCEPT
 {
     const UIAttributeDimension* const dim = &table->core.dimension;
@@ -378,7 +378,7 @@ v4_f32 ui_table_body_rect(const UITable* const table) NO_EXCEPT
 }
 
 inline
-bool ui_table_scroll_info(const UITable* const table, UIScrollInfo* const info) NO_EXCEPT
+bool ui_table_scroll_info(const UITable* const __restrict table, UIScrollInfo* const __restrict info) NO_EXCEPT
 {
     const v4_f32 body = ui_table_body_rect(table);
     const f32 content = table->row_height * (f32) table->row_count;
@@ -412,7 +412,7 @@ bool ui_table_scroll_set(UILayout* const layout, UITable* const table, f32 scrol
 /**
  * @return int32 Body row at the position or -1 (header/footer/empty area)
  */
-inline
+CONSTEXPR inline
 int32 ui_table_row_at(const UITable* const table, f32 x, f32 y) NO_EXCEPT
 {
     const v4_f32 body = ui_table_body_rect(table);
@@ -431,7 +431,7 @@ int32 ui_table_row_at(const UITable* const table, f32 x, f32 y) NO_EXCEPT
  * @return int32 Column or -1 if the position is outside of the columns (e.g. scrollbar)
  */
 inline
-int32 ui_table_column_at(const UILayout* const layout, const UITable* const table, f32 x) NO_EXCEPT
+int32 ui_table_column_at(const UILayout* const __restrict layout, const UITable* const __restrict table, f32 x) NO_EXCEPT
 {
     const v4_f32 body = ui_table_body_rect(table);
     if (!table->column_widths || x < body.x) {

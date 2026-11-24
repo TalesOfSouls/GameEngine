@@ -232,13 +232,13 @@ void perfect_hashmap_init(PerfectHashMap* __restrict hm, int32 count, int32 elem
 }
 
 // Calculates how large a hashmap will be
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int64 perfect_hashmap_size(int32 count, int32 element_size)
 {
     return count * element_size;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int64 perfect_hashmap_size(const PerfectHashMap* hm)
 {
     return hm->entry_size * hm->map_count;
@@ -398,7 +398,7 @@ PerfectHashEntry* perfect_hashmap_entry_get(const PerfectHashMap* __restrict hm,
 }
 
 inline
-byte* perfect_hashmap_get_value(const PerfectHashMapRef* hmr, const char* key) NO_EXCEPT
+byte* perfect_hashmap_get_value(const PerfectHashMapRef* __restrict hmr, const char* __restrict key) NO_EXCEPT
 {
     int32 index = hmr->hm.hash_function(key, hmr->hm.hash_seed) % hmr->hm.map_count;
     PerfectHashEntryInt32Int32* entry = (PerfectHashEntryInt32Int32 *) (hmr->hm.hash_entries + hmr->hm.entry_size * index);

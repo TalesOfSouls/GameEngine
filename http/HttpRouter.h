@@ -66,7 +66,7 @@ void http_router_init(HttpRouter* router, uint32 route_count, BufferMemory* cons
  * This improves the caching since an element doesn't match we need to compare our current search with the other elements of the same level
  * If these elements are consecutive, there is a bigger chance that they are already loaded into L1 or L2 cache
  */
-void http_router_optimize() {
+CONSTEXPR void http_router_optimize() {
 
 }
 

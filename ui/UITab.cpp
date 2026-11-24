@@ -21,7 +21,7 @@
 
 // Title incl. length, {0, 0, NULL} if the index is invalid
 FORCE_INLINE
-SimpleString<const char> ui_tab_title_string(const UILayout* const layout, const UITab* const tab, int32 index) NO_EXCEPT
+SimpleString<const char> ui_tab_title_string(const UILayout* const __restrict layout, const UITab* const __restrict tab, int32 index) NO_EXCEPT
 {
     ASSERT_TRUE(index >= 0 && index < tab->tab_count);
     if (!tab->titles) {
@@ -34,7 +34,7 @@ SimpleString<const char> ui_tab_title_string(const UILayout* const layout, const
 
 // Page of a tab (the n-th child), add your elements to the page
 inline
-UIPanel* ui_tab_page(const UILayout* const layout, const UITab* const tab, int32 index) NO_EXCEPT
+UIPanel* ui_tab_page(const UILayout* const __restrict layout, const UITab* const __restrict tab, int32 index) NO_EXCEPT
 {
     UICore* child;
     ui_element_children_iterate_start(layout, &tab->core, child) {
@@ -138,7 +138,7 @@ UITab* ui_tab_create(
 }
 
 // Rect of a tab header (x, y = top left)
-inline
+CONSTEXPR inline
 v4_f32 ui_tab_header_rect(const UITab* const tab, int32 index) NO_EXCEPT
 {
     const UIAttributeDimension* const dim = &tab->core.dimension;
@@ -163,7 +163,7 @@ v4_f32 ui_tab_header_rect(const UITab* const tab, int32 index) NO_EXCEPT
 /**
  * @return int32 Tab header at the position or -1
  */
-inline
+CONSTEXPR inline
 int32 ui_tab_at(const UITab* const tab, f32 x, f32 y) NO_EXCEPT
 {
     for (int32 i = 0; i < tab->tab_count; ++i) {

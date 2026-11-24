@@ -52,7 +52,7 @@
 #define UI_THEME_RUNTIME_SIZE ((int32) ALIGN_UP(sizeof(FontSystem), 64) + 64)
 
 // Usable size for the theme data (without the runtime data)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 ui_theme_capacity(const UITheme* const theme) NO_EXCEPT
 {
     return theme->data_size - UI_THEME_RUNTIME_SIZE;
@@ -63,7 +63,7 @@ int32 ui_theme_capacity(const UITheme* const theme) NO_EXCEPT
  *
  * @return int32 UI_THEME_ASSET_NONE if the value is not a valid hex id
  */
-static inline
+CONSTEXPR static inline
 int32 ui_theme_asset_id_parse(const char* value) NO_EXCEPT
 {
     if (value[0] == '0' && (value[1] == 'x' || value[1] == 'X')) {
@@ -374,7 +374,7 @@ bool ui_theme_language_load(
  * @return int32 0 if the theme doesn't define the style (node 0 is the reserved empty node)
  */
 inline
-int32 ui_theme_style(const UITheme* const theme, const char* const name) NO_EXCEPT
+int32 ui_theme_style(const UITheme* const __restrict theme, const char* const __restrict name) NO_EXCEPT
 {
     if (!theme || !theme->hash_map.buf.memory) {
         return 0;

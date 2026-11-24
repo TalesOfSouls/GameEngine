@@ -20,8 +20,8 @@ void* cmd_shader_load(AppCmdBuffer*, AppCommand*) {
 }
 
 void* cmd_pipeline_load_sync(
-    Pipeline* pipeline,
-    const SoftShaderFunc* shader_func
+    Pipeline* __restrict pipeline,
+    const SoftShaderFunc* __restrict shader_func
 ) NO_EXCEPT
 {
     // @question Currently the shader id has no purpose in software rendering

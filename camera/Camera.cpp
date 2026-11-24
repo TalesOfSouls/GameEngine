@@ -101,7 +101,7 @@ void camera_frustum_update(
 inline
 void camera_frustum_pos_update(
     CameraMatrices* const __restrict matrices,
-    const Camera* const camera,
+    const Camera* const __restrict camera,
     const v3_f32& old_pos
 ) NO_EXCEPT
 {
@@ -467,7 +467,7 @@ void camera_movement(
 FORCE_INLINE HOT_CODE
 void camera_orth_matrix_lh(
     CameraMatrices* const __restrict matrices,
-    const Camera* const camera
+    const Camera* const __restrict camera
 ) NO_EXCEPT
 {
     mat4_ortho_sparse_lh(
@@ -482,7 +482,7 @@ void camera_orth_matrix_lh(
 FORCE_INLINE HOT_CODE
 void camera_ui_matrix_lh(
     CameraMatrices* const __restrict matrices,
-    const Camera* const camera
+    const Camera* const __restrict camera
 ) NO_EXCEPT
 {
     mat4_ortho_sparse_lh(
@@ -497,7 +497,7 @@ void camera_ui_matrix_lh(
 FORCE_INLINE HOT_CODE
 void camera_orth_matrix_rh_opengl(
     CameraMatrices* const __restrict matrices,
-    const Camera* const camera
+    const Camera* const __restrict camera
 ) NO_EXCEPT
 {
     mat4_ortho_sparse_rh_opengl(
@@ -629,10 +629,10 @@ void camera_projection_matrix_rh_vulkan(
 
 // This is usually not used, since it is included in the view matrix
 // expects the identity matrix
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void camera_translation_matrix_sparse_rh(
     const Camera* const __restrict camera,
-    f32* translation
+    f32* __restrict translation
 ) NO_EXCEPT
 {
     translation[12] = camera->location.x;
@@ -640,10 +640,10 @@ void camera_translation_matrix_sparse_rh(
     translation[14] = camera->location.z;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void camera_translation_matrix_sparse_lh(
     const Camera* const __restrict camera,
-    f32* translation
+    f32* __restrict translation
 ) NO_EXCEPT
 {
     translation[3] = camera->location.x;
@@ -834,7 +834,7 @@ void camera_init(Camera* const camera, GpuApiType gpu_api_type) NO_EXCEPT
     }
 }
 
-inline
+CONSTEXPR inline
 bool aabb_intersects_frustum(
     const AABB_f32* const __restrict box,
     const Frustum* const __restrict frustum
@@ -856,7 +856,7 @@ bool aabb_intersects_frustum(
     return true;
 }
 
-inline
+CONSTEXPR inline
 bool aabb_intersects_frustum(
     const AABB_int32* const __restrict box,
     const Frustum* const __restrict frustum

@@ -14,7 +14,7 @@
  * The memory overflow needs to be entirely handled by the developer
  */
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool memory_resize(byte**, size_t) NO_EXCEPT
 {
     return false;

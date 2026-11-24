@@ -251,7 +251,7 @@ bool exception_dbghelp_available() NO_EXCEPT
  * @return int32 Number of addresses
  */
 static inline
-int32 exception_stack_collect(HANDLE thread, CONTEXT* const context, DWORD64* const addresses, int32 capacity) NO_EXCEPT
+int32 exception_stack_collect(HANDLE thread, CONTEXT* const __restrict context, DWORD64* const __restrict addresses, int32 capacity) NO_EXCEPT
 {
     if (!exception_dbghelp_available()) {
         return 0;
@@ -345,7 +345,7 @@ void exception_stack_write(HANDLE file, const DWORD64* const addresses, int32 co
 
 // Minidump of the whole process (all threads), exception_pointers may be NULL (e.g. hang)
 static inline
-void exception_minidump_write(const wchar_t* const path, EXCEPTION_POINTERS* const exception_pointers, DWORD thread_id) NO_EXCEPT
+void exception_minidump_write(const wchar_t* const __restrict path, EXCEPTION_POINTERS* const __restrict exception_pointers, DWORD thread_id) NO_EXCEPT
 {
     if (!DBGHELP_LOADED(DBGHELP_MiniDumpWriteDump)) {
         return;

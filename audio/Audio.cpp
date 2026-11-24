@@ -31,7 +31,7 @@ void audio_from_file(
     }
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 audio_data_size(const Audio* const audio) NO_EXCEPT
 {
     return (int32) (audio->size

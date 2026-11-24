@@ -27,7 +27,7 @@
  *
  * @return size_t Parsed data size
  */
-size_t write_function(char* data, size_t size, size_t count, void* arg)
+size_t write_function(char* __restrict data, size_t size, size_t count, void* __restrict arg)
 {
     char* dst = (char *)arg;
     size_t length = str_length(dst);
@@ -54,10 +54,10 @@ size_t write_function(char* data, size_t size, size_t count, void* arg)
  * @return int 0 for failure, > 0 for success
  */
 int get_access_token(
-    const char* url,
-    char* access_token,
-    const char* username,
-    const char* identity_token
+    const char* __restrict url,
+    char* __restrict access_token,
+    const char* __restrict username,
+    const char* __restrict identity_token
 )
 {
     CURL *curl = curl_easy_init();

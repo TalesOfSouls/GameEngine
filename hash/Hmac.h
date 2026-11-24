@@ -38,7 +38,7 @@ struct HmacSha256Context {
  */
 inline
 void hmac_sha256_init(
-    HmacSha256Context* const ctx,
+    HmacSha256Context* const __restrict ctx,
     const byte* const __restrict key,
     size_t key_size
 ) NO_EXCEPT
@@ -79,7 +79,7 @@ void hmac_sha256_init(
  * @param size_t             length Amount of bytes
  */
 inline
-void hmac_sha256_update(HmacSha256Context* const ctx, const void* const data, size_t length) NO_EXCEPT
+void hmac_sha256_update(HmacSha256Context* const __restrict ctx, const void* const __restrict data, size_t length) NO_EXCEPT
 {
     sha256_update(&ctx->inner, (const byte *) data, length);
 }
@@ -91,7 +91,7 @@ void hmac_sha256_update(HmacSha256Context* const ctx, const void* const data, si
  * @param byte*              digest Output buffer (HMAC_SHA256_DIGEST_SIZE bytes)
  */
 inline
-void hmac_sha256_final(HmacSha256Context* const ctx, byte* const digest) NO_EXCEPT
+void hmac_sha256_final(HmacSha256Context* const __restrict ctx, byte* const __restrict digest) NO_EXCEPT
 {
     byte inner_digest[SHA256_DIGEST_SIZE];
     sha256_final(&ctx->inner, inner_digest);

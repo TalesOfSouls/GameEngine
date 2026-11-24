@@ -103,9 +103,9 @@ uint64 system_private_memory_usage() NO_EXCEPT
 
 FORCE_INLINE
 bool system_drive_space(
-    const wchar_t* drive_path,
-    size_t* total_bytes,
-    size_t* free_bytes
+    const wchar_t* __restrict drive_path,
+    size_t* __restrict total_bytes,
+    size_t* __restrict free_bytes
 ) NO_EXCEPT
 {
     ULARGE_INTEGER user_free;
@@ -614,7 +614,7 @@ void ram_info_get(RamInfo* const info) {
  *
  * @return wchar_t Channel letter ('A', 'B', ...), 0 = unknown
  */
-static inline
+CONSTEXPR static inline
 wchar_t ram_module_channel(const wchar_t* str) NO_EXCEPT
 {
     if (!str) {
@@ -915,7 +915,7 @@ bool display_monitor_get(int32 index, DisplayMonitor* const monitor) NO_EXCEPT
  * @return bool false if the monitor doesn't exist
  */
 inline
-bool display_monitor_by_name(const char* const name, DisplayMonitor* const monitor) NO_EXCEPT
+bool display_monitor_by_name(const char* const __restrict name, DisplayMonitor* const __restrict monitor) NO_EXCEPT
 {
     wchar_t device[48];
     char_to_wchar(device, name, ARRAY_COUNT(device));
@@ -1046,14 +1046,14 @@ struct RawSmbiosData {
     BYTE table[1];
 };
 
-static inline
+CONSTEXPR static inline
 char hardware_id_lower(char value) NO_EXCEPT
 {
     return (value >= 'A' && value <= 'Z') ? (char) (value + ('a' - 'A')) : value;
 }
 
-static inline
-bool hardware_id_equal_ci(const char* lhs, const char* rhs) NO_EXCEPT
+CONSTEXPR static inline
+bool hardware_id_equal_ci(const char* __restrict lhs, const char* __restrict rhs) NO_EXCEPT
 {
     if (!lhs || !rhs) {
         return false;
@@ -1112,7 +1112,7 @@ static inline
 void hardware_id_copy(
     char* const __restrict dst,
     size_t dst_size,
-    const char* src
+    const char* __restrict src
 ) NO_EXCEPT
 {
     if (!dst || !dst_size) {
@@ -1154,13 +1154,13 @@ void hardware_id_copy(
     }
 }
 
-static inline
+CONSTEXPR static inline
 uint16 hardware_id_u16(const byte* const data) NO_EXCEPT
 {
     return (uint16) (data[0] | ((uint16) data[1] << 8));
 }
 
-static inline
+CONSTEXPR static inline
 uint32 hardware_id_u32(const byte* const data) NO_EXCEPT
 {
     return (uint32) data[0]
@@ -1190,8 +1190,8 @@ char* hardware_id_hex(char* out, uint64 value, int32 digits) NO_EXCEPT
  */
 static inline
 void hardware_id_smbios_uuid(
-    const byte* const data,
-    char* const out,
+    const byte* const __restrict data,
+    char* const __restrict out,
     bool little_endian
 ) NO_EXCEPT
 {
@@ -1270,9 +1270,9 @@ const char* hardware_id_smbios_string(
  */
 static inline
 void hardware_id_smbios_parse(
-    const byte* const table,
+    const byte* const __restrict table,
     size_t table_size,
-    HardwareId* const id,
+    HardwareId* const __restrict id,
     bool little_endian_uuid
 ) NO_EXCEPT
 {
@@ -1416,8 +1416,8 @@ void hardware_id_smbios_read(
  */
 static inline
 bool hardware_id_gpu_canonicalize(
-    const char* const pnp_id,
-    char* const out,
+    const char* const __restrict pnp_id,
+    char* const __restrict out,
     size_t out_size
 ) NO_EXCEPT
 {
@@ -1479,7 +1479,7 @@ void hardware_id_gpu_collect(HardwareId* const id) NO_EXCEPT
     hardware_id_gpu_sort(id);
 }
 
-void hardware_id_get(HardwareId* const id, const SystemInfo* const info) NO_EXCEPT
+void hardware_id_get(HardwareId* const __restrict id, const SystemInfo* const __restrict info) NO_EXCEPT
 {
     (void) info;
 
@@ -1495,7 +1495,7 @@ void hardware_id_get(HardwareId* const id, const SystemInfo* const info) NO_EXCE
 }
 
 static inline
-bool hardware_id_contains_ci(const char* const value, const char* const needle) NO_EXCEPT
+bool hardware_id_contains_ci(const char* const __restrict value, const char* const __restrict needle) NO_EXCEPT
 {
     if (!value || !needle || !*needle) {
         return false;

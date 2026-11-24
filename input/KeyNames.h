@@ -104,7 +104,7 @@ static const SimpleString<char> _input_controller_names[CONTROLLER_BUTTON_SIZE] 
  *
  * @return SimpleString<char> {0, 0, NULL} for unknown keys
  */
-inline
+CONSTEXPR inline
 SimpleString<char> input_key_name_string(int32 key) NO_EXCEPT
 {
     const uint32 code = (uint32) key & 0xFFFF;
@@ -141,7 +141,7 @@ SimpleString<char> input_key_name_string(int32 key) NO_EXCEPT
  * @return int32 Length of the text (0 = no keys)
  */
 inline
-int32 input_key_combination_name(const int16* const keys, int32 count, char* const out, int32 out_size) NO_EXCEPT
+int32 input_key_combination_name(const int16* const __restrict keys, int32 count, char* const __restrict out, int32 out_size) NO_EXCEPT
 {
     int32 length = 0;
     out[0] = '\0';

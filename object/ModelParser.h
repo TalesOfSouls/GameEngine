@@ -76,7 +76,7 @@ uint64 model_key(const char* str) NO_EXCEPT
     return key;
 }
 
-static inline
+CONSTEXPR static inline
 uint64 model_token_key(const ModelToken* tok) NO_EXCEPT
 {
     if (tok->length > 8) {
@@ -91,8 +91,8 @@ uint64 model_token_key(const ModelToken* tok) NO_EXCEPT
     return key;
 }
 
-static inline
-bool model_token_equals(const ModelToken* tok, const char* str) NO_EXCEPT
+CONSTEXPR static inline
+bool model_token_equals(const ModelToken* __restrict tok, const char* __restrict str) NO_EXCEPT
 {
     int32 i = 0;
     for (; i < tok->length; ++i) {
@@ -169,7 +169,7 @@ int32 model_remaining_tokens(ModelParser* p) NO_EXCEPT
 }
 
 // We don't use str_to_float since we need exponent support (e.g. 1e-05 from exporters) and more than 6 decimals
-static
+CONSTEXPR static
 bool model_token_to_f32(const ModelToken* tok, f32* out) NO_EXCEPT
 {
     const char* str = tok->str;
@@ -246,7 +246,7 @@ bool model_token_to_f32(const ModelToken* tok, f32* out) NO_EXCEPT
     return true;
 }
 
-static
+CONSTEXPR static
 bool model_token_to_int64(const ModelToken* tok, int64* out) NO_EXCEPT
 {
     const char* str = tok->str;
@@ -455,14 +455,14 @@ bool model_read_ease(ModelParser* p, AnimationEaseType* out) NO_EXCEPT
 // Memory
 /////////////////////////////////////////////////////////////
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint64 model_align(uint64 size) NO_EXCEPT
 {
     return (size + (MODEL_MEMORY_ALIGNMENT - 1)) & ~((uint64) MODEL_MEMORY_ALIGNMENT - 1);
 }
 
 // Memory required for the parsed file (call after model_measure)
-uint64 model_memory_size(const ModelFile* file) NO_EXCEPT
+CONSTEXPR uint64 model_memory_size(const ModelFile* file) NO_EXCEPT
 {
     return model_align(sizeof(ModelAsset) * file->asset_count)
         + model_align(file->string_size)
@@ -486,7 +486,7 @@ uint64 model_memory_size(const ModelFile* file) NO_EXCEPT
         + model_align(sizeof(ModelStateField) * file->state_field_count);
 }
 
-static
+CONSTEXPR static
 byte* model_carve(byte** pos, uint64 size) NO_EXCEPT
 {
     byte* ptr = *pos;

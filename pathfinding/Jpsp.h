@@ -107,7 +107,7 @@ JPSNode jpsp_jump(int32 x, int32 y, int32 px, int32 py, JPSNode* goal) {
     return jpsp_jump(x + dx, y + dy, x, y, goal);
 }
 
-void jpsp_preprocess() {
+CONSTEXPR void jpsp_preprocess() {
     for (int x = 0; x < GRID_SIZE; x++) {
         for (int y = 0; y < GRID_SIZE; y++) {
             if (grid[x][y] == 0) {

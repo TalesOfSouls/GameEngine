@@ -180,8 +180,8 @@ void platform_aligned_free(void** aligned_ptr) NO_EXCEPT
 
 inline
 void* platform_shared_alloc(
-    int32* fd,
-    const char* name,
+    int32* __restrict fd,
+    const char* __restrict name,
     size_t initial_size,
     size_t reserve_size = 0
 ) NO_EXCEPT
@@ -315,7 +315,7 @@ void* platform_shared_open(int32* __restrict fd, const char* __restrict name, si
 }
 
 inline
-void platform_shared_free(int32 fd, const char* name, void** ptr) NO_EXCEPT
+void platform_shared_free(int32 fd, const char* __restrict name, void** __restrict ptr) NO_EXCEPT
 {
     if (!ptr || !*ptr) {
         return;

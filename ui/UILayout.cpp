@@ -98,7 +98,7 @@ void ui_layout_name_element(UILayout* const layout, const char* name, int32 leng
 /**
  * Finds the first element of a type in pre-order
  */
-static inline
+CONSTEXPR static inline
 UICore* ui_layout_find_first(const UILayout* const layout, UIElementType type) NO_EXCEPT
 {
     ASSERT_TRUE(layout->ui_root);
@@ -289,7 +289,7 @@ int32 layout_from_data(
 // Value parsing
 ////////////////////////////////////////////////////////////////
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void ui_txt_skip_space(const char** const pos) NO_EXCEPT
 {
     while (**pos == ' ' || **pos == '\t') {
@@ -303,7 +303,7 @@ void ui_txt_skip_space(const char** const pos) NO_EXCEPT
  * @return int32 Length of the word (0 = no word)
  */
 static inline
-int32 ui_txt_word(const char** const pos, char* const out, int32 out_size, const char* const stop = "") NO_EXCEPT
+int32 ui_txt_word(const char** const __restrict pos, char* const __restrict out, int32 out_size, const char* const __restrict stop = "") NO_EXCEPT
 {
     ui_txt_skip_space(pos);
 
@@ -327,7 +327,7 @@ int32 ui_txt_word(const char** const pos, char* const out, int32 out_size, const
  * @return bool false if there is no number
  */
 static inline
-bool ui_txt_number(const char** const pos, f32* const out, bool* const relative = NULL) NO_EXCEPT
+bool ui_txt_number(const char** const __restrict pos, f32* const __restrict out, bool* const __restrict relative = NULL) NO_EXCEPT
 {
     ui_txt_skip_space(pos);
 
@@ -379,7 +379,7 @@ bool ui_txt_number(const char** const pos, f32* const out, bool* const relative 
 }
 
 static inline
-bool ui_txt_color(const char* value, uint32* const out) NO_EXCEPT
+bool ui_txt_color(const char* __restrict value, uint32* const __restrict out) NO_EXCEPT
 {
     ui_txt_skip_space(&value);
 
@@ -443,7 +443,7 @@ bool ui_txt_bool(const char* value) NO_EXCEPT
  *
  * @return int32 Amount of entries
  */
-static inline
+CONSTEXPR static inline
 int32 ui_txt_list(char* value, SimpleString<const char>* const entries, int32 max_entries) NO_EXCEPT
 {
     int32 count = 0;
@@ -504,7 +504,7 @@ int32 ui_txt_name_id(const UINameId* const names, int32 count, const char* const
 /**
  * Escape sequences in values: \n = new line, \t = tab, \\ = backslash
  */
-static inline
+CONSTEXPR static inline
 int32 ui_txt_unescape(char* value) NO_EXCEPT
 {
     char* const start = value;
@@ -527,8 +527,8 @@ int32 ui_txt_unescape(char* value) NO_EXCEPT
 /**
  * Language of a document: the language of the theme for theme documents, otherwise the layout language
  */
-static inline
-const Language* ui_txt_document_language(const UILayoutTxtContext* const ctx, const UIDocument* const doc) NO_EXCEPT
+CONSTEXPR static inline
+const Language* ui_txt_document_language(const UILayoutTxtContext* const __restrict ctx, const UIDocument* const __restrict doc) NO_EXCEPT
 {
     for (int32 i = 0; i < ctx->theme_count; ++i) {
         if (&ctx->themes[i]->document == doc) {
@@ -1036,7 +1036,7 @@ bool ui_txt_field_set(
  * Keys that are only used when the element is created
  */
 static inline
-bool ui_txt_is_create_key(const char* const type, const char* const key) NO_EXCEPT
+bool ui_txt_is_create_key(const char* const __restrict type, const char* const __restrict key) NO_EXCEPT
 {
     if (str_compare(key, "style") == 0) {
         return true;
@@ -2003,7 +2003,7 @@ int32 ui_layout_bin_data_size(const UILayout* const layout, int32 file) NO_EXCEP
  * Max. size of a binary layout
  */
 inline
-int32 ui_layout_bin_size(const UIDocument* const doc, const UILayout* const layout, int32 file) NO_EXCEPT
+int32 ui_layout_bin_size(const UIDocument* const __restrict doc, const UILayout* const __restrict layout, int32 file) NO_EXCEPT
 {
     // The string pool is at most the text
     return UI_LAYOUT_BIN_HEADER_SIZE
@@ -2158,7 +2158,7 @@ int32 ui_layout_bin_write(
 /**
  * Memory for the nodes + properties of the document of a binary layout
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 ui_layout_bin_document_memory_size(const UILayoutBinHeader* const header) NO_EXCEPT
 {
     return (int32) ALIGN_UP(header->node_count * sizeof(UIDocumentNode), sizeof(size_t))
@@ -2174,7 +2174,7 @@ const byte* ui_layout_bin_string_read(const byte* in, UIDocumentString* const st
     return in;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_layout_bin_string_valid(UIDocumentString str, int32 pool_size) NO_EXCEPT
 {
     return str.offset >= 0 && str.length >= 0 && str.offset + str.length <= pool_size;

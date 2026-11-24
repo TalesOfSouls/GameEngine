@@ -52,7 +52,7 @@ struct VoxelMaskCell {
 };
 
 // @todo Move to Voxel type enum
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool voxel_is_solid(int32 type) NO_EXCEPT
 {
     return type != 0;
@@ -117,7 +117,7 @@ struct VoxelChunk {
     VoxelChunkMesh mesh;
 };
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 VoxelChunk voxel_chunk_create(int32 x, int32 y, int32 z) NO_EXCEPT
 {
     VoxelChunk chunk = {};
@@ -144,13 +144,13 @@ void voxel_chunk_init(VoxelChunk* chunk, int32 x, int32 y, int32 z) NO_EXCEPT
 // 1. Check depth coordinate (move an entire plane)
 // 2. Then check height coordinate (move an entire row)
 // 3. Lastly check width coordinate (move individual voxels)
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 int32 voxel_index_get(int32 x, int32 y, int32 z) NO_EXCEPT
 {
     return x + VOXEL_CHUNK_SIZE * (y + VOXEL_CHUNK_SIZE * z);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 Voxel voxel_chunk_get(const VoxelChunk* chunk, int32 x, int32 y, int32 z) NO_EXCEPT
 {
     if((uint32) x >= (uint32) VOXEL_CHUNK_SIZE

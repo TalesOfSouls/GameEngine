@@ -61,7 +61,7 @@ struct UIAttributeBorder {
     uint16 uv[UI_BORDER_SIZE][4];
 };
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_border_is_visible(const UIAttributeBorder* const border) NO_EXCEPT
 {
     return border->sampler != UI_SAMPLER_NONE

@@ -31,43 +31,43 @@ struct Sha256Context {
  * Rotate a 32 bit value to the right
  */
 // @performance SWAP_ENDIAN_32 based rotation is faster on some architectures (ror instruction)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 sha256_rotr(uint32 value, int32 bits) NO_EXCEPT
 {
     return (value >> bits) | (value << (32 - bits));
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 sha256_ch(uint32 x, uint32 y, uint32 z) NO_EXCEPT
 {
     return (x & y) ^ (~x & z);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 sha256_maj(uint32 x, uint32 y, uint32 z) NO_EXCEPT
 {
     return (x & y) ^ (x & z) ^ (y & z);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 sha256_big_sigma0(uint32 x) NO_EXCEPT
 {
     return sha256_rotr(x, 2) ^ sha256_rotr(x, 13) ^ sha256_rotr(x, 22);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 sha256_big_sigma1(uint32 x) NO_EXCEPT
 {
     return sha256_rotr(x, 6) ^ sha256_rotr(x, 11) ^ sha256_rotr(x, 25);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 sha256_small_sigma0(uint32 x) NO_EXCEPT
 {
     return sha256_rotr(x, 7) ^ sha256_rotr(x, 18) ^ (x >> 3);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 sha256_small_sigma1(uint32 x) NO_EXCEPT
 {
     return sha256_rotr(x, 17) ^ sha256_rotr(x, 19) ^ (x >> 10);
@@ -154,7 +154,7 @@ void sha256_init(Sha256Context* const ctx) NO_EXCEPT
  * @param size_t         length Amount of bytes to add
  */
 static inline
-void sha256_update(Sha256Context* const ctx, const byte* const data, size_t length) NO_EXCEPT
+void sha256_update(Sha256Context* const __restrict ctx, const byte* const __restrict data, size_t length) NO_EXCEPT
 {
     size_t index = (size_t) (ctx->count & (SHA256_BLOCK_SIZE - 1));
     ctx->count += length;
@@ -191,7 +191,7 @@ void sha256_update(Sha256Context* const ctx, const byte* const data, size_t leng
  * @param byte*          digest Output buffer (SHA256_DIGEST_SIZE bytes)
  */
 static inline
-void sha256_final(Sha256Context* const ctx, byte* const digest) NO_EXCEPT
+void sha256_final(Sha256Context* const __restrict ctx, byte* const __restrict digest) NO_EXCEPT
 {
     const uint64 bit_count = ctx->count * 8;
     size_t index = (size_t) (ctx->count & (SHA256_BLOCK_SIZE - 1));
@@ -235,7 +235,7 @@ void sha256_final(Sha256Context* const ctx, byte* const digest) NO_EXCEPT
  * @param byte*       digest Output buffer (SHA256_DIGEST_SIZE bytes)
  */
 inline
-void sha256_hash(const byte* const data, size_t length, byte* const digest) NO_EXCEPT
+void sha256_hash(const byte* const __restrict data, size_t length, byte* const __restrict digest) NO_EXCEPT
 {
     Sha256Context ctx;
     sha256_init(&ctx);

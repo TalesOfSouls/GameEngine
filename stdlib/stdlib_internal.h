@@ -13,7 +13,7 @@
 #define OMS_HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
 #define OMS_HAS_CHAR(x, c) (OMS_HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool __internal_has_zero(char c) NO_EXCEPT
 {
     return (c - ((size_t)-1 / 0xFF)) & ~c & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1));
@@ -23,7 +23,7 @@ bool __internal_has_zero(char c) NO_EXCEPT
     // 2-byte wchar_t
     #define OMS_HAS_ZERO_WCHAR(x) ((((x) - 0x0001000100010001ULL) & ~(x) & 0x8000800080008000ULL) != 0)
 
-    FORCE_INLINE
+    CONSTEXPR FORCE_INLINE
     bool __internal_has_zero(wchar_t c) NO_EXCEPT
 {
         return ((c - 0x0001000100010001ULL) & ~c & 0x8000800080008000ULL) != 0;
@@ -32,7 +32,7 @@ bool __internal_has_zero(char c) NO_EXCEPT
     // 4-byte wchar_t
     #define OMS_HAS_ZERO_WCHAR(x) ((((x) - 0x0000000100000001ULL) & ~(x) & 0x8000000080000000ULL) != 0)
 
-    FORCE_INLINE
+    CONSTEXPR FORCE_INLINE
     bool __internal_has_zero(wchar_t c) NO_EXCEPT
 {
         return ((c - 0x0000000100000001ULL) & ~c & 0x8000000080000000ULL) != 0;
@@ -112,7 +112,7 @@ void __internal_memmove(void* dst, const void* src, size_t len)
 }
 
 inline
-void __internal_memcpy(void* dst, const void* src, size_t len)
+void __internal_memcpy(void* __restrict dst, const void* __restrict src, size_t len)
 {
     unsigned char* d = (unsigned char*)dst;
     const unsigned char* s = (const unsigned char*)src;
@@ -176,8 +176,8 @@ void __internal_memset(void* dst, int value, size_t len)
     }
 }
 
-inline
-int __internal_memcmp(const void* a, const void* b, size_t len)
+CONSTEXPR inline
+int __internal_memcmp(const void* __restrict a, const void* __restrict b, size_t len)
 {
     const unsigned char* p1 = (const unsigned char*)a;
     const unsigned char* p2 = (const unsigned char*)b;
@@ -741,7 +741,7 @@ NO_SANITIZE_ADDRESS wchar_t* __internal_wcsncpy(wchar_t* __restrict dest, const 
 
 // The comparison is word-wise if both strings have the same alignment offset (e.g. both aligned)
 inline
-NO_SANITIZE_ADDRESS int32 __internal_strcmp(const char* str1, const char* str2) NO_EXCEPT
+NO_SANITIZE_ADDRESS int32 __internal_strcmp(const char* __restrict str1, const char* __restrict str2) NO_EXCEPT
 {
     if ((((uintptr_t) str1 ^ (uintptr_t) str2) & (sizeof(size_t) - 1)) == 0) {
         // Align both pointers
@@ -780,7 +780,7 @@ NO_SANITIZE_ADDRESS int32 __internal_strcmp(const char* str1, const char* str2) 
 }
 
 inline CONSTEXPR
-int32 __internal_wcscmp(const wchar_t* str1, const wchar_t* str2) NO_EXCEPT
+int32 __internal_wcscmp(const wchar_t* __restrict str1, const wchar_t* __restrict str2) NO_EXCEPT
 {
     wchar_t c1 INITIALIZER;
     wchar_t c2 INITIALIZER;
@@ -796,7 +796,7 @@ int32 __internal_wcscmp(const wchar_t* str1, const wchar_t* str2) NO_EXCEPT
 
 // The comparison is word-wise if both strings have the same alignment offset (e.g. both aligned)
 inline
-NO_SANITIZE_ADDRESS int32 __internal_strncmp(const char* str1, const char* str2, size_t n) NO_EXCEPT
+NO_SANITIZE_ADDRESS int32 __internal_strncmp(const char* __restrict str1, const char* __restrict str2, size_t n) NO_EXCEPT
 {
     if ((((uintptr_t) str1 ^ (uintptr_t) str2) & (sizeof(size_t) - 1)) == 0) {
         // Align both pointers
@@ -839,7 +839,7 @@ NO_SANITIZE_ADDRESS int32 __internal_strncmp(const char* str1, const char* str2,
 }
 
 inline CONSTEXPR
-int32 __internal_wcsncmp(const wchar_t* str1, const wchar_t* str2, size_t n) NO_EXCEPT
+int32 __internal_wcsncmp(const wchar_t* __restrict str1, const wchar_t* __restrict str2, size_t n) NO_EXCEPT
 {
     while (n > 0) {
         const wchar_t c1 = *str1++;
@@ -899,7 +899,7 @@ char __internal_toupper(char c) NO_EXCEPT
     return c - 32 * (c >= 'a' && c <= 'z');
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 void __internal__toupper(char* str) NO_EXCEPT
 {
     while (*str != '\0') {
@@ -914,7 +914,7 @@ char __internal_tolower(char c) NO_EXCEPT
     return c + 32 * (c >= 'A' && c <= 'Z');
 }
 
-inline
+CONSTEXPR inline
 void __internal_tolower(char* str) NO_EXCEPT
 {
     while (*str != '\0') {

@@ -192,9 +192,9 @@ void cpu_info_get(CpuInfo* info) {
 
 inline
 bool system_drive_space(
-    const char* path,
-    size_t* total_bytes,
-    size_t* free_bytes
+    const char* __restrict path,
+    size_t* __restrict total_bytes,
+    size_t* __restrict free_bytes
 ) NO_EXCEPT
 {
     struct statvfs stats;
@@ -352,7 +352,7 @@ bool display_monitor_get(int32, DisplayMonitor* const) NO_EXCEPT
 }
 
 inline
-bool display_monitor_by_name(const char* const, DisplayMonitor* const) NO_EXCEPT
+bool display_monitor_by_name(const char* const __restrict, DisplayMonitor* const __restrict) NO_EXCEPT
 {
     return false;
 }
@@ -375,7 +375,7 @@ static inline char hardware_id_lower(char value) NO_EXCEPT
         : value;
 }
 
-static inline bool hardware_id_equal_ci(const char* lhs, const char* rhs) NO_EXCEPT
+static inline bool hardware_id_equal_ci(const char* __restrict lhs, const char* __restrict rhs) NO_EXCEPT
 {
     if (!lhs || !rhs) {
         return false;
@@ -393,7 +393,7 @@ static inline bool hardware_id_equal_ci(const char* lhs, const char* rhs) NO_EXC
     return *lhs == *rhs;
 }
 
-static inline bool hardware_id_contains_ci(const char* value, const char* needle) NO_EXCEPT
+static inline bool hardware_id_contains_ci(const char* __restrict value, const char* __restrict needle) NO_EXCEPT
 {
     if (!value || !needle || !*needle) {
         return false;
@@ -491,8 +491,8 @@ static inline bool hardware_id_ignored(const char* const value) NO_EXCEPT
 }
 
 static inline bool hardware_id_read_file(
-    const char* const path,
-    char* const out,
+    const char* const __restrict path,
+    char* const __restrict out,
     size_t out_size
 ) NO_EXCEPT
 {
@@ -514,8 +514,8 @@ static inline bool hardware_id_read_file(
 }
 
 static inline void hardware_id_read_dmi(
-    const char* const name,
-    char* const out,
+    const char* const __restrict name,
+    char* const __restrict out,
     size_t out_size,
     bool uppercase
 ) NO_EXCEPT
@@ -637,7 +637,7 @@ static inline void hardware_id_gpu_collect(HardwareId* const id) NO_EXCEPT
     hardware_id_gpu_sort(id);
 }
 
-void hardware_id_get(HardwareId* const id, const SystemInfo* const info) NO_EXCEPT
+void hardware_id_get(HardwareId* const __restrict id, const SystemInfo* const __restrict info) NO_EXCEPT
 {
     (void) info;
 

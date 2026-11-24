@@ -19,7 +19,7 @@
 // removes comments + unnecessary whitespace (preprocessor directives keep their own line)
 //
 // @return int32 Length of the output (without the null terminator, same as strlen)
-int32 shader_program_optimize(const char* __restrict input, char* __restrict output) NO_EXCEPT
+CONSTEXPR int32 shader_program_optimize(const char* __restrict input, char* __restrict output) NO_EXCEPT
 {
     const char* read_ptr = input;
     char* write_ptr = output;

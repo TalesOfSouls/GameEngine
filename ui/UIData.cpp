@@ -42,7 +42,7 @@ const char* ui_data_file(const UILayout* const __restrict layout, const UIData* 
     return data->file ? (const char *) (layout->ui_element_buffer.memory + data->file) : NULL;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 byte* ui_data_values(const UILayout* const __restrict layout, const UIData* const __restrict data) NO_EXCEPT
 {
     return layout->ui_element_buffer.memory + data->values;

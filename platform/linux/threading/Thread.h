@@ -267,7 +267,7 @@ int32 coms_pthread_cond_broadcast(mutex_cond* cond) NO_EXCEPT
 FORCE_INLINE
 int32 coms_pthread_rwlock_init(
     coms_pthread_rwlock_t* __restrict rwlock,
-    const coms_pthread_rwlockattr_t*
+    const coms_pthread_rwlockattr_t* __restrict
 ) NO_EXCEPT
 {
     ASSERT_TRUE(rwlock);

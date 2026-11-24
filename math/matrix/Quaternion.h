@@ -10,7 +10,7 @@
 #include "../../stdlib/Stdlib.h"
 #include "Matrix.h"
 
-inline
+CONSTEXPR inline
 quaternion quat_mul(const quaternion& a, const quaternion& b)
 {
     return {
@@ -38,7 +38,7 @@ quaternion quat_axis_angle(const v3_f32& axis, f32 angle_rad)
     return { axis.x * s, axis.y * s, axis.z * s, cosf(angle_rad * 0.5f) };
 }
 
-inline
+CONSTEXPR inline
 v3_f32 quat_rotate_vec3(const quaternion& q, const v3_f32& v)
 {
     const v3_f32 qv = { q.x, q.y, q.z };

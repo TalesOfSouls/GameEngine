@@ -267,7 +267,7 @@ const char* http_request_body(const HttpRequest* request) {
     return ((const char *) (request + 1)) + request->body_offset;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool http_header_is_complete(const char* request, size_t length) {
     return str_contains(request, "\r\n\r\n", length);
 }
@@ -292,7 +292,7 @@ const HttpHeaderElement* http_header_element_get(const HttpRequest* request, Htt
 }
 
 inline
-const char* http_header_value_get(const HttpRequest* request, const HttpHeaderElement* header_element)
+const char* http_header_value_get(const HttpRequest* __restrict request, const HttpHeaderElement* __restrict header_element)
 {
     return ((const char *) (request + 1)) + header_element->value_offset;
 }
@@ -413,7 +413,7 @@ void http_header_parse(HttpRequest** http_request, const char* request, ThrdChun
     }
 }
 
-void parse_multipart_data(const char *body, const char *boundary) {
+void parse_multipart_data(const char* __restrict body, const char* __restrict boundary) {
     char *buffer = strdup(body);
     if (!buffer) {
         perror("Failed to allocate memory for buffer");

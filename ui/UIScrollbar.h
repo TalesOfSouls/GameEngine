@@ -32,13 +32,13 @@ struct UIScrollInfo {
     f32 scroll;
 };
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 f32 ui_scroll_clamp(f32 scroll, f32 content, f32 view) NO_EXCEPT
 {
     return oms_clamp(scroll, 0.0f, oms_max(0.0f, content - view));
 }
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 f32 ui_scrollbar_track_length(const UIScrollInfo* const info, UIScrollAxis axis) NO_EXCEPT
 {
     return axis == UI_SCROLL_AXIS_Y
@@ -46,7 +46,7 @@ f32 ui_scrollbar_track_length(const UIScrollInfo* const info, UIScrollAxis axis)
         : info->track.width;
 }
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 f32 ui_scrollbar_thumb_length(const UIScrollInfo* const info, UIScrollAxis axis) NO_EXCEPT
 {
     const f32 track_length = ui_scrollbar_track_length(info, axis);
@@ -60,7 +60,7 @@ f32 ui_scrollbar_thumb_length(const UIScrollInfo* const info, UIScrollAxis axis)
 }
 
 // Rect of the thumb (x, y = top left)
-inline
+CONSTEXPR inline
 v4_f32 ui_scrollbar_thumb(const UIScrollInfo* const info, UIScrollAxis axis) NO_EXCEPT
 {
     const f32 track_length = ui_scrollbar_track_length(info, axis);
@@ -85,7 +85,7 @@ v4_f32 ui_scrollbar_thumb(const UIScrollInfo* const info, UIScrollAxis axis) NO_
  * How much the scroll offset changes if the thumb is moved by pointer_delta along the track
  * pointer_delta is positive towards the end of the track (right/down)
  */
-inline
+CONSTEXPR inline
 f32 ui_scrollbar_pointer_to_scroll(const UIScrollInfo* const info, UIScrollAxis axis, f32 pointer_delta) NO_EXCEPT
 {
     const f32 free_length = ui_scrollbar_track_length(info, axis) - ui_scrollbar_thumb_length(info, axis);
@@ -99,7 +99,7 @@ f32 ui_scrollbar_pointer_to_scroll(const UIScrollInfo* const info, UIScrollAxis 
 /**
  * Scroll offset that centers the thumb at the pointer position (e.g. click on the track)
  */
-inline
+CONSTEXPR inline
 f32 ui_scrollbar_scroll_at(const UIScrollInfo* const info, UIScrollAxis axis, f32 x, f32 y) NO_EXCEPT
 {
     const f32 thumb_length = ui_scrollbar_thumb_length(info, axis);
@@ -115,7 +115,7 @@ f32 ui_scrollbar_scroll_at(const UIScrollInfo* const info, UIScrollAxis axis, f3
     );
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_scrollbar_contains(const UIScrollInfo* const info, f32 x, f32 y) NO_EXCEPT
 {
     return x >= info->track.x && x < info->track.x + info->track.width

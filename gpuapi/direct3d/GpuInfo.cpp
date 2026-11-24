@@ -113,7 +113,7 @@ uint64 gpu_info_features() {
     return features;
 }
 
-void gpuapi_info_get(GpuInfo* info, ID3D12Device* device) {
+void gpuapi_info_get(GpuInfo* __restrict info, ID3D12Device* __restrict device) {
     IDXGIDevice* dxgiDevice = nullptr;
     if (SUCCEEDED(device->QueryInterface(__uuidof(IDXGIDevice), (void**) &dxgiDevice))) {
         IDXGIAdapter* adapter = nullptr;

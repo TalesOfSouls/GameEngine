@@ -53,7 +53,7 @@ struct HtmlTemplateVariable {
 HtmlTemplateVariable symbol_table[MAX_VARIABLES];
 int32 symbol_table_size = 0;
 
-HtmlTemplateValue html_template_variable_get(const char* name, HtmlTemplateContextStack*) {
+HtmlTemplateValue html_template_variable_get(const char* __restrict name, HtmlTemplateContextStack* __restrict) {
     for (int32 i = 0; i < symbol_table_size; i++) {
         if (str_compare(symbol_table[i].name, name) == 0) {
             HtmlTemplateValue result;
@@ -87,7 +87,7 @@ HtmlTemplateValue html_template_variable_get(const char* name, HtmlTemplateConte
     exit(1);
 }
 
-void html_template_variable_set(const char* name, HtmlTemplateValue value, HtmlTemplateContextStack*) {
+void html_template_variable_set(const char* __restrict name, HtmlTemplateValue value, HtmlTemplateContextStack* __restrict) {
     for (int32 i = 0; i < symbol_table_size; i++) {
         if (str_compare(symbol_table[i].name, name) == 0) {
             switch (value.type) {

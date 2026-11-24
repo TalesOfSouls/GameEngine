@@ -21,7 +21,7 @@ UICore* ui_element_get(const UILayout* const layout, int32 offset) NO_EXCEPT
 
 // Name with known length (faster, no length calculation), the name doesn't have to be \0 terminated
 static inline
-UICore* ui_element_get(const UILayout* const layout, const char* name, int32 length) NO_EXCEPT
+UICore* ui_element_get(const UILayout* const __restrict layout, const char* __restrict name, int32 length) NO_EXCEPT
 {
     if (!layout->hash_map.buf.memory) {
         return NULL;
@@ -36,7 +36,7 @@ UICore* ui_element_get(const UILayout* const layout, const char* name, int32 len
 }
 
 FORCE_INLINE
-UICore* ui_element_get(const UILayout* const layout, const char* name) NO_EXCEPT
+UICore* ui_element_get(const UILayout* const __restrict layout, const char* __restrict name) NO_EXCEPT
 {
     return ui_element_get(layout, name, (int32) str_length(name));
 }
@@ -73,7 +73,7 @@ UICore* ui_element_cached_get(const UILayout* const layout, int32* const cache, 
 }
 
 FORCE_INLINE
-int32 ui_element_offset(const UILayout* const layout, const void* const element) NO_EXCEPT
+int32 ui_element_offset(const UILayout* const __restrict layout, const void* const __restrict element) NO_EXCEPT
 {
     return (int32) ((uintptr_t) element - (uintptr_t) layout->ui_element_buffer.memory);
 }
@@ -99,8 +99,8 @@ UICore* ui_element_cached_get(UILayout* const layout, int32* const cache, Simple
 }
 
 // Returns NULL for the root element
-FORCE_INLINE
-UICore* ui_element_parent(const UILayout* const layout, const UICore* const element) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+UICore* ui_element_parent(const UILayout* const __restrict layout, const UICore* const __restrict element) NO_EXCEPT
 {
     return element == layout->ui_root
         ? NULL
@@ -139,11 +139,11 @@ void ui_element_visibility(UILayout* const layout, int32 offset, bool visible) N
     layout->dirty |= UI_LAYOUT_DIRTY;
 }
 
-inline
+CONSTEXPR inline
 bool ui_element_is_self_or_child_of(
-    const UILayout* const layout,
-    const UICore* element,
-    const UICore* const ancestor
+    const UILayout* const __restrict layout,
+    const UICore* __restrict element,
+    const UICore* const __restrict ancestor
 ) NO_EXCEPT
 {
     while (element) {
@@ -258,7 +258,7 @@ void ui_element_subtree_insert(
  * New/moved elements are inserted before it
  */
 static inline
-int32 ui_element_on_top_child(const UILayout* const layout, const UICore* const parent, const UICore* const ignore = NULL) NO_EXCEPT
+int32 ui_element_on_top_child(const UILayout* const __restrict layout, const UICore* const __restrict parent, const UICore* const __restrict ignore = NULL) NO_EXCEPT
 {
     UICore* child;
     ui_element_children_iterate_start(layout, parent, child) {
@@ -362,7 +362,7 @@ bool ui_element_move_to_front(UILayout* const layout, UICore* const element) NO_
 /**
  * Finds the closest parent of a specific type
  */
-UICore* ui_parent_element_by_type(const UILayout* const layout, const UICore* element, UIElementType type) NO_EXCEPT
+CONSTEXPR UICore* ui_parent_element_by_type(const UILayout* const __restrict layout, const UICore* __restrict element, UIElementType type) NO_EXCEPT
 {
     ASSERT_TRUE(element);
 
@@ -381,7 +381,7 @@ UICore* ui_parent_element_by_type(const UILayout* const layout, const UICore* el
 /**
  * Finds the closest parent that has one of the types (1 bit per UIElementType)
  */
-UICore* ui_parent_element_by_type(const UILayout* const layout, const UICore* element, uint32 type_flags) NO_EXCEPT
+CONSTEXPR UICore* ui_parent_element_by_type(const UILayout* const __restrict layout, const UICore* __restrict element, uint32 type_flags) NO_EXCEPT
 {
     ASSERT_TRUE(element);
 

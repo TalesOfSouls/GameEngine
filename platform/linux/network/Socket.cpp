@@ -62,7 +62,7 @@ void socket_udp_connreset_ignore(socketid) NO_EXCEPT
 #define SOCKET_FILE_CHUNK_SIZE 4096
 
 // @todo implement a version that supports compression (gz)
-int32 socket_http_file_send(int32 client_sock, const char* file_path, const char* content_type = NULL) {
+int32 socket_http_file_send(int32 client_sock, const char* __restrict file_path, const char* __restrict content_type = NULL) {
     int32 file_fd;
     struct stat file_stat;
     int32 rc;

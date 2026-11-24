@@ -9,7 +9,7 @@
 
 #include "../stdlib/Stdlib.h"
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 hash_downscale_64(uint64 key) NO_EXCEPT
 {
     key ^= key >> 33;
@@ -21,13 +21,13 @@ uint32 hash_downscale_64(uint64 key) NO_EXCEPT
     return (uint32) key;
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_int64(const void* value) NO_EXCEPT
 {
     return (uint64) value;
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_djb2(const char* key) NO_EXCEPT
 {
     uint64 hash = 5381;
@@ -54,7 +54,7 @@ uint64 hash_djb2(const void* value) NO_EXCEPT
     return hash;
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_sdbm(const byte* key) NO_EXCEPT
 {
     uint64 hash = 0;
@@ -67,7 +67,7 @@ uint64 hash_sdbm(const byte* key) NO_EXCEPT
     return hash;
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_lose_lose(const byte* key) NO_EXCEPT
 {
 	uint64 hash = 0;
@@ -80,7 +80,7 @@ uint64 hash_lose_lose(const byte* key) NO_EXCEPT
 	return hash;
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_polynomial_rolling(const char* str) NO_EXCEPT
 {
     const int32 p = 31;
@@ -97,7 +97,7 @@ uint64 hash_polynomial_rolling(const char* str) NO_EXCEPT
     return hash;
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_fnv1a(const char* str) NO_EXCEPT
 {
     const uint64 FNV_OFFSET_BASIS = 14695981039346656037UL;
@@ -113,7 +113,7 @@ uint64 hash_fnv1a(const char* str) NO_EXCEPT
     return hash;
 }
 
-inline
+CONSTEXPR inline
 uint32 hash_oat(const char* str) NO_EXCEPT
 {
     uint32 hash = 0;
@@ -131,7 +131,7 @@ uint32 hash_oat(const char* str) NO_EXCEPT
     return hash;
 }
 
-inline
+CONSTEXPR inline
 uint32 hash_ejb(const char* str) NO_EXCEPT
 {
 	const uint32 PRIME1 = 37;
@@ -324,7 +324,7 @@ uint64 hash_murmur3_64(const void* key, size_t len, uint64 seed = 0) NO_EXCEPT
 // The unsigned arithmetic wraps -> the same bits as before, the result is an int32 again (the hash values don't change)
 #define HASH_SEED_MIX(seed) ((int32) ((uint32) (seed) + ((uint32) (seed) << 6) + (uint32) ((seed) >> 2)))
 
-inline
+CONSTEXPR inline
 uint64 hash_djb2_seeded(const char* key, int32 seed) NO_EXCEPT
 {
     uint64 hash = 5381;
@@ -337,7 +337,7 @@ uint64 hash_djb2_seeded(const char* key, int32 seed) NO_EXCEPT
     return hash ^ HASH_SEED_MIX(seed);
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_sdbm_seeded(const char* key, int32 seed) NO_EXCEPT
 {
     uint64 hash = 0;
@@ -350,7 +350,7 @@ uint64 hash_sdbm_seeded(const char* key, int32 seed) NO_EXCEPT
     return hash ^ HASH_SEED_MIX(seed);
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_lose_lose_seeded(const char* key, int32 seed) NO_EXCEPT
 {
 	uint64 hash = 0;
@@ -363,7 +363,7 @@ uint64 hash_lose_lose_seeded(const char* key, int32 seed) NO_EXCEPT
 	return hash ^ HASH_SEED_MIX(seed);
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_polynomial_rolling_seeded(const char* str, int32 seed) NO_EXCEPT
 {
     const int32 p = 31;
@@ -380,7 +380,7 @@ uint64 hash_polynomial_rolling_seeded(const char* str, int32 seed) NO_EXCEPT
     return hash ^ HASH_SEED_MIX(seed);
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_fnv1a_seeded(const char* str, int32 seed) NO_EXCEPT
 {
     const uint64 FNV_OFFSET_BASIS = 14695981039346656037UL;
@@ -396,7 +396,7 @@ uint64 hash_fnv1a_seeded(const char* str, int32 seed) NO_EXCEPT
     return hash ^ HASH_SEED_MIX(seed);
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_oat_seeded(const char* str, int32 seed) NO_EXCEPT
 {
     uint64 hash = 0;
@@ -414,7 +414,7 @@ uint64 hash_oat_seeded(const char* str, int32 seed) NO_EXCEPT
     return hash ^ HASH_SEED_MIX(seed);;
 }
 
-inline
+CONSTEXPR inline
 uint64 hash_ejb_seeded(const char* str, int32 seed) NO_EXCEPT
 {
 	const uint64 PRIME1 = 37;

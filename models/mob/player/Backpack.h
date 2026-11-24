@@ -75,7 +75,7 @@ void backpack_move_item(Backpack* backpack, uint32 from, uint32 to)
     backpack->quantities[from] = temp_quantity;
 }
 
-inline
+CONSTEXPR inline
 int32 backpack_find_empty(const Backpack* backpack)
 {
     for (uint32 i = 0; i < backpack->size; ++i) {

@@ -45,13 +45,13 @@ struct FragmentMemory {
     int32* free;
 };
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 int32 fragment_size_element(int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     return ALIGN_UP(element_size, alignment);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 size_t fragment_size_total(uint32 count, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = fragment_size_element(element_size, alignment);

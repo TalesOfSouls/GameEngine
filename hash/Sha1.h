@@ -100,7 +100,7 @@ void sha1_init(Sha1Context* const ctx) NO_EXCEPT
 }
 
 static inline
-void sha1_update(Sha1Context* const ctx, const byte* data, size_t len, int32 steps) NO_EXCEPT
+void sha1_update(Sha1Context* const __restrict ctx, const byte* __restrict data, size_t len, int32 steps) NO_EXCEPT
 {
     size_t i, index, part_len;
 

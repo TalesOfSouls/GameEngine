@@ -116,7 +116,7 @@ This is all done with fixed point integers. Hence the right-shifts when updating
 the weights and calculating the prediction.
 */
 // @performance Depending on context most likely SIMDable
-static inline
+CONSTEXPR static inline
 int32 qoa_lms_predict(const QoaLms* lms)
 {
 	int64 prediction = 0;
@@ -148,7 +148,7 @@ returns as 0, which is handled in the qoa_quant_tab[].
 qoa_div() takes an index into the .16 fixed point qoa_reciprocal_tab as an
 argument, so it can do the division with a cheaper integer multiplication.
 */
-static inline
+CONSTEXPR static inline
 int32 qoa_div(int32 v, int32 scalefactor) {
 	const int64 reciprocal = qoa_reciprocal_tab[scalefactor];
 	int32 n = (int32) (((int64) v * reciprocal + (1 << 15)) >> 16);
@@ -159,7 +159,7 @@ int32 qoa_div(int32 v, int32 scalefactor) {
 	return n;
 }
 
-static inline
+CONSTEXPR static inline
 int32 qoa_clamp(int32 v, int32 min, int32 max) {
 	if (v < min) { return min; }
 	if (v > max) { return max; }
@@ -171,7 +171,7 @@ This specialized clamp function for the signed 16 bit range improves decode
 performance quite a bit. The extra if() statement works nicely with the CPUs
 branch prediction as this branch is rarely taken.
 */
-static inline
+CONSTEXPR static inline
 int32 qoa_clamp_s16(int32 v) {
 	if ((uint32) (v + 32768) > 65535) {
 		if (v < -32768) { return -32768; }
@@ -182,7 +182,7 @@ int32 qoa_clamp_s16(int32 v) {
 }
 
 static inline
-uint32 qoa_encode_frame(const int16* sample_data, uint32 channels, uint32 frame_samples, QoaLms* lms, byte* bytes)
+uint32 qoa_encode_frame(const int16* __restrict sample_data, uint32 channels, uint32 frame_samples, QoaLms* __restrict lms, byte* __restrict bytes)
 {
     byte* start = bytes;
 
@@ -352,7 +352,7 @@ uint32 qoa_encode(const Audio* audio, byte* data) {
 }
 
 static inline
-uint32 qoa_decode_frame(const byte* bytes, uint32 channels, QoaLms* lms, int16* sample_data)
+uint32 qoa_decode_frame(const byte* __restrict bytes, uint32 channels, QoaLms* __restrict lms, int16* __restrict sample_data)
 {
     const byte* const start = bytes;
 

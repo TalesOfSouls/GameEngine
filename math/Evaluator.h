@@ -67,7 +67,7 @@ f32 evaluator_pop_value(EvaluatorValueStack* stack) {
 }
 
 // Precedence of operators
-int32 evaluator_precedence(char op) {
+CONSTEXPR int32 evaluator_precedence(char op) {
     switch (op) {
         case '+':
         case '-':
@@ -216,7 +216,7 @@ f32 evaluator_evaluate_expression(const char* expr) {
 }
 
 // Evaluate built-in functions
-f32 evaluator_evaluate_function(const char* name, const char* args) {
+f32 evaluator_evaluate_function(const char* __restrict name, const char* __restrict args) {
     if (str_compare(name, "min") == 0) {
         const char* comma = str_find(args, ',');
         if (!comma) {
@@ -265,7 +265,7 @@ f32 evaluator_evaluate_function(const char* name, const char* args) {
     return 0.0;
 }
 
-f32 evaluator_evaluate(const char* expr, int32 variable_count = 0, const EvaluatorVariable* variables = NULL) {
+f32 evaluator_evaluate(const char* __restrict expr, int32 variable_count = 0, const EvaluatorVariable* __restrict variables = NULL) {
     ASSERT_TRUE(str_length(expr) > 0);
 
     // Handle variables

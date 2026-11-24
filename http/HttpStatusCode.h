@@ -72,7 +72,7 @@ enum HttpStatusCode : uint16 {
     HTTP_STATUS_CODE_511 = 511,
 };
 
-const char* http_status_text(HttpStatusCode code) {
+CONSTEXPR const char* http_status_text(HttpStatusCode code) {
     switch (code) {
         case HTTP_STATUS_CODE_100:
             return "Continue";

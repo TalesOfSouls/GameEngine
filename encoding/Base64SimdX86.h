@@ -12,7 +12,7 @@
 #include "../utils/StringUtils.h"
 #include "Base64Definitions.h"
 
-void base64_encode_simd(const byte* data, char* encoded_data, size_t data_length = 0, int32 steps = 16) NO_EXCEPT
+void base64_encode_simd(const byte* __restrict data, char* __restrict encoded_data, size_t data_length = 0, int32 steps = 16) NO_EXCEPT
 {
     if (!data_length) {
         // WARNING: This should only happen if the data is a char string
@@ -212,7 +212,7 @@ void base64_encode_simd(const byte* data, char* encoded_data, size_t data_length
     encoded_data[base64_encoded_length(data_length)] = '\0';
 }
 
-size_t base64_decode_simd(const char* encoded_data, byte* data, size_t encoded_length, int32 steps = 16) NO_EXCEPT
+size_t base64_decode_simd(const char* __restrict encoded_data, byte* __restrict data, size_t encoded_length, int32 steps = 16) NO_EXCEPT
 {
     if (!encoded_length) {
         encoded_length = str_length(encoded_data);

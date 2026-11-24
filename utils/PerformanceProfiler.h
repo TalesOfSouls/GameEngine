@@ -10,7 +10,7 @@ void function1();
 void function2();
 
 // Profiling function
-void profile(void (*func)(), const char* func_name, int iterations, double* total_time, uint64_t* total_cycles, double* mean_time, uint64_t* mean_cycles) {
+void profile(void (*func)(), const char* __restrict func_name, int iterations, double* __restrict total_time, uint64_t* __restrict total_cycles, double* __restrict mean_time, uint64_t* __restrict mean_cycles) {
     struct timespec start_time, end_time;
     uint64_t start_cycle, end_cycle;
     *total_time = 0;

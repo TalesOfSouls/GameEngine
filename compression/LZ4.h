@@ -15,12 +15,12 @@
 #define LZ4_WINDOW_SIZE 65535
 #define LZ4_MAX_MATCH_LEN (LZ4_MIN_MATCH + 15 + 255)
 
-static inline
+CONSTEXPR static inline
 int32 lz4_find_longest_match(
-    const byte* in,
+    const byte* __restrict in,
     int32 current,
     int32 length,
-    int32* match_offset
+    int32* __restrict match_offset
 ) NO_EXCEPT
 {
     int32 best_length = 0;
@@ -52,8 +52,8 @@ int32 lz4_find_longest_match(
     return best_length;
 }
 
-static inline
-void lz4_write_length(byte* out, uint32* out_pos, int32 length) NO_EXCEPT
+CONSTEXPR static inline
+void lz4_write_length(byte* __restrict out, uint32* __restrict out_pos, int32 length) NO_EXCEPT
 {
     while (length >= 255) {
         out[(*out_pos)++] = 255;
@@ -62,7 +62,7 @@ void lz4_write_length(byte* out, uint32* out_pos, int32 length) NO_EXCEPT
     out[(*out_pos)++] = (byte) length;
 }
 
-uint32 lz4_encode(const byte* in, size_t in_length, byte* out) NO_EXCEPT
+uint32 lz4_encode(const byte* __restrict in, size_t in_length, byte* __restrict out) NO_EXCEPT
 {
     uint32 in_pos = 0;
     uint32 out_pos = 0;
@@ -119,7 +119,7 @@ uint32 lz4_encode(const byte* in, size_t in_length, byte* out) NO_EXCEPT
     return out_pos;
 }
 
-uint32 lz4_decode(const byte* in, size_t in_length, byte* out) NO_EXCEPT
+uint32 lz4_decode(const byte* __restrict in, size_t in_length, byte* __restrict out) NO_EXCEPT
 {
     uint32 in_pos = 0;
     uint32 out_pos = 0;
@@ -190,13 +190,13 @@ uint32 lz4_decode(const byte* in, size_t in_length, byte* out) NO_EXCEPT
  *
  * @return size_t
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 size_t lz4_encode_bound(size_t length) NO_EXCEPT
 {
     return length + length / 255 + 16;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 lz4_fast_hash(uint32 v) NO_EXCEPT
 {
     return (v * 2654435761U) >> (32 - LZ4_FAST_HASH_BITS);

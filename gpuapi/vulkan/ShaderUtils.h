@@ -263,7 +263,7 @@ void gpuapi_pipeline_use(VkCommandBuffer command_buffer, VkPipeline pipeline)
 // This way we can handle this more dynamic
 VkPipeline gpuapi_pipeline_make(
     VkDevice device, VkRenderPass render_pass, VkPipelineLayout* __restrict pipeline_layout, VkPipeline* __restrict pipeline,
-    VkDescriptorSetLayout* descriptor_set_layouts,
+    VkDescriptorSetLayout* __restrict descriptor_set_layouts,
     VkShaderModule vertex_shader, VkShaderModule fragment_shader,
     VkShaderModule
 ) {
@@ -443,7 +443,7 @@ void pipeline_cleanup(VkDevice device, VkPipeline pipeline, VkPipelineLayout pip
 inline
 void gpuapi_descriptor_set_layout_create(
     VkDevice device,
-    VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorSetLayoutBinding* bindings, int32 binding_length
+    VkDescriptorSetLayout* __restrict descriptor_set_layout, VkDescriptorSetLayoutBinding* __restrict bindings, int32 binding_length
 ) {
     VkDescriptorSetLayoutCreateInfo layout_info = {};
     layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;

@@ -11,7 +11,7 @@
 
 #include "../stdlib/Stdlib.h"
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 void bit_shuffle_bit_set(byte* buffer, size_t bit_index, int value) NO_EXCEPT
 {
     size_t byte_index = bit_index >> 3;
@@ -24,7 +24,7 @@ void bit_shuffle_bit_set(byte* buffer, size_t bit_index, int value) NO_EXCEPT
     }
 }
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 int bit_shuffle_bit_get(const byte* buffer, size_t bit_index) NO_EXCEPT
 {
     size_t byte_index = bit_index >> 3;
@@ -33,7 +33,7 @@ int bit_shuffle_bit_get(const byte* buffer, size_t bit_index) NO_EXCEPT
     return (buffer[byte_index] >> bit_in_byte) & 1u;
 }
 
-void bit_shuffle(
+CONSTEXPR void bit_shuffle(
     const byte* __restrict input,
     byte* __restrict output, // needs to be zeroed
     size_t elements,
@@ -58,7 +58,7 @@ void bit_shuffle(
     }
 }
 
-void bit_unshuffle(
+CONSTEXPR void bit_unshuffle(
     const byte* __restrict input,
     byte* __restrict output, // needs to be zeroed
     size_t elements,

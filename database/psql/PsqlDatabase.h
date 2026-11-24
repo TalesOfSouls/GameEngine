@@ -45,7 +45,7 @@ void db_close_psql(DatabaseConnection* db) {
 }
 
 inline
-void* db_prepare_psql(void* con, const char* name, const char* query) {
+void* db_prepare_psql(void* __restrict con, const char* __restrict name, const char* __restrict query) {
     PGresult* res = PQprepare((PGconn *) con, name, query, 0, NULL);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
         // @todo Handle error
@@ -63,7 +63,7 @@ void* db_prepare_psql(void* con, const char* name, const char* query) {
 }
 
 inline
-void db_unprepare_psql(void* con, const char* name) {
+void db_unprepare_psql(void* __restrict con, const char* __restrict name) {
     char dealloc[64];
     memcpy(dealloc, "DEALLOCATE ", sizeof("DEALLOCATE ") - 1);
     str_copy(dealloc + sizeof("DEALLOCATE ") - 1, name);
@@ -73,7 +73,7 @@ void db_unprepare_psql(void* con, const char* name) {
 }
 
 // WARNING: uint8 is chosen to ensure no overflow in dealloc, considering 64 bytes per deallocation
-void db_unprepare_psql(void* con, const char** name, uint8 length) {
+void db_unprepare_psql(void* __restrict con, const char** __restrict name, uint8 length) {
     char dealloc[16 * KILOBYTE];
     memcpy(dealloc, "DEALLOCATE", sizeof("DEALLOCATE") - 1);
 
@@ -213,7 +213,7 @@ void* db_execute_prepared(
 }
 
 inline
-void* db_execute(void* con, const char* query) {
+void* db_execute(void* __restrict con, const char* __restrict query) {
     PGresult* res = PQexec((PGconn *) con, query);
 
     return res;

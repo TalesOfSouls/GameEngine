@@ -23,14 +23,14 @@
  */
 
 // Tag stored in string entries (uses the low bits, the bucket index uses the high bits of the hash)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint16 hashmap_hash_tag(uint32 hash) NO_EXCEPT
 {
     return (uint16) hash;
 }
 
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint16* hashmap_head(const HashMapT<T>* const hm, uint32 hash) NO_EXCEPT
 {
     return &hm->buf.memory[hashmap_hash_range(hash, (uint32) hm->buf.capacity)].head;
@@ -121,7 +121,7 @@ void hashmap_free(HashMapT<T>* const hm, MemoryArena* mem) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int64 hashmap_size(const HashMapT<T>* const hm) NO_EXCEPT
 {
     return hm->buf.capacity * sizeof(T);
@@ -164,7 +164,7 @@ T* hashmap_slot_create(HashMapT<T>* const hm, uint32 hash) NO_EXCEPT
  */
 template <typename T>
 FORCE_INLINE
-T* hashmap_str_find(const HashMapT<T>* const hm, const char* key, int32 length, uint32 hash) NO_EXCEPT
+T* hashmap_str_find(const HashMapT<T>* const __restrict hm, const char* __restrict key, int32 length, uint32 hash) NO_EXCEPT
 {
     const uint16 tag = hashmap_hash_tag(hash);
     uint16 next = *hashmap_head(hm, hash);
@@ -377,7 +377,7 @@ T* hashmap_get_reserve(HashMapT<T>* const hm, SimpleString<C> key) NO_EXCEPT
 
 template <typename T>
 inline
-T* hashmap_entry_get(const HashMapT<T>* const hm, const char* key, int32 length) NO_EXCEPT
+T* hashmap_entry_get(const HashMapT<T>* const __restrict hm, const char* __restrict key, int32 length) NO_EXCEPT
 {
     hashmap_str_key(&key, &length);
 
@@ -386,7 +386,7 @@ T* hashmap_entry_get(const HashMapT<T>* const hm, const char* key, int32 length)
 
 template <typename T>
 FORCE_INLINE
-T* hashmap_entry_get(const HashMapT<T>* const hm, const char* key) NO_EXCEPT
+T* hashmap_entry_get(const HashMapT<T>* const __restrict hm, const char* __restrict key) NO_EXCEPT
 {
     return hashmap_entry_get(hm, key, hashmap_str_length(key));
 }

@@ -25,7 +25,7 @@
 
 #pragma comment(lib, "d3dcompiler.lib")
 
-const char* d3_shader_type_index(ShaderType type)
+CONSTEXPR const char* d3_shader_type_index(ShaderType type)
 {
     switch (type) {
         case SHADER_TYPE_VERTEX:
@@ -37,7 +37,7 @@ const char* d3_shader_type_index(ShaderType type)
     }
 }
 
-ID3DBlob* gpuapi_shader_make(const char* type, const char* source, int32 source_size)
+ID3DBlob* gpuapi_shader_make(const char* __restrict type, const char* __restrict source, int32 source_size)
 {
     LOG_1("Create shader");
     #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
@@ -138,7 +138,7 @@ ID3D12PipelineState* gpuapi_pipeline_make(
 }
 
 FORCE_INLINE
-void gpuapi_pipeline_use(ID3D12GraphicsCommandList* command_buffer, ID3D12PipelineState* pipelineState)
+void gpuapi_pipeline_use(ID3D12GraphicsCommandList* __restrict command_buffer, ID3D12PipelineState* __restrict pipelineState)
 {
     command_buffer->SetPipelineState(pipelineState);
 }
@@ -370,7 +370,7 @@ void gpuapi_attribute_info_create(GpuAttributeType type, D3D12_INPUT_ELEMENT_DES
     };
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 directx_program_optimize(const char* __restrict input, char* __restrict output) NO_EXCEPT
 {
     return shader_program_optimize(input, output);

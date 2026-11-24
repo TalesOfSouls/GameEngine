@@ -16,7 +16,7 @@ void window_state_restore(Window* const w) NO_EXCEPT
     memcpy(&w->state_current, &w->state_old, sizeof(w->state_current));
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 window_logical_to_physical(
     uint32 value,
     uint32 dpi
@@ -25,7 +25,7 @@ uint32 window_logical_to_physical(
     return (value * dpi + 48) / 96;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 window_physical_to_logical(
     uint32 value,
     uint32 dpi

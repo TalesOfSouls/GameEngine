@@ -13,7 +13,7 @@
  *
  * @return f32 A day time ranging from 0.0 to 1.0
  */
-f32 time_of_day(f64 time, f32 day_length) {
+CONSTEXPR f32 time_of_day(f64 time, f32 day_length) {
     time /= day_length;
     time -= (int64) time;
 

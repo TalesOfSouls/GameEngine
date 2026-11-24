@@ -21,13 +21,13 @@ struct UIClipRect {
 };
 
 // x, y = top left corner (same format as ui_dimension_rect)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 UIClipRect ui_clip_from_rect(v4_f32 rect) NO_EXCEPT
 {
     return {rect.x, rect.y - rect.height, rect.x + rect.width, rect.y};
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 UIClipRect ui_clip_intersect(const UIClipRect& a, const UIClipRect& b) NO_EXCEPT
 {
     UIClipRect r = {
@@ -44,7 +44,7 @@ UIClipRect ui_clip_intersect(const UIClipRect& a, const UIClipRect& b) NO_EXCEPT
     return r;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_clip_contains(const UIClipRect& clip, f32 x, f32 y) NO_EXCEPT
 {
     return x >= clip.left && x < clip.right && y > clip.bottom && y <= clip.top;
@@ -54,7 +54,7 @@ bool ui_clip_contains(const UIClipRect& clip, f32 x, f32 y) NO_EXCEPT
  * Is the vertex quad axis aligned in the layout of vertex_rect_create()/vertex_text_create()?
  *      v[0] = top left, v[1] = top right, v[2] = bottom right, v[3] = bottom left
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_clip_is_quad(const Vertex3DSamplerTextureColor* const v) NO_EXCEPT
 {
     return v[0].position.y == v[1].position.y

@@ -20,7 +20,7 @@ enum HttpMethod : byte {
 
 typedef HttpMethod HttpVerb;
 
-const char* http_method_text(HttpMethod method) {
+CONSTEXPR const char* http_method_text(HttpMethod method) {
     switch (method) {
         case HTTP_METHOD_GET:
             return "GET";

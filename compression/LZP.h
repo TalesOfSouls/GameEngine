@@ -11,7 +11,7 @@
 
 #include "../stdlib/Stdlib.h"
 
-uint32 lzp_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
+CONSTEXPR uint32 lzp_encode(const byte* __restrict in, size_t length, byte* __restrict out) NO_EXCEPT
 {
     byte buf[9];
     byte table[1 << 16] = {};
@@ -55,7 +55,7 @@ uint32 lzp_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
     return out_pos;
 }
 
-uint32 lzp_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
+CONSTEXPR uint32 lzp_decode(const byte* __restrict in, size_t length, byte* __restrict out) NO_EXCEPT
 {
     byte buf[8];
     byte table[1 << 16] = {};
@@ -97,10 +97,10 @@ uint32 lzp_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
     return out_pos;
 }
 
-int32 lzp_find_longest_match(
-    const char* window, int32 window_start,
-    const char* buffer, int32 buffer_size,
-    int32* match_position
+CONSTEXPR int32 lzp_find_longest_match(
+    const char* __restrict window, int32 window_start,
+    const char* __restrict buffer, int32 buffer_size,
+    int32* __restrict match_position
 ) NO_EXCEPT
 {
     int32 best_length = 0;
@@ -127,7 +127,7 @@ int32 lzp_find_longest_match(
     return best_length;
 }
 
-uint32 lzp3_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
+uint32 lzp3_encode(const byte* __restrict in, size_t length, byte* __restrict out) NO_EXCEPT
 {
     char window[4096] = {};
     int32 window_start = 0;
@@ -169,7 +169,7 @@ uint32 lzp3_encode(const byte* in, size_t length, byte* out) NO_EXCEPT
     return out_size;
 }
 
-uint32 lzp3_decode(const byte* in, size_t length, byte* out) NO_EXCEPT
+uint32 lzp3_decode(const byte* __restrict in, size_t length, byte* __restrict out) NO_EXCEPT
 {
     char window[4096] = {};
     int32 window_start = 0;

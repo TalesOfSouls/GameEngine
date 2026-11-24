@@ -202,7 +202,7 @@ int32 db_stmt_step(SqliteStatement* const __restrict statement) NO_EXCEPT
  *
  * @return bool True if a row is available
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool db_stmt_is_row(int32 rc) NO_EXCEPT
 {
     return rc == SQLITE_ROW;
@@ -215,7 +215,7 @@ bool db_stmt_is_row(int32 rc) NO_EXCEPT
  *
  * @return bool True if the statement completed
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool db_stmt_is_done(int32 rc) NO_EXCEPT
 {
     return rc == SQLITE_DONE;

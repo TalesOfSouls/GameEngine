@@ -69,7 +69,7 @@ bool file_write_secure(const char* const path, const FileBody* const file, T* co
  * @return bool
  */
 inline
-bool file_write_atomic(const char* const path, const FileBody* const file) NO_EXCEPT
+bool file_write_atomic(const char* const __restrict path, const FileBody* const __restrict file) NO_EXCEPT
 {
     char temp_path[PATH_MAX_LENGTH];
     const size_t path_len = str_length(path);
@@ -114,7 +114,7 @@ bool file_write_atomic(const char* const path, const FileBody* const file) NO_EX
  * @return int64 File size, -1 if the file doesn't exist, can't be read or doesn't fit into the buffer
  */
 inline
-int64 file_read_buffer(const char* const path, void* const buffer, uint32 capacity) NO_EXCEPT
+int64 file_read_buffer(const char* const __restrict path, void* const __restrict buffer, uint32 capacity) NO_EXCEPT
 {
     FileHandle fp = file_read_handle_shared(path);
     if (!fp) {
@@ -135,7 +135,7 @@ int64 file_read_buffer(const char* const path, void* const buffer, uint32 capaci
  * @param char* out Where do we want to store the final path
  */
 inline
-void build_base_path(const char* base, char* out) NO_EXCEPT
+void build_base_path(const char* __restrict base, char* __restrict out) NO_EXCEPT
 {
     if (*base == '.') {
         relative_to_absolute(base, out);
@@ -164,7 +164,7 @@ void build_base_path(const char* base, char* out) NO_EXCEPT
  * @param char*        out     Where do we want to store the final path
  */
 inline
-void build_path(const char* base, const char* dest, char* out) NO_EXCEPT
+void build_path(const char* __restrict base, const char* __restrict dest, char* __restrict out) NO_EXCEPT
 {
     // The base path could be to a .exe for example, we need to get the directory
     if (*dest == '.') {
@@ -176,7 +176,7 @@ void build_path(const char* base, const char* dest, char* out) NO_EXCEPT
 }
 
 inline
-void filename(const char* path, char* out) NO_EXCEPT
+void filename(const char* __restrict path, char* __restrict out) NO_EXCEPT
 {
     const char* start = str_right(path, '/');
     if (!start) {

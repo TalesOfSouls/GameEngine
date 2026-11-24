@@ -32,7 +32,7 @@ CONSTEXPR const char HEX_CHARS_UPPER[16] = {
  *
  * @return int32 0-15 for a valid hex character, -1 otherwise
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 hex_char_to_int(char c) NO_EXCEPT
 {
     if (c >= '0' && c <= '9') {
@@ -58,7 +58,7 @@ int32 hex_char_to_int(char c) NO_EXCEPT
  *
  * @return bool True if all characters are hex characters
  */
-inline
+CONSTEXPR inline
 bool hex_is_valid(const char* const __restrict src, size_t length) NO_EXCEPT
 {
     if (!src || (length & 1)) {
@@ -86,7 +86,7 @@ bool hex_is_valid(const char* const __restrict src, size_t length) NO_EXCEPT
  *
  * @return int32 Amount of characters written (excluding the null terminator)
  */
-inline
+CONSTEXPR inline
 int32 hex_encode(
     const byte* const __restrict src,
     size_t length,
@@ -115,7 +115,7 @@ int32 hex_encode(
  *
  * @return int32 Amount of characters written (excluding the null terminator)
  */
-inline
+CONSTEXPR inline
 int32 hex_encode_upper(
     const byte* const __restrict src,
     size_t length,
@@ -147,7 +147,7 @@ int32 hex_encode_upper(
  *
  * @return int32 Amount of bytes written or -1 on invalid input
  */
-inline
+CONSTEXPR inline
 int32 hex_decode(
     const char* const __restrict src,
     size_t length,

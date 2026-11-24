@@ -84,7 +84,7 @@ bool gpu_atlas_cache_exists(GpuAtlasCache* cache, uint32 cache_id) NO_EXCEPT
     return (bool) hashmap_entry_get(&cache->hm, cache_id);
 }
 
-static inline
+CONSTEXPR static inline
 uint32 gpu_atlas_id_from_pos(
     const GpuAtlasCache* const __restrict cache,
     const v2_uint16& pos

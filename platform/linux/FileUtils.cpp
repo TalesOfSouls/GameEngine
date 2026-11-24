@@ -416,7 +416,7 @@ void file_read(const char* __restrict path, FileBody* __restrict file) NO_EXCEPT
 bool file_read_line(
     FileHandle fp,
     char* __restrict line_buffer, size_t buffer_size,
-    char internal_buffer[512], ssize_t* __restrict internal_buffer_size, char** internal_pos
+    char internal_buffer[512], ssize_t* __restrict internal_buffer_size, char** __restrict internal_pos
 ) {
     if (!(*internal_pos)) {
         *internal_pos = internal_buffer;
@@ -522,7 +522,7 @@ void file_close_handle(FileHandle fp)
     close(fp);
 }
 
-void iterate_directory(const char* base_path, const char* file_ending, void (*handler)(const char *, va_list), ...) {
+void iterate_directory(const char* __restrict base_path, const char* __restrict file_ending, void (*handler)(const char *, va_list), ...) {
     va_list args;
     va_start(args, handler);
 
@@ -574,7 +574,7 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
 
 // Relative paths ("./...") are relative to the executable, same as the other functions in this file
 static inline
-const char* file_path_resolve(const char* path, char* buffer) NO_EXCEPT
+const char* file_path_resolve(const char* __restrict path, char* __restrict buffer) NO_EXCEPT
 {
     if (*path != '.') {
         return path;
@@ -764,7 +764,7 @@ bool directory_tree_create(const char* path) NO_EXCEPT
  * @return int32 Number of names written
  */
 inline
-int32 directory_list_subdirectories(const char* path, char* names, int32 name_size, int32 count) NO_EXCEPT
+int32 directory_list_subdirectories(const char* __restrict path, char* __restrict names, int32 name_size, int32 count) NO_EXCEPT
 {
     char full_path[PATH_MAX_LENGTH];
     const char* abs_path = file_path_resolve(path, full_path);

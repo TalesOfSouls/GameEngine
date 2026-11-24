@@ -10,7 +10,7 @@
 #include "../../stdlib/Stdlib.h"
 #include "Voxel.h"
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 uint64 voxel_chunk_coord_pack(int32 x, int32 y, int32 z) NO_EXCEPT
 {
     // We check if only the lowest 21 bits are set

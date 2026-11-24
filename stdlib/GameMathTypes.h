@@ -32,7 +32,7 @@ struct AABB_cube_int32 {
     int32 half_size;
 };
 
-inline
+CONSTEXPR inline
 AABB_f32 aabb_cast(const AABB_int32& a) NO_EXCEPT
 {
     return {
@@ -41,7 +41,7 @@ AABB_f32 aabb_cast(const AABB_int32& a) NO_EXCEPT
     };
 }
 
-inline
+CONSTEXPR inline
 AABB_int32 aabb_loosen(const AABB_int32& b, f32 s) NO_EXCEPT
 {
     const v3_int32 c = {
@@ -62,7 +62,7 @@ AABB_int32 aabb_loosen(const AABB_int32& b, f32 s) NO_EXCEPT
     };
 }
 
-inline
+CONSTEXPR inline
 AABB_f32 aabb_loosen(const AABB_f32& b, f32 s) NO_EXCEPT
 {
     const v3_f32 c = {
@@ -83,7 +83,7 @@ AABB_f32 aabb_loosen(const AABB_f32& b, f32 s) NO_EXCEPT
     };
 }
 
-inline
+CONSTEXPR inline
 v3_int32 aabb_center(const AABB_int32& box) NO_EXCEPT
 {
     v3_int32 c;
@@ -94,7 +94,7 @@ v3_int32 aabb_center(const AABB_int32& box) NO_EXCEPT
     return c;
 }
 
-inline
+CONSTEXPR inline
 v3_f32 aabb_center(const AABB_f32& box) NO_EXCEPT
 {
     v3_f32 c;
@@ -105,7 +105,7 @@ v3_f32 aabb_center(const AABB_f32& box) NO_EXCEPT
     return c;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool aabb_overlap(const AABB_int32& a, const AABB_int32& b) NO_EXCEPT
 {
     if (a.max.x < b.min.x || a.min.x > b.max.x

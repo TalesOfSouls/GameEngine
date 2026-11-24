@@ -99,7 +99,7 @@ struct UIDocument {
 /**
  * Upper bound for the amount of nodes/properties (= amount of lines)
  */
-inline
+CONSTEXPR inline
 int32 ui_document_line_count(const char* text, int32 length) NO_EXCEPT
 {
     int32 lines = 1;
@@ -113,14 +113,14 @@ int32 ui_document_line_count(const char* text, int32 length) NO_EXCEPT
 /**
  * Memory required for the node + property arrays (incl. the reserved empty entry at index 0)
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 ui_document_memory_size(int32 line_count) NO_EXCEPT
 {
     return (int32) ALIGN_UP((line_count + 1) * sizeof(UIDocumentNode), sizeof(size_t))
         + (int32) ((line_count + 1) * sizeof(UIDocumentProperty));
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_document_is_space(char c) NO_EXCEPT
 {
     return c == ' ' || c == '\t' || c == '\r';
@@ -325,7 +325,7 @@ int32 ui_document_parse(
 }
 
 FORCE_INLINE
-bool ui_document_equals(const UIDocument* const doc, UIDocumentString str, const char* const literal) NO_EXCEPT
+bool ui_document_equals(const UIDocument* const __restrict doc, UIDocumentString str, const char* const __restrict literal) NO_EXCEPT
 {
     const int32 length = (int32) str_length(literal);
 
@@ -351,7 +351,7 @@ char* ui_document_copy(const UIDocument* const doc, UIDocumentString str, char* 
  * First property with this key (0 = none)
  */
 inline
-int32 ui_document_property_find(const UIDocument* const doc, const UIDocumentNode* const node, const char* const key) NO_EXCEPT
+int32 ui_document_property_find(const UIDocument* const __restrict doc, const UIDocumentNode* const __restrict node, const char* const __restrict key) NO_EXCEPT
 {
     for (int32 i = node->first_property; i; i = doc->properties[i].next) {
         if (ui_document_equals(doc, doc->properties[i].key, key)) {

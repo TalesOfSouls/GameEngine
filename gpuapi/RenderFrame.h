@@ -78,10 +78,10 @@ struct RenderFrameUi {
  */
 inline
 bool render_frame_ui_patch_range(
-    const RenderFrameUiPatch* const patches,
+    const RenderFrameUiPatch* const __restrict patches,
     uint16 from, uint16 to,
-    uint32* const vertex_start, uint32* const vertex_end,
-    uint32* const index_start, uint32* const index_end
+    uint32* const __restrict vertex_start, uint32* const __restrict vertex_end,
+    uint32* const __restrict index_start, uint32* const __restrict index_end
 ) NO_EXCEPT
 {
     *vertex_start = 0xFFFFFFFF;
@@ -159,7 +159,7 @@ struct RenderFrame {
     byte data[3904];
 };
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 v2_f32 render_scale_viewport(v2_f32 viewport, byte render_scale) NO_EXCEPT
 {
     if (!render_scale) {

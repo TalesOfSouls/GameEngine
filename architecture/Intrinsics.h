@@ -26,7 +26,7 @@
 #define SIMD_MAX_STEP_SIZE(x) oms_min((x), SIMD_POTENTIAL_STEP)
 
 // Adjusts the step size based on the memory alignment
-inline
+CONSTEXPR inline
 int32 intrin_validate_steps(const byte* mem, int32 steps) NO_EXCEPT
 {
     if (steps >= 16 && ((uintptr_t) mem & 63) == 0) {

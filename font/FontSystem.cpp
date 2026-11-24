@@ -19,10 +19,10 @@ void font_system_newline_cache(FontSystem* const font) NO_EXCEPT
  * Width of the text range [start, end) (line breaks restart the width -> width of the last line)
  * No temporary memory is needed (e.g. usable during input handling)
  */
-inline
+CONSTEXPR inline
 f32 font_system_text_range_width(
-    const FontSystem* const font,
-    const char* const text, int32 start, int32 end,
+    const FontSystem* const __restrict font,
+    const char* const __restrict text, int32 start, int32 end,
     f32 size
 ) NO_EXCEPT
 {

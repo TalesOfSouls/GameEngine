@@ -15,7 +15,7 @@
 #include "../../../input/ControllerType.h"
 #include "../../../input/InputConnectionType.h"
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 wchar_t input_device_char_lower(wchar_t c) NO_EXCEPT
 {
     return (c >= L'A' && c <= L'Z') ? (wchar_t) (c - L'A' + L'a') : c;
@@ -29,7 +29,7 @@ wchar_t input_device_char_lower(wchar_t c) NO_EXCEPT
  *
  * @return uint64 0 = invalid path
  */
-inline
+CONSTEXPR inline
 uint64 input_device_path_hash(const wchar_t* path) NO_EXCEPT
 {
     if (!path || !*path) {
@@ -47,8 +47,8 @@ uint64 input_device_path_hash(const wchar_t* path) NO_EXCEPT
 }
 
 // Case insensitive sub string search (needle MUST be lower case)
-inline
-bool input_device_path_contains(const wchar_t* path, const wchar_t* needle) NO_EXCEPT
+CONSTEXPR inline
+bool input_device_path_contains(const wchar_t* __restrict path, const wchar_t* __restrict needle) NO_EXCEPT
 {
     if (!path || !needle) {
         return false;
@@ -71,7 +71,7 @@ bool input_device_path_contains(const wchar_t* path, const wchar_t* needle) NO_E
 }
 
 // Bluetooth devices have the bluetooth hid service guid or the bluetooth enumerator in their path
-inline
+CONSTEXPR inline
 InputConnectionType input_device_path_connection(const wchar_t* path) NO_EXCEPT
 {
     if (input_device_path_contains(path, L"00001124-0000-1000-8000-00805f9b34fb")
@@ -86,7 +86,7 @@ InputConnectionType input_device_path_connection(const wchar_t* path) NO_EXCEPT
 
 #define INPUT_CONTROLLER_TYPE_DUALSHOCK4
 
-inline
+CONSTEXPR inline
 ControllerType input_controller_type_get(uint32 vendor_id, uint32 product_id) NO_EXCEPT
 {
     if (vendor_id == 0x054C) {

@@ -79,7 +79,7 @@ static IID WBEMUUID_IID_IWbemLocator;
         return true;
     }
 
-    inline
+    CONSTEXPR inline
     void wmi_guid_free() NO_EXCEPT
     {
         if (_wbemuuid_lib_ref_count > 1) {

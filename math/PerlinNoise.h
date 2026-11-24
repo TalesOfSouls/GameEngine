@@ -10,11 +10,11 @@
 #include <math.h>
 #include "../stdlib/Stdlib.h"
 
-double fade(double t) {
+CONSTEXPR double fade(double t) {
     return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
-double grad(int hash, double x, double y, double z)
+CONSTEXPR double grad(int hash, double x, double y, double z)
 {
     int32 h = hash & 15;
 

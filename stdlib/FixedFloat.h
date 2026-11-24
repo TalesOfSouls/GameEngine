@@ -26,53 +26,53 @@ typedef uint32 BinaryAngle;
 #define FIXED_FLOAT_ZERO ((FixedFloat) 0)
 
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 FixedFloat fixed_float_from_int(int32 i) {
     return (FixedFloat) ((int64) i << FIXED_FLOAT_SHIFT);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 fixed_float_to_int(FixedFloat f) {
     return (int32) (f >> FIXED_FLOAT_SHIFT);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 FixedFloat fixed_float_from_float(f64 d) {
     return (FixedFloat)(d * (f64) FIXED_FLOAT_ONE + (d >= 0.0 ? 0.5 : -0.5));
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 f64 fixed_float_to_float(FixedFloat f) {
     return (f64) f / (f64) FIXED_FLOAT_ONE;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 BinaryAngle binary_angle_from_degrees(f64 deg) {
     f64 turns = deg / 360.0;
     return (BinaryAngle)((uint64)(turns * 4294967296.0) & 0xFFFFFFFFu);
 }
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 BinaryAngle binary_angle_from_radians(f64 rad) {
     f64 turns = rad / (2.0 * 3.14159265358979323846);
     return (BinaryAngle)((uint64)(turns * 4294967296.0) & 0xFFFFFFFFu);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 BinaryAngle binary_angle_from_degrees(f32 deg) {
     f32 turns = deg / 360.0f;
     return (BinaryAngle)((uint64)(turns * 4294967296.0f) & 0xFFFFFFFFu);
 }
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 BinaryAngle binary_angle_from_radians(f32 rad) {
     f32 turns = rad / (2.0f * 3.14159265358979323846f);
     return (BinaryAngle)((uint64)(turns * 4294967296.0f) & 0xFFFFFFFFu);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 FixedFloat fixed_abs(FixedFloat a) { return a < 0 ? -a : a; }
 
 // Q16.16 addition, saturates instead of overflowing
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 FixedFloat fixed_add(FixedFloat a, FixedFloat b) {
     const int64 sum = (int64) a + (int64) b;
     if (sum > (int64) INT32_MAX) {
@@ -87,13 +87,13 @@ FixedFloat fixed_add(FixedFloat a, FixedFloat b) {
 }
 
 // Q16.16 multiplication: (a * b) / 2^16
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 FixedFloat fixed_mul(FixedFloat a, FixedFloat b) {
     return (FixedFloat) (((int64) a * (int64) b) >> FIXED_FLOAT_SHIFT);
 }
 
 // Q16.16 division: (a << 16) / b
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 FixedFloat fixed_div(FixedFloat a, FixedFloat b) {
     if (b == 0) {
         return 0;
@@ -102,18 +102,18 @@ FixedFloat fixed_div(FixedFloat a, FixedFloat b) {
     return (FixedFloat) (((int64) a << FIXED_FLOAT_SHIFT) / (int64) b);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 FixedFloat fixed_min(FixedFloat a, FixedFloat b) { return a < b ? a : b; }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 FixedFloat fixed_max(FixedFloat a, FixedFloat b) { return a > b ? a : b; }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 FixedFloat fixed_clamp(FixedFloat v, FixedFloat lo, FixedFloat hi) {
     return fixed_min(fixed_max(v, lo), hi);
 }
 
-uint64 fixed_sqrt(uint64 n) {
+CONSTEXPR uint64 fixed_sqrt(uint64 n) {
     uint64 res = 0;
     uint64 bit = (uint64)1 << 62;
     while (bit > n) {
@@ -134,7 +134,7 @@ uint64 fixed_sqrt(uint64 n) {
     return res;
 }
 
-FixedFloat fixed_sqrt(FixedFloat x) {
+CONSTEXPR FixedFloat fixed_sqrt(FixedFloat x) {
     if (x <= 0) {
         return 0;
     }
@@ -143,7 +143,7 @@ FixedFloat fixed_sqrt(FixedFloat x) {
     return (FixedFloat) fixed_sqrt((uint64)x << FIXED_FLOAT_SHIFT);
 }
 
-FixedFloat fixed_hypot(FixedFloat dx, FixedFloat dy) {
+CONSTEXPR FixedFloat fixed_hypot(FixedFloat dx, FixedFloat dy) {
     FixedFloat dx2 = fixed_mul(dx, dx);
     FixedFloat dy2 = fixed_mul(dy, dy);
 
@@ -503,7 +503,7 @@ static const FixedFloat fixed_sin_quarter_table[4097] = {
 #define FIXED_FLOAT_TABLE_SHIFT (FIXED_FLOAT_QUADRANT_BITS - FIXED_FLOAT_TABLE_BITS) // 18
 #define FIXED_FLOAT_TABLE_FRAC_MASK ((1u << FIXED_FLOAT_TABLE_SHIFT) - 1)
 
-static FixedFloat raw_sin(uint32 pos) {
+CONSTEXPR static FixedFloat raw_sin(uint32 pos) {
     uint32 idx  = pos >> FIXED_FLOAT_TABLE_SHIFT;
     uint32 frac = pos & FIXED_FLOAT_TABLE_FRAC_MASK;
 
@@ -519,7 +519,7 @@ static FixedFloat raw_sin(uint32 pos) {
     return t0 + (FixedFloat)(interp >> FIXED_FLOAT_TABLE_SHIFT);
 }
 
-FixedFloat fixed_sin(BinaryAngle angle) {
+CONSTEXPR FixedFloat fixed_sin(BinaryAngle angle) {
     uint32 quadrant = angle >> FIXED_FLOAT_QUADRANT_BITS; // 0 to 3
     uint32 pos = angle & (FIXED_FLOAT_QUADRANT_ONE - 1); // 0 to FIXED_FLOAT_QUADRANT_ONE-1
 
@@ -539,7 +539,7 @@ FixedFloat fixed_sin(BinaryAngle angle) {
     }
 }
 
-FixedFloat fixed_cos(BinaryAngle angle) {
+CONSTEXPR FixedFloat fixed_cos(BinaryAngle angle) {
     // cos(theta) == sin(theta + pi/2)
     // shifting by a quarter turn in binary-angle units is just
     // adding FIXED_FLOAT_QUADRANT_ONE << (32-30) ...
@@ -553,7 +553,7 @@ static const uint32_t cordic_atan_table[FIXED_FLOAT_CORDIC_ITERS] = {
     2670163, 1335087, 667544, 333772, 166886, 83443, 41722, 20861, 10430, 5215, 2608, 1304
 };
 
-BinaryAngle fixed_atan2(FixedFloat y, FixedFloat x) {
+CONSTEXPR BinaryAngle fixed_atan2(FixedFloat y, FixedFloat x) {
     if (x == 0 && y == 0) {
         return 0;
     }

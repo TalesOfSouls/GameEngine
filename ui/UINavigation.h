@@ -62,7 +62,7 @@ struct UIInputFrame {
 };
 
 // Pointer button is down (pressed or held, a press + release within one tick is not down)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_input_frame_down(byte state) NO_EXCEPT
 {
     return (state & KEY_PRESS_TYPE_HELD) || ((state & KEY_PRESS_TYPE_PRESSED) && !(state & KEY_PRESS_TYPE_RELEASED));

@@ -125,7 +125,7 @@ void hardware_id_cpu_fill(HardwareId* const id) NO_EXCEPT
 #endif
 }
 
-void hardware_id_gpu_add(HardwareId* const id, const char* const value) NO_EXCEPT
+void hardware_id_gpu_add(HardwareId* const __restrict id, const char* const __restrict value) NO_EXCEPT
 {
     if (!id || !value) {
         return;
@@ -176,11 +176,11 @@ void hardware_id_gpu_sort(HardwareId* const id) NO_EXCEPT
 }
 
 static inline int32 hardware_id_append(
-    char* const buffer,
+    char* const __restrict buffer,
     int32 capacity,
     int32 offset,
-    const char* const label,
-    const char* const value
+    const char* const __restrict label,
+    const char* const __restrict value
 ) NO_EXCEPT
 {
     if (!value || !value[0] || offset >= capacity - 1) {
@@ -196,7 +196,7 @@ static inline int32 hardware_id_append(
     return offset < capacity ? offset : capacity - 1;
 }
 
-bool system_hardware_id(const SystemInfo* const info, char* const out, size_t out_size) NO_EXCEPT
+bool system_hardware_id(const SystemInfo* const __restrict info, char* const __restrict out, size_t out_size) NO_EXCEPT
 {
     if (!info || !out || out_size < SYSTEM_HARDWARE_ID_LENGTH + 1) {
         return false;
@@ -266,7 +266,7 @@ bool system_hardware_uuid(const SystemInfo* const info, char* const out, size_t 
     return true;
 }
 
-void system_info_render(char* buf, const SystemInfo* const info) NO_EXCEPT
+void system_info_render(char* __restrict buf, const SystemInfo* const __restrict info) NO_EXCEPT
 {
     sprintf_fast(
         buf,

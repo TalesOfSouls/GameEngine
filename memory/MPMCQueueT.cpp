@@ -196,7 +196,7 @@ T* queue_enqueue_start_wait(MPMCQueueT<T>* const queue) NO_EXCEPT
 // WARNING: only valid between queue_enqueue_start() and queue_enqueue_end()
 template <typename T>
 FORCE_INLINE
-size_t queue_enqueue_position(const MPMCQueueT<T>* const queue, const T* const slot) NO_EXCEPT
+size_t queue_enqueue_position(const MPMCQueueT<T>* const __restrict queue, const T* const __restrict slot) NO_EXCEPT
 {
     return queue->sequence[slot - queue->memory].load(memory_order_relaxed);
 }

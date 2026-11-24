@@ -11,7 +11,7 @@
 #include "../utils/StringUtils.h"
 #include "Base64Definitions.h"
 
-void base64_encode(const char* data, char* encoded_data, size_t data_length = 0) NO_EXCEPT
+void base64_encode(const char* __restrict data, char* __restrict encoded_data, size_t data_length = 0) NO_EXCEPT
 {
     if (!data_length) {
         // WARNING: This should only happen if the data is a char string
@@ -51,7 +51,7 @@ void base64_encode(const char* data, char* encoded_data, size_t data_length = 0)
     encoded_data[j] = '\0';
 }
 
-void base64_encode(const wchar_t* data, wchar_t* output, size_t data_length = 0) {
+void base64_encode(const wchar_t* __restrict data, wchar_t* __restrict output, size_t data_length = 0) {
     if (!data_length) {
         // WARNING: This should only happen if the data is a char string
         // Binary data is not allowed since it often has '\0' characters
@@ -87,7 +87,7 @@ void base64_encode(const wchar_t* data, wchar_t* output, size_t data_length = 0)
     output[j] = L'\0';
 }
 
-size_t base64_decode(const char* encoded_data, char* data, size_t encoded_length = 0) NO_EXCEPT
+size_t base64_decode(const char* __restrict encoded_data, char* __restrict data, size_t encoded_length = 0) NO_EXCEPT
 {
     if (!encoded_length) {
         encoded_length = str_length(encoded_data);
@@ -138,7 +138,7 @@ size_t base64_decode(const char* encoded_data, char* data, size_t encoded_length
     return output_length;
 }
 
-size_t base64_decode(const wchar_t* encoded_data, wchar_t* data, size_t encoded_length = 0) {
+size_t base64_decode(const wchar_t* __restrict encoded_data, wchar_t* __restrict data, size_t encoded_length = 0) {
     if (encoded_length == 0) {
         encoded_length = str_length(encoded_data);
     }

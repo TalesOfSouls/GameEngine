@@ -35,7 +35,7 @@
  * Every iteration processes a whole register of int16 values (32 / 16 / 8) -> never writes behind result + size
  */
 inline
-void simd_mult(const int16* a, f32 b, int16* result, int32 size, int32 steps = 16)
+void simd_mult(const int16* __restrict a, f32 b, int16* __restrict result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);

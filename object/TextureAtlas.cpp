@@ -123,7 +123,7 @@ void atlas_from_file_txt(
     }
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 atlas_data_size(const TextureAtlas* const atlas) NO_EXCEPT
 {
     return (int32) (sizeof(atlas->element_count)

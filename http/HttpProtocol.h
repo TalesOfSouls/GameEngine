@@ -20,7 +20,7 @@ enum HttpProtocol : byte {
     HTTP_PROTOCOL_3,
 };
 
-const char* http_protocol_text(HttpProtocol protocol) {
+CONSTEXPR const char* http_protocol_text(HttpProtocol protocol) {
     switch (protocol) {
         case HTTP_PROTOCOL_1_1:
             return "HTTP/1.1";

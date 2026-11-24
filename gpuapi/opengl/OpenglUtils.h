@@ -31,7 +31,7 @@
  * are called `*_legacy()`
  */
 
-void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei length, const GLchar* message, const void*)
+void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei length, const GLchar* __restrict message, const void* __restrict)
 {
     // Tracks the debug groups (MARKER_GPU_API) to report where an error happened
     // The driver reports every push/pop as message (function static, only used by the callback)
@@ -149,8 +149,8 @@ void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei
  */
 static inline
 void opengl_version_parse(
-    int32* const major,
-    int32* const minor
+    int32* const __restrict major,
+    int32* const __restrict minor
 ) NO_EXCEPT
 {
     const char* version = (const char *) glGetString(GL_VERSION);
@@ -186,7 +186,7 @@ void opengl_version_parse(
     }
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 GpuFence gpuapi_fence_create() NO_EXCEPT
 {
     return (GpuFence) 0;
@@ -295,7 +295,7 @@ void wireframe_mode(bool on) NO_EXCEPT
 }
 
 // @todo rename to gpuapi_*
-inline
+CONSTEXPR inline
 uint32 gpuapi_texture_data_type(uint32 texture_data_type) NO_EXCEPT
 {
     switch (texture_data_type) {
@@ -611,7 +611,7 @@ void draw_triangles_2d_colorless(VertexRef* const vertices, GLuint buffer, int32
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 calculate_face_size(int components, int32 faces) NO_EXCEPT
 {
     return sizeof(GLfloat) * 6 * components * faces;
@@ -932,7 +932,7 @@ int32 gpuapi_free_memory_get() NO_EXCEPT
 }
 
 inline
-void gpuapi_binds_cache(int* fbo, int* viewport) NO_EXCEPT
+void gpuapi_binds_cache(int* __restrict fbo, int* __restrict viewport) NO_EXCEPT
 {
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, fbo);
     glGetIntegerv(GL_VIEWPORT, viewport);

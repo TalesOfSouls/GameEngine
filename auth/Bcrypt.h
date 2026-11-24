@@ -101,7 +101,7 @@ struct BcryptHash {
  *
  * @return int32 Amount of characters written
  */
-inline
+CONSTEXPR inline
 int32 bcrypt_base64_encode(char* const __restrict out, const byte* const __restrict data, int32 length) NO_EXCEPT
 {
     int32 source = 0;
@@ -149,7 +149,7 @@ int32 bcrypt_base64_encode(char* const __restrict out, const byte* const __restr
  *
  * @return int32 Amount of bytes written or -1 on invalid input
  */
-inline
+CONSTEXPR inline
 int32 bcrypt_base64_decode(
     byte* const __restrict out,
     int32 length,

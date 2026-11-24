@@ -10,12 +10,12 @@
 #include "../../stdlib/Simd.h"
 #include "PrimaryStatsPoints.h"
 
-void calculate_primary_values(const PrimaryStatsPoints* points, PrimaryStatsValues* values, int step = 8)
+void calculate_primary_values(const PrimaryStatsPoints* __restrict points, PrimaryStatsValues* __restrict values, int step = 8)
 {
     simd_mult((int16 *) points, 1.3f, (int32 *) values, sizeof(PrimaryStatsPoints), step);
 }
 
-void calculate_primary_relatives(const PrimaryStatsPoints* points, PrimaryStatsRelValues* values, int step = 8)
+void calculate_primary_relatives(const PrimaryStatsPoints* __restrict points, PrimaryStatsRelValues* __restrict values, int step = 8)
 {
     simd_mult((int16 *) points, 0.01f, (int32 *) values, sizeof(PrimaryStatsPoints), step);
 }

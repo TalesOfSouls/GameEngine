@@ -240,7 +240,7 @@ uint64 bits_peek_64(BitWalk* stream, uint32 bits_to_consume) {
     return bits;
 }
 
-inline
+CONSTEXPR inline
 int32 first_set_bit_r2l(int32 value) NO_EXCEPT
 {
     if (value == 0) {
@@ -260,7 +260,7 @@ int32 first_set_bit_r2l(int32 value) NO_EXCEPT
     return 0;
 }
 
-inline
+CONSTEXPR inline
 int32 first_set_bit_r2l(int64 value) NO_EXCEPT
 {
     if (value == 0) {
@@ -277,7 +277,7 @@ int32 first_set_bit_r2l(int64 value) NO_EXCEPT
     return 0;
 }
 
-inline
+CONSTEXPR inline
 int32 first_set_bit_l2r(int32 value) NO_EXCEPT
 {
     if (value == 0) {
@@ -299,7 +299,7 @@ int32 first_set_bit_l2r(int32 value) NO_EXCEPT
     return 0;
 }
 
-inline
+CONSTEXPR inline
 int32 first_set_bit_l2r(int64 value) NO_EXCEPT
 {
     if (value == 0) {
@@ -323,7 +323,7 @@ int32 first_set_bit_l2r(int64 value) NO_EXCEPT
     return 0;
 }
 
-inline
+CONSTEXPR inline
 uint32 bits_reverse(uint32 data, int32 count) NO_EXCEPT
 {
     uint32 reversed = 0;
@@ -336,7 +336,7 @@ uint32 bits_reverse(uint32 data, int32 count) NO_EXCEPT
     return reversed;
 }
 
-inline
+CONSTEXPR inline
 uint64 bits_reverse(uint64 data, int32 count) NO_EXCEPT
 {
     uint64 reversed = 0;
@@ -398,14 +398,14 @@ byte bits_count(uint32 data, bool use_abm = false) NO_EXCEPT
     }
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 byte bits_count(uint16 data) NO_EXCEPT
 {
     return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
         + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF];
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 byte bits_count(uint8 data) NO_EXCEPT
 {
     return BIT_COUNT_LOOKUP_TABLE[data];

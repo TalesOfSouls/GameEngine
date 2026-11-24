@@ -26,7 +26,7 @@
 #endif
 
 inline
-void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 steps = 8)
+void simd_mult(const int32* __restrict a, const int32* __restrict b, int32* __restrict result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -107,7 +107,7 @@ void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 
 }
 
 inline
-void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 steps = 8)
+void simd_mult(const int32* __restrict a, const f32* __restrict b, f32* __restrict result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -194,7 +194,7 @@ void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 step
 }
 
 inline
-void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 steps = 8)
+void simd_mult(const int32* __restrict a, const f32* __restrict b, int32* __restrict result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -287,7 +287,7 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
 }
 
 inline
-void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps = 8)
+void simd_mult(const int32* __restrict a, f32 b, int32* __restrict result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -372,7 +372,7 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps = 8
 }
 
 inline
-void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps = 8)
+void simd_div(const int32* __restrict a, f32 b, f32* __restrict result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -451,7 +451,7 @@ void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps = 8)
 }
 
 inline
-void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 steps = 8)
+void simd_add(const int32* __restrict a, const int32* __restrict b, int32* __restrict result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -532,7 +532,7 @@ void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 s
 }
 
 inline
-void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps = 8)
+void simd_add(const int32* __restrict a, const f32* __restrict b, f32* __restrict result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
@@ -619,7 +619,7 @@ void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps
 }
 
 inline
-void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 steps = 8)
+void simd_add(const int32* __restrict a, const f32* __restrict b, int32* __restrict result, int32 size, int32 steps = 8)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);

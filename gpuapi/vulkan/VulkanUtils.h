@@ -148,7 +148,7 @@ int32 vulkan_check_extension_support(
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT,
-    const VkDebugUtilsMessengerCallbackDataEXT* debug_callback_data, void*
+    const VkDebugUtilsMessengerCallbackDataEXT* __restrict debug_callback_data, void* __restrict
 ) {
     if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         || (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
@@ -595,8 +595,8 @@ void vulkan_swapchain_cleanup(
 
 inline
 void vulkan_image_views_create(
-    VkDevice device, VkImageView* swapchain_image_views,
-    VkImage* swapchain_images, uint32 swapchain_image_count, VkFormat swapchain_image_format
+    VkDevice device, VkImageView* __restrict swapchain_image_views,
+    VkImage* __restrict swapchain_images, uint32 swapchain_image_count, VkFormat swapchain_image_format
 ) {
     VkResult result;
     for (size_t i = 0; i < swapchain_image_count; ++i) {
@@ -671,8 +671,8 @@ void vulkan_render_pass_create(
 // @todo consider to rename to same name as opengl
 // WARNING: framebuffers needs to be initialized
 void vulkan_framebuffer_create(
-    VkDevice device, VkFramebuffer* framebuffers,
-    VkImageView* swapchain_image_views, uint32 swapchain_image_count, VkExtent2D swapchain_extent,
+    VkDevice device, VkFramebuffer* __restrict framebuffers,
+    VkImageView* __restrict swapchain_image_views, uint32 swapchain_image_count, VkExtent2D swapchain_extent,
     VkRenderPass render_pass
 ) {
     VkResult result;
@@ -732,9 +732,9 @@ void gpuapi_command_buffer_create(VkDevice device, VkCommandPool command_pool, V
 
 void vulkan_sync_objects_create(
     VkDevice device, uint32 frames_in_flight_count,
-    VkSemaphore* image_available_semaphores,
-    VkSemaphore* render_finished_semaphores,
-    VkFence* fences
+    VkSemaphore* __restrict image_available_semaphores,
+    VkSemaphore* __restrict render_finished_semaphores,
+    VkFence* __restrict fences
 )
 {
     VkSemaphoreCreateInfo semaphore_info = {};
@@ -876,7 +876,7 @@ void vulkan_transition_image_layout(VkCommandBuffer command_buffer, VkImage imag
     );
 }
 
-static
+CONSTEXPR static
 VkFormat gpuapi_texture_format(byte settings)
 {
     if ((settings & IMAGE_SETTING_CHANNEL_4_SIZE)) {
@@ -1033,7 +1033,7 @@ void gpuapi_texture_to_gpu(
 // @question vertex_count is a count where offset is bytes, this seems inconsistent
 void gpuapi_vertex_buffer_update(
     VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue,
-    VkBuffer* vertex_buffer,
+    VkBuffer* __restrict vertex_buffer,
     const void* __restrict vertices, int32 vertex_size, int32 vertex_count, int32 offset = 0
 )
 {
@@ -1075,7 +1075,7 @@ void gpuapi_vertex_buffer_update(
 
 void gpuapi_vertex_buffer_create(
     VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue,
-    VkBuffer* vertex_buffer, VkDeviceMemory vertex_buffer_memory,
+    VkBuffer* __restrict vertex_buffer, VkDeviceMemory vertex_buffer_memory,
     const void* __restrict vertices, int32 vertex_size, int32 vertex_count
 )
 {
@@ -1197,7 +1197,7 @@ void gpuapi_uniform_buffers_create(
 
 // @question Do we want one generalized function like this or multiple type specific like in opengl?
 void gpuapi_uniform_buffer_update(
-    f32* data, uint32 data_size,
+    f32* __restrict data, uint32 data_size,
     uint32 current_image, void** __restrict uniform_buffers_mapped
 ) {
     memcpy(uniform_buffers_mapped[current_image], data, data_size);

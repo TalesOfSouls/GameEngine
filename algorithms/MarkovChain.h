@@ -14,7 +14,7 @@
 //     /* FLEE   */ { 0.00f,  0.10f,   0.00f,  0.00f,   0.90f },
 // };
 
-int markov_chain_next(f32* transition_matrix, int state_count, int current, f32 r) {
+CONSTEXPR int markov_chain_next(f32* transition_matrix, int state_count, int current, f32 r) {
     f32 cumulative = 0.0f;
 
     for (int i = 0; i < state_count; ++i) {

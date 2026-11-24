@@ -19,13 +19,13 @@
 
 // The chunk size is aligned up, otherwise a chunk could start at an unaligned address
 // (e.g. element_size = 10, alignment = 8 => chunk_size = 16)
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 size_t chunk_size_element(int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     return ALIGN_UP((size_t) element_size, (size_t) alignment);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 size_t chunk_size_total(int32 capacity, int32 element_size, int32 alignment = sizeof(size_t)) NO_EXCEPT
 {
     element_size = (int32) chunk_size_element(element_size, alignment);
@@ -212,7 +212,7 @@ size_t* chunk_find_free_array(const ChunkMemory* const buf) NO_EXCEPT
     );
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 chunk_id_from_memory(uintptr_t memory, uintptr_t pos, size_t chunk_size) NO_EXCEPT
 {
     return (uint32) ((pos - memory) / chunk_size);
@@ -247,7 +247,7 @@ byte* chunk_element_get(const ChunkMemory* const buf, int32 element) NO_EXCEPT
     return offset;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool chunk_is_free_internal(const size_t* const state, int32 element) NO_EXCEPT
 {
     const uint32 free_index = element >> div_pow2(sizeof(size_t) * 8);

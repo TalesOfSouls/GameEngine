@@ -128,7 +128,7 @@ void gpuapi_buffer_update(void* location, f32 value) NO_EXCEPT
 }
 
 FORCE_INLINE
-void gpuapi_buffer_update(void* location, const void* value, size_t size) NO_EXCEPT
+void gpuapi_buffer_update(void* __restrict location, const void* __restrict value, size_t size) NO_EXCEPT
 {
     memcpy(location, value, size);
     STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
@@ -149,14 +149,14 @@ void gpuapi_buffer_update(void* location, v4_f32 value) NO_EXCEPT
 }
 
 FORCE_INLINE
-void gpuapi_ref_update(void* location, void* value) NO_EXCEPT
+void gpuapi_ref_update(void* __restrict location, void* __restrict value) NO_EXCEPT
 {
     location = value;
     STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(void*));
 }
 
 FORCE_INLINE
-void gpuapi_buffer_update_m4(void* location, const f32* value) NO_EXCEPT
+void gpuapi_buffer_update_m4(void* __restrict location, const f32* __restrict value) NO_EXCEPT
 {
     memcpy(location, value, sizeof(f32) * 16);
     STATS_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, sizeof(*value) * 16);

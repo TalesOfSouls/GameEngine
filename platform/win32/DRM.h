@@ -330,7 +330,7 @@ void drm_process_scan(
     }
 }
 
-static uint32 drm_hash(const byte* base, size_t len) NO_EXCEPT
+CONSTEXPR static uint32 drm_hash(const byte* base, size_t len) NO_EXCEPT
 {
     // FNV-1a
     uint32 h = 2166136261u;

@@ -19,8 +19,8 @@
 #include "_item_rarity.h"
 
 int generate_random_equipment(
-    const EquipmentType* equipments, const RarityDefinition* rarities, const MobLevelStats* mob_levels,
-    SEquipmentStatsPoints* equipment, int mob_level, byte cclass = 0, int equipment_slot = 0
+    const EquipmentType* __restrict equipments, const RarityDefinition* __restrict rarities, const MobLevelStats* __restrict mob_levels,
+    SEquipmentStatsPoints* __restrict equipment, int mob_level, byte cclass = 0, int equipment_slot = 0
 )
 {
     // find random equipment type

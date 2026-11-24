@@ -33,8 +33,8 @@
 
 static inline
 bool rawinput_extract_vid_pid(
-    const wchar_t* device_name,
-    wchar_t* out_id
+    const wchar_t* __restrict device_name,
+    wchar_t* __restrict out_id
 ) {
     const wchar_t* vid = str_find(device_name, L"VID_");
     const wchar_t* pid = str_find(device_name, L"PID_");
@@ -76,8 +76,8 @@ bool rawinput_extract_vid_pid(
 static inline
 bool rawinput_device_id(
     HANDLE device,
-    wchar_t* const out_id,
-    wchar_t* const out_name = NULL, uint32 out_name_length = 0
+    wchar_t* const __restrict out_id,
+    wchar_t* const __restrict out_name = NULL, uint32 out_name_length = 0
 ) NO_EXCEPT
 {
     wchar_t device_name[512];
@@ -516,7 +516,7 @@ void rawinput_controllers_unregister() NO_EXCEPT
 #define RAWINPUT_CHAR_CTRL_BACKSPACE 0x7F // ctrl + backspace (DEL character)
 
 // Maps non character keys that are relevant for text editing to InputTextControl values (0 = none)
-inline
+CONSTEXPR inline
 uint32 rawinput_key_to_text_control(byte vkey) NO_EXCEPT
 {
     switch (vkey) {

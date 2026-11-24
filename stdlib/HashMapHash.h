@@ -16,7 +16,7 @@
  */
 
 // Murmur3 fmix32, makes sure all bits of the hash depend on all key characters
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 hashmap_hash_mix(uint32 h) NO_EXCEPT
 {
     h ^= h >> 16;
@@ -48,7 +48,7 @@ uint64 hashmap_read32(const char* p) NO_EXCEPT
     return v;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint64 hashmap_word_mix(uint64 h, uint64 w) NO_EXCEPT
 {
     h = (h ^ w) * 0x9E3779B97F4A7C15ULL;
@@ -99,8 +99,8 @@ int32 hashmap_str_length(const char* str) NO_EXCEPT
  * @param const char**  key     In: key, Out: start of the stored key part
  * @param int32*        length  In: key length, Out: length of the stored key part (without \0)
  */
-FORCE_INLINE
-void hashmap_str_key(const char** key, int32* length) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+void hashmap_str_key(const char** __restrict key, int32* __restrict length) NO_EXCEPT
 {
     if (*length > HASH_MAP_MAX_KEY_LENGTH - 1) {
         *key += *length - (HASH_MAP_MAX_KEY_LENGTH - 1);
@@ -178,7 +178,7 @@ uint32 hashmap_str_hash(const char** key, int32* length) NO_EXCEPT
  * @param int32         length  Length of the stored key part (without \0)
  */
 FORCE_INLINE
-bool hashmap_str_equals(const char* stored, const char* key, int32 length) NO_EXCEPT
+bool hashmap_str_equals(const char* __restrict stored, const char* __restrict key, int32 length) NO_EXCEPT
 {
     if (stored[length] != '\0') {
         return false;
@@ -237,7 +237,7 @@ uint32 hashmap_int_hash(const K& key) NO_EXCEPT
 }
 
 // Maps a hash to [0, count) for ANY count (not only powers of 2), uses the high bits of the hash
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 hashmap_hash_range(uint32 hash, uint32 count) NO_EXCEPT
 {
     return (uint32) (((uint64) hash * count) >> 32);

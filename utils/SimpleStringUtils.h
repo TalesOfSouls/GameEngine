@@ -100,14 +100,14 @@ const C* simple_string_inline_str(const SimpleStringInline<C>* const str) NO_EXC
  * Useful if only the position of the characters is stored (e.g. because they are also used as C string)
  */
 template <typename C>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 SimpleStringInline<C>* simple_string_inline_from_str(C* const characters) NO_EXCEPT
 {
     return ((SimpleStringInline<C> *) characters) - 1;
 }
 
 template <typename C>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 const SimpleStringInline<C>* simple_string_inline_from_str(const C* const characters) NO_EXCEPT
 {
     return ((const SimpleStringInline<C> *) characters) - 1;

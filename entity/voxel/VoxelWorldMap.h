@@ -325,7 +325,7 @@ void voxel_octnode_collect_visible(const OctNode* node, const Frustum* frustum, 
 }
 
 static inline
-int32 voxel_sort_draw_array_compare(const void* a, const void* b) NO_EXCEPT
+int32 voxel_sort_draw_array_compare(const void* __restrict a, const void* __restrict b) NO_EXCEPT
 {
     const VoxelDrawChunk* c1 = (VoxelDrawChunk *) a;
     const VoxelDrawChunk* c2 = (VoxelDrawChunk *) b;

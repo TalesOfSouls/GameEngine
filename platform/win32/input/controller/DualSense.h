@@ -18,9 +18,9 @@
 // https://github.com/nondebug/dualsense
 inline
 void input_map_dualsense(
-    ControllerInput* controller,
+    ControllerInput* __restrict controller,
     InputConnectionType connection_type,
-    const byte* data
+    const byte* __restrict data
 ) NO_EXCEPT
 {
     // 0 is not the origin -> need to shift

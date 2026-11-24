@@ -35,11 +35,11 @@ static const int grad3_3[12][3] = {
     {0,1,1}, {0,-1,1}, {0,1,-1}, {0,-1,-1}
 };
 
-static inline double simplex_noise_dot2(const int32* g, double x, double y) {
+CONSTEXPR static inline double simplex_noise_dot2(const int32* g, double x, double y) {
     return g[0] * x + g[1] * y;
 }
 
-static inline double simplex_noise_dot3(const int32* g, double x, double y, double z) {
+CONSTEXPR static inline double simplex_noise_dot3(const int32* g, double x, double y, double z) {
     return g[0] * x + g[1] * y + g[2] * z;
 }
 

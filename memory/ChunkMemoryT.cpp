@@ -193,7 +193,7 @@ T* chunk_element_get(const ChunkMemoryT<T>* const buf, int32 element) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool chunk_is_free(const ChunkMemoryT<T>* const buf, uint32 element) NO_EXCEPT
 {
     return chunk_is_free_internal(buf->free, element);

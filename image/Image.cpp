@@ -292,7 +292,7 @@ void image_flip_vertical(Image* image, int32 steps = 8) NO_EXCEPT
     image->image_settings ^= IMAGE_SETTING_BOTTOM_TO_TOP;
 }
 
-inline
+CONSTEXPR inline
 int32 image_pixel_size_from_type(byte type) NO_EXCEPT
 {
     const int32 channel_size = type & IMAGE_SETTING_CHANNEL_4_SIZE ? 4 : 1;
@@ -301,7 +301,7 @@ int32 image_pixel_size_from_type(byte type) NO_EXCEPT
     return channel_size * channel_count;
 }
 
-inline
+CONSTEXPR inline
 int32 image_data_size(const Image* image) NO_EXCEPT
 {
     return image->pixel_count * image_pixel_size_from_type(image->image_settings)
@@ -376,7 +376,7 @@ uint32 image_to_data(const Image* __restrict image, byte* __restrict data) NO_EX
     return (int32) (pos - data);
 }
 
-void image_blit(const Image* src, const Image* dst, int offset_x, int offset_y) {
+CONSTEXPR void image_blit(const Image* __restrict src, const Image* __restrict dst, int offset_x, int offset_y) {
     for (uint32 y = 0; y < src->height; ++y) {
         const uint32 dst_y = y + offset_y;
         if (dst_y >= dst->height) {

@@ -92,7 +92,7 @@ Entity* ecs_insert_entity(EntityComponentSystem* __restrict ecs, const Entity* _
     return entity;
 }
 
-void ecs_insert_component()
+CONSTEXPR void ecs_insert_component()
 {
 
 }

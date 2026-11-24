@@ -166,7 +166,7 @@ int32 audio_mixer_audio_update(AudioMixer* const mixer, const Audio* const audio
     return count;
 }
 
-int32 apply_speed(int16* buffer, int32 buffer_size, f32 speed) NO_EXCEPT
+CONSTEXPR int32 apply_speed(int16* buffer, int32 buffer_size, f32 speed) NO_EXCEPT
 {
     if (speed == 1.0f) {
         return 0;
@@ -202,7 +202,7 @@ int32 apply_speed(int16* buffer, int32 buffer_size, f32 speed) NO_EXCEPT
 // Or, if the multiplier is an int we can even perform the multiplication on int32 through casting instead of 2 operations on int16
 // We might have to adjust some of the values to ensure correct multiplication if possible (e.g. feedback, intensity, ...)
 // @todo We probably want to handle left and right channel differently to add some depth
-static inline
+CONSTEXPR static inline
 void apply_echo(int16* buffer, int32 buffer_size, f32 delay, f32 feedback, int32 sample_rate) NO_EXCEPT
 {
     const int delay_samples = (int) (delay * sample_rate);
@@ -212,7 +212,7 @@ void apply_echo(int16* buffer, int32 buffer_size, f32 delay, f32 feedback, int32
 }
 
 // @todo We probably want to handle left and right channel differently to add some depth
-static inline
+CONSTEXPR static inline
 void apply_reverb(int16* buffer, int32 buffer_size, f32 intensity) NO_EXCEPT
 {
     intensity *= 0.5f;
@@ -221,7 +221,7 @@ void apply_reverb(int16* buffer, int32 buffer_size, f32 intensity) NO_EXCEPT
     }
 }
 
-static inline
+CONSTEXPR static inline
 void apply_cave(int16* buffer, int32 buffer_size, int32 sample_rate) NO_EXCEPT
 {
     const f32 echo_delay = 0.1f; // Echo delay in seconds
@@ -286,7 +286,7 @@ void apply_chorus(int16* buffer, int32 buffer_size, f32 rate, f32 depth, int32 s
     }
 }
 
-static inline
+CONSTEXPR static inline
 void apply_pitch_shift(int16* buffer, int32 buffer_size, f32 pitch_factor) NO_EXCEPT
 {
     for (int i = 0; i < buffer_size; ++i) {
@@ -294,7 +294,7 @@ void apply_pitch_shift(int16* buffer, int32 buffer_size, f32 pitch_factor) NO_EX
     }
 }
 
-static inline
+CONSTEXPR static inline
 void apply_granular_delay(int16* buffer, int32 buffer_size, f32 delay, f32 granularity, int32 sample_rate) NO_EXCEPT
 {
     const int delay_samples = (int) (delay * sample_rate);
@@ -316,7 +316,7 @@ void apply_frequency_modulation(int16* buffer, int32 buffer_size, f32 mod_freq, 
     }
 }
 
-static inline
+CONSTEXPR static inline
 void apply_stereo_panning(int16* buffer, int32 buffer_size, f32 pan) NO_EXCEPT
 {
     const f32 left_gain = 1.0f - pan;
@@ -328,7 +328,7 @@ void apply_stereo_panning(int16* buffer, int32 buffer_size, f32 pan) NO_EXCEPT
     }
 }
 
-static inline
+CONSTEXPR static inline
 void apply_highpass(int16* buffer, int32 buffer_size, f32 cutoff, int32 sample_rate) NO_EXCEPT
 {
     const f32 rc = 1.0f / (OMS_TWO_PI_F32 * cutoff);
@@ -345,7 +345,7 @@ void apply_highpass(int16* buffer, int32 buffer_size, f32 cutoff, int32 sample_r
     }
 }
 
-static inline
+CONSTEXPR static inline
 void apply_lowpass(int16* buffer, int32 buffer_size, f32 cutoff, int32 sample_rate) NO_EXCEPT
 {
     const f32 rc = 1.0f / (OMS_TWO_PI_F32 * cutoff);
@@ -437,7 +437,7 @@ int32 mixer_effects_mono(AudioMixer* mixer, uint64 effect, int32 samples) NO_EXC
     return sound_sample_index;
 }
 
-static inline
+CONSTEXPR static inline
 int32 mixer_effects_stereo() NO_EXCEPT
 {
     return 0;

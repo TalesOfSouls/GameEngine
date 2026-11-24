@@ -63,7 +63,7 @@ UIInput* ui_textarea_create(UILayout* const layout, int32 max_length, UICore* pa
 
 // WARNING: If you change the text through this pointer you must update its length
 FORCE_INLINE
-char* ui_input_get_text(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
+char* ui_input_get_text(const UILayout* const __restrict layout, const UIInput* const __restrict input) NO_EXCEPT
 {
     return (char *) (layout->ui_element_buffer.memory + input->content);
 }
@@ -130,7 +130,7 @@ void ui_input_set_placeholder(UILayout* const layout, UIInput* const input, Simp
     ui_input_set_placeholder(layout, input, text.str, text.length);
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 ui_text_line_start(const char* const text, int32 pos) NO_EXCEPT
 {
     while (pos > 0 && text[pos - 1] != '\n') {
@@ -140,7 +140,7 @@ int32 ui_text_line_start(const char* const text, int32 pos) NO_EXCEPT
     return pos;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 ui_text_line_end(const char* const text, int32 pos, int32 length) NO_EXCEPT
 {
     while (pos < length && text[pos] != '\n') {
@@ -151,7 +151,7 @@ int32 ui_text_line_end(const char* const text, int32 pos, int32 length) NO_EXCEP
 }
 
 // Moves the caret to the same character column in the previous/next line
-inline
+CONSTEXPR inline
 int32 ui_text_caret_vertical(const char* const text, int32 caret, int32 length, bool up) NO_EXCEPT
 {
     const int32 line_start = ui_text_line_start(text, caret);
@@ -191,15 +191,15 @@ int32 ui_text_caret_vertical(const char* const text, int32 caret, int32 length, 
 // Selection
 ////////////////////////////////////////////////////////////////
 
-static FORCE_INLINE
+CONSTEXPR static FORCE_INLINE
 bool ui_input_has_selection(const UIInput* const input) NO_EXCEPT
 {
     return input->selection_anchor != input->caret;
 }
 
 // Selected byte range [start, end)
-static FORCE_INLINE
-void ui_input_selection(const UIInput* const input, int32* const start, int32* const end) NO_EXCEPT
+CONSTEXPR static FORCE_INLINE
+void ui_input_selection(const UIInput* const __restrict input, int32* const __restrict start, int32* const __restrict end) NO_EXCEPT
 {
     *start = oms_min(input->selection_anchor, input->caret);
     *end = oms_max(input->selection_anchor, input->caret);
@@ -211,7 +211,7 @@ void ui_input_selection(const UIInput* const input, int32* const start, int32* c
  * @return bool true if something was deleted
  */
 inline
-bool ui_input_delete_selection(UIInput* const input, char* const text, int32* const length) NO_EXCEPT
+bool ui_input_delete_selection(UIInput* const __restrict input, char* const __restrict text, int32* const __restrict length) NO_EXCEPT
 {
     if (!ui_input_has_selection(input)) {
         return false;
@@ -233,7 +233,7 @@ bool ui_input_delete_selection(UIInput* const input, char* const text, int32* co
 ////////////////////////////////////////////////////////////////
 
 // Bytes >= 0x80 (non ascii utf8) are considered word characters -> we never stop inside of a utf8 character
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool ui_text_is_word_char(char c) NO_EXCEPT
 {
     return (c & 0x80)
@@ -243,7 +243,7 @@ bool ui_text_is_word_char(char c) NO_EXCEPT
         || c == '_';
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 ui_text_word_prev(const char* const text, int32 pos) NO_EXCEPT
 {
     while (pos > 0 && !ui_text_is_word_char(text[pos - 1])) {
@@ -257,7 +257,7 @@ int32 ui_text_word_prev(const char* const text, int32 pos) NO_EXCEPT
     return pos;
 }
 
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 int32 ui_text_word_next(const char* const text, int32 pos, int32 length) NO_EXCEPT
 {
     while (pos < length && !ui_text_is_word_char(text[pos])) {
@@ -396,8 +396,8 @@ int32 ui_input_insert(
 ////////////////////////////////////////////////////////////////
 
 // The clipboard functions come from the platform layer
-inline
-void ui_input_copy(const UIInput* const input, const char* const text) NO_EXCEPT
+CONSTEXPR inline
+void ui_input_copy(const UIInput* const __restrict input, const char* const __restrict text) NO_EXCEPT
 {
     if (!ui_input_has_selection(input)) {
         return;
@@ -413,7 +413,7 @@ void ui_input_copy(const UIInput* const input, const char* const text) NO_EXCEPT
  * @return int32 Inserted bytes
  */
 inline
-int32 ui_input_paste(UIInput* const input, char* const text, int32* const length) NO_EXCEPT
+int32 ui_input_paste(UIInput* const __restrict input, char* const __restrict text, int32* const __restrict length) NO_EXCEPT
 {
     char clipboard[UI_INPUT_PASTE_MAX];
     const int32 clipboard_length = clipboard_get(clipboard, (int32) sizeof(clipboard));
@@ -429,8 +429,8 @@ int32 ui_input_paste(UIInput* const input, char* const text, int32* const length
 // Scrolling
 ////////////////////////////////////////////////////////////////
 
-FORCE_INLINE
-f32 ui_input_line_height(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+f32 ui_input_line_height(const UILayout* const __restrict layout, const UIInput* const __restrict input) NO_EXCEPT
 {
     return layout->font
         ? font_line_height(&layout->font->base, input->font.size)
@@ -439,7 +439,7 @@ f32 ui_input_line_height(const UILayout* const layout, const UIInput* const inpu
 
 // Height of the whole text of a textarea incl. padding
 inline
-f32 ui_input_content_height(const UILayout* const layout, const UIInput* const input) NO_EXCEPT
+f32 ui_input_content_height(const UILayout* const __restrict layout, const UIInput* const __restrict input) NO_EXCEPT
 {
     const char* const text = ui_input_get_text(layout, input);
 
@@ -573,7 +573,7 @@ void ui_input_scroll_to_caret(UILayout* const layout, UIInput* const input) NO_E
  * Uses the element dimension of the last ui_cache()
  */
 inline
-int32 ui_input_caret_at(const UILayout* const layout, const UIInput* const input, f32 x, f32 y) NO_EXCEPT
+int32 ui_input_caret_at(const UILayout* const __restrict layout, const UIInput* const __restrict input, f32 x, f32 y) NO_EXCEPT
 {
     const char* const text = ui_input_get_text(layout, input);
     const int32 length = ui_string_length(layout, input->content);

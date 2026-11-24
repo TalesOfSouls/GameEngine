@@ -59,7 +59,7 @@ struct PACKED_STRUCT UDPPseudoHeaderIPv6 {
 UNPACKED_STRUCT
 
 inline
-void packet_create_destination_addr(sockaddr_in6* dest_addr, const char* ipv6, uint16 port)
+void packet_create_destination_addr(sockaddr_in6* __restrict dest_addr, const char* __restrict ipv6, uint16 port)
 {
     memset(dest_addr, 0, sizeof(sockaddr_in6));
     dest_addr->sin6_family = AF_INET6;

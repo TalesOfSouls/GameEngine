@@ -101,8 +101,8 @@ void ams_free(AssetManagementSystem* const ams) NO_EXCEPT
  * We are marking the Asset and the asset data as completely loaded
  */
 // Returns the hash map entry that contains the asset (assets are stored inside the hash map entries)
-FORCE_INLINE
-ThrdHashEntryStrT<Asset>* ams_asset_entry(const AssetManagementSystem* const ams, const Asset* const asset) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+ThrdHashEntryStrT<Asset>* ams_asset_entry(const AssetManagementSystem* const __restrict ams, const Asset* const __restrict asset) NO_EXCEPT
 {
     const uintptr_t offset = (uintptr_t) asset - (uintptr_t) ams->hash_map.buf.memory;
     ASSERT_TRUE(offset < (uintptr_t) ams->hash_map.buf.capacity * sizeof(ThrdHashEntryStrT<Asset>));
@@ -111,8 +111,8 @@ ThrdHashEntryStrT<Asset>* ams_asset_entry(const AssetManagementSystem* const ams
 }
 
 // Returns the asset component that holds the asset data (NULL if the data isn't stored in the AMS)
-FORCE_INLINE
-AssetComponent* ams_asset_data_component(const AssetManagementSystem* const ams, const Asset* const asset) NO_EXCEPT
+CONSTEXPR FORCE_INLINE
+AssetComponent* ams_asset_data_component(const AssetManagementSystem* const __restrict ams, const Asset* const __restrict asset) NO_EXCEPT
 {
     if (!asset->self || asset->component_id >= ams->asset_component_count) {
         return NULL;
@@ -143,7 +143,7 @@ void ams_set_loaded(AssetManagementSystem* const ams, Asset* const asset) NO_EXC
 }
 
 FORCE_INLINE
-bool ams_is_loaded(const AssetManagementSystem* const ams, const Asset* const asset) NO_EXCEPT
+bool ams_is_loaded(const AssetManagementSystem* const __restrict ams, const Asset* const __restrict asset) NO_EXCEPT
 {
     if (!asset || !chunk_is_complete(&ams->hash_map.buf, (void *) asset)) {
         return false;
@@ -348,7 +348,7 @@ void ams_asset_remove(AssetManagementSystem* const ams, const char* name, Asset*
 /**
  * Finds the best component match based on requested size
  */
-static inline
+CONSTEXPR static inline
 byte ams_component_find_type(const AssetManagementSystem* const ams, uint32 size, uint32 overhead)
 {
     const f32 required_size = (f32) (size + overhead);

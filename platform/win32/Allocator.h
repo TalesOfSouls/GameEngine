@@ -292,8 +292,8 @@ void platform_aligned_free(void** aligned_ptr) NO_EXCEPT
 
 inline
 void* platform_shared_alloc(
-    HANDLE* fd,
-    const char* name,
+    HANDLE* __restrict fd,
+    const char* __restrict name,
     size_t initial_size,
     size_t reserve_size = 0
 ) NO_EXCEPT
@@ -397,7 +397,7 @@ bool platform_shared_alloc_shrink(void* shm_ptr, size_t new_user_size) NO_EXCEPT
 }
 
 inline
-void* platform_shared_open(HANDLE* fd, const char* name, size_t reserve_size) NO_EXCEPT
+void* platform_shared_open(HANDLE* __restrict fd, const char* __restrict name, size_t reserve_size) NO_EXCEPT
 {
     ASSERT_TRUE(fd);
 
@@ -415,7 +415,7 @@ void* platform_shared_open(HANDLE* fd, const char* name, size_t reserve_size) NO
 }
 
 inline
-void platform_shared_free(HANDLE fd, const char*, void** ptr) NO_EXCEPT
+void platform_shared_free(HANDLE fd, const char* __restrict, void** __restrict ptr) NO_EXCEPT
 {
     if (!ptr || !*ptr) {
         return;

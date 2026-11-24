@@ -120,7 +120,7 @@ void session_registry_init(
  *
  * @return uint32 Active session count
  */
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 uint32 session_registry_active_count(const AuthSessionRegistry* const __restrict registry) NO_EXCEPT
 {
     return registry->count;
@@ -134,7 +134,7 @@ uint32 session_registry_active_count(const AuthSessionRegistry* const __restrict
  *
  * @return AuthSession* Session or NULL
  */
-inline
+CONSTEXPR inline
 AuthSession* session_registry_find(
     const AuthSessionRegistry* const __restrict registry,
     uint64 session_id
@@ -172,7 +172,7 @@ AuthSession* session_registry_find(
  *
  * @return AuthSession* Session or NULL
  */
-inline
+CONSTEXPR inline
 AuthSession* session_registry_find_by_account(
     const AuthSessionRegistry* const __restrict registry,
     uint32 account_id
@@ -201,7 +201,7 @@ AuthSession* session_registry_find_by_account(
  *
  * @return AuthSession* Session or NULL
  */
-inline
+CONSTEXPR inline
 AuthSession* session_registry_find_by_character(
     const AuthSessionRegistry* const __restrict registry,
     uint32 character_id

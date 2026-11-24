@@ -233,7 +233,7 @@ bool thrd_memory_resize(QueueT<T>* const queue, size_t new_capacity) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool queue_is_empty(const QueueT<T>* const queue) NO_EXCEPT
 {
     return queue->head == queue->tail;
@@ -256,7 +256,7 @@ void queue_set_empty(QueueT<T>* const queue) NO_EXCEPT
 
 // Checks if one more element can be enqueued (the slot after head must not be the tail)
 template <typename T>
-static inline
+CONSTEXPR static inline
 bool queue_has_space(const QueueT<T>* const queue) NO_EXCEPT
 {
     const T* next = queue->head + 1;
@@ -268,7 +268,7 @@ bool queue_has_space(const QueueT<T>* const queue) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 bool queue_is_full(const QueueT<T>* const queue) NO_EXCEPT
 {
     return !queue_has_space(queue);
@@ -463,7 +463,7 @@ T* queue_enqueue_start(const QueueT<T>* const queue) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 T* queue_enqueue_start_safe(const QueueT<T>* const queue) NO_EXCEPT
 {
     if(!queue_has_space(queue)) {
@@ -679,7 +679,7 @@ bool thrd_queue_dequeue_semimedwait(QueueT<T>* __restrict queue, T* __restrict d
 }
 
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 T* queue_dequeue_keep(const QueueT<T>* const queue) NO_EXCEPT
 {
     if (queue_is_empty(queue)) {
@@ -690,7 +690,7 @@ T* queue_dequeue_keep(const QueueT<T>* const queue) NO_EXCEPT
 }
 
 template <typename T>
-FORCE_INLINE
+CONSTEXPR FORCE_INLINE
 T* queue_dequeue_start(const QueueT<T>* const queue) NO_EXCEPT
 {
     return queue->tail;
