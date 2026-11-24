@@ -142,9 +142,9 @@ bool xaudio2_load(AudioSetting* const __restrict setting, XAudio2Setting* const 
     LOG_1("[INFO] Load audio API XAudio2");
 
     if (!_xaudio2_lib_ref_count) {
-        bool success = library_dyn_load(&_xaudio2_lib, L"xaudio2_9.dll");
+        bool success = library_dyn_load(&_xaudio2_lib, "xaudio2_9.dll");
         if (!success) {
-            success = library_dyn_load(&_xaudio2_lib, L"xaudio2_8.dll");
+            success = library_dyn_load(&_xaudio2_lib, "xaudio2_8.dll");
             if (!success) {
                 return false;
             }

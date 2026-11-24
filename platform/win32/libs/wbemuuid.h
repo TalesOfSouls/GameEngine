@@ -54,7 +54,7 @@ static IID WBEMUUID_IID_IWbemLocator;
 
         /*
         We don't have to load any lib/dll
-        bool success = library_dyn_load(&_wbemuuid_lib, L"wbemuuid.dll");
+        bool success = library_dyn_load(&_wbemuuid_lib, "wbemuuid.dll");
         if (!success) {
             return false;
         }

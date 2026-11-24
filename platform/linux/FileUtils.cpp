@@ -191,39 +191,6 @@ void relative_to_absolute(char* path) NO_EXCEPT
     relative_to_absolute(rel, path);
 }
 
-/**
- * Linux paths are utf-8, wide paths (windows style api, e.g. AssetArchive::path) are converted
- * wchar_t is utf-32 on Linux
- *
- * @param char* buffer Output buffer (PATH_MAX_LENGTH)
- *
- * @return const char* buffer
- */
-inline
-const char* file_path_utf8(const wchar_t* __restrict path, char* __restrict buffer) NO_EXCEPT
-{
-    int32 length = 0;
-
-    // Max. 4 bytes per code point + '\0'
-    while (*path && length < PATH_MAX_LENGTH - 5) {
-        length += utf8_encode((uint32) *path++, buffer + length);
-    }
-
-    buffer[length] = '\0';
-
-    return buffer;
-}
-
-inline
-void relative_to_absolute(const wchar_t* __restrict rel, wchar_t* __restrict path) NO_EXCEPT
-{
-    char rel_utf8[PATH_MAX_LENGTH];
-    char path_utf8[PATH_MAX_LENGTH];
-
-    relative_to_absolute(file_path_utf8(rel, rel_utf8), path_utf8);
-    utf8_to_wchar(path_utf8, path, PATH_MAX_LENGTH);
-}
-
 // @todo implement relative path support, similar to UtilsWin32
 inline
 size_t file_size(const char* filename) {
@@ -439,27 +406,6 @@ void file_read(const char* __restrict path, FileBody* __restrict file, T* const 
 // file->content must already be allocated (file->size = 0: large enough for the whole file + '\0')
 inline
 void file_read(const char* __restrict path, FileBody* __restrict file) NO_EXCEPT
-{
-    file_read(path, file, 0, (BufferMemory *) NULL);
-}
-
-template <typename T>
-inline
-void file_read(const wchar_t* __restrict path, FileBody* __restrict file, uint64 offset, T* const __restrict mem) NO_EXCEPT
-{
-    char buffer[PATH_MAX_LENGTH];
-    file_read(file_path_utf8(path, buffer), file, offset, mem);
-}
-
-template <typename T>
-inline
-void file_read(const wchar_t* __restrict path, FileBody* __restrict file, T* const __restrict mem) NO_EXCEPT
-{
-    file_read(path, file, 0, mem);
-}
-
-inline
-void file_read(const wchar_t* __restrict path, FileBody* __restrict file) NO_EXCEPT
 {
     file_read(path, file, 0, (BufferMemory *) NULL);
 }
@@ -1126,78 +1072,6 @@ FORCE_INLINE
 bool file_async_wait(FileHandle, FileBodyAsync* const file, bool = true) NO_EXCEPT
 {
     return file->size > 0;
-}
-
-/////////////////////////////////////////////////////////////////////////
-// Wide paths (windows style api, e.g. AssetArchive::path), converted to utf-8
-/////////////////////////////////////////////////////////////////////////
-
-inline
-bool file_exists(const wchar_t* path) NO_EXCEPT
-{
-    char buffer[PATH_MAX_LENGTH];
-
-    return file_exists(file_path_utf8(path, buffer));
-}
-
-inline
-size_t file_size(const wchar_t* path) NO_EXCEPT
-{
-    char buffer[PATH_MAX_LENGTH];
-
-    return file_size(file_path_utf8(path, buffer));
-}
-
-inline
-uint64 file_last_modified(const wchar_t* path) NO_EXCEPT
-{
-    char buffer[PATH_MAX_LENGTH];
-
-    return file_last_modified(file_path_utf8(path, buffer));
-}
-
-inline
-bool file_write(const wchar_t* __restrict path, const FileBody* __restrict file) NO_EXCEPT
-{
-    char buffer[PATH_MAX_LENGTH];
-
-    return file_write(file_path_utf8(path, buffer), file);
-}
-
-inline
-bool file_delete(const wchar_t* path) NO_EXCEPT
-{
-    char buffer[PATH_MAX_LENGTH];
-
-    return file_delete(file_path_utf8(path, buffer));
-}
-
-inline
-FileHandle file_read_handle(const wchar_t* path) NO_EXCEPT
-{
-    char buffer[PATH_MAX_LENGTH];
-
-    return file_read_handle(file_path_utf8(path, buffer));
-}
-
-inline
-FileHandle file_read_handle_shared(const wchar_t* path) NO_EXCEPT
-{
-    char buffer[PATH_MAX_LENGTH];
-
-    return file_read_handle_shared(file_path_utf8(path, buffer));
-}
-
-FORCE_INLINE
-FileHandle file_read_async_handle(const wchar_t* path) NO_EXCEPT
-{
-    return file_read_handle(path);
-}
-
-FORCE_INLINE
-FileHandle file_read_async_handle_shared(const wchar_t* path) NO_EXCEPT
-{
-    return file_read_handle_shared(path);
 }
 
 #endif

@@ -123,7 +123,7 @@ bool direct_sound_load(
         return true;
     }
 
-    bool success = library_dyn_load(&_dsound_lib, L"dsound.dll");
+    bool success = library_dyn_load(&_dsound_lib, "dsound.dll");
     if (!success) {
         return false;
     }

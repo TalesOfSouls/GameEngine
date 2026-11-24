@@ -74,7 +74,7 @@
             return true;
         }
 
-        bool success = library_dyn_load(&_iphlpapi_lib, L"iphlpapi.dll");
+        bool success = library_dyn_load(&_iphlpapi_lib, "iphlpapi.dll");
         if (!success) {
             return false;
         }

@@ -986,26 +986,59 @@ static void test_utf8_and_wchar_conversions()
     TEST_EQUALS(char_to_wchar(wide, "abcdef", 3), 2);
     TEST_TRUE(wcscmp(wide, L"ab") == 0);
 
-    char narrow[8] = {};
-    TEST_EQUALS((int32) wchar_to_char(narrow, L'A'), 1);
-    TEST_EQUALS(narrow[0], 'A');
+    // Utf8 input: ä (2 bytes), € (3 bytes), U+1F600 (4 bytes, surrogate pair on win32)
+    memset(wide, 0, sizeof(wide));
+    if constexpr (sizeof(wchar_t) == 2) {
+        TEST_EQUALS(char_to_wchar(wide, "\xC3\xA4\xE2\x82\xAC\xF0\x9F\x98\x80", 32), 4);
+        TEST_EQUALS(wide[2], 0xD83D);
+        TEST_EQUALS(wide[3], 0xDE00);
+    } else {
+        TEST_EQUALS(char_to_wchar(wide, "\xC3\xA4\xE2\x82\xAC\xF0\x9F\x98\x80", 32), 3);
+        TEST_EQUALS((uint32) wide[2], 0x1F600);
+    }
+    TEST_EQUALS(wide[0], 0xE4);
+    TEST_EQUALS(wide[1], 0x20AC);
 
-    memset(narrow, 0, sizeof(narrow));
-    TEST_EQUALS((int32) wchar_to_char(narrow, (wchar_t) 0x20AC), 2);
-    TEST_EQUALS((byte) narrow[0], 0xAC);
-    TEST_EQUALS((byte) narrow[1], 0x20);
+    // The surrogate pair is never split
+    memset(wide, 0, sizeof(wide));
+    if constexpr (sizeof(wchar_t) == 2) {
+        TEST_EQUALS(char_to_wchar(wide, "a\xF0\x9F\x98\x80", 3), 1);
+        TEST_TRUE(wcscmp(wide, L"a") == 0);
+    }
 
-    wchar_t in_place[16] = L"abc";
-    wchar_to_char(in_place);
-    TEST_TRUE(strcmp((char*) in_place, "abc") == 0);
+    // Invalid and truncated sequences -> U+FFFD
+    memset(wide, 0, sizeof(wide));
+    TEST_EQUALS(char_to_wchar(wide, "\xFF" "a\xC3", 32), 3);
+    TEST_EQUALS(wide[0], 0xFFFD);
+    TEST_EQUALS(wide[1], 'a');
+    TEST_EQUALS(wide[2], 0xFFFD);
 
     char wide_to_narrow[16] = {};
-    wchar_to_char(wide_to_narrow, L"abc");
+    TEST_EQUALS(wchar_to_char(wide_to_narrow, L"abc"), 3);
     TEST_TRUE(strcmp(wide_to_narrow, "abc") == 0);
 
     char wide_to_narrow_limited[16] = {};
-    wchar_to_char(wide_to_narrow_limited, L"abcdef", 3);
+    TEST_EQUALS(wchar_to_char(wide_to_narrow_limited, L"abcdef", 3), 3);
     TEST_TRUE(strcmp(wide_to_narrow_limited, "abc") == 0);
+
+    // ä, €, U+1F600 -> utf8
+    char narrow[16] = {};
+    const wchar_t wide_utf[] = {0xE4, 0x20AC, (wchar_t) 0xD83D, (wchar_t) 0xDE00, 0};
+    if constexpr (sizeof(wchar_t) == 2) {
+        TEST_EQUALS(wchar_to_char(narrow, wide_utf), 9);
+        TEST_TRUE(strcmp(narrow, "\xC3\xA4\xE2\x82\xAC\xF0\x9F\x98\x80") == 0);
+
+        // Lone surrogate -> U+FFFD
+        const wchar_t lone[] = {(wchar_t) 0xD83D, 'a', 0};
+        TEST_EQUALS(wchar_to_char(narrow, lone), 4);
+        TEST_TRUE(strcmp(narrow, "\xEF\xBF\xBD" "a") == 0);
+    }
+
+    // A code point is never split: € doesn't fit into 2 bytes
+    memset(narrow, 0, sizeof(narrow));
+    const wchar_t euro[] = {'a', 0x20AC, 0};
+    TEST_EQUALS(wchar_to_char(narrow, euro, 2), 1);
+    TEST_TRUE(strcmp(narrow, "a") == 0);
 
     wchar_t utf8_to_wide[16] = {};
     TEST_EQUALS(utf8_to_wchar("abc", utf8_to_wide, 16), 4);

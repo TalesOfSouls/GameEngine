@@ -61,8 +61,8 @@ static void test_asset_archive() {
     /////////////////////////////////////////////////
     // Own file name (never touches a real archive) and it is written next to the executable
     // so the test doesn't litter the repository
-    wchar_t archive_path[PATH_MAX_LENGTH];
-    relative_to_absolute(L"./test_asset_archive.asset", archive_path);
+    char archive_path[PATH_MAX_LENGTH];
+    relative_to_absolute("./test_asset_archive.asset", archive_path);
 
     FileBody archive_file = {
         archive_size,

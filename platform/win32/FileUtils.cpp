@@ -28,31 +28,33 @@
 //  2. save data location
 //  3. download location
 
+/**
+ * All paths are utf8, the win32 api is called with utf16 (W functions)
+ * The A functions would interpret the path in the ANSI code page and not in utf8
+ *
+ * @param wchar_t*      buffer  Output (PATH_MAX_LENGTH)
+ * @param const char*   path    Utf8 path
+ *
+ * @return const wchar_t* buffer
+ */
+FORCE_INLINE
+const wchar_t* file_path_wide(wchar_t* __restrict buffer, const char* __restrict path) NO_EXCEPT
+{
+    char_to_wchar(buffer, path, PATH_MAX_LENGTH);
+
+    return buffer;
+}
+
 static inline HANDLE CreateFileWrapper(
     const char* path,
     DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes,
     DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile
 ) NO_EXCEPT
 {
-    return CreateFileA(
-        path,
-        dwDesiredAccess,
-        dwShareMode,
-        lpSecurityAttributes,
-        dwCreationDisposition,
-        dwFlagsAndAttributes,
-        hTemplateFile
-    );
-}
+    wchar_t wide[PATH_MAX_LENGTH];
 
-static inline HANDLE CreateFileWrapper(
-    const wchar_t* path,
-    DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-    DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile
-) NO_EXCEPT
-{
     return CreateFileW(
-        path,
+        file_path_wide(wide, path),
         dwDesiredAccess,
         dwShareMode,
         lpSecurityAttributes,
@@ -64,79 +66,64 @@ static inline HANDLE CreateFileWrapper(
 
 static inline DWORD GetFileAttributesWrapper(const char* path) NO_EXCEPT
 {
-    return GetFileAttributesA(path);
-}
+    wchar_t wide[PATH_MAX_LENGTH];
 
-static inline DWORD GetFileAttributesWrapper(const wchar_t* path) NO_EXCEPT
-{
-    return GetFileAttributesW(path);
+    return GetFileAttributesW(file_path_wide(wide, path));
 }
 
 static inline bool CreateDirectoryWrapper(const char* path, LPSECURITY_ATTRIBUTES lpSecurityAttributes) NO_EXCEPT
 {
-    return CreateDirectoryA(path, lpSecurityAttributes);
-}
+    wchar_t wide[PATH_MAX_LENGTH];
 
-static inline bool CreateDirectoryWrapper(const wchar_t* path, LPSECURITY_ATTRIBUTES lpSecurityAttributes) NO_EXCEPT
-{
-    return CreateDirectoryW(path, lpSecurityAttributes);
-}
-
-static inline DWORD GetModuleFileNameWrapper(HMODULE hModule, const char* lpFilename, DWORD nSize) NO_EXCEPT
-{
-    return GetModuleFileNameA(hModule, (LPSTR) lpFilename, nSize);
-}
-
-static inline DWORD GetModuleFileNameWrapper(HMODULE hModule, const wchar_t* lpFilename, DWORD nSize) NO_EXCEPT
-{
-    return GetModuleFileNameW(hModule, (LPWSTR) lpFilename, nSize);
+    return CreateDirectoryW(file_path_wide(wide, path), lpSecurityAttributes);
 }
 
 static inline bool MoveFileWrapper(const char* lpExistingFileName, const char* lpNewFileName) NO_EXCEPT
 {
-    return MoveFileA(lpExistingFileName, lpNewFileName);
-}
+    wchar_t src[PATH_MAX_LENGTH];
+    wchar_t dst[PATH_MAX_LENGTH];
 
-static inline bool MoveFileWrapper(const wchar_t* lpExistingFileName, const wchar_t* lpNewFileName) NO_EXCEPT
-{
-    return MoveFileW(lpExistingFileName, lpNewFileName);
+    return MoveFileW(file_path_wide(src, lpExistingFileName), file_path_wide(dst, lpNewFileName));
 }
 
 static inline bool MoveFileExWrapper(const char* lpExistingFileName, const char* lpNewFileName, DWORD dwFlags) NO_EXCEPT
 {
-    return MoveFileExA(lpExistingFileName, lpNewFileName, dwFlags);
-}
+    wchar_t src[PATH_MAX_LENGTH];
+    wchar_t dst[PATH_MAX_LENGTH];
 
-static inline bool MoveFileExWrapper(const wchar_t* lpExistingFileName, const wchar_t* lpNewFileName, DWORD dwFlags) NO_EXCEPT
-{
-    return MoveFileExW(lpExistingFileName, lpNewFileName, dwFlags);
+    return MoveFileExW(file_path_wide(src, lpExistingFileName), file_path_wide(dst, lpNewFileName), dwFlags);
 }
 
 static inline bool CopyFileWrapper(const char* lpExistingFileName, const char* lpNewFileName, BOOL bFailIfExists) NO_EXCEPT
 {
-    return CopyFileA(lpExistingFileName, lpNewFileName, bFailIfExists);
-}
+    wchar_t src[PATH_MAX_LENGTH];
+    wchar_t dst[PATH_MAX_LENGTH];
 
-static inline bool CopyFileWrapper(const wchar_t* lpExistingFileName, const wchar_t* lpNewFileName, BOOL bFailIfExists) NO_EXCEPT
-{
-    return CopyFileW(lpExistingFileName, lpNewFileName, bFailIfExists);
+    return CopyFileW(file_path_wide(src, lpExistingFileName), file_path_wide(dst, lpNewFileName), bFailIfExists);
 }
 
 static inline bool DeleteFileWrapper(const char* lpFileName) NO_EXCEPT
 {
-    return DeleteFileA(lpFileName);
+    wchar_t wide[PATH_MAX_LENGTH];
+
+    return DeleteFileW(file_path_wide(wide, lpFileName));
 }
 
-static inline bool DeleteFileWrapper(const wchar_t* lpFileName) NO_EXCEPT
+/**
+ * FindFirstFileW() with a utf8 search pattern
+ */
+static inline HANDLE FindFirstFileWrapper(const char* pattern, WIN32_FIND_DATAW* find_data) NO_EXCEPT
 {
-    return DeleteFileW(lpFileName);
+    wchar_t wide[PATH_MAX_LENGTH];
+
+    return FindFirstFileW(file_path_wide(wide, pattern), find_data);
 }
 
 FORCE_INLINE
 MMFHandle file_mmf_handle(FileHandle fp) NO_EXCEPT
 {
     STATS_INCREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
-    return CreateFileMappingA(fp, NULL, PAGE_READONLY, 0, 0, NULL);
+    return CreateFileMappingW(fp, NULL, PAGE_READONLY, 0, 0, NULL);
 }
 
 FORCE_INLINE
@@ -161,84 +148,52 @@ void file_mmf_close(MMFHandle fh) NO_EXCEPT
     STATS_DECREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 }
 
-template <typename C>
+/**
+ * Path of the executable (utf8)
+ *
+ * @return int32 Length in bytes, 0 on failure
+ */
 inline
-int32 self_file_path(C* path) NO_EXCEPT
+int32 self_file_path(const char** path) NO_EXCEPT
 {
-    static C spath[PATH_MAX_LENGTH];
+    static char spath[PATH_MAX_LENGTH];
     static int32 spath_length = 0;
 
     if (!spath_length) {
-        spath_length = (int32) GetModuleFileNameWrapper(NULL, spath, PATH_MAX_LENGTH);
-        if (!spath_length) {
+        wchar_t wide[PATH_MAX_LENGTH];
+        const DWORD wide_length = GetModuleFileNameW(NULL, wide, PATH_MAX_LENGTH);
+
+        // 0 = failure, PATH_MAX_LENGTH = truncated
+        if (!wide_length || wide_length >= PATH_MAX_LENGTH) {
+            *path = spath;
             return 0;
         }
+
+        spath_length = wchar_to_char(spath, wide, PATH_MAX_LENGTH - 1);
     }
+
+    *path = spath;
+
+    return spath_length;
+}
+
+inline
+int32 self_file_path(char* path) NO_EXCEPT
+{
+    const char* spath;
+    const int32 spath_length = self_file_path(&spath);
 
     // +1 for '\0'
-    memcpy(path, spath, (spath_length + 1) * sizeof(C));
+    memcpy(path, spath, spath_length + 1);
 
     return spath_length;
 }
 
-template <typename C>
+// Own directory path incl. the trailing slash (utf8)
 inline
-int32 self_file_path(const C** path) NO_EXCEPT
+int32 self_directory_path(const char** path) NO_EXCEPT
 {
-    static C spath[PATH_MAX_LENGTH];
-    static int32 spath_length = 0;
-
-    if (!spath_length) {
-        spath_length = (int32) GetModuleFileNameWrapper(NULL, spath, PATH_MAX_LENGTH);
-        if (!spath_length) {
-            return 0;
-        }
-    }
-
-    path = spath;
-
-    return spath_length;
-}
-
-// own directory path
-template <typename C>
-FORCE_INLINE
-int32 self_directory_path(C* path) NO_EXCEPT
-{
-    static C spath[PATH_MAX_LENGTH];
-    static int32 spath_length = 0;
-
-    if (!spath_length) {
-        int32 length = self_file_path(spath);
-        if (!length) {
-            return 0;
-        }
-
-        C* last = spath + length;
-        while (*last != (C) '\\' && length > 0) {
-            --last;
-            --length;
-        }
-
-        ++length;
-
-        ++last;
-        *last = (C) '\0';
-
-        spath_length = length;
-    }
-
-    // +1 for '\0'
-    memcpy(path, spath, (spath_length + 1) * sizeof(C));
-
-    return spath_length;
-}
-
-template <typename C>
-inline
-int32 self_directory_path(const C** path) NO_EXCEPT
-{
-    static C sdir[PATH_MAX_LENGTH];
+    static char sdir[PATH_MAX_LENGTH];
     static int32 sdir_length = 0;
 
     if (!sdir_length) {
@@ -248,14 +203,14 @@ int32 self_directory_path(const C** path) NO_EXCEPT
             return 0;
         }
 
-        C* last = sdir + length;
-        while (*last != (C) '\\' && *last != (C) '/' && length > 0) {
+        char* last = sdir + length;
+        while (*last != '\\' && *last != '/' && length > 0) {
             --last;
             --length;
         }
         ++length;
 
-        sdir[length] = (C) '\0';
+        sdir[length] = '\0';
         sdir_length = length;
     }
 
@@ -263,61 +218,70 @@ int32 self_directory_path(const C** path) NO_EXCEPT
     return sdir_length;
 }
 
-// @performance Consider to return the new path length, we often need it afterwards
-template <typename C>
-static inline
-void relative_to_absolute(const C* __restrict rel, C* __restrict path) NO_EXCEPT
+FORCE_INLINE
+int32 self_directory_path(char* path) NO_EXCEPT
 {
-    if (rel[0] != (C) '.') {
+    const char* sdir;
+    const int32 sdir_length = self_directory_path(&sdir);
+
+    // +1 for '\0'
+    memcpy(path, sdir, sdir_length + 1);
+
+    return sdir_length;
+}
+
+// @performance Consider to return the new path length, we often need it afterwards
+static inline
+void relative_to_absolute(const char* __restrict rel, char* __restrict path) NO_EXCEPT
+{
+    if (rel[0] != '.') {
         str_copy(path, rel);
         return;
     }
 
-    const C* spath;
+    const char* spath;
     const int32 spath_length = self_directory_path(&spath);
     if (spath_length == 0) {
         return;
     }
 
-    const C* temp = rel;
-    if (rel[1] == (C) '/') {
+    const char* temp = rel;
+    if (rel[1] == '/') {
         temp += 2;
     }
 
-    memcpy(path, spath, spath_length * sizeof(C));
+    memcpy(path, spath, spath_length);
     str_copy(path + spath_length, temp);
 }
 
 // Overwrites existing path
-template <typename C>
 inline
-void relative_to_absolute(C* path) NO_EXCEPT
+void relative_to_absolute(char* path) NO_EXCEPT
 {
-    if (path[0] != (C) '.') {
+    if (path[0] != '.') {
         return;
     }
 
-    const C* spath;
+    const char* spath;
     const int32 spath_length = self_directory_path(&spath);
     if (spath_length == 0) {
         return;
     }
 
-    const C* temp = path;
-    if (path[1] == (C) '/') {
+    const char* temp = path;
+    if (path[1] == '/') {
         temp += 2;
     }
 
-    C rel_copy[PATH_MAX_LENGTH];
+    char rel_copy[PATH_MAX_LENGTH];
     str_copy(rel_copy, temp);
 
-    memcpy(path, spath, spath_length * sizeof(C));
+    memcpy(path, spath, spath_length);
     str_copy(path + spath_length, rel_copy);
 }
 
-template <typename C>
 inline
-bool directory_tree_create(const C* path) NO_EXCEPT
+bool directory_tree_create(const char* path) NO_EXCEPT
 {
     // If it already exists and is a directory = success
     DWORD attr = GetFileAttributesWrapper(path);
@@ -325,20 +289,20 @@ bool directory_tree_create(const C* path) NO_EXCEPT
         return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
     }
 
-    C buffer[PATH_MAX_LENGTH];
+    char buffer[PATH_MAX_LENGTH];
     str_copy(buffer, path);
 
-    C* p = buffer;
+    char* p = buffer;
 
     // Skip drive letter (e.g. "C:\")
-    if (p[0] && p[1] == (C) ':') {
+    if (p[0] && p[1] == ':') {
         p += 2;
     }
 
     // Skip UNC prefix (\\server\share\)
-    if (p[0] == (C) '\\' && p[1] == (C) '\\') {
+    if (p[0] == '\\' && p[1] == '\\') {
         p += 2;
-        while (*p && *p != (C) '\\') {
+        while (*p && *p != '\\') {
             ++p; // server
         }
 
@@ -346,14 +310,14 @@ bool directory_tree_create(const C* path) NO_EXCEPT
             ++p;
         }
 
-        while (*p && *p != (C) '\\') {
+        while (*p && *p != '\\') {
             ++p; // share
         }
     }
 
     for (; *p; ++p) {
-        if (*p == (C) '\\' || *p == (C) '/') {
-            C old = *p;
+        if (*p == '\\' || *p == '/') {
+            char old = *p;
             *p = 0;
 
             if (*buffer) {
@@ -398,9 +362,8 @@ void file_seek(FileHandle fh, uint64 pos) NO_EXCEPT
     SetFilePointer(fh, li.LowPart, &li.HighPart, FILE_BEGIN);
 }
 
-template <typename C>
 inline size_t
-file_size(const C* path) NO_EXCEPT
+file_size(const char* path) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -428,19 +391,18 @@ file_size(const C* path) NO_EXCEPT
     return size.QuadPart;
 }
 
-template <typename C>
 inline
-bool file_exists(const C* path) NO_EXCEPT
+bool file_exists(const char* path) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
     return GetFileAttributesWrapper(path) != INVALID_FILE_ATTRIBUTES;
 }
 
-template <typename C, typename T>
+template <typename T>
 inline void
 file_read(
-    const C* __restrict path,
+    const char* __restrict path,
     FileBody* __restrict file,
     T* const __restrict mem
 ) NO_EXCEPT
@@ -507,10 +469,9 @@ file_read(
     STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
-template <typename C>
 inline void
 file_read(
-    const C* __restrict path,
+    const char* __restrict path,
     FileBody* __restrict file
 ) NO_EXCEPT
 {
@@ -574,10 +535,10 @@ file_read(
     STATS_INCREMENT_BY(DEBUG_COUNTER_DRIVE_IO, bytes_read);
 }
 
-template <typename C, typename T>
+template <typename T>
 inline
 void file_read(
-    const C* __restrict path,
+    const char* __restrict path,
     FileBody* __restrict file,
     uint64 offset,
     T* const __restrict mem = NULL
@@ -893,9 +854,8 @@ bool file_read_line(
     return true;
 }
 
-template <typename C>
 inline bool
-file_write(const C* __restrict path, const FileBody* __restrict file) NO_EXCEPT
+file_write(const char* __restrict path, const FileBody* __restrict file) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -928,53 +888,52 @@ file_write(const C* __restrict path, const FileBody* __restrict file) NO_EXCEPT
     return true;
 }
 
-template <typename C>
 inline bool
-file_copy(const C* __restrict src, const C* __restrict dst) NO_EXCEPT
+file_copy(const char* __restrict src, const char* __restrict dst) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
 
     // Find last slash and check if the last path element is a file
     // We don't want to create the file name as a directory by accident
-    C buffer[PATH_MAX_LENGTH];
+    char buffer[PATH_MAX_LENGTH];
     str_copy(buffer, dst);
 
-    C* last_slash = NULL;
-    for (C* pos = buffer; *pos; ++pos) {
-        if (*pos == (C) '\\' || *pos == (C) '/') {
+    char* last_slash = NULL;
+    for (char* pos = buffer; *pos; ++pos) {
+        if (*pos == '\\' || *pos == '/') {
             last_slash = pos;
         }
     }
 
     // Remove . from path since the directory tree creation will otherwise create the file name as directory
-    for (C* pos = last_slash; *pos; ++pos) {
-        if (*pos == (C) '.') {
-            *last_slash = (C) '\0';
+    for (char* pos = last_slash; *pos; ++pos) {
+        if (*pos == '.') {
+            *last_slash = '\0';
             break;
         }
     }
     directory_tree_create(buffer);
 
     // We re-add the previously removed /
-    *last_slash = (C) '\\';
+    *last_slash = '\\';
 
     return (bool) CopyFileWrapper(src, dst, false);
 }
 
 inline bool directory_copy(
-    const wchar_t* src,
-    const wchar_t* dst
+    const char* src,
+    const char* dst
 ) NO_EXCEPT
 {
     if (!directory_tree_create(dst)) {
         return false;
     }
 
-    wchar_t search_path[PATH_MAX_LENGTH];
-    sprintf_fast(search_path, L"%s\\*", src);
+    char search_path[PATH_MAX_LENGTH];
+    sprintf_fast(search_path, PATH_MAX_LENGTH, "%s\\*", src);
 
     WIN32_FIND_DATAW ffd;
-    HANDLE hFind = FindFirstFileW(search_path, &ffd);
+    HANDLE hFind = FindFirstFileWrapper(search_path, &ffd);
     if (hFind == INVALID_HANDLE_VALUE) {
         ASSERT_THROW();
         return false;
@@ -987,11 +946,14 @@ inline bool directory_copy(
             continue;
         }
 
-        wchar_t src_item[PATH_MAX_LENGTH];
-        wchar_t dst_item[PATH_MAX_LENGTH];
+        char name[PATH_MAX_LENGTH];
+        wchar_to_char(name, ffd.cFileName, PATH_MAX_LENGTH - 1);
 
-        sprintf_fast(src_item, L"%s/%s", src, ffd.cFileName);
-        sprintf_fast(dst_item, L"%s/%s", dst, ffd.cFileName);
+        char src_item[PATH_MAX_LENGTH];
+        char dst_item[PATH_MAX_LENGTH];
+
+        sprintf_fast(src_item, PATH_MAX_LENGTH, "%s/%s", src, name);
+        sprintf_fast(dst_item, PATH_MAX_LENGTH, "%s/%s", dst, name);
 
         if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
             if (!directory_copy(src_item, dst_item)) {
@@ -1015,35 +977,34 @@ inline bool directory_copy(
 /**
  * This doesn't overwrite an existing file and fails
  */
-template <typename C>
 inline bool
-file_move(const C* __restrict src, const C* __restrict dst) NO_EXCEPT
+file_move(const char* __restrict src, const char* __restrict dst) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_FILE_UTILS, src, PROFILE_FLAG_SHOULD_LOG);
 
     // Find last slash and check if the last path element is a file
     // We don't want to create the file name as a directory by accident
-    C buffer[PATH_MAX_LENGTH];
+    char buffer[PATH_MAX_LENGTH];
     str_copy(buffer, dst);
 
-    C* last_slash = NULL;
-    for (C* pos = buffer; *pos; ++pos) {
-        if (*pos == (C) '\\' || *pos == (C) '/') {
+    char* last_slash = NULL;
+    for (char* pos = buffer; *pos; ++pos) {
+        if (*pos == '\\' || *pos == '/') {
             last_slash = pos;
         }
     }
 
     // Remove . from path since the directory tree creation will otherwise create the file name as directory
-    for (C* pos = last_slash; *pos; ++pos) {
-        if (*pos == (C) '.') {
-            *last_slash = (C) '\0';
+    for (char* pos = last_slash; *pos; ++pos) {
+        if (*pos == '.') {
+            *last_slash = '\0';
             break;
         }
     }
     directory_tree_create(buffer);
 
     // We re-add the previously removed /
-    *last_slash = (C) '\\';
+    *last_slash = '\\';
 
     return (bool) MoveFileWrapper(src, dst);
 }
@@ -1055,9 +1016,8 @@ void file_close_handle(FileHandle fp) NO_EXCEPT
     STATS_DECREMENT_PERSISTENT_DEBUG(DEBUG_COUNTER_FILE_HANDLE_COUNT);
 }
 
-template <typename C>
 inline
-FileHandle file_append_handle(const C* path) NO_EXCEPT
+FileHandle file_append_handle(const char* path) NO_EXCEPT
 {
     FileHandle fp = CreateFileWrapper(path,
         FILE_APPEND_DATA,
@@ -1264,9 +1224,8 @@ void file_async_wait(FileHandle fp, file_overlapped* overlapped, bool wait) NO_E
     }
 }
 
-template <typename C>
 inline
-FileHandle file_read_handle(const C* path) NO_EXCEPT
+FileHandle file_read_handle(const char* path) NO_EXCEPT
 {
     FileHandle fp = CreateFileWrapper(path,
         GENERIC_READ,
@@ -1287,9 +1246,8 @@ FileHandle file_read_handle(const C* path) NO_EXCEPT
     return fp;
 }
 
-template <typename C>
 inline
-FileHandle file_read_async_handle(const C* path) NO_EXCEPT
+FileHandle file_read_async_handle(const char* path) NO_EXCEPT
 {
     FileHandle fp = CreateFileWrapper(path,
         GENERIC_READ,
@@ -1319,13 +1277,12 @@ FileHandle file_read_async_handle(const C* path) NO_EXCEPT
  *
  * WARNING: The other process must allow reading as well (FILE_SHARE_READ), otherwise its open fails
  *
- * @param const C* path File path
+ * @param const char* path File path
  *
  * @return FileHandle NULL on failure
  */
-template <typename C>
 inline
-FileHandle file_read_handle_shared(const C* path) NO_EXCEPT
+FileHandle file_read_handle_shared(const char* path) NO_EXCEPT
 {
     FileHandle fp = CreateFileWrapper(path,
         GENERIC_READ,
@@ -1349,13 +1306,12 @@ FileHandle file_read_handle_shared(const C* path) NO_EXCEPT
  * Same as file_read_async_handle() but other processes may still write, replace or delete the file
  * while the handle is open
  *
- * @param const C* path File path
+ * @param const char* path File path
  *
  * @return FileHandle NULL on failure
  */
-template <typename C>
 inline
-FileHandle file_read_async_handle_shared(const C* path) NO_EXCEPT
+FileHandle file_read_async_handle_shared(const char* path) NO_EXCEPT
 {
     FileHandle fp = CreateFileWrapper(path,
         GENERIC_READ,
@@ -1420,8 +1376,7 @@ file_append(FileHandle fp, const char* file, size_t length) NO_EXCEPT
     return true;
 }
 
-template <typename C>
-bool file_append(const C* __restrict path, const C* __restrict file) NO_EXCEPT
+bool file_append(const char* __restrict path, const char* __restrict file) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_FILE_UTILS, path, PROFILE_FLAG_SHOULD_LOG);
 
@@ -1440,8 +1395,7 @@ bool file_append(const C* __restrict path, const C* __restrict file) NO_EXCEPT
     }
 
     DWORD written;
-    // Bytes, not characters: the string can be char or wchar_t
-    DWORD length = (DWORD) (str_length(file) * sizeof(C));
+    DWORD length = (DWORD) str_length(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
         CloseHandle(fp);
         return false;
@@ -1458,29 +1412,8 @@ bool file_append(const C* __restrict path, const C* __restrict file) NO_EXCEPT
 inline
 uint64 file_last_modified(const char* path) NO_EXCEPT
 {
-    WIN32_FIND_DATAA find_data;
-
-    FileHandle fp = FindFirstFileA(path, (LPWIN32_FIND_DATAA) &find_data);
-
-    FILETIME modified = {};
-    if(fp != INVALID_HANDLE_VALUE) {
-        modified = find_data.ftLastWriteTime;
-        FindClose(fp);
-    }
-
-    ULARGE_INTEGER ull;
-    ull.LowPart = modified.dwLowDateTime;
-    ull.HighPart = modified.dwHighDateTime;
-
-    return ull.QuadPart;
-}
-
-inline
-uint64 file_last_modified(const wchar_t* path) NO_EXCEPT
-{
     WIN32_FIND_DATAW find_data;
-
-    FileHandle fp = FindFirstFileW(path, &find_data);
+    HANDLE fp = FindFirstFileWrapper(path, &find_data);
 
     FILETIME modified = {};
     if (fp != INVALID_HANDLE_VALUE) {
@@ -1499,13 +1432,13 @@ uint64 file_last_modified(const wchar_t* path) NO_EXCEPT
  * Newest modification time of all files in a directory incl. its sub directories
  * Same time format as file_last_modified()
  *
- * @param const wchar_t* path      Directory path (without trailing slash)
- * @param int32          max_depth Max. depth of the sub directories (0 = only the directory itself)
+ * @param const char*   path        Directory path (without trailing slash)
+ * @param int32         max_depth   Max. depth of the sub directories (0 = only the directory itself)
  *
  * @return uint64 0 if the directory doesn't exist or is empty
  */
 static
-uint64 directory_last_modified(const wchar_t* path, int32 max_depth = 8) NO_EXCEPT
+uint64 directory_last_modified(const char* path, int32 max_depth = 8) NO_EXCEPT
 {
     const int32 path_length = (int32) str_length(path);
 
@@ -1514,11 +1447,11 @@ uint64 directory_last_modified(const wchar_t* path, int32 max_depth = 8) NO_EXCE
         return 0;
     }
 
-    wchar_t pattern[PATH_MAX_LENGTH];
-    str_concat_new(pattern, path, path_length, L"\\*", 2);
+    char pattern[PATH_MAX_LENGTH];
+    str_concat_new(pattern, path, path_length, "\\*", 2);
 
     WIN32_FIND_DATAW find_data;
-    HANDLE find = FindFirstFileW(pattern, &find_data);
+    HANDLE find = FindFirstFileWrapper(pattern, &find_data);
     if (find == INVALID_HANDLE_VALUE) {
         return 0;
     }
@@ -1531,13 +1464,19 @@ uint64 directory_last_modified(const wchar_t* path, int32 max_depth = 8) NO_EXCE
         }
 
         if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-            const int32 name_length = (int32) str_length(name);
-            if (max_depth <= 0 || path_length + 1 + name_length >= PATH_MAX_LENGTH) {
+            if (max_depth <= 0) {
                 continue;
             }
 
             // Re-use pattern for the sub directory path ("<path>\\" is already in there)
-            str_copy(pattern + path_length + 1, name, name_length);
+            const int32 name_length = wchar_to_char(
+                pattern + path_length + 1, name, PATH_MAX_LENGTH - path_length - 2
+            );
+
+            // Truncated -> not a valid path
+            if (name_length <= 0 || path_length + 1 + name_length >= PATH_MAX_LENGTH - 1) {
+                continue;
+            }
 
             const uint64 sub = directory_last_modified(pattern, max_depth - 1);
             newest = oms_max(newest, sub);
@@ -1567,11 +1506,11 @@ void iterate_directory(
     va_list args;
     va_start(args, handler);
 
-    WIN32_FIND_DATAA find_file_data;
+    WIN32_FIND_DATAW find_file_data;
     char search_path[PATH_MAX_LENGTH];
     sprintf_fast(search_path, PATH_MAX_LENGTH, "%s/*", base_path);
 
-    HANDLE hFind = FindFirstFileA((LPCSTR) search_path, &find_file_data);
+    HANDLE hFind = FindFirstFileWrapper(search_path, &find_file_data);
     if (hFind == INVALID_HANDLE_VALUE) {
         va_end(args);
         ASSERT_THROW();
@@ -1594,23 +1533,22 @@ void iterate_directory(
         if (!full_length || full_path[full_length - 1] != '/') {
             full_path[full_length++] = '/';
         }
-        str_copy(full_path + full_length, (const char *) find_file_data.cFileName);
+        wchar_to_char(full_path + full_length, find_file_data.cFileName, PATH_MAX_LENGTH - full_length - 1);
 
         if (find_file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
             iterate_directory(full_path, file_ending, handler, args);
         } else if (str_ends_with(full_path, file_ending)) {
             handler(full_path, args);
         }
-    } while (FindNextFileA(hFind, &find_file_data) != 0);
+    } while (FindNextFileW(hFind, &find_file_data) != 0);
 
     FindClose(hFind);
 
     va_end(args);
 }
 
-template <typename C>
 FORCE_INLINE
-bool file_delete(const C* path) NO_EXCEPT
+bool file_delete(const char* path) NO_EXCEPT
 {
     return DeleteFileWrapper(path);
 }
@@ -1619,14 +1557,13 @@ bool file_delete(const C* path) NO_EXCEPT
  * Opens a file for reading and writing (e.g. random access with file_read_at() / file_write_at())
  * Other handles may still read the file, writing is exclusive
  *
- * @param const C*      path    File path
+ * @param const char*      path    File path
  * @param FileOpenMode  mode    Open mode
  *
  * @return FileHandle NULL on failure
  */
-template <typename C>
 inline
-FileHandle file_read_write_handle(const C* path, FileOpenMode mode) NO_EXCEPT
+FileHandle file_read_write_handle(const char* path, FileOpenMode mode) NO_EXCEPT
 {
     DWORD disposition = OPEN_EXISTING;
     if (mode == FILE_OPEN_MODE_ALWAYS) {
@@ -1744,16 +1681,14 @@ void file_flush(FileHandle fp) NO_EXCEPT
  * Replaces dst with src (atomic on the same volume)
  * Unlike file_move() an existing dst is overwritten and no directories are created
  */
-template <typename C>
 FORCE_INLINE
-bool file_replace(const C* __restrict src, const C* __restrict dst) NO_EXCEPT
+bool file_replace(const char* __restrict src, const char* __restrict dst) NO_EXCEPT
 {
     return MoveFileExWrapper(src, dst, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
 }
 
-template <typename C>
 FORCE_INLINE
-bool directory_exists(const C* path) NO_EXCEPT
+bool directory_exists(const char* path) NO_EXCEPT
 {
     const DWORD attr = GetFileAttributesWrapper(path);
 
@@ -1776,26 +1711,27 @@ int32 directory_list_subdirectories(const char* path, char* names, int32 name_si
     char search_path[PATH_MAX_LENGTH];
     sprintf_fast(search_path, PATH_MAX_LENGTH, "%s/*", path);
 
-    WIN32_FIND_DATAA find_data;
-    HANDLE find = FindFirstFileA(search_path, &find_data);
+    WIN32_FIND_DATAW find_data;
+    HANDLE find = FindFirstFileWrapper(search_path, &find_data);
     if (find == INVALID_HANDLE_VALUE) {
         return 0;
     }
 
     int32 found = 0;
     do {
-        if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || find_data.cFileName[0] == '.') {
+        if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || find_data.cFileName[0] == L'.') {
             continue;
         }
 
-        const size_t name_length = str_length(find_data.cFileName);
-        if ((int32) name_length >= name_size) {
+        char name[PATH_MAX_LENGTH];
+        const int32 name_length = wchar_to_char(name, find_data.cFileName, PATH_MAX_LENGTH - 1);
+        if (name_length >= name_size) {
             continue;
         }
 
-        memcpy(names + found * name_size, find_data.cFileName, name_length + 1);
+        memcpy(names + found * name_size, name, name_length + 1);
         ++found;
-    } while (found < count && FindNextFileA(find, &find_data));
+    } while (found < count && FindNextFileW(find, &find_data));
 
     FindClose(find);
 

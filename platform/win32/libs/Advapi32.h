@@ -52,7 +52,7 @@
     inline
     bool advapi32_init() NO_EXCEPT
     {
-        bool success = library_dyn_load(&_advapi32_lib, L"Advapi32.dll");
+        bool success = library_dyn_load(&_advapi32_lib, "Advapi32.dll");
         if (!success) {
             return false;
         }

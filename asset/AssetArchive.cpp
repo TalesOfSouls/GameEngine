@@ -243,7 +243,7 @@ void asset_archive_close(AssetArchive* const archive) {
 
 void asset_archive_load(
     AssetArchive* archive,
-    wchar_t* path,
+    const char* path,
     BufferMemory* const mem,
     int32 steps = 8
 ) NO_EXCEPT
@@ -709,7 +709,7 @@ AssetArchiveReloadResult asset_archive_reload(
     const uint64 last_modified = file_last_modified(archive->path);
     const size_t archive_size = file_size(archive->path);
     if (archive_size < HEADER_BASE_SIZE) {
-        LOG_1("[WARNING] Asset reload: couldn't read %s", {DATA_TYPE_WCHAR_STR, (void *) archive->path});
+        LOG_1("[WARNING] Asset reload: couldn't read %s", {DATA_TYPE_CHAR_STR, (void *) archive->path});
 
         return ASSET_ARCHIVE_RELOAD_FAILED;
     }
@@ -753,7 +753,7 @@ AssetArchiveReloadResult asset_archive_reload(
         ) {
             LOG_1(
                 "[WARNING] Asset reload: the structure of %s changed from %d to %d assets (restart required)",
-                {DATA_TYPE_WCHAR_STR, (void *) archive->path},
+                {DATA_TYPE_CHAR_STR, (void *) archive->path},
                 {DATA_TYPE_UINT32, (void *) &archive->header.asset_count},
                 {DATA_TYPE_UINT32, (void *) &asset_count}
             );
@@ -789,7 +789,7 @@ AssetArchiveReloadResult asset_archive_reload(
                 LOG_1(
                     "[WARNING] Asset reload: the type of asset %d in %s changed (restart required)",
                     {DATA_TYPE_UINT32, (void *) &i},
-                    {DATA_TYPE_WCHAR_STR, (void *) archive->path}
+                    {DATA_TYPE_CHAR_STR, (void *) archive->path}
                 );
 
                 result = ASSET_ARCHIVE_RELOAD_CHANGED;
@@ -840,12 +840,12 @@ AssetArchiveReloadResult asset_archive_reload(
     LOG_TRUE_1(
         result == ASSET_ARCHIVE_RELOAD_OK,
         "[INFO] Asset reload: reloaded the header of %s",
-        {DATA_TYPE_WCHAR_STR, (void *) archive->path}
+        {DATA_TYPE_CHAR_STR, (void *) archive->path}
     );
     LOG_TRUE_1(
         result == ASSET_ARCHIVE_RELOAD_FAILED,
         "[WARNING] Asset reload: couldn't read %s",
-        {DATA_TYPE_WCHAR_STR, (void *) archive->path}
+        {DATA_TYPE_CHAR_STR, (void *) archive->path}
     );
 
     return result;

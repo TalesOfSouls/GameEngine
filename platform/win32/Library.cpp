@@ -16,13 +16,14 @@
 #include "../../system/Library.h"
 #include "../../system/FileUtils.cpp"
 
-const wchar_t _platform_suffix[] = L"_win32";
-const wchar_t _library_extension[] = L".dll";
+const char _platform_suffix[] = "_win32";
+const char _library_extension[] = ".dll";
 
 inline
-bool library_dyn_load(LibraryHandle* const __restrict lib, const wchar_t* const __restrict name) NO_EXCEPT
+bool library_dyn_load(LibraryHandle* const __restrict lib, const char* const __restrict name) NO_EXCEPT
 {
-    *lib = LoadLibraryExW((LPCWSTR) name, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    wchar_t wide[PATH_MAX_LENGTH];
+    *lib = LoadLibraryExW(file_path_wide(wide, name), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!*lib) {
         LOG_1("[WARNING] Couldn't load library");
         return false;
@@ -59,7 +60,7 @@ void* library_get_symbol(Library* lib, const char* symbol) NO_EXCEPT
 inline
 bool library_load(Library* const lib) NO_EXCEPT
 {
-    SimpleStringBuffer<wchar_t, PATH_MAX_LENGTH> dst;
+    SimpleStringBuffer<char, PATH_MAX_LENGTH> dst;
     dst.length = str_concat_new(
         dst.str,
         lib->dir.str, lib->dir.length,
@@ -68,14 +69,14 @@ bool library_load(Library* const lib) NO_EXCEPT
 
     // In debug mode, we create a copy at runtime, so we can recompile & reload it
     #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
-        wchar_t rand_name[7];
+        char rand_name[7];
         str_random(
             rand_name, ARRAY_COUNT(rand_name) - 1,
-            L"abcdefghijklmnopqrstuvwxyz0123456789",
-            ARRAY_COUNT(L"abcdefghijklmnopqrstuvwxyz0123456789") - 1
+            "abcdefghijklmnopqrstuvwxyz0123456789",
+            ARRAY_COUNT("abcdefghijklmnopqrstuvwxyz0123456789") - 1
         );
 
-        SimpleStringBuffer<wchar_t, PATH_MAX_LENGTH> src;
+        SimpleStringBuffer<char, PATH_MAX_LENGTH> src;
         str_copy(src.str, dst.str, dst.length);
         str_insert(
             dst.str, dst.length,
@@ -87,20 +88,23 @@ bool library_load(Library* const lib) NO_EXCEPT
         file_copy(src.str, dst.str);
     #endif
 
+    wchar_t dst_wide[PATH_MAX_LENGTH];
+    file_path_wide(dst_wide, dst.str);
+
     // Make sure the dll is actually unloaded (Windows caches this)
-    if (GetModuleHandleW((LPCWSTR) dst.str)) {
-        while (GetModuleHandleW((LPCWSTR) dst.str) && lib->handle) {
+    if (GetModuleHandleW(dst_wide)) {
+        while (GetModuleHandleW(dst_wide) && lib->handle) {
             FreeLibrary(lib->handle);
             thread_usleep(100 * MILLI_MICRO);
         }
 
         int32 i = -1;
-        while (GetModuleHandleW((LPCWSTR) dst.str) && ++i < 10) {
+        while (GetModuleHandleW(dst_wide) && ++i < 10) {
             thread_usleep(100 * MILLI_MICRO);
         }
     }
 
-    lib->handle = LoadLibraryW((LPCWSTR) dst.str);
+    lib->handle = LoadLibraryW(dst_wide);
     if (!lib->handle) {
         lib->is_valid = false;
         ASSERT_THROW();
@@ -174,7 +178,7 @@ void library_unload(Library* const lib) NO_EXCEPT
             return false;
         }
 
-        SimpleStringBuffer<wchar_t, PATH_MAX_LENGTH> src;
+        SimpleStringBuffer<char, PATH_MAX_LENGTH> src;
         src.length = str_concat_new(
             src.str,
             lib->dir.str, lib->dir.length,
@@ -198,7 +202,7 @@ void library_unload(Library* const lib) NO_EXCEPT
     inline
     LibraryHandle library_load_next(const Library* const __restrict lib, uint64* const __restrict last_load) NO_EXCEPT
     {
-        SimpleStringBuffer<wchar_t, PATH_MAX_LENGTH> src;
+        SimpleStringBuffer<char, PATH_MAX_LENGTH> src;
         src.length = str_concat_new(
             src.str,
             lib->dir.str, lib->dir.length,
@@ -206,22 +210,22 @@ void library_unload(Library* const lib) NO_EXCEPT
         );
 
         // The linker keeps the file open while writing it
-        HANDLE const fp = CreateFileW((LPCWSTR) src.str, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        HANDLE const fp = CreateFileWrapper(src.str, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (fp == INVALID_HANDLE_VALUE) {
-            LOG_1("[WARNING] Library %w is in use or doesn't exist", {DATA_TYPE_WCHAR_STR, (void *) src.str});
+            LOG_1("[WARNING] Library %s is in use or doesn't exist", {DATA_TYPE_CHAR_STR, (void *) src.str});
 
             return NULL;
         }
         CloseHandle(fp);
 
-        wchar_t rand_name[7];
+        char rand_name[7];
         str_random(
             rand_name, ARRAY_COUNT(rand_name) - 1,
-            L"abcdefghijklmnopqrstuvwxyz0123456789",
-            ARRAY_COUNT(L"abcdefghijklmnopqrstuvwxyz0123456789") - 1
+            "abcdefghijklmnopqrstuvwxyz0123456789",
+            ARRAY_COUNT("abcdefghijklmnopqrstuvwxyz0123456789") - 1
         );
 
-        SimpleStringBuffer<wchar_t, PATH_MAX_LENGTH> dst;
+        SimpleStringBuffer<char, PATH_MAX_LENGTH> dst;
         str_copy(dst.str, src.str, src.length);
         dst.length = src.length;
         str_insert(
@@ -232,14 +236,15 @@ void library_unload(Library* const lib) NO_EXCEPT
 
         const uint64 modified = file_last_modified(src.str);
         if (!file_copy(src.str, dst.str)) {
-            LOG_1("[ERROR] Couldn't copy library %w", {DATA_TYPE_WCHAR_STR, (void *) src.str});
+            LOG_1("[ERROR] Couldn't copy library %s", {DATA_TYPE_CHAR_STR, (void *) src.str});
 
             return NULL;
         }
 
-        LibraryHandle const handle = LoadLibraryW((LPCWSTR) dst.str);
+        wchar_t dst_wide[PATH_MAX_LENGTH];
+        LibraryHandle const handle = LoadLibraryW(file_path_wide(dst_wide, dst.str));
         if (!handle) {
-            LOG_1("[ERROR] Couldn't load library %w", {DATA_TYPE_WCHAR_STR, (void *) dst.str});
+            LOG_1("[ERROR] Couldn't load library %s", {DATA_TYPE_CHAR_STR, (void *) dst.str});
 
             return NULL;
         }

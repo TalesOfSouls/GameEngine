@@ -118,11 +118,15 @@ static void test_drm_is_being_debugged() {
 static void test_drm_check_process_name() {
     // Our own process name is part of the process list
     // (the name is taken from the executable, so the test also works for renamed builds)
-    wchar_t executable_path[PATH_MAX_LENGTH];
+    // The paths are utf8, the process names of the win32 api are utf16
+    char executable_path[PATH_MAX_LENGTH];
     TEST_TRUE(self_file_path(executable_path) > 0);
 
+    char executable_name_utf8[PATH_MAX_LENGTH];
+    filename(executable_path, executable_name_utf8);
+
     wchar_t executable_name[PATH_MAX_LENGTH];
-    filename(executable_path, executable_name);
+    char_to_wchar(executable_name, executable_name_utf8, PATH_MAX_LENGTH);
     TEST_TRUE(executable_name[0] != L'\0');
 
     const wchar_t* self_process[] = {

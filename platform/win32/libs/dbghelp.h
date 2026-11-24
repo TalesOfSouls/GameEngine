@@ -77,7 +77,7 @@
             return true;
         }
 
-        bool success = library_dyn_load(&_dbghelp_lib, L"dbghelp.dll");
+        bool success = library_dyn_load(&_dbghelp_lib, "dbghelp.dll");
         if (!success) {
             return false;
         }

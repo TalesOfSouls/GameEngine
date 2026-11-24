@@ -140,8 +140,11 @@ void drive_info_get(DriveInfo* const info) NO_EXCEPT
     info->total = 0;
     info->free = 0;
 
+    const char* self_dir;
+    self_directory_path(&self_dir);
+
     wchar_t path[PATH_MAX_LENGTH];
-    self_directory_path(path);
+    file_path_wide(path, self_dir);
 
     // Drive root, e.g. "C:\\"
     wchar_t* temp = path;

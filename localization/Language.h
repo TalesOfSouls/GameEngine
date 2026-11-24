@@ -7,7 +7,7 @@
 // Version of the text format (.langtxt)
 #define LANGUAGE_VERSION 3
 
-#define LANGUAGE_DEFAULT_CODE L"en_US"
+#define LANGUAGE_DEFAULT_CODE "en_US"
 
 /**
  * TEXT FORMAT: .langtxt, version LANGUAGE_VERSION

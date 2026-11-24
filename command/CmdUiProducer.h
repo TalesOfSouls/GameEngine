@@ -21,14 +21,14 @@ void thrd_cmd_ui_load(
     AppCmdBuffer* const __restrict cb,
     void* app,
     AssetManagementSystem* const __restrict ams,
-    const wchar_t layout_path[64],
-    const wchar_t theme_path[64],
+    const char layout_path[64],
+    const char theme_path[64],
     UITheme* const __restrict general_theme,
     UILayout* const __restrict layout,
     UITheme* const __restrict theme,
     GpuApiType gpu_api_type,
     AppCommandFunction callback,
-    const wchar_t* const language_code = NULL
+    const char* const language_code = NULL
 ) NO_EXCEPT
 {
     AppCommand cmd = {};

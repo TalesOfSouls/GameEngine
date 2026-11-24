@@ -9,20 +9,8 @@
 
 #include "../stdlib/Stdlib.h"
 
-template <typename T>
-struct file_suffix_array;
-
-template <>
-struct file_suffix_array<char>
-{
-    static constexpr char value[] = "_temp";
-};
-
-template <>
-struct file_suffix_array<wchar_t>
-{
-    static constexpr wchar_t value[] = L"_temp";
-};
+// Suffix of the temporary file of file_write_secure() and file_write_atomic()
+static constexpr char _file_temp_suffix[] = "_temp";
 
 #include "FileUtils.h"
 
@@ -38,18 +26,18 @@ struct file_suffix_array<wchar_t>
  * Securely overwrites a file preventing corruption
  * Only after the file is successfully written to the file system it replaces the old file
  */
-template <typename C, typename T>
+template <typename T>
 inline
-bool file_write_secure(const C* const path, const FileBody* const file, T* const mem) NO_EXCEPT
+bool file_write_secure(const char* const path, const FileBody* const file, T* const mem) NO_EXCEPT
 {
-    C temp_path[PATH_MAX_LENGTH];
+    char temp_path[PATH_MAX_LENGTH];
     const size_t path_len = str_length(path);
 
-    memcpy(temp_path, path, (path_len + 1) * sizeof(C));
+    memcpy(temp_path, path, path_len + 1);
     memcpy(
         temp_path + path_len,
-        file_suffix_array<C>::value,
-        sizeof(file_suffix_array<C>::value)
+        _file_temp_suffix,
+        sizeof(_file_temp_suffix)
     );
 
     file_write(temp_path, file);
@@ -80,21 +68,20 @@ bool file_write_secure(const C* const path, const FileBody* const file, T* const
  *
  * @return bool
  */
-template <typename C>
 inline
-bool file_write_atomic(const C* const path, const FileBody* const file) NO_EXCEPT
+bool file_write_atomic(const char* const path, const FileBody* const file) NO_EXCEPT
 {
-    C temp_path[PATH_MAX_LENGTH];
+    char temp_path[PATH_MAX_LENGTH];
     const size_t path_len = str_length(path);
-    if (path_len + ARRAY_COUNT(file_suffix_array<C>::value) > PATH_MAX_LENGTH) {
+    if (path_len + ARRAY_COUNT(_file_temp_suffix) > PATH_MAX_LENGTH) {
         return false;
     }
 
-    memcpy(temp_path, path, path_len * sizeof(C));
+    memcpy(temp_path, path, path_len);
     memcpy(
         temp_path + path_len,
-        file_suffix_array<C>::value,
-        sizeof(file_suffix_array<C>::value)
+        _file_temp_suffix,
+        sizeof(_file_temp_suffix)
     );
 
     FileHandle fp = file_read_write_handle(temp_path, FILE_OPEN_MODE_TRUNCATE);
@@ -120,15 +107,14 @@ bool file_write_atomic(const C* const path, const FileBody* const file) NO_EXCEP
  * Unlike file_read() the buffer size is checked, nothing is appended (no null termination)
  * and a missing file is no error
  *
- * @param const C*  path        File path
+ * @param const char*  path        File path
  * @param void*     buffer      Destination
  * @param uint32    capacity    Buffer size
  *
  * @return int64 File size, -1 if the file doesn't exist, can't be read or doesn't fit into the buffer
  */
-template <typename C>
 inline
-int64 file_read_buffer(const C* const path, void* const buffer, uint32 capacity) NO_EXCEPT
+int64 file_read_buffer(const char* const path, void* const buffer, uint32 capacity) NO_EXCEPT
 {
     FileHandle fp = file_read_handle_shared(path);
     if (!fp) {
@@ -143,28 +129,27 @@ int64 file_read_buffer(const C* const path, void* const buffer, uint32 capacity)
 }
 
 /**
- * @param const C* base Base path could even be the path of the exe.
+ * @param const char* base Base path could even be the path of the exe.
  *                      This will be used to create the base path
- * @param const C* dest Destination path which is either an absolute path or relative path, relative to base
- * @param C* out Where do we want to store the final path
+ * @param const char* dest Destination path which is either an absolute path or relative path, relative to base
+ * @param char* out Where do we want to store the final path
  */
-template <typename C>
 inline
-void build_base_path(const C* base, C* out) NO_EXCEPT
+void build_base_path(const char* base, char* out) NO_EXCEPT
 {
-    if (*base == (C) '.') {
+    if (*base == '.') {
         relative_to_absolute(base, out);
     } else {
         str_copy(out, base);
     }
 
-    C* dir = str_right(out, (C) '/');
+    char* dir = str_right(out, '/');
     if (!dir) {
-        dir = str_right(out, (C) '\\');
+        dir = str_right(out, '\\');
     }
 
     if (dir) {
-        *dir = (C) '\0';
+        *dir = '\0';
     }
 }
 
@@ -173,17 +158,16 @@ void build_base_path(const C* base, C* out) NO_EXCEPT
  * One path is the base path and the other one is relative to the base bath.
  * This function also handles the special case where the other path is already an absolute path
  *
- * @param const C*  base    Base path could even be the path of the exe.
+ * @param const char*  base    Base path could even be the path of the exe.
  *                          This will be used to create the base path
- * @param const C*  dest    Destination path which is either an absolute path or relative path, relative to base
- * @param C*        out     Where do we want to store the final path
+ * @param const char*  dest    Destination path which is either an absolute path or relative path, relative to base
+ * @param char*        out     Where do we want to store the final path
  */
-template <typename C>
 inline
-void build_path(const C* base, const C* dest, C* out) NO_EXCEPT
+void build_path(const char* base, const char* dest, char* out) NO_EXCEPT
 {
     // The base path could be to a .exe for example, we need to get the directory
-    if (*dest == (C) '.') {
+    if (*dest == '.') {
         build_base_path(base, out);
         str_copy(out + str_length(out), dest + 1);
     } else {
@@ -191,13 +175,12 @@ void build_path(const C* base, const C* dest, C* out) NO_EXCEPT
     }
 }
 
-template <typename C>
 inline
-void filename(const C* path, C* out) NO_EXCEPT
+void filename(const char* path, char* out) NO_EXCEPT
 {
-    const C* start = str_right(path, (C) '/');
+    const char* start = str_right(path, '/');
     if (!start) {
-        start = str_right(path, (C) '\\');
+        start = str_right(path, '\\');
     }
 
     if (start) {
@@ -206,16 +189,15 @@ void filename(const C* path, C* out) NO_EXCEPT
         start = path;
     }
 
-    memcpy(out, start, (str_length(start) + 1) * sizeof(C));
+    memcpy(out, start, str_length(start) + 1);
 }
 
-template <typename C>
 inline
-C* filename(C* path) NO_EXCEPT
+char* filename(char* path) NO_EXCEPT
 {
-    C* start = str_right(path, (C) '/');
+    char* start = str_right(path, '/');
     if (!start) {
-        start = str_right(path, (C) '\\');
+        start = str_right(path, '\\');
     }
 
     if (start) {

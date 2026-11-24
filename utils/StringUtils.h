@@ -267,6 +267,56 @@ int32 utf8_get_char_at(const char* in, int32 index) NO_EXCEPT
     return -1;
 }
 
+/**
+ * Decodes one code point of a wide string
+ * 16 bit wchar_t (win32): UTF-16, surrogate pairs are combined
+ * 32 bit wchar_t (linux): UTF-32
+ * A lone surrogate is returned as U+FFFD
+ *
+ * @param const wchar_t*    in          Wide string (not '\0')
+ * @param uint32*           codepoint   Output
+ *
+ * @return int32 Wide chars consumed (1 or 2)
+ */
+inline CONSTEXPR
+int32 wchar_decode(const wchar_t* __restrict in, uint32* __restrict codepoint) NO_EXCEPT
+{
+    const uint32 c = (uint32) in[0];
+
+    IF_CONSTEXPR(sizeof(wchar_t) == 2) {
+        if (c >= 0xD800 && c <= 0xDBFF) {
+            const uint32 low = (uint32) in[1];
+            if (low >= 0xDC00 && low <= 0xDFFF) {
+                *codepoint = 0x10000 + ((c - 0xD800) << 10) + (low - 0xDC00);
+
+                return 2;
+            }
+
+            *codepoint = 0xFFFD;
+
+            return 1;
+        } else if (c >= 0xDC00 && c <= 0xDFFF) {
+            *codepoint = 0xFFFD;
+
+            return 1;
+        }
+    }
+
+    *codepoint = c <= 0x10FFFF ? c : 0xFFFD;
+
+    return 1;
+}
+
+/**
+ * Utf8 -> wide string (win32: UTF-16, linux: UTF-32)
+ * Invalid bytes are converted to U+FFFD, a code point is never split
+ *
+ * @param wchar_t*      dest        Output
+ * @param const char*   src         Utf8 string
+ * @param int32         max_wchars  Size of dest (incl. '\0')
+ *
+ * @return int32 Written wide chars (excl. '\0')
+ */
 inline CONSTEXPR
 int32 char_to_wchar(
     wchar_t* __restrict dest,
@@ -276,13 +326,48 @@ int32 char_to_wchar(
 {
     int32 written = 0;
 
-    while (written < max_wchars - 1) {
-        unsigned char c = (unsigned char) *src++;
-        dest[written++] = (wchar_t) c;
+    while (*src) {
+        const byte lead = (byte) *src;
+        int32 bytes = lead < 0x80 ? 1
+            : (lead & 0xE0) == 0xC0 ? 2
+            : (lead & 0xF0) == 0xE0 ? 3
+            : (lead & 0xF8) == 0xF0 ? 4
+            : 0;
 
-        if (c == 0) {
-            return written - 1;
+        // Truncated sequence (also stops at the '\0', no read past the end)
+        for (int32 i = 1; i < bytes; ++i) {
+            if (((byte) src[i] & 0xC0) != 0x80) {
+                bytes = 0;
+                break;
+            }
         }
+
+        uint32 codepoint;
+        if (bytes) {
+            utf8_decode(src, &codepoint);
+        } else {
+            codepoint = 0xFFFD;
+            bytes = 1;
+        }
+
+        const int32 units = (sizeof(wchar_t) == 2 && codepoint > 0xFFFF) ? 2 : 1;
+        if (written + units > max_wchars - 1) {
+            break;
+        }
+
+        IF_CONSTEXPR(sizeof(wchar_t) == 2) {
+            if (codepoint > 0xFFFF) {
+                codepoint -= 0x10000;
+                dest[written++] = (wchar_t) (0xD800 + (codepoint >> 10));
+                dest[written++] = (wchar_t) (0xDC00 + (codepoint & 0x3FF));
+            } else {
+                dest[written++] = (wchar_t) codepoint;
+            }
+        } else {
+            dest[written++] = (wchar_t) codepoint;
+        }
+
+        src += bytes;
     }
 
     dest[written] = 0;
@@ -290,124 +375,42 @@ int32 char_to_wchar(
     return written;
 }
 
-size_t wchar_to_char(char* dst, wchar_t wc)
-{
-    const unsigned char *p = (const unsigned char *) &wc;
-    size_t n = 0;
-
-    for (size_t i = 0; i < sizeof(wchar_t); ++i) {
-        if (p[i] != 0) {
-            dst[n++] = (char) p[i];
-        }
-    }
-
-    return n;
-}
-
+/**
+ * Wide string (win32: UTF-16, linux: UTF-32) -> utf8
+ * A code point is never split
+ *
+ * @param char*             dest    Output
+ * @param const wchar_t*    str     Wide string
+ * @param int32             length  Max. bytes written (excl. '\0'), dest needs length + 1 bytes
+ *
+ * @return int32 Written bytes (excl. '\0')
+ */
 inline
-void wchar_to_char(wchar_t* str) NO_EXCEPT
-{
-    static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
-
-    char* dest = (char *) str;
-
-    while (*str) {
-        const wchar_t wc = *str++;
-
-        IF_CONSTEXPR(sizeof(wchar_t) == 2) {
-            const byte low  = (byte)(wc & 0xFF);
-            const byte high = (byte)((wc >> 8) & 0xFF);
-
-            if (low) {
-                *dest++ = (char)low;
-            }
-
-            if (high) {
-                *dest++ = (char)high;
-            }
-        } else { // sizeof(wchar_t) == 4
-            for (int32 i = 0; i < 4; ++i) {
-                const byte b = (byte)((wc >> (8 * i)) & 0xFF);
-                if (b) {
-                    *dest++ = (char)b;
-                }
-            }
-        }
-    }
-
-    *dest = '\0';
-}
-
-inline
-void wchar_to_char(char* __restrict dest, const wchar_t* __restrict str) NO_EXCEPT
-{
-    static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
-
-    while (*str) {
-        const wchar_t wc = *str++;
-
-        IF_CONSTEXPR(sizeof(wchar_t) == 2) {
-            const byte low  = (byte)(wc & 0xFF);
-            const byte high = (byte)((wc >> 8) & 0xFF);
-            if (low) {
-                *dest++ = (char)low;
-            }
-
-            if (high) {
-                *dest++ = (char)high;
-            }
-        } else { // sizeof(wchar_t) == 4
-            for (int32 i = 0; i < 4; ++i) {
-                const byte b = (byte)((wc >> (8 * i)) & 0xFF);
-                if (b) {
-                    *dest++ = (char)b;
-                }
-            }
-        }
-    }
-
-    *dest = '\0';
-}
-
-inline
-void wchar_to_char(
+int32 wchar_to_char(
     char* __restrict dest,
     const wchar_t* __restrict str,
-    int32 length
+    int32 length = INT32_MAX
 ) NO_EXCEPT
 {
-    static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4);
-
     int32 i = 0;
+    char temp[4];
 
-    while (*str && i < length) {
-        const wchar_t wc = *str++;
+    while (*str) {
+        uint32 codepoint;
+        str += wchar_decode(str, &codepoint);
 
-        if constexpr (sizeof(wchar_t) == 2) {
-            const byte low  = (byte)(wc & 0xFF);
-            const byte high = (byte)((wc >> 8) & 0xFF);
-
-            if (low) {
-                *dest++ = (char)low;
-                ++i;
-            }
-
-            if (high && i < length) {
-                *dest++ = (char)high;
-                ++i;
-            }
-        } else { // sizeof(wchar_t) == 4
-            for (int32 j = 0; j < 4 && i < length; ++j) {
-                const byte b = (byte)((wc >> (8 * j)) & 0xFF);
-                if (b) {
-                    *dest++ = (char)b;
-                    ++i;
-                }
-            }
+        const int32 bytes = utf8_encode(codepoint, temp);
+        if (bytes <= 0 || i + bytes > length) {
+            break;
         }
+
+        memcpy(dest + i, temp, bytes);
+        i += bytes;
     }
 
-    *dest = '\0';
+    dest[i] = '\0';
+
+    return i;
 }
 
 inline
@@ -3093,7 +3096,9 @@ void sprintf_fast_iter(char* __restrict buffer, const char* __restrict format, .
                 case 'w': {
                     const wchar_t* str = va_arg(args, const wchar_t *);
                     while (*str) {
-                        buffer += wchar_to_char(buffer, *str++);
+                        uint32 codepoint;
+                        str += wchar_decode(str, &codepoint);
+                        buffer += utf8_encode(codepoint, buffer);
                     }
                 } break;
                 case 'c': {
@@ -3203,7 +3208,9 @@ int32 sprintf_fast_iter(char* __restrict buffer, int32 buffer_size, const char* 
                 case 'w': {
                     const wchar_t* str = va_arg(args, const wchar_t *);
                     while (*str) {
-                        const int32 length = (int32) wchar_to_char(temp, *str++);
+                        uint32 codepoint;
+                        str += wchar_decode(str, &codepoint);
+                        const int32 length = utf8_encode(codepoint, temp);
                         if (buffer + length > end) {
                             break;
                         }

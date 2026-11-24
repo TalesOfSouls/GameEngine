@@ -109,7 +109,7 @@
             return true;
         }
 
-        bool success = library_dyn_load(&_ole32_lib, L"ole32.dll");
+        bool success = library_dyn_load(&_ole32_lib, "ole32.dll");
         if (!success) {
             return false;
         }

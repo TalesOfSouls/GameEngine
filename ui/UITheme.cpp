@@ -308,7 +308,7 @@ bool ui_theme_language_from_txt(UITheme* const __restrict theme, const char* __r
  * Loads the language file of a theme file (falls back to LANGUAGE_DEFAULT_CODE)
  *      ./themes/default/general.themetxt -> ./themes/default/lang/<language_code>/general.langtxt
  *
- * @param const wchar_t*    language_code   NULL/empty = LANGUAGE_DEFAULT_CODE
+ * @param const char*    language_code   NULL/empty = LANGUAGE_DEFAULT_CODE
  * @param M*                mem             Temporary memory for the file content
  *
  * @return bool false if the theme has no language file
@@ -316,8 +316,8 @@ bool ui_theme_language_from_txt(UITheme* const __restrict theme, const char* __r
 template <typename M>
 bool ui_theme_language_load(
     UITheme* const __restrict theme,
-    const wchar_t* __restrict theme_path,
-    const wchar_t* __restrict language_code,
+    const char* __restrict theme_path,
+    const char* __restrict language_code,
     M* const __restrict mem
 ) NO_EXCEPT
 {
@@ -325,7 +325,7 @@ bool ui_theme_language_load(
         language_code = LANGUAGE_DEFAULT_CODE;
     }
 
-    wchar_t path[PATH_MAX_LENGTH];
+    char path[PATH_MAX_LENGTH];
     // build path and check if file exists, falls back to LANGUAGE_DEFAULT_CODE if the language doesn't exist
     // @performance this can be optimized heavily
     for (;;) {
@@ -335,16 +335,16 @@ bool ui_theme_language_load(
         }
 
         str_copy(path, theme_path);
-        wchar_t* pos = str_right(path, L'.');
+        char* pos = str_right(path, '.');
         if (pos) {
-            *pos = L'\0';
+            *pos = '\0';
         }
-        str_insert(path, str_length(path), L".langtxt");
-        pos = str_right(path, L'/');
+        str_insert(path, str_length(path), ".langtxt");
+        pos = str_right(path, '/');
         const size_t dir_end = pos ? (size_t) (pos - path) + 1 : 0;
-        str_insert(path, dir_end, L"/");
+        str_insert(path, dir_end, "/");
         str_insert(path, dir_end, language_code);
-        str_insert(path, dir_end, L"lang/");
+        str_insert(path, dir_end, "lang/");
 
         if (file_exists(path)) {
             break;

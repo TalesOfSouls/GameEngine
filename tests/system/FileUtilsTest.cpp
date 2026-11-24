@@ -95,6 +95,77 @@ static void test_file_utils_self_path() {
     str_copy(in_place, "./in_place.txt");
     relative_to_absolute(in_place);
     TEST_TRUE(str_starts_with(in_place, directory));
+
+    // Pointer versions return the cached paths (the pointer has to be set)
+    const char* executable_cached = NULL;
+    TEST_EQUALS(self_file_path(&executable_cached), (int32) strlen(executable));
+    TEST_NOT_EQUALS(executable_cached, NULL);
+    TEST_EQUALS(strcmp(executable_cached, executable), 0);
+
+    const char* directory_cached = NULL;
+    TEST_EQUALS(self_directory_path(&directory_cached), directory_length);
+    TEST_EQUALS(strcmp(directory_cached, directory), 0);
+}
+
+// Utf8 paths with characters outside of the ANSI code page ("ä", "€", "中")
+#define FILE_TEST_UTF8_DIR_LITERAL "./oms_test_files/dir_\xC3\xA4\xE2\x82\xAC\xE4\xB8\xAD"
+#define FILE_TEST_UTF8_NAME_LITERAL "dir_\xC3\xA4\xE2\x82\xAC\xE4\xB8\xAD"
+#define FILE_TEST_UTF8_PATH_LITERAL "./oms_test_files/dir_\xC3\xA4\xE2\x82\xAC\xE4\xB8\xAD/t\xC3\xA4st_\xE4\xB8\xAD.txt"
+#define FILE_TEST_UTF8_MOVE_LITERAL "./oms_test_files/dir_\xC3\xA4\xE2\x82\xAC\xE4\xB8\xAD/moved_\xE2\x82\xAC.txt"
+
+static void test_file_utils_utf8_paths() {
+    char directory[PATH_MAX_LENGTH];
+    relative_to_absolute(FILE_TEST_UTF8_DIR_LITERAL, directory);
+    TEST_TRUE(directory_tree_create(directory));
+    TEST_TRUE(directory_exists(directory));
+
+    // The directory is listed with its utf8 name
+    char parent[PATH_MAX_LENGTH];
+    relative_to_absolute(FILE_TEST_DIR_LITERAL, parent);
+
+    char names[8][64];
+    const int32 count = directory_list_subdirectories(parent, (char *) names, 64, 8);
+    bool listed = false;
+    for (int32 i = 0; i < count; ++i) {
+        listed |= strcmp(names[i], FILE_TEST_UTF8_NAME_LITERAL) == 0;
+    }
+    TEST_TRUE(listed);
+
+    char path[PATH_MAX_LENGTH];
+    char moved[PATH_MAX_LENGTH];
+    relative_to_absolute(FILE_TEST_UTF8_PATH_LITERAL, path);
+    relative_to_absolute(FILE_TEST_UTF8_MOVE_LITERAL, moved);
+    file_delete(path);
+    file_delete(moved);
+
+    FileBody body = {
+        sizeof(FILE_TEST_CONTENT) - 1,
+        (byte *) FILE_TEST_CONTENT
+    };
+    TEST_TRUE(file_write(path, &body));
+    TEST_TRUE(file_exists(path));
+    TEST_EQUALS(file_size(path), body.size);
+    TEST_GREATER_THAN(file_last_modified(path), 0ULL);
+    #if _WIN32
+        TEST_GREATER_THAN(directory_last_modified(directory), 0ULL);
+    #endif
+
+    TestFileBuffer mem;
+    file_test_buffer_alloc(&mem);
+
+    FileBody read_body = { 0, NULL };
+    file_read(path, &read_body, 0, &mem.memory);
+    TEST_EQUALS(read_body.size, body.size);
+    TEST_MEMORY_EQUALS(read_body.content, body.content, body.size);
+
+    TEST_TRUE(file_move(path, moved));
+    TEST_FALSE(file_exists(path));
+    TEST_TRUE(file_exists(moved));
+
+    file_delete(moved);
+    TEST_FALSE(file_exists(moved));
+
+    file_test_buffer_free(&mem);
 }
 
 static void test_file_utils_exists() {
@@ -229,6 +300,7 @@ int main() {
     TEST_RUN(test_file_utils_exists);
     TEST_RUN(test_file_utils_write_read);
     TEST_RUN(test_file_utils_copy_move_delete);
+    TEST_RUN(test_file_utils_utf8_paths);
 
     TEST_FINALIZE();
 

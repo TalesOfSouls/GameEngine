@@ -143,7 +143,7 @@ struct AssetArchive {
 
     // Required for hot reload (e.g. asset changed on filesystem)
     // Absolute path + modification time of the file when it was loaded
-    wchar_t path[PATH_MAX_LENGTH];
+    char path[PATH_MAX_LENGTH];
     uint64 last_modified;
 };
 

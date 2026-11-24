@@ -46,13 +46,13 @@ bool xinput_load() NO_EXCEPT
         return true;
     }
 
-    bool success = library_dyn_load(&_xinput_lib, L"xinput1_4.dll");
+    bool success = library_dyn_load(&_xinput_lib, "xinput1_4.dll");
     if (!success) {
-        success = library_dyn_load(&_xinput_lib, L"xinput1_3.dll");
+        success = library_dyn_load(&_xinput_lib, "xinput1_3.dll");
     }
 
     if (!success) {
-        success = library_dyn_load(&_xinput_lib, L"xinput9_1_0.dll");
+        success = library_dyn_load(&_xinput_lib, "xinput9_1_0.dll");
     }
 
     if (!success) {

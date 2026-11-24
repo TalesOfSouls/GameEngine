@@ -48,7 +48,7 @@
             return true;
         }
 
-        bool success = library_dyn_load(&_hid_lib, L"hid.dll");
+        bool success = library_dyn_load(&_hid_lib, "hid.dll");
         if (!success) {
             return false;
         }

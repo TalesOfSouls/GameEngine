@@ -333,7 +333,7 @@ static void test_layout_bin() {
 
     UILayoutTxtContext ctx = {};
     ctx.themes[ctx.theme_count++] = &theme;
-    ctx.data_file = ui_data_file_create(&layout_txt, L"test.layoutbin");
+    ctx.data_file = ui_data_file_create(&layout_txt, "test.layoutbin");
     TEST_EQUALS(ui_layout_from_document(&layout_txt, &doc, &ctx), 3);
 
     // Data element: child of the bar, hidden, zeroed, no user data
@@ -343,7 +343,7 @@ static void test_layout_bin() {
     TEST_TRUE(slots->core.state & UI_STATE_HIDDEN);
     TEST_FALSE(slots->data_flags & UI_DATA_FLAG_LOADED);
     TEST_EQUALS(((const uint16 *) ui_data_values(&layout_txt, slots))[3], 0);
-    TEST_EQUALS(str_compare(ui_data_file(&layout_txt, slots), L"test.layoutbin"), 0);
+    TEST_EQUALS(str_compare(ui_data_file(&layout_txt, slots), "test.layoutbin"), 0);
 
     // Another structure than the application expects = not found
     TEST_EQUALS(ui_data_get(&layout_txt, "test_slots", 16, 1), NULL);
@@ -390,7 +390,7 @@ static void test_layout_bin() {
     UILayout layout_bin;
     ui_layout_test_init(&layout_bin);
     UILayoutTxtContext bin_ctx = ctx;
-    bin_ctx.data_file = ui_data_file_create(&layout_bin, L"test.layoutbin");
+    bin_ctx.data_file = ui_data_file_create(&layout_bin, "test.layoutbin");
     TEST_EQUALS(ui_layout_from_document(&layout_bin, &bin_doc, &bin_ctx), 3);
     TEST_EQUALS(bin_ctx.data_file, ctx.data_file);
 
@@ -430,7 +430,7 @@ static void test_layout_bin() {
     UILayout layout_new;
     ui_layout_test_init(&layout_new);
     UILayoutTxtContext new_ctx = ctx;
-    new_ctx.data_file = ui_data_file_create(&layout_new, L"test.layoutbin");
+    new_ctx.data_file = ui_data_file_create(&layout_new, "test.layoutbin");
     TEST_EQUALS(ui_layout_from_document(&layout_new, &new_doc, &new_ctx), 1);
     TEST_EQUALS(ui_layout_bin_data_read(bin, updated_size, &header, &layout_new, new_ctx.data_file), 1);
 

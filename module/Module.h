@@ -13,7 +13,7 @@ enum ModuleType {
 };
 
 struct Module {
-    wchar_t name[64];
+    char name[64];
     int32 version;
     ModuleType type;
     bool is_active;

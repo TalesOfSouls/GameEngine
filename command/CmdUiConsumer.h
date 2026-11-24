@@ -38,7 +38,7 @@
 inline
 UILayout* cmd_layout_load_sync(
     BufferMemory* const __restrict mem,
-    UILayout* const __restrict layout, const wchar_t* const __restrict layout_path
+    UILayout* const __restrict layout, const char* const __restrict layout_path
 ) NO_EXCEPT
 {
     PROFILE_DEBUG(PROFILE_CMD_LAYOUT_LOAD_SYNC, (char *) NULL, PROFILE_FLAG_SHOULD_LOG);
@@ -150,14 +150,14 @@ bool cmd_theme_assets_load_sync(
  *
  * WARNING: theme->data and theme->data_size need to be set
  *
- * @param const wchar_t*        language_code   e.g. L"en_US", NULL = LANGUAGE_DEFAULT_CODE
+ * @param const char*        language_code   e.g. "en_US", NULL = LANGUAGE_DEFAULT_CODE
  * @param const CmdThemeAssets* assets          Where the assets are loaded from, NULL = the assets are not loaded (e.g. tools)
  */
 inline
 UITheme* cmd_theme_load_sync(
     BufferMemory* const __restrict mem,
-    UITheme* const __restrict theme, const wchar_t* const __restrict theme_path,
-    const wchar_t* const __restrict language_code = NULL,
+    UITheme* const __restrict theme, const char* const __restrict theme_path,
+    const char* const __restrict language_code = NULL,
     const CmdThemeAssets* const __restrict assets = NULL
 ) NO_EXCEPT
 {
@@ -201,10 +201,10 @@ UITheme* cmd_theme_load_sync(
 inline
 UILayout* cmd_ui_load_sync(
     BufferMemory* const __restrict mem,
-    UILayout* const __restrict layout, const wchar_t* const __restrict layout_path,
+    UILayout* const __restrict layout, const char* const __restrict layout_path,
     UITheme* const __restrict general_theme,
-    UITheme* const __restrict theme, const wchar_t* const __restrict theme_path,
-    const wchar_t* const __restrict language_code = NULL,
+    UITheme* const __restrict theme, const char* const __restrict theme_path,
+    const char* const __restrict language_code = NULL,
     const CmdThemeAssets* const __restrict assets = NULL
 ) NO_EXCEPT
 {
@@ -258,13 +258,13 @@ UILayout* cmd_ui_load(
     // @question Do we really want to do the relative_to_absolute here,
     //          or closer to where it is used?
     // Empty = only the theme is loaded
-    wchar_t layout_path[PATH_MAX_LENGTH];
-    layout_path[0] = L'\0';
+    char layout_path[PATH_MAX_LENGTH];
+    layout_path[0] = '\0';
     if (cmd->layout_body.layout_path[0]) {
         relative_to_absolute(cmd->layout_body.layout_path, layout_path);
     }
 
-    wchar_t theme_path[PATH_MAX_LENGTH];
+    char theme_path[PATH_MAX_LENGTH];
     relative_to_absolute(cmd->layout_body.theme_path, theme_path);
 
     return cmd_ui_load_sync(

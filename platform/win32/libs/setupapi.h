@@ -45,7 +45,7 @@
             return true;
         }
 
-        bool success = library_dyn_load(&_setupapi_lib, L"setupapi.dll");
+        bool success = library_dyn_load(&_setupapi_lib, "setupapi.dll");
         if (!success) {
             return false;
         }

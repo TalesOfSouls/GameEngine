@@ -18,15 +18,15 @@
  * @return int32 Offset of the path in ui_element_buffer (UIData::file)
  */
 inline
-int32 ui_data_file_create(UILayout* const __restrict layout, const wchar_t* const __restrict path) NO_EXCEPT
+int32 ui_data_file_create(UILayout* const __restrict layout, const char* const __restrict path) NO_EXCEPT
 {
     const int32 length = (int32) str_length(path);
-    wchar_t* const memory = (wchar_t *) memory_get(
-        &layout->ui_element_buffer, (length + 1) * (int32) sizeof(wchar_t), (int32) alignof(wchar_t)
+    char* const memory = (char *) memory_get(
+        &layout->ui_element_buffer, length + 1, 1
     );
     ASSERT_TRUE(memory);
 
-    memcpy(memory, path, (length + 1) * sizeof(wchar_t));
+    memcpy(memory, path, (length + 1));
 
     return (int32) ((byte *) memory - layout->ui_element_buffer.memory);
 }
@@ -34,12 +34,12 @@ int32 ui_data_file_create(UILayout* const __restrict layout, const wchar_t* cons
 /**
  * Path of the file the bytes of a data element are saved in
  *
- * @return const wchar_t* NULL if the bytes are not saved
+ * @return const char* NULL if the bytes are not saved
  */
 FORCE_INLINE
-const wchar_t* ui_data_file(const UILayout* const __restrict layout, const UIData* const __restrict data) NO_EXCEPT
+const char* ui_data_file(const UILayout* const __restrict layout, const UIData* const __restrict data) NO_EXCEPT
 {
-    return data->file ? (const wchar_t *) (layout->ui_element_buffer.memory + data->file) : NULL;
+    return data->file ? (const char *) (layout->ui_element_buffer.memory + data->file) : NULL;
 }
 
 FORCE_INLINE

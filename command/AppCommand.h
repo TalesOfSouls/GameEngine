@@ -41,7 +41,7 @@ struct CmdFileBody {
     AppCommandFunction callback;
 
     union {
-        const wchar_t* file_path;
+        const char* file_path;
         FileToLoad* file_to_load;
     };
 };
@@ -49,7 +49,7 @@ struct CmdFileBody {
 struct CmdAssetBody {
     union {
         int32 asset_id;
-        const wchar_t* asset_path;
+        const char* asset_path;
     };
 };
 
@@ -86,11 +86,11 @@ struct CmdLayoutBody {
 
     UITheme* general_theme;
 
-    wchar_t layout_path[64];
-    wchar_t theme_path[64];
+    char layout_path[64];
+    char theme_path[64];
 
     // empty = default language
-    wchar_t language[6];
+    char language[6];
 
     UILayout* layout;
     UITheme* theme;

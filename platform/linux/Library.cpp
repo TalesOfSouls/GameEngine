@@ -15,8 +15,8 @@
 #include "../../system/Library.h"
 #include "../../system/FileUtils.cpp"
 
-const wchar_t _platform_suffix[] = L"_linux";
-const wchar_t _library_extension[] = L".so";
+const char _platform_suffix[] = "_linux";
+const char _library_extension[] = ".so";
 
 inline
 bool library_load(Library* lib)
