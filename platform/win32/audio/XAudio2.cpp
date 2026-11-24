@@ -256,7 +256,7 @@ void xaudio2_play_buffer(AudioSetting* __restrict setting, XAudio2Setting* __res
     const uint32 idx = setting->sample_output % XAUDIO2_BUFFER_COUNT;
     XAUDIO2_BUFFER* const buffer = &api_setting->internal_buffer[idx];
 
-    const uint32 size = OMS_MIN(setting->sample_buffer_size, api_setting->chunk_size);
+    const uint32 size = oms_min(setting->sample_buffer_size, api_setting->chunk_size);
 
     memcpy((void *) buffer->pAudioData, setting->buffer, size);
     buffer->AudioBytes = size;

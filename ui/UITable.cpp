@@ -70,17 +70,17 @@ UITable* ui_table_create(
     table->columns = ui_string_list_store(layout, titles, column_count);
 
     // Equal column widths by default
-    table->column_widths = ui_buffer_reserve(layout, (int32) sizeof(f32) * max_branched(column_count, 1), alignof(f32));
+    table->column_widths = ui_buffer_reserve(layout, (int32) sizeof(f32) * oms_max(column_count, 1), alignof(f32));
     f32* const widths = (f32 *) (layout->ui_element_buffer.memory + table->column_widths);
     for (int32 i = 0; i < column_count; ++i) {
         widths[i] = 1.0f / (f32) column_count;
     }
 
     table->row_capacity = (int16) row_capacity;
-    table->rows = ui_buffer_reserve(layout, (int32) sizeof(int32) * max_branched(row_capacity, 1), alignof(int32));
+    table->rows = ui_buffer_reserve(layout, (int32) sizeof(int32) * oms_max(row_capacity, 1), alignof(int32));
 
     // Optional per row text color, 0 = font.color
-    const int32 row_colors_size = (int32) sizeof(uint32) * max_branched(row_capacity, 1);
+    const int32 row_colors_size = (int32) sizeof(uint32) * oms_max(row_capacity, 1);
     table->row_text_colors = ui_buffer_reserve(layout, row_colors_size, alignof(uint32));
 
     if (cell_capacity > 0) {
@@ -136,7 +136,7 @@ bool ui_table_cell_copy(
 ) NO_EXCEPT
 {
     char* const cell = (char *) (layout->ui_element_buffer.memory + offset);
-    length = min_branched(length, table->cell_capacity - 1);
+    length = oms_min(length, table->cell_capacity - 1);
 
     if (memcmp(cell, text, length) == 0 && cell[length] == '\0') {
         return false;
@@ -275,7 +275,7 @@ void ui_table_set_row_count(UILayout* const layout, UITable* const table, int32 
 {
     ASSERT_TRUE(table->cell_capacity);
 
-    count = OMS_CLAMP(count, 0, (int32) table->row_capacity);
+    count = oms_clamp(count, 0, (int32) table->row_capacity);
     if (count == table->row_count) {
         return;
     }
@@ -373,7 +373,7 @@ v4_f32 ui_table_body_rect(const UITable* const table) NO_EXCEPT
         dim->pos.x,
         dim->pos.y - table->row_height,
         dim->dim.x,
-        max_branched(dim->dim.y - table->row_height - footer, 0.0f)
+        oms_max(dim->dim.y - table->row_height - footer, 0.0f)
     };
 }
 
@@ -538,7 +538,7 @@ void ui_table_row_vertices(
         // Long texts are cut at the column border
         const UIClipRect cell = ui_clip_intersect(
             clip,
-            ui_clip_from_rect({x, row_y, max_branched(column_width - UI_DEFAULT_TEXT_PADDING, 0.0f), table->row_height})
+            ui_clip_from_rect({x, row_y, oms_max(column_width - UI_DEFAULT_TEXT_PADDING, 0.0f), table->row_height})
         );
         ui_vertices_clip_or_remove(vertices, indices, vertex_start, index_start, cell);
 
@@ -588,7 +588,7 @@ void ui_table_cache(
     const UIClipRect body_clip = ui_clip_from_rect({body.x, body.y, width, body.height});
     const int32* const rows = (const int32 *) (layout->ui_element_buffer.memory + table->rows);
     const int32 first_row = (int32) (scroll / table->row_height);
-    const int32 last_row = min_branched(table->row_count - 1, (int32) ((scroll + body.height) / table->row_height));
+    const int32 last_row = oms_min(table->row_count - 1, (int32) ((scroll + body.height) / table->row_height));
 
     // Layer 2: row colors (alternating, hover, selected)
     {

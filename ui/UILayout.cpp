@@ -581,7 +581,7 @@ char* ui_txt_value_resolve(
         );
 
         if (length) {
-            *length = min_branched(raw.length, buffer_size - 1);
+            *length = oms_min(raw.length, buffer_size - 1);
         }
 
         return buffer;
@@ -592,7 +592,7 @@ char* ui_txt_value_resolve(
     }
 
     // The key is in the buffer -> copy after the lookup
-    const int32 copy_length = min_branched(str.length, buffer_size - 1);
+    const int32 copy_length = oms_min(str.length, buffer_size - 1);
     memcpy(buffer, str.str, copy_length);
     buffer[copy_length] = '\0';
 
@@ -1627,7 +1627,7 @@ UICore* ui_txt_element_create(
             }
 
             if (ui_txt_value_get(ctx, doc, node, "capacity", value, UI_TXT_VALUE_LENGTH)) {
-                content_length = max_branched(content_length, (int32) str_to_int(value));
+                content_length = oms_max(content_length, (int32) str_to_int(value));
             }
 
             element = &ui_label_create(layout, CHAR_TYPE_CHAR, pattern_length, content_length, parent)->core;
@@ -1781,7 +1781,7 @@ UICore* ui_txt_element_create(
 
             element = &ui_data_create(
                 layout, doc->text + node->name.offset, node->name.length,
-                OMS_MAX(size, 0), version, ctx->data_file, parent
+                oms_max(size, 0), version, ctx->data_file, parent
             )->core;
         } break;
         default:

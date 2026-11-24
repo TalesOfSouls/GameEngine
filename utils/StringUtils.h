@@ -500,6 +500,13 @@ void str_tolower(char* str) NO_EXCEPT
     }
 }
 
+// Single character, ASCII only (independent of the locale, unlike tolower)
+FORCE_INLINE CONSTEXPR
+char str_tolower(char c) NO_EXCEPT
+{
+    return __internal_tolower(c);
+}
+
 inline CONSTEXPR
 bool str_is_alpha(const char* str) NO_EXCEPT
 {
@@ -1195,7 +1202,7 @@ void str_line_append(
         text[(*length)++] = '\n';
     }
 
-    const int32 line_length = min_branched((int32) str_length(line), capacity - 1 - *length);
+    const int32 line_length = oms_min((int32) str_length(line), capacity - 1 - *length);
     if (line_length <= 0) {
         text[*length] = '\0';
 
@@ -1899,7 +1906,7 @@ void str_move_to_pos(const char** str, int32 pos) NO_EXCEPT
 {
     *str += pos >= 0
         ? pos
-        : OMS_MAX(((int32) str_length(*str) + pos), 0);
+        : oms_max(((int32) str_length(*str) + pos), 0);
 }
 
 // Negative pos counts backwards
@@ -1909,7 +1916,7 @@ const char* str_move_to_pos(const char* str, int32 pos) NO_EXCEPT
     return str + (
         pos >= 0
             ? pos
-            : OMS_MAX(((int32) str_length(str) + pos), 0)
+            : oms_max(((int32) str_length(str) + pos), 0)
         );
 }
 

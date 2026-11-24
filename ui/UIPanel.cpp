@@ -171,8 +171,8 @@ v4_f32 ui_panel_viewport(const UIPanel* const panel, bool* const has_x = NULL, b
     return {
         dim->pos.x,
         dim->pos.y,
-        max_branched(dim->dim.x - (scroll_y ? UI_SCROLLBAR_SIZE : 0.0f), 0.0f),
-        max_branched(dim->dim.y - (scroll_x ? UI_SCROLLBAR_SIZE : 0.0f), 0.0f)
+        oms_max(dim->dim.x - (scroll_y ? UI_SCROLLBAR_SIZE : 0.0f), 0.0f),
+        oms_max(dim->dim.y - (scroll_x ? UI_SCROLLBAR_SIZE : 0.0f), 0.0f)
     };
 }
 
@@ -257,8 +257,8 @@ v2_f32 ui_panel_content_extent(const UILayout* const layout, const UIPanel* cons
         }
 
         const UIAttributeDimension* const dim = &child->dimension;
-        extent.x = max_branched(extent.x, dim->pos.x + dim->dim.x - origin.x);
-        extent.y = max_branched(extent.y, origin.y - (dim->pos.y - dim->dim.y));
+        extent.x = oms_max(extent.x, dim->pos.x + dim->dim.x - origin.x);
+        extent.y = oms_max(extent.y, origin.y - (dim->pos.y - dim->dim.y));
     } ui_element_children_iterate_end;
 
     return extent;
@@ -377,7 +377,7 @@ void ui_popup_place(const UILayout* const layout, UIPanel* const popup, v2_f32 s
     }
 
     if (dim->pos.x + size.x > root->pos.x + root->dim.x) {
-        dim->pos.x = max_branched(root->pos.x + root->dim.x - size.x, root->pos.x);
+        dim->pos.x = oms_max(root->pos.x + root->dim.x - size.x, root->pos.x);
     }
 }
 

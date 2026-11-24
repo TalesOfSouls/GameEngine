@@ -122,7 +122,7 @@ void http_header_value_set(
             // New value is larger than old value and requires memory moves
 
             uint32 grow_header_content = req->header_used_size + value_length >= req->header_available_size;
-            uint32 header_value_growth = (uint32) OMS_MAX(grow_header_content * (1 * 256 * sizeof(char)), value_length);
+            uint32 header_value_growth = (uint32) oms_max(grow_header_content * (1 * 256 * sizeof(char)), value_length);
 
             if (header_value_growth) {
                 // The header content cannot hold the value
@@ -179,7 +179,7 @@ void http_header_value_set(
 
         uint32 header_element_addition = grow_header_elements * 4;
         uint32 header_element_growth = header_element_addition * sizeof(HttpHeaderElement);
-        uint32 header_value_growth = (uint32) OMS_MAX((grow_header_content) * (1 * 256 * sizeof(char)), value_length);
+        uint32 header_value_growth = (uint32) oms_max((grow_header_content) * (1 * 256 * sizeof(char)), value_length);
 
         if (header_element_growth || header_value_growth) {
             if (header_element_growth + header_value_growth > (req->size * mem->chunk_size - req->body_offset - sizeof(HttpRequest)) - req->body_used_size) {
@@ -304,17 +304,17 @@ bool http_request_has_file_upload(const HttpRequest* request) {
     }
 
     const char* header_value = http_header_value_get(request, header);
-    if ((str_compare_caseless(header_value, "application/", OMS_MIN(header->value_length, sizeof("application/") - 1)) == 0
-            && str_compare_caseless(header_value, "application/json", OMS_MIN(header->value_length, sizeof("application/json") - 1)) != 0)
-        || str_compare_caseless(header_value, "image/", OMS_MIN(header->value_length, sizeof("image/") - 1)) == 0
-        || str_compare_caseless(header_value, "audio/", OMS_MIN(header->value_length, sizeof("audio/") - 1)) == 0
-        || str_compare_caseless(header_value, "video/", OMS_MIN(header->value_length, sizeof("video/") - 1)) == 0
-        || str_compare_caseless(header_value, "text/csv", OMS_MIN(header->value_length, sizeof("text/csv") - 1)) == 0
+    if ((str_compare_caseless(header_value, "application/", oms_min(header->value_length, sizeof("application/") - 1)) == 0
+            && str_compare_caseless(header_value, "application/json", oms_min(header->value_length, sizeof("application/json") - 1)) != 0)
+        || str_compare_caseless(header_value, "image/", oms_min(header->value_length, sizeof("image/") - 1)) == 0
+        || str_compare_caseless(header_value, "audio/", oms_min(header->value_length, sizeof("audio/") - 1)) == 0
+        || str_compare_caseless(header_value, "video/", oms_min(header->value_length, sizeof("video/") - 1)) == 0
+        || str_compare_caseless(header_value, "text/csv", oms_min(header->value_length, sizeof("text/csv") - 1)) == 0
     ) {
         return true;
     }
 
-    if (str_compare_caseless(header_value, "multipart/form-data", OMS_MIN(header->value_length, sizeof("multipart/form-data") - 1)) != 0) {
+    if (str_compare_caseless(header_value, "multipart/form-data", oms_min(header->value_length, sizeof("multipart/form-data") - 1)) != 0) {
         return false;
     }
 

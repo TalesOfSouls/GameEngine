@@ -78,7 +78,7 @@ UIData* ui_data_create(
     data->core.state |= UI_STATE_HIDDEN;
     data->core.flags = UI_ELEMENT_FLAG_IGNORE_HIT;
 
-    const int32 length = OMS_MIN(name_length, UI_DATA_NAME_LENGTH - 1);
+    const int32 length = oms_min(name_length, UI_DATA_NAME_LENGTH - 1);
     memcpy(data->name, name, length);
     data->name[length] = '\0';
 
@@ -87,9 +87,9 @@ UIData* ui_data_create(
     data->file = file;
 
     // The bytes follow the element
-    byte* const values = memory_get(&layout->ui_element_buffer, OMS_MAX(size, 1), 8);
+    byte* const values = memory_get(&layout->ui_element_buffer, oms_max(size, 1), 8);
     ASSERT_TRUE(values);
-    memset(values, 0, OMS_MAX(size, 1));
+    memset(values, 0, oms_max(size, 1));
     data->values = (int32) (values - layout->ui_element_buffer.memory);
 
     return data;

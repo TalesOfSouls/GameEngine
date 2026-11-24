@@ -32,7 +32,7 @@ void module_file_parse(const char* path, Module* module, RingMemory* const ring)
         const char* space = str_find(line, ' ');
         if (space) {
             const size_t name_length = space - line;
-            str_copy(name, line, OMS_MIN((int32) name_length, MAX_LENGTH - 1));
+            str_copy(name, line, oms_min((int32) name_length, MAX_LENGTH - 1));
             str_copy(value, space + 1, MAX_LENGTH - 1);
 
             if (str_compare(name, "name") == 0) {

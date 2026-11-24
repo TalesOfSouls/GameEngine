@@ -21,7 +21,7 @@ static inline
 const Glyph* font_glyph_find_binary(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     const uint32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
-    const uint32 limit = OMS_MIN(perfect_glyph_pos, (uint32) (font->glyph_count - 1));
+    const uint32 limit = oms_min(perfect_glyph_pos, (uint32) (font->glyph_count - 1));
 
     // We try to jump to the correct glyph based on the glyph codepoint
     if (font->glyphs[limit].codepoint == codepoint) {
@@ -77,7 +77,7 @@ static inline
 int16 font_glyph_index_find_binary(const Font* const font, uint32 codepoint) NO_EXCEPT
 {
     const int16 perfect_glyph_pos = (int16) (codepoint - font->glyphs[0].codepoint);
-    const int16 limit = OMS_MIN(perfect_glyph_pos, (int16) (font->glyph_count - 1));
+    const int16 limit = oms_min(perfect_glyph_pos, (int16) (font->glyph_count - 1));
 
     // We try to jump to the correct glyph based on the glyph codepoint
     if (font->glyphs[limit].codepoint == codepoint) {
@@ -161,7 +161,7 @@ void font_optimize_order(Font* const font, byte* buf) NO_EXCEPT
     uint32 codepoint;
     while ((codepoint = *to_validate++)) {
         const int16 perfect_glyph_pos = (int16) (codepoint - font->glyphs[0].codepoint);
-        const int16 limit = OMS_MIN(perfect_glyph_pos, (int16) (font->glyph_count - 1));
+        const int16 limit = oms_min(perfect_glyph_pos, (int16) (font->glyph_count - 1));
 
         // We either need to perfectly match the codepoint = array index
         // Or the code point isn't in the array, then it doesn't count

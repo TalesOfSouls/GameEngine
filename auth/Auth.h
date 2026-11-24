@@ -33,7 +33,7 @@ size_t write_function(char* data, size_t size, size_t count, void* arg)
     size_t length = str_length(dst);
 
     // Ensure we do not exceed the buffer length
-    size_t available_space = OMS_MIN(MAX_AUTH_RESPONSE_LENGTH, str_length(dst));
+    size_t available_space = oms_min(MAX_AUTH_RESPONSE_LENGTH, str_length(dst));
     if (available_space > 0) {
         strncat(dst, data, available_space - 1);
     }

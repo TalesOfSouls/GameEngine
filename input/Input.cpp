@@ -893,9 +893,9 @@ f32 input_controller_axis_speed(int32 value, int32 deadzone) NO_EXCEPT
         return 0.0f;
     }
 
-    // WARNING: OMS_MIN/OMS_MAX are branchless and only work for int types
-    const f32 range = (f32) max_branched(127 - deadzone, 1);
-    const f32 normalized = min_branched((f32) (magnitude - deadzone) / range, 1.0f);
+    // WARNING: oms_min/oms_max are branchless and only work for int types
+    const f32 range = (f32) oms_max(127 - deadzone, 1);
+    const f32 normalized = oms_min((f32) (magnitude - deadzone) / range, 1.0f);
 
     // Response curve (~x^2.5): small deflections move slowly (precise), full deflection moves fast
     const f32 speed = normalized * normalized * (0.4f + 0.6f * normalized);
@@ -919,7 +919,7 @@ void input_controller_axis_split(
 
     // -(-128) doesn't fit into int8
     controller->button[negative] = (int8) (value < 0
-        ? OMS_MIN(-value, 127)
+        ? oms_min(-value, 127)
         : 0
     );
     controller->button[positive] = (int8) (value > 0 ? value : 0);

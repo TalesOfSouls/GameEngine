@@ -741,12 +741,12 @@ int16 input_raw_handle(
                 states[input_handle.vec[0]].state.y[0] += dy;
 
                 // Since we are only using relative movement we need to clip to the window dimensions
-                states[input_handle.vec[0]].state.x[0] = OMS_CLAMP(
+                states[input_handle.vec[0]].state.x[0] = oms_clamp(
                     states[input_handle.vec[0]].state.x[0],
                     (int16) 0,
                     window_dim.width
                 );
-                states[input_handle.vec[0]].state.y[0] = OMS_CLAMP(
+                states[input_handle.vec[0]].state.y[0] = oms_clamp(
                     states[input_handle.vec[0]].state.y[0],
                     (int16) 0,
                     window_dim.height
@@ -847,7 +847,7 @@ int16 input_raw_handle(
         ControllerDevice* const controller = &states[input_handle.vec[0]].controller;
 
         // One message may contain multiple reports, the last one is the latest
-        const uint32 report_size = OMS_MIN(
+        const uint32 report_size = oms_min(
             (uint32) raw->data.hid.dwSizeHid,
             (uint32) INPUT_CONTROLLER_REPORT_SIZE
         );

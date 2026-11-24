@@ -11,47 +11,46 @@
 #include "Defines.h"
 #include "../compiler/CompilerUtils.h"
 
-// Limits
-// You should only use these limit functions when you absolutely know which version to use.
-// It is much better that you use the general purpose functions defined in Platform.h,
-// which in return use these functions based on best match for the used compiler and platform
+// Min/max/clamp for every type (integers, floats, pointers, enums, ...)
+// The compilers generate branchless code: cmov for integers, minss/maxss (minsd/maxsd) for floats
 template <typename T> FORCE_INLINE
-CONSTEXPR T max_branched(T a, T b) {
-    return (a > b) ? a : b;
+CONSTEXPR T oms_max(T a, T b) NO_EXCEPT {
+    return (a < b) ? b : a;
 }
 
 template <typename T> FORCE_INLINE
-CONSTEXPR T min_branched(T a, T b) {
-    return (a > b) ? b : a;
+CONSTEXPR T oms_min(T a, T b) NO_EXCEPT {
+    return (b < a) ? b : a;
 }
 
+// The result is never below low (also if low > high, e.g. oms_clamp(index, 0, count - 1) with count = 0 -> 0)
 template <typename T> FORCE_INLINE
-CONSTEXPR T clamp_branched(T val, T low, T high) {
-    return (val < low) ? low : ((val > high) ? high : val);
+CONSTEXPR T oms_clamp(T val, T low, T high) NO_EXCEPT {
+    return oms_max(oms_min(val, high), low);
 }
 
-// The branchless versions only work for int types
+// Linear interpolation, precise: exact at t = 0 and t = 1
 template <typename T> FORCE_INLINE
-CONSTEXPR T max_branchless(T a, T b) {
-    const T mask = T(0) - T(a < b);
-    return a ^ ((a ^ b) & mask);
+CONSTEXPR T oms_lerp(T a, T b, T t) NO_EXCEPT {
+    return (T(1) - t) * a + t * b;
 }
 
+// Linear interpolation, fast: one multiplication less (fused multiply-add), not exact at t = 1
 template <typename T> FORCE_INLINE
-CONSTEXPR T min_branchless(T a, T b) {
-    const T mask = T(0) - T(a < b);
-    return b ^ ((a ^ b) & mask);
+CONSTEXPR T oms_lerp_fast(T a, T b, T t) NO_EXCEPT {
+    return a + t * (b - a);
 }
 
+// Inverse of oms_lerp: position of x between a and b (0 = a, 1 = b)
 template <typename T> FORCE_INLINE
-CONSTEXPR T clamp_branchless(T val, T low, T high) {
-    const T maskLow  = T(0) - T(val < low);
-    const T temp = val ^ ((val ^ low) & maskLow);
+CONSTEXPR T oms_inverse_lerp(T a, T b, T x) NO_EXCEPT {
+    return (x - a) / (b - a);
+}
 
-    const T maskHigh = T(0) - T(temp < high);
-    const T result = high ^ ((temp ^ high) & maskHigh);
-
-    return result;
+// Remaps x from [in_min, in_max] to [out_min, out_max]
+template <typename T> FORCE_INLINE
+CONSTEXPR T oms_remap(T x, T in_min, T in_max, T out_min, T out_max) NO_EXCEPT {
+    return oms_lerp(out_min, out_max, oms_inverse_lerp(in_min, in_max, x));
 }
 
 // Abs

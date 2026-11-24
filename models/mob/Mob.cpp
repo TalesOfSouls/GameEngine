@@ -18,10 +18,10 @@ void mob_interpolate(Mob* mob, f32 time)
     float t1 = s2->t - s1->t;
     float t2 = time - s2->t;
 
-    t1 = OMS_MIN(t1, 1.0f);
-    t1 = OMS_MAX(t1, 0.1f);
+    t1 = oms_min(t1, 1.0f);
+    t1 = oms_max(t1, 0.1f);
 
-    float p = OMS_MIN(t2 / t1, 1.0f);
+    float p = oms_min(t2 / t1, 1.0f);
 
     mob->state.location.position.x = s1->location.position.x + (s2->location.position.x - s1->location.position.x) * p;
     mob->state.location.position.y = s1->location.position.y + (s2->location.position.y - s1->location.position.y) * p;

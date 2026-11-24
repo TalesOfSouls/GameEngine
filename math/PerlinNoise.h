@@ -1,12 +1,14 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include "Animation.h"
+/**
+ * @copyright Jingga
+ * @license   OMS License 2.0
+ * @link      https://jingga.app
+ */
+#pragma once
+#ifndef COMS_MATH_PERLIN_NOISE_H
+#define COMS_MATH_PERLIN_NOISE_H
 
-#ifdef __aarch64__
-    #include "../stdlib/IntrinsicsArm.h"
-#else
-    #include "../stdlib/Intrinsics.h"
-#endif
+#include <math.h>
+#include "../stdlib/Stdlib.h"
 
 double fade(double t) {
     return t * t * t * (t * (t * 6 - 15) + 10);
@@ -43,17 +45,19 @@ double noise(int32* permutation, double x, double y, double z)
     int32 BA = permutation[B] + Z;
     int32 BB = permutation[B + 1] + Z;
 
-    return lerp_approx(
-        w,
-        lerp_approx(
-            v,
-            lerp_approx(u, grad(permutation[AA], x, y, z), grad(permutation[BA], x - 1, y, z)),
-            lerp_approx(u, grad(permutation[AB], x, y - 1, z), grad(permutation[BB], x - 1, y - 1, z))
+    return oms_lerp_fast(
+        oms_lerp_fast(
+            oms_lerp_fast(grad(permutation[AA], x, y, z), grad(permutation[BA], x - 1, y, z), u),
+            oms_lerp_fast(grad(permutation[AB], x, y - 1, z), grad(permutation[BB], x - 1, y - 1, z), u),
+            v
         ),
-        lerp_approx(
-            v,
-            lerp_approx(u, grad(permutation[AA+1], x, y, z - 1), grad(permutation[BA + 1], x - 1, y, z - 1)),
-            lerp_approx(u, grad(permutation[AB+1], x, y - 1, z - 1), grad(permutation[BB+1], x - 1, y - 1, z - 1))
-        )
+        oms_lerp_fast(
+            oms_lerp_fast(grad(permutation[AA+1], x, y, z - 1), grad(permutation[BA + 1], x - 1, y, z - 1), u),
+            oms_lerp_fast(grad(permutation[AB+1], x, y - 1, z - 1), grad(permutation[BB+1], x - 1, y - 1, z - 1), u),
+            v
+        ),
+        w
     );
 }
+
+#endif

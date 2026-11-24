@@ -7,23 +7,23 @@
  */
 
 static void test_min_max() {
-    TEST_EQUALS(max_branched((int32) 1, (int32) 2), 2);
-    TEST_EQUALS(max_branched((int32) 2, (int32) 1), 2);
-    TEST_EQUALS(min_branched((int32) 1, (int32) 2), 1);
-    TEST_EQUALS(min_branched((int32) 2, (int32) 1), 1);
+    TEST_EQUALS(oms_max((int32) 1, (int32) 2), 2);
+    TEST_EQUALS(oms_max((int32) 2, (int32) 1), 2);
+    TEST_EQUALS(oms_min((int32) 1, (int32) 2), 1);
+    TEST_EQUALS(oms_min((int32) 2, (int32) 1), 1);
 
-    TEST_EQUALS(max_branchless((int32) 1, (int32) 2), 2);
-    TEST_EQUALS(max_branchless((int32) 2, (int32) 1), 2);
-    TEST_EQUALS(min_branchless((int32) 1, (int32) 2), 1);
-    TEST_EQUALS(min_branchless((int32) 2, (int32) 1), 1);
+    TEST_EQUALS(oms_max((int32) 1, (int32) 2), 2);
+    TEST_EQUALS(oms_max((int32) 2, (int32) 1), 2);
+    TEST_EQUALS(oms_min((int32) 1, (int32) 2), 1);
+    TEST_EQUALS(oms_min((int32) 2, (int32) 1), 1);
 
-    TEST_EQUALS(clamp_branched((int32) 5, (int32) 0, (int32) 10), 5);
-    TEST_EQUALS(clamp_branched((int32) -5, (int32) 0, (int32) 10), 0);
-    TEST_EQUALS(clamp_branched((int32) 15, (int32) 0, (int32) 10), 10);
+    TEST_EQUALS(oms_clamp((int32) 5, (int32) 0, (int32) 10), 5);
+    TEST_EQUALS(oms_clamp((int32) -5, (int32) 0, (int32) 10), 0);
+    TEST_EQUALS(oms_clamp((int32) 15, (int32) 0, (int32) 10), 10);
 
-    TEST_EQUALS(clamp_branchless((int32) 5, (int32) 0, (int32) 10), 5);
-    TEST_EQUALS(clamp_branchless((int32) -5, (int32) 0, (int32) 10), 0);
-    TEST_EQUALS(clamp_branchless((int32) 15, (int32) 0, (int32) 10), 10);
+    TEST_EQUALS(oms_clamp((int32) 5, (int32) 0, (int32) 10), 5);
+    TEST_EQUALS(oms_clamp((int32) -5, (int32) 0, (int32) 10), 0);
+    TEST_EQUALS(oms_clamp((int32) 15, (int32) 0, (int32) 10), 10);
 }
 
 static void test_abs() {

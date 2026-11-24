@@ -113,7 +113,7 @@ void http_header_value_set(
             // New value is larger than old value and requires memory moves
 
             uint32 grow_header_content = resp->header_used_size + value_length >= resp->header_available_size;
-            uint32 header_value_growth = (uint32) OMS_MAX(grow_header_content * (1 * 256 * sizeof(char)), value_length);
+            uint32 header_value_growth = (uint32) oms_max(grow_header_content * (1 * 256 * sizeof(char)), value_length);
 
             if (header_value_growth) {
                 // The header content cannot hold the value
@@ -170,7 +170,7 @@ void http_header_value_set(
 
         uint32 header_element_addition = grow_header_elements * 4;
         uint32 header_element_growth = header_element_addition * sizeof(HttpHeaderElement);
-        uint32 header_value_growth = (uint32) OMS_MAX((grow_header_content) * (1 * 256 * sizeof(char)), value_length);
+        uint32 header_value_growth = (uint32) oms_max((grow_header_content) * (1 * 256 * sizeof(char)), value_length);
 
         if (header_element_growth || header_value_growth) {
             if (header_element_growth + header_value_growth > (resp->size * mem->chunk_size - resp->body_offset - sizeof(HttpResponse)) - resp->body_used_size) {
@@ -330,7 +330,7 @@ void http_response_send(const SocketConnection* __restrict socket, HttpResponse*
     // Use entire header array for first send
     // This also has a direct impact for the time to first byte (ttfb)
     // You may also have heard that crical css should be in head of the html (this is one of the reasons)
-    int32 body_size_to_add = OMS_CLAMP((int32) (sizeof(header) - (header_ref - header)), 0, (int32) response->body_used_size);
+    int32 body_size_to_add = oms_clamp((int32) (sizeof(header) - (header_ref - header)), 0, (int32) response->body_used_size);
     if (body_size_to_add && response->body_offset) {
         memcpy(
             header_ref,

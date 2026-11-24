@@ -196,7 +196,7 @@ bool ui_theme_from_txt(UITheme* const __restrict theme, const char* __restrict t
 
     // Hash map (zeroed memory required)
     // * 2 to avoid too many hash collisions
-    const int32 capacity = max_branched(style_count * 2, (int32) 2);
+    const int32 capacity = oms_max(style_count * 2, (int32) 2);
     const size_t hashmap_bytes = chunk_size(sizeof(HashEntryStrT<int32>), capacity) + UI_THEME_HASHMAP_ALIGNMENT;
 
     const size_t header_offset = ALIGN_UP(hashmap_bytes, sizeof(size_t));

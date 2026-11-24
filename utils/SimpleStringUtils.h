@@ -141,7 +141,7 @@ template <typename C>
 inline
 int32 simple_string_inline_set(SimpleStringInline<C>* const __restrict dst, const C* const __restrict src, int32 length) NO_EXCEPT
 {
-    length = OMS_MIN(length, dst->max_length);
+    length = oms_min(length, dst->max_length);
     if (length > 0) {
         memcpy(simple_string_inline_str(dst), src, (size_t) length * sizeof(C));
     }

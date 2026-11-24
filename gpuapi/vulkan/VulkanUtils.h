@@ -503,13 +503,13 @@ void gpuapi_swapchain_create(
     if (swap_chain_support.capabilities.currentExtent.width != UINT32_MAX) {
         *swapchain_extent = swap_chain_support.capabilities.currentExtent;
     } else {
-        swapchain_extent->width = OMS_CLAMP(
+        swapchain_extent->width = oms_clamp(
             (uint32) window->state_current.physical_width,
             swap_chain_support.capabilities.minImageExtent.width,
             swap_chain_support.capabilities.maxImageExtent.width
         );
 
-        swapchain_extent->height = OMS_CLAMP(
+        swapchain_extent->height = oms_clamp(
             (uint32) window->state_current.physical_height,
             swap_chain_support.capabilities.minImageExtent.height,
             swap_chain_support.capabilities.maxImageExtent.height

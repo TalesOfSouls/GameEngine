@@ -32,6 +32,7 @@
  *      - a test file must also compile and pass standalone (tests_iter.bat/.sh)
  */
 #include "tests/math/EvaluatorTest.cpp"
+#include "tests/math/MatrixTest.cpp"
 #include "tests/hash/HashTest.cpp"
 
 // Utilities
@@ -118,6 +119,7 @@ int main() {
 
     // Math
     MathEvaluatorTest();
+    MathMatrixTest();
 
     // Hash
     HashUtilsTest();

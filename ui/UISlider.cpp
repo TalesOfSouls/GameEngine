@@ -41,11 +41,11 @@ UISlider* ui_slider_create(UILayout* const layout, f32 value = 0.0f, UICore* par
 inline
 bool ui_slider_set(UILayout* const layout, UISlider* const slider, f32 value) NO_EXCEPT
 {
-    value = clamp_branched(value, 0.0f, 1.0f);
+    value = oms_clamp(value, 0.0f, 1.0f);
 
     if (slider->step > 0.0f) {
         value = ((f32) (int32) (value / slider->step + 0.5f)) * slider->step;
-        value = clamp_branched(value, 0.0f, 1.0f);
+        value = oms_clamp(value, 0.0f, 1.0f);
     }
 
     if (value == slider->value) {

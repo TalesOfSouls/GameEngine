@@ -376,8 +376,8 @@ void window_windowed_apply(Window* const w, v4_int32 monitor, int32 width, int32
     RECT outer = { 0, 0, (LONG) width, (LONG) height };
     AdjustWindowRectExForDpi(&outer, WS_OVERLAPPEDWINDOW, FALSE, 0, GetDpiForWindow(hwnd));
 
-    const int32 outer_width = OMS_MIN((int32) (outer.right - outer.left), monitor.width);
-    const int32 outer_height = OMS_MIN((int32) (outer.bottom - outer.top), monitor.height);
+    const int32 outer_width = oms_min((int32) (outer.right - outer.left), monitor.width);
+    const int32 outer_height = oms_min((int32) (outer.bottom - outer.top), monitor.height);
 
     SetWindowPos(
         hwnd, NULL,

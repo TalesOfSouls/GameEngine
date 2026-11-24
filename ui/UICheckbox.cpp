@@ -117,7 +117,7 @@ void ui_checkbox_cache(
     if (checkbox->label) {
         const UICore* const label = ui_element_get(layout, checkbox->label);
         content_dim.x += UI_CHECKBOX_LABEL_GAP + label->dimension.dim.x;
-        content_dim.y = max_branched(content_dim.y, label->dimension.dim.y);
+        content_dim.y = oms_max(content_dim.y, label->dimension.dim.y);
     }
 
     ui_dimension_calculate(layout, &checkbox->core, content_dim);

@@ -78,7 +78,7 @@ int32 ping_ipv4(IPAddr address, int32 payload_size, int32 timeout) NO_EXCEPT
         const PICMP_ECHO_REPLY reply = (PICMP_ECHO_REPLY) reply_buffer;
         if (reply->Status == IP_SUCCESS) {
             // A loopback reply can legitimately report 0 ms; 0 is reserved for timeout
-            result = OMS_MAX((int32) reply->RoundTripTime, 1);
+            result = oms_max((int32) reply->RoundTripTime, 1);
         }
     }
 
@@ -152,7 +152,7 @@ int32 ping_ipv6(const SOCKADDR_IN6* const address, int32 payload_size, int32 tim
         const PICMPV6_ECHO_REPLY reply = (PICMPV6_ECHO_REPLY) reply_buffer;
         if (reply->Status == IP_SUCCESS) {
             // A loopback reply can legitimately report 0 ms; 0 is reserved for timeout
-            result = OMS_MAX((int32) reply->RoundTripTime, 1);
+            result = oms_max((int32) reply->RoundTripTime, 1);
         }
     }
 

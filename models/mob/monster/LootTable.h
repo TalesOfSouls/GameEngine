@@ -76,7 +76,7 @@ void loot_table_drop(const LootTable* table, Drop* drop, uint32 counter = 0)
     drop->quantity = 1;
     if (table->item_max_drop_count[i] > 1) {
         rand = rand_fast_percent();
-        drop->quantity = OMS_MAX(table->item_min_drop_count[i], (int) ((f32) table->item_max_count * rand));
+        drop->quantity = oms_max(table->item_min_drop_count[i], (int) ((f32) table->item_max_count * rand));
     }
 }
 
@@ -91,7 +91,7 @@ uint64 loot_table_drop_gold(const LootTable* table)
         return 0;
     }
 
-    return OMS_MAX(table->gold_min_count, (uint64) ((f32) table->gold_max_count * rand));
+    return oms_max(table->gold_min_count, (uint64) ((f32) table->gold_max_count * rand));
 
     // WARNING: This is mathematically WRONG!
     //      The expected value of the version above is higher than what you would actually expect

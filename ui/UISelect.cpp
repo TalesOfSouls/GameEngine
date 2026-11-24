@@ -276,7 +276,7 @@ SimpleString<const char> ui_select_display_text(
     char number[12];
     const int32 number_length = int_to_str((int64) (count - 1), number);
 
-    const int32 option_length = min_branched(option.length, buffer_size - number_length - 3);
+    const int32 option_length = oms_min(option.length, buffer_size - number_length - 3);
     memcpy(buffer, option.str, option_length);
     buffer[option_length] = ' ';
     buffer[option_length + 1] = '+';
@@ -296,7 +296,7 @@ inline
 v2_f32 ui_select_popup_size(const UILayout* const layout, const UISelect* const select) NO_EXCEPT
 {
     const f32 row_height = ui_select_row_height(select);
-    const int32 rows = clamp_branched(ui_select_filtered_count(layout, select), 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
+    const int32 rows = oms_clamp(ui_select_filtered_count(layout, select), 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
 
     return {
         select->core.dimension.dim.x,
@@ -399,11 +399,11 @@ bool ui_option_list_move_hover(UILayout* const layout, UIOptionList* const list,
 
     const int32 row = list->hovered < 0
         ? (delta > 0 ? 0 : count - 1)
-        : clamp_branched(list->hovered + delta, 0, count - 1);
+        : oms_clamp(list->hovered + delta, 0, count - 1);
 
     // Visible area of the list (the dimension is from the last ui_cache())
     const f32 row_height = ui_select_row_height(select);
-    const f32 view = row_height * (f32) clamp_branched(count, 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
+    const f32 view = row_height * (f32) oms_clamp(count, 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
 
     if ((f32) row * row_height < list->scroll) {
         ui_option_list_scroll_set(layout, list, (f32) row * row_height);
@@ -475,7 +475,7 @@ void ui_select_cache(
     // Long texts must not overlap the arrow
     ui_vertices_clip_or_remove(
         vertices, indices, vertex_start, index_start,
-        ui_clip_from_rect({dim->pos.x, dim->pos.y, max_branched(dim->dim.x - 20.0f, 0.0f), dim->dim.y})
+        ui_clip_from_rect({dim->pos.x, dim->pos.y, oms_max(dim->dim.x - 20.0f, 0.0f), dim->dim.y})
     );
 
     *zindex = camera_step_closer(gpu_api_type, *zindex);
@@ -498,7 +498,7 @@ void ui_option_list_cache(
     const UISelect* const select = (UISelect *) ui_element_get(layout, list->select);
     const f32 row_height = ui_select_row_height(select);
     const int32 count = ui_select_filtered_count(layout, select);
-    const int32 visible_rows = clamp_branched(count, 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
+    const int32 visible_rows = oms_clamp(count, 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
 
     ui_dimension_calculate(layout, &list->core, {0.0f, row_height * (f32) visible_rows});
     const UIAttributeDimension* const dim = &list->core.dimension;
@@ -518,7 +518,7 @@ void ui_option_list_cache(
     // Only the visible rows are rendered
     const f32 scroll = ui_scroll_clamp(list->scroll, content, dim->dim.y);
     const int32 first_row = (int32) (scroll / row_height);
-    const int32 last_row = min_branched(count - 1, (int32) ((scroll + dim->dim.y) / row_height));
+    const int32 last_row = oms_min(count - 1, (int32) ((scroll + dim->dim.y) / row_height));
 
     const bool is_multi = (select->select_flags & UI_SELECT_FLAG_MULTI) != 0;
     const f32 line_height = font_line_height(&layout->font->base, select->font.size);

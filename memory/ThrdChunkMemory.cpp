@@ -222,7 +222,7 @@ void chunk_clear_bit_range(atomic<size_t>* free_words, int32 element, int32 elem
     while (remaining > 0) {
         const int32 free_index = pos >> div_pow2(sizeof(size_t) * 8);
         const int32 bit_index = pos % (sizeof(size_t) * 8);
-        const int32 bits_here = OMS_MIN((int32) (sizeof(size_t) * 8) - bit_index, remaining);
+        const int32 bits_here = oms_min((int32) (sizeof(size_t) * 8) - bit_index, remaining);
         const size_t mask = chunk_range_mask(bit_index, bits_here);
 
         free_words[free_index].fetch_and(~mask, memory_order_acq_rel);
@@ -241,7 +241,7 @@ bool chunk_try_claim_range(atomic<size_t>* free_words, int32 element, int32 elem
     while (claimed < element_count) {
         const int32 free_index = pos >> div_pow2(sizeof(size_t) * 8);
         const int32 bit_index = pos % (sizeof(size_t) * 8);
-        const int32 bits_here = OMS_MIN((int32) (sizeof(size_t) * 8) - bit_index, element_count - claimed);
+        const int32 bits_here = oms_min((int32) (sizeof(size_t) * 8) - bit_index, element_count - claimed);
         const size_t mask = chunk_range_mask(bit_index, bits_here);
 
         size_t word = free_words[free_index].load(memory_order_relaxed);

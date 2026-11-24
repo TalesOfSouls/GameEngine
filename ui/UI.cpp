@@ -529,7 +529,7 @@ void ui_element_cache_element(
                 // Custom render functions manage their own zindex
                 // -> continue after the last vertex they created
                 if (vertices->count > vertex_start) {
-                    *zindex = min_branched(*zindex, vertices->elements[vertices->count - 1].position.z);
+                    *zindex = oms_min(*zindex, vertices->elements[vertices->count - 1].position.z);
                 }
             }
         } break;
@@ -746,8 +746,8 @@ bool ui_cache_in_place(
                     new_vertex_count * sizeof(Vertex3DSamplerTextureColor)
                 );
 
-                patch.vertex_start = OMS_MIN(patch.vertex_start, element->cache_vertex_start);
-                patch.vertex_end = OMS_MAX(patch.vertex_end, element->cache_vertex_start + new_vertex_count);
+                patch.vertex_start = oms_min(patch.vertex_start, element->cache_vertex_start);
+                patch.vertex_end = oms_max(patch.vertex_end, element->cache_vertex_start + new_vertex_count);
             }
 
             if (new_index_count) {
@@ -758,8 +758,8 @@ bool ui_cache_in_place(
                     index_dst[i] = index_src[i] + index_shift;
                 }
 
-                patch.index_start = OMS_MIN(patch.index_start, element->cache_index_start);
-                patch.index_end = OMS_MAX(patch.index_end, element->cache_index_start + new_index_count);
+                patch.index_start = oms_min(patch.index_start, element->cache_index_start);
+                patch.index_end = oms_max(patch.index_end, element->cache_index_start + new_index_count);
             }
 
             // Drop the scratch area
@@ -1417,7 +1417,7 @@ bool ui_resize_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
     const v2_f32 old_pos = dim->pos_raw;
 
     if (!(dim->flag & UI_DIMENSION_DIM_X_RELATIVE) && interaction->drag_start_dim.x > 0.0f) {
-        const f32 width = max_branched(interaction->drag_start_dim.x + dx, min_dim.x);
+        const f32 width = oms_max(interaction->drag_start_dim.x + dx, min_dim.x);
         const f32 delta = width - interaction->drag_start_dim.x;
         dim->dim_raw.x = width;
 
@@ -1436,7 +1436,7 @@ bool ui_resize_update(UILayout* const layout, f32 x, f32 y) NO_EXCEPT
     }
 
     if (!(dim->flag & UI_DIMENSION_DIM_Y_RELATIVE) && interaction->drag_start_dim.y > 0.0f) {
-        const f32 height = max_branched(interaction->drag_start_dim.y + dy, min_dim.y);
+        const f32 height = oms_max(interaction->drag_start_dim.y + dy, min_dim.y);
         const f32 delta = height - interaction->drag_start_dim.y;
         dim->dim_raw.y = height;
 
@@ -1583,7 +1583,7 @@ void ui_select_open(UILayout* const layout, UISelect* const select, bool open) N
     if (select->selected > 0) {
         const f32 row_height = ui_select_row_height(select);
         const int32 count = ui_select_filtered_count(layout, select);
-        const f32 view = row_height * (f32) clamp_branched(count, 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
+        const f32 view = row_height * (f32) oms_clamp(count, 1, UI_SELECT_MAX_VISIBLE_OPTIONS);
 
         list->scroll = ui_scroll_clamp(
             row_height * (f32) (select->selected - UI_SELECT_MAX_VISIBLE_OPTIONS / 2),
@@ -1780,13 +1780,13 @@ bool ui_element_value_set(UILayout* const layout, UICore* const element, f32 val
         } break;
         case UI_ELEMENT_TYPE_SELECT: {
             UISelect* const select = (UISelect *) element;
-            const int32 index = OMS_CLAMP((int32) (value + 0.5f), 0, OMS_MAX(select->option_count - 1, 0));
+            const int32 index = oms_clamp((int32) (value + 0.5f), 0, oms_max(select->option_count - 1, 0));
             ui_select_set(layout, select, select->option_count ? index : -1);
         } break;
         case UI_ELEMENT_TYPE_VIEW_TAB: {
             UITab* const tab = (UITab *) element;
             if (tab->tab_count) {
-                ui_tab_set_active(layout, tab, OMS_CLAMP((int32) (value + 0.5f), 0, tab->tab_count - 1));
+                ui_tab_set_active(layout, tab, oms_clamp((int32) (value + 0.5f), 0, tab->tab_count - 1));
             }
         } break;
         default: {
@@ -2087,7 +2087,7 @@ byte ui_input_pointer(void* app, UILayout* const layout, const UIPointerInput* c
             && x - interaction->last_click_pointer.x < 4.0f && interaction->last_click_pointer.x - x < 4.0f
             && y - interaction->last_click_pointer.y < 4.0f && interaction->last_click_pointer.y - y < 4.0f;
 
-        interaction->click_count = repeated ? (byte) min_branched(interaction->click_count + 1, 3) : 1;
+        interaction->click_count = repeated ? (byte) oms_min(interaction->click_count + 1, 3) : 1;
         interaction->last_click_element = action_offset;
         interaction->last_click_time = input->time;
         interaction->last_click_pointer = {x, y};
@@ -2575,7 +2575,7 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, UI
         }
         case UI_ELEMENT_TYPE_SLIDER: {
             UISlider* const slider = (UISlider *) element;
-            const f32 step = max_branched(slider->step, 0.05f);
+            const f32 step = oms_max(slider->step, 0.05f);
 
             f32 value = slider->value;
             if (delta) {
@@ -2630,7 +2630,7 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, UI
                 && !(select->select_flags & UI_SELECT_FLAG_MULTI)
             ) {
                 // Closed single select: up/down changes the selection directly
-                const int32 index = clamp_branched(select->selected + delta, 0, select->option_count - 1);
+                const int32 index = oms_clamp(select->selected + delta, 0, select->option_count - 1);
                 if (ui_select_set(layout, select, index)) {
                     ui_element_action(app, layout, element, select->on_change);
                 }
@@ -2646,7 +2646,7 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, UI
                 return false;
             }
 
-            if (ui_tab_set_active(layout, tab, clamp_branched(tab->active + delta, 0, tab->tab_count - 1))) {
+            if (ui_tab_set_active(layout, tab, oms_clamp(tab->active + delta, 0, tab->tab_count - 1))) {
                 ui_element_action(app, layout, element, tab->on_change);
             }
 
@@ -2674,7 +2674,7 @@ bool ui_element_key(void* app, UILayout* const layout, UICore* const element, UI
             if (vertical) {
                 row = table->selected < 0
                     ? 0
-                    : clamp_branched(table->selected + delta, 0, table->row_count - 1);
+                    : oms_clamp(table->selected + delta, 0, table->row_count - 1);
             } else if (action == UI_NAVIGATION_FIRST) {
                 row = 0;
             } else if (action == UI_NAVIGATION_LAST) {

@@ -239,7 +239,7 @@ bool ui_label_set_text_fixed(UILayout* const layout, UILabel* const label, const
 
     // The text is cut if it doesn't fit
     char* const content = (char *) (layout->ui_element_buffer.memory + label->content);
-    const int32 length = min_branched((int32) str_length(text), ui_string_max_length(layout, label->content));
+    const int32 length = oms_min((int32) str_length(text), ui_string_max_length(layout, label->content));
 
     if (memcmp(content, text, length) == 0 && content[length] == '\0') {
         return false;

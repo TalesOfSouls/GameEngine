@@ -40,7 +40,7 @@ void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei
 
     if (type == GL_DEBUG_TYPE_PUSH_GROUP) {
         if (marker_depth < (int32) ARRAY_COUNT(markers)) {
-            const int32 len = OMS_MIN((int32) (length < 0 ? str_length(message) : length), (int32) sizeof(markers[0]) - 1);
+            const int32 len = oms_min((int32) (length < 0 ? str_length(message) : length), (int32) sizeof(markers[0]) - 1);
             memcpy(markers[marker_depth], message, len);
             markers[marker_depth][len] = '\0';
         }
@@ -49,7 +49,7 @@ void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei
 
         return;
     } else if (type == GL_DEBUG_TYPE_POP_GROUP) {
-        marker_depth = OMS_MAX(marker_depth - 1, 0);
+        marker_depth = oms_max(marker_depth - 1, 0);
 
         return;
     }
@@ -64,7 +64,7 @@ void opengl_debug_callback(GLenum, GLenum type, GLuint, GLenum severity, GLsizei
     LOG_1(simple_string_init((char *) message, (int32) str_length(message)));
 
     if (marker_depth > 0) {
-        const char* const marker = markers[OMS_MIN(marker_depth, (int32) ARRAY_COUNT(markers)) - 1];
+        const char* const marker = markers[oms_min(marker_depth, (int32) ARRAY_COUNT(markers)) - 1];
         LOG_1("[ERROR] GPU debug group: %s", {DATA_TYPE_CHAR_STR, (void *) marker});
     }
 

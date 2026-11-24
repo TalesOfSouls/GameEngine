@@ -1176,7 +1176,7 @@ bool model_line_root(ModelParser* p, uint64 key) NO_EXCEPT
                     return false;
                 }
 
-                p->state_memory = OMS_MAX(p->state_memory, (uint32) bytes);
+                p->state_memory = oms_max(p->state_memory, (uint32) bytes);
 
                 return true;
             }
@@ -1917,7 +1917,7 @@ bool model_run(const char* text, ModelFile* file, bool fill, ModelError* error) 
     }
 
     // The state fields are placed at the start of the state block, the memory keyword only enlarges it
-    file->state_size = OMS_MAX(file->state_size, p.state_memory);
+    file->state_size = oms_max(file->state_size, p.state_memory);
 
     return true;
 }

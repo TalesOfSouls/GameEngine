@@ -8,7 +8,7 @@
  *
  * Types.h defines the fixed size integer/float types, the small vector structs and
  * some helper types. Defines.h defines the limits/constants and the feature macros.
- * math_internal.h/Platform.h (pulled in through Stdlib.h) provide the min/max/clamp
+ * math_internal.h (included by Stdlib.h) provides the min/max/clamp/lerp
  * and rounding helpers which are tested here as well.
  */
 
@@ -418,35 +418,51 @@ static void test_types_datatype_enum() {
 }
 
 static void test_types_min_max() {
-    TEST_EQUALS(max_branched(3, 7), 7);
-    TEST_EQUALS(max_branched(9, 7), 9);
-    TEST_EQUALS(max_branched(-3, -7), -3);
-    TEST_EQUALS(min_branched(3, 7), 3);
-    TEST_EQUALS(min_branched(9, 7), 7);
-    TEST_EQUALS(min_branched(-3, -7), -7);
-    TEST_EQUALS(clamp_branched(5, 0, 10), 5);
-    TEST_EQUALS(clamp_branched(-5, 0, 10), 0);
-    TEST_EQUALS(clamp_branched(15, 0, 10), 10);
+    // Integers
+    TEST_EQUALS(oms_max(3, 7), 7);
+    TEST_EQUALS(oms_max(9, 7), 9);
+    TEST_EQUALS(oms_max(-3, -7), -3);
+    TEST_EQUALS(oms_min(3, 7), 3);
+    TEST_EQUALS(oms_min(9, 7), 7);
+    TEST_EQUALS(oms_min(-3, -7), -7);
+    TEST_EQUALS(oms_max((uint64) 0xFFFFFFFFFFFFFFFF, (uint64) 1), (uint64) 0xFFFFFFFFFFFFFFFF);
+    TEST_EQUALS(oms_min((int64) -9000000000, (int64) 5), (int64) -9000000000);
 
-    TEST_EQUALS(max_branchless(3, 7), 7);
-    TEST_EQUALS(max_branchless(9, 7), 9);
-    TEST_EQUALS(min_branchless(3, 7), 3);
-    TEST_EQUALS(min_branchless(9, 7), 7);
-    TEST_EQUALS(clamp_branchless(5, 0, 10), 5);
-    TEST_EQUALS(clamp_branchless(-5, 0, 10), 0);
-    TEST_EQUALS(clamp_branchless(15, 0, 10), 10);
+    TEST_EQUALS(oms_clamp(5, 0, 10), 5);
+    TEST_EQUALS(oms_clamp(-5, 0, 10), 0);
+    TEST_EQUALS(oms_clamp(15, 0, 10), 10);
+    TEST_EQUALS(oms_clamp(0, 0, 10), 0);
+    TEST_EQUALS(oms_clamp(10, 0, 10), 10);
 
-    // The platform macros wrap the (branchless) implementation
-    TEST_EQUALS(OMS_MAX(3, 7), 7);
-    TEST_EQUALS(OMS_MIN(3, 7), 3);
-    TEST_EQUALS(OMS_CLAMP(15, 0, 10), 10);
-    TEST_EQUALS(OMS_CLAMP(-15, 0, 10), 0);
+    // Inverted range (e.g. oms_clamp(index, 0, count - 1) with count = 0): never below low
+    TEST_EQUALS(oms_clamp(5, 0, -1), 0);
+    TEST_EQUALS(oms_clamp(-5, 0, -1), 0);
 
-    TEST_EQUALS_WITH_DELTA(oms_max(1.5f, 2.5f), 2.5f, 0.000001);
-    TEST_EQUALS_WITH_DELTA(oms_min(1.5f, 2.5f), 1.5f, 0.000001);
-    TEST_EQUALS_WITH_DELTA(oms_clamp(5.0f, 0.0f, 10.0f), 5.0f, 0.000001);
-    TEST_EQUALS_WITH_DELTA(oms_clamp(-5.0f, 0.0f, 10.0f), 0.0f, 0.000001);
-    TEST_EQUALS_WITH_DELTA(oms_clamp(15.0, 0.0, 10.0), 10.0, 0.0000001);
+    // Floats
+    TEST_EQUALS(oms_max(1.5f, 2.5f), 2.5f);
+    TEST_EQUALS(oms_min(1.5f, 2.5f), 1.5f);
+    TEST_EQUALS(oms_clamp(5.0f, 0.0f, 10.0f), 5.0f);
+    TEST_EQUALS(oms_clamp(-5.0f, 0.0f, 10.0f), 0.0f);
+    TEST_EQUALS(oms_clamp(15.0, 0.0, 10.0), 10.0);
+
+    // Large values + infinity (the old float versions returned 0 / NaN)
+    // Infinity from its bits (a constant infinity is a compile warning in msvc)
+    const uint32 inf_bits = 0x7F800000;
+    f32 inf;
+    memcpy(&inf, &inf_bits, sizeof(inf));
+
+    TEST_EQUALS(oms_clamp(1.0e30f, 0.0f, 1.0f), 1.0f);
+    TEST_EQUALS(oms_clamp(-1.0e30f, 0.0f, 1.0f), 0.0f);
+    TEST_EQUALS(oms_clamp(inf, 0.0f, 1.0f), 1.0f);
+    TEST_EQUALS(oms_clamp(-inf, 0.0f, 1.0f), 0.0f);
+    TEST_EQUALS(oms_max(-inf, 0.0f), 0.0f);
+    TEST_EQUALS(oms_min(inf, 0.0f), 0.0f);
+
+    // Pointers + enums (any type with operator<)
+    int32 values[2] = {};
+    TEST_TRUE(oms_min(&values[1], &values[0]) == &values[0]);
+    TEST_TRUE(oms_max(&values[1], &values[0]) == &values[1]);
+    TEST_TRUE(oms_max(DATA_TYPE_BOOL, DATA_TYPE_VOID) == DATA_TYPE_BOOL);
 }
 
 static void test_types_rounding_and_div() {
@@ -537,9 +553,16 @@ static void test_types_game_math() {
     TEST_TRUE(aabb_overlap(box, box));
 
     // Lerp / remap
-    TEST_EQUALS_WITH_DELTA(OMS_LERP(0.0f, 10.0f, 0.25f), 2.5f, 0.000001);
-    TEST_EQUALS_WITH_DELTA(OMS_INVERSE_LERP(0.0f, 10.0f, 2.5f), 0.25f, 0.000001);
-    TEST_EQUALS_WITH_DELTA(OMS_REMAP(5.0f, 0.0f, 10.0f, 100.0f, 200.0f), 150.0f, 0.000001);
+    TEST_EQUALS_WITH_DELTA(oms_lerp(0.0f, 10.0f, 0.25f), 2.5f, 0.000001);
+    TEST_EQUALS_WITH_DELTA(oms_lerp_fast(0.0f, 10.0f, 0.25f), 2.5f, 0.000001);
+
+    // The precise lerp is exact at the end points (a + t * (b - a) isn't for t = 1)
+    TEST_EQUALS(oms_lerp(0.1f, 0.7f, 1.0f), 0.7f);
+    TEST_EQUALS(oms_lerp(0.1f, 0.7f, 0.0f), 0.1f);
+    TEST_EQUALS(oms_lerp(-3.25, 1.0e9, 1.0), 1.0e9);
+    TEST_EQUALS(oms_lerp_fast(0.1f, 0.7f, 0.0f), 0.1f);
+    TEST_EQUALS_WITH_DELTA(oms_inverse_lerp(0.0f, 10.0f, 2.5f), 0.25f, 0.000001);
+    TEST_EQUALS_WITH_DELTA(oms_remap(5.0f, 0.0f, 10.0f, 100.0f, 200.0f), 150.0f, 0.000001);
 }
 
 #ifdef UBER_TEST

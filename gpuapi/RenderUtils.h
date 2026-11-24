@@ -303,7 +303,7 @@ v2_f32 text_calculate_dimensions(
         const uint16 g = glyphs[i];
         if (g == font->newline_id) {
             // @performance calculating a new x after a line break seems wrong
-            x = max_branched(x, offset_x);
+            x = oms_max(x, offset_x);
             y += line_height;
 
             offset_x = 0;
@@ -316,7 +316,7 @@ v2_f32 text_calculate_dimensions(
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
 
-    return { max_branched(x, offset_x), y };
+    return { oms_max(x, offset_x), y };
 }
 
 static
@@ -333,7 +333,7 @@ f32 text_calculate_dimensions_width(
         const uint16 g = glyphs[i];
         if (g == font->newline_id) {
             // @performance calculating a new x after a new line feels wrong
-            x = max_branched(x, offset_x);
+            x = oms_max(x, offset_x);
             offset_x = 0;
 
             continue;
@@ -344,7 +344,7 @@ f32 text_calculate_dimensions_width(
         offset_x += (glyph->metrics.width + glyph->metrics.offset_x + glyph->metrics.advance_x) * scale;
     }
 
-    return max_branched(x, offset_x);
+    return oms_max(x, offset_x);
 }
 
 static
@@ -439,7 +439,7 @@ v2_f32 vertex_text_create(
     for (int32 i = 0; i < length; ++i) {
         const uint16 g = glyphs[i];
         if (g == font->newline_id) {
-            rendered_width = max_branched(rendered_width, offset_x - line_start);
+            rendered_width = oms_max(rendered_width, offset_x - line_start);
             rendered_height += line_height_scaled;
 
             dimension.y -= line_height_scaled;
@@ -484,7 +484,7 @@ v2_f32 vertex_text_create(
     //      This way we can ensure no overflow easily
     // @todo implement line align_anchor, currently only total align_anchor is considered
 
-    return {max_branched(rendered_width, offset_x - line_start), rendered_height};
+    return {oms_max(rendered_width, offset_x - line_start), rendered_height};
 }
 
 /**

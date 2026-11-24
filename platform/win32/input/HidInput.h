@@ -384,7 +384,7 @@ bool hid_controller_poll(Input* const input, uint64 time) NO_EXCEPT
             memcpy(
                 controller->report,
                 controller->read_buffer,
-                OMS_MIN((uint32) bytes_read, (uint32) INPUT_CONTROLLER_REPORT_SIZE)
+                oms_min((uint32) bytes_read, (uint32) INPUT_CONTROLLER_REPORT_SIZE)
             );
             controller->has_report = true;
         }

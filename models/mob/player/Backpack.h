@@ -52,7 +52,7 @@ void backpack_move_item(Backpack* backpack, uint32 from, uint32 to)
     // @todo only allow stacking for consumables or items that have a stackable flag defined?!
     if (backpack->items[to].id == backpack->items[from].id) {
         // Only change stack up to MAX_BACKPACK_ITEM_STACK
-        uint32 stack_change = OMS_MIN(MAX_BACKPACK_ITEM_STACK - backpack->quantities[to], backpack->quantities[from]);
+        uint32 stack_change = oms_min(MAX_BACKPACK_ITEM_STACK - backpack->quantities[to], backpack->quantities[from]);
         backpack->quantities[to] += stack_change;
         backpack->quantities[from] -= stack_change;
 

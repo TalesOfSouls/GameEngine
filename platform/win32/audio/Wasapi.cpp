@@ -226,7 +226,7 @@ uint32 wasapi_buffer_fillable(const AudioSetting* __restrict setting, const Wasa
     }
 
     // Padding = frames that are queued but not yet played
-    const uint32 target_frames = OMS_MIN((uint32) setting->latency, api_setting->buffer_frame_count);
+    const uint32 target_frames = oms_min((uint32) setting->latency, api_setting->buffer_frame_count);
     if (frames_padding >= target_frames) {
         return 0;
     }
@@ -234,7 +234,7 @@ uint32 wasapi_buffer_fillable(const AudioSetting* __restrict setting, const Wasa
     uint32 frames = target_frames - frames_padding;
 
     // Our mixer buffer can only hold buffer_size bytes
-    frames = OMS_MIN(frames, setting->buffer_size / setting->sample_size);
+    frames = oms_min(frames, setting->buffer_size / setting->sample_size);
 
     // The mixer works in bytes, NOT in frames
     return frames * setting->sample_size;

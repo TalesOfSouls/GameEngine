@@ -104,7 +104,7 @@ uint32 ui_color_from_hsv(f32 h, f32 s, f32 v, f32 a = 1.0f) NO_EXCEPT
         (uint32) (r * 255.0f + 0.5f),
         (uint32) (g * 255.0f + 0.5f),
         (uint32) (b * 255.0f + 0.5f),
-        (uint32) (clamp_branched(a, 0.0f, 1.0f) * 255.0f + 0.5f)
+        (uint32) (oms_clamp(a, 0.0f, 1.0f) * 255.0f + 0.5f)
     );
 }
 
@@ -118,8 +118,8 @@ void ui_color_to_hsv(uint32 color, f32* const hue, f32* const saturation, f32* c
     const f32 g = (f32) ui_color_channel(color, 1) / 255.0f;
     const f32 b = (f32) ui_color_channel(color, 2) / 255.0f;
 
-    const f32 max = max_branched(r, max_branched(g, b));
-    const f32 min = min_branched(r, min_branched(g, b));
+    const f32 max = oms_max(r, oms_max(g, b));
+    const f32 min = oms_min(r, oms_min(g, b));
     const f32 delta = max - min;
 
     *value = max;
@@ -276,7 +276,7 @@ bool ui_color_picker_inputs_changed(UILayout* const layout, UIColorPicker* const
             ++text;
         }
 
-        channels[i] = min_branched(value, (uint32) 255);
+        channels[i] = oms_min(value, (uint32) 255);
     }
 
     const uint32 color = ui_color_rgba(channels[0], channels[1], channels[2], channels[3]);
@@ -480,8 +480,8 @@ bool ui_color_panel_set_from_position(UILayout* const layout, UIColorPanel* cons
     }
 
     const v4_f32 rect = ui_color_panel_area_rect(panel, (UIColorPanelArea) panel->drag_area);
-    const f32 fx = clamp_branched((x - rect.x) / rect.width, 0.0f, 1.0f);
-    const f32 fy = clamp_branched((y - (rect.y - rect.height)) / rect.height, 0.0f, 1.0f); // 0 = bottom
+    const f32 fx = oms_clamp((x - rect.x) / rect.width, 0.0f, 1.0f);
+    const f32 fy = oms_clamp((y - (rect.y - rect.height)) / rect.height, 0.0f, 1.0f); // 0 = bottom
 
     f32 h = picker->hue;
     f32 s = picker->saturation;
@@ -495,7 +495,7 @@ bool ui_color_panel_set_from_position(UILayout* const layout, UIColorPanel* cons
         } break;
         case UI_COLOR_PANEL_AREA_HUE: {
             // red at the top
-            h = min_branched(1.0f - fy, 0.9999f);
+            h = oms_min(1.0f - fy, 0.9999f);
         } break;
         case UI_COLOR_PANEL_AREA_ALPHA: {
             a = fy;
@@ -545,8 +545,8 @@ void ui_color_checker_vertices(
                 {
                     rect.x + (f32) c * cell,
                     rect.y - (f32) r * cell,
-                    min_branched(cell, rect.width - (f32) c * cell),
-                    min_branched(cell, rect.height - (f32) r * cell)
+                    oms_min(cell, rect.width - (f32) c * cell),
+                    oms_min(cell, rect.height - (f32) r * cell)
                 },
                 ((r + c) & 1) ? 0x666666FF : 0x999999FF, vertices, indices, zindex
             );

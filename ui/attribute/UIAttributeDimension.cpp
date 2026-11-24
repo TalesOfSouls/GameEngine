@@ -29,7 +29,7 @@ void ui_dimension_calculate(
     } else if (dim->dim_raw.x > 0.0f) {
         dim->dim.x = dim->dim_raw.x;
     } else if (dim->dim_raw.x < 0.0f) {
-        dim->dim.x = max_branched(parent_dim->dim.x + dim->dim_raw.x, 0.0f);
+        dim->dim.x = oms_max(parent_dim->dim.x + dim->dim_raw.x, 0.0f);
     } else {
         dim->dim.x = content_dim.x;
     }
@@ -39,7 +39,7 @@ void ui_dimension_calculate(
     } else if (dim->dim_raw.y > 0.0f) {
         dim->dim.y = dim->dim_raw.y;
     } else if (dim->dim_raw.y < 0.0f) {
-        dim->dim.y = max_branched(parent_dim->dim.y + dim->dim_raw.y, 0.0f);
+        dim->dim.y = oms_max(parent_dim->dim.y + dim->dim_raw.y, 0.0f);
     } else {
         dim->dim.y = content_dim.y;
     }

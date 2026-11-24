@@ -218,21 +218,21 @@ v4_byte soft_sample_texture_bilinear(const Texture* texture, f32 u, f32 v) NO_EX
     const byte* p11 = &texture->image.pixels[(y1 * tw + x1) * 4];
 
     // interpolate each channel in f32s then convert to u8
-    const f32 r0 = OMS_LERP((f32) p00[0], (f32) p10[0], sx);
-    const f32 r1 = OMS_LERP((f32) p01[0], (f32) p11[0], sx);
-    const f32 r  = OMS_LERP(r0, r1, sy);
+    const f32 r0 = oms_lerp((f32) p00[0], (f32) p10[0], sx);
+    const f32 r1 = oms_lerp((f32) p01[0], (f32) p11[0], sx);
+    const f32 r  = oms_lerp(r0, r1, sy);
 
-    const f32 g0 = OMS_LERP((f32) p00[1], (f32) p10[1], sx);
-    const f32 g1 = OMS_LERP((f32) p01[1], (f32) p11[1], sx);
-    const f32 g  = OMS_LERP(g0, g1, sy);
+    const f32 g0 = oms_lerp((f32) p00[1], (f32) p10[1], sx);
+    const f32 g1 = oms_lerp((f32) p01[1], (f32) p11[1], sx);
+    const f32 g  = oms_lerp(g0, g1, sy);
 
-    const f32 b0 = OMS_LERP((f32) p00[2], (f32) p10[2], sx);
-    const f32 b1 = OMS_LERP((f32) p01[2], (f32) p11[2], sx);
-    const f32 b  = OMS_LERP(b0, b1, sy);
+    const f32 b0 = oms_lerp((f32) p00[2], (f32) p10[2], sx);
+    const f32 b1 = oms_lerp((f32) p01[2], (f32) p11[2], sx);
+    const f32 b  = oms_lerp(b0, b1, sy);
 
-    const f32 a0 = OMS_LERP((f32) p00[3], (f32) p10[3], sx);
-    const f32 a1 = OMS_LERP((f32) p01[3], (f32) p11[3], sx);
-    const f32 a  = OMS_LERP(a0, a1, sy);
+    const f32 a0 = oms_lerp((f32) p00[3], (f32) p10[3], sx);
+    const f32 a1 = oms_lerp((f32) p01[3], (f32) p11[3], sx);
+    const f32 a  = oms_lerp(a0, a1, sy);
 
     return {
         (byte) oms_clamp((int32) (r + 0.5f), 0, 255),
@@ -647,10 +647,10 @@ void soft_rasterize_msaa(
     // msaa samples
     const f32 inv_samples = 1.0f / renderer->aa_details;
 
-    const int32 minx = OMS_MAX(0, OMS_MIN(OMS_MIN((int32) pos_1.x, (int32) pos_2.x), (int32) pos_3.x));
-    const int32 maxx = OMS_MIN(renderer->dimension.width - 1, OMS_MAX(OMS_MAX((int32) pos_1.x, (int32) pos_2.x), (int32) pos_3.x));
-    const int32 miny = OMS_MAX(0, OMS_MIN(OMS_MIN((int32) pos_1.y, (int32) pos_2.y), (int32) pos_3.y));
-    const int32 maxy = OMS_MIN(renderer->dimension.height - 1, OMS_MAX(OMS_MAX((int32) pos_1.y, (int32) pos_2.y), (int32) pos_3.y));
+    const int32 minx = oms_max(0, oms_min(oms_min((int32) pos_1.x, (int32) pos_2.x), (int32) pos_3.x));
+    const int32 maxx = oms_min(renderer->dimension.width - 1, oms_max(oms_max((int32) pos_1.x, (int32) pos_2.x), (int32) pos_3.x));
+    const int32 miny = oms_max(0, oms_min(oms_min((int32) pos_1.y, (int32) pos_2.y), (int32) pos_3.y));
+    const int32 maxy = oms_min(renderer->dimension.height - 1, oms_max(oms_max((int32) pos_1.y, (int32) pos_2.y), (int32) pos_3.y));
 
     uint32* pixels = renderer->pixels;
     const f32* zbuf = renderer->zbuffer;
@@ -721,9 +721,9 @@ void soft_rasterize_msaa(
                 const f32 coverage = accum_coverage / renderer->aa_details;
 
                 const v4_byte rgba = {
-                    oms_min((byte) ceil(OMS_LERP(background_color.r, final_color.r, coverage) * 255.0f), (byte) 255),
-                    oms_min((byte) ceil(OMS_LERP(background_color.g, final_color.g, coverage) * 255.0f), (byte) 255),
-                    oms_min((byte) ceil(OMS_LERP(background_color.b, final_color.b, coverage) * 255.0f), (byte) 255),
+                    oms_min((byte) ceil(oms_lerp(background_color.r, final_color.r, coverage) * 255.0f), (byte) 255),
+                    oms_min((byte) ceil(oms_lerp(background_color.g, final_color.g, coverage) * 255.0f), (byte) 255),
+                    oms_min((byte) ceil(oms_lerp(background_color.b, final_color.b, coverage) * 255.0f), (byte) 255),
                     0xFF,
                 };
 
@@ -945,8 +945,8 @@ void soft_render(
 
         ThreadPoolJob* jobs[MAX_CHUNKS];
 
-        const int data_chunks = OMS_MIN(data_count / 3, MAX_CHUNKS);
-        const int index_chunks = OMS_MIN(data_index_count, MAX_CHUNKS);
+        const int data_chunks = oms_min(data_count / 3, MAX_CHUNKS);
+        const int index_chunks = oms_min(data_index_count, MAX_CHUNKS);
 
         const int base = data_count / data_chunks;
         const int remainder = data_count % data_chunks;
@@ -956,7 +956,7 @@ void soft_render(
 
             for (int j = 0; j < data_chunks; ++j) {
                 const int extra = (j < remainder) ? 1 : 0;
-                const int data_start = j * base + OMS_MIN(j, remainder);
+                const int data_start = j * base + oms_min(j, remainder);
                 const int data_end = data_start + base + extra;
 
                 // Basically the data_count but now split up for the thread

@@ -59,7 +59,7 @@ void template_cache_alloc(
     perfect_hashmap_alloc(
         cache,
         path_count,
-        OMS_MAX((uint64) (total_file_size * 1.2f), (uint64) (total_file_size + 1 * KILOBYTE))
+        oms_max((uint64) (total_file_size * 1.2f), (uint64) (total_file_size + 1 * KILOBYTE))
     );
 
     perfect_hashmap_prepare(&cache->hm, (const char*) paths, path_count, 256, 10000, ring);

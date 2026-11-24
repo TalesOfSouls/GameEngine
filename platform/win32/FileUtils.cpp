@@ -694,7 +694,7 @@ void file_read(
     }
 
     // Adjust the length to read so that it does not exceed the file size
-    const uint64 read_length = OMS_MIN(length, fsize - offset);
+    const uint64 read_length = oms_min(length, fsize - offset);
 
     file->content = memory_get((T*) mem, read_length + 1);
 
@@ -752,7 +752,7 @@ void file_read(
     }
 
     // Adjust the length to read so that it does not exceed the file size
-    const uint64 read_length = OMS_MIN(length, fsize - offset);
+    const uint64 read_length = oms_min(length, fsize - offset);
 
     // Move the file pointer to the offset position
     LARGE_INTEGER li;
@@ -794,7 +794,7 @@ uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UI
     }
 
     // Adjust the length to read so that it does not exceed the file size
-    const uint64 read_length = OMS_MIN(length, fsize - offset);
+    const uint64 read_length = oms_min(length, fsize - offset);
 
     // Move file pointer
     LARGE_INTEGER li;
@@ -1145,7 +1145,7 @@ uint64 file_read_async_length(FileHandle fp, uint64 offset, uint64 length) NO_EX
         return 0;
     }
 
-    return OMS_MIN(length, fsize - offset);
+    return oms_min(length, fsize - offset);
 }
 
 /**
@@ -1540,7 +1540,7 @@ uint64 directory_last_modified(const wchar_t* path, int32 max_depth = 8) NO_EXCE
             str_copy(pattern + path_length + 1, name, name_length);
 
             const uint64 sub = directory_last_modified(pattern, max_depth - 1);
-            newest = OMS_MAX(newest, sub);
+            newest = oms_max(newest, sub);
 
             continue;
         }
@@ -1549,7 +1549,7 @@ uint64 directory_last_modified(const wchar_t* path, int32 max_depth = 8) NO_EXCE
         ull.LowPart = find_data.ftLastWriteTime.dwLowDateTime;
         ull.HighPart = find_data.ftLastWriteTime.dwHighDateTime;
 
-        newest = OMS_MAX(newest, (uint64) ull.QuadPart);
+        newest = oms_max(newest, (uint64) ull.QuadPart);
     } while (FindNextFileW(find, &find_data));
 
     FindClose(find);

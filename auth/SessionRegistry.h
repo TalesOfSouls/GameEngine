@@ -399,7 +399,7 @@ void session_set_account_name(
     int32 length
 ) NO_EXCEPT
 {
-    const int32 copy_length = OMS_MIN(length, (int32) sizeof(session->account_name) - 1);
+    const int32 copy_length = oms_min(length, (int32) sizeof(session->account_name) - 1);
 
     memcpy(session->account_name, name, (size_t) copy_length);
     session->account_name[copy_length] = '\0';
@@ -419,7 +419,7 @@ void session_set_character_name(
     int32 length
 ) NO_EXCEPT
 {
-    const int32 copy_length = OMS_MIN(length, (int32) sizeof(session->character_name) - 1);
+    const int32 copy_length = oms_min(length, (int32) sizeof(session->character_name) - 1);
 
     memcpy(session->character_name, name, (size_t) copy_length);
     session->character_name[copy_length] = '\0';

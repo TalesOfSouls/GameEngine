@@ -467,7 +467,7 @@ int32 chunk_reserve_internal(size_t* const state, int32 capacity, int32 last_pos
 
                 while (elements_temp > 0) {
                     // Calculate the number of bits we can set in the current 64-bit block
-                    uint32 bits_in_current_block = (uint32) OMS_MIN(((int32) (sizeof(size_t) * 8) - current_bit_index), elements_temp);
+                    uint32 bits_in_current_block = (uint32) oms_min(((int32) (sizeof(size_t) * 8) - current_bit_index), elements_temp);
 
                     // Create a mask to set the bits
                     size_t mask = ((OMS_UINT_ONE << (bits_in_current_block & (sizeof(size_t) * 8 - 1))) - 1) << current_bit_index | ((bits_in_current_block >> 6) * ((size_t) -1));
@@ -550,7 +550,7 @@ void chunk_clear_bit_range_internal(size_t* const state, int32 element, int32 el
 
     while (element_count > 0) {
         // Calculate the number of bits we can clear in the current 64-bit block
-        const uint32 bits_in_current_block = (uint32) OMS_MIN((int32) ((sizeof(size_t) * 8) - bit_index), element_count);
+        const uint32 bits_in_current_block = (uint32) oms_min((int32) ((sizeof(size_t) * 8) - bit_index), element_count);
 
         // Create a mask to clear the bits
         const size_t mask = ((OMS_UINT_ONE << bits_in_current_block) - 1) << bit_index;

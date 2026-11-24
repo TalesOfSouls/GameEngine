@@ -237,7 +237,7 @@ static void test_sha1_streaming() {
     Sha1Context ctx;
     sha1_init(&ctx);
     for (size_t i = 0; i < length; i += 7) {
-        const size_t chunk = OMS_MIN((size_t) 7, length - i);
+        const size_t chunk = oms_min((size_t) 7, length - i);
         sha1_update(&ctx, (const byte *) message + i, chunk, 8);
     }
 
@@ -282,7 +282,7 @@ static void test_sha256_streaming() {
     Sha256Context ctx;
     sha256_init(&ctx);
     for (size_t i = 0; i < length; i += 5) {
-        const size_t chunk = OMS_MIN((size_t) 5, length - i);
+        const size_t chunk = oms_min((size_t) 5, length - i);
         sha256_update(&ctx, (const byte *) message + i, chunk);
     }
 

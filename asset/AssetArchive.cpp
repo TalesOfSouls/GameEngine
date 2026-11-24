@@ -253,7 +253,7 @@ void asset_archive_load(
     LOG_1("[INFO] Load AssetArchive");
 
     // Hot reload
-    str_copy(archive->path, path, (int32) OMS_MIN(str_length(path), (size_t) (PATH_MAX_LENGTH - 1)));
+    str_copy(archive->path, path, (int32) oms_min(str_length(path), (size_t) (PATH_MAX_LENGTH - 1)));
     archive->last_modified = file_last_modified(path);
 
     #if (defined(DEBUG) && DEBUG) || (defined(INTERNAL) && INTERNAL)
@@ -569,7 +569,7 @@ void asset_archive_load_finish(
 
     if (load->element->dependency_count) {
         // Asset::references only has room for ASSET_ARCHIVE_PREFETCH_MAX dependencies
-        const uint32 count = OMS_MIN(load->element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
+        const uint32 count = oms_min(load->element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
         ASSERT_TRUE(load->element->dependency_count <= ASSET_ARCHIVE_PREFETCH_MAX);
 
         load->asset->reference_count = (uint16) count;
@@ -618,7 +618,7 @@ Asset* asset_archive_asset_load(
     uint32 dep_count = 0;
 
     if (with_dependencies) {
-        const uint32 count = OMS_MIN(load.element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
+        const uint32 count = oms_min(load.element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
         const uint32* const dep_ids = &archive->header.asset_dependencies[load.element->dependency_start];
 
         for (uint32 i = 0; i < count; ++i) {
@@ -637,7 +637,7 @@ Asset* asset_archive_asset_load(
         asset_archive_load_finish(archive, ams, mem, &deps[i]);
 
         if (!was_loaded && deps[i].element && deps[i].element->dependency_count) {
-            const uint32 count = OMS_MIN(deps[i].element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
+            const uint32 count = oms_min(deps[i].element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
             for (uint32 j = 0; j < count; ++j) {
                 asset_archive_asset_load(archive, (int32) deps[i].asset->references[j], ams, mem);
             }
@@ -1055,7 +1055,7 @@ AssetArchiveReloadResult asset_archive_asset_reload(
     asset->data_size = element->uncompressed;
 
     if (element->dependency_count) {
-        const uint32 count = OMS_MIN(element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
+        const uint32 count = oms_min(element->dependency_count, (uint32) ASSET_ARCHIVE_PREFETCH_MAX);
         asset->reference_count = (uint16) count;
         memcpy(
             asset->references,

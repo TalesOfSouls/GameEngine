@@ -128,7 +128,7 @@ void thrd_queue_locks_init(Queue* queue, uint32 element_count) NO_EXCEPT
     coms_pthread_cond_init(&queue->cond, NULL);
 
     // One slot always stays empty
-    coms_sem_init(&queue->empty, (int32) OMS_MIN((uint64) element_count, queue_capacity(queue) - 1));
+    coms_sem_init(&queue->empty, (int32) oms_min((uint64) element_count, queue_capacity(queue) - 1));
     coms_sem_init(&queue->full, 0);
 }
 

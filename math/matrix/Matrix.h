@@ -7,6 +7,7 @@
 #ifndef COMS_MATH_MATRIX_FLOAT32_H
 #define COMS_MATH_MATRIX_FLOAT32_H
 
+#include <math.h>
 #include "../../stdlib/Stdlib.h"
 
 // Pass-by-value is faster in most cases
@@ -223,15 +224,108 @@ f32 vec3_length(T vec) NO_EXCEPT
     return intrin_sqrt_f32(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 }
 
+// f32: fast reciprocal square root (approximation)
+// f64: exact (sqrt + division), e.g. for simulations that need the full precision
 template<typename T>
 FORCE_INLINE
 void vec3_normalize(T* const vec) NO_EXCEPT
 {
-    const f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
+    IF_CONSTEXPR (sizeof(vec->x) == sizeof(f64)) {
+        const f64 l = intrin_sqrt_f64(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
 
-    vec->x *= d;
-    vec->y *= d;
-    vec->z *= d;
+        vec->x /= l;
+        vec->y /= l;
+        vec->z /= l;
+    } else {
+        const f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
+
+        vec->x *= d;
+        vec->y *= d;
+        vec->z *= d;
+    }
+}
+
+// Returns the normalized vector (@see vec3_normalize(T*) for the precision)
+template<typename T>
+FORCE_INLINE
+T vec3_normalize(T vec) NO_EXCEPT
+{
+    vec3_normalize(&vec);
+
+    return vec;
+}
+
+// Angle of the vector in the x/y plane [rad] = atan2(y, x), range [-pi, pi]
+template<typename T>
+FORCE_INLINE
+auto vec2_atan2(T vec) NO_EXCEPT -> decltype(vec.x)
+{
+    IF_CONSTEXPR (sizeof(vec.x) == sizeof(f64)) {
+        return atan2(vec.y, vec.x);
+    } else {
+        return atan2f(vec.y, vec.x);
+    }
+}
+
+// Angle of the vector in the x/y plane [rad] = atan2(y, x), range [-pi, pi] (z is ignored)
+template<typename T>
+FORCE_INLINE
+auto vec3_atan2(T vec) NO_EXCEPT -> decltype(vec.x)
+{
+    return vec2_atan2(vec);
+}
+
+// Rotations around the axes (right handed, counter clockwise for a positive angle when looking against the axis)
+// The angle has the component type of the vector (f32 or f64 math)
+template<typename T>
+FORCE_INLINE
+T vec3_rot_x(T vec, decltype(T::x) angle) NO_EXCEPT
+{
+    decltype(T::x) c;
+    decltype(T::x) s;
+    IF_CONSTEXPR (sizeof(vec.x) == sizeof(f64)) {
+        c = cos(angle);
+        s = sin(angle);
+    } else {
+        c = cosf(angle);
+        s = sinf(angle);
+    }
+
+    return {vec.x, c * vec.y - s * vec.z, s * vec.y + c * vec.z};
+}
+
+template<typename T>
+FORCE_INLINE
+T vec3_rot_y(T vec, decltype(T::x) angle) NO_EXCEPT
+{
+    decltype(T::x) c;
+    decltype(T::x) s;
+    IF_CONSTEXPR (sizeof(vec.x) == sizeof(f64)) {
+        c = cos(angle);
+        s = sin(angle);
+    } else {
+        c = cosf(angle);
+        s = sinf(angle);
+    }
+
+    return {c * vec.x + s * vec.z, vec.y, c * vec.z - s * vec.x};
+}
+
+template<typename T>
+FORCE_INLINE
+T vec3_rot_z(T vec, decltype(T::x) angle) NO_EXCEPT
+{
+    decltype(T::x) c;
+    decltype(T::x) s;
+    IF_CONSTEXPR (sizeof(vec.x) == sizeof(f64)) {
+        c = cos(angle);
+        s = sin(angle);
+    } else {
+        c = cosf(angle);
+        s = sinf(angle);
+    }
+
+    return {c * vec.x - s * vec.y, s * vec.x + c * vec.y, vec.z};
 }
 
 template<typename T>
@@ -310,9 +404,10 @@ void vec3_sub(T* const __restrict vec, const T* const __restrict b) NO_EXCEPT
     vec->z -= b->z;
 }
 
+// The scalar has the component type of the vector (f32 for v3_f32, f64 for v3_f64 -> no precision loss)
 template<typename T>
 FORCE_INLINE
-void vec3_mul(T* const __restrict vec, const T* const __restrict a, f32 s) NO_EXCEPT
+void vec3_mul(T* const __restrict vec, const T* const __restrict a, decltype(T::x) s) NO_EXCEPT
 {
     vec->x = a->x * s;
     vec->y = a->y * s;
@@ -328,7 +423,7 @@ T vec3_mul(T a, T b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_mul(T* const vec, f32 s) NO_EXCEPT
+void vec3_mul(T* const vec, decltype(T::x) s) NO_EXCEPT
 {
     vec->x *= s;
     vec->y *= s;
@@ -337,7 +432,7 @@ void vec3_mul(T* const vec, f32 s) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-T vec3_mul(const T& vec, f32 s) NO_EXCEPT
+T vec3_mul(const T& vec, decltype(T::x) s) NO_EXCEPT
 {
     return {vec.x * s, vec.y * s, vec.z * s};
 }
@@ -375,7 +470,7 @@ void vec3_mul(T* const vec, const T* const b) NO_EXCEPT
 
 template<typename T>
 FORCE_INLINE
-void vec3_fma(T* const __restrict vec, const T* const a, const T* const b, f32 scalar) NO_EXCEPT
+void vec3_fma(T* const __restrict vec, const T* const a, const T* const b, decltype(T::x) scalar) NO_EXCEPT
 {
     vec->x = a->x + b->x * scalar;
     vec->y = a->y + b->y * scalar;
@@ -384,7 +479,7 @@ void vec3_fma(T* const __restrict vec, const T* const a, const T* const b, f32 s
 
 template<typename T>
 FORCE_INLINE
-T vec3_fma(T a, T b, f32 scalar) NO_EXCEPT
+T vec3_fma(T a, T b, decltype(T::x) scalar) NO_EXCEPT
 {
     return {a.x + b.x * scalar, a.y + b.y * scalar, a.z + b.z * scalar};
 }

@@ -191,9 +191,9 @@ void debug_memory_log(uintptr_t start, size_t size, MemoryDebugType type, const 
     dmr->function_name = function;
     ASSERT_TRUE(dmr->start + dmr->size <= mem->size);
 
-    const int64 usage = OMS_MIN(mem->usage.load() + size * type, mem->size);
+    const int64 usage = oms_min(mem->usage.load() + size * type, mem->size);
     mem->usage.store(usage);
-    mem->max_usage.store(OMS_MAX(usage, mem->max_usage.load()));
+    mem->max_usage.store(oms_max(usage, mem->max_usage.load()));
 
     ASSERT_TRUE(usage <= (int64) mem->size);
 }

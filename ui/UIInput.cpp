@@ -78,7 +78,7 @@ inline
 void ui_input_set_text(UILayout* const layout, UIInput* const input, const char* const text, int32 text_length) NO_EXCEPT
 {
     char* const content = ui_input_get_text(layout, input);
-    int32 length = min_branched(text_length, ui_string_max_length(layout, input->content));
+    int32 length = oms_min(text_length, ui_string_max_length(layout, input->content));
 
     // Don't cut an utf8 character in half (-> start of the character that contains the byte at length)
     if (length < text_length) {
@@ -201,8 +201,8 @@ bool ui_input_has_selection(const UIInput* const input) NO_EXCEPT
 static FORCE_INLINE
 void ui_input_selection(const UIInput* const input, int32* const start, int32* const end) NO_EXCEPT
 {
-    *start = min_branched(input->selection_anchor, input->caret);
-    *end = max_branched(input->selection_anchor, input->caret);
+    *start = oms_min(input->selection_anchor, input->caret);
+    *end = oms_max(input->selection_anchor, input->caret);
 }
 
 /**
@@ -375,7 +375,7 @@ int32 ui_input_insert(
         insert,
         insert_length,
         filtered,
-        min_branched(space, (int32) sizeof(filtered))
+        oms_min(space, (int32) sizeof(filtered))
     );
     if (bytes <= 0) {
         return 0;
@@ -497,7 +497,7 @@ bool ui_input_scroll_set(UILayout* const layout, UIInput* const input, UIScrollA
             input->core.dimension.dim.y
         );
     } else {
-        scroll = max_branched(scroll, 0.0f);
+        scroll = oms_max(scroll, 0.0f);
     }
 
     if (scroll == *value) {
@@ -558,7 +558,7 @@ void ui_input_scroll_to_caret(UILayout* const layout, UIInput* const input) NO_E
         }
 
         // Deleting text at the end -> show as much text as possible
-        scroll = min_branched(scroll, max_branched(text_width - view, 0.0f));
+        scroll = oms_min(scroll, oms_max(text_width - view, 0.0f));
 
         ui_input_scroll_set(layout, input, UI_SCROLL_AXIS_X, scroll);
     }
@@ -954,8 +954,8 @@ void ui_input_cache(
     const UIClipRect clip = ui_clip_from_rect({
         dim->pos.x + 1.0f,
         dim->pos.y - 1.0f,
-        max_branched(dim->dim.x - 2.0f - (has_scrollbar ? UI_SCROLLBAR_SIZE : 0.0f), 0.0f),
-        max_branched(dim->dim.y - 2.0f, 0.0f)
+        oms_max(dim->dim.x - 2.0f - (has_scrollbar ? UI_SCROLLBAR_SIZE : 0.0f), 0.0f),
+        oms_max(dim->dim.y - 2.0f, 0.0f)
     });
 
     const int32 vertex_start = vertices->count;
@@ -983,7 +983,7 @@ void ui_input_cache(
         }
 
         for (int32 pos = start; pos < end; ++line) {
-            const int32 line_end = min_branched(ui_text_line_end(text, pos, length), end);
+            const int32 line_end = oms_min(ui_text_line_end(text, pos, length), end);
 
             const f32 x0 = text_x + font_system_text_range_width(font, text, 0, pos, input->font.size);
             f32 x1 = text_x + font_system_text_range_width(font, text, 0, line_end, input->font.size);

@@ -340,7 +340,7 @@ bool ui_document_equals(const UIDocument* const doc, UIDocumentString str, const
 FORCE_INLINE
 char* ui_document_copy(const UIDocument* const doc, UIDocumentString str, char* const buffer, int32 buffer_size) NO_EXCEPT
 {
-    const int32 length = min_branched(str.length, buffer_size - 1);
+    const int32 length = oms_min(str.length, buffer_size - 1);
     memcpy(buffer, doc->text + str.offset, length);
     buffer[length] = '\0';
 

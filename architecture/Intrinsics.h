@@ -23,7 +23,7 @@
 /**
  * Returns the maximum SIMD vector width based on the compile time information and runtime check you have to provide (see CpuInfo)
  */
-#define SIMD_MAX_STEP_SIZE(x) OMS_MIN((x), SIMD_POTENTIAL_STEP)
+#define SIMD_MAX_STEP_SIZE(x) oms_min((x), SIMD_POTENTIAL_STEP)
 
 // Adjusts the step size based on the memory alignment
 inline

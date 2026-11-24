@@ -35,7 +35,7 @@ struct UIScrollInfo {
 static FORCE_INLINE
 f32 ui_scroll_clamp(f32 scroll, f32 content, f32 view) NO_EXCEPT
 {
-    return clamp_branched(scroll, 0.0f, max_branched(0.0f, content - view));
+    return oms_clamp(scroll, 0.0f, oms_max(0.0f, content - view));
 }
 
 static FORCE_INLINE
@@ -54,9 +54,9 @@ f32 ui_scrollbar_thumb_length(const UIScrollInfo* const info, UIScrollAxis axis)
         return track_length;
     }
 
-    const f32 length = max_branched(track_length * info->view / info->content, UI_SCROLLBAR_MIN_THUMB);
+    const f32 length = oms_max(track_length * info->view / info->content, UI_SCROLLBAR_MIN_THUMB);
 
-    return min_branched(length, track_length);
+    return oms_min(length, track_length);
 }
 
 // Rect of the thumb (x, y = top left)
@@ -66,8 +66,8 @@ v4_f32 ui_scrollbar_thumb(const UIScrollInfo* const info, UIScrollAxis axis) NO_
     const f32 track_length = ui_scrollbar_track_length(info, axis);
     const f32 thumb_length = ui_scrollbar_thumb_length(info, axis);
 
-    const f32 max = max_branched(0.0f, info->content - info->view);
-    const f32 t = max > 0.0f ? clamp_branched(info->scroll / max, 0.0f, 1.0f) : 0.0f;
+    const f32 max = oms_max(0.0f, info->content - info->view);
+    const f32 t = max > 0.0f ? oms_clamp(info->scroll / max, 0.0f, 1.0f) : 0.0f;
     const f32 pos = (track_length - thumb_length) * t;
 
     if (axis == UI_SCROLL_AXIS_Y) {
@@ -93,7 +93,7 @@ f32 ui_scrollbar_pointer_to_scroll(const UIScrollInfo* const info, UIScrollAxis 
         return 0.0f;
     }
 
-    return pointer_delta * max_branched(0.0f, info->content - info->view) / free_length;
+    return pointer_delta * oms_max(0.0f, info->content - info->view) / free_length;
 }
 
 /**

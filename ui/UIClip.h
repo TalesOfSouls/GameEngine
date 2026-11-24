@@ -31,15 +31,15 @@ FORCE_INLINE
 UIClipRect ui_clip_intersect(const UIClipRect& a, const UIClipRect& b) NO_EXCEPT
 {
     UIClipRect r = {
-        max_branched(a.left, b.left),
-        max_branched(a.bottom, b.bottom),
-        min_branched(a.right, b.right),
-        min_branched(a.top, b.top)
+        oms_max(a.left, b.left),
+        oms_max(a.bottom, b.bottom),
+        oms_min(a.right, b.right),
+        oms_min(a.top, b.top)
     };
 
     // Empty rects stay empty (no negative size)
-    r.right = max_branched(r.right, r.left);
-    r.top = max_branched(r.top, r.bottom);
+    r.right = oms_max(r.right, r.left);
+    r.top = oms_max(r.top, r.bottom);
 
     return r;
 }
@@ -104,10 +104,10 @@ bool ui_vertices_clip(
                 continue;
             }
 
-            const f32 cx0 = clamp_branched(x0, clip.left, clip.right);
-            const f32 cx1 = clamp_branched(x1, clip.left, clip.right);
-            const f32 cy0 = clamp_branched(y0, clip.bottom, clip.top);
-            const f32 cy1 = clamp_branched(y1, clip.bottom, clip.top);
+            const f32 cx0 = oms_clamp(x0, clip.left, clip.right);
+            const f32 cx1 = oms_clamp(x1, clip.left, clip.right);
+            const f32 cy0 = oms_clamp(y0, clip.bottom, clip.top);
+            const f32 cy1 = oms_clamp(y1, clip.bottom, clip.top);
 
             visible |= cx1 > cx0 && cy1 > cy0;
 
@@ -158,8 +158,8 @@ bool ui_vertices_clip(
             visible = true;
         }
 
-        p->position.x = clamp_branched(p->position.x, clip.left, clip.right);
-        p->position.y = clamp_branched(p->position.y, clip.bottom, clip.top);
+        p->position.x = oms_clamp(p->position.x, clip.left, clip.right);
+        p->position.y = oms_clamp(p->position.y, clip.bottom, clip.top);
 
         ++i;
     }

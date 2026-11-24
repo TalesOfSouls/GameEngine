@@ -888,7 +888,7 @@ void file_read(
         return;
     }
 
-    const uint64 read_length = OMS_MIN(length, fsize - offset);
+    const uint64 read_length = oms_min(length, fsize - offset);
 
     uint64 total = 0;
     while (total < read_length) {
@@ -915,14 +915,14 @@ uint64 file_count_lines(FileHandle fp, uint64 offset = 0, uint64 length = MAX_UI
         return 0;
     }
 
-    const uint64 read_length = OMS_MIN(length, fsize - offset);
+    const uint64 read_length = oms_min(length, fsize - offset);
 
     byte buffer[64 * 1024];
     uint64 total = 0;
     uint64 line_count = 0;
 
     while (total < read_length) {
-        const uint64 to_read = OMS_MIN(read_length - total, (uint64) sizeof(buffer));
+        const uint64 to_read = oms_min(read_length - total, (uint64) sizeof(buffer));
         const ssize_t bytes_read = pread(fp, buffer, to_read, (off_t) (offset + total));
         if (bytes_read <= 0) {
             break;
@@ -1073,7 +1073,7 @@ bool file_read_async(
         return false;
     }
 
-    const uint64 read_length = OMS_MIN(length, fsize - offset);
+    const uint64 read_length = oms_min(length, fsize - offset);
 
     uint64 total = 0;
     while (total < read_length) {
@@ -1115,7 +1115,7 @@ bool file_read_async(
     }
 
     if (mem != NULL) {
-        file->content = memory_get(mem, OMS_MIN(length, fsize - offset) + 1);
+        file->content = memory_get(mem, oms_min(length, fsize - offset) + 1);
     }
 
     return file_read_async(fp, file, offset, length);

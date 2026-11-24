@@ -303,7 +303,7 @@ void log(
         msg->time = log_sys_time();
         msg->newline = '\n';
 
-        const int32 message_length = (int32) OMS_MIN(
+        const int32 message_length = (int32) oms_min(
             (int32) (MAX_LOG_LENGTH - sizeof(LogMessage) - 1),
             len
         );
@@ -407,7 +407,7 @@ void log(
     const int32 message_size = (int32) (MAX_LOG_LENGTH - sizeof(LogMessage));
 
     char temp_format[MAX_LOG_LENGTH];
-    const int32 format_length = OMS_MIN(format.length, message_size - 1);
+    const int32 format_length = oms_min(format.length, message_size - 1);
     memcpy(msg->message, format.str, format_length);
     msg->message[format_length] = '\0';
 

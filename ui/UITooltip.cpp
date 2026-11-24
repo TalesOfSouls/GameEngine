@@ -61,7 +61,7 @@ void ui_tooltip_place(
             continue;
         }
 
-        text_width = max_branched(text_width, font_system_text_range_width(layout->font, content, line_start, i, label->font.size));
+        text_width = oms_max(text_width, font_system_text_range_width(layout->font, content, line_start, i, label->font.size));
 
         lines += i < length;
         line_start = i + 1;
@@ -77,12 +77,12 @@ void ui_tooltip_place(
 
     f32 left = x + UI_TOOLTIP_OFFSET;
     if (left + width > screen.x) {
-        left = max_branched(x - UI_TOOLTIP_OFFSET - width, 0.0f);
+        left = oms_max(x - UI_TOOLTIP_OFFSET - width, 0.0f);
     }
 
     f32 top = y - UI_TOOLTIP_OFFSET;
     if (top - height < 0.0f) {
-        top = min_branched(y + UI_TOOLTIP_OFFSET + height, screen.y);
+        top = oms_min(y + UI_TOOLTIP_OFFSET + height, screen.y);
     }
 
     // pos_raw = offset from the top left corner of the root (y is positive downwards)
@@ -129,7 +129,7 @@ void ui_tooltip_show(
 
     // The text is cut if it doesn't fit
     char* const content = (char *) (layout->ui_element_buffer.memory + label->content);
-    length = min_branched(length, ui_string_max_length(layout, label->content));
+    length = oms_min(length, ui_string_max_length(layout, label->content));
 
     const bool changed = memcmp(content, text, length) != 0 || content[length] != '\0';
     if (changed) {
