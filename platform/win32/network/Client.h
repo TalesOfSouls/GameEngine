@@ -19,18 +19,11 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
+// The socket library must be initialized by the caller (socket_init() / socket_cleanup())
 void socket_client_udp_create(SocketConnection* con, uint16 port = 0) {
-    WSADATA wsaData;
-
-    // Initialize Winsock
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        return;
-    }
-
     // Create socket
     con->sd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (con->sd == INVALID_SOCKET) {
-        WSACleanup();
         return;
     }
 
@@ -38,7 +31,6 @@ void socket_client_udp_create(SocketConnection* con, uint16 port = 0) {
     u_long mode = 1;
     if (ioctlsocket(con->sd, FIONBIO, &mode) != NO_ERROR) {
         closesocket(con->sd);
-        WSACleanup();
         return;
     }
 
@@ -49,7 +41,6 @@ void socket_client_udp_create(SocketConnection* con, uint16 port = 0) {
 
     if (bind(con->sd, (struct sockaddr*) &con->addr, sizeof(con->addr)) == SOCKET_ERROR) {
         closesocket(con->sd);
-        WSACleanup();
         return;
     }
 }

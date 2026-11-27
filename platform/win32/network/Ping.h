@@ -175,16 +175,13 @@ int32 ping_ipv6(const SOCKADDR_IN6* const address, int32 payload_size, int32 tim
  * @param int32         timeout         Timeout in milliseconds
  *
  * @return int32 -1 on error, 0 on timeout, round trip time in ms on success
+ *
+ * The socket library must be initialized by the caller (socket_init() / socket_cleanup())
  */
 static inline
 int32 ping_host(const char* const host, int32 payload_size, int32 timeout = 2000) NO_EXCEPT
 {
     if (!host || !*host || payload_size <= 0 || payload_size > 65500) {
-        return -1;
-    }
-
-    WSADATA wsa_data;
-    if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0) {
         return -1;
     }
 
@@ -194,8 +191,6 @@ int32 ping_host(const char* const host, int32 payload_size, int32 timeout = 2000
 
     ADDRINFOA* addresses = NULL;
     if (getaddrinfo(host, NULL, &hints, &addresses) != 0) {
-        WSACleanup();
-
         return -1;
     }
 
@@ -219,7 +214,6 @@ int32 ping_host(const char* const host, int32 payload_size, int32 timeout = 2000
 
             if (result > 0) {
                 freeaddrinfo(addresses);
-                WSACleanup();
 
                 return result;
             }
@@ -227,7 +221,6 @@ int32 ping_host(const char* const host, int32 payload_size, int32 timeout = 2000
     }
 
     freeaddrinfo(addresses);
-    WSACleanup();
 
     return result;
 }

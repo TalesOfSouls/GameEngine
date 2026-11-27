@@ -36,11 +36,17 @@ void socket_cleanup() NO_EXCEPT
     WSACleanup();
 }
 
+// Closes the socket (if valid) and invalidates the handle
 inline
-void socket_close(socketid sd) NO_EXCEPT
+void socket_close(socketid* const sd) NO_EXCEPT
 {
-    shutdown(sd, SD_BOTH);
-    closesocket(sd);
+    if (*sd == SOCKET_INVALID) {
+        return;
+    }
+
+    shutdown(*sd, SD_BOTH);
+    closesocket(*sd);
+    *sd = SOCKET_INVALID;
 }
 
 /**

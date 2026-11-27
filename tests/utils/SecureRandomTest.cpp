@@ -21,9 +21,6 @@ static void test_secure_random_bytes_invalid()
     TEST_FALSE(secure_random_bytes(NULL, sizeof(buffer)));
     TEST_FALSE(secure_random_bytes(buffer, 0));
     TEST_FALSE(secure_random_bytes(NULL, 0));
-
-    TEST_FALSE(secure_random_u32(NULL));
-    TEST_FALSE(secure_random_u64(NULL));
 }
 
 static void test_secure_random_bytes_success()
@@ -40,40 +37,6 @@ static void test_secure_random_bytes_success()
     byte large[256] = {};
     TEST_TRUE(secure_random_bytes(large, sizeof(large)));
     TEST_TRUE(secure_random_bytes(large + 128, 128));
-}
-
-static void test_secure_random_u32()
-{
-    uint32 values[8] = {};
-    bool all_ok = true;
-
-    for (int32 i = 0; i < 8; ++i) {
-        all_ok = all_ok && secure_random_u32(&values[i]);
-    }
-    TEST_TRUE(all_ok);
-
-    bool all_same = true;
-    for (int32 i = 1; i < 8; ++i) {
-        all_same = all_same && (values[i] == values[0]);
-    }
-    TEST_FALSE(all_same);
-}
-
-static void test_secure_random_u64()
-{
-    uint64 values[8] = {};
-    bool all_ok = true;
-
-    for (int32 i = 0; i < 8; ++i) {
-        all_ok = all_ok && secure_random_u64(&values[i]);
-    }
-    TEST_TRUE(all_ok);
-
-    bool all_same = true;
-    for (int32 i = 1; i < 8; ++i) {
-        all_same = all_same && (values[i] == values[0]);
-    }
-    TEST_FALSE(all_same);
 }
 
 static void test_secure_random_non_constant()
@@ -127,8 +90,6 @@ int main() {
 
     TEST_RUN(test_secure_random_bytes_invalid);
     TEST_RUN(test_secure_random_bytes_success);
-    TEST_RUN(test_secure_random_u32);
-    TEST_RUN(test_secure_random_u64);
     TEST_RUN(test_secure_random_non_constant);
     TEST_RUN(test_secure_random_overwrites_buffer);
 

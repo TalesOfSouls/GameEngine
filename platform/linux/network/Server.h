@@ -415,10 +415,10 @@ int32 socket_server_websocket_create(SocketConnection* con) {
 }
 
 void socket_connection_close(SocketConnection* con) {
-    socket_close(con->sd);
+    socket_close(&con->sd);
 
     if (con->fd) {
-        socket_close(con->fd);
+        socket_close(&con->fd);
     }
 }
 

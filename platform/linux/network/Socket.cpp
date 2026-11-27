@@ -28,11 +28,17 @@ void socket_cleanup() NO_EXCEPT
 {
 }
 
+// Closes the socket (if valid) and invalidates the handle
 inline
-void socket_close(socketid sd) NO_EXCEPT
+void socket_close(socketid* const sd) NO_EXCEPT
 {
-    shutdown(sd, SHUT_RDWR);
-    close(sd);
+    if (*sd == SOCKET_INVALID) {
+        return;
+    }
+
+    shutdown(*sd, SHUT_RDWR);
+    close(*sd);
+    *sd = SOCKET_INVALID;
 }
 
 /**

@@ -93,12 +93,15 @@ covered as well but are still being ported to the current APIs.
 |------|------------|
 | `utils/` | `BitUtils`, `EndianUtils`, `Utils`, `MathUtils`, `StringUtils`, `TimeUtils`, `SimpleString`, `SimpleStringUtils`, `RandomUtils`, `RegexSimplified`, `ConstantTime`, `SecureRandom` |
 | `math/` | `Evaluator` |
-| `hash/` | `Crc`, `GeneralHash`, `Sha1`, `Sha256`, `Hmac` (`HashTest.cpp`) |
+| `hash/` | `Crc`, `GeneralHash`, `Sha1`, `Sha256`, `Hmac` (`HashTest.cpp`), `Hkdf` (`EncryptionTest.cpp`) |
+| `encryption/` | `ChaCha20Poly1305`, `X25519` (RFC 8439 / RFC 7748 vectors, `EncryptionTest.cpp`) |
+| `network/` | `NetPacket`, `NetMessage`, `NetConnection`, `NetServer` (handshake, encryption, replay, acks/re-sends/ordering with loss, timeouts; in memory, no sockets) |
+| `network/packet/` | `NetBatch`, bit packed game messages (`MobStatePacket`, `MobInfoPacket`, `PlayerInfoPacket`) (`NetBatchTest.cpp`) |
 | `memory/` | `BufferMemory`, `RingMemory`, `ChunkMemory`, `ChunkMemoryT`, `Queue`, `QueueT`, `MemoryArena`, `Heap`, `PointerMemory`, `FragmentMemory`, `FragmentMemoryT`, `DataPool`, `SPSCQueueT`, `MPSCQueueT`, `MPMCQueueT`, `ThrdChunkMemory`, `ThrdChunkMemoryT` |
 | `stdlib/` | `HashMapT`, `ArrayVector`, `stdlib_internal`, `Helper`, `Types`/`Defines`, `PerfectHashMap`, `ThrdHashMapT`, `FixedFloat`, `Octree`, `Simd` |
 | Systems | `localization/Language`, `ui/UILayout`, `ui/UITheme`, `ui/UIText`, `asset/AssetArchive`, `system/DRM`, `system/FileUtils`, `image/Qoi` |
 
-Current size (uber build, DEBUG): **47 files, 483 test suites, ~7900 assertions**.
+Current size (uber build, DEBUG): **52 files, 536 test suites, ~9300 assertions**.
 
 Not tested / only partially tested:
 
@@ -109,5 +112,6 @@ Not tested / only partially tested:
 * `utils/RegexSimplified.h` only implements single element patterns, so only that subset
   is asserted (multi element patterns, `{n,m}` repetition and general alternation are
   not implemented yet).
-* `gpuapi/*`, `platform/*` (except `FileUtils`), `thread/*`, `network/*`, `audio/*`,
-  `compression/*`, `encoding/*` need a device/window or are still in flux.
+* `gpuapi/*`, `platform/*` (except `FileUtils`), `thread/*`, `network/*` (except the
+  envelope), `audio/*`, `compression/*`, `encoding/*` need a device/window or are still in flux.
+  `network/NetClient.h` needs sockets, it is covered by the AuthServer/ChatServer end to end tests.

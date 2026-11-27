@@ -2,6 +2,13 @@
 #ifndef COMS_NETWORK_PACKET_TYPES_H
 #define COMS_NETWORK_PACKET_TYPES_H
 
+// Message types of the game protocol: the type of a message in a NetBatch (NetBatch.h), every datagram is a network
+// envelope (NetPacket.h). Implemented messages (net_packet_serialize()):
+//      PACKET_TYPE_MOB_STATE_SNAPSHOT  MobStateSnapshot    mob/MobStatePacket.h
+//      PACKET_TYPE_MOB_STATE_DELTA     MobStateDelta       mob/MobStatePacket.h
+//      PACKET_TYPE_MOB_LOOKS           PlayerInfo          mob/player/PlayerInfoPacket.h
+//      PACKET_TYPE_MOB_INFO            MobInfo             mob/MobInfoPacket.h
+
 #define PACKET_TYPE_AUTH 0
 #define SUB_PACKET_TYPE_AUTH_LOGIN 0
 #define SUB_PACKET_TYPE_AUTH_LOADIN 1
@@ -53,12 +60,7 @@
 #define SUB_PACKET_TYPE_SHOP_BID 3
 #define SUB_PACKET_TYPE_SHOP_CANCEL 4
 
-#define PACKET_TYPE_SHOP 12
-#define SUB_PACKET_TYPE_SHOP_FIND 0
-#define SUB_PACKET_TYPE_SHOP_SELL 1
-#define SUB_PACKET_TYPE_SHOP_BUY 2
-#define SUB_PACKET_TYPE_SHOP_BID 3
-#define SUB_PACKET_TYPE_SHOP_CANCEL 4
+// 12 is unused (was a duplicate of PACKET_TYPE_SHOP)
 
 #define PACKET_TYPE_GROUP 13
 #define SUB_PACKET_TYPE_GROUP_INVITE 0
@@ -85,5 +87,8 @@
 #define SUB_PACKET_TYPE_GM_ACTION_CHAT_REMOVE 5
 #define SUB_PACKET_TYPE_GM_ACTION_AWARD_QUEST 6
 #define SUB_PACKET_TYPE_GM_ACTION_RESET_QUEST 7
+
+// Level, health, size, body of a mob (MobInfo, mob/MobInfoPacket.h)
+#define PACKET_TYPE_MOB_INFO 17
 
 #endif

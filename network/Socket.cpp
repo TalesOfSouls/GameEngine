@@ -71,37 +71,6 @@ socketid socket_udp_resolve(const char* const __restrict host, uint16 port, addr
 }
 
 /**
- * Creates a UDP socket for a server (use sendto/recvfrom with the address)
- *
- * @param const char*       host            Hostname or ip
- * @param uint16            port            Port
- * @param sockaddr_storage* address         Output: server address
- * @param int32*            address_length  Output: address size
- *
- * @return socketid SOCKET_INVALID on failure
- */
-inline
-socketid socket_udp_open(
-    const char* const __restrict host,
-    uint16 port,
-    sockaddr_storage* const __restrict address,
-    int32* const __restrict address_length
-) NO_EXCEPT
-{
-    addrinfo* result;
-    const socketid sd = socket_udp_resolve(host, port, &result);
-    if (sd == SOCKET_INVALID) {
-        return SOCKET_INVALID;
-    }
-
-    memcpy(address, result->ai_addr, result->ai_addrlen);
-    *address_length = (int32) result->ai_addrlen;
-    freeaddrinfo(result);
-
-    return sd;
-}
-
-/**
  * Creates a "connected" UDP socket (use send/recv, the OS drops datagrams of other senders)
  *
  * @param const char*   host    Hostname or ip
@@ -119,10 +88,10 @@ socketid socket_udp_connect(const char* const host, uint16 port) NO_EXCEPT
     }
 
     if (connect(sd, result->ai_addr, (int32) result->ai_addrlen) != 0) {
-        socket_close(sd);
-        sd = SOCKET_INVALID;
+        socket_close(&sd);
     }
 
+    // @question do we really need this dynamic allocation is so nasty
     freeaddrinfo(result);
 
     return sd;

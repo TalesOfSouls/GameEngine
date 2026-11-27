@@ -25,30 +25,4 @@
     #include "../platform/linux/SecureRandom.h"
 #endif
 
-/**
- * Generate a secure 64 bit value
- *
- * @param uint64* value Output value
- *
- * @return bool True on success
- */
-inline
-bool secure_random_u64(uint64* const value) NO_EXCEPT
-{
-    return secure_random_bytes(value, sizeof(*value));
-}
-
-/**
- * Generate a secure 32 bit value
- *
- * @param uint32* value Output value
- *
- * @return bool True on success
- */
-inline
-bool secure_random_u32(uint32* const value) NO_EXCEPT
-{
-    return secure_random_bytes(value, sizeof(*value));
-}
-
 #endif

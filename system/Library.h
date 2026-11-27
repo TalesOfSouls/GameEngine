@@ -8,6 +8,7 @@
 #define COMS_SYSTEM_LIBRARY_H
 
 #include "../stdlib/Stdlib.h"
+#include "../utils/SimpleString.h"
 
 // Only used as a pointer parameter below - a forward declaration keeps the
 // log/debug headers (and their include order) out of this file

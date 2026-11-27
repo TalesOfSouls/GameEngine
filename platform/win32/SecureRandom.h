@@ -11,6 +11,8 @@
 #include <bcrypt.h>
 #include "../../stdlib/Stdlib.h"
 
+#pragma comment(lib, "bcrypt.lib")
+
 /**
  * Fill a buffer with secure random bytes
  * Uses BCryptGenRandom (link against bcrypt)

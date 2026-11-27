@@ -1,4 +1,5 @@
 #include "../TestFramework.h"
+#include "../../utils/StringUtils.h"
 #include "../../utils/BitUtils.h"
 
 static void test_is_bit_set_l2r()
@@ -316,6 +317,275 @@ static void test_bits_peek() {
     TEST_EQUALS(bits_consume_8(&stream, 8), 0xBC);
 }
 
+// Bounded bit streams + serialize (BitWriter/BitReader)
+static void test_bit_stream_roundtrip() {
+    byte buffer[64];
+    BitWriter writer;
+    bit_writer_init(&writer, buffer, sizeof(buffer));
+
+    // Every width from 1 to 32 bits, values with all bits set and an odd pattern
+    for (uint32 bits = 1; bits <= 32; ++bits) {
+        bit_write(&writer, bits_mask(bits), bits);
+    }
+
+    // 1 + 2 + ... + 32 = 528 bits = 66 bytes don't fit into 64 -> the writer must report it
+    TEST_TRUE(writer.overflow);
+    TEST_EQUALS(bit_writer_flush(&writer), 0);
+
+    BitWriter big_writer;
+    byte big[128];
+    bit_writer_init(&big_writer, big, sizeof(big));
+
+    for (uint32 bits = 1; bits <= 32; ++bits) {
+        bit_write(&big_writer, bits_mask(bits) ^ 0x5, bits);
+    }
+
+    TEST_EQUALS(bit_writer_flush(&big_writer), 66);
+
+    BitReader reader;
+    bit_reader_init(&reader, big, 66);
+
+    for (uint32 bits = 1; bits <= 32; ++bits) {
+        TEST_EQUALS(bit_read(&reader, bits), (bits_mask(bits) ^ 0x5) & bits_mask(bits));
+    }
+
+    TEST_FALSE(reader.overflow);
+}
+
+static void test_bit_stream_overflow() {
+    byte buffer[2];
+    BitWriter writer;
+    bit_writer_init(&writer, buffer, sizeof(buffer));
+
+    bit_write(&writer, 0xFFF, 12);
+    TEST_FALSE(writer.overflow);
+
+    // 12 + 5 > 16 bits
+    bit_write(&writer, 1, 5);
+    TEST_TRUE(writer.overflow);
+    TEST_EQUALS(bit_writer_flush(&writer), 0);
+
+    // Reading past the end returns 0 and sets overflow, never reads out of bounds
+    const byte data[2] = {0xFF, 0xF0};
+    BitReader reader;
+    bit_reader_init(&reader, data, sizeof(data));
+
+    TEST_EQUALS(bit_read(&reader, 12), 0xFFF);
+    TEST_EQUALS(bit_read(&reader, 8), 0);
+    TEST_TRUE(reader.overflow);
+
+    // Further reads stay failed
+    TEST_EQUALS(bit_read(&reader, 1), 0);
+
+    // Bytes past the end
+    byte out[4];
+    bit_reader_init(&reader, data, sizeof(data));
+    bit_read_bytes(&reader, out, 3);
+    TEST_TRUE(reader.overflow);
+}
+
+static void test_bit_stream_bytes_alignment() {
+    byte buffer[16];
+    BitWriter writer;
+    bit_writer_init(&writer, buffer, sizeof(buffer));
+
+    const byte payload[3] = {0xAA, 0xBB, 0xCC};
+    bit_write(&writer, 5, 3);
+    bit_write_bytes(&writer, payload, sizeof(payload));
+    bit_write(&writer, 1, 1);
+
+    // 3 bits + padding to 8 + 24 bits + 1 bit -> 5 bytes
+    TEST_EQUALS(bit_writer_flush(&writer), 5);
+
+    BitReader reader;
+    bit_reader_init(&reader, buffer, 5);
+
+    byte out[3];
+    TEST_EQUALS(bit_read(&reader, 3), 5);
+    bit_read_bytes(&reader, out, sizeof(out));
+    TEST_MEMORY_EQUALS(out, payload, sizeof(payload));
+    TEST_EQUALS(bit_read(&reader, 1), 1);
+    TEST_FALSE(reader.overflow);
+
+    // Non zero padding is invalid
+    buffer[0] |= 0x01;
+    bit_reader_init(&reader, buffer, 5);
+    bit_read(&reader, 3);
+    bit_read_bytes(&reader, out, sizeof(out));
+    TEST_TRUE(reader.overflow);
+}
+
+static void test_bit_stream_serialize_ranges() {
+    byte buffer[32];
+    BitWriter writer;
+    bit_writer_init(&writer, buffer, sizeof(buffer));
+
+    uint8 level = 99;
+    int32 offset = -7;
+    bool flag = true;
+    uint64 big = 0x0123456789ABCDEFULL;
+
+    TEST_TRUE(serialize_uint(&writer, &level, 7));
+    TEST_TRUE(serialize_int_range(&writer, &offset, -10, 10));
+    TEST_TRUE(serialize_bool(&writer, &flag));
+    TEST_TRUE(serialize_u64(&writer, &big));
+
+    // 7 + 5 + 1 + 64 = 77 bits
+    TEST_EQUALS(bit_writer_bits(&writer), 77);
+
+    const uint32 size = bit_writer_flush(&writer);
+
+    BitReader reader;
+    bit_reader_init(&reader, buffer, size);
+
+    uint8 level_read = 0;
+    int32 offset_read = 0;
+    bool flag_read = false;
+    uint64 big_read = 0;
+
+    TEST_TRUE(serialize_uint(&reader, &level_read, 7));
+    TEST_TRUE(serialize_int_range(&reader, &offset_read, -10, 10));
+    TEST_TRUE(serialize_bool(&reader, &flag_read));
+    TEST_TRUE(serialize_u64(&reader, &big_read));
+
+    TEST_EQUALS(level_read, 99);
+    TEST_EQUALS(offset_read, -7);
+    TEST_TRUE(flag_read);
+    TEST_TRUE(big_read == 0x0123456789ABCDEFULL);
+
+    // Values that don't fit are rejected when writing
+    bit_writer_init(&writer, buffer, sizeof(buffer));
+    uint8 too_large = 200;
+    TEST_FALSE(serialize_uint(&writer, &too_large, 7));
+
+    bit_writer_init(&writer, buffer, sizeof(buffer));
+    int32 outside = 11;
+    TEST_FALSE(serialize_int_range(&writer, &outside, -10, 10));
+
+    // A corrupted value outside of the range is rejected when reading (5 bits allow 31 > range 20)
+    const byte corrupted[1] = {0xF8};
+    bit_reader_init(&reader, corrupted, sizeof(corrupted));
+    TEST_FALSE(serialize_int_range(&reader, &offset_read, -10, 10));
+}
+
+static void test_bit_stream_quantization() {
+    // Every quantized value is within half a step
+    const f32 precision = quantize_precision(0.0f, 32.0f, 12);
+    TEST_LESSER_THAN(precision, 0.004f);
+
+    for (int32 i = 0; i <= 1000; ++i) {
+        const f32 value = (f32) i * 0.032f;
+        const f32 restored = dequantize_float(quantize_float(value, 0.0f, 32.0f, 12), 0.0f, 32.0f, 12);
+
+        TEST_LESSER_THAN(fabsf(restored - value), precision + 0.00001f);
+    }
+
+    // Bounds are exact, outside values are clamped
+    TEST_EQUALS_WITH_DELTA(dequantize_float(quantize_float(-5.0f, -5.0f, 5.0f, 10), -5.0f, 5.0f, 10), -5.0, 0.00001);
+    TEST_EQUALS_WITH_DELTA(dequantize_float(quantize_float(5.0f, -5.0f, 5.0f, 10), -5.0f, 5.0f, 10), 5.0, 0.00001);
+    TEST_EQUALS(quantize_float(100.0f, -5.0f, 5.0f, 10), 1023);
+    TEST_EQUALS(quantize_float(-100.0f, -5.0f, 5.0f, 10), 0);
+
+    // Through the stream
+    byte buffer[16];
+    BitWriter writer;
+    bit_writer_init(&writer, buffer, sizeof(buffer));
+
+    v3_f32 position = {};
+    position.x = 1.25f;
+    position.y = 31.9f;
+    position.z = 17.0f;
+
+    TEST_TRUE(serialize_v3_range(&writer, &position, 0.0f, 32.0f, 12));
+    TEST_EQUALS(bit_writer_bits(&writer), 36);
+
+    BitReader reader;
+    bit_reader_init(&reader, buffer, bit_writer_flush(&writer));
+
+    v3_f32 restored = {};
+    TEST_TRUE(serialize_v3_range(&reader, &restored, 0.0f, 32.0f, 12));
+
+    TEST_EQUALS_WITH_DELTA(restored.x, 1.25, precision);
+    TEST_EQUALS_WITH_DELTA(restored.y, 31.9, precision);
+    TEST_EQUALS_WITH_DELTA(restored.z, 17.0, precision);
+}
+
+static void test_bit_stream_quaternion() {
+    // Several rotations incl. a negative largest component (q == -q)
+    const f32 rotations[][4] = {
+        {0.0f, 0.0f, 0.0f, 1.0f},
+        {0.7071068f, 0.0f, 0.0f, 0.7071068f},
+        {0.1f, -0.9f, 0.3f, 0.2f},
+        {0.5f, 0.5f, -0.5f, -0.5f},
+        {0.0f, 0.0f, -1.0f, 0.0f},
+    };
+
+    for (int32 r = 0; r < (int32) ARRAY_COUNT(rotations); ++r) {
+        quaternion q = {};
+        q.x = rotations[r][0];
+        q.y = rotations[r][1];
+        q.z = rotations[r][2];
+        q.w = rotations[r][3];
+
+        const f32 length = sqrtf(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+        q.x /= length;
+        q.y /= length;
+        q.z /= length;
+        q.w /= length;
+
+        byte buffer[8];
+        BitWriter writer;
+        bit_writer_init(&writer, buffer, sizeof(buffer));
+
+        TEST_TRUE(serialize_quaternion(&writer, &q, 9));
+        TEST_EQUALS(bit_writer_bits(&writer), 29);
+
+        BitReader reader;
+        bit_reader_init(&reader, buffer, bit_writer_flush(&writer));
+
+        quaternion restored = {};
+        TEST_TRUE(serialize_quaternion(&reader, &restored, 9));
+
+        // Same rotation: |dot| ~ 1 (q and -q are equal)
+        const f32 dot = q.x * restored.x + q.y * restored.y + q.z * restored.z + q.w * restored.w;
+        TEST_GREATER_THAN(fabsf(dot), 0.999f);
+
+        const f32 restored_length = restored.x * restored.x + restored.y * restored.y + restored.z * restored.z + restored.w * restored.w;
+        TEST_EQUALS_WITH_DELTA(restored_length, 1.0, 0.01);
+    }
+}
+
+static void test_bit_stream_string() {
+    byte buffer[64];
+    BitWriter writer;
+    bit_writer_init(&writer, buffer, sizeof(buffer));
+
+    char name[32] = "Aldric";
+    TEST_TRUE(serialize_string(&writer, name, sizeof(name)));
+
+    // 5 bits length + padding + 6 bytes instead of 32 bytes
+    const uint32 size = bit_writer_flush(&writer);
+    TEST_EQUALS(size, 7);
+
+    BitReader reader;
+    bit_reader_init(&reader, buffer, size);
+
+    char restored[32];
+    memset(restored, 'X', sizeof(restored));
+    TEST_TRUE(serialize_string(&reader, restored, sizeof(restored)));
+    TEST_EQUALS(str_compare(restored, "Aldric"), 0);
+    TEST_EQUALS(restored[31], 0);
+
+    // A length longer than the data is rejected
+    bit_reader_init(&reader, buffer, 3);
+    TEST_FALSE(serialize_string(&reader, restored, sizeof(restored)));
+
+    // Not terminated
+    char full[4] = {'a', 'b', 'c', 'd'};
+    bit_writer_init(&writer, buffer, sizeof(buffer));
+    TEST_FALSE(serialize_string(&writer, full, sizeof(full)));
+}
+
 #ifdef UBER_TEST
     #ifdef main
         #undef main
@@ -324,7 +594,7 @@ static void test_bits_peek() {
 #endif
 
 int main() {
-    TEST_INIT(75);
+    TEST_INIT(2048);
 
     TEST_RUN(test_is_bit_set_l2r);
     TEST_RUN(test_bit_set_l2r);
@@ -356,6 +626,14 @@ int main() {
     TEST_RUN(test_first_set_bit);
     TEST_RUN(test_bits_reverse);
     TEST_RUN(test_bits_count);
+
+    TEST_RUN(test_bit_stream_roundtrip);
+    TEST_RUN(test_bit_stream_overflow);
+    TEST_RUN(test_bit_stream_bytes_alignment);
+    TEST_RUN(test_bit_stream_serialize_ranges);
+    TEST_RUN(test_bit_stream_quantization);
+    TEST_RUN(test_bit_stream_quaternion);
+    TEST_RUN(test_bit_stream_string);
 
     TEST_RUN(test_bits_walk);
     TEST_RUN(test_bits_consume_8);

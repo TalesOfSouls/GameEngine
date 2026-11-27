@@ -14,6 +14,12 @@
     #define TEST_QOI 1
 #endif
 
+// winsock2.h must be included before windows.h (network tests)
+#if _WIN32
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+#endif
+
 #include "stdlib/Stdlib.h"
 #include "utils/RandomUtils.h"
 
@@ -34,6 +40,9 @@
 #include "tests/math/EvaluatorTest.cpp"
 #include "tests/math/MatrixTest.cpp"
 #include "tests/hash/HashTest.cpp"
+#include "tests/encryption/EncryptionTest.cpp"
+#include "tests/network/NetTest.cpp"
+#include "tests/network/NetBatchTest.cpp"
 
 // Utilities
 #include "tests/utils/BitUtilsTest.cpp"
@@ -123,6 +132,13 @@ int main() {
 
     // Hash
     HashUtilsTest();
+
+    // Encryption
+    EncryptionEncryptionTest();
+
+    // Network
+    NetworkNetTest();
+    NetworkNetBatchTest();
 
     // Utilities
     UtilsBitUtilsTest();
