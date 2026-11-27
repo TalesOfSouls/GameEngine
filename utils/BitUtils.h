@@ -728,6 +728,8 @@ f32 quantize_precision(f32 min, f32 max, uint32 bits) NO_EXCEPT
  * IF_CONSTEXPR (Stream::IS_WRITING) { bit_write(...) } else { bit_read(...) }.
  * IF_CONSTEXPR is only used for code that compiles for both streams (e.g. the
  * range checks).
+ * 
+ * @check why is value not a const?
  */
 FORCE_INLINE
 bool serialize_bits(BitWriter* stream, uint32* value, uint32 bits) NO_EXCEPT
@@ -737,6 +739,7 @@ bool serialize_bits(BitWriter* stream, uint32* value, uint32 bits) NO_EXCEPT
     return !stream->overflow;
 }
 
+// @check why not create a overloaded function that requires value as input for bit_read
 FORCE_INLINE
 bool serialize_bits(BitReader* stream, uint32* value, uint32 bits) NO_EXCEPT
 {
@@ -745,6 +748,7 @@ bool serialize_bits(BitReader* stream, uint32* value, uint32 bits) NO_EXCEPT
     return !stream->overflow;
 }
 
+// @check feels useless, just use the function inside directly and make it return a boolean for overflow
 FORCE_INLINE
 bool serialize_align(BitWriter* stream) NO_EXCEPT
 {
@@ -753,6 +757,7 @@ bool serialize_align(BitWriter* stream) NO_EXCEPT
     return !stream->overflow;
 }
 
+// @check feels useless, just use the function inside directly and make it return a boolean for overflow
 FORCE_INLINE
 bool serialize_align(BitReader* stream) NO_EXCEPT
 {
@@ -763,6 +768,8 @@ bool serialize_align(BitReader* stream) NO_EXCEPT
 
 /**
  * Fixed amount of raw bytes (byte aligned)
+ * 
+ * @check feels useless, just use the function inside directly and make it return a boolean for overflow
  */
 FORCE_INLINE
 bool serialize_bytes(BitWriter* stream, byte* data, uint32 size) NO_EXCEPT
@@ -772,6 +779,7 @@ bool serialize_bytes(BitWriter* stream, byte* data, uint32 size) NO_EXCEPT
     return !stream->overflow;
 }
 
+// @check feels useless, just use the function inside directly and make it return a boolean for overflow
 FORCE_INLINE
 bool serialize_bytes(BitReader* stream, byte* data, uint32 size) NO_EXCEPT
 {
